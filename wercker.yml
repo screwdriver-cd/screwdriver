@@ -1,0 +1,33 @@
+box: node:4
+
+build:
+  steps:
+    - npm-install
+    - npm-test
+
+deploy:
+  steps:
+    # Add our deploy key to SSH
+    - add-ssh-key:
+      keyname: GIT_KEY
+
+    # Add GitHub's SSH fingerprint to SSH known_hosts
+    - add-to-known_hosts:
+      hostname: github.com
+      fingerprint: 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48
+      type: rsa
+
+    - script:
+      name: Install a version generator
+      code: npm install -g npm-auto-version
+
+    - script:
+      name: Generate a new tag/version
+      code: npm-auto-version
+
+    # Publish to npm
+    - turistforeningen/npm-publish
+
+    - script:
+      name: Push Tags to GitHub.com
+      code: git push origin --tags

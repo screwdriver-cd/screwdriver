@@ -1,0 +1,37 @@
+{
+  "name": "screwdriver-api",
+  "version": "0.0.1",
+  "description": "API module for the Screwdriver CD service",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "jscs .",
+    "test": "jenkins-mocha --recursive"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:screwdriver-cd/api.git"
+  },
+  "homepage": "https://github.com/screwdriver-cd/api",
+  "bugs": "https://github.com/screwdriver-cd/api/issues",
+  "keywords": [
+    "screwdriver",
+    "yahoo"
+  ],
+  "license": "BSD-3-Clause",
+  "author": "Darren Matsumoto <aeneascorrupt@gmail.com>",
+  "contributors": [
+    "Dao Lam <d2lam@yahoo-inc.com>",
+    "Darren Matsumoto <aeneascorrupt@gmail.com>",
+    "Jeremiah Wuenschel <jer@yahoo-inc.com>",
+    "Noah Katzman <nkatzman@yahoo-inc.com>",
+    "Peter Peterson <jedipetey@gmail.com>",
+    "St. John Johnson <st.john.johnson@gmail.com",
+    "Tiffany Kyi <tiffanykyi@gmail.com>"
+  ],
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "jenkins-mocha": "^2.6.0",
+    "jscs": "^3.0.3"
+  },
+  "dependencies": {}
+}
