@@ -1,0 +1,3 @@
+artifacts/
+node_modules/
+features/*.feature
