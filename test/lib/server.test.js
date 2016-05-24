@@ -40,7 +40,7 @@ describe('server case', () => {
         });
 
         it('injects the status', (done) => {
-            hapiEngine((error, server) => {
+            hapiEngine([], (error, server) => {
                 Assert.notOk(error);
                 server.inject({
                     method: 'GET',
@@ -52,10 +52,30 @@ describe('server case', () => {
             });
         });
 
+        it('registers an additional plugin', (done) => {
+            hapiEngine([
+                {
+                    // eslint-disable-next-line global-require
+                    register: require('../testData/dummyPlugin'),
+                    options: {}
+                }
+            ], (err, server) => {
+                Assert.notOk(err);
+                server.inject({
+                    method: 'GET',
+                    url: '/v3/dummy'
+                }, (response) => {
+                    Assert.equal(response.statusCode, 200);
+                    Assert.equal(response.payload, 'dummy');
+                    done();
+                });
+            });
+        });
+
         it('does it with a different port', (done) => {
             processEnvMock.PORT = 12347;
 
-            hapiEngine((error, server) => {
+            hapiEngine([], (error, server) => {
                 Assert.notOk(error);
                 server.inject({
                     method: 'GET',
@@ -82,7 +102,7 @@ describe('server case', () => {
 
         it('callsback errors with register plugins', (done) => {
             registrationManMock.yieldsAsync('registrationMan fail');
-            hapiEngine((error) => {
+            hapiEngine([], (error) => {
                 Assert.strictEqual('registrationMan fail', error);
                 done();
             });
