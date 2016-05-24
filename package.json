@@ -4,8 +4,10 @@
   "description": "API module for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
-    "pretest": "jscs .",
-    "test": "jenkins-mocha --recursive"
+    "lint": "eslint .",
+    "test": "jenkins-mocha --recursive",
+    "start": "PORT=8666 node index.js",
+    "functional": "cucumber-js --format=pretty --format=json:${TEST_DIR}/cucumber_output.json; cat ${TEST_DIR}/cucumber_output.json | cucumber-junit > ${TEST_DIR}/func_test_results.xml"
   },
   "repository": {
     "type": "git",
@@ -20,18 +22,36 @@
   "license": "BSD-3-Clause",
   "author": "Darren Matsumoto <aeneascorrupt@gmail.com>",
   "contributors": [
-    "Dao Lam <d2lam@yahoo-inc.com>",
+    "Dao Lam <daolam112@gmail.com>",
     "Darren Matsumoto <aeneascorrupt@gmail.com>",
-    "Jeremiah Wuenschel <jer@yahoo-inc.com>",
+    "Jeremiah Wuenschel <jeremiah.wuenschel@gmail.com>",
     "Noah Katzman <nkatzman@yahoo-inc.com>",
     "Peter Peterson <jedipetey@gmail.com>",
     "St. John Johnson <st.john.johnson@gmail.com",
     "Tiffany Kyi <tiffanykyi@gmail.com>"
   ],
-  "devDependencies": {
-    "chai": "^3.5.0",
-    "jenkins-mocha": "^2.6.0",
-    "jscs": "^3.0.3"
+  "dependencies": {
+    "async": "^2.0.0-rc.5",
+    "good": "^7.0.0",
+    "good-console": "^6.1.1",
+    "good-squeeze": "^3.0.1",
+    "hapi": "^13.3.0",
+    "hapi-swagger": "^5.1.0",
+    "inert": "^3.2.1",
+    "vision": "^4.1.0"
   },
-  "dependencies": {}
+  "devDependencies": {
+    "chai": "~3.5.0",
+    "cucumber": "^0.10.2",
+    "cucumber-junit": "^1.5.0",
+    "eslint": "^2.10.2",
+    "eslint-config-screwdriver": "^1.0.1",
+    "eslint-plugin-import": "^1.8.0",
+    "eslint-plugin-jsx-a11y": "^1.2.2",
+    "eslint-plugin-react": "^5.1.1",
+    "jenkins-mocha": "~2.6.0",
+    "mockery": "^1.7.0",
+    "request": "~2.72.0",
+    "sinon": "~1.17.4"
+  }
 }
