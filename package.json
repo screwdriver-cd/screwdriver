@@ -1,12 +1,12 @@
 {
   "name": "screwdriver-api",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "API module for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
     "test": "jenkins-mocha --recursive",
-    "start": "PORT=8666 node index.js",
+    "start": "PORT=8666 node localserver.js",
     "functional": "cucumber-js --format=pretty --format=json:${TEST_DIR}/cucumber_output.json; cat ${TEST_DIR}/cucumber_output.json | cucumber-junit > ${TEST_DIR}/func_test_results.xml"
   },
   "repository": {
