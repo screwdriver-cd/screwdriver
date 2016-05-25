@@ -23,9 +23,9 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [npm-url]: https://npmjs.org/package/screwdriver-api
 [downloads-image]: https://img.shields.io/npm/dt/screwdriver-api.svg
 [license-image]: https://img.shields.io/npm/l/screwdriver-api.svg
-[issues-image]: https://img.shields.io/github/issues/screwdriver-cd/screwdriver-api.svg
-[issues-url]: https://github.com/screwdriver-cd/screwdriver-api/issues
+[issues-image]: https://img.shields.io/github/issues/screwdriver-cd/api.svg
+[issues-url]: https://github.com/screwdriver-cd/api/issues
 [wercker-image]: https://app.wercker.com/status/3b34e93cc47c1b05d484158c012cb731
 [wercker-url]: https://app.wercker.com/project/bykey/3b34e93cc47c1b05d484158c012cb731
-[daviddm-image]: https://david-dm.org/screwdriver-cd/screwdriver-api.svg?theme=shields.io
-[daviddm-url]: https://david-dm.org/screwdriver-cd/screwdriver-api
+[daviddm-image]: https://david-dm.org/screwdriver-cd/api.svg?theme=shields.io
+[daviddm-url]: https://david-dm.org/screwdriver-cd/api
