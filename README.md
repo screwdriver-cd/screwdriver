@@ -1,4 +1,4 @@
-# Screwdriver Screwdriver API
+# Screwdriver API
 [![Version][npm-image]][npm-url] ![Downloads][downloads-image] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] ![License][license-image]
 
 > API module for the Screwdriver CD service
@@ -9,10 +9,31 @@
 npm install screwdriver-api
 ```
 
-## Testing
+To start the server:
+```bash
+npm start
+```
 
+The server now exposes the following route(s):
+```
+http://localhost:8666/v3/status
+```
+
+## Testing
+### Running unit tests:
 ```bash
 npm test
+```
+
+### Running functional tests:
+Start the server first by running:
+```bash
+npm start
+```
+
+On a different terminal, run functional tests:
+```bash
+INSTANCE="http://localhost:8666" TEST_DIR="./artifacts" npm run functional
 ```
 
 ## License
