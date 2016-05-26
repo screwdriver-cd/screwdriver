@@ -38,6 +38,7 @@
     "hapi": "^13.3.0",
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
+    "screwdriver-plugin-builds": "^1.0.1",
     "vision": "^4.1.0"
   },
   "devDependencies": {
