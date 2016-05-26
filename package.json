@@ -1,13 +1,16 @@
 {
   "name": "screwdriver-api",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "API module for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
+    "pretest": "eslint .",
     "test": "jenkins-mocha --recursive",
-    "start": "PORT=8666 node index.js",
-    "functional": "cucumber-js --format=pretty --format=json:${TEST_DIR}/cucumber_output.json; cat ${TEST_DIR}/cucumber_output.json | cucumber-junit > ${TEST_DIR}/func_test_results.xml"
+    "start": "PORT=8666 node bin/server",
+    "functional": "cucumber-js --format=pretty --format=json:${TEST_DIR:=./artifacts}/cucumber_output.json; cat ${TEST_DIR:=./artifacts}/cucumber_output.json | cucumber-junit > ${TEST_DIR:=./artifacts}/func_test_results.xml"
+  },
+  "bin": {
+    "screwdriver-api": "./bin/server"
   },
   "repository": {
     "type": "git",
@@ -39,7 +42,8 @@
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
     "screwdriver-plugin-builds": "^1.0.1",
-    "vision": "^4.1.0"
+    "vision": "^4.1.0",
+    "winston": "^2.2.0"
   },
   "devDependencies": {
     "chai": "~3.5.0",

@@ -5,8 +5,6 @@ const sinon = require('sinon');
 
 describe('server case', () => {
     let hapiEngine;
-    let sandbox;
-    let processEnvMock;
 
     before(() => {
         mockery.enable({
@@ -16,15 +14,11 @@ describe('server case', () => {
     });
 
     beforeEach(() => {
-        sandbox = sinon.sandbox.create();
-        processEnvMock = {};
-        sandbox.stub(process, 'env', processEnvMock);
     });
 
     afterEach(() => {
         mockery.deregisterAll();
         mockery.resetCache();
-        sandbox.restore();
         hapiEngine = null;
     });
 
@@ -33,35 +27,29 @@ describe('server case', () => {
     });
 
     describe('positive cases', () => {
+        let registrationManMock;
+
         beforeEach(() => {
+            registrationManMock = sinon.stub();
+
+            mockery.registerMock('./registerPlugins', registrationManMock);
             /* eslint-disable global-require */
             hapiEngine = require('../../lib/server');
             /* eslint-enable global-require */
         });
 
-        it('injects the status', (done) => {
-            hapiEngine((error, server) => {
-                Assert.notOk(error);
-                server.inject({
-                    method: 'GET',
-                    url: '/v3/status'
-                }, (response) => {
-                    Assert.equal(response.statusCode, 200);
-                    done();
-                });
-            });
-        });
-
         it('does it with a different port', (done) => {
-            processEnvMock.PORT = 12347;
+            registrationManMock.yieldsAsync(null);
 
-            hapiEngine((error, server) => {
+            hapiEngine({
+                port: 12347
+            }, (error, server) => {
                 Assert.notOk(error);
                 server.inject({
                     method: 'GET',
-                    url: '/v3/status'
+                    url: '/blah'
                 }, (response) => {
-                    Assert.equal(response.statusCode, 200);
+                    Assert.equal(response.statusCode, 404);
                     Assert.include(response.request.info.host, '12347');
                     done();
                 });
@@ -82,7 +70,7 @@ describe('server case', () => {
 
         it('callsback errors with register plugins', (done) => {
             registrationManMock.yieldsAsync('registrationMan fail');
-            hapiEngine((error) => {
+            hapiEngine({}, (error) => {
                 Assert.strictEqual('registrationMan fail', error);
                 done();
             });

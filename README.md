@@ -1,4 +1,4 @@
-# Screwdriver Screwdriver API
+# Screwdriver API
 [![Version][npm-image]][npm-url] ![Downloads][downloads-image] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] ![License][license-image]
 
 > API module for the Screwdriver CD service
@@ -14,17 +14,34 @@ const API = require('screwdriver-api');
 const Datastore = require('screwdriver-datastore-dynamodb');
 
 const server = new API({
-    datastore: new Datastore({
-        field: '???'
-    }),
+    datastore: new Datastore(),
     port: 8666
+}, (error, server) {
+    if (error) {
+        return console.error(error);
+    }
+    console.log('Server running at ', server.info.uri);
 });
 ```
 
 ## Testing
 
+### Unit Tests
+
 ```bash
 npm test
+```
+
+### Functional tests
+
+First start the demo server:
+```bash
+npm start
+```
+
+Then run the cucumber tests:
+```bash
+INSTANCE="http://localhost:8666" npm run functional
 ```
 
 ## License
