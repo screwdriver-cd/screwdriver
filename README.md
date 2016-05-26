@@ -9,6 +9,18 @@
 npm install screwdriver-api
 ```
 
+```javascript
+const API = require('screwdriver-api');
+const Datastore = require('screwdriver-datastore-dynamodb');
+
+const server = new API({
+    datastore: new Datastore({
+        field: '???'
+    }),
+    port: 8666
+});
+```
+
 ## Testing
 
 ```bash
