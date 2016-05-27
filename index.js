@@ -1,2 +1,4 @@
 'use strict';
-module.exports = require('./lib/server')();
+const server = require('./lib/server');
+
+module.exports = (config, callback) => server(config, callback);

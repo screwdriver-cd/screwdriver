@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+'use strict';
+
+const winston = require('winston');
+const inMemoryDatastore = {
+    scanAll: (next) => {
+        next(new Error('Scan All Not Implemented'));
+    },
+    get: (id, next) => {
+        next(new Error(`Get ${id} Not Implemented`));
+    }
+};
+
+require('../')({
+    port: process.env.PORT,
+    datastore: inMemoryDatastore
+}, (err, server) => {
+    if (err) {
+        winston.error(err);
+
+        return process.exit(1);
+    }
+
+    return winston.info('Server running at %s', server.info.uri);
+});
