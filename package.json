@@ -42,6 +42,7 @@
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
     "screwdriver-plugin-builds": "^1.0.1",
+    "screwdriver-plugin-pipelines": "0.0.2",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
   },
