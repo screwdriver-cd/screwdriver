@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "API module for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
@@ -42,7 +42,8 @@
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
     "screwdriver-plugin-builds": "^1.0.1",
-    "screwdriver-plugin-pipelines": "0.0.2",
+    "screwdriver-plugin-jobs": "^1.0.0",
+    "screwdriver-plugin-pipelines": "^1.0.0",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
   },

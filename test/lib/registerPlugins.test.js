@@ -15,6 +15,7 @@ describe('Register Unit Test Case', () => {
     ];
     const resourcePlugins = [
         'screwdriver-plugin-builds',
+        'screwdriver-plugin-jobs',
         'screwdriver-plugin-pipelines'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
