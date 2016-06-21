@@ -6,7 +6,7 @@
   "scripts": {
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive",
-    "start": "PORT=8666 node bin/server",
+    "start": "PORT=8080 node bin/server",
     "functional": "cucumber-js --format=pretty --format=json:${TEST_DIR:=./artifacts}/cucumber_output.json; cat ${TEST_DIR:=./artifacts}/cucumber_output.json | cucumber-junit > ${TEST_DIR:=./artifacts}/func_test_results.xml"
   },
   "bin": {
@@ -41,6 +41,7 @@
     "hapi": "^13.3.0",
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
+    "screwdriver-datastore-imdb": "0.0.5",
     "screwdriver-plugin-builds": "^1.0.1",
     "screwdriver-plugin-pipelines": "0.0.2",
     "vision": "^4.1.0",

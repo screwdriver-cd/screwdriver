@@ -2,17 +2,10 @@
 'use strict';
 
 const winston = require('winston');
-const inMemoryDatastore = {
-    scanAll: (next) => {
-        next(new Error('Scan All Not Implemented'));
-    },
-    get: (id, next) => {
-        next(new Error(`Get ${id} Not Implemented`));
-    }
-};
+const inMemoryDatastore = require('screwdriver-datastore-imdb');
 
 require('../')({
-    port: process.env.PORT,
+    port: process.env.PORT || 8080,
     datastore: inMemoryDatastore
 }, (err, server) => {
     if (err) {
