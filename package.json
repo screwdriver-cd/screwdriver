@@ -41,7 +41,7 @@
     "hapi": "^13.3.0",
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
-    "screwdriver-datastore-imdb": "0.0.5",
+    "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-plugin-builds": "^1.0.1",
     "screwdriver-plugin-jobs": "^1.0.0",
     "screwdriver-plugin-pipelines": "^1.0.0",
