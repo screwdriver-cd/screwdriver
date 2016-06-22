@@ -45,6 +45,7 @@
     "screwdriver-plugin-builds": "^1.0.1",
     "screwdriver-plugin-jobs": "^1.0.0",
     "screwdriver-plugin-pipelines": "^1.0.0",
+    "screwdriver-plugin-platforms": "^1.0.0",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
   },
