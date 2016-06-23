@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sdapi
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: screwdriver
+        tier: api
+    spec:
+      containers:
+      - name: screwdriver-api
+        image: screwdrivercd/api:mockdata
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: apikey
+          mountPath: /etc/kubernetes/apikey
+          readOnly: true
+      volumes:
+      - name: apikey
+        secret:
+          secretName: default-token-sw0ar
