@@ -2,11 +2,14 @@
 'use strict';
 
 const winston = require('winston');
+const path = require('path');
 const inMemoryDatastore = require('screwdriver-datastore-imdb');
 
 require('../')({
     port: process.env.PORT || 8080,
-    datastore: inMemoryDatastore
+    datastore: new inMemoryDatastore({
+        filename: path.join(process.env.DATA_DIR || process.cwd(), '/database.json')
+    })
 }, (err, server) => {
     if (err) {
         winston.error(err);
