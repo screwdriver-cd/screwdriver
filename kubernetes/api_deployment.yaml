@@ -12,14 +12,23 @@ spec:
     spec:
       containers:
       - name: screwdriver-api
-        image: screwdrivercd/api:mockdata
+        image: screwdrivercd/api
         ports:
         - containerPort: 8080
         volumeMounts:
         - name: apikey
           mountPath: /etc/kubernetes/apikey
           readOnly: true
+        - name: screwdriver-imdb
+          mountPath: /opt/screwdriver/data
+        env:
+          - name: DATA_DIR
+            value: /opt/screwdriver/data
       volumes:
       - name: apikey
         secret:
           secretName: default-token-sw0ar
+      - name: screwdriver-imdb
+        awsElasticBlockStore:
+          volumeID: vol-3ea656b7
+          fsType: ext4
