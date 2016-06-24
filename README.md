@@ -44,6 +44,20 @@ Then run the cucumber tests:
 INSTANCE="http://localhost:8666" npm run functional
 ```
 
+## Deployment
+
+### Into Kubernetes
+
+The `kubernetes` directory contains service and deployment definitions for running the Screwdriver API.
+For a fresh deployment, run something like the following:
+
+    kubectl create -f kubernetes/api_service.yaml
+    kubectl create -f kubernetes/api_deployment.yaml
+
+For upgrades, Kubernetes can replace just the deployment with the latest image via:
+
+    kubectl replace -f kubernetes/api_deployment.yaml
+
 ## License
 
 Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
