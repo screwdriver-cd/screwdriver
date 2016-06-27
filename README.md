@@ -24,6 +24,39 @@ const server = new API({
 });
 ```
 
+It's also possible to override the config value passed to a resource plugin that is registered.
+The resource plugins being registered are:
+
+1. screwdriver-plugin-login
+2. screwdriver-plugin-builds
+3. screwdriver-plugin-jobs
+4. screwdriver-plugin-pipelines
+5. screwdriver-plugin-platforms
+
+To override a config value specify it in the config passed to screwdriver-api
+```js
+const API = require('screwdriver-api');
+const Datastore = require('screwdriver-datastore-dynamodb');
+
+const server = new API({
+    datastore: new Datastore(),
+    'screwdriver-plugin-login': {
+        login1: 'value1',
+        login2: 'value2'
+        datastore: new Datastore()
+    }
+    port: 8666
+}, (error, server) {
+    if (error) {
+        return console.error(error);
+    }
+    console.log('Server running at ', server.info.uri);
+});
+```
+
+When registering plugin `screwdriver-plugin-login` the specified config object will
+be passed.
+
 ## Testing
 
 ### Unit Tests

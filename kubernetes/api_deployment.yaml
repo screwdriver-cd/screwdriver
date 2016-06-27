@@ -24,11 +24,32 @@ spec:
         env:
           - name: DATA_DIR
             value: /opt/screwdriver/data
+          - name: SECRET_JWT_PRIVATE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: plugin-login-secrets
+                key: jwtprivatekey
+          - name: SECRET_OAUTH_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: plugin-login-secrets
+                key: oauthclientid
+          - name: SECRET_OAUTH_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: plugin-login-secrets
+                key: oauthclientsecret
+          - name: SECRET_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: plugin-login-secrets
+                key: password
+
       volumes:
       - name: apikey
         secret:
           secretName: default-token-sw0ar
       - name: screwdriver-imdb
         awsElasticBlockStore:
-          volumeID: vol-3ea656b7
+          volumeID: vol-99e81310
           fsType: ext4

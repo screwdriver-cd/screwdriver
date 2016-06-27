@@ -14,6 +14,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/swagger'
     ];
     const resourcePlugins = [
+        'screwdriver-plugin-login',
         'screwdriver-plugin-builds',
         'screwdriver-plugin-jobs',
         'screwdriver-plugin-pipelines',
@@ -94,6 +95,32 @@ describe('Register Unit Test Case', () => {
                         prefix: '/v3'
                     }
                 });
+            });
+
+            done();
+        });
+    });
+
+    it('registers data for plugin when specified in the config object', (done) => {
+        serverMock.register.callsArgAsync(2);
+
+        main(serverMock, {
+            datastore: config.datastore,
+            'screwdriver-plugin-login': {
+                foo: 'bar'
+            }
+        }, () => {
+            Assert.equal(serverMock.register.callCount, pluginLength);
+
+            Assert.calledWith(serverMock.register, {
+                register: mocks['screwdriver-plugin-login'],
+                options: {
+                    foo: 'bar'
+                }
+            }, {
+                routes: {
+                    prefix: '/v3'
+                }
             });
 
             done();
