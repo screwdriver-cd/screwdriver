@@ -4,7 +4,6 @@
 const winston = require('winston');
 const path = require('path');
 const inMemoryDatastore = require('screwdriver-datastore-imdb');
-const fs = require('fs');
 
 const jwtPrivateKey = process.env.SECRET_JWT_PRIVATE_KEY;
 const oauthClientId = process.env.SECRET_OAUTH_CLIENT_ID;
