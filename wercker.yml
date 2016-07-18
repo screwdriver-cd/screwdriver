@@ -1,4 +1,4 @@
-box: node:4
+box: node:6
 
 build:
   steps:
