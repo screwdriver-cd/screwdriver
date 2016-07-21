@@ -2,27 +2,34 @@
 'use strict';
 
 const winston = require('winston');
-const path = require('path');
-const inMemoryDatastore = require('screwdriver-datastore-imdb');
+const config = require('config');
 
-const jwtPrivateKey = process.env.SECRET_JWT_PRIVATE_KEY;
-const oauthClientId = process.env.SECRET_OAUTH_CLIENT_ID;
-const oauthClientSecret = process.env.SECRET_OAUTH_CLIENT_SECRET;
-const password = process.env.SECRET_PASSWORD;
-const https = process.env.IS_HTTPS || false;
+// Setup Datastore
+const datastoreConfig = config.get('datastore');
+const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
+const datastore = new DatastorePlugin(datastoreConfig[datastoreConfig.plugin]);
+
+// Setup Executor
+// @TODO Remove this hackery after this is resolved
+//  https://github.com/screwdriver-cd/executor-k8s/issues/20
+if (config.has('executor.k8s.host')) {
+    process.env.K8S_HOST = config.get('executor.k8s.host');
+}
+if (config.has('executor.k8s.token')) {
+    process.env.K8S_TOKEN = config.get('executor.k8s.token');
+}
+
+// Setup Login
+const loginConfig = config.get('login');
+
+// Setup httpd
+const httpdConfig = config.get('httpd');
+const port = httpdConfig.port;
 
 require('../')({
-    port: process.env.PORT || 8080,
-    datastore: new inMemoryDatastore({
-        filename: path.join(process.env.DATA_DIR || process.cwd(), '/database.json')
-    }),
-    'screwdriver-plugin-login': {
-        https,
-        jwtPrivateKey,
-        oauthClientId,
-        oauthClientSecret,
-        password
-    }
+    port,
+    datastore,
+    'screwdriver-plugin-login': loginConfig
 }, (err, server) => {
     if (err) {
         winston.error(err);

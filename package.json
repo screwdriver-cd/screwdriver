@@ -1,16 +1,13 @@
 {
   "name": "screwdriver-api",
   "version": "1.0.0",
-  "description": "API module for the Screwdriver CD service",
+  "description": "API server for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive",
-    "start": "PORT=8080 node bin/server",
+    "start": "./bin/server",
     "functional": "cucumber-js --format=pretty --format=json:${TEST_DIR:=./artifacts}/cucumber_output.json; cat ${TEST_DIR:=./artifacts}/cucumber_output.json | cucumber-junit > ${TEST_DIR:=./artifacts}/func_test_results.xml"
-  },
-  "bin": {
-    "screwdriver-api": "./bin/server"
   },
   "repository": {
     "type": "git",
@@ -20,7 +17,9 @@
   "bugs": "https://github.com/screwdriver-cd/api/issues",
   "keywords": [
     "screwdriver",
-    "yahoo"
+    "yahoo",
+    "continuous delivery",
+    "continuous integration"
   ],
   "license": "BSD-3-Clause",
   "author": "Darren Matsumoto <aeneascorrupt@gmail.com>",
@@ -35,12 +34,14 @@
   ],
   "dependencies": {
     "async": "^2.0.0-rc.5",
+    "config": "^1.21.0",
     "good": "^7.0.0",
     "good-console": "^6.1.1",
     "good-squeeze": "^3.0.1",
     "hapi": "^13.3.0",
     "hapi-swagger": "^5.1.0",
     "inert": "^3.2.1",
+    "js-yaml": "^3.6.1",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-plugin-builds": "^1.0.1",
     "screwdriver-plugin-jobs": "^1.0.0",
