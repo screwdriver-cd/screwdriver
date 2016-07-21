@@ -10,14 +10,9 @@ const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}
 const datastore = new DatastorePlugin(datastoreConfig[datastoreConfig.plugin]);
 
 // Setup Executor
-// @TODO Remove this hackery after this is resolved
-//  https://github.com/screwdriver-cd/executor-k8s/issues/20
-if (config.has('executor.k8s.host')) {
-    process.env.K8S_HOST = config.get('executor.k8s.host');
-}
-if (config.has('executor.k8s.token')) {
-    process.env.K8S_TOKEN = config.get('executor.k8s.token');
-}
+const executorConfig = config.get('executor');
+const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
+const executor = new ExecutorPlugin(executorConfig[executorConfig.plugin]);
 
 // Setup Login
 const loginConfig = config.get('login');
@@ -29,7 +24,11 @@ const port = httpdConfig.port;
 require('../')({
     port,
     datastore,
-    'screwdriver-plugin-login': loginConfig
+    'screwdriver-plugin-login': loginConfig,
+    'screwdriver-plugin-builds': {
+        datastore,
+        executor
+    }
 }, (err, server) => {
     if (err) {
         winston.error(err);
