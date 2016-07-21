@@ -44,11 +44,13 @@ spec:
               secretKeyRef:
                 name: plugin-login-secrets
                 key: password
+          - name: K8S_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: default-token-sw0ar
+                key: token
 
       volumes:
-      - name: apikey
-        secret:
-          secretName: default-token-sw0ar
       - name: screwdriver-imdb
         awsElasticBlockStore:
           volumeID: vol-4e36cdc7

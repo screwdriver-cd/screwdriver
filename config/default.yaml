@@ -1,0 +1,31 @@
+---
+login:
+    # A private key uses for signing jwt tokens. Can be anything
+    jwtPrivateKey: THIS-IS-AN-INSECURE-KEY
+    # The client id used for OAuth with github. Look up GitHub OAuth for details
+    # https://developer.github.com/v3/oauth/
+    oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
+    # The client secret used for OAuth with github
+    oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
+    # A password used for encrypting session, and OAuth data.
+    # **Needs to be minimum 32 characters**
+    password: WOW-ANOTHER-INSECURE-PASSWORD!!!
+    # A flag to set if the server is running over https.
+    # Used as a flag for the OAuth flow
+    https: false
+
+httpd:
+    port: 8080
+
+datastore:
+    plugin: imdb
+    imdb:
+        filename: ./database.json
+
+executor:
+    plugin: k8s
+    k8s:
+        # The host or IP of the kubernetes cluster
+        host: kubernetes
+        # The jwt token used for authenticating kubernetes requests
+        token: NOT-A-REAL-JWT-TOKEN

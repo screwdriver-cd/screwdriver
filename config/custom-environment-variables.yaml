@@ -1,0 +1,24 @@
+# All values in this document are the ENVIRONMENT variable names that can override the defaults
+# from `default.yaml`
+---
+login:
+    # A private key uses for signing jwt tokens. Can be anything
+    jwtPrivateKey: SECRET_JWT_PRIVATE_KEY
+    # The client id used for OAuth with github. Look up GitHub OAuth for details
+    # https://developer.github.com/v3/oauth/
+    oauthClientId: SECRET_OAUTH_CLIENT_ID
+    # The client secret used for OAuth with github
+    oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    # A password used for encrypting session, and OAuth data.
+    # **Needs to be minimum 32 characters**
+    password: SECRET_PASSWORD
+
+httpd:
+    port: PORT
+
+executor:
+    k8s:
+        # The host or IP of the kubernetes cluster
+        host: K8S_HOST
+        # The jwt token used for authenticating kubernetes requests
+        token: K8S_TOKEN

@@ -1,61 +1,59 @@
 # Screwdriver API
-[![Version][npm-image]][npm-url] ![Downloads][downloads-image] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] ![License][license-image]
+[![Version][npm-image]][npm-url] [![Pulls][docker-pulls]](docker-url) ![Stars][docker-stars] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] ![License][license-image]
 
-> API module for the Screwdriver CD service
+> API for the Screwdriver CD service
 
 ## Usage
 
+### From Source
+
 ```bash
-npm install screwdriver-api
+$ git clone git@github.com:screwdriver-cd/api.git ./
+$ npm install
+$ vim ./config/local.yaml # See below for configuration
+$ npm start
+info: Server running at http://localhost:8080
 ```
 
-```javascript
-const API = require('screwdriver-api');
-const Datastore = require('screwdriver-datastore-dynamodb');
+### Prebuilt Docker image
 
-const server = new API({
-    datastore: new Datastore(),
-    port: 8666
-}, (error, server) {
-    if (error) {
-        return console.error(error);
-    }
-    console.log('Server running at ', server.info.uri);
-});
+```bash
+$ vim ./local.yaml # See below for configuration
+$ docker run --rm -it --volume=`pwd`/local.yaml:/config/local.yaml -p 8080 screwdrivercd/api:latest
+info: Server running at http://localhost:8080
 ```
 
-It's also possible to override the config value passed to a resource plugin that is registered.
-The resource plugins being registered are:
+## Configuration
 
-1. screwdriver-plugin-login
-2. screwdriver-plugin-builds
-3. screwdriver-plugin-jobs
-4. screwdriver-plugin-pipelines
-5. screwdriver-plugin-platforms
+Screwdriver already [defaults most configuration](config/default.yaml), but you can override defaults using a `local.yaml` or environment variables.
 
-To override a config value specify it in the config passed to screwdriver-api
-```js
-const API = require('screwdriver-api');
-const Datastore = require('screwdriver-datastore-dynamodb');
+### Yaml
 
-const server = new API({
-    datastore: new Datastore(),
-    'screwdriver-plugin-login': {
-        login1: 'value1',
-        login2: 'value2'
-        datastore: new Datastore()
-    }
-    port: 8666
-}, (error, server) {
-    if (error) {
-        return console.error(error);
-    }
-    console.log('Server running at ', server.info.uri);
-});
+Example overriding `local.yaml`:
+
+```yaml
+executor:
+    k8s:
+        host: 127.0.0.1
+        token: this-is-a-real-token
+
+login:
+    oauthClientId: totally-real-client-id
+    oauthClientSecret: another-real-client-secret
 ```
 
-When registering plugin `screwdriver-plugin-login` the specified config object will
-be passed.
+### Environment
+
+Example overriding with environment variables:
+
+```bash
+$ export K8S_HOST=127.0.0.1
+$ export K8S_TOKEN=this-is-a-real-token
+$ export SECRET_OAUTH_CLIENT_ID=totally-real-client-id
+$ export SECRET_OAUTH_CLIENT_SECRET=another-real-client-secret
+```
+
+All the possible environment variables are [defined here](config/custom-environment-variables.yaml).
 
 ## Testing
 
@@ -74,7 +72,7 @@ npm start
 
 Then run the cucumber tests:
 ```bash
-INSTANCE="http://localhost:8666" npm run functional
+INSTANCE="http://localhost:8080" npm run functional
 ```
 
 ## Deployment
@@ -97,7 +95,9 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 
 [npm-image]: https://img.shields.io/npm/v/screwdriver-api.svg
 [npm-url]: https://npmjs.org/package/screwdriver-api
-[downloads-image]: https://img.shields.io/npm/dt/screwdriver-api.svg
+[docker-pulls]: https://img.shields.io/docker/pulls/screwdrivercd/api.svg
+[docker-stars]: https://img.shields.io/docker/stars/screwdrivercd/api.svg
+[docker-url]: https://hub.docker.com/r/screwdrivercd/api/
 [license-image]: https://img.shields.io/npm/l/screwdriver-api.svg
 [issues-image]: https://img.shields.io/github/issues/screwdriver-cd/api.svg
 [issues-url]: https://github.com/screwdriver-cd/api/issues
