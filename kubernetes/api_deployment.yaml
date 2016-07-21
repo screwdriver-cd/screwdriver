@@ -51,5 +51,5 @@ spec:
           secretName: default-token-sw0ar
       - name: screwdriver-imdb
         awsElasticBlockStore:
-          volumeID: vol-4e36cdc7
+          volumeID: vol-2d20aaa4
           fsType: ext4
