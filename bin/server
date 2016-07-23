@@ -24,7 +24,7 @@ const port = httpdConfig.port;
 require('../')({
     port,
     datastore,
-    'screwdriver-plugin-login': loginConfig,
+    login: loginConfig,
     builds: {
         datastore,
         executor
