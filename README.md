@@ -56,6 +56,23 @@ $ export SECRET_OAUTH_CLIENT_SECRET=another-real-client-secret
 
 All the possible environment variables are [defined here](config/custom-environment-variables.yaml).
 
+## Plugins
+
+This API comes preloaded with 4 (four) resources:
+ - [builds](plugins/builds/README.md)
+ - [jobs](plugins/jobs/README.md)
+ - [pipelines](plugins/pipelines/README.md)
+ - [platforms](plugins/platforms/README.md)
+
+An (authentication/authorization)(plugins/login/README.md) plugin.
+
+Two (2) options for datastores:
+ - In-Memory Database (`imdb`)
+ - Amazon DynamoDB (`dynamodb`)
+
+One (1) option for executor:
+ - Kubernetes (`k8s`)
+
 ## Testing
 
 ### Unit Tests

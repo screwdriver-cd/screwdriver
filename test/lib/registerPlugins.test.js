@@ -14,11 +14,11 @@ describe('Register Unit Test Case', () => {
         '../plugins/swagger'
     ];
     const resourcePlugins = [
-        'screwdriver-plugin-login',
-        'screwdriver-plugin-builds',
-        'screwdriver-plugin-jobs',
-        'screwdriver-plugin-pipelines',
-        'screwdriver-plugin-platforms'
+        '../plugins/login',
+        '../plugins/builds',
+        '../plugins/jobs',
+        '../plugins/pipelines',
+        '../plugins/platforms'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
     const mocks = {};
@@ -106,14 +106,14 @@ describe('Register Unit Test Case', () => {
 
         main(serverMock, {
             datastore: config.datastore,
-            'screwdriver-plugin-login': {
+            login: {
                 foo: 'bar'
             }
         }, () => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
             Assert.calledWith(serverMock.register, {
-                register: mocks['screwdriver-plugin-login'],
+                register: mocks['../plugins/login'],
                 options: {
                     foo: 'bar'
                 }
