@@ -1,0 +1,12 @@
+{
+    "id": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
+    "jobId": "62089f642bbfd1886623964b4cff12db59869e5d",
+    "number": 1,
+    "sha1": "58393af682d61de87789fb4961645c42180cec5a",
+    "cause": "Started by user foo",
+    "createTime": 1461347717091,
+    "startTime": 1461347149909,
+    "endTime": 1461347159909,
+    "parameters": {},
+    "status": "FAILURE"
+}

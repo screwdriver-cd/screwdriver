@@ -33,7 +33,8 @@
     "Tiffany Kyi <tiffanykyi@gmail.com>"
   ],
   "dependencies": {
-    "async": "^2.0.0-rc.5",
+    "async": "^2.0.1",
+    "boom": "^3.2.2",
     "config": "^1.21.0",
     "good": "^7.0.0",
     "good-console": "^6.1.1",
@@ -41,7 +42,9 @@
     "hapi": "^13.3.0",
     "hapi-swagger": "^6.1.0",
     "inert": "^4.0.1",
+    "joi": "^9.0.1",
     "js-yaml": "^3.6.1",
+    "screwdriver-data-schema": "^5.0.3",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^2.0.0",
     "screwdriver-plugin-builds": "^2.0.0",
@@ -49,6 +52,9 @@
     "screwdriver-plugin-login": "^1.0.0",
     "screwdriver-plugin-pipelines": "^1.0.0",
     "screwdriver-plugin-platforms": "^1.0.0",
+    "screwdriver-hashr": "^1.0.40",
+    "screwdriver-models": "^2.0.2",
+    "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
   },
