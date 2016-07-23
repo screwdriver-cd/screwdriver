@@ -1,0 +1,20 @@
+[
+    {
+        "id": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
+        "pipelineId": "76723e832f764a5fcea4ca412c54135d0e041613",
+        "name": "component",
+        "state": "ENABLED"
+    },
+    {
+        "id": "151c9b11e4a9a27e9e374daca6e59df37d8cf00f",
+        "pipelineId": "20429cccf301110e5cbcdbd8d60f4e670873eaf3",
+        "name": "deploy",
+        "state": "ENABLED"
+    },
+    {
+        "id": "62089f642bbfd1886623964b4cff12db59869e5d",
+        "pipelineId": "8aa72e702ff625b81729373dda40cb4b332cf4fd",
+        "name": "deploy",
+        "state": "DISABLED"
+    }
+]

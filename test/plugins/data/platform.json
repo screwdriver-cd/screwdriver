@@ -1,0 +1,10 @@
+{
+    "id": "334b3152916f7cbc59579f7a18744450d5a5a907",
+    "name": "nodejs_app",
+    "version": "1.0.0",
+    "config": {},
+    "author": "batman",
+    "docUrl": "http://blah.com",
+    "scmUrl": "git@github.com:screwdriver-cd/data-model.git",
+    "experimental": true
+}
