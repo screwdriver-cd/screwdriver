@@ -1,0 +1,7 @@
+{
+  "id": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
+  "platform": "node",
+  "scmUrl": "git@github.com:screwdriver-cd/data-model.git#master",
+  "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master",
+  "createTime": 0
+}
