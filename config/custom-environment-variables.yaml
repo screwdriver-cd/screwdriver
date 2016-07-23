@@ -16,6 +16,17 @@ login:
 httpd:
     port: PORT
 
+datastore:
+    plugin: DATASTORE_PLUGIN
+    imdb:
+        # File to read/write the database to
+        filename: DATASTORE_IMDB_FILENAME
+    dynamodb:
+        # AWS Access Key ID
+        accessKeyId: DATASTORE_DYNAMODB_ID
+        # AWS Secret Access Key
+        secretAccessKey: DATASTORE_DYNAMODB_SECRET
+
 executor:
     k8s:
         # The host or IP of the kubernetes cluster

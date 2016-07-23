@@ -15,10 +15,9 @@ spec:
         image: screwdrivercd/api
         ports:
         - containerPort: 8080
-        volumeMounts:
-        - name: screwdriver-imdb
-          mountPath: /opt/screwdriver/data
         env:
+          - name: DATASTORE_PLUGIN
+            value: dynamodb
           - name: DATA_DIR
             value: /opt/screwdriver/data
           - name: SECRET_JWT_PRIVATE_KEY
@@ -46,9 +45,13 @@ spec:
               secretKeyRef:
                 name: default-token-sw0ar
                 key: token
-
-      volumes:
-      - name: screwdriver-imdb
-        awsElasticBlockStore:
-          volumeID: vol-2d20aaa4
-          fsType: ext4
+          - name: DATASTORE_DYNAMODB_ID
+            valueFrom:
+              secretKeyRef:
+                name: datastore-dynamodb
+                key: id
+          - name: DATASTORE_DYNAMODB_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: datastore-dynamodb
+                key: secret

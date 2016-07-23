@@ -20,7 +20,13 @@ httpd:
 datastore:
     plugin: imdb
     imdb:
+        # File to read/write the database to
         filename: ./database.json
+    dynamodb:
+        # AWS Access Key ID
+        accessKeyId: WHAT-A-LEGITIMATE-LOOKING-KEY-ID
+        # AWS Secret Access Key
+        secretAccessKey: TOTALLY-REAL-LOOKING-AWS-KEYS
 
 executor:
     plugin: k8s
