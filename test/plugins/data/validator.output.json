@@ -1,0 +1,40 @@
+{
+  "jobs": {
+    "main": [
+      {
+        "image": "node:4",
+        "steps": {
+          "install": "npm install",
+          "test": "npm test",
+          "build": "npm run build"
+        },
+        "environment": {
+          "NODE_VERSION": 4
+        }
+      },
+      {
+        "image": "node:6",
+        "steps": {
+          "install": "npm install",
+          "test": "npm test",
+          "build": "npm run build"
+        },
+        "environment": {
+          "NODE_VERSION": 6
+        }
+      }
+    ],
+    "publish": [
+      {
+        "image": "node:4",
+        "steps": {
+          "install": "npm publish"
+        },
+        "environment": {}
+      }
+    ]
+  },
+  "workflow": [
+    "publish"
+  ]
+}
