@@ -8,7 +8,7 @@
 ### From Source
 
 ```bash
-$ git clone git@github.com:screwdriver-cd/api.git ./
+$ git clone git@github.com:screwdriver-cd/screwdriver.git ./
 $ npm install
 $ vim ./config/local.yaml # See below for configuration
 $ npm start
@@ -117,9 +117,9 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [docker-stars]: https://img.shields.io/docker/stars/screwdrivercd/api.svg
 [docker-url]: https://hub.docker.com/r/screwdrivercd/api/
 [license-image]: https://img.shields.io/npm/l/screwdriver-api.svg
-[issues-image]: https://img.shields.io/github/issues/screwdriver-cd/api.svg
-[issues-url]: https://github.com/screwdriver-cd/api/issues
+[issues-image]: https://img.shields.io/github/issues/screwdriver-cd/screwdriver.svg
+[issues-url]: https://github.com/screwdriver-cd/screwdriver/issues
 [wercker-image]: https://app.wercker.com/status/3b34e93cc47c1b05d484158c012cb731
 [wercker-url]: https://app.wercker.com/project/bykey/3b34e93cc47c1b05d484158c012cb731
-[daviddm-image]: https://david-dm.org/screwdriver-cd/api.svg?theme=shields.io
-[daviddm-url]: https://david-dm.org/screwdriver-cd/api
+[daviddm-image]: https://david-dm.org/screwdriver-cd/screwdriver.svg?theme=shields.io
+[daviddm-url]: https://david-dm.org/screwdriver-cd/screwdriver

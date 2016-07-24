@@ -11,10 +11,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:screwdriver-cd/api.git"
+    "url": "git@github.com:screwdriver-cd/screwdriver.git"
   },
-  "homepage": "https://github.com/screwdriver-cd/api",
-  "bugs": "https://github.com/screwdriver-cd/api/issues",
+  "homepage": "http://screwdriver.cd",
+  "bugs": "https://github.com/screwdriver-cd/screwdriver/issues",
   "keywords": [
     "screwdriver",
     "yahoo",
