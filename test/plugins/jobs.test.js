@@ -3,7 +3,6 @@ const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
-// const urlLib = require('url');
 
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');

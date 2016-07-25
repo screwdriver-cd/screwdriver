@@ -1,0 +1,1 @@
+{"yaml":"jobs:\n    main:\n        image: node:{{NODE_VERSION}}\n        matrix:\n            NODE_VERSION: [4,6]\n        steps:\n            install: npm install\n            test: npm test\n            build: npm run build\n\n    publish:\n        image: node:4\n        steps:\n            install: npm publish\n"}
