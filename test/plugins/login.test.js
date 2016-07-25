@@ -2,8 +2,20 @@
 const assert = require('chai').assert;
 const hapi = require('hapi');
 const mockery = require('mockery');
+const sinon = require('sinon');
+
+sinon.assert.expose(assert, { prefix: '' });
+
+/**
+ * Stub for UserModel factory method
+ * @method userModelFactoryMock
+ */
+function userModelFactoryMock() {}
 
 describe('login plugin test', () => {
+    let ironMock;
+    let hashaMock;
+    let userMock;
     let plugin;
     let server;
 
@@ -15,6 +27,25 @@ describe('login plugin test', () => {
     });
 
     beforeEach((done) => {
+        hashaMock = {
+            sha1: sinon.stub()
+        };
+        ironMock = {
+            seal: sinon.stub()
+        };
+        userMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            update: sinon.stub()
+        };
+        userModelFactoryMock.prototype.get = userMock.get;
+        userModelFactoryMock.prototype.create = userMock.create;
+        userModelFactoryMock.prototype.update = userMock.update;
+
+        mockery.registerMock('screwdriver-models', { User: userModelFactoryMock });
+        mockery.registerMock('screwdriver-hashr', hashaMock);
+        mockery.registerMock('iron', ironMock);
+
         /* eslint-disable global-require */
         plugin = require('../../plugins/login');
         /* eslint-enable global-require */
@@ -26,6 +57,7 @@ describe('login plugin test', () => {
         server.register({
             register: plugin,
             options: {
+                datastore: {},
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: 'oauth_client_id',
                 oauthClientSecret: 'oauth_client_secret',
@@ -81,6 +113,29 @@ describe('login plugin test', () => {
 
     describe('/login', () => {
         describe('GET', () => {
+            const id = '1234id5678';
+            const username = 'd2lam';
+            const token = 'qpekaljx';
+            const user = {
+                id,
+                username,
+                token
+            };
+            const options = {
+                url: '/login',
+                credentials: {
+                    profile: {
+                        username
+                    },
+                    token
+                }
+            };
+
+            beforeEach(() => {
+                hashaMock.sha1.withArgs(username).returns(id);
+                ironMock.seal.yieldsAsync(null, token);
+            });
+
             it('exists', (done) => {
                 server.inject('/login', (reply) => {
                     assert.notEqual(reply.statusCode, 404, 'Login route should be available');
@@ -91,16 +146,103 @@ describe('login plugin test', () => {
             });
 
             it('returns token for valid user', (done) => {
-                server.inject({
-                    url: '/login',
-                    credentials: {
-                        profile: {
-                            username: 'd2lam'
-                        }
-                    }
-                }, (reply) => {
+                userMock.get.yieldsAsync(null, null);
+                userMock.create.yieldsAsync(null, {});
+
+                server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
+                    done();
+                });
+            });
+
+            it('returns error if fails to seal github token', (done) => {
+                const err = new Error('ironError');
+
+                userMock.get.yieldsAsync(null, user);
+                ironMock.seal.yieldsAsync(err);
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 500);
+                    assert.notCalled(userMock.create);
+                    assert.notCalled(userMock.update);
+                    done();
+                });
+            });
+
+            it('returns error if fails to get user', (done) => {
+                const err = new Error('getError');
+
+                userMock.get.yieldsAsync(err);
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 500);
+                    assert.notCalled(userMock.create);
+                    assert.notCalled(userMock.update);
+                    done();
+                });
+            });
+
+            it('returns error if fails to create user', (done) => {
+                const err = new Error('createError');
+                const userConfig = {
+                    username,
+                    token
+                };
+
+                userMock.get.withArgs(id).yieldsAsync(null, null);
+                userMock.create.withArgs(userConfig).yieldsAsync(err);
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 500);
+                    assert.calledWith(userMock.create, userConfig);
+                    assert.notCalled(userMock.update);
+                    done();
+                });
+            });
+
+            it('returns error if fails to update user', (done) => {
+                const err = new Error('updateError');
+                const userConfig = {
+                    id,
+                    token
+                };
+
+                userMock.get.withArgs(id).yieldsAsync(null, user);
+                userMock.update.yieldsAsync(err);
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 500);
+                    assert.calledWith(userMock.update, userConfig);
+                    assert.notCalled(userMock.create);
+                    done();
+                });
+            });
+
+            it('creates user if the user does not exist', (done) => {
+                const userConfig = {
+                    username,
+                    token
+                };
+
+                userMock.get.withArgs(id).yieldsAsync(null, null);
+                userMock.create.withArgs(userConfig).yieldsAsync(null, user);
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(userMock.create, userConfig);
+                    assert.notCalled(userMock.update);
+                    done();
+                });
+            });
+
+            it('updates user if the user exists', (done) => {
+                const userConfig = {
+                    id,
+                    token
+                };
+
+                userMock.get.withArgs(id).yieldsAsync(null, user);
+                userMock.update.withArgs(userConfig).yieldsAsync(null);
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(userMock.update, userConfig);
+                    assert.notCalled(userMock.create);
                     done();
                 });
             });
@@ -192,6 +334,10 @@ describe('login plugin test', () => {
                     handler: (request, reply) => reply({})
                 }
             });
+
+            userMock.get.yieldsAsync(null, null);
+            userMock.create.yieldsAsync(null, {});
+            ironMock.seal.yieldsAsync(null, '1234');
 
             server.inject({
                 url: '/login',

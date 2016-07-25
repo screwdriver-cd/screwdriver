@@ -52,6 +52,7 @@ describe('job plugin test', () => {
             // eslint-disable-next-line global-require
             register: require('../../plugins/login'),
             options: {
+                datastore: {},
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',

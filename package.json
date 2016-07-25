@@ -46,6 +46,7 @@
     "hapi-auth-jwt": "^4.0.0",
     "hapi-swagger": "^6.1.0",
     "inert": "^4.0.1",
+    "iron": "^4.0.1",
     "joi": "^9.0.1",
     "js-yaml": "^3.6.1",
     "jsonwebtoken": "^7.1.6",
