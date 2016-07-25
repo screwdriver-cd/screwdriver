@@ -113,9 +113,9 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 
 [npm-image]: https://img.shields.io/npm/v/screwdriver-api.svg
 [npm-url]: https://npmjs.org/package/screwdriver-api
-[docker-pulls]: https://img.shields.io/docker/pulls/screwdrivercd/api.svg
-[docker-stars]: https://img.shields.io/docker/stars/screwdrivercd/api.svg
-[docker-url]: https://hub.docker.com/r/screwdrivercd/api/
+[docker-pulls]: https://img.shields.io/docker/pulls/screwdrivercd/screwdriver.svg
+[docker-stars]: https://img.shields.io/docker/stars/screwdrivercd/screwdriver.svg
+[docker-url]: https://hub.docker.com/r/screwdrivercd/screwdriver/
 [license-image]: https://img.shields.io/npm/l/screwdriver-api.svg
 [issues-image]: https://img.shields.io/github/issues/screwdriver-cd/screwdriver.svg
 [issues-url]: https://github.com/screwdriver-cd/screwdriver/issues

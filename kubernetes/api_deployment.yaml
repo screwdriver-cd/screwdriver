@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: screwdriver-api
-        image: screwdrivercd/api
+        image: screwdrivercd/screwdriver
         ports:
         - containerPort: 8080
         env:
