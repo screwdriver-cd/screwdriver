@@ -21,6 +21,9 @@ const loginConfig = config.get('login');
 const httpdConfig = config.get('httpd');
 const port = httpdConfig.port;
 
+// Setup GitHub Webhooks
+const gitHubSecret = config.get('webhooks.github.secret');
+
 require('../')({
     port,
     datastore,
@@ -28,6 +31,10 @@ require('../')({
     builds: {
         datastore,
         executor
+    },
+    github: {
+        datastore,
+        secret: gitHubSecret
     }
 }, (err, server) => {
     if (err) {

@@ -22,3 +22,8 @@ executor:
         host: K8S_HOST
         # The jwt token used for authenticating kubernetes requests
         token: K8S_TOKEN
+
+webhooks:
+    github:
+        # Secret to add to GitHub webhooks so that we can validate them
+        secret: WEBHOOK_GITHUB_SECRET
