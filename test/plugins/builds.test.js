@@ -19,7 +19,6 @@ function buildModelFactoryMock() {}
 describe('build plugin test', () => {
     let buildMock;
     let executorOptions;
-    let hashaMock;
     let plugin;
     let server;
 
@@ -32,11 +31,6 @@ describe('build plugin test', () => {
 
     beforeEach((done) => {
         executorOptions = sinon.stub();
-        hashaMock = {
-            sha1: sinon.stub()
-        };
-        mockery.registerMock('screwdriver-hashr', hashaMock);
-
         buildMock = {
             create: sinon.stub(),
             stream: sinon.stub(),

@@ -17,7 +17,6 @@ sinon.assert.expose(assert, { prefix: '' });
 function pipelineModelFactoryMock() {}
 
 describe('pipeline plugin test', () => {
-    let hashrMock;
     let pipelineMock;
     let plugin;
     let server;
@@ -30,23 +29,21 @@ describe('pipeline plugin test', () => {
     });
 
     beforeEach((done) => {
-        hashrMock = {
-            sha1: sinon.stub()
-        };
         pipelineMock = {
             create: sinon.stub(),
             get: sinon.stub(),
             list: sinon.stub(),
             sync: sinon.stub(),
-            update: sinon.stub()
+            update: sinon.stub(),
+            generateId: sinon.stub()
         };
         pipelineModelFactoryMock.prototype.create = pipelineMock.create;
         pipelineModelFactoryMock.prototype.get = pipelineMock.get;
         pipelineModelFactoryMock.prototype.list = pipelineMock.list;
         pipelineModelFactoryMock.prototype.sync = pipelineMock.sync;
         pipelineModelFactoryMock.prototype.update = pipelineMock.update;
+        pipelineModelFactoryMock.prototype.generateId = pipelineMock.generateId;
 
-        mockery.registerMock('screwdriver-hashr', hashrMock);
         mockery.registerMock('screwdriver-models', { Pipeline: pipelineModelFactoryMock });
 
         /* eslint-disable global-require */
@@ -258,7 +255,7 @@ describe('pipeline plugin test', () => {
                 let expectedLocation;
 
                 sandbox.useFakeTimers(dateNow);
-                hashrMock.sha1.returns(testId);
+                pipelineMock.generateId.withArgs({ scmUrl }).returns(testId);
                 pipelineMock.create.yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
                 pipelineMock.sync.yieldsAsync(null);
 
@@ -276,7 +273,7 @@ describe('pipeline plugin test', () => {
                     });
                     assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                     assert.calledWith(pipelineMock.create, {
-                        scmUrl: 'git@github.com:screwdriver-cd/data-model.git#master'
+                        scmUrl
                     });
                     done();
                 });

@@ -13,8 +13,6 @@ sinon.assert.expose(assert, { prefix: '' });
 function userModelFactoryMock() {}
 
 describe('login plugin test', () => {
-    let ironMock;
-    let hashaMock;
     let userMock;
     let plugin;
     let server;
@@ -27,24 +25,20 @@ describe('login plugin test', () => {
     });
 
     beforeEach((done) => {
-        hashaMock = {
-            sha1: sinon.stub()
-        };
-        ironMock = {
-            seal: sinon.stub()
-        };
         userMock = {
             get: sinon.stub(),
             create: sinon.stub(),
-            update: sinon.stub()
+            update: sinon.stub(),
+            generateId: sinon.stub(),
+            sealToken: sinon.stub()
         };
         userModelFactoryMock.prototype.get = userMock.get;
         userModelFactoryMock.prototype.create = userMock.create;
         userModelFactoryMock.prototype.update = userMock.update;
+        userModelFactoryMock.prototype.generateId = userMock.generateId;
+        userModelFactoryMock.prototype.sealToken = userMock.sealToken;
 
         mockery.registerMock('screwdriver-models', { User: userModelFactoryMock });
-        mockery.registerMock('screwdriver-hashr', hashaMock);
-        mockery.registerMock('iron', ironMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/login');
@@ -132,8 +126,8 @@ describe('login plugin test', () => {
             };
 
             beforeEach(() => {
-                hashaMock.sha1.withArgs(username).returns(id);
-                ironMock.seal.yieldsAsync(null, token);
+                userMock.generateId.withArgs({ username }).returns(id);
+                userMock.sealToken.yieldsAsync(null, token);
             });
 
             it('exists', (done) => {
@@ -156,19 +150,6 @@ describe('login plugin test', () => {
                 });
             });
 
-            it('returns error if fails to seal github token', (done) => {
-                const err = new Error('ironError');
-
-                userMock.get.yieldsAsync(null, user);
-                ironMock.seal.yieldsAsync(err);
-                server.inject(options, (reply) => {
-                    assert.equal(reply.statusCode, 500);
-                    assert.notCalled(userMock.create);
-                    assert.notCalled(userMock.update);
-                    done();
-                });
-            });
-
             it('returns error if fails to get user', (done) => {
                 const err = new Error('getError');
 
@@ -181,28 +162,11 @@ describe('login plugin test', () => {
                 });
             });
 
-            it('returns error if fails to create user', (done) => {
-                const err = new Error('createError');
-                const userConfig = {
-                    username,
-                    token
-                };
-
-                userMock.get.withArgs(id).yieldsAsync(null, null);
-                userMock.create.withArgs(userConfig).yieldsAsync(err);
-                server.inject(options, (reply) => {
-                    assert.equal(reply.statusCode, 500);
-                    assert.calledWith(userMock.create, userConfig);
-                    assert.notCalled(userMock.update);
-                    done();
-                });
-            });
-
             it('returns error if fails to update user', (done) => {
                 const err = new Error('updateError');
                 const userConfig = {
                     id,
-                    token
+                    data: { token }
                 };
 
                 userMock.get.withArgs(id).yieldsAsync(null, user);
@@ -215,26 +179,10 @@ describe('login plugin test', () => {
                 });
             });
 
-            it('creates user if the user does not exist', (done) => {
-                const userConfig = {
-                    username,
-                    token
-                };
-
-                userMock.get.withArgs(id).yieldsAsync(null, null);
-                userMock.create.withArgs(userConfig).yieldsAsync(null, user);
-                server.inject(options, (reply) => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.calledWith(userMock.create, userConfig);
-                    assert.notCalled(userMock.update);
-                    done();
-                });
-            });
-
             it('updates user if the user exists', (done) => {
                 const userConfig = {
                     id,
-                    token
+                    data: { token }
                 };
 
                 userMock.get.withArgs(id).yieldsAsync(null, user);
@@ -337,7 +285,7 @@ describe('login plugin test', () => {
 
             userMock.get.yieldsAsync(null, null);
             userMock.create.yieldsAsync(null, {});
-            ironMock.seal.yieldsAsync(null, '1234');
+            userMock.sealToken.yieldsAsync(null, '1234');
 
             server.inject({
                 url: '/login',

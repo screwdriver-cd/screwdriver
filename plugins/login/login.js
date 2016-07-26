@@ -1,5 +1,6 @@
 /* eslint-disable consistent-return */
 'use strict';
+const async = require('async');
 const boom = require('boom');
 const jwt = require('jsonwebtoken');
 const whitelist = {
@@ -13,8 +14,6 @@ const whitelist = {
     stjohnjohnson: true,
     tkyi: true
 };
-const hashr = require('screwdriver-hashr');
-const iron = require('iron');
 const Model = require('screwdriver-models');
 
 module.exports = (config) => ({
@@ -33,12 +32,8 @@ module.exports = (config) => ({
 
                 return reply(boom.unauthorized(message));
             }
-            const User = new Model.User(config.datastore);
             const profile = request.auth.credentials.profile;
             const username = profile.username;
-            const id = hashr.sha1(username);
-            const githubToken = request.auth.credentials.token;
-            let userConfig;
 
             if (!whitelist[username]) {
                 const message = `User ${username} is not whitelisted to use the api`;
@@ -53,45 +48,34 @@ module.exports = (config) => ({
 
             request.cookieAuth.set(profile);
 
-            // Setting github token
-            User.get(id, (err, user) => {
-                // Error getting user
-                if (err) {
-                    return reply(boom.wrap(err));
-                }
+            const User = new Model.User(config.datastore, config.password);
+            const id = User.generateId({ username });
+            const githubToken = request.auth.credentials.token;
 
-                iron.seal(githubToken, config.password, iron.defaults, (error, sealed) => {
+            User.sealToken(githubToken, (err, sealed) => {
+                async.waterfall([
+                    async.apply(User.get.bind(User), id),
+                    (user, cb) => {
+                        if (!user) {
+                            return User.create({
+                                username: config.username,
+                                token: sealed
+                            }, cb);
+                        }
+
+                        return User.update({
+                            id: user.id,
+                            data: {
+                                token: sealed
+                            }
+                        }, cb);
+                    }
+                ], (error) => {
                     if (error) {
                         return reply(boom.wrap(error));
                     }
 
-                    // If user doesn't exist, create the user
-                    if (!user) {
-                        userConfig = {
-                            username,
-                            token: sealed
-                        };
-                        User.create(userConfig, (e) => {
-                            if (e) {
-                                return reply(boom.wrap(e));
-                            }
-
-                            return reply({ token });
-                        });
-                    } else {
-                        // If user exists, update the user's github token
-                        userConfig = {
-                            id,
-                            token: sealed
-                        };
-                        User.update(userConfig, (e) => {
-                            if (e) {
-                                return reply(boom.wrap(e));
-                            }
-
-                            return reply({ token });
-                        });
-                    }
+                    return reply({ token });
                 });
             });
         }

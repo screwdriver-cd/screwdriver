@@ -1,6 +1,5 @@
 'use strict';
 const boom = require('boom');
-const hashr = require('screwdriver-hashr');
 const urlLib = require('url');
 const schema = require('screwdriver-data-schema');
 const createSchema = schema.models.platform.create;
@@ -19,7 +18,7 @@ module.exports = (datastore) => ({
         handler: (request, reply) => {
             const Platform = new Model.Platform(datastore);
             const config = request.payload;
-            const id = hashr.sha1({
+            const id = Platform.generateId({
                 name: config.name,
                 version: config.version
             });
