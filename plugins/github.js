@@ -1,9 +1,86 @@
 'use strict';
 const githubWebhooks = require('hapi-github-webhooks');
 const hoek = require('hoek');
+const async = require('async');
 const boom = require('boom');
 const Models = require('screwdriver-models');
 let Pipeline;
+let Job;
+let Build;
+
+/**
+ * Create a new job and start the build for an opened pull-request
+ * @method pullRequestOpened
+ * @param  {Object}       options
+ * @param  {String}       options.eventId    Unique ID for this GitHub event
+ * @param  {String}       options.pipelineId Identifier for the Pipeline
+ * @param  {String}       options.jobId      Identifier for the Job
+ * @param  {String}       options.name       Name of the new job (PR-1)
+ * @param  {Hapi.request} request Request from user
+ * @param  {Hapi.reply}   reply   Reply to user
+ */
+function pullRequestOpened(options, request, reply) {
+    const eventId = options.eventId;
+    const pipelineId = options.pipelineId;
+    const jobId = options.jobId;
+    const name = options.name;
+
+    async.waterfall([
+        // Create job
+        async.apply(Job.create.bind(Job), { pipelineId, name }),
+        // Log it
+        (job, next) => {
+            request.log(['webhook-github', eventId, jobId], `${job.name} created`);
+            next();
+        },
+        // Create build
+        async.apply(Build.create.bind(Build), { jobId }),
+        // Log it
+        (build, next) => {
+            request.log(['webhook-github', eventId, jobId, build.id], `${name} started `
+                + `${build.number}`);
+            next();
+        }
+    ], (waterfallError) => {
+        if (waterfallError) {
+            return reply(boom.wrap(waterfallError));
+        }
+
+        return reply().code(201);
+    });
+}
+
+/**
+ * Stop any running builds and disable the job for closed pull-request
+ * @method pullRequestClosed
+ * @param  {Object}       options
+ * @param  {String}       options.eventId    Unique ID for this GitHub event
+ * @param  {String}       options.pipelineId Identifier for the Pipeline
+ * @param  {String}       options.jobId      Identifier for the Job
+ * @param  {String}       options.name       Name of the job (PR-1)
+ * @param  {Hapi.request} request Request from user
+ * @param  {Hapi.reply}   reply   Reply to user
+ */
+function pullRequestClosed(options, request, reply) {
+    const eventId = options.eventId;
+    const jobId = options.jobId;
+    const name = options.name;
+
+    // @TODO stop running build
+    Job.update({
+        id: jobId,
+        data: {
+            state: 'DISABLED'
+        }
+    }, (updateError) => {
+        if (updateError) {
+            return reply(boom.wrap(updateError));
+        }
+        request.log(['webhook-github', eventId, jobId], `${name} disabled`);
+
+        return reply().code(200);
+    });
+}
 
 /**
  * Act on a Pull Request change (create, sync, close)
@@ -26,8 +103,8 @@ function pullRequestEvent(request, reply) {
     request.log(['webhook-github', eventId], `PR #${prNumber} ${action} for ${scmUrl}`);
 
     // Possible actions
-    // "opened", "closed", "reopened", "synchronize"
-    // @TODO ignore events from "assigned", "unassigned", "labeled", "unlabeled", "edited"
+    // "opened", "closed", "reopened", "synchronize",
+    // "assigned", "unassigned", "labeled", "unlabeled", "edited"
     Pipeline.sync({ scmUrl }, (err, data) => {
         if (err) {
             return reply(boom.wrap(err));
@@ -35,13 +112,26 @@ function pullRequestEvent(request, reply) {
         if (!data) {
             return reply(boom.notFound('Pipeline does not exist'));
         }
+        const pipelineId = Pipeline.generateId({ scmUrl });
+        const name = `PR-${prNumber}`;
+        const jobId = Job.generateId({ pipelineId, name });
 
-        // @TODO copy from main
-        // @TODO create & start job if opened
-        // @TODO stop & start job if sync
-        // @TODO disable & stop job if closed
+        switch (action) {
+        case 'opened':
+        case 'reopened':
+            return pullRequestOpened({ eventId, pipelineId, jobId, name }, request, reply);
 
-        return reply().code(204);
+        case 'synchronize':
+            // @TODO stop & start job if sync
+            return reply().code(201);
+
+        case 'closed':
+            return pullRequestClosed({ eventId, pipelineId, jobId, name }, request, reply);
+
+        default:
+            // Ignore other actions
+            return reply().code(204);
+        }
     });
 }
 
@@ -55,11 +145,16 @@ function pullRequestEvent(request, reply) {
  * @param  {Hapi.Server}    server
  * @param  {Object}         options
  * @param  {Object}         options.datastore Datastore Model
+ * @param  {Object}         options.executor  Executor Model
  * @param  {String}         options.secret    GitHub Webhook secret to sign payloads with
  * @param  {Function}       next
  */
 exports.register = (server, options, next) => {
+    // Do some silly setup of stuff
     Pipeline = new Models.Pipeline(options.datastore);
+    Job = new Models.Job(options.datastore);
+    Build = new Models.Build(options.datastore, options.executor);
+
     // Register the hook interface
     server.register(githubWebhooks);
     // Add the auth strategy
@@ -85,6 +180,8 @@ exports.register = (server, options, next) => {
                 request.log(['webhook-github', eventId], `Received event ${eventType}`);
 
                 switch (eventType) {
+                case 'ping':
+                    return reply().code(204);
                 case 'pull_request':
                     return pullRequestEvent(request, reply);
                 default:
