@@ -19,7 +19,6 @@ function buildModelFactoryMock() {}
 describe('build plugin test', () => {
     let buildMock;
     let executorOptions;
-    let hashaMock;
     let plugin;
     let server;
 
@@ -32,11 +31,6 @@ describe('build plugin test', () => {
 
     beforeEach((done) => {
         executorOptions = sinon.stub();
-        hashaMock = {
-            sha1: sinon.stub()
-        };
-        mockery.registerMock('screwdriver-hashr', hashaMock);
-
         buildMock = {
             create: sinon.stub(),
             stream: sinon.stub(),
@@ -64,6 +58,7 @@ describe('build plugin test', () => {
             // eslint-disable-next-line global-require
             register: require('../../plugins/login'),
             options: {
+                datastore: {},
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',

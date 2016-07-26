@@ -56,8 +56,7 @@
     "screwdriver-datastore-dynamodb": "^1.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^2.0.0",
-    "screwdriver-hashr": "^1.0.40",
-    "screwdriver-models": "^2.0.2",
+    "screwdriver-models": "^3.0.0",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"

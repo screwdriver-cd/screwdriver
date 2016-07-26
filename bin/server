@@ -17,6 +17,8 @@ const executor = new ExecutorPlugin(executorConfig[executorConfig.plugin]);
 // Setup Login
 const loginConfig = config.get('login');
 
+loginConfig.datastore = datastore;
+
 // Setup httpd
 const httpdConfig = config.get('httpd');
 const port = httpdConfig.port;

@@ -12,10 +12,11 @@ const logout = require('./logout');
  * @method register
  * @param  {Hapi}     server                        Hapi Server
  * @param  {Object}   options                       Configuration object
- * @param  {Object}   options.password              Password used for iron encrypting
- * @param  {Object}   options.https                 For setting the isSecure flag. Needs to be false for non-https
- * @param  {Object}   options.oauth_client_id       Oauth client id for talking to OAUTH provider
- * @param  {Object}   options.oauth_client_secret   Oauth secret for OAUTH provider
+ * @param  {Object}   options.datastore             Datastore Model
+ * @param  {String}   options.password              Password used for iron encrypting
+ * @param  {Boolean}  options.https                 For setting the isSecure flag. Needs to be false for non-https
+ * @param  {String}   options.oauth_client_id       Oauth client id for talking to OAUTH provider
+ * @param  {String}   options.oauth_client_secret   Oauth secret for OAUTH provider
  * @param  {Function} next                          Function to call when done
  */
 exports.register = (server, options, next) => {
@@ -25,6 +26,7 @@ exports.register = (server, options, next) => {
         }
 
         joi.assert(options, joi.object().keys({
+            datastore: joi.object().required(),
             password: joi.string().min(32).required(),
             https: joi.boolean().required(),
             oauthClientId: joi.string().required(),

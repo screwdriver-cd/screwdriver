@@ -17,7 +17,6 @@ function platformModelFactoryMock() {}
 
 describe('platform plugin test', () => {
     let platformMock;
-    let hashaMock;
     let plugin;
     let server;
 
@@ -33,20 +32,17 @@ describe('platform plugin test', () => {
             get: sinon.stub(),
             list: sinon.stub(),
             update: sinon.stub(),
-            create: sinon.stub()
-        };
-
-        hashaMock = {
-            sha1: sinon.stub()
+            create: sinon.stub(),
+            generateId: sinon.stub()
         };
 
         platformModelFactoryMock.prototype.create = platformMock.create;
         platformModelFactoryMock.prototype.get = platformMock.get;
         platformModelFactoryMock.prototype.list = platformMock.list;
         platformModelFactoryMock.prototype.update = platformMock.update;
+        platformModelFactoryMock.prototype.generateId = platformMock.generateId;
 
         mockery.registerMock('screwdriver-models', { Platform: platformModelFactoryMock });
-        mockery.registerMock('screwdriver-hashr', hashaMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/platforms');
@@ -61,6 +57,7 @@ describe('platform plugin test', () => {
             // eslint-disable-next-line global-require
             register: require('../../plugins/login'),
             options: {
+                datastore: {},
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',
@@ -236,7 +233,7 @@ describe('platform plugin test', () => {
                 version: '1.0.0'
             };
 
-            hashaMock.sha1.withArgs(obj).returns(testId);
+            platformMock.generateId.withArgs(obj).returns(testId);
             platformMock.get.yieldsAsync(null, null);
             platformMock.create.withArgs(config).yieldsAsync(null, response);
 
@@ -251,7 +248,7 @@ describe('platform plugin test', () => {
                 assert.deepEqual(reply.result, response);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(platformMock.create, config);
-                assert.calledWith(hashaMock.sha1, obj);
+                assert.calledWith(platformMock.generateId, obj);
                 done();
             });
         });
@@ -268,7 +265,7 @@ describe('platform plugin test', () => {
         it('returns 500 when the Platform model fails to get', (done) => {
             const testError = new Error('platformGetError');
 
-            hashaMock.sha1.returns(testId);
+            platformMock.generateId.returns(testId);
             platformMock.get.yieldsAsync(testError);
 
             server.inject(options, (reply) => {
@@ -280,7 +277,7 @@ describe('platform plugin test', () => {
         it('returns 500 when the Platform model fails to create', (done) => {
             const testError = new Error('platformCreateError');
 
-            hashaMock.sha1.returns(testId);
+            platformMock.generateId.returns(testId);
             platformMock.get.yieldsAsync(null, null);
             platformMock.create.yieldsAsync(testError);
 

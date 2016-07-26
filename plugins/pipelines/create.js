@@ -1,6 +1,5 @@
 'use strict';
 const boom = require('boom');
-const hashr = require('screwdriver-hashr');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const Model = require('screwdriver-models');
@@ -18,7 +17,7 @@ module.exports = (datastore) => ({
         handler: (request, reply) => {
             const scmUrl = request.payload.scmUrl;
             const Pipeline = new Model.Pipeline(datastore);
-            const pipelineId = hashr.sha1(scmUrl);
+            const pipelineId = Pipeline.generateId({ scmUrl });
 
             /* eslint-disable consistent-return */
             Pipeline.get(pipelineId, (error, data) => {

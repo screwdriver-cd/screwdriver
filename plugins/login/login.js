@@ -1,4 +1,6 @@
+/* eslint-disable consistent-return */
 'use strict';
+const async = require('async');
 const boom = require('boom');
 const jwt = require('jsonwebtoken');
 const whitelist = {
@@ -12,6 +14,7 @@ const whitelist = {
     stjohnjohnson: true,
     tkyi: true
 };
+const Model = require('screwdriver-models');
 
 module.exports = (config) => ({
     method: ['GET', 'POST'],
@@ -45,8 +48,35 @@ module.exports = (config) => ({
 
             request.cookieAuth.set(profile);
 
-            return reply({
-                token
+            const User = new Model.User(config.datastore, config.password);
+            const id = User.generateId({ username });
+            const githubToken = request.auth.credentials.token;
+
+            User.sealToken(githubToken, (err, sealed) => {
+                async.waterfall([
+                    async.apply(User.get.bind(User), id),
+                    (user, cb) => {
+                        if (!user) {
+                            return User.create({
+                                username: config.username,
+                                token: sealed
+                            }, cb);
+                        }
+
+                        return User.update({
+                            id: user.id,
+                            data: {
+                                token: sealed
+                            }
+                        }, cb);
+                    }
+                ], (error) => {
+                    if (error) {
+                        return reply(boom.wrap(error));
+                    }
+
+                    return reply({ token });
+                });
             });
         }
     }
