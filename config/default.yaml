@@ -35,3 +35,8 @@ executor:
         host: kubernetes
         # The jwt token used for authenticating kubernetes requests
         token: NOT-A-REAL-JWT-TOKEN
+
+webhooks:
+    github:
+        # Secret to add to GitHub webhooks so that we can validate them
+        secret: SUPER-SECRET-SIGNING-THING

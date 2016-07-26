@@ -19,7 +19,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/builds',
         '../plugins/jobs',
         '../plugins/pipelines',
-        '../plugins/platforms'
+        '../plugins/platforms',
+        '../plugins/github'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
     const mocks = {};
