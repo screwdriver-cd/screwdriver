@@ -36,6 +36,7 @@ require('../')({
     },
     github: {
         datastore,
+        executor,
         secret: gitHubSecret
     }
 }, (err, server) => {
