@@ -1,7 +1,7 @@
 'use strict';
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.build.get);
+const listSchema = joi.array().items(schema.models.build.get).label('List of Builds');
 const Model = require('screwdriver-models');
 
 module.exports = (datastore, executor) => ({
