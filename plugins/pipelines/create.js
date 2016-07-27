@@ -1,10 +1,12 @@
 'use strict';
+const async = require('async');
 const boom = require('boom');
+const hoek = require('hoek');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore) => ({
+module.exports = (datastore, password) => ({
     method: 'POST',
     path: '/pipelines',
     config: {
@@ -18,38 +20,51 @@ module.exports = (datastore) => ({
             const scmUrl = request.payload.scmUrl;
             const Pipeline = new Model.Pipeline(datastore);
             const pipelineId = Pipeline.generateId({ scmUrl });
+            const username = request.auth.credentials.username;
+            const User = new Model.User(datastore, password);
 
-            /* eslint-disable consistent-return */
-            Pipeline.get(pipelineId, (error, data) => {
-                if (error) {
-                    return reply(boom.wrap(error));
-                }
-                if (data) {
-                    return reply(boom.conflict('scmUrl needs to be unique'));
-                }
-
-                Pipeline.create(request.payload, (err, result) => {
-                    if (err) {
-                        return reply(boom.wrap(err));
+            async.waterfall([
+                (next) => User.getPermissions({
+                    username,
+                    scmUrl
+                }, next),
+                (permissions, next) => {
+                    if (!permissions.admin) {
+                        return reply(boom.unauthorized(`User ${username}
+                            is not an admin of this repo`));
                     }
 
-                    const location = urlLib.format({
-                        host: request.headers.host,
-                        port: request.headers.port,
-                        protocol: request.server.info.protocol,
-                        pathname: `${request.path}/${result.id}`
-                    });
+                    return Pipeline.get(pipelineId, next);
+                },
+                (data, next) => {
+                    if (data) {
+                        return reply(boom.conflict('scmUrl needs to be unique'));
+                    }
+                    const admins = {};
 
-                    Pipeline.sync({
-                        scmUrl
-                    }, (e) => {
-                        if (e) {
-                            return reply(boom.wrap(e));
-                        }
+                    admins[username] = true;
+                    const pipelineConfig = hoek.applyToDefaults(request.payload, { admins });
 
-                        return reply(result).header('Location', location).code(201);
-                    });
+                    return Pipeline.create(pipelineConfig, next);
+                },
+                (pipeline, next) => Pipeline.sync({ scmUrl }, (err) => {
+                    if (err) {
+                        next(err);
+                    }
+                    next(null, pipeline);
+                })
+            ], (err, result) => {
+                if (err) {
+                    return reply(boom.wrap(err));
+                }
+                const location = urlLib.format({
+                    host: request.headers.host,
+                    port: request.headers.port,
+                    protocol: request.server.info.protocol,
+                    pathname: `${request.path}/${result.id}`
                 });
+
+                return reply(result).header('Location', location).code(201);
             });
         },
         validate: {
