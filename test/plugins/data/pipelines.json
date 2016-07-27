@@ -1,21 +1,18 @@
 [
     {
         "id": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
-        "platform": "node",
         "scmUrl": "git@github.com:screwdriver-cd/data-model.git#master",
         "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master",
         "createTime": 0
     },
     {
         "id": "151c9b11e4a9a27e9e374daca6e59df37d8cf00f",
-        "platform": "java",
         "scmUrl": "git@github.com:screwdriver-cd/data-model.git#master",
         "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master",
         "createTime": 0
     },
     {
         "id": "62089f642bbfd1886623964b4cff12db59869e5d",
-        "platform": "cpp",
         "scmUrl": "git@github.com:screwdriver-cd/data-model.git#master",
         "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master",
         "createTime": 0
