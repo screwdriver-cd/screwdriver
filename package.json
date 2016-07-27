@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "API server for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
@@ -52,11 +52,11 @@
     "js-yaml": "^3.6.1",
     "jsonwebtoken": "^7.1.6",
     "screwdriver-config-parser": "^1.0.0",
-    "screwdriver-data-schema": "^5.0.3",
+    "screwdriver-data-schema": "^6.0.0",
     "screwdriver-datastore-dynamodb": "^1.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^2.0.0",
-    "screwdriver-models": "^3.0.0",
+    "screwdriver-models": "^4.0.0",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
