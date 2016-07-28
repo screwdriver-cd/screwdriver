@@ -27,6 +27,7 @@ describe('pipeline plugin test', () => {
     let userMock;
     let plugin;
     let server;
+    const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
 
     before(() => {
         mockery.enable({
@@ -81,7 +82,7 @@ describe('pipeline plugin test', () => {
             register: require('../../plugins/login'),
             options: {
                 datastore: {},
-                password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
+                password,
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',
                 jwtPrivateKey: '1234secretkeythatissupersecret5678',
@@ -90,7 +91,8 @@ describe('pipeline plugin test', () => {
         }, {
             register: plugin,
             options: {
-                datastore: pipelineMock
+                datastore: pipelineMock,
+                password
             }
         }
     ], (err) => {
@@ -109,6 +111,8 @@ describe('pipeline plugin test', () => {
     });
 
     it('registers the plugin', () => {
+        assert.equal(server.registrations.pipelines.options.datastore, pipelineMock);
+        assert.equal(server.registrations.pipelines.options.password, password);
         assert.isOk(server.registrations.pipelines);
     });
 
