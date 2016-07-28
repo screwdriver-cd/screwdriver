@@ -16,8 +16,15 @@ sinon.assert.expose(assert, { prefix: '' });
  */
 function pipelineModelFactoryMock() {}
 
+/**
+ * Stub for UserModel factory method
+ * @method userModelFactoryMock
+ */
+function userModelFactoryMock() {}
+
 describe('pipeline plugin test', () => {
     let pipelineMock;
+    let userMock;
     let plugin;
     let server;
 
@@ -37,14 +44,29 @@ describe('pipeline plugin test', () => {
             update: sinon.stub(),
             generateId: sinon.stub()
         };
+        userMock = {
+            get: sinon.stub(),
+            getPermissions: sinon.stub(),
+            generateId: sinon.stub(),
+            sealToken: sinon.stub(),
+            unsealToken: sinon.stub()
+        };
         pipelineModelFactoryMock.prototype.create = pipelineMock.create;
         pipelineModelFactoryMock.prototype.get = pipelineMock.get;
         pipelineModelFactoryMock.prototype.list = pipelineMock.list;
         pipelineModelFactoryMock.prototype.sync = pipelineMock.sync;
         pipelineModelFactoryMock.prototype.update = pipelineMock.update;
         pipelineModelFactoryMock.prototype.generateId = pipelineMock.generateId;
+        userModelFactoryMock.prototype.generateId = userMock.generateId;
+        userModelFactoryMock.prototype.get = userMock.get;
+        userModelFactoryMock.prototype.getPermissions = userMock.getPermissions;
+        userModelFactoryMock.prototype.unsealToken = userMock.unsealToken;
+        userModelFactoryMock.prototype.sealToken = userMock.sealToken;
 
-        mockery.registerMock('screwdriver-models', { Pipeline: pipelineModelFactoryMock });
+        mockery.registerMock('screwdriver-models', {
+            Pipeline: pipelineModelFactoryMock,
+            User: userModelFactoryMock
+        });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -232,6 +254,15 @@ describe('pipeline plugin test', () => {
         const dateNow = 1111111111;
         const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const username = 'd2lam';
+        const pipeline = {
+            id: testId,
+            other: 'dataToBeIncluded'
+        };
+        const job = {
+            id: 'someJobId',
+            other: 'dataToBeIncluded'
+        };
 
         beforeEach(() => {
             sandbox = sinon.sandbox.create({
@@ -244,54 +275,68 @@ describe('pipeline plugin test', () => {
                 payload: {
                     scmUrl
                 },
-                credentials: {}
+                credentials: {
+                    username
+                }
             };
+
+            userMock.getPermissions.withArgs({
+                username,
+                scmUrl
+            }).yieldsAsync(null, { admin: true });
+            pipelineMock.generateId.withArgs({ scmUrl }).returns(testId);
+            pipelineMock.get.withArgs(testId).yieldsAsync(null, null);
+            pipelineMock.create.yieldsAsync(null, pipeline);
         });
 
         afterEach(() => {
             sandbox.restore();
         });
 
-        describe('returns 201', () => {
-            beforeEach(() => {
-                pipelineMock.get.yieldsAsync(null, null);
+        it('returns 201 and correct pipeline data', (done) => {
+            let expectedLocation;
+
+            sandbox.useFakeTimers(dateNow);
+            pipelineMock.sync.yieldsAsync(null, job);
+
+            server.inject(options, (reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testId}`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, pipeline);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(pipelineMock.create, {
+                    admins: {
+                        d2lam: true
+                    },
+                    scmUrl: 'git@github.com:screwdriver-cd/data-model.git#master'
+                });
+                done();
             });
 
-            it('and correct pipeline data', (done) => {
-                let expectedLocation;
+            process.nextTick(() => {
+                sandbox.clock.tick();
+            });
+        });
 
-                sandbox.useFakeTimers(dateNow);
-                pipelineMock.generateId.withArgs({ scmUrl }).returns(testId);
-                pipelineMock.create.yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
-                pipelineMock.sync.yieldsAsync(null);
+        it('returns 401 when the user does not have admin permissions', (done) => {
+            userMock.getPermissions.withArgs({
+                username,
+                scmUrl
+            }).yieldsAsync(null, { admin: false });
 
-                server.inject(options, (reply) => {
-                    expectedLocation = {
-                        host: reply.request.headers.host,
-                        port: reply.request.headers.port,
-                        protocol: reply.request.server.info.protocol,
-                        pathname: `${options.url}/${testId}`
-                    };
-                    assert.equal(reply.statusCode, 201);
-                    assert.deepEqual(reply.result, {
-                        id: testId,
-                        other: 'dataToBeIncluded'
-                    });
-                    assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                    assert.calledWith(pipelineMock.create, {
-                        scmUrl
-                    });
-                    done();
-                });
-
-                process.nextTick(() => {
-                    sandbox.clock.tick();
-                });
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 401);
+                done();
             });
         });
 
         it('returns 409 when the scmUrl already exists', (done) => {
-            pipelineMock.get.yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
+            pipelineMock.get.withArgs(testId).yieldsAsync(null, pipeline);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 409);
@@ -299,10 +344,10 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 500 when the pipeline model fails to get in the create', (done) => {
+        it('returns 500 when the pipeline model fails to get', (done) => {
             const testError = new Error('pipelineModelGetError');
 
-            pipelineMock.get.yieldsAsync(testError);
+            pipelineMock.get.withArgs(testId).yieldsAsync(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -313,7 +358,6 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the pipeline model fails to create', (done) => {
             const testError = new Error('pipelineModelCreateError');
 
-            pipelineMock.get.yieldsAsync(null, null);
             pipelineMock.create.yieldsAsync(testError);
 
             server.inject(options, (reply) => {
@@ -325,8 +369,6 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the pipeline model fails to sync during create', (done) => {
             const testError = new Error('pipelineModelSyncError');
 
-            pipelineMock.get.yieldsAsync(null, null);
-            pipelineMock.create.yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
             pipelineMock.sync.yieldsAsync(testError);
 
             server.inject(options, (reply) => {

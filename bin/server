@@ -34,6 +34,10 @@ require('../')({
         datastore,
         executor
     },
+    pipelines: {
+        datastore,
+        password: loginConfig.password
+    },
     github: {
         datastore,
         executor,
