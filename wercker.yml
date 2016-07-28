@@ -3,7 +3,12 @@ box: node:6
 build:
   steps:
     - npm-install
+
     - npm-test
+
+    - script:
+      name: Upload Coverage to Codacy
+      code: cat ./artifacts/coverage/lcov.info | ./node_modules/.bin/codacy-coverage
 
 deploy:
   steps:
