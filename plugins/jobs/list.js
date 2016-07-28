@@ -14,7 +14,9 @@ module.exports = (datastore) => ({
         handler: (request, reply) => {
             const Job = new Model.Job(datastore);
 
-            Job.list(request.query, reply);
+            Job.list({
+                paginate: request.query
+            }, reply);
         },
         response: {
             schema: listSchema

@@ -14,7 +14,9 @@ module.exports = (datastore) => ({
         handler: (request, reply) => {
             const Pipeline = new Model.Pipeline(datastore);
 
-            Pipeline.list(request.query, reply);
+            Pipeline.list({
+                paginate: request.query
+            }, reply);
         },
         response: {
             schema: listSchema

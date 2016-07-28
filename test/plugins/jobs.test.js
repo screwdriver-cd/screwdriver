@@ -89,6 +89,12 @@ describe('job plugin test', () => {
             server.inject('/jobs?page=1&count=3', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testJobs);
+                assert.calledWith(jobMock.list, {
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    }
+                });
                 done();
             });
         });
