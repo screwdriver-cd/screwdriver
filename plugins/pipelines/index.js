@@ -10,11 +10,12 @@ const updateRoute = require('./update');
  * @param  {Hapi}     server            Hapi Server
  * @param  {Object}   options           Configuration
  * @param  {Object}   options.datastore Datastore Model
+ * @param  {String}   options.password  Password
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
     server.route([
-        createRoute(options.datastore),
+        createRoute(options.datastore, options.password),
         getRoute(options.datastore),
         listRoute(options.datastore),
         updateRoute(options.datastore)

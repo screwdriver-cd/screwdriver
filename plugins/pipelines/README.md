@@ -16,7 +16,8 @@ server.connection({ port: 3000 });
 server.register({
     register: pipelinesPlugin,
     options: {
-        datastore: new Datastore()
+        datastore: new Datastore(),
+        password: 'this_is_a_password_that_needs_to_be_atleast_32_characters'
     }
 }, () => {
     server.start((err) => {
