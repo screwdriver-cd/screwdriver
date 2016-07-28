@@ -141,11 +141,12 @@ describe('login plugin test', () => {
 
             it('returns token for valid user', (done) => {
                 userMock.get.yieldsAsync(null, null);
-                userMock.create.yieldsAsync(null, {});
+                userMock.create.withArgs({ username, token }).yieldsAsync(null, {});
 
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
+                    assert.calledWith(userMock.create, { username, token });
                     done();
                 });
             });

@@ -58,7 +58,7 @@ module.exports = (config) => ({
                     (user, cb) => {
                         if (!user) {
                             return User.create({
-                                username: config.username,
+                                username,
                                 token: sealed
                             }, cb);
                         }
