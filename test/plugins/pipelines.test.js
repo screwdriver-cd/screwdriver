@@ -96,6 +96,12 @@ describe('pipeline plugin test', () => {
             server.inject('/pipelines?page=1&count=3', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines);
+                assert.calledWith(pipelineMock.list, {
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    }
+                });
                 done();
             });
         });

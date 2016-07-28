@@ -14,7 +14,9 @@ module.exports = (datastore, executor) => ({
         handler: (request, reply) => {
             const Build = new Model.Build(datastore, executor);
 
-            Build.list(request.query, reply);
+            Build.list({
+                paginate: request.query
+            }, reply);
         },
         response: {
             schema: listSchema

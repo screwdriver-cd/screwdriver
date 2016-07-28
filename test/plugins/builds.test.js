@@ -96,6 +96,12 @@ describe('build plugin test', () => {
             server.inject('/builds?page=1&count=2', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuilds);
+                assert.calledWith(buildMock.list, {
+                    paginate: {
+                        page: 1,
+                        count: 2
+                    }
+                });
                 done();
             });
         });
