@@ -83,6 +83,56 @@ function pullRequestClosed(options, request, reply) {
 }
 
 /**
+ * Stop any running builds and disable the job for closed pull-request
+ * @method pullRequestClosed
+ * @param  {Object}       options
+ * @param  {String}       options.eventId    Unique ID for this GitHub event
+ * @param  {String}       options.pipelineId Identifier for the Pipeline
+ * @param  {String}       options.jobId      Identifier for the Job
+ * @param  {String}       options.name       Name of the job (PR-1)
+ * @param  {Hapi.request} request Request from user
+ * @param  {Hapi.reply}   reply   Reply to user
+ */
+function pullRequestSync(options, request, reply) {
+    const eventId = options.eventId;
+    const jobId = options.jobId;
+    const name = options.name;
+
+    // Lookup all the builds for the jobId
+    async.watefall([
+        async.apply(Build.getBuildsByJobId.bind(Build), { jobId }),
+        (builds, next) => {
+            async.each(
+                builds,
+                (build, cb) {
+                    //TODO: add in stopping of job
+                    cb();
+                },
+                next
+            );
+        },
+        (next) => {
+          request.log(['webhook-github', eventId, jobId, build.id], `${name} stopped`);
+        }
+        // Create new build for the jobId
+        async.apply(Build.create.bind(Build), { jobId }),
+        // Log it
+        (build, next) => {
+            request.log(['webhook-github', eventId, jobId, build.id], `${name} started `
+                + `${build.number}`);
+            next();
+        }
+    ], (err) => {
+        if (err) {
+            return reply(boom.wrap(err));
+        }
+        request.log(['webhook-github', eventId, jobId], `${name} synced`);
+
+        return reply().code(200);
+    });
+}
+
+/**
  * Act on a Pull Request change (create, sync, close)
  *  - Opening a PR should sync the pipeline (creating the job) and start the new PR job
  *  - Syncing a PR should stop the existing PR job and start a new one
@@ -122,8 +172,9 @@ function pullRequestEvent(request, reply) {
             return pullRequestOpened({ eventId, pipelineId, jobId, name }, request, reply);
 
         case 'synchronize':
+            return pullRequestSync({ eventId, pipelineId, jobId, name }, request, reply);
             // @TODO stop & start job if sync
-            return reply().code(201);
+            // return reply().code(201);
 
         case 'closed':
             return pullRequestClosed({ eventId, pipelineId, jobId, name }, request, reply);
