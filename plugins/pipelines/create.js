@@ -30,8 +30,8 @@ module.exports = (datastore, password) => ({
                 }, next),
                 (permissions, next) => {
                     if (!permissions.admin) {
-                        return reply(boom.unauthorized(`User ${username}
-                            is not an admin of this repo`));
+                        return reply(boom.unauthorized(`User ${username} `
+                            + 'is not an admin of this repo'));
                     }
 
                     return Pipeline.get(pipelineId, next);
