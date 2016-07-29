@@ -17,8 +17,8 @@ module.exports = (datastore, password) => ({
             strategies: ['token', 'session']
         },
         handler: (request, reply) => {
-            const scmUrl = request.payload.scmUrl;
             const Pipeline = new Model.Pipeline(datastore);
+            const scmUrl = Pipeline.formatScmUrl(request.payload.scmUrl);
             const pipelineId = Pipeline.generateId({ scmUrl });
             const username = request.auth.credentials.username;
             const User = new Model.User(datastore, password);
