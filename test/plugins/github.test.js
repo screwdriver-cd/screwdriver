@@ -169,6 +169,7 @@ describe('github plugin test', () => {
                     const buildId = 'buildHash';
                     const name = 'PR-1';
                     const buildNumber = '12345';
+                    const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
 
                     options.payload = testPayloadOpen;
 
@@ -187,7 +188,7 @@ describe('github plugin test', () => {
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId });
+                        assert.calledWith(buildMock.create, { jobId, sha });
                         done();
                     });
                 });
@@ -197,6 +198,7 @@ describe('github plugin test', () => {
                     const pipelineId = 'pipelineHash';
                     const jobId = 'jobHash';
                     const name = 'PR-1';
+                    const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
 
                     options.payload = testPayloadOpen;
 
@@ -212,7 +214,7 @@ describe('github plugin test', () => {
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId });
+                        assert.calledWith(buildMock.create, { jobId, sha });
                         done();
                     });
                 });
