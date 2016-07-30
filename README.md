@@ -1,5 +1,5 @@
 # Screwdriver API
-[![Version][npm-image]][npm-url] [![Pulls][docker-pulls]][docker-url] [![Stars][docker-stars]][docker-url] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] [![Coverage][cov-image]][cov-url] ![License][license-image]
+[![Version][npm-image]][npm-url] [![Pulls][docker-pulls]][docker-url] [![Stars][docker-stars]][docker-url] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] [![Coverage][cov-image]][cov-url] [![Vulnerabilities][vul-image]][vul-url] ![License][license-image]
 
 > API for the Screwdriver CD service
 
@@ -114,6 +114,8 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [npm-url]: https://npmjs.org/package/screwdriver-api
 [cov-image]: https://coveralls.io/repos/github/screwdriver-cd/screwdriver/badge.svg?branch=master
 [cov-url]: https://coveralls.io/github/screwdriver-cd/screwdriver?branch=master
+[vul-image]: https://snyk.io/test/github/screwdriver-cd/screwdriver.git/badge.svg
+[vul-url]: https://snyk.io/test/github/screwdriver-cd/screwdriver.git
 [docker-pulls]: https://img.shields.io/docker/pulls/screwdrivercd/screwdriver.svg
 [docker-stars]: https://img.shields.io/docker/stars/screwdrivercd/screwdriver.svg
 [docker-url]: https://hub.docker.com/r/screwdrivercd/screwdriver/

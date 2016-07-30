@@ -4,7 +4,7 @@
   "description": "API server for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
-    "pretest": "eslint .",
+    "pretest": "eslint . && snyk test",
     "test": "jenkins-mocha --recursive",
     "start": "./bin/server",
     "functional": "cucumber-js --format=pretty"
@@ -73,6 +73,7 @@
     "jenkins-mocha": "~2.6.0",
     "mockery": "^1.7.0",
     "request": "^2.73.0",
-    "sinon": "~1.17.4"
+    "sinon": "~1.17.4",
+    "snyk": "^1.17.5"
   }
 }
