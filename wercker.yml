@@ -7,8 +7,8 @@ build:
     - npm-test
 
     - script:
-      name: Upload Coverage to Codacy
-      code: cat ./artifacts/coverage/lcov.info | ./node_modules/.bin/codacy-coverage
+      name: Upload Coverage to Coveralls
+      code: cat ./artifacts/coverage/lcov.info | ./node_modules/.bin/coveralls
 
 deploy:
   steps:
