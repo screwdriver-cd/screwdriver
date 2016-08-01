@@ -321,7 +321,7 @@ describe('pipeline plugin test', () => {
                     admins: {
                         d2lam: true
                     },
-                    scmUrl: unformattedScmUrl
+                    scmUrl
                 });
                 done();
             });
