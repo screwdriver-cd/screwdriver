@@ -43,7 +43,8 @@ describe('pipeline plugin test', () => {
             list: sinon.stub(),
             sync: sinon.stub(),
             update: sinon.stub(),
-            generateId: sinon.stub()
+            generateId: sinon.stub(),
+            formatScmUrl: sinon.stub()
         };
         userMock = {
             get: sinon.stub(),
@@ -58,6 +59,7 @@ describe('pipeline plugin test', () => {
         pipelineModelFactoryMock.prototype.sync = pipelineMock.sync;
         pipelineModelFactoryMock.prototype.update = pipelineMock.update;
         pipelineModelFactoryMock.prototype.generateId = pipelineMock.generateId;
+        pipelineModelFactoryMock.prototype.formatScmUrl = pipelineMock.formatScmUrl;
         userModelFactoryMock.prototype.generateId = userMock.generateId;
         userModelFactoryMock.prototype.get = userMock.get;
         userModelFactoryMock.prototype.getPermissions = userMock.getPermissions;
@@ -256,6 +258,7 @@ describe('pipeline plugin test', () => {
         let options;
         let sandbox;
         const dateNow = 1111111111;
+        const unformattedScmUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const username = 'd2lam';
@@ -277,18 +280,19 @@ describe('pipeline plugin test', () => {
                 method: 'POST',
                 url: '/pipelines',
                 payload: {
-                    scmUrl
+                    scmUrl: unformattedScmUrl
                 },
                 credentials: {
                     username
                 }
             };
 
+            pipelineMock.formatScmUrl.withArgs(unformattedScmUrl).returns(scmUrl);
+            pipelineMock.generateId.withArgs({ scmUrl }).returns(testId);
             userMock.getPermissions.withArgs({
                 username,
                 scmUrl
             }).yieldsAsync(null, { admin: true });
-            pipelineMock.generateId.withArgs({ scmUrl }).returns(testId);
             pipelineMock.get.withArgs(testId).yieldsAsync(null, null);
             pipelineMock.create.yieldsAsync(null, pipeline);
         });
@@ -317,7 +321,7 @@ describe('pipeline plugin test', () => {
                     admins: {
                         d2lam: true
                     },
-                    scmUrl: 'git@github.com:screwdriver-cd/data-model.git#master'
+                    scmUrl: unformattedScmUrl
                 });
                 done();
             });
