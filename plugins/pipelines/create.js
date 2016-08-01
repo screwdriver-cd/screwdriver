@@ -43,7 +43,11 @@ module.exports = (datastore, password) => ({
                     const admins = {};
 
                     admins[username] = true;
-                    const pipelineConfig = hoek.applyToDefaults(request.payload, { admins });
+                    const pipelineConfig = hoek.applyToDefaults(request.payload,
+                        {
+                            admins,
+                            scmUrl
+                        });
 
                     return Pipeline.create(pipelineConfig, next);
                 },
