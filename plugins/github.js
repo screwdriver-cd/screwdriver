@@ -17,6 +17,7 @@ let Build;
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the new job (PR-1)
  * @param  {String}       [options.sha]      specific SHA1 commit to start the build with
+ * @param  {String}       [options.username] Username that triggered the event
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
@@ -26,6 +27,7 @@ function pullRequestOpened(options, request, reply) {
     const jobId = options.jobId;
     const name = options.name;
     const sha = options.sha;
+    const username = options.username;
 
     async.waterfall([
         // Create job
@@ -36,7 +38,7 @@ function pullRequestOpened(options, request, reply) {
             next();
         },
         // Create build
-        async.apply(Build.create.bind(Build), { jobId, sha }),
+        async.apply(Build.create.bind(Build), { jobId, sha, username }),
         // Log it
         (build, next) => {
             request.log(['webhook-github', eventId, jobId, build.id], `${name} started `
@@ -102,6 +104,7 @@ function pullRequestEvent(request, reply) {
     const branch = hoek.reach(payload, 'pull_request.base.ref');
     const scmUrl = `${repository}#${branch}`;
     const sha = hoek.reach(payload, 'pull_request.head.sha');
+    const username = hoek.reach(payload, 'pull_request.user.login');
 
     request.log(['webhook-github', eventId], `PR #${prNumber} ${action} for ${scmUrl}`);
 
@@ -122,7 +125,14 @@ function pullRequestEvent(request, reply) {
         switch (action) {
         case 'opened':
         case 'reopened':
-            return pullRequestOpened({ eventId, pipelineId, jobId, name, sha }, request, reply);
+            return pullRequestOpened({
+                eventId,
+                pipelineId,
+                jobId,
+                name,
+                sha,
+                username
+            }, request, reply);
 
         case 'synchronize':
             // @TODO stop & start job if sync
