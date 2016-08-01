@@ -35,8 +35,23 @@ function pullRequestOpened(options, request, reply) {
             request.log(['webhook-github', eventId, jobId], `${job.name} created`);
             next();
         },
+        async.apply(Pipeline.get.bind(Pipeline), pipelineId),
+        // Log it
+        (pipelineData, next) => {
+            const username = Object.keys(pipelineData.admins)[0];
+
+            request.log([
+                'webhook-github',
+                eventId,
+                jobId,
+                pipelineId
+            ], `${username} admin selected`);
+            next(null, username);
+        },
         // Create build
-        async.apply(Build.create.bind(Build), { jobId, sha }),
+        (username, next) => {
+            Build.create({ jobId, sha, username }, next);
+        },
         // Log it
         (build, next) => {
             request.log(['webhook-github', eventId, jobId, build.id], `${name} started `
@@ -122,7 +137,13 @@ function pullRequestEvent(request, reply) {
         switch (action) {
         case 'opened':
         case 'reopened':
-            return pullRequestOpened({ eventId, pipelineId, jobId, name, sha }, request, reply);
+            return pullRequestOpened({
+                eventId,
+                pipelineId,
+                jobId,
+                name,
+                sha
+            }, request, reply);
 
         case 'synchronize':
             // @TODO stop & start job if sync
