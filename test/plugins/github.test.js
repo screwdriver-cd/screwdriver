@@ -45,9 +45,11 @@ describe('github plugin test', () => {
 
     beforeEach((done) => {
         pipelineMock = {
+            get: sinon.stub(),
             sync: sinon.stub(),
             generateId: sinon.stub()
         };
+        pipelineModelFactoryMock.prototype.get = pipelineMock.get;
         pipelineModelFactoryMock.prototype.sync = pipelineMock.sync;
         pipelineModelFactoryMock.prototype.generateId = pipelineMock.generateId;
         jobMock = {
@@ -170,6 +172,7 @@ describe('github plugin test', () => {
                     const name = 'PR-1';
                     const buildNumber = '12345';
                     const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
+                    const username = 'baxterthehacker';
 
                     options.payload = testPayloadOpen;
 
@@ -180,15 +183,21 @@ describe('github plugin test', () => {
                     jobMock.generateId.returns(jobId);
                     jobMock.create.yieldsAsync(null, { name });
                     pipelineMock.generateId.returns(pipelineId);
+                    pipelineMock.get.yieldsAsync(null, {
+                        admins: {
+                            baxterthehacker: false
+                        }
+                    });
                     pipelineMock.sync.yieldsAsync(null, {});
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
+                        assert.calledWith(pipelineMock.get, pipelineId);
                         assert.calledWith(pipelineMock.sync, { scmUrl });
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId, sha });
+                        assert.calledWith(buildMock.create, { jobId, sha, username });
                         done();
                     });
                 });
@@ -199,6 +208,7 @@ describe('github plugin test', () => {
                     const jobId = 'jobHash';
                     const name = 'PR-1';
                     const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
+                    const username = 'baxterthehacker';
 
                     options.payload = testPayloadOpen;
 
@@ -206,15 +216,21 @@ describe('github plugin test', () => {
                     jobMock.generateId.returns(jobId);
                     jobMock.create.yieldsAsync(null, { name });
                     pipelineMock.generateId.returns(pipelineId);
+                    pipelineMock.get.yieldsAsync(null, {
+                        admins: {
+                            baxterthehacker: false
+                        }
+                    });
                     pipelineMock.sync.yieldsAsync(null, {});
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 500);
+                        assert.calledWith(pipelineMock.get, pipelineId);
                         assert.calledWith(pipelineMock.sync, { scmUrl });
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId, sha });
+                        assert.calledWith(buildMock.create, { jobId, sha, username });
                         done();
                     });
                 });
