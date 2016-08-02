@@ -83,11 +83,10 @@ function pullRequestClosed(options, request, reply) {
 }
 
 /**
- * Stop any running builds and disable the job for closed pull-request
- * @method pullRequestClosed
+ * Stop any running builds and start the build for the synchronized pull-request
+ * @method pullRequestSync
  * @param  {Object}       options
  * @param  {String}       options.eventId    Unique ID for this GitHub event
- * @param  {String}       options.pipelineId Identifier for the Pipeline
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the job (PR-1)
  * @param  {Hapi.request} request Request from user
@@ -98,22 +97,25 @@ function pullRequestSync(options, request, reply) {
     const jobId = options.jobId;
     const name = options.name;
 
-    // Lookup all the builds for the jobId
-    async.watefall([
-        async.apply(Build.getBuildsByJobId.bind(Build), { jobId }),
+    async.waterfall([
+        // Lookup all the builds for the jobId
+        async.apply(Build.getBuildsForJobId.bind(Build), { jobId }),
+        // Stop all builds for the jobId
         (builds, next) => {
             async.each(
                 builds,
-                (build, cb) {
-                    //TODO: add in stopping of job
+                (build, cb) => {
+                    // TODO: add in stopping of job
                     cb();
                 },
                 next
             );
         },
+        // Log it
         (next) => {
-          request.log(['webhook-github', eventId, jobId, build.id], `${name} stopped`);
-        }
+            request.log(['webhook-github', eventId, jobId], `${name} stopped`);
+            next();
+        },
         // Create new build for the jobId
         async.apply(Build.create.bind(Build), { jobId }),
         // Log it
@@ -128,7 +130,7 @@ function pullRequestSync(options, request, reply) {
         }
         request.log(['webhook-github', eventId, jobId], `${name} synced`);
 
-        return reply().code(200);
+        return reply().code(201);
     });
 }
 
@@ -173,8 +175,6 @@ function pullRequestEvent(request, reply) {
 
         case 'synchronize':
             return pullRequestSync({ eventId, pipelineId, jobId, name }, request, reply);
-            // @TODO stop & start job if sync
-            // return reply().code(201);
 
         case 'closed':
             return pullRequestClosed({ eventId, pipelineId, jobId, name }, request, reply);
