@@ -76,4 +76,52 @@ describe('server case', () => {
             });
         });
     });
+
+    describe('error handling', () => {
+        beforeEach(() => {
+            mockery.registerMock('./registerPlugins', (server, config, next) => {
+                server.route({
+                    method: 'GET',
+                    path: '/yes',
+                    handler: (request, reply) => reply('OK')
+                });
+                server.route({
+                    method: 'GET',
+                    path: '/no',
+                    handler: (request, reply) => reply(new Error('Not OK'))
+                });
+                next();
+            });
+            /* eslint-disable global-require */
+            hapiEngine = require('../../lib/server');
+            /* eslint-enable global-require */
+        });
+
+        it('doesnt affect non-errors', (done) => {
+            hapiEngine({}, (error, server) => {
+                Assert.notOk(error);
+                server.inject({
+                    method: 'GET',
+                    url: '/yes'
+                }, (response) => {
+                    Assert.equal(response.statusCode, 200);
+                    done();
+                });
+            });
+        });
+
+        it('doesnt affect non-errors', (done) => {
+            hapiEngine({}, (error, server) => {
+                Assert.notOk(error);
+                server.inject({
+                    method: 'GET',
+                    url: '/no'
+                }, (response) => {
+                    Assert.equal(response.statusCode, 500);
+                    Assert.equal(JSON.parse(response.payload).message, 'Not OK');
+                    done();
+                });
+            });
+        });
+    });
 });

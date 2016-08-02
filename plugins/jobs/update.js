@@ -13,7 +13,8 @@ module.exports = (datastore) => ({
         notes: 'Update a specific job',
         tags: ['api', 'jobs'],
         auth: {
-            strategies: ['token', 'session']
+            strategies: ['token', 'session'],
+            scope: ['user']
         },
         handler: (request, reply) => {
             const Job = new Model.Job(datastore);

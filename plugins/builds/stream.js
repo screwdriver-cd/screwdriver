@@ -13,7 +13,8 @@ module.exports = (datastore, executor) => ({
         notes: 'Streams logs',
         tags: ['api', 'builds'],
         auth: {
-            strategies: ['token', 'session']
+            strategies: ['token', 'session'],
+            scope: ['user']
         },
         handler: (request, reply) => {
             const Build = new Model.Build(datastore, executor);

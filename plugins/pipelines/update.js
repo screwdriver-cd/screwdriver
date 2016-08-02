@@ -13,7 +13,8 @@ module.exports = (datastore) => ({
         notes: 'Save a specific pipeline',
         tags: ['api', 'pipelines'],
         auth: {
-            strategies: ['token', 'session']
+            strategies: ['token', 'session'],
+            scope: ['user']
         },
         handler: (request, reply) => {
             const Pipeline = new Model.Pipeline(datastore);

@@ -192,7 +192,9 @@ describe('pipeline plugin test', () => {
                 payload: {
                     scmUrl
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             server.inject(options, (reply) => {
@@ -220,7 +222,9 @@ describe('pipeline plugin test', () => {
                 payload: {
                     scmUrl
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             server.inject(options, (reply) => {
@@ -244,7 +248,9 @@ describe('pipeline plugin test', () => {
                 payload: {
                     scmUrl
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             server.inject(options, (reply) => {
@@ -283,7 +289,8 @@ describe('pipeline plugin test', () => {
                     scmUrl: unformattedScmUrl
                 },
                 credentials: {
-                    username
+                    username,
+                    scope: ['user']
                 }
             };
 
