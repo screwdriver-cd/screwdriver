@@ -111,7 +111,9 @@ describe('build plugin test', () => {
         const buildId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const options = {
             url: `/builds/${buildId}/logs`,
-            credentials: {}
+            credentials: {
+                scope: ['user']
+            }
         };
 
         it('returns error when Build.get returns error', (done) => {
@@ -153,7 +155,9 @@ describe('build plugin test', () => {
             buildMock.stream.yieldsAsync(null, {});
             server.inject({
                 url: `/builds/${buildId}/logs`,
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             }, (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {});
@@ -214,7 +218,9 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'SUCCESS'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             server.inject(options, (reply) => {
@@ -235,7 +241,9 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'SUCCESS'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             server.inject(options, (reply) => {
@@ -252,7 +260,9 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'SUCCESS'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             server.inject(options, (reply) => {
@@ -272,7 +282,9 @@ describe('build plugin test', () => {
                 payload: {
                     jobId: '62089f642bbfd1886623964b4cff12db59869e5d'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
         });
 

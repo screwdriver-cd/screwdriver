@@ -153,7 +153,9 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             jobMock.update.withArgs(config).yieldsAsync(null, { id, state });
@@ -174,7 +176,9 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             jobMock.update.withArgs(config).yieldsAsync(new Error('error'));
@@ -192,7 +196,9 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {}
+                credentials: {
+                    scope: ['user']
+                }
             };
 
             jobMock.update.withArgs(config).yieldsAsync(null, null);

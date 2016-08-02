@@ -52,7 +52,8 @@ exports.register = (server, options, next) => {
         server.auth.strategy('token', 'jwt', {
             key: options.jwtPrivateKey,
             verifyOptions: {
-                algorithms: ['HS256']
+                algorithms: ['HS256'],
+                maxAge: '12h'
             }
         });
 

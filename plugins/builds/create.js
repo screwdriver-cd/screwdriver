@@ -12,7 +12,8 @@ module.exports = (datastore, executor) => ({
         notes: 'Save a specific build',
         tags: ['api', 'builds'],
         auth: {
-            strategies: ['token', 'session']
+            strategies: ['token', 'session'],
+            scope: ['user']
         },
         handler: (request, reply) => {
             const Build = new Model.Build(datastore, executor);

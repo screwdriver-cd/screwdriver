@@ -2,7 +2,7 @@
 'use strict';
 const async = require('async');
 const boom = require('boom');
-const jwt = require('jsonwebtoken');
+const creds = require('../../lib/credentials');
 const whitelist = {
     nkatzman: true,
     d2lam: true,
@@ -32,8 +32,7 @@ module.exports = (config) => ({
 
                 return reply(boom.unauthorized(message));
             }
-            const profile = request.auth.credentials.profile;
-            const username = profile.username;
+            const username = request.auth.credentials.profile.username;
 
             if (!whitelist[username]) {
                 const message = `User ${username} is not whitelisted to use the api`;
@@ -41,10 +40,8 @@ module.exports = (config) => ({
                 return reply(boom.forbidden(message));
             }
 
-            const token = jwt.sign(profile, config.jwtPrivateKey, {
-                algorithm: 'HS256',
-                expiresIn: '12h'
-            });
+            const profile = creds.generateProfile(username, ['user']);
+            const token = creds.generateToken(profile, config.jwtPrivateKey);
 
             request.cookieAuth.set(profile);
 
