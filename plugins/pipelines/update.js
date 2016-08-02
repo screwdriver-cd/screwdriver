@@ -5,7 +5,7 @@ const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore) => ({
+module.exports = (server) => ({
     method: 'PUT',
     path: '/pipelines/{id}',
     config: {
@@ -17,7 +17,7 @@ module.exports = (datastore) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const Pipeline = new Model.Pipeline(datastore);
+            const Pipeline = new Model.Pipeline(server.settings.app.datastore);
             const id = request.params.id;
             const data = request.payload;
             const config = {

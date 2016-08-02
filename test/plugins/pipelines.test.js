@@ -74,7 +74,11 @@ describe('pipeline plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            app: {
+                datastore: pipelineMock
+            }
+        });
         server.connection({
             port: 1234
         });
@@ -83,7 +87,6 @@ describe('pipeline plugin test', () => {
             // eslint-disable-next-line global-require
             register: require('../../plugins/login'),
             options: {
-                datastore: {},
                 password,
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',
@@ -93,7 +96,6 @@ describe('pipeline plugin test', () => {
         }, {
             register: plugin,
             options: {
-                datastore: pipelineMock,
                 password
             }
         }
@@ -113,7 +115,6 @@ describe('pipeline plugin test', () => {
     });
 
     it('registers the plugin', () => {
-        assert.equal(server.registrations.pipelines.options.datastore, pipelineMock);
         assert.equal(server.registrations.pipelines.options.password, password);
         assert.isOk(server.registrations.pipelines);
     });

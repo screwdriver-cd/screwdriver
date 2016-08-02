@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore, password) => ({
+module.exports = (server, options) => ({
     method: 'POST',
     path: '/pipelines',
     config: {
@@ -18,11 +18,11 @@ module.exports = (datastore, password) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const Pipeline = new Model.Pipeline(datastore);
+            const Pipeline = new Model.Pipeline(server.settings.app.datastore);
             const scmUrl = Pipeline.formatScmUrl(request.payload.scmUrl);
             const pipelineId = Pipeline.generateId({ scmUrl });
             const username = request.auth.credentials.username;
-            const User = new Model.User(datastore, password);
+            const User = new Model.User(server.settings.app.datastore, options.password);
 
             async.waterfall([
                 (next) => User.getPermissions({
@@ -54,9 +54,10 @@ module.exports = (datastore, password) => ({
                 },
                 (pipeline, next) => Pipeline.sync({ scmUrl }, (err) => {
                     if (err) {
-                        next(err);
+                        return next(err);
                     }
-                    next(null, pipeline);
+
+                    return next(null, pipeline);
                 })
             ], (err, result) => {
                 if (err) {

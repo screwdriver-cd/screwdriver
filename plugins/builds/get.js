@@ -6,7 +6,7 @@ const getSchema = schema.models.build.get;
 const idSchema = joi.reach(schema.models.build.base, 'id');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore, executor) => ({
+module.exports = (server) => ({
     method: 'GET',
     path: '/builds/{id}',
     config: {
@@ -14,7 +14,10 @@ module.exports = (datastore, executor) => ({
         notes: 'Returns a build record',
         tags: ['api', 'builds'],
         handler: (request, reply) => {
-            const Build = new Model.Build(datastore, executor);
+            const Build = new Model.Build(
+                server.settings.app.datastore,
+                server.settings.app.executor
+            );
 
             Build.get(request.params.id, (err, data) => {
                 if (err) {

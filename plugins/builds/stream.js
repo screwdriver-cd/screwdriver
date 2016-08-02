@@ -5,7 +5,7 @@ const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.build.base, 'id');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore, executor) => ({
+module.exports = (server) => ({
     method: 'GET',
     path: '/builds/{id}/logs',
     config: {
@@ -17,7 +17,10 @@ module.exports = (datastore, executor) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const Build = new Model.Build(datastore, executor);
+            const Build = new Model.Build(
+                server.settings.app.datastore,
+                server.settings.app.executor
+            );
             const id = request.params.id;
 
             // eslint-disable-next-line consistent-return

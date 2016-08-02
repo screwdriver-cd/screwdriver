@@ -4,7 +4,7 @@ const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore) => ({
+module.exports = (server) => ({
     method: 'GET',
     path: '/pipelines',
     config: {
@@ -12,7 +12,7 @@ module.exports = (datastore) => ({
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
-            const Pipeline = new Model.Pipeline(datastore);
+            const Pipeline = new Model.Pipeline(server.settings.app.datastore);
 
             Pipeline.list({
                 paginate: request.query

@@ -6,7 +6,7 @@ const getSchema = schema.models.job.get;
 const idSchema = joi.reach(schema.models.job.base, 'id');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore) => ({
+module.exports = (server) => ({
     method: 'GET',
     path: '/jobs/{id}',
     config: {
@@ -14,7 +14,9 @@ module.exports = (datastore) => ({
         notes: 'Returns a job record',
         tags: ['api', 'jobs'],
         handler: (request, reply) => {
-            const Job = new Model.Job(datastore);
+            const Job = new Model.Job(
+                server.settings.app.datastore
+            );
 
             Job.get(request.params.id, (err, data) => {
                 if (err) {

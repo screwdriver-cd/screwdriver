@@ -4,7 +4,7 @@ const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.job.get).label('List of Jobs');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore) => ({
+module.exports = (server) => ({
     method: 'GET',
     path: '/jobs',
     config: {
@@ -12,7 +12,9 @@ module.exports = (datastore) => ({
         notes: 'Returns all jobs records',
         tags: ['api', 'jobs'],
         handler: (request, reply) => {
-            const Job = new Model.Job(datastore);
+            const Job = new Model.Job(
+                server.settings.app.datastore
+            );
 
             Job.list({
                 paginate: request.query

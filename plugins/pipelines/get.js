@@ -6,7 +6,7 @@ const getSchema = schema.models.pipeline.get;
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 const Model = require('screwdriver-models');
 
-module.exports = (datastore) => ({
+module.exports = (server) => ({
     method: 'GET',
     path: '/pipelines/{id}',
     config: {
@@ -14,7 +14,7 @@ module.exports = (datastore) => ({
         notes: 'Returns a pipeline record',
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
-            const Pipeline = new Model.Pipeline(datastore);
+            const Pipeline = new Model.Pipeline(server.settings.app.datastore);
 
             Pipeline.get(request.params.id, (err, data) => {
                 if (err) {

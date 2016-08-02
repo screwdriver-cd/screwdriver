@@ -6,27 +6,33 @@ const jwt = require('hapi-auth-jwt');
 const joi = require('joi');
 const login = require('./login');
 const logout = require('./logout');
+const creds = require('./credentials');
 
 /**
  * Login API Plugin
  * @method register
  * @param  {Hapi}     server                        Hapi Server
  * @param  {Object}   options                       Configuration object
- * @param  {Object}   options.datastore             Datastore Model
  * @param  {String}   options.password              Password used for iron encrypting
  * @param  {Boolean}  options.https                 For setting the isSecure flag. Needs to be false for non-https
  * @param  {String}   options.oauth_client_id       Oauth client id for talking to OAUTH provider
  * @param  {String}   options.oauth_client_secret   Oauth secret for OAUTH provider
+ * @param  {String}   options.jwtPrivateKey         Secret for signing JWTs
  * @param  {Function} next                          Function to call when done
  */
 exports.register = (server, options, next) => {
+    server.expose('generateToken', (username, scope) => {
+        const profile = creds.generateProfile(username, scope);
+
+        return creds.generateToken(profile, options.jwtPrivateKey);
+    });
+
     server.register([bell, sugar, jwt], (err) => {
         if (err) {
             throw err;
         }
 
         joi.assert(options, joi.object().keys({
-            datastore: joi.object().required(),
             password: joi.string().min(32).required(),
             https: joi.boolean().required(),
             oauthClientId: joi.string().required(),
@@ -58,7 +64,7 @@ exports.register = (server, options, next) => {
         });
 
         server.route([
-            login(options),
+            login(server, options),
             logout()
         ]);
 

@@ -43,7 +43,11 @@ describe('login plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/login');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            app: {
+                datastore: {}
+            }
+        });
         server.connection({
             port: 1234
         });
@@ -51,7 +55,6 @@ describe('login plugin test', () => {
         server.register({
             register: plugin,
             options: {
-                datastore: {},
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: 'oauth_client_id',
                 oauthClientSecret: 'oauth_client_secret',

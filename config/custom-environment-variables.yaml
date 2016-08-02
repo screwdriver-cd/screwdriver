@@ -15,6 +15,7 @@ login:
 
 httpd:
     port: PORT
+    host: HOST
 
 datastore:
     plugin: DATASTORE_PLUGIN

@@ -15,10 +15,10 @@ const updateRoute = require('./update');
  */
 exports.register = (server, options, next) => {
     server.route([
-        createRoute(options.datastore, options.password),
-        getRoute(options.datastore),
-        listRoute(options.datastore),
-        updateRoute(options.datastore)
+        createRoute(server, options),
+        getRoute(server),
+        listRoute(server),
+        updateRoute(server)
     ]);
 
     next();
