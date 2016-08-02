@@ -50,7 +50,11 @@ function pullRequestOpened(options, request, reply) {
         },
         // Create build
         (username, next) => {
-            Build.create({ jobId, sha, username }, next);
+            const apiUri = request.server.info.uri;
+            const tokenGen = (buildId) =>
+                request.server.plugins.login.generateToken(buildId, ['build']);
+
+            Build.create({ jobId, sha, username, apiUri, tokenGen }, next);
         },
         // Log it
         (build, next) => {
@@ -175,9 +179,9 @@ function pullRequestEvent(request, reply) {
  */
 exports.register = (server, options, next) => {
     // Do some silly setup of stuff
-    Pipeline = new Models.Pipeline(options.datastore);
-    Job = new Models.Job(options.datastore);
-    Build = new Models.Build(options.datastore, options.executor);
+    Pipeline = new Models.Pipeline(server.settings.app.datastore);
+    Job = new Models.Job(server.settings.app.datastore);
+    Build = new Models.Build(server.settings.app.datastore, server.settings.app.executor);
 
     // Register the hook interface
     server.register(githubWebhooks);

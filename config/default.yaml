@@ -16,6 +16,16 @@ login:
 
 httpd:
     port: 8080
+    host: localhost
+    tls: false
+        # If you want SSL, you can easily add it by replacing `tls: false` with an object that
+        # provides the options required by `tls.createServer`
+        # https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
+        # key: |
+        #     PRIVATE KEY HERE
+        # cert: |
+        #     YOUR CERT HERE
+
 
 datastore:
     plugin: imdb

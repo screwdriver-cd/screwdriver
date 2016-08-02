@@ -42,7 +42,9 @@ describe('server case', () => {
             registrationManMock.yieldsAsync(null);
 
             hapiEngine({
-                port: 12347
+                httpd: {
+                    port: 12347
+                }
             }, (error, server) => {
                 Assert.notOk(error);
                 server.inject({

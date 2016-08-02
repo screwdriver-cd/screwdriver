@@ -23,9 +23,7 @@ describe('Register Unit Test Case', () => {
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
     const mocks = {};
-    const config = {
-        datastore: 'screwdriver-datastore-test'
-    };
+    const config = {};
     let main;
     let serverMock;
 
@@ -90,7 +88,7 @@ describe('Register Unit Test Case', () => {
             resourcePlugins.forEach((plugin) => {
                 Assert.calledWith(serverMock.register, {
                     register: mocks[plugin],
-                    options: config
+                    options: {}
                 }, {
                     routes: {
                         prefix: '/v3'
@@ -106,7 +104,6 @@ describe('Register Unit Test Case', () => {
         serverMock.register.callsArgAsync(2);
 
         main(serverMock, {
-            datastore: config.datastore,
             login: {
                 foo: 'bar'
             }

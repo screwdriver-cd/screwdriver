@@ -2,7 +2,7 @@
 'use strict';
 const async = require('async');
 const boom = require('boom');
-const creds = require('../../lib/credentials');
+const creds = require('./credentials');
 const whitelist = {
     nkatzman: true,
     d2lam: true,
@@ -16,7 +16,15 @@ const whitelist = {
 };
 const Model = require('screwdriver-models');
 
-module.exports = (config) => ({
+/**
+ * Login to Screwdriver API
+ * @method login
+ * @param  {Hapi.Server} server          The Hapi Server we're on
+ * @param  {Object}      config          Configuration from the user
+ * @param  {String}      config.password Password to encrypt/decrypt data in Iron
+ * @return {Object}                      Hapi Plugin Route
+ */
+module.exports = (server, config) => ({
     method: ['GET', 'POST'],
     path: '/login',
     config: {
@@ -41,11 +49,11 @@ module.exports = (config) => ({
             }
 
             const profile = creds.generateProfile(username, ['user']);
-            const token = creds.generateToken(profile, config.jwtPrivateKey);
+            const token = request.server.plugins.login.generateToken(username, ['user']);
 
             request.cookieAuth.set(profile);
 
-            const User = new Model.User(config.datastore, config.password);
+            const User = new Model.User(server.settings.app.datastore, config.password);
             const id = User.generateId({ username });
             const githubToken = request.auth.credentials.token;
 

@@ -35,6 +35,15 @@ describe('github plugin test', () => {
     let buildMock;
     let plugin;
     let server;
+    let apiUri;
+    const mockLogin = (srv, option, next) => {
+        srv.expose('generateToken', (username, scope) => JSON.stringify({ username, scope }));
+        next();
+    };
+
+    mockLogin.attributes = {
+        name: 'login'
+    };
 
     before(() => {
         mockery.enable({
@@ -75,16 +84,24 @@ describe('github plugin test', () => {
         plugin = require('../../plugins/github');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-        server.connection({
-            port: 1234
+        server = new hapi.Server({
+            app: {
+                datastore: {},
+                executor: {}
+            }
         });
+        server.connection({
+            host: 'localhost',
+            port: 12345
+        });
+        apiUri = 'http://localhost:12345';
 
         server.register([{
+            register: mockLogin
+        },
+        {
             register: plugin,
             options: {
-                datastore: {},
-                executor: {},
                 secret: 'secretssecretsarenofun'
             }
         }], (err) => {
@@ -197,7 +214,15 @@ describe('github plugin test', () => {
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId, sha, username });
+                        assert.calledWith(buildMock.create, {
+                            jobId,
+                            sha,
+                            apiUri,
+                            username,
+                            tokenGen: sinon.match.func
+                        });
+                        assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
+                            '{"username":"12345","scope":["build"]}');
                         done();
                     });
                 });
@@ -230,7 +255,15 @@ describe('github plugin test', () => {
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId, sha, username });
+                        assert.calledWith(buildMock.create, {
+                            jobId,
+                            sha,
+                            apiUri,
+                            username,
+                            tokenGen: sinon.match.func
+                        });
+                        assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
+                            '{"username":"12345","scope":["build"]}');
                         done();
                     });
                 });

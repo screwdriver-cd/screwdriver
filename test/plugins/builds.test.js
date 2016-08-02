@@ -44,21 +44,30 @@ describe('build plugin test', () => {
         buildModelFactoryMock.prototype.list = buildMock.list;
         buildModelFactoryMock.prototype.update = buildMock.update;
 
+        mockery.registerMock('./credentials', {
+            generateProfile: (username, scope) => ({ username, scope }),
+            generateToken: (profile, token) => JSON.stringify(profile) + JSON.stringify(token)
+        });
         mockery.registerMock('screwdriver-models', { Build: buildModelFactoryMock });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            app: {
+                datastore: buildMock,
+                executor: executorOptions
+            }
+        });
         server.connection({
-            port: 1234
+            port: 12345,
+            host: 'localhost'
         });
 
         server.register([{
             // eslint-disable-next-line global-require
             register: require('../../plugins/login'),
             options: {
-                datastore: {},
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',
@@ -67,10 +76,7 @@ describe('build plugin test', () => {
             }
         }, {
             register: plugin,
-            options: {
-                datastore: buildMock,
-                executor: executorOptions
-            }
+            options: {}
         }], (err) => {
             done(err);
         });
@@ -308,8 +314,12 @@ describe('build plugin test', () => {
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(buildMock.create, {
-                    jobId: '62089f642bbfd1886623964b4cff12db59869e5d'
+                    jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
+                    apiUri: 'http://localhost:12345',
+                    tokenGen: sinon.match.func
                 });
+                assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
+                    '{"username":"12345","scope":["build"]}"1234secretkeythatissupersecret5678"');
                 done();
             });
         });

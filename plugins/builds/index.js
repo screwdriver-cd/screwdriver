@@ -9,24 +9,25 @@ const streamLogsRoute = require('./stream');
 /**
  * Build API Plugin
  * @method register
- * @param  {Hapi}     server            Hapi Server
- * @param  {Object}   options           Configuration
- * @param  {Object}   options.datastore Datastore object
- * @param  {Object}   options.executor  Executor object
- * @param  {Function} next              Function to call when done
+ * @param  {Hapi}     server                Hapi Server
+ * @param  {Object}   options               Configuration
+ * @param  {Function} next                  Function to call when done
  */
 exports.register = (server, options, next) => {
     server.route([
-        listRoute(options.datastore, options.executor),
-        getRoute(options.datastore, options.executor),
-        streamLogsRoute(options.datastore, options.executor),
-        updateRoute(options.datastore, options.executor),
-        createRoute(options.datastore, options.executor)
+        listRoute(server),
+        getRoute(server),
+        streamLogsRoute(server),
+        updateRoute(server),
+        createRoute(server)
     ]);
 
     next();
 };
 
 exports.register.attributes = {
-    name: 'builds'
+    name: 'builds',
+    dependencies: [
+        'login'
+    ]
 };

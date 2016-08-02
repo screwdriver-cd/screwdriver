@@ -1,4 +1,10 @@
 'use strict';
+
+/**
+ * Logout of Screwdriver API
+ * @method logout
+ * @return {Object} Hapi Plugin Route
+ */
 module.exports = () => ({
     method: 'POST',
     path: '/logout',
