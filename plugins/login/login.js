@@ -6,11 +6,14 @@ const creds = require('./credentials');
 const whitelist = {
     nkatzman: true,
     d2lam: true,
+    cynthiax: true,
     dvdizon: true,
     FenrirUnbound: true,
     Filbird: true,
     jer: true,
+    minz1027: true,
     petey: true,
+    'shruthi-venkateswaran': true,
     stjohnjohnson: true,
     tkyi: true
 };
