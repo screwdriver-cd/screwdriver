@@ -1,5 +1,6 @@
 'use strict';
 const boom = require('boom');
+const hoek = require('hoek');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 const Model = require('screwdriver-models');
@@ -26,8 +27,11 @@ module.exports = (server) => ({
                 tokenGen: (buildId) =>
                     request.server.plugins.login.generateToken(buildId, ['build'])
             };
+            const config = hoek.applyToDefaults(payload, {
+                username: request.auth.credentials.username
+            });
 
-            Build.create(payload, (err, data) => {
+            Build.create(config, (err, data) => {
                 if (err) {
                     return reply(boom.wrap(err));
                 }

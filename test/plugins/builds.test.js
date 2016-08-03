@@ -279,6 +279,12 @@ describe('build plugin test', () => {
     });
 
     describe('POST /builds', () => {
+        const params = {
+            jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
+            apiUri: 'http://localhost:12345',
+            tokenGen: sinon.match.func,
+            username: 'myself'
+        };
         let options;
 
         beforeEach(() => {
@@ -289,16 +295,18 @@ describe('build plugin test', () => {
                     jobId: '62089f642bbfd1886623964b4cff12db59869e5d'
                 },
                 credentials: {
-                    scope: ['user']
+                    scope: ['user'],
+                    username: 'myself'
                 }
             };
         });
 
         it('returns 201 for a successful create', (done) => {
-            let expectedLocation;
             const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+            let expectedLocation;
 
-            buildMock.create.yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
+            buildMock.create.withArgs(params)
+                .yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
 
             server.inject(options, (reply) => {
                 expectedLocation = {
@@ -313,11 +321,7 @@ describe('build plugin test', () => {
                     other: 'dataToBeIncluded'
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(buildMock.create, {
-                    jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
-                    apiUri: 'http://localhost:12345',
-                    tokenGen: sinon.match.func
-                });
+                assert.calledWith(buildMock.create, params);
                 assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
                     '{"username":"12345","scope":["build"]}"1234secretkeythatissupersecret5678"');
                 done();
@@ -327,7 +331,7 @@ describe('build plugin test', () => {
         it('returns 500 when the model encounters an error', (done) => {
             const testError = new Error('datastoreSaveError');
 
-            buildMock.create.yieldsAsync(testError);
+            buildMock.create.withArgs(params).yieldsAsync(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
