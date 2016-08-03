@@ -70,9 +70,11 @@ describe('github plugin test', () => {
         jobModelFactoryMock.prototype.create = jobMock.create;
         jobModelFactoryMock.prototype.generateId = jobMock.generateId;
         buildMock = {
-            create: sinon.stub()
+            create: sinon.stub(),
+            getBuildsForJobId: sinon.stub()
         };
         buildModelFactoryMock.prototype.create = buildMock.create;
+        buildModelFactoryMock.prototype.getBuildsForJobId = buildMock.getBuildsForJobId;
 
         mockery.registerMock('screwdriver-models', {
             Pipeline: pipelineModelFactoryMock,
@@ -270,23 +272,50 @@ describe('github plugin test', () => {
             });
 
             describe('synchronize pull request', () => {
-                it('returns 201 on success', (done) => {
-                    const scmUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
-                    const pipelineId = 'pipelineHash';
-                    const jobId = 'jobHash';
-                    const name = 'PR-1';
+                const scmUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
+                const pipelineId = 'pipelineHash';
+                const jobId = 'jobHash';
+                const name = 'PR-1';
 
-                    options.payload = testPayloadSync;
-
+                beforeEach(() => {
                     jobMock.generateId.returns(jobId);
                     pipelineMock.generateId.returns(pipelineId);
                     pipelineMock.sync.yieldsAsync(null, {});
+
+                    options.payload = testPayloadSync;
+                });
+
+                it('returns 201 on success', (done) => {
+                    buildMock.getBuildsForJobId.yieldsAsync(null, ['main']);
+                    buildMock.create.yieldsAsync(null, { id: jobId });
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(pipelineMock.sync, { scmUrl });
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
+                        assert.calledWith(buildMock.create, { jobId });
+                        done();
+                    });
+                });
+
+                it('has the workflow for stopping builds before starting a new one', (done) => {
+                    buildMock.getBuildsForJobId.yieldsAsync(null, ['main']);
+                    buildMock.create.yieldsAsync(null, { id: jobId });
+
+                    server.inject(options, (reply) => {
+                        assert.equal(reply.statusCode, 201);
+                        assert.isOk(buildMock.getBuildsForJobId.calledBefore(buildMock.create));
+                        done();
+                    });
+                });
+
+                it('returns 500 when failed', (done) => {
+                    buildMock.getBuildsForJobId.yieldsAsync(null, ['main']);
+                    buildMock.create.yieldsAsync(new Error('Failed to start'));
+
+                    server.inject(options, (reply) => {
+                        assert.equal(reply.statusCode, 500);
                         done();
                     });
                 });
