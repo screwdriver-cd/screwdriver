@@ -4,9 +4,9 @@ const hoek = require('hoek');
 const async = require('async');
 const boom = require('boom');
 const Models = require('screwdriver-models');
-let Pipeline;
-let Job;
-let Build;
+let pipeline;
+let job;
+let build;
 
 /**
  * Create a new job and start the build for an opened pull-request
@@ -29,13 +29,13 @@ function pullRequestOpened(options, request, reply) {
 
     async.waterfall([
         // Create job
-        async.apply(Job.create.bind(Job), { pipelineId, name }),
+        (next) => job.create({ pipelineId, name }, next),
         // Log it
-        (job, next) => {
-            request.log(['webhook-github', eventId, jobId], `${job.name} created`);
+        (jobData, next) => {
+            request.log(['webhook-github', eventId, jobId], `${jobData.name} created`);
             next();
         },
-        async.apply(Pipeline.get.bind(Pipeline), pipelineId),
+        (next) => pipeline.get(pipelineId, next),
         // Log it
         (pipelineData, next) => {
             const username = Object.keys(pipelineData.admins)[0];
@@ -54,12 +54,12 @@ function pullRequestOpened(options, request, reply) {
             const tokenGen = (buildId) =>
                 request.server.plugins.login.generateToken(buildId, ['build']);
 
-            Build.create({ jobId, sha, username, apiUri, tokenGen }, next);
+            build.create({ jobId, sha, username, apiUri, tokenGen }, next);
         },
         // Log it
-        (build, next) => {
-            request.log(['webhook-github', eventId, jobId, build.id], `${name} started `
-                + `${build.number}`);
+        (buildData, next) => {
+            request.log(['webhook-github', eventId, jobId, buildData.id], `${name} started `
+                + `${buildData.number}`);
             next();
         }
     ], (waterfallError) => {
@@ -88,7 +88,7 @@ function pullRequestClosed(options, request, reply) {
     const name = options.name;
 
     // @TODO stop running build
-    Job.update({
+    job.update({
         id: jobId,
         data: {
             state: 'DISABLED'
@@ -179,16 +179,16 @@ function pullRequestEvent(request, reply) {
     // Possible actions
     // "opened", "closed", "reopened", "synchronize",
     // "assigned", "unassigned", "labeled", "unlabeled", "edited"
-    Pipeline.sync({ scmUrl }, (err, data) => {
+    pipeline.sync({ scmUrl }, (err, data) => {
         if (err) {
             return reply(boom.wrap(err));
         }
         if (!data) {
             return reply(boom.notFound('Pipeline does not exist'));
         }
-        const pipelineId = Pipeline.generateId({ scmUrl });
+        const pipelineId = pipeline.generateId({ scmUrl });
         const name = `PR-${prNumber}`;
-        const jobId = Job.generateId({ pipelineId, name });
+        const jobId = job.generateId({ pipelineId, name });
 
         switch (action) {
         case 'opened':
@@ -230,9 +230,9 @@ function pullRequestEvent(request, reply) {
  */
 exports.register = (server, options, next) => {
     // Do some silly setup of stuff
-    Pipeline = new Models.Pipeline(server.settings.app.datastore);
-    Job = new Models.Job(server.settings.app.datastore);
-    Build = new Models.Build(server.settings.app.datastore, server.settings.app.executor);
+    pipeline = new Models.Pipeline(server.settings.app.datastore);
+    job = new Models.Job(server.settings.app.datastore);
+    build = new Models.Build(server.settings.app.datastore, server.settings.app.executor);
 
     // Register the hook interface
     server.register(githubWebhooks);

@@ -56,23 +56,23 @@ module.exports = (server, config) => ({
 
             request.cookieAuth.set(profile);
 
-            const User = new Model.User(server.settings.app.datastore, config.password);
-            const id = User.generateId({ username });
+            const user = new Model.User(server.settings.app.datastore, config.password);
+            const id = user.generateId({ username });
             const githubToken = request.auth.credentials.token;
 
-            User.sealToken(githubToken, (err, sealed) => {
+            user.sealToken(githubToken, (err, sealed) => {
                 async.waterfall([
-                    async.apply(User.get.bind(User), id),
-                    (user, cb) => {
-                        if (!user) {
-                            return User.create({
+                    (next) => user.get(id, next),
+                    (userData, cb) => {
+                        if (!userData) {
+                            return user.create({
                                 username,
                                 token: sealed
                             }, cb);
                         }
 
-                        return User.update({
-                            id: user.id,
+                        return user.update({
+                            id: userData.id,
                             data: {
                                 token: sealed
                             }
