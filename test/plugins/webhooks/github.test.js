@@ -217,7 +217,6 @@ describe('github plugin test', () => {
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
-                        assert.calledWith(pipelineMock.get, pipelineId);
                         assert.calledWith(pipelineMock.sync, { scmUrl });
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
@@ -249,16 +248,10 @@ describe('github plugin test', () => {
                     jobMock.generateId.returns(jobId);
                     jobMock.create.yieldsAsync(null, { name });
                     pipelineMock.generateId.returns(pipelineId);
-                    pipelineMock.get.yieldsAsync(null, {
-                        admins: {
-                            baxterthehacker: false
-                        }
-                    });
                     pipelineMock.sync.yieldsAsync(null, {});
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 500);
-                        assert.calledWith(pipelineMock.get, pipelineId);
                         assert.calledWith(pipelineMock.sync, { scmUrl });
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.create, { pipelineId, name });
@@ -287,6 +280,11 @@ describe('github plugin test', () => {
                     jobMock.generateId.returns(jobId);
                     pipelineMock.generateId.returns(pipelineId);
                     pipelineMock.sync.yieldsAsync(null, {});
+                    pipelineMock.get.yieldsAsync(null, {
+                        admins: {
+                            baxterthehacker: false
+                        }
+                    });
 
                     options.payload = testPayloadSync;
                 });
@@ -301,7 +299,7 @@ describe('github plugin test', () => {
                         assert.calledWith(pipelineMock.sync, { scmUrl });
                         assert.calledWith(pipelineMock.generateId, { scmUrl });
                         assert.calledWith(jobMock.generateId, { pipelineId, name });
-                        assert.calledWith(buildMock.create, { jobId });
+                        assert.calledWith(buildMock.create, { jobId, username: 'baxterthehacker' });
                         done();
                     });
                 });

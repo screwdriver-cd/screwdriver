@@ -11,11 +11,15 @@ let build;
  *  - Updates the Meta, Status, and Stop Time of a given build
  * @method build
  * @param  {Hapi.Server}    server
+ * @param  {String}         options.password  Login password
  * @param  {Function}       next
  */
-module.exports = (server) => {
-    // Do some silly setup of stuff
-    build = new Models.Build(server.settings.app.datastore, server.settings.app.executor);
+module.exports = (server, options) => {
+    build = new Models.Build(
+        server.settings.app.datastore,
+        server.settings.app.executor,
+        options.password
+    );
 
     // Now use it
     return {

@@ -17,6 +17,7 @@ let build;
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the new job (PR-1)
  * @param  {String}       [options.sha]      specific SHA1 commit to start the build with
+ * @param  {String}       options.username   User who created the PR
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
@@ -26,6 +27,7 @@ function pullRequestOpened(options, request, reply) {
     const jobId = options.jobId;
     const name = options.name;
     const sha = options.sha;
+    const username = options.username;
 
     async.waterfall([
         // Create job
@@ -35,21 +37,18 @@ function pullRequestOpened(options, request, reply) {
             request.log(['webhook-github', eventId, jobId], `${jobData.name} created`);
             next();
         },
-        (next) => pipeline.get(pipelineId, next),
         // Log it
-        (pipelineData, next) => {
-            const username = Object.keys(pipelineData.admins)[0];
-
+        (next) => {
             request.log([
                 'webhook-github',
                 eventId,
                 jobId,
                 pipelineId
-            ], `${username} admin selected`);
-            next(null, username);
+            ], `${username} selected`);
+            next();
         },
         // Create build
-        (username, next) => {
+        (next) => {
             const apiUri = request.server.info.uri;
             const tokenGen = (buildId) =>
                 request.server.plugins.login.generateToken(buildId, ['build']);
@@ -110,6 +109,7 @@ function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.eventId    Unique ID for this GitHub event
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the job (PR-1)
+ * @param  {String}       options.username   User who created the PR
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
@@ -117,6 +117,7 @@ function pullRequestSync(options, request, reply) {
     const eventId = options.eventId;
     const jobId = options.jobId;
     const name = options.name;
+    const username = options.username;
 
     async.waterfall([
         // Lookup all the builds for the jobId
@@ -134,8 +135,10 @@ function pullRequestSync(options, request, reply) {
             request.log(['webhook-github', eventId, jobId], `${name} stopped`);
             next();
         },
-        // Create new build for the jobId
-        (next) => build.create({ jobId }, next),
+        (next) => {
+            // Create new build for the jobId
+            build.create({ jobId, username }, next);
+        },
         // Log it
         (buildObj, next) => {
             request.log(['webhook-github', eventId, jobId, buildObj.id], `${name} started `
@@ -170,6 +173,7 @@ function pullRequestEvent(request, reply) {
     const branch = hoek.reach(payload, 'pull_request.base.ref');
     const scmUrl = `${repository}#${branch}`;
     const sha = hoek.reach(payload, 'pull_request.head.sha');
+    const username = hoek.reach(payload, 'pull_request.user.login');
 
     request.log(['webhook-github', eventId], `PR #${prNumber} ${action} for ${scmUrl}`);
 
@@ -195,11 +199,12 @@ function pullRequestEvent(request, reply) {
                 pipelineId,
                 jobId,
                 name,
-                sha
+                sha,
+                username
             }, request, reply);
 
         case 'synchronize':
-            return pullRequestSync({ eventId, pipelineId, jobId, name }, request, reply);
+            return pullRequestSync({ eventId, jobId, name, username }, request, reply);
 
         case 'closed':
             return pullRequestClosed({ eventId, pipelineId, jobId, name }, request, reply);
@@ -221,13 +226,18 @@ function pullRequestEvent(request, reply) {
  * @param  {Hapi.Server}    server
  * @param  {Object}         options
  * @param  {String}         options.secret    GitHub Webhook secret to sign payloads with
+ * @param  {String}         options.password  Login password
  * @param  {Function}       next
  */
 module.exports = (server, options) => {
     // Do some silly setup of stuff
     pipeline = new Models.Pipeline(server.settings.app.datastore);
     job = new Models.Job(server.settings.app.datastore);
-    build = new Models.Build(server.settings.app.datastore, server.settings.app.executor);
+    build = new Models.Build(
+        server.settings.app.datastore,
+        server.settings.app.executor,
+        options.password
+    );
 
     // Register the hook interface
     server.register(githubWebhooks);
