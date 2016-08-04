@@ -4,10 +4,10 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 
-const testPayloadOpen = require('./data/github.pull_request.opened.json');
-const testPayloadSync = require('./data/github.pull_request.synchronize.json');
-const testPayloadClose = require('./data/github.pull_request.closed.json');
-const testPayloadOther = require('./data/github.pull_request.labeled.json');
+const testPayloadOpen = require('../data/github.pull_request.opened.json');
+const testPayloadSync = require('../data/github.pull_request.synchronize.json');
+const testPayloadClose = require('../data/github.pull_request.closed.json');
+const testPayloadOther = require('../data/github.pull_request.labeled.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -36,14 +36,6 @@ describe('github plugin test', () => {
     let plugin;
     let server;
     let apiUri;
-    const mockLogin = (srv, option, next) => {
-        srv.expose('generateToken', (username, scope) => JSON.stringify({ username, scope }));
-        next();
-    };
-
-    mockLogin.attributes = {
-        name: 'login'
-    };
 
     before(() => {
         mockery.enable({
@@ -81,9 +73,13 @@ describe('github plugin test', () => {
             Build: buildModelFactoryMock,
             Job: jobModelFactoryMock
         });
+        mockery.registerMock('./credentials', {
+            generateProfile: (username, scope) => ({ username, scope }),
+            generateToken: (profile, token) => JSON.stringify(profile) + JSON.stringify(token)
+        });
 
         /* eslint-disable global-require */
-        plugin = require('../../plugins/github');
+        plugin = require('../../../plugins/webhooks');
         /* eslint-enable global-require */
 
         server = new hapi.Server({
@@ -99,7 +95,15 @@ describe('github plugin test', () => {
         apiUri = 'http://localhost:12345';
 
         server.register([{
-            register: mockLogin
+            // eslint-disable-next-line global-require
+            register: require('../../../plugins/login'),
+            options: {
+                password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
+                oauthClientId: '1234id5678',
+                oauthClientSecret: '1234secretoauthything5678',
+                jwtPrivateKey: 'supersecret',
+                https: true
+            }
         },
         {
             register: plugin,
@@ -122,7 +126,7 @@ describe('github plugin test', () => {
     });
 
     it('registers the plugin', () => {
-        assert.isOk(server.registrations.githubWebhook);
+        assert.isOk(server.registrations.webhooks);
     });
 
     describe('POST /webhooks/github', () => {
@@ -224,7 +228,7 @@ describe('github plugin test', () => {
                             tokenGen: sinon.match.func
                         });
                         assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
-                            '{"username":"12345","scope":["build"]}');
+                            '{"username":"12345","scope":["build"]}"supersecret"');
                         done();
                     });
                 });
@@ -265,7 +269,7 @@ describe('github plugin test', () => {
                             tokenGen: sinon.match.func
                         });
                         assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
-                            '{"username":"12345","scope":["build"]}');
+                            '{"username":"12345","scope":["build"]}"supersecret"');
                         done();
                     });
                 });
