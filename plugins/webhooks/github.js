@@ -125,10 +125,7 @@ function pullRequestSync(options, request, reply) {
         (builds, next) => {
             async.each(
                 builds,
-                (buildObj, cb) => {
-                    // TODO: add in stopping of job
-                    cb();
-                },
+                (buildObj, cb) => build.stop({ buildId: buildObj.id }, cb),
                 next
             );
         },
