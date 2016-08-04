@@ -120,12 +120,12 @@ function pullRequestSync(options, request, reply) {
 
     async.waterfall([
         // Lookup all the builds for the jobId
-        async.apply(Build.getBuildsForJobId.bind(Build), { jobId }),
+        (next) => build.getBuildsForJobId({ jobId }, next),
         // Stop all builds for the jobId
         (builds, next) => {
             async.each(
                 builds,
-                (build, cb) => {
+                (buildObj, cb) => {
                     // TODO: add in stopping of job
                     cb();
                 },
@@ -138,11 +138,11 @@ function pullRequestSync(options, request, reply) {
             next();
         },
         // Create new build for the jobId
-        async.apply(Build.create.bind(Build), { jobId }),
+        (next) => build.create({ jobId }, next),
         // Log it
-        (build, next) => {
-            request.log(['webhook-github', eventId, jobId, build.id], `${name} started `
-                + `${build.number}`);
+        (buildObj, next) => {
+            request.log(['webhook-github', eventId, jobId, buildObj.id], `${name} started `
+                + `${buildObj.number}`);
             next();
         }
     ], (err) => {
@@ -220,15 +220,13 @@ function pullRequestEvent(request, reply) {
  *  - Opening a PR should sync the pipeline (creating the job) and start the new PR job
  *  - Syncing a PR should stop the existing PR job and start a new one
  *  - Closing a PR should stop the PR job and sync the pipeline (disabling the job)
- * @method register
+ * @method github
  * @param  {Hapi.Server}    server
  * @param  {Object}         options
- * @param  {Object}         options.datastore Datastore Model
- * @param  {Object}         options.executor  Executor Model
  * @param  {String}         options.secret    GitHub Webhook secret to sign payloads with
  * @param  {Function}       next
  */
-exports.register = (server, options, next) => {
+module.exports = (server, options) => {
     // Do some silly setup of stuff
     pipeline = new Models.Pipeline(server.settings.app.datastore);
     job = new Models.Job(server.settings.app.datastore);
@@ -240,8 +238,9 @@ exports.register = (server, options, next) => {
     server.auth.strategy('githubwebhook', 'githubwebhook', {
         secret: options.secret
     });
+
     // Now use it
-    server.route({
+    return {
         method: 'POST',
         path: '/webhooks/github',
         config: {
@@ -268,10 +267,5 @@ exports.register = (server, options, next) => {
                 }
             }
         }
-    });
-    next();
-};
-
-exports.register.attributes = {
-    name: 'githubWebhook'
+    };
 };

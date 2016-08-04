@@ -4,10 +4,10 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 
-const testPayloadOpen = require('./data/github.pull_request.opened.json');
-const testPayloadSync = require('./data/github.pull_request.synchronize.json');
-const testPayloadClose = require('./data/github.pull_request.closed.json');
-const testPayloadOther = require('./data/github.pull_request.labeled.json');
+const testPayloadOpen = require('../data/github.pull_request.opened.json');
+const testPayloadSync = require('../data/github.pull_request.synchronize.json');
+const testPayloadClose = require('../data/github.pull_request.closed.json');
+const testPayloadOther = require('../data/github.pull_request.labeled.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -83,7 +83,7 @@ describe('github plugin test', () => {
         });
 
         /* eslint-disable global-require */
-        plugin = require('../../plugins/github');
+        plugin = require('../../../plugins/webhooks');
         /* eslint-enable global-require */
 
         server = new hapi.Server({
@@ -122,7 +122,7 @@ describe('github plugin test', () => {
     });
 
     it('registers the plugin', () => {
-        assert.isOk(server.registrations.githubWebhook);
+        assert.isOk(server.registrations.webhooks);
     });
 
     describe('POST /webhooks/github', () => {
