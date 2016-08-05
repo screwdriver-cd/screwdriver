@@ -63,10 +63,12 @@ describe('github plugin test', () => {
         jobModelFactoryMock.prototype.generateId = jobMock.generateId;
         buildMock = {
             create: sinon.stub(),
-            getBuildsForJobId: sinon.stub()
+            getBuildsForJobId: sinon.stub(),
+            stop: sinon.stub()
         };
         buildModelFactoryMock.prototype.create = buildMock.create;
         buildModelFactoryMock.prototype.getBuildsForJobId = buildMock.getBuildsForJobId;
+        buildModelFactoryMock.prototype.stop = buildMock.stop;
 
         mockery.registerMock('screwdriver-models', {
             Pipeline: pipelineModelFactoryMock,
@@ -292,6 +294,7 @@ describe('github plugin test', () => {
                 it('returns 201 on success', (done) => {
                     buildMock.getBuildsForJobId.yieldsAsync(null, ['main']);
                     buildMock.create.yieldsAsync(null, { id: jobId });
+                    buildMock.stop.yieldsAsync(null);
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
@@ -304,11 +307,24 @@ describe('github plugin test', () => {
                 });
 
                 it('has the workflow for stopping builds before starting a new one', (done) => {
-                    buildMock.getBuildsForJobId.yieldsAsync(null, ['main']);
+                    buildMock.getBuildsForJobId.yieldsAsync(null, [{
+                        id: 1
+                    }, {
+                        id: 2
+                    }]);
                     buildMock.create.yieldsAsync(null, { id: jobId });
+                    buildMock.stop.yieldsAsync(null);
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
+                        assert.calledTwice(buildMock.stop);
+                        assert.calledWith(buildMock.stop, {
+                            buildId: 1
+                        });
+                        assert.calledWith(buildMock.stop, {
+                            buildId: 2
+                        });
+                        assert.isOk(buildMock.getBuildsForJobId.calledBefore(buildMock.stop));
                         assert.isOk(buildMock.getBuildsForJobId.calledBefore(buildMock.create));
                         done();
                     });
@@ -317,6 +333,7 @@ describe('github plugin test', () => {
                 it('returns 500 when failed', (done) => {
                     buildMock.getBuildsForJobId.yieldsAsync(null, ['main']);
                     buildMock.create.yieldsAsync(new Error('Failed to start'));
+                    buildMock.stop.yieldsAsync(null);
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 500);
