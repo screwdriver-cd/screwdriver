@@ -31,7 +31,7 @@ require('../')({
     pipelines: {
         password: loginConfig.password
     },
-    github: {
+    webhooks: {
         secret: gitHubSecret
     }
 }, (err, server) => {
