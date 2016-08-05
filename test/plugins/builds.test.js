@@ -16,7 +16,28 @@ sinon.assert.expose(assert, { prefix: '' });
  */
 function buildModelFactoryMock() {}
 
+/**
+ * Stub for JobModel factory method
+ * @method jobModelFactoryMock
+ */
+function jobModelFactoryMock() {}
+
+/**
+ * Stub for PipelineModel factory method
+ * @method pipelineModelFactoryMock
+ */
+function pipelineModelFactoryMock() {}
+
+/**
+ * Stub for UserModel factory method
+ * @method userModelFactoryMock
+ */
+function userModelFactoryMock() {}
+
 describe('build plugin test', () => {
+    let jobMock;
+    let pipelineMock;
+    let userMock;
     let buildMock;
     let executorOptions;
     let plugin;
@@ -31,6 +52,15 @@ describe('build plugin test', () => {
 
     beforeEach((done) => {
         executorOptions = sinon.stub();
+        jobMock = {
+            get: sinon.stub()
+        };
+        pipelineMock = {
+            get: sinon.stub()
+        };
+        userMock = {
+            getPermissions: sinon.stub()
+        };
         buildMock = {
             create: sinon.stub(),
             stream: sinon.stub(),
@@ -38,17 +68,21 @@ describe('build plugin test', () => {
             list: sinon.stub(),
             update: sinon.stub()
         };
-        buildModelFactoryMock.prototype.create = buildMock.create;
-        buildModelFactoryMock.prototype.stream = buildMock.stream;
-        buildModelFactoryMock.prototype.get = buildMock.get;
-        buildModelFactoryMock.prototype.list = buildMock.list;
-        buildModelFactoryMock.prototype.update = buildMock.update;
+        buildModelFactoryMock.prototype = buildMock;
+        jobModelFactoryMock.prototype = jobMock;
+        pipelineModelFactoryMock.prototype = pipelineMock;
+        userModelFactoryMock.prototype = userMock;
 
         mockery.registerMock('./credentials', {
             generateProfile: (username, scope) => ({ username, scope }),
             generateToken: (profile, token) => JSON.stringify(profile) + JSON.stringify(token)
         });
-        mockery.registerMock('screwdriver-models', { Build: buildModelFactoryMock });
+        mockery.registerMock('screwdriver-models', {
+            Build: buildModelFactoryMock,
+            Pipeline: pipelineModelFactoryMock,
+            User: userModelFactoryMock,
+            Job: jobModelFactoryMock
+        });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
@@ -76,7 +110,7 @@ describe('build plugin test', () => {
             }
         }, {
             register: plugin,
-            options: {}
+            options: { password: 'thispasswordismine' }
         }], (err) => {
             done(err);
         });
@@ -279,6 +313,18 @@ describe('build plugin test', () => {
     });
 
     describe('POST /builds', () => {
+        const username = 'myself';
+        const buildId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const jobId = '62089f642bbfd1886623964b4cff12db59869e5d';
+        const pipelineId = '2d991790bab1ac8576097ca87f170df73410b55c';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const params = {
+            jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
+            apiUri: 'http://localhost:12345',
+            tokenGen: sinon.match.func,
+            username
+        };
+
         let options;
 
         beforeEach(() => {
@@ -286,38 +332,40 @@ describe('build plugin test', () => {
                 method: 'POST',
                 url: '/builds',
                 payload: {
-                    jobId: '62089f642bbfd1886623964b4cff12db59869e5d'
+                    jobId
                 },
                 credentials: {
-                    scope: ['user']
-                }
+                    scope: ['user'],
+                    username
+                },
+                password: 'thiadchlsifhesfr'
             };
         });
 
         it('returns 201 for a successful create', (done) => {
             let expectedLocation;
-            const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
 
-            buildMock.create.yieldsAsync(null, { id: testId, other: 'dataToBeIncluded' });
+            jobMock.get.withArgs(jobId).yieldsAsync(null, { pipelineId });
+            pipelineMock.get.withArgs(pipelineId).yieldsAsync(null, { scmUrl });
+            userMock.getPermissions.withArgs({ username, scmUrl })
+                .yieldsAsync(null, { push: true });
+            buildMock.create.withArgs(params)
+                .yieldsAsync(null, { id: buildId, other: 'dataToBeIncluded' });
 
             server.inject(options, (reply) => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
-                    pathname: `${options.url}/${testId}`
+                    pathname: `${options.url}/${buildId}`
                 };
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, {
-                    id: testId,
+                    id: buildId,
                     other: 'dataToBeIncluded'
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(buildMock.create, {
-                    jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
-                    apiUri: 'http://localhost:12345',
-                    tokenGen: sinon.match.func
-                });
+                assert.calledWith(buildMock.create, params);
                 assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
                     '{"username":"12345","scope":["build"]}"1234secretkeythatissupersecret5678"');
                 done();
@@ -327,10 +375,26 @@ describe('build plugin test', () => {
         it('returns 500 when the model encounters an error', (done) => {
             const testError = new Error('datastoreSaveError');
 
-            buildMock.create.yieldsAsync(testError);
+            jobMock.get.withArgs(jobId).yieldsAsync(null, { pipelineId });
+            pipelineMock.get.withArgs(pipelineId).yieldsAsync(null, { scmUrl });
+            userMock.getPermissions.withArgs({ username, scmUrl })
+                .yieldsAsync(null, { push: true });
+            buildMock.create.withArgs(params).yieldsAsync(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+
+        it('returns unauthorized error when user does not have push permission', (done) => {
+            jobMock.get.withArgs(jobId).yieldsAsync(null, { pipelineId });
+            pipelineMock.get.withArgs(pipelineId).yieldsAsync(null, { scmUrl });
+            userMock.getPermissions.withArgs({ username, scmUrl })
+                .yieldsAsync(null, { push: false });
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 401);
                 done();
             });
         });

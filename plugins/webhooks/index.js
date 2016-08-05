@@ -8,6 +8,7 @@ const buildRoute = require('./build');
  * @param  {Hapi}     server            Hapi Server
  * @param  {Object}   options           Configuration
  * @param  {String}   options.secret    GitHub Webhook secret to sign payloads with
+ * @param  {String}   options.password  Login password
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {

@@ -19,7 +19,7 @@ exports.register = (server, options, next) => {
         getRoute(server),
         streamLogsRoute(server),
         updateRoute(server),
-        createRoute(server)
+        createRoute(server, options)
     ]);
 
     next();

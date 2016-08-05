@@ -31,15 +31,15 @@ module.exports = (server, options) => ({
                 }, next),
                 (permissions, next) => {
                     if (!permissions.admin) {
-                        return reply(boom.unauthorized(`User ${username} `
+                        return next(boom.unauthorized(`User ${username} `
                             + 'is not an admin of this repo'));
                     }
 
                     return Pipeline.get(pipelineId, next);
                 },
-                (data, next) => {
-                    if (data) {
-                        return reply(boom.conflict('scmUrl needs to be unique'));
+                (pipelineExists, next) => {
+                    if (pipelineExists) {
+                        return next(boom.conflict('scmUrl needs to be unique'));
                     }
                     const admins = {};
 
