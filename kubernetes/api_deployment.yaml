@@ -18,6 +18,8 @@ spec:
         env:
           - name: DATASTORE_PLUGIN
             value: dynamodb
+          - name: HOST
+            value: 0.0.0.0
           - name: DATA_DIR
             value: /opt/screwdriver/data
           - name: SECRET_JWT_PRIVATE_KEY
