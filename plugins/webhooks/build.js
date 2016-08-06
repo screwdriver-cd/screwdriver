@@ -4,7 +4,6 @@ const Models = require('screwdriver-models');
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const buildWebhookSchema = schema.api.webhooks.build;
-let build;
 
 /**
  * Build Webhook Plugin
@@ -15,7 +14,8 @@ let build;
  * @param  {Function}       next
  */
 module.exports = (server, options) => {
-    build = new Models.Build(
+    // Do some silly setup of stuff
+    const build = new Models.Build(
         server.settings.app.datastore,
         server.settings.app.executor,
         options.password
@@ -34,18 +34,20 @@ module.exports = (server, options) => {
                 scope: ['build']
             },
             handler: (request, reply) => {
-                const buildId = request.auth.credentials.username;
+                const id = request.auth.credentials.username;
+                const status = request.payload.status;
+                const data = {
+                    status
+                };
 
-                request.log(['webhook-build', buildId], 'Received update event');
+                request.log(['webhook-build', id], `Received status update to ${status}`);
 
-                build.update({
-                    id: buildId,
-                    data: {
-                        meta: request.payload.meta || {},
-                        status: request.payload.status,
-                        endTime: Date.now()
-                    }
-                }, (err) => {
+                if (['SUCCESS', 'FAILURE', 'ABORTED'].indexOf(status) > -1) {
+                    data.meta = request.payload.meta || {};
+                    data.endTime = Date.now();
+                }
+
+                build.update({ id, data }, (err) => {
                     if (err) {
                         return reply(boom.wrap(err));
                     }

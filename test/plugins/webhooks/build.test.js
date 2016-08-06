@@ -164,6 +164,39 @@ describe('build webhook plugin test', () => {
             });
         });
 
+        it('skips meta and endTime on RUNNING', (done) => {
+            const buildId = '8843d7f92416211de9ebb963ff4ce28125932878';
+            const meta = {
+                foo: 'bar'
+            };
+            const status = 'RUNNING';
+            const options = {
+                method: 'POST',
+                url: '/webhooks/build',
+                credentials: {
+                    username: buildId,
+                    scope: ['build']
+                },
+                payload: {
+                    meta,
+                    status
+                }
+            };
+
+            buildMock.update.yieldsAsync(null, {});
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledWith(buildMock.update, {
+                    id: buildId,
+                    data: {
+                        status
+                    }
+                });
+                done();
+            });
+        });
+
         it('propigates model errors up', (done) => {
             const buildId = '8843d7f92416211de9ebb963ff4ce28125932878';
             const meta = {
