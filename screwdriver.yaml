@@ -1,0 +1,16 @@
+workflow:
+    - publish
+
+jobs:
+    main:
+        image: node:{{NODE_VERSION}}
+        matrix:
+            NODE_VERSION: [4,5,6]
+        steps:
+            - install: npm install
+            - test: npm test
+
+    publish:
+        image: node:6
+        steps:
+            - publish: npm publish
