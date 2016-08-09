@@ -46,6 +46,9 @@ require('../')({
     webhooks: {
         secret: gitHubSecret,
         password: loginConfig.password
+    },
+    stats: {
+        executor
     }
 }, (err, server) => {
     if (err) {
