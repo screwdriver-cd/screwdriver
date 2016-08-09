@@ -1,40 +1,61 @@
 {
-  "jobs": {
-    "main": [
-      {
-        "image": "node:4",
-        "steps": {
-          "install": "npm install",
-          "test": "npm test",
-          "build": "npm run build"
-        },
-        "environment": {
-          "NODE_VERSION": 4
-        }
-      },
-      {
-        "image": "node:6",
-        "steps": {
-          "install": "npm install",
-          "test": "npm test",
-          "build": "npm run build"
-        },
-        "environment": {
-          "NODE_VERSION": 6
-        }
-      }
-    ],
-    "publish": [
-      {
-        "image": "node:4",
-        "steps": {
-          "install": "npm publish"
-        },
-        "environment": {}
-      }
+    "jobs": {
+        "main": [
+            {
+                "image": "node:4",
+                "commands": [
+                    {
+                        "name": "install",
+                        "command": "npm install"
+                    },
+                    {
+                        "name": "test",
+                        "command": "npm test"
+                    },
+                    {
+                        "name": "build",
+                        "command": "npm run build"
+                    }
+                ],
+                "environment": {
+                    "NODE_VERSION": "4"
+                }
+            },
+            {
+                "image": "node:6",
+                "commands": [
+                    {
+                        "name": "install",
+                        "command": "npm install"
+                    },
+                    {
+                        "name": "test",
+                        "command": "npm test"
+                    },
+                    {
+                        "name": "build",
+                        "command": "npm run build"
+                    }
+                ],
+                "environment": {
+                    "NODE_VERSION": "6"
+                }
+            }
+        ],
+        "publish": [
+            {
+                "image": "node:4",
+                "commands": [
+                    {
+                        "name": "publish",
+                        "command": "npm publish"
+                    }
+                ],
+                "environment": {}
+            }
+        ]
+    },
+    "workflow": [
+        "publish"
     ]
-  },
-  "workflow": [
-    "publish"
-  ]
 }
