@@ -4,27 +4,45 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-
+const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 
 sinon.assert.expose(assert, { prefix: '' });
+require('sinon-as-promised');
 
-/**
- * Stub for PipelineModel factory method
- * @method pipelineModelFactoryMock
- */
-function pipelineModelFactoryMock() {}
+const decoratePipelineMock = (pipeline) => {
+    const mock = hoek.clone(pipeline);
 
-/**
- * Stub for UserModel factory method
- * @method userModelFactoryMock
- */
-function userModelFactoryMock() {}
+    mock.sync = sinon.stub();
+    mock.update = sinon.stub();
+    mock.formatScmUrl = sinon.stub();
+    mock.toJson = sinon.stub().returns(pipeline);
+
+    return mock;
+};
+const getPipelineMocks = (pipelines) => {
+    if (Array.isArray(pipelines)) {
+        return pipelines.map(decoratePipelineMock);
+    }
+
+    return decoratePipelineMock(pipelines);
+};
+const getUserMock = (user) => {
+    const mock = hoek.clone(user);
+
+    mock.getPermissions = sinon.stub();
+    mock.update = sinon.stub();
+    mock.sealToken = sinon.stub();
+    mock.unsealToken = sinon.stub();
+    mock.toJson = sinon.stub().returns(user);
+
+    return mock;
+};
 
 describe('pipeline plugin test', () => {
-    let pipelineMock;
-    let userMock;
+    let pipelineFactoryMock;
+    let userFactoryMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -37,46 +55,22 @@ describe('pipeline plugin test', () => {
     });
 
     beforeEach((done) => {
-        pipelineMock = {
+        pipelineFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
-            list: sinon.stub(),
-            sync: sinon.stub(),
-            update: sinon.stub(),
-            generateId: sinon.stub(),
-            formatScmUrl: sinon.stub()
+            list: sinon.stub()
         };
-        userMock = {
-            get: sinon.stub(),
-            getPermissions: sinon.stub(),
-            generateId: sinon.stub(),
-            sealToken: sinon.stub(),
-            unsealToken: sinon.stub()
+        userFactoryMock = {
+            get: sinon.stub()
         };
-        pipelineModelFactoryMock.prototype.create = pipelineMock.create;
-        pipelineModelFactoryMock.prototype.get = pipelineMock.get;
-        pipelineModelFactoryMock.prototype.list = pipelineMock.list;
-        pipelineModelFactoryMock.prototype.sync = pipelineMock.sync;
-        pipelineModelFactoryMock.prototype.update = pipelineMock.update;
-        pipelineModelFactoryMock.prototype.generateId = pipelineMock.generateId;
-        pipelineModelFactoryMock.prototype.formatScmUrl = pipelineMock.formatScmUrl;
-        userModelFactoryMock.prototype.generateId = userMock.generateId;
-        userModelFactoryMock.prototype.get = userMock.get;
-        userModelFactoryMock.prototype.getPermissions = userMock.getPermissions;
-        userModelFactoryMock.prototype.unsealToken = userMock.unsealToken;
-        userModelFactoryMock.prototype.sealToken = userMock.sealToken;
-
-        mockery.registerMock('screwdriver-models', {
-            Pipeline: pipelineModelFactoryMock,
-            User: userModelFactoryMock
-        });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
         server = new hapi.Server({
             app: {
-                datastore: pipelineMock
+                pipelineFactory: pipelineFactoryMock,
+                userFactory: userFactoryMock
             }
         });
         server.connection({
@@ -121,11 +115,12 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines', () => {
         it('returns 200 and all pipelines', (done) => {
-            pipelineMock.list.yieldsAsync(null, testPipelines);
+            pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
+
             server.inject('/pipelines?page=1&count=3', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines);
-                assert.calledWith(pipelineMock.list, {
+                assert.calledWith(pipelineFactoryMock.list, {
                     paginate: {
                         page: 1,
                         count: 3
@@ -140,7 +135,8 @@ describe('pipeline plugin test', () => {
         const id = 'cf23df2207d99a74fbe169e3eba035e633b65d94';
 
         it('exposes a route for getting a pipeline', (done) => {
-            pipelineMock.get.withArgs(id).yieldsAsync(null, testPipeline);
+            pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
+
             server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
@@ -155,7 +151,8 @@ describe('pipeline plugin test', () => {
                 message: 'Pipeline does not exist'
             };
 
-            pipelineMock.get.withArgs(id).yieldsAsync(null, null);
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
             server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
@@ -164,9 +161,8 @@ describe('pipeline plugin test', () => {
         });
 
         it('throws error when call returns error', (done) => {
-            const error = new Error('Failed');
+            pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            pipelineMock.get.withArgs(id).yieldsAsync(error);
             server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
@@ -175,18 +171,18 @@ describe('pipeline plugin test', () => {
     });
 
     describe('PUT /pipelines/{id}', () => {
-        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#batman';
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        let pipelineMock;
+
+        beforeEach(() => {
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.update.resolves(pipelineMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
 
         it('returns 200 for updating a pipeline that exists', (done) => {
-            const config = {
-                id,
-                data: {
-                    scmUrl
-                }
-            };
-
-            pipelineMock.update.withArgs(config).yieldsAsync(null, { id, scmUrl });
+            const expected = hoek.applyToDefaults(testPipeline, { scmUrl });
             const options = {
                 method: 'PUT',
                 url: `/pipelines/${id}`,
@@ -198,25 +194,16 @@ describe('pipeline plugin test', () => {
                 }
             };
 
+            pipelineMock.toJson.returns(expected);
+
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, {
-                    id,
-                    scmUrl
-                });
+                assert.deepEqual(reply.result, expected);
                 done();
             });
         });
 
         it('returns 404 for updating a pipeline that does not exist', (done) => {
-            const config = {
-                id,
-                data: {
-                    scmUrl
-                }
-            };
-
-            pipelineMock.update.withArgs(config).yieldsAsync(null, null);
             const options = {
                 method: 'PUT',
                 url: `/pipelines/${id}`,
@@ -227,6 +214,8 @@ describe('pipeline plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            pipelineFactoryMock.get.resolves(null);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -235,14 +224,6 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 500 when the datastore returns an error', (done) => {
-            const config = {
-                id,
-                data: {
-                    scmUrl
-                }
-            };
-
-            pipelineMock.update.withArgs(config).yieldsAsync(new Error('error'));
             const options = {
                 method: 'PUT',
                 url: `/pipelines/${id}`,
@@ -253,6 +234,8 @@ describe('pipeline plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            pipelineMock.update.rejects(new Error('icantdothatdave'));
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -263,26 +246,18 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines', () => {
         let options;
-        let sandbox;
-        const dateNow = 1111111111;
         const unformattedScmUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const username = 'd2lam';
-        const pipeline = {
-            id: testId,
-            other: 'dataToBeIncluded'
-        };
         const job = {
             id: 'someJobId',
             other: 'dataToBeIncluded'
         };
+        let pipelineMock;
+        let userMock;
 
         beforeEach(() => {
-            sandbox = sinon.sandbox.create({
-                useFakeTimers: false
-            });
-
             options = {
                 method: 'POST',
                 url: '/pipelines',
@@ -295,25 +270,19 @@ describe('pipeline plugin test', () => {
                 }
             };
 
-            pipelineMock.formatScmUrl.withArgs(unformattedScmUrl).returns(scmUrl);
-            pipelineMock.generateId.withArgs({ scmUrl }).returns(testId);
-            userMock.getPermissions.withArgs({
-                username,
-                scmUrl
-            }).yieldsAsync(null, { admin: true });
-            pipelineMock.get.withArgs(testId).yieldsAsync(null, null);
-            pipelineMock.create.yieldsAsync(null, pipeline);
-        });
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
-        afterEach(() => {
-            sandbox.restore();
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.sync.resolves(job);
+
+            pipelineFactoryMock.get.resolves(null);
+            pipelineFactoryMock.create.resolves(pipelineMock);
         });
 
         it('returns 201 and correct pipeline data', (done) => {
             let expectedLocation;
-
-            sandbox.useFakeTimers(dateNow);
-            pipelineMock.sync.yieldsAsync(null, job);
 
             server.inject(options, (reply) => {
                 expectedLocation = {
@@ -323,9 +292,9 @@ describe('pipeline plugin test', () => {
                     pathname: `${options.url}/${testId}`
                 };
                 assert.equal(reply.statusCode, 201);
-                assert.deepEqual(reply.result, pipeline);
+                assert.deepEqual(reply.result, testPipeline);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(pipelineMock.create, {
+                assert.calledWith(pipelineFactoryMock.create, {
                     admins: {
                         d2lam: true
                     },
@@ -333,17 +302,10 @@ describe('pipeline plugin test', () => {
                 });
                 done();
             });
-
-            process.nextTick(() => {
-                sandbox.clock.tick();
-            });
         });
 
         it('returns 401 when the user does not have admin permissions', (done) => {
-            userMock.getPermissions.withArgs({
-                username,
-                scmUrl
-            }).yieldsAsync(null, { admin: false });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -352,7 +314,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 409 when the scmUrl already exists', (done) => {
-            pipelineMock.get.withArgs(testId).yieldsAsync(null, pipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 409);
@@ -363,7 +325,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the pipeline model fails to get', (done) => {
             const testError = new Error('pipelineModelGetError');
 
-            pipelineMock.get.withArgs(testId).yieldsAsync(testError);
+            pipelineFactoryMock.get.rejects(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -374,7 +336,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the pipeline model fails to create', (done) => {
             const testError = new Error('pipelineModelCreateError');
 
-            pipelineMock.create.yieldsAsync(testError);
+            pipelineFactoryMock.create.rejects(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -385,7 +347,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the pipeline model fails to sync during create', (done) => {
             const testError = new Error('pipelineModelSyncError');
 
-            pipelineMock.sync.yieldsAsync(testError);
+            pipelineMock.sync.rejects(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);

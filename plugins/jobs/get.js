@@ -4,7 +4,6 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.job.get;
 const idSchema = joi.reach(schema.models.job.base, 'id');
-const Model = require('screwdriver-models');
 
 module.exports = (server) => ({
     method: 'GET',
@@ -14,20 +13,17 @@ module.exports = (server) => ({
         notes: 'Returns a job record',
         tags: ['api', 'jobs'],
         handler: (request, reply) => {
-            const Job = new Model.Job(
-                server.settings.app.datastore
-            );
+            const factory = server.settings.app.jobFactory;
 
-            Job.get(request.params.id, (err, data) => {
-                if (err) {
-                    return reply(boom.wrap(err));
-                }
-                if (!data) {
-                    return reply(boom.notFound('Job does not exist'));
-                }
+            return factory.get(request.params.id)
+                .then(job => {
+                    if (!job) {
+                        throw boom.notFound('Job does not exist');
+                    }
 
-                return reply(data);
-            });
+                    return reply(job.toJson());
+                })
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: getSchema

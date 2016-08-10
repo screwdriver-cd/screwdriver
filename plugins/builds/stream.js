@@ -3,7 +3,6 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.build.base, 'id');
-const Model = require('screwdriver-models');
 
 module.exports = (server) => ({
     method: 'GET',
@@ -17,30 +16,19 @@ module.exports = (server) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const Build = new Model.Build(
-                server.settings.app.datastore,
-                server.settings.app.executor
-            );
+            const factory = server.settings.app.buildFactory;
             const id = request.params.id;
 
-            // eslint-disable-next-line consistent-return
-            Build.get(id, (err, data) => {
-                if (err) {
-                    return reply(boom.wrap(err));
-                }
-                if (!data) {
-                    return reply(boom.notFound(`Build ${id} does not exist.`));
-                }
-                Build.stream({
-                    buildId: id
-                }, (e, stream) => {
-                    if (e) {
-                        return reply(boom.wrap(e));
+            return factory.get(id)
+                .then(build => {
+                    if (!build) {
+                        throw boom.notFound(`Build ${id} does not exist.`);
                     }
 
-                    return reply(stream);
-                });
-            });
+                    return build.stream();
+                })
+                .then(reply)
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {

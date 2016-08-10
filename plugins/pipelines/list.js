@@ -1,8 +1,8 @@
 'use strict';
+const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
-const Model = require('screwdriver-models');
 
 module.exports = (server) => ({
     method: 'GET',
@@ -12,11 +12,11 @@ module.exports = (server) => ({
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
-            const Pipeline = new Model.Pipeline(server.settings.app.datastore);
+            const factory = server.settings.app.pipelineFactory;
 
-            Pipeline.list({
-                paginate: request.query
-            }, reply);
+            return factory.list({ paginate: request.query })
+                .then(pipelines => reply(pipelines.map(p => p.toJson())))
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema

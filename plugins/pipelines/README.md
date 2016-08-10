@@ -9,14 +9,12 @@
 const Hapi = require('hapi');
 const server = new Hapi.Server();
 const pipelinesPlugin = require('./');
-const Datastore = require('your-datastore-here');
 
 server.connection({ port: 3000 });
 
 server.register({
     register: pipelinesPlugin,
     options: {
-        datastore: new Datastore(),
         password: 'this_is_a_password_that_needs_to_be_atleast_32_characters'
     }
 }, () => {
@@ -76,5 +74,17 @@ Example payload:
 {
   "scmUrl": "git@github.com:screwdriver-cd/data-model.git#master",
   "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master"
+}
+```
+
+### Access to Factory methods
+The server supplies factories to plugins in the form of server settings:
+
+```js
+// pipelinePlugin.js
+module.exports = (server) => {
+    const factory = server.settings.app.pipelineFactory;
+
+    // ...
 }
 ```

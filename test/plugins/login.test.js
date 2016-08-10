@@ -6,16 +6,32 @@ const sinon = require('sinon');
 
 sinon.assert.expose(assert, { prefix: '' });
 
+require('sinon-as-promised');
+
 /**
- * Stub for UserModel factory method
- * @method userModelFactoryMock
+ * helper to generate a user model mock
+ * @method getUserMock
+ * @param  {Object}    user {id, username, token}
+ * @return {Object}         Model with stubbed function(s)
  */
-function userModelFactoryMock() {}
+function getUserMock(user) {
+    const result = {
+        update: sinon.stub(),
+        sealToken: sinon.stub(),
+        id: user.id,
+        username: user.username,
+        token: user.token,
+        password: user.password
+    };
+
+    return result;
+}
 
 describe('login plugin test', () => {
-    let userMock;
+    let userFactoryMock;
     let plugin;
     let server;
+    const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
 
     before(() => {
         mockery.enable({
@@ -25,27 +41,17 @@ describe('login plugin test', () => {
     });
 
     beforeEach((done) => {
-        userMock = {
+        userFactoryMock = {
             get: sinon.stub(),
-            create: sinon.stub(),
-            update: sinon.stub(),
-            generateId: sinon.stub(),
-            sealToken: sinon.stub()
+            create: sinon.stub()
         };
-        userModelFactoryMock.prototype.get = userMock.get;
-        userModelFactoryMock.prototype.create = userMock.create;
-        userModelFactoryMock.prototype.update = userMock.update;
-        userModelFactoryMock.prototype.generateId = userMock.generateId;
-        userModelFactoryMock.prototype.sealToken = userMock.sealToken;
-
-        mockery.registerMock('screwdriver-models', { User: userModelFactoryMock });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/login');
         /* eslint-enable global-require */
         server = new hapi.Server({
             app: {
-                datastore: {}
+                userFactory: userFactoryMock
             }
         });
         server.connection({
@@ -55,7 +61,7 @@ describe('login plugin test', () => {
         server.register({
             register: plugin,
             options: {
-                password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
+                password,
                 oauthClientId: 'oauth_client_id',
                 oauthClientSecret: 'oauth_client_secret',
                 jwtPrivateKey: '1234secretkeythatissupersecret5678',
@@ -116,7 +122,8 @@ describe('login plugin test', () => {
             const user = {
                 id,
                 username,
-                token
+                token,
+                password
             };
             const options = {
                 url: '/login',
@@ -127,10 +134,14 @@ describe('login plugin test', () => {
                     token
                 }
             };
+            let userMock;
 
             beforeEach(() => {
-                userMock.generateId.withArgs({ username }).returns(id);
-                userMock.sealToken.yieldsAsync(null, token);
+                userMock = getUserMock(user);
+                userMock.sealToken.returns(token);
+                userMock.update.resolves(userMock);
+                userFactoryMock.get.resolves(userMock);
+                userFactoryMock.create.resolves(userMock);
             });
 
             it('exists', (done) => {
@@ -142,59 +153,53 @@ describe('login plugin test', () => {
                 });
             });
 
-            it('returns token for valid user', (done) => {
-                userMock.get.yieldsAsync(null, null);
-                userMock.create.withArgs({ username, token }).yieldsAsync(null, {});
+            it('creates a user and returns token', (done) => {
+                userFactoryMock.get.rejects(new Error('not found'));
 
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    assert.calledWith(userMock.create, { username, token });
+                    assert.calledWith(userFactoryMock.get, { username });
+                    assert.calledWith(userFactoryMock.create, {
+                        username,
+                        token,
+                        password
+                    });
                     done();
                 });
             });
 
-            it('returns error if fails to get user', (done) => {
-                const err = new Error('getError');
+            it('returns error if fails to create user', (done) => {
+                userFactoryMock.get.rejects(new Error('getError'));
+                userFactoryMock.create.rejects(new Error('createError'));
 
-                userMock.get.yieldsAsync(err);
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 500);
-                    assert.notCalled(userMock.create);
-                    assert.notCalled(userMock.update);
+                    assert.calledOnce(userFactoryMock.create);
                     done();
                 });
             });
 
             it('returns error if fails to update user', (done) => {
                 const err = new Error('updateError');
-                const userConfig = {
-                    id,
-                    data: { token }
-                };
 
-                userMock.get.withArgs(id).yieldsAsync(null, user);
-                userMock.update.yieldsAsync(err);
+                userMock.update.rejects(err);
+
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 500);
-                    assert.calledWith(userMock.update, userConfig);
-                    assert.notCalled(userMock.create);
+                    assert.calledOnce(userMock.update);
+                    assert.notCalled(userFactoryMock.create);
                     done();
                 });
             });
 
             it('updates user if the user exists', (done) => {
-                const userConfig = {
-                    id,
-                    data: { token }
-                };
-
-                userMock.get.withArgs(id).yieldsAsync(null, user);
-                userMock.update.withArgs(userConfig).yieldsAsync(null);
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 200);
-                    assert.calledWith(userMock.update, userConfig);
-                    assert.notCalled(userMock.create);
+                    assert.calledOnce(userMock.sealToken);
+                    assert.calledWith(userMock.sealToken, token);
+                    assert.calledOnce(userMock.update);
+                    assert.notCalled(userFactoryMock.create);
                     done();
                 });
             });
@@ -274,6 +279,9 @@ describe('login plugin test', () => {
         });
 
         it('accepts token', (done) => {
+            userFactoryMock.get.rejects(new Error('not found'));
+            userFactoryMock.create.resolves({});
+
             server.route({
                 method: 'GET',
                 path: '/protected-route2',
@@ -286,10 +294,6 @@ describe('login plugin test', () => {
                     handler: (request, reply) => reply({})
                 }
             });
-
-            userMock.get.yieldsAsync(null, null);
-            userMock.create.yieldsAsync(null, {});
-            userMock.sealToken.yieldsAsync(null, '1234');
 
             server.inject({
                 url: '/login',

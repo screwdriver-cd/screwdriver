@@ -1,6 +1,5 @@
+/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
-
-const Models = require('screwdriver-models');
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const buildWebhookSchema = schema.api.webhooks.build;
@@ -10,18 +9,11 @@ const buildWebhookSchema = schema.api.webhooks.build;
  *  - Updates the Meta, Status, and Stop Time of a given build
  * @method build
  * @param  {Hapi.Server}    server
- * @param  {String}         options.password  Login password
  * @param  {Function}       next
  */
-module.exports = (server, options) => {
-    // Do some silly setup of stuff
-    const build = new Models.Build(
-        server.settings.app.datastore,
-        server.settings.app.executor,
-        options.password
-    );
+module.exports = (server) => {
+    const factory = server.settings.app.buildFactory;
 
-    // Now use it
     return {
         method: 'POST',
         path: '/webhooks/build',
@@ -36,24 +28,29 @@ module.exports = (server, options) => {
             handler: (request, reply) => {
                 const id = request.auth.credentials.username;
                 const status = request.payload.status;
-                const data = {
-                    status
-                };
 
                 request.log(['webhook-build', id], `Received status update to ${status}`);
 
-                if (['SUCCESS', 'FAILURE', 'ABORTED'].indexOf(status) > -1) {
-                    data.meta = request.payload.meta || {};
-                    data.endTime = Date.now();
-                }
+                return factory.get(id)
+                    .then(build => {
+                        // can't update a build that does not exist
+                        if (!build) {
+                            throw boom.notFound('Build does not exist');
+                        }
 
-                build.update({ id, data }, (err) => {
-                    if (err) {
-                        return reply(boom.wrap(err));
-                    }
+                        // set new values
+                        build.status = status;
 
-                    return reply().code(204);
-                });
+                        if (['SUCCESS', 'FAILURE', 'ABORTED'].indexOf(status) > -1) {
+                            build.meta = request.payload.meta || {};
+                            build.endTime = Date.now();
+                        }
+
+                        // update the model in datastore
+                        return build.update();
+                    })
+                    .then(() => reply().code(204))
+                    .catch(err => reply(boom.wrap(err)));
             },
             validate: {
                 payload: buildWebhookSchema

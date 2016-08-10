@@ -4,42 +4,38 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-
+const hoek = require('hoek');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 
 sinon.assert.expose(assert, { prefix: '' });
+require('sinon-as-promised');
 
-/**
- * Stub for BuildModel factory method
- * @method buildModelFactoryMock
- */
-function buildModelFactoryMock() {}
+const decorateBuildObject = (build) => {
+    const decorated = hoek.clone(build);
 
-/**
- * Stub for JobModel factory method
- * @method jobModelFactoryMock
- */
-function jobModelFactoryMock() {}
+    decorated.update = sinon.stub();
+    decorated.start = sinon.stub();
+    decorated.stop = sinon.stub();
+    decorated.stream = sinon.stub();
+    decorated.toJson = sinon.stub().returns(build);
 
-/**
- * Stub for PipelineModel factory method
- * @method pipelineModelFactoryMock
- */
-function pipelineModelFactoryMock() {}
+    return decorated;
+};
 
-/**
- * Stub for UserModel factory method
- * @method userModelFactoryMock
- */
-function userModelFactoryMock() {}
+const getMockBuilds = (builds) => {
+    if (Array.isArray(builds)) {
+        return builds.map(decorateBuildObject);
+    }
+
+    return decorateBuildObject(builds);
+};
 
 describe('build plugin test', () => {
-    let jobMock;
-    let pipelineMock;
-    let userMock;
-    let buildMock;
-    let executorOptions;
+    let buildFactoryMock;
+    let userFactoryMock;
+    let jobFactoryMock;
+    let pipelineFactoryMock;
     let plugin;
     let server;
 
@@ -51,37 +47,30 @@ describe('build plugin test', () => {
     });
 
     beforeEach((done) => {
-        executorOptions = sinon.stub();
-        jobMock = {
-            get: sinon.stub()
-        };
-        pipelineMock = {
-            get: sinon.stub()
-        };
-        userMock = {
-            getPermissions: sinon.stub()
-        };
-        buildMock = {
-            create: sinon.stub(),
-            stream: sinon.stub(),
+        buildFactoryMock = {
             get: sinon.stub(),
-            list: sinon.stub(),
-            update: sinon.stub()
+            create: sinon.stub(),
+            list: sinon.stub()
         };
-        buildModelFactoryMock.prototype = buildMock;
-        jobModelFactoryMock.prototype = jobMock;
-        pipelineModelFactoryMock.prototype = pipelineMock;
-        userModelFactoryMock.prototype = userMock;
+        jobFactoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            list: sinon.stub()
+        };
+        userFactoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            list: sinon.stub()
+        };
+        pipelineFactoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            list: sinon.stub()
+        };
 
         mockery.registerMock('./credentials', {
             generateProfile: (username, scope) => ({ username, scope }),
             generateToken: (profile, token) => JSON.stringify(profile) + JSON.stringify(token)
-        });
-        mockery.registerMock('screwdriver-models', {
-            Build: buildModelFactoryMock,
-            Pipeline: pipelineModelFactoryMock,
-            User: userModelFactoryMock,
-            Job: jobModelFactoryMock
         });
 
         /* eslint-disable global-require */
@@ -89,8 +78,10 @@ describe('build plugin test', () => {
         /* eslint-enable global-require */
         server = new hapi.Server({
             app: {
-                datastore: buildMock,
-                executor: executorOptions
+                buildFactory: buildFactoryMock,
+                pipelineFactory: pipelineFactoryMock,
+                jobFactory: jobFactoryMock,
+                userFactory: userFactoryMock
             }
         });
         server.connection({
@@ -132,11 +123,12 @@ describe('build plugin test', () => {
 
     describe('GET /builds', () => {
         it('returns 200 and all builds', (done) => {
-            buildMock.list.yieldsAsync(null, testBuilds);
+            buildFactoryMock.list.resolves(getMockBuilds(testBuilds));
+
             server.inject('/builds?page=1&count=2', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuilds);
-                assert.calledWith(buildMock.list, {
+                assert.calledWith(buildFactoryMock.list, {
                     paginate: {
                         page: 1,
                         count: 2
@@ -155,23 +147,31 @@ describe('build plugin test', () => {
                 scope: ['user']
             }
         };
+        let buildMock;
+
+        beforeEach(() => {
+            buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(buildId).resolves(buildMock);
+            buildMock.stream.resolves({});
+        });
 
         it('returns error when Build.get returns error', (done) => {
             const err = new Error('getError');
 
-            buildMock.get.withArgs(buildId).yieldsAsync(err);
+            buildFactoryMock.get.withArgs(buildId).rejects(err);
+
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
-                assert.notCalled(buildMock.stream);
                 done();
             });
         });
 
         it('returns 404 when build does not exist', (done) => {
-            buildMock.get.withArgs(buildId).yieldsAsync(null, null);
+            buildFactoryMock.get.withArgs(buildId).resolves(null);
+
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
-                assert.notCalled(buildMock.stream);
                 done();
             });
         });
@@ -179,20 +179,16 @@ describe('build plugin test', () => {
         it('returns error when Build.stream returns error', (done) => {
             const err = new Error('getError');
 
-            buildMock.get.withArgs(buildId).yieldsAsync(null, testBuild);
-            buildMock.stream.yieldsAsync(err);
+            buildMock.stream.rejects(err);
+
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
-                assert.calledWith(buildMock.stream, {
-                    buildId
-                });
+                assert.calledOnce(buildMock.stream);
                 done();
             });
         });
 
         it('calls the build stream with the right values', (done) => {
-            buildMock.get.withArgs(buildId).yieldsAsync(null, testBuild);
-            buildMock.stream.yieldsAsync(null, {});
             server.inject({
                 url: `/builds/${buildId}/logs`,
                 credentials: {
@@ -201,9 +197,7 @@ describe('build plugin test', () => {
             }, (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {});
-                assert.calledWith(buildMock.stream, {
-                    buildId
-                });
+                assert.calledWith(buildMock.stream);
                 done();
             });
         });
@@ -213,7 +207,10 @@ describe('build plugin test', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
 
         it('returns 200 for a build that exists', (done) => {
-            buildMock.get.withArgs(id).yieldsAsync(null, testBuild);
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
             server.inject(`/builds/${id}`, (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild);
@@ -222,7 +219,8 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 when build does not exist', (done) => {
-            buildMock.get.withArgs(id).yieldsAsync(null, null);
+            buildFactoryMock.get.withArgs(id).resolves(null);
+
             server.inject(`/builds/${id}`, (reply) => {
                 assert.equal(reply.statusCode, 404);
                 done();
@@ -230,7 +228,8 @@ describe('build plugin test', () => {
         });
 
         it('returns 500 when datastore returns an error', (done) => {
-            buildMock.get.withArgs(id).yieldsAsync(new Error('blah'));
+            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
             server.inject(`/builds/${id}`, (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
@@ -240,18 +239,17 @@ describe('build plugin test', () => {
 
     describe('PUT /builds/{id}', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const config = {
-            id,
-            data: {
-                status: 'SUCCESS'
-            }
-        };
+        let buildMock;
+
+        beforeEach(() => {
+            buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.resolves(buildMock);
+            buildMock.update.resolves(buildMock);
+        });
 
         it('returns 200 for updating a build that exists', (done) => {
-            buildMock.update.withArgs(config).yieldsAsync(null, {
-                id,
-                status: 'SUCCESS'
-            });
+            const expected = hoek.applyToDefaults(testBuild, { status: 'SUCCESS' });
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -263,18 +261,17 @@ describe('build plugin test', () => {
                 }
             };
 
+            buildMock.toJson.returns(expected);
+
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, {
-                    id,
-                    status: 'SUCCESS'
-                });
+                assert.deepEqual(reply.result, expected);
+                assert.calledWith(buildFactoryMock.get, id);
                 done();
             });
         });
 
         it('returns 404 for updating a build that does not exist', (done) => {
-            buildMock.update.withArgs(config).yieldsAsync(null, null);
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -285,6 +282,8 @@ describe('build plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            buildFactoryMock.get.resolves(null);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -293,7 +292,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 500 when the datastore returns an error', (done) => {
-            buildMock.update.withArgs(config).yieldsAsync(new Error('error'));
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -304,6 +302,8 @@ describe('build plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            buildFactoryMock.get.rejects(new Error('error'));
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -322,10 +322,15 @@ describe('build plugin test', () => {
             jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
             apiUri: 'http://localhost:12345',
             tokenGen: sinon.match.func,
-            username
+            username,
+            password: sinon.match.string
         };
 
         let options;
+        let buildMock;
+        let jobMock;
+        let pipelineMock;
+        let userMock;
 
         beforeEach(() => {
             options = {
@@ -340,17 +345,31 @@ describe('build plugin test', () => {
                 },
                 password: 'thiadchlsifhesfr'
             };
+
+            buildMock = getMockBuilds({ id: buildId, other: 'dataToBeIncluded' });
+            jobMock = {
+                id: jobId,
+                pipelineId
+            };
+            pipelineMock = {
+                id: pipelineId,
+                scmUrl
+            };
+            userMock = {
+                username,
+                getPermissions: sinon.stub()
+            };
+
+            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+            userMock.getPermissions.resolves({ push: true });
+
+            buildFactoryMock.create.resolves(buildMock);
+            jobFactoryMock.get.resolves(jobMock);
+            userFactoryMock.get.resolves(userMock);
         });
 
         it('returns 201 for a successful create', (done) => {
             let expectedLocation;
-
-            jobMock.get.withArgs(jobId).yieldsAsync(null, { pipelineId });
-            pipelineMock.get.withArgs(pipelineId).yieldsAsync(null, { scmUrl });
-            userMock.getPermissions.withArgs({ username, scmUrl })
-                .yieldsAsync(null, { push: true });
-            buildMock.create.withArgs(params)
-                .yieldsAsync(null, { id: buildId, other: 'dataToBeIncluded' });
 
             server.inject(options, (reply) => {
                 expectedLocation = {
@@ -365,8 +384,8 @@ describe('build plugin test', () => {
                     other: 'dataToBeIncluded'
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(buildMock.create, params);
-                assert.equal(buildMock.create.getCall(0).args[0].tokenGen('12345'),
+                assert.calledWith(buildFactoryMock.create, params);
+                assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
                     '{"username":"12345","scope":["build"]}"1234secretkeythatissupersecret5678"');
                 done();
             });
@@ -375,11 +394,7 @@ describe('build plugin test', () => {
         it('returns 500 when the model encounters an error', (done) => {
             const testError = new Error('datastoreSaveError');
 
-            jobMock.get.withArgs(jobId).yieldsAsync(null, { pipelineId });
-            pipelineMock.get.withArgs(pipelineId).yieldsAsync(null, { scmUrl });
-            userMock.getPermissions.withArgs({ username, scmUrl })
-                .yieldsAsync(null, { push: true });
-            buildMock.create.withArgs(params).yieldsAsync(testError);
+            buildFactoryMock.create.withArgs(params).rejects(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -388,10 +403,7 @@ describe('build plugin test', () => {
         });
 
         it('returns unauthorized error when user does not have push permission', (done) => {
-            jobMock.get.withArgs(jobId).yieldsAsync(null, { pipelineId });
-            pipelineMock.get.withArgs(pipelineId).yieldsAsync(null, { scmUrl });
-            userMock.getPermissions.withArgs({ username, scmUrl })
-                .yieldsAsync(null, { push: false });
+            userMock.getPermissions.resolves({ push: false });
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 401);

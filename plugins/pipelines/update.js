@@ -1,9 +1,9 @@
+/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
-const Model = require('screwdriver-models');
 
 module.exports = (server) => ({
     method: 'PUT',
@@ -17,25 +17,23 @@ module.exports = (server) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const Pipeline = new Model.Pipeline(server.settings.app.datastore);
+            const factory = server.settings.app.pipelineFactory;
             const id = request.params.id;
-            const data = request.payload;
-            const config = {
-                id,
-                data
-            };
 
-            Pipeline.update(config, (err, response) => {
-                if (err) {
-                    return reply(boom.wrap(err));
-                }
+            return factory.get(id)
+                .then(pipeline => {
+                    if (!pipeline) {
+                        throw boom.notFound(`Pipeline ${id} does not exist`);
+                    }
 
-                if (!response) {
-                    return reply(boom.notFound(`Pipeline ${id} does not exist`));
-                }
+                    Object.keys(request.payload).forEach(key => {
+                        pipeline[key] = request.payload[key];
+                    });
 
-                return reply(response).code(200);
-            });
+                    return pipeline.update();
+                })
+                .then(pipeline => reply(pipeline.toJson()).code(200))
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {
