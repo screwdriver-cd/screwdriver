@@ -15,7 +15,8 @@ const whitelist = {
     petey: true,
     'shruthi-venkateswaran': true,
     stjohnjohnson: true,
-    tkyi: true
+    tkyi: true,
+    nicolaifsf: true
 };
 const Model = require('screwdriver-models');
 
