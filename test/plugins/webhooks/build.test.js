@@ -5,29 +5,15 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 
 sinon.assert.expose(assert, { prefix: '' });
-
-/**
- * Stub for PipelineModel factory method
- * @method pipelineModelFactoryMock
- */
-function pipelineModelFactoryMock() {}
-
-/**
- * Stub for JobModel factory method
- * @method jobModelFactoryMock
- */
-function jobModelFactoryMock() {}
-
-/**
- * Stub for BuildModel factory method
- * @method buildModelFactoryMock
- */
-function buildModelFactoryMock() {}
+require('sinon-as-promised');
 
 describe('build webhook plugin test', () => {
+    const fakeTime = 111111111;
+    let buildFactoryMock;
     let buildMock;
     let plugin;
     let server;
+    let clock;
 
     before(() => {
         mockery.enable({
@@ -37,24 +23,25 @@ describe('build webhook plugin test', () => {
     });
 
     beforeEach((done) => {
+        clock = sinon.useFakeTimers(fakeTime, 'Date');
         buildMock = {
             update: sinon.stub()
         };
-        buildModelFactoryMock.prototype.update = buildMock.update;
 
-        mockery.registerMock('screwdriver-models', {
-            Pipeline: pipelineModelFactoryMock,
-            Build: buildModelFactoryMock,
-            Job: jobModelFactoryMock
-        });
+        buildMock.update.resolves(buildMock, 'status');
+
+        buildFactoryMock = {
+            get: sinon.stub()
+        };
+
+        buildFactoryMock.get.resolves(buildMock);
 
         // eslint-disable-next-line global-require
         plugin = require('../../../plugins/webhooks');
 
         server = new hapi.Server({
             app: {
-                datastore: {},
-                executor: {}
+                buildFactory: buildFactoryMock
             }
         });
         server.connection({
@@ -84,6 +71,7 @@ describe('build webhook plugin test', () => {
     });
 
     afterEach(() => {
+        clock.restore();
         server = null;
         mockery.deregisterAll();
         mockery.resetCache();
@@ -117,18 +105,13 @@ describe('build webhook plugin test', () => {
                 }
             };
 
-            buildMock.update.yieldsAsync(null, {});
-
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 204);
-                assert.calledWith(buildMock.update, {
-                    id: buildId,
-                    data: {
-                        endTime: sinon.match.number,
-                        meta,
-                        status
-                    }
-                });
+                assert.calledWith(buildFactoryMock.get, buildId);
+                assert.calledOnce(buildMock.update);
+                assert.strictEqual(buildMock.status, status);
+                assert.deepEqual(buildMock.meta, meta);
+                assert.strictEqual(buildMock.endTime, fakeTime);
                 done();
             });
         });
@@ -148,18 +131,12 @@ describe('build webhook plugin test', () => {
                 }
             };
 
-            buildMock.update.yieldsAsync(null, {});
-
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 204);
-                assert.calledWith(buildMock.update, {
-                    id: buildId,
-                    data: {
-                        endTime: sinon.match.number,
-                        meta: {},
-                        status
-                    }
-                });
+                assert.calledOnce(buildMock.update);
+                assert.strictEqual(buildMock.status, status);
+                assert.deepEqual(buildMock.meta, {});
+                assert.strictEqual(buildMock.endTime, fakeTime);
                 done();
             });
         });
@@ -183,21 +160,17 @@ describe('build webhook plugin test', () => {
                 }
             };
 
-            buildMock.update.yieldsAsync(null, {});
-
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 204);
-                assert.calledWith(buildMock.update, {
-                    id: buildId,
-                    data: {
-                        status
-                    }
-                });
+                assert.calledOnce(buildMock.update);
+                assert.strictEqual(buildMock.status, status);
+                assert.isUndefined(buildMock.meta);
+                assert.isUndefined(buildMock.endTime);
                 done();
             });
         });
 
-        it('propigates model errors up', (done) => {
+        it('propagates model errors up', (done) => {
             const buildId = '8843d7f92416211de9ebb963ff4ce28125932878';
             const meta = {
                 foo: 'bar'
@@ -216,10 +189,37 @@ describe('build webhook plugin test', () => {
                 }
             };
 
-            buildMock.update.yieldsAsync(new Error('The printer is on fire'));
+            buildMock.update.rejects(new Error('The printer is on fire'));
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+
+        it('propagates model not found error', (done) => {
+            const buildId = '8843d7f92416211de9ebb963ff4ce28125932878';
+            const meta = {
+                foo: 'bar'
+            };
+            const status = 'SUCCESS';
+            const options = {
+                method: 'POST',
+                url: '/webhooks/build',
+                credentials: {
+                    username: buildId,
+                    scope: ['build']
+                },
+                payload: {
+                    meta,
+                    status
+                }
+            };
+
+            buildFactoryMock.get.resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
                 done();
             });
         });

@@ -7,15 +7,12 @@
 const Hapi = require('hapi');
 const server = new Hapi.Server();
 const jobsPlugin = require('./');
-const Datastore = require('your-datastore-here');
 
 server.connection({ port: 3000 });
 
 server.register({
     register: jobsPlugin,
-    options: {
-        datastore: new Datastore()
-    }
+    options: {}
 }, () => {
     server.start((err) => {
         if (err) {
@@ -47,5 +44,17 @@ Example payload:
 ```json
 {   
     "state": "ENABLED"
+}
+```
+
+### Access to Factory methods
+The server supplies factories to plugins in the form of server settings:
+
+```js
+// jobsPlugin.js
+module.exports = (server) => {
+    const factory = server.settings.app.jobFactory;
+
+    // ...
 }
 ```

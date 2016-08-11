@@ -3,20 +3,30 @@ const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
-
+const hoek = require('hoek');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-/**
- * Stub for JobModel factory method
- * @method jobModelFactoryMock
- */
-function jobModelFactoryMock() {}
+const decorateJobMock = (data) => {
+    const decorated = hoek.clone(data);
+
+    decorated.update = sinon.stub();
+    decorated.toJson = sinon.stub().returns(data);
+
+    return decorated;
+};
+const getJobMocks = (jobs) => {
+    if (Array.isArray(jobs)) {
+        return jobs.map(decorateJobMock);
+    }
+
+    return decorateJobMock(jobs);
+};
 
 describe('job plugin test', () => {
-    let jobMock;
+    let factoryMock;
     let plugin;
     let server;
 
@@ -28,16 +38,10 @@ describe('job plugin test', () => {
     });
 
     beforeEach((done) => {
-        jobMock = {
+        factoryMock = {
             get: sinon.stub(),
-            list: sinon.stub(),
-            update: sinon.stub()
+            list: sinon.stub()
         };
-        jobModelFactoryMock.prototype.get = jobMock.get;
-        jobModelFactoryMock.prototype.list = jobMock.list;
-        jobModelFactoryMock.prototype.update = jobMock.update;
-
-        mockery.registerMock('screwdriver-models', { Job: jobModelFactoryMock });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/jobs');
@@ -45,7 +49,7 @@ describe('job plugin test', () => {
 
         server = new hapi.Server({
             app: {
-                datastore: jobMock
+                jobFactory: factoryMock
             }
         });
         server.connection({
@@ -85,11 +89,12 @@ describe('job plugin test', () => {
 
     describe('GET /jobs', () => {
         it('returns 200 and all jobs', (done) => {
-            jobMock.list.yieldsAsync(null, testJobs);
+            factoryMock.list.resolves(getJobMocks(testJobs));
+
             server.inject('/jobs?page=1&count=3', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testJobs);
-                assert.calledWith(jobMock.list, {
+                assert.calledWith(factoryMock.list, {
                     paginate: {
                         page: 1,
                         count: 3
@@ -104,7 +109,8 @@ describe('job plugin test', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
 
         it('exposes a route for getting a job', (done) => {
-            jobMock.get.withArgs(id).yieldsAsync(null, testJob);
+            factoryMock.get.withArgs(id).resolves(getJobMocks(testJob));
+
             server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c', (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testJob);
@@ -119,7 +125,8 @@ describe('job plugin test', () => {
                 message: 'Job does not exist'
             };
 
-            jobMock.get.withArgs(id).yieldsAsync(null, null);
+            factoryMock.get.withArgs(id).resolves(null);
+
             server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c', (reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
@@ -128,7 +135,8 @@ describe('job plugin test', () => {
         });
 
         it('returns errors when datastore returns an error', (done) => {
-            jobMock.get.withArgs(id).yieldsAsync(new Error('blah'));
+            factoryMock.get.withArgs(id).rejects(new Error('blah'));
+
             server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c', (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
@@ -139,31 +147,35 @@ describe('job plugin test', () => {
     describe('/jobs/{id}', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const state = 'DISABLED';
-        const config = {
-            id: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
-            data: {
-                state: 'DISABLED'
-            }
-        };
+        let jobMock;
+
+        beforeEach(() => {
+            jobMock = getJobMocks({ id, state });
+
+            jobMock.update.resolves(jobMock);
+
+            factoryMock.get.resolves(jobMock);
+        });
 
         it('returns 200 for updating a job that exists', (done) => {
             const options = {
                 method: 'PUT',
                 url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
                 payload: {
-                    state: 'DISABLED'
+                    state: 'ENABLED'
                 },
                 credentials: {
                     scope: ['user']
                 }
             };
 
-            jobMock.update.withArgs(config).yieldsAsync(null, { id, state });
+            jobMock.toJson.returns({ id, state: 'ENABLED' });
+
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {
                     id,
-                    state
+                    state: 'ENABLED'
                 });
                 done();
             });
@@ -181,7 +193,7 @@ describe('job plugin test', () => {
                 }
             };
 
-            jobMock.update.withArgs(config).yieldsAsync(new Error('error'));
+            jobMock.update.rejects(new Error('error'));
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -201,7 +213,7 @@ describe('job plugin test', () => {
                 }
             };
 
-            jobMock.update.withArgs(config).yieldsAsync(null, null);
+            factoryMock.get.resolves(null);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);

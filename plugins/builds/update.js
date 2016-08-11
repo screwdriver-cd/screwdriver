@@ -1,9 +1,9 @@
+/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.job.base, 'id');
-const Model = require('screwdriver-models');
 
 module.exports = (server) => ({
     method: 'PUT',
@@ -17,29 +17,23 @@ module.exports = (server) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const Build = new Model.Build(
-                server.settings.app.datastore,
-                server.settings.app.executor
-            );
-
+            const factory = server.settings.app.buildFactory;
             const id = request.params.id;
 
-            const config = {
-                id,
-                data: request.payload
-            };
+            return factory.get(id)
+                .then(build => {
+                    if (!build) {
+                        throw boom.notFound(`Build ${id} does not exist`);
+                    }
 
-            Build.update(config, (err, data) => {
-                if (err) {
-                    return reply(boom.wrap(err));
-                }
+                    Object.keys(request.payload).forEach(key => {
+                        build[key] = request.payload[key];
+                    });
 
-                if (!data) {
-                    return reply(boom.notFound(`Build ${id} does not exist`));
-                }
-
-                return reply(data).code(200);
-            });
+                    return build.update();
+                })
+                .then(build => reply(build.toJson()).code(200))
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {

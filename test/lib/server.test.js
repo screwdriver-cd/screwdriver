@@ -28,34 +28,52 @@ describe('server case', () => {
 
     describe('positive cases', () => {
         let registrationManMock;
+        let error;
+        let server;
 
-        beforeEach(() => {
+        before((done) => {
             registrationManMock = sinon.stub();
 
             mockery.registerMock('./registerPlugins', registrationManMock);
             /* eslint-disable global-require */
             hapiEngine = require('../../lib/server');
             /* eslint-enable global-require */
-        });
 
-        it('does it with a different port', (done) => {
             registrationManMock.yieldsAsync(null);
 
             hapiEngine({
                 httpd: {
                     port: 12347
-                }
-            }, (error, server) => {
-                Assert.notOk(error);
-                server.inject({
-                    method: 'GET',
-                    url: '/blah'
-                }, (response) => {
-                    Assert.equal(response.statusCode, 404);
-                    Assert.include(response.request.info.host, '12347');
-                    done();
-                });
+                },
+                pipelineFactory: 'pipeline',
+                jobFactory: 'job',
+                userFactory: 'user',
+                buildFactory: 'build'
+            }, (e, s) => {
+                error = e;
+                server = s;
+                done();
             });
+        });
+
+        it('does it with a different port', (done) => {
+            Assert.notOk(error);
+            server.inject({
+                method: 'GET',
+                url: '/blah'
+            }, (response) => {
+                Assert.equal(response.statusCode, 404);
+                Assert.include(response.request.info.host, '12347');
+                done();
+            });
+        });
+
+        it('populates server.app values', () => {
+            Assert.isObject(server.settings.app);
+            Assert.strictEqual(server.settings.app.pipelineFactory, 'pipeline');
+            Assert.strictEqual(server.settings.app.jobFactory, 'job');
+            Assert.strictEqual(server.settings.app.userFactory, 'user');
+            Assert.strictEqual(server.settings.app.buildFactory, 'build');
         });
     });
 

@@ -1,24 +1,22 @@
-/* eslint-disable consistent-return */
+/* eslint no-param-reassign: ["error", { "props": false }]*/
 'use strict';
-const async = require('async');
 const boom = require('boom');
 const creds = require('./credentials');
 const whitelist = {
-    nkatzman: true,
-    d2lam: true,
-    cynthiax: true,
-    dvdizon: true,
     FenrirUnbound: true,
     Filbird: true,
+    cynthiax: true,
+    d2lam: true,
+    dvdizon: true,
     jer: true,
     minz1027: true,
+    nicolaifsf: true,
+    nkatzman: true,
     petey: true,
     'shruthi-venkateswaran': true,
     stjohnjohnson: true,
-    tkyi: true,
-    nicolaifsf: true
+    tkyi: true
 };
-const Model = require('screwdriver-models');
 
 /**
  * Login to Screwdriver API
@@ -57,36 +55,23 @@ module.exports = (server, config) => ({
 
             request.cookieAuth.set(profile);
 
-            const user = new Model.User(server.settings.app.datastore, config.password);
-            const id = user.generateId({ username });
             const githubToken = request.auth.credentials.token;
 
-            user.sealToken(githubToken, (err, sealed) => {
-                async.waterfall([
-                    (next) => user.get(id, next),
-                    (userData, cb) => {
-                        if (!userData) {
-                            return user.create({
-                                username,
-                                token: sealed
-                            }, cb);
-                        }
+            const factory = server.settings.app.userFactory;
 
-                        return user.update({
-                            id: userData.id,
-                            data: {
-                                token: sealed
-                            }
-                        }, cb);
-                    }
-                ], (error) => {
-                    if (error) {
-                        return reply(boom.wrap(error));
-                    }
+            return factory.get({ username })
+                // get success, so user exists
+                .then(model => {
+                    // seal and save updated token
+                    model.password = config.password;
+                    model.token = model.sealToken(githubToken);
 
-                    return reply({ token });
-                });
-            });
+                    return model.update();
+                },
+                 // get failed, so create a new user
+                () => factory.create({ username, token: githubToken, password: config.password }))
+                .then(() => reply({ token }))
+                .catch(err => reply(boom.wrap(err)));
         }
     }
 });

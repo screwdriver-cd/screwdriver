@@ -6,19 +6,12 @@
 const Hapi = require('hapi');
 const server = new Hapi.Server();
 const buildsPlugin = require('./');
-const Datastore = require('your-datastore-here');
-const Executor = require('your-executor-here');
 
 server.connection({ port: 3000 });
 
 server.register({
     register: buildsPlugin,
-    options: {
-        datastore: new Datastore(),
-        executor: new Executor({
-            executorOption1: 'hostname'
-        })
-    }
+    options: {}
 }, () => {
     server.start((err) => {
         if (err) {
@@ -61,4 +54,16 @@ Example payload:
     {
         "status": "FAILURE"
     }
+```
+
+### Access to Factory methods
+The server supplies factories to plugins in the form of server settings:
+
+```js
+// buildsPlugin.js
+module.exports = (server) => {
+    const factory = server.settings.app.buildFactory;
+
+    // ...
+}
 ```

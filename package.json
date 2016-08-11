@@ -14,7 +14,7 @@
     "url": "git@github.com:screwdriver-cd/screwdriver.git"
   },
   "engines": {
-    "node": ">=4.0.0"
+    "node": ">=6.0.0"
   },
   "homepage": "http://screwdriver.cd",
   "bugs": "https://github.com/screwdriver-cd/screwdriver/issues",
@@ -59,7 +59,7 @@
     "screwdriver-datastore-dynamodb": "^1.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^3.0.0",
-    "screwdriver-models": "^5.0.3",
+    "screwdriver-models": "^6.0.0",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
@@ -75,6 +75,7 @@
     "mockery": "^1.7.0",
     "request": "^2.73.0",
     "sinon": "~1.17.4",
+    "sinon-as-promised": "^4.0.2",
     "snyk": "^1.17.5"
   }
 }

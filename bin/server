@@ -23,11 +23,20 @@ const httpdConfig = config.get('httpd');
 // Setup GitHub Webhooks
 const gitHubSecret = config.get('webhooks.github.secret');
 
+// Setup Model Factories
+const Models = require('screwdriver-models');
+const pipelineFactory = Models.PipelineFactory.getInstance({ datastore });
+const jobFactory = Models.JobFactory.getInstance({ datastore });
+const userFactory = Models.UserFactory.getInstance({ datastore });
+const buildFactory = Models.BuildFactory.getInstance({ datastore, executor });
+
 require('../')({
     httpd: httpdConfig,
-    datastore,
-    executor,
     login: loginConfig,
+    pipelineFactory,
+    jobFactory,
+    userFactory,
+    buildFactory,
     pipelines: {
         password: loginConfig.password
     },
