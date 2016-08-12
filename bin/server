@@ -27,7 +27,7 @@ const gitHubSecret = config.get('webhooks.github.secret');
 const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({ datastore });
 const jobFactory = Models.JobFactory.getInstance({ datastore });
-const userFactory = Models.UserFactory.getInstance({ datastore });
+const userFactory = Models.UserFactory.getInstance({ datastore, password: loginConfig.password });
 const buildFactory = Models.BuildFactory.getInstance({ datastore, executor });
 
 require('../')({
