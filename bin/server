@@ -22,6 +22,7 @@ const httpdConfig = config.get('httpd');
 
 // Setup GitHub Webhooks
 const gitHubSecret = config.get('webhooks.github.secret');
+const apiUri = executorConfig.apiUri;
 
 // Setup Model Factories
 const Models = require('screwdriver-models');
@@ -44,6 +45,7 @@ require('../')({
         password: loginConfig.password
     },
     webhooks: {
+        apiUri,
         secret: gitHubSecret,
         password: loginConfig.password
     }

@@ -29,6 +29,7 @@ datastore:
         secretAccessKey: DATASTORE_DYNAMODB_SECRET
 
 executor:
+    apiUri: API_URI
     k8s:
         # The host or IP of the kubernetes cluster
         host: K8S_HOST

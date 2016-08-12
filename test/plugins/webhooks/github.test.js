@@ -60,7 +60,7 @@ describe('github plugin test', () => {
             host: 'localhost',
             port: 12345
         });
-        apiUri = 'http://localhost:12345';
+        apiUri = 'http://foo.bar:12345';
 
         server.register([{
             // eslint-disable-next-line global-require
@@ -76,6 +76,7 @@ describe('github plugin test', () => {
         {
             register: plugin,
             options: {
+                apiUri,
                 secret: 'secretssecretsarenofun'
             }
         }], (err) => {
