@@ -40,6 +40,7 @@ datastore:
 
 executor:
     plugin: k8s
+    apiUri: http://0.0.0.0:8080
     k8s:
         # The host or IP of the kubernetes cluster
         host: kubernetes
