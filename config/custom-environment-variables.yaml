@@ -35,6 +35,8 @@ executor:
         host: K8S_HOST
         # The jwt token used for authenticating kubernetes requests
         token: K8S_TOKEN
+        # Container tag to use
+        version: LAUNCHER_VERSION
 
 webhooks:
     github:
