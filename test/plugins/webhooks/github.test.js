@@ -279,7 +279,9 @@ describe('github plugin test', () => {
                     const model1 = { id: 1, stop: sinon.stub().resolves(null) };
                     const model2 = { id: 2, stop: sinon.stub().resolves(null) };
 
-                    buildFactoryMock.getBuildsForJobId.resolves([model1, model2]);
+                    buildFactoryMock.getBuildsForJobId.withArgs({ jobId }).resolves(
+                        [model1, model2]
+                    );
 
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
@@ -324,7 +326,9 @@ describe('github plugin test', () => {
                     const model1 = { id: 1, stop: sinon.stub().resolves(null) };
                     const model2 = { id: 2, stop: sinon.stub().resolves(null) };
 
-                    buildFactoryMock.getBuildsForJobId.resolves([model1, model2]);
+                    buildFactoryMock.getBuildsForJobId.withArgs({ jobId }).resolves(
+                        [model1, model2]
+                    );
 
                     server.inject(options, () => {
                         assert.calledOnce(model1.stop);

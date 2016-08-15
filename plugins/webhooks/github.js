@@ -77,7 +77,7 @@ function pullRequestClosed(options, request, reply) {
 
     // fetch the builds to stop, and the job to update
     return Promise.all([
-        buildFactory.getBuildsForJobId(jobId), // someday this should just be job.builds
+        buildFactory.getBuildsForJobId({ jobId }), // someday this should just be job.builds
         jobFactory.get(jobId)
     ])
     .then(([builds, job]) =>
@@ -123,7 +123,7 @@ function pullRequestSync(options, request, reply) {
     const username = options.username;
     const jobId = options.jobId;
 
-    return buildFactory.getBuildsForJobId(jobId)
+    return buildFactory.getBuildsForJobId({ jobId })
         // stop all running builds
         .then(builds => Promise.all(builds.map(b => b.stop())))
         // log build stoppage
