@@ -10,6 +10,10 @@ build:
       name: Upload Coverage to Coveralls
       code: cat ./artifacts/coverage/lcov.info | ./node_modules/.bin/coveralls
 
+    - script:
+      name: Run Cucumber tests
+      code: npm run functional
+
 deploy:
   steps:
     # Add our deploy key to SSH
