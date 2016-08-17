@@ -15,6 +15,7 @@ spec:
         image: screwdrivercd/screwdriver
         ports:
         - containerPort: 8080
+        # Environment variables that point to your secrets in your secrets.yaml
         env:
           - name: DATASTORE_PLUGIN
             value: dynamodb
@@ -25,35 +26,35 @@ spec:
           - name: SECRET_JWT_PRIVATE_KEY
             valueFrom:
               secretKeyRef:
-                name: plugin-login-secrets
+                name: secrets
                 key: jwtprivatekey
           - name: SECRET_OAUTH_CLIENT_ID
             valueFrom:
               secretKeyRef:
-                name: plugin-login-secrets
+                name: secrets
                 key: oauthclientid
           - name: SECRET_OAUTH_CLIENT_SECRET
             valueFrom:
               secretKeyRef:
-                name: plugin-login-secrets
+                name: secrets
                 key: oauthclientsecret
           - name: SECRET_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: plugin-login-secrets
+                name: secrets
                 key: password
           - name: K8S_TOKEN
             valueFrom:
               secretKeyRef:
-                name: default-token-sw0ar
+                name: default-token-sw0ar     # insert your Kubernetes <DEFAULT_TOKEN_NAME> here
                 key: token
           - name: DATASTORE_DYNAMODB_ID
             valueFrom:
               secretKeyRef:
-                name: datastore-dynamodb
-                key: id
+                name: secrets
+                key: dynamodbid
           - name: DATASTORE_DYNAMODB_SECRET
             valueFrom:
               secretKeyRef:
-                name: datastore-dynamodb
-                key: secret
+                name: secrets
+                key: dynamodbsecret
