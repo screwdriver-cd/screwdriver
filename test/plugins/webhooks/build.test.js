@@ -8,7 +8,8 @@ sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
 
 describe('build webhook plugin test', () => {
-    const fakeTime = 111111111;
+    const fakeTime = Date.now();
+    const expectedTime = new Date(fakeTime).toISOString();
     let buildFactoryMock;
     let buildMock;
     let plugin;
@@ -111,7 +112,7 @@ describe('build webhook plugin test', () => {
                 assert.calledOnce(buildMock.update);
                 assert.strictEqual(buildMock.status, status);
                 assert.deepEqual(buildMock.meta, meta);
-                assert.strictEqual(buildMock.endTime, fakeTime);
+                assert.strictEqual(buildMock.endTime, expectedTime);
                 done();
             });
         });
@@ -136,7 +137,7 @@ describe('build webhook plugin test', () => {
                 assert.calledOnce(buildMock.update);
                 assert.strictEqual(buildMock.status, status);
                 assert.deepEqual(buildMock.meta, {});
-                assert.strictEqual(buildMock.endTime, fakeTime);
+                assert.strictEqual(buildMock.endTime, expectedTime);
                 done();
             });
         });
