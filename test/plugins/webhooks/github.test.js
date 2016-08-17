@@ -225,7 +225,11 @@ describe('github plugin test', () => {
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.create, { pipelineId, name });
+                        assert.calledWith(jobFactoryMock.create, {
+                            pipelineId,
+                            name,
+                            containers: ['node:6']
+                        });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
@@ -245,7 +249,11 @@ describe('github plugin test', () => {
                     server.inject(options, (reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledWith(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.create, { pipelineId, name });
+                        assert.calledWith(jobFactoryMock.create, {
+                            pipelineId,
+                            name,
+                            containers: ['node:6']
+                        });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
