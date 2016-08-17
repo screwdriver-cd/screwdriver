@@ -55,7 +55,7 @@
     "js-yaml": "^3.6.1",
     "jsonwebtoken": "^7.1.6",
     "screwdriver-config-parser": "^2.0.0",
-    "screwdriver-data-schema": "^9.0.0",
+    "screwdriver-data-schema": "^10.0.3",
     "screwdriver-datastore-dynamodb": "^1.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^4.0.0",
