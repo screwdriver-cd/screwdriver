@@ -27,7 +27,7 @@ function pullRequestOpened(options, request, reply) {
     const username = options.username;
 
     // create a new job
-    return jobFactory.create({ pipelineId, name })
+    return jobFactory.create({ pipelineId, name, containers: ['node:6'] })
         // log stuff
         .then(job => {
             request.log(['webhook-github', eventId, job.id], `${job.name} created`);
