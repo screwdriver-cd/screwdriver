@@ -43,7 +43,7 @@ module.exports = (server) => {
 
                         if (['SUCCESS', 'FAILURE', 'ABORTED'].indexOf(status) > -1) {
                             build.meta = request.payload.meta || {};
-                            build.endTime = Date.now();
+                            build.endTime = (new Date()).toISOString();
                         }
 
                         // update the model in datastore

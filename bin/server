@@ -14,6 +14,11 @@ const executorConfig = config.get('executor');
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
 const executor = new ExecutorPlugin(executorConfig[executorConfig.plugin]);
 
+// scm Plugin
+const scmConfig = config.get('scm');
+const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
+const scmPlugin = new ScmPlugin({});
+
 // Setup Login
 const loginConfig = config.get('login');
 
@@ -26,10 +31,12 @@ const apiUri = executorConfig.apiUri;
 
 // Setup Model Factories
 const Models = require('screwdriver-models');
-const pipelineFactory = Models.PipelineFactory.getInstance({ datastore });
-const jobFactory = Models.JobFactory.getInstance({ datastore });
-const userFactory = Models.UserFactory.getInstance({ datastore, password: loginConfig.password });
-const buildFactory = Models.BuildFactory.getInstance({ datastore, executor });
+const pipelineFactory = Models.PipelineFactory.getInstance({ datastore, scmPlugin });
+const jobFactory = Models.JobFactory.getInstance({ datastore, scmPlugin });
+const userFactory = Models.UserFactory.getInstance({
+    datastore, scmPlugin, password: loginConfig.password
+});
+const buildFactory = Models.BuildFactory.getInstance({ datastore, scmPlugin, executor });
 
 require('../')({
     httpd: httpdConfig,

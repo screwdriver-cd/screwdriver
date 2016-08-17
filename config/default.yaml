@@ -49,6 +49,9 @@ executor:
         # Container tag to use
         version: v1.0.3
 
+scm:
+    plugin: github
+
 webhooks:
     github:
         # Secret to add to GitHub webhooks so that we can validate them

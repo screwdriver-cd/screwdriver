@@ -56,10 +56,11 @@
     "jsonwebtoken": "^7.1.6",
     "screwdriver-config-parser": "^2.0.0",
     "screwdriver-data-schema": "^10.0.3",
-    "screwdriver-datastore-dynamodb": "^1.0.0",
+    "screwdriver-datastore-dynamodb": "^2.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^4.0.0",
-    "screwdriver-models": "^8.0.0",
+    "screwdriver-models": "^9.0.0",
+    "screwdriver-scm-github": "0.0.2",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
