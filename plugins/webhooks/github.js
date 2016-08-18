@@ -122,6 +122,9 @@ function pullRequestSync(options, request, reply) {
     const name = options.name;
     const username = options.username;
     const jobId = options.jobId;
+    const apiUri = API_URI || request.server.info.uri;
+    const tokenGen = (buildId) =>
+        request.server.plugins.login.generateToken(buildId, ['build']);
 
     return buildFactory.getBuildsForJobId({ jobId })
         // stop all running builds
@@ -131,7 +134,7 @@ function pullRequestSync(options, request, reply) {
             request.log(['webhook-github', eventId, jobId], `${name} stopped`);
         })
         // create a new build
-        .then(() => buildFactory.create({ jobId, username }))
+        .then(() => buildFactory.create({ jobId, username, apiUri, tokenGen }))
         // log build created
         .then(build => {
             request.log(['webhook-github', eventId, jobId, build.id],
