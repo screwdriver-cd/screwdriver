@@ -3,7 +3,6 @@
 const githubWebhooks = require('hapi-github-webhooks');
 const hoek = require('hoek');
 const boom = require('boom');
-let API_URI;
 
 /**
  * Create a new job and start the build for an opened pull-request
@@ -42,7 +41,7 @@ function pullRequestOpened(options, request, reply) {
         })
         // create a build
         .then(jobId => {
-            const apiUri = API_URI || request.server.info.uri;
+            const apiUri = request.server.info.uri;
             const tokenGen = (buildId) =>
                 request.server.plugins.login.generateToken(buildId, ['build']);
 
@@ -122,7 +121,7 @@ function pullRequestSync(options, request, reply) {
     const name = options.name;
     const username = options.username;
     const jobId = options.jobId;
-    const apiUri = API_URI || request.server.info.uri;
+    const apiUri = request.server.info.uri;
     const tokenGen = (buildId) =>
         request.server.plugins.login.generateToken(buildId, ['build']);
 
@@ -237,7 +236,6 @@ function pullRequestEvent(request, reply) {
  * @param  {Object}         options
  * @param  {String}         options.secret    GitHub Webhook secret to sign payloads with
  * @param  {String}         options.password  Login password
- * @param  {String}         options.apiUri    Server to contact for notifications
  * @param  {Function}       next
  */
 module.exports = (server, options) => {
@@ -247,7 +245,6 @@ module.exports = (server, options) => {
     server.auth.strategy('githubwebhook', 'githubwebhook', {
         secret: options.secret
     });
-    API_URI = options.apiUri;
 
     // Now use it
     return {

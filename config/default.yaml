@@ -15,8 +15,13 @@ login:
     https: false
 
 httpd:
+    # Port to listen on
     port: 8080
-    host: localhost
+    # Host to listen on (set to localhost to only accept connections from this machine)
+    host: 0.0.0.0
+    # Externally routable URI (usually your load balancer or CNAME)
+    uri: http://localhost:8080
+    # SSL Support
     tls: false
         # If you want SSL, you can easily add it by replacing `tls: false` with an object that
         # provides the options required by `tls.createServer`
@@ -40,7 +45,6 @@ datastore:
 
 executor:
     plugin: k8s
-    apiUri: http://0.0.0.0:8080
     k8s:
         # The host or IP of the kubernetes cluster
         host: kubernetes
