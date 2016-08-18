@@ -21,12 +21,11 @@ const whitelist = {
 /**
  * Login to Screwdriver API
  * @method login
- * @param  {Hapi.Server} server          The Hapi Server we're on
  * @param  {Object}      config          Configuration from the user
  * @param  {String}      config.password Password to encrypt/decrypt data in Iron
  * @return {Object}                      Hapi Plugin Route
  */
-module.exports = (server, config) => ({
+module.exports = (config) => ({
     method: ['GET', 'POST'],
     path: '/login',
     config: {
@@ -57,19 +56,24 @@ module.exports = (server, config) => ({
 
             const githubToken = request.auth.credentials.token;
 
-            const factory = server.settings.app.userFactory;
+            const factory = request.server.app.userFactory;
 
             return factory.get({ username })
                 // get success, so user exists
                 .then(model => {
+                    if (!model) {
+                        return factory.create({
+                            username,
+                            token: githubToken,
+                            password: config.password
+                        });
+                    }
                     // seal and save updated token
                     model.password = config.password;
                     model.token = model.sealToken(githubToken);
 
                     return model.update();
-                },
-                 // get failed, so create a new user
-                () => factory.create({ username, token: githubToken, password: config.password }))
+                })
                 .then(() => reply({ token }))
                 .catch(err => reply(boom.wrap(err)));
         }

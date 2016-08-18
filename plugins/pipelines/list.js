@@ -4,7 +4,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'GET',
     path: '/pipelines',
     config: {
@@ -12,7 +12,7 @@ module.exports = (server) => ({
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
-            const factory = server.settings.app.pipelineFactory;
+            const factory = request.server.app.pipelineFactory;
 
             return factory.list({ paginate: request.query })
                 .then(pipelines => reply(pipelines.map(p => p.toJson())))

@@ -15,11 +15,11 @@ const streamLogsRoute = require('./stream');
  */
 exports.register = (server, options, next) => {
     server.route([
-        listRoute(server),
-        getRoute(server),
-        streamLogsRoute(server),
-        updateRoute(server),
-        createRoute(server, options)
+        listRoute(),
+        getRoute(),
+        streamLogsRoute(),
+        updateRoute(),
+        createRoute(options)
     ]);
 
     next();

@@ -81,9 +81,9 @@ Example payload:
 The server supplies factories to plugins in the form of server settings:
 
 ```js
-// pipelinePlugin.js
-module.exports = (server) => {
-    const factory = server.settings.app.pipelineFactory;
+// handler pipelinePlugin.js
+handler: (request, reply) => {
+    const factory = request.server.app.pipelineFactory;
 
     // ...
 }

@@ -27,7 +27,7 @@ const formatScmUrl = (scmUrl) => {
     return result;
 };
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'POST',
     path: '/pipelines',
     config: {
@@ -39,8 +39,8 @@ module.exports = (server) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const pipelineFactory = server.settings.app.pipelineFactory;
-            const userFactory = server.settings.app.userFactory;
+            const pipelineFactory = request.server.app.pipelineFactory;
+            const userFactory = request.server.app.userFactory;
             const scmUrl = formatScmUrl(request.payload.scmUrl);
             const username = request.auth.credentials.username;
 

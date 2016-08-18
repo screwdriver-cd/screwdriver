@@ -4,7 +4,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.job.get).label('List of Jobs');
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'GET',
     path: '/jobs',
     config: {
@@ -12,7 +12,7 @@ module.exports = (server) => ({
         notes: 'Returns all jobs records',
         tags: ['api', 'jobs'],
         handler: (request, reply) => {
-            const factory = server.settings.app.jobFactory;
+            const factory = request.server.app.jobFactory;
 
             return factory.list({
                 paginate: request.query
