@@ -28,7 +28,8 @@ exports.register = (server, options, next) => {
     });
 
     server.register([bell, sugar, jwt], (err) => {
-        if (err) {
+        /* istanbul ignore if */
+        if (err) { // Completely untestable
             throw err;
         }
 

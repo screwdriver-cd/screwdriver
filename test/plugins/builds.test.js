@@ -136,6 +136,15 @@ describe('build plugin test', () => {
                 done();
             });
         });
+
+        it('returns 500 when datastore errors', (done) => {
+            buildFactoryMock.list.rejects(new Error('sorry!sorry'));
+
+            server.inject('/builds?page=1&count=2', (reply) => {
+                assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
     });
 
     describe('GET /builds/{id}/logs', () => {

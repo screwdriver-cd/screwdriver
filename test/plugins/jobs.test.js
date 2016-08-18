@@ -102,6 +102,15 @@ describe('job plugin test', () => {
                 done();
             });
         });
+
+        it('returns 500 when datastore errors', (done) => {
+            factoryMock.list.rejects(new Error('im!workinghere'));
+
+            server.inject('/jobs?page=1&count=3', (reply) => {
+                assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
     });
 
     describe('GET /jobs/{id}', () => {

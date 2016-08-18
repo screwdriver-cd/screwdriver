@@ -357,6 +357,18 @@ describe('github plugin test', () => {
                         done();
                     });
                 });
+
+                it('returns 404 when job is missing', (done) => {
+                    jobFactoryMock.get.resolves(null);
+
+                    server.inject(options, (reply) => {
+                        assert.equal(reply.statusCode, 404);
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
+                        assert.calledWith(jobFactoryMock.get, jobId);
+                        done();
+                    });
+                });
             });
 
             describe('other change pull request', () => {
