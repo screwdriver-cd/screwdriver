@@ -21,6 +21,8 @@ spec:
             value: dynamodb
           - name: HOST
             value: 0.0.0.0
+          - name: API_URI
+            value: http://a4677c9873c9611e6aa7102b92f75d5c-1135862614.us-west-2.elb.amazonaws.com
           - name: DATA_DIR
             value: /opt/screwdriver/data
           - name: SECRET_JWT_PRIVATE_KEY

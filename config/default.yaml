@@ -47,7 +47,7 @@ executor:
         # The jwt token used for authenticating kubernetes requests
         token: NOT-A-REAL-JWT-TOKEN
         # Container tag to use
-        version: v1.0.3
+        version: latest
 
 scm:
     plugin: github
