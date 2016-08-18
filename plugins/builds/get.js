@@ -5,7 +5,7 @@ const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.build.get;
 const idSchema = joi.reach(schema.models.build.base, 'id');
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}',
     config: {
@@ -13,7 +13,7 @@ module.exports = (server) => ({
         notes: 'Returns a build record',
         tags: ['api', 'builds'],
         handler: (request, reply) => {
-            const factory = server.settings.app.buildFactory;
+            const factory = request.server.app.buildFactory;
 
             factory.get(request.params.id)
                 .then(model => {

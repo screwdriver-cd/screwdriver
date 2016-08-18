@@ -40,11 +40,10 @@ describe('build webhook plugin test', () => {
         // eslint-disable-next-line global-require
         plugin = require('../../../plugins/webhooks');
 
-        server = new hapi.Server({
-            app: {
-                buildFactory: buildFactoryMock
-            }
-        });
+        server = new hapi.Server();
+        server.app = {
+            buildFactory: buildFactoryMock
+        };
         server.connection({
             host: 'localhost',
             port: 12345

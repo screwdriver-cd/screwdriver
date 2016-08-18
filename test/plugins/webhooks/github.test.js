@@ -49,13 +49,12 @@ describe('github plugin test', () => {
         plugin = require('../../../plugins/webhooks');
         /* eslint-enable global-require */
 
-        server = new hapi.Server({
-            app: {
-                jobFactory: jobFactoryMock,
-                buildFactory: buildFactoryMock,
-                pipelineFactory: pipelineFactoryMock
-            }
-        });
+        server = new hapi.Server();
+        server.app = {
+            jobFactory: jobFactoryMock,
+            buildFactory: buildFactoryMock,
+            pipelineFactory: pipelineFactoryMock
+        };
         server.connection({
             host: 'localhost',
             port: 12345

@@ -5,7 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'PUT',
     path: '/jobs/{id}',
     config: {
@@ -17,7 +17,7 @@ module.exports = (server) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const factory = server.settings.app.jobFactory;
+            const factory = request.server.app.jobFactory;
             const id = request.params.id;
 
             return factory.get(id)

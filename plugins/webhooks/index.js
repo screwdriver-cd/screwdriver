@@ -14,7 +14,7 @@ const buildRoute = require('./build');
 exports.register = (server, options, next) => {
     server.route([
         githubRoute(server, options),
-        buildRoute(server, options)
+        buildRoute()
     ]);
 
     next();

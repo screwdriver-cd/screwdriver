@@ -47,11 +47,10 @@ describe('job plugin test', () => {
         plugin = require('../../plugins/jobs');
         /* eslint-enable global-require */
 
-        server = new hapi.Server({
-            app: {
-                jobFactory: factoryMock
-            }
-        });
+        server = new hapi.Server();
+        server.app = {
+            jobFactory: factoryMock
+        };
         server.connection({
             port: 1234
         });

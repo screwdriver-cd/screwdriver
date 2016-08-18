@@ -13,9 +13,9 @@ const updateRoute = require('./update');
  */
 exports.register = (server, options, next) => {
     server.route([
-        listRoute(server),
-        getRoute(server),
-        updateRoute(server)
+        listRoute(),
+        getRoute(),
+        updateRoute()
     ]);
 
     next();

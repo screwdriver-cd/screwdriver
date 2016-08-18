@@ -64,7 +64,7 @@ exports.register = (server, options, next) => {
         });
 
         server.route([
-            login(server, options),
+            login(options),
             logout()
         ]);
 

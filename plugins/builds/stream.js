@@ -4,7 +4,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.build.base, 'id');
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/logs',
     config: {
@@ -16,7 +16,7 @@ module.exports = (server) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const factory = server.settings.app.buildFactory;
+            const factory = request.server.app.buildFactory;
             const id = request.params.id;
 
             return factory.get(id)

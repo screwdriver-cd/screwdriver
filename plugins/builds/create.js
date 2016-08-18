@@ -3,7 +3,7 @@ const boom = require('boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 
-module.exports = (server, options) => ({
+module.exports = (options) => ({
     method: 'POST',
     path: '/builds',
     config: {
@@ -15,9 +15,9 @@ module.exports = (server, options) => ({
             scope: ['user']
         },
         handler: (request, reply) => {
-            const jobFactory = server.settings.app.jobFactory;
-            const buildFactory = server.settings.app.buildFactory;
-            const userFactory = server.settings.app.userFactory;
+            const jobFactory = request.server.app.jobFactory;
+            const buildFactory = request.server.app.buildFactory;
+            const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const payload = {
                 jobId: request.payload.jobId,

@@ -49,11 +49,8 @@ describe('login plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/login');
         /* eslint-enable global-require */
-        server = new hapi.Server({
-            app: {
-                userFactory: userFactoryMock
-            }
-        });
+        server = new hapi.Server();
+        server.app.userFactory = userFactoryMock;
         server.connection({
             port: 1234
         });
@@ -154,7 +151,7 @@ describe('login plugin test', () => {
             });
 
             it('creates a user and returns token', (done) => {
-                userFactoryMock.get.rejects(new Error('not found'));
+                userFactoryMock.get.resolves(null);
 
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
@@ -170,7 +167,7 @@ describe('login plugin test', () => {
             });
 
             it('returns error if fails to create user', (done) => {
-                userFactoryMock.get.rejects(new Error('getError'));
+                userFactoryMock.get.resolves(null);
                 userFactoryMock.create.rejects(new Error('createError'));
 
                 server.inject(options, (reply) => {
@@ -279,7 +276,7 @@ describe('login plugin test', () => {
         });
 
         it('accepts token', (done) => {
-            userFactoryMock.get.rejects(new Error('not found'));
+            userFactoryMock.get.resolves(null);
             userFactoryMock.create.resolves({});
 
             server.route({

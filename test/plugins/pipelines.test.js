@@ -67,12 +67,11 @@ describe('pipeline plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
-        server = new hapi.Server({
-            app: {
-                pipelineFactory: pipelineFactoryMock,
-                userFactory: userFactoryMock
-            }
-        });
+        server = new hapi.Server();
+        server.app = {
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock
+        };
         server.connection({
             port: 1234
         });

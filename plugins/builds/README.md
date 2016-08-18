@@ -57,12 +57,12 @@ Example payload:
 ```
 
 ### Access to Factory methods
-The server supplies factories to plugins in the form of server settings:
+The server supplies factories to plugins in the form of server app values:
 
 ```js
-// buildsPlugin.js
-module.exports = (server) => {
-    const factory = server.settings.app.buildFactory;
+// handler in buildsPlugin.js
+handler: (request, reply) => {
+    const factory = request.server.app.buildFactory;
 
     // ...
 }

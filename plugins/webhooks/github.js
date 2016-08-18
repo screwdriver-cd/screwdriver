@@ -18,8 +18,8 @@ let API_URI;
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestOpened(options, request, reply) {
-    const jobFactory = request.server.settings.app.jobFactory;
-    const buildFactory = request.server.settings.app.buildFactory;
+    const jobFactory = request.server.app.jobFactory;
+    const buildFactory = request.server.app.buildFactory;
     const eventId = options.eventId;
     const pipelineId = options.pipelineId;
     const name = options.name;
@@ -69,8 +69,8 @@ function pullRequestOpened(options, request, reply) {
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestClosed(options, request, reply) {
-    const jobFactory = request.server.settings.app.jobFactory;
-    const buildFactory = request.server.settings.app.buildFactory;
+    const jobFactory = request.server.app.jobFactory;
+    const buildFactory = request.server.app.buildFactory;
     const eventId = options.eventId;
     const jobId = options.jobId;
     const name = options.name;
@@ -117,7 +117,7 @@ function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const buildFactory = request.server.settings.app.buildFactory;
+    const buildFactory = request.server.app.buildFactory;
     const eventId = options.eventId;
     const name = options.name;
     const username = options.username;
@@ -154,8 +154,8 @@ function pullRequestSync(options, request, reply) {
  * @param  {Hapi.reply}         reply   Reply to user
  */
 function pullRequestEvent(request, reply) {
-    const pipelineFactory = request.server.settings.app.pipelineFactory;
-    const jobFactory = request.server.settings.app.jobFactory;
+    const pipelineFactory = request.server.app.pipelineFactory;
+    const jobFactory = request.server.app.jobFactory;
     const eventId = request.headers['x-github-delivery'];
     const payload = request.payload;
     const action = hoek.reach(payload, 'action');

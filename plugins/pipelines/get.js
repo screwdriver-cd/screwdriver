@@ -5,7 +5,7 @@ const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.pipeline.get;
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
-module.exports = (server) => ({
+module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}',
     config: {
@@ -13,7 +13,7 @@ module.exports = (server) => ({
         notes: 'Returns a pipeline record',
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
-            const factory = server.settings.app.pipelineFactory;
+            const factory = request.server.app.pipelineFactory;
 
             return factory.get(request.params.id)
                 .then(pipeline => {

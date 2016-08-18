@@ -69,11 +69,11 @@ describe('server case', () => {
         });
 
         it('populates server.app values', () => {
-            Assert.isObject(server.settings.app);
-            Assert.strictEqual(server.settings.app.pipelineFactory, 'pipeline');
-            Assert.strictEqual(server.settings.app.jobFactory, 'job');
-            Assert.strictEqual(server.settings.app.userFactory, 'user');
-            Assert.strictEqual(server.settings.app.buildFactory, 'build');
+            Assert.isObject(server.app);
+            Assert.strictEqual(server.app.pipelineFactory, 'pipeline');
+            Assert.strictEqual(server.app.jobFactory, 'job');
+            Assert.strictEqual(server.app.userFactory, 'user');
+            Assert.strictEqual(server.app.buildFactory, 'build');
         });
     });
 
