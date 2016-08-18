@@ -36,6 +36,7 @@ module.exports = (config) => ({
             strategy: 'oauth'
         },
         handler: (request, reply) => {
+            /* istanbul ignore if */
             if (!request.auth.isAuthenticated) {
                 const message = `Authentication failed due to: ${request.auth.error.message}`;
 

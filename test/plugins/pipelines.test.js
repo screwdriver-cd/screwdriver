@@ -128,6 +128,15 @@ describe('pipeline plugin test', () => {
                 done();
             });
         });
+
+        it('returns 500 when datastore fails', (done) => {
+            pipelineFactoryMock.list.rejects(new Error('fittoburst'));
+
+            server.inject('/pipelines?page=1&count=3', (reply) => {
+                assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
     });
 
     describe('GET /pipelines/{id}', () => {

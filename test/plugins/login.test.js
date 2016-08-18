@@ -1,7 +1,6 @@
 'use strict';
 const assert = require('chai').assert;
 const hapi = require('hapi');
-const mockery = require('mockery');
 const sinon = require('sinon');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -32,13 +31,6 @@ describe('login plugin test', () => {
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach((done) => {
         userFactoryMock = {
@@ -71,12 +63,6 @@ describe('login plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the login plugin', () => {
