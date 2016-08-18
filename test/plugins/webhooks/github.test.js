@@ -277,7 +277,14 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledOnce(buildMock.stop);
-                        assert.calledWith(buildFactoryMock.create, { jobId, username });
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId,
+                            username,
+                            apiUri,
+                            tokenGen: sinon.match.func
+                        });
+                        assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
+                            '{"username":"12345","scope":["build"]}"supersecret"');
                         done();
                     });
                 });
@@ -295,9 +302,16 @@ describe('github plugin test', () => {
                         assert.calledOnce(model1.stop);
                         assert.calledOnce(model2.stop);
                         assert.calledOnce(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create, { jobId, username });
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId,
+                            username,
+                            apiUri,
+                            tokenGen: sinon.match.func
+                        });
                         assert.isOk(model1.stop.calledBefore(buildFactoryMock.create));
                         assert.isOk(model2.stop.calledBefore(buildFactoryMock.create));
+                        assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
+                            '{"username":"12345","scope":["build"]}"supersecret"');
                         done();
                     });
                 });
