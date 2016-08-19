@@ -55,11 +55,12 @@ describe('github plugin test', () => {
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock
         };
+        apiUri = 'http://foo.bar:12345';
         server.connection({
             host: 'localhost',
-            port: 12345
+            port: 12345,
+            uri: apiUri
         });
-        apiUri = 'http://foo.bar:12345';
 
         server.register([{
             // eslint-disable-next-line global-require
@@ -75,7 +76,6 @@ describe('github plugin test', () => {
         {
             register: plugin,
             options: {
-                apiUri,
                 secret: 'secretssecretsarenofun'
             }
         }], (err) => {
