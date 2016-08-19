@@ -9,7 +9,7 @@ sinon.assert.expose(assert, { prefix: '' });
 describe('stats plugin test', () => {
     let plugin;
     let server;
-    let mockExecutor;
+    let mockStats;
 
     before(() => {
         mockery.enable({
@@ -19,7 +19,7 @@ describe('stats plugin test', () => {
     });
 
     beforeEach((done) => {
-        mockExecutor = {
+        mockStats = {
             stats: sinon.stub()
         };
 
@@ -35,7 +35,8 @@ describe('stats plugin test', () => {
         server.register([{
             register: plugin,
             options: {
-                executor: mockExecutor
+                executor: mockStats,
+                scmPlugin: mockStats
             }
         }], (err) => {
             done(err);
@@ -62,14 +63,15 @@ describe('stats plugin test', () => {
                 foo: 'bar'
             };
 
-            mockExecutor.stats.returns(mockReturn);
+            mockStats.stats.returns(mockReturn);
 
             return server.inject({
                 url: '/stats'
             }).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {
-                    executor: mockReturn
+                    executor: mockReturn,
+                    scm: mockReturn
                 });
             });
         });

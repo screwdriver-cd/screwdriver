@@ -55,7 +55,8 @@ require('../')({
         password: loginConfig.password
     },
     stats: {
-        executor
+        executor,
+        scmPlugin
     }
 }, (err, server) => {
     if (err) {

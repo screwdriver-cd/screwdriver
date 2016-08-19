@@ -8,6 +8,7 @@
  */
 exports.register = (server, options, next) => {
     const executor = options.executor;
+    const scmPlugin = options.scmPlugin;
 
     server.route({
         method: 'GET',
@@ -18,7 +19,8 @@ exports.register = (server, options, next) => {
             tags: ['api', 'stats']
         },
         handler: (request, reply) => reply({
-            executor: executor.stats()
+            executor: executor.stats(),
+            scm: scmPlugin.stats()
         })
     });
     next();
