@@ -10,6 +10,8 @@ const testPayloadSync = require('../data/github.pull_request.synchronize.json');
 const testPayloadClose = require('../data/github.pull_request.closed.json');
 const testPayloadOther = require('../data/github.pull_request.labeled.json');
 
+const PARSED_CONFIG = require('../data/github.parsedyaml.json');
+
 sinon.assert.expose(assert, { prefix: '' });
 
 describe('github plugin test', () => {
@@ -119,7 +121,8 @@ describe('github plugin test', () => {
                 admins: {
                     baxterthehacker: false
                 },
-                sync: sinon.stub()
+                sync: sinon.stub(),
+                getConfiguration: sinon.stub()
             };
             buildMock = {
                 id: buildId,
@@ -144,6 +147,7 @@ describe('github plugin test', () => {
 
             pipelineFactoryMock.get.resolves(pipelineMock);
             pipelineMock.sync.resolves({});
+            pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
         });
 
         it('returns 400 for unsupported event type', () => {
@@ -273,10 +277,12 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(pipelineMock.sync);
+                        assert.calledWith(pipelineMock.getConfiguration,
+                            'git@github.com:baxterthehacker/public-repo.git#pull/1/merge');
                         assert.calledWith(jobFactoryMock.create, {
                             pipelineId,
                             name,
-                            containers: ['node:6']
+                            containers: ['node:4', 'node:5', 'node:6']
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
@@ -299,7 +305,7 @@ describe('github plugin test', () => {
                         assert.calledWith(jobFactoryMock.create, {
                             pipelineId,
                             name,
-                            containers: ['node:6']
+                            containers: ['node:4', 'node:5', 'node:6']
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,

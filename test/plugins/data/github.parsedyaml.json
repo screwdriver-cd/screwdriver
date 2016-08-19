@@ -1,0 +1,83 @@
+{
+    "jobs": {
+        "main": [
+            {
+                "image": "node:4",
+                "commands": [
+                    {
+                        "name": "init",
+                        "command": "npm install"
+                    },
+                    {
+                        "name": "test",
+                        "command": "npm test"
+                    }
+                ],
+                "environment": {
+                    "NODE_ENV": "test",
+                    "NODE_VERSION": "4"
+                }
+            },
+            {
+                "image": "node:5",
+                "commands": [
+                    {
+                        "name": "init",
+                        "command": "npm install"
+                    },
+                    {
+                        "name": "test",
+                        "command": "npm test"
+                    }
+                ],
+                "environment": {
+                    "NODE_ENV": "test",
+                    "NODE_VERSION": "5"
+                }
+            },
+            {
+                "image": "node:6",
+                "commands": [
+                    {
+                        "name": "init",
+                        "command": "npm install"
+                    },
+                    {
+                        "name": "test",
+                        "command": "npm test"
+                    }
+                ],
+                "environment": {
+                    "NODE_ENV": "test",
+                    "NODE_VERSION": "6"
+                }
+            }
+        ],
+        "publish": [
+            {
+                "image": "node:4",
+                "commands": [
+                    {
+                        "name": "bump",
+                        "command": "npm run bump"
+                    },
+                    {
+                        "name": "publish",
+                        "command": "npm publish --tag $NODE_TAG"
+                    },
+                    {
+                        "name": "tag",
+                        "command": "git push origin --tags"
+                    }
+                ],
+                "environment": {
+                    "NODE_ENV": "test",
+                    "NODE_TAG": "latest"
+                }
+            }
+        ]
+    },
+    "workflow": [
+        "publish"
+    ]
+}
