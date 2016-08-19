@@ -4,6 +4,7 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 
+const testPayloadPush = require('../data/github.push.json');
 const testPayloadOpen = require('../data/github.pull_request.opened.json');
 const testPayloadSync = require('../data/github.pull_request.synchronize.json');
 const testPayloadClose = require('../data/github.pull_request.closed.json');
@@ -102,10 +103,10 @@ describe('github plugin test', () => {
         const pipelineId = 'pipelineHash';
         const jobId = 'jobHash';
         const buildId = 'buildHash';
-        const name = 'PR-1';
         const buildNumber = '12345';
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
         const username = 'baxterthehacker';
+        let name = 'PR-1';
         let pipelineMock;
         let buildMock;
         let jobMock;
@@ -145,7 +146,7 @@ describe('github plugin test', () => {
             pipelineMock.sync.resolves({});
         });
 
-        it('returns 400 for unsupported event type', (done) => {
+        it('returns 400 for unsupported event type', () => {
             options = {
                 method: 'POST',
                 url: '/webhooks/github',
@@ -156,9 +157,8 @@ describe('github plugin test', () => {
                 credentials: {}
             };
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 400);
-                done();
             });
         });
 
@@ -176,10 +176,58 @@ describe('github plugin test', () => {
                 };
             });
 
-            it('returns 204', (done) => {
-                server.inject(options, (reply) => {
+            it('returns 204', () =>
+                server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
-                    done();
+                })
+            );
+        });
+
+        describe('push event', () => {
+            beforeEach(() => {
+                options = {
+                    method: 'POST',
+                    url: '/webhooks/github',
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-github-delivery': 'eventId'
+                    },
+                    payload: testPayloadPush,
+                    credentials: {}
+                };
+                name = 'main';
+                jobFactoryMock.generateId.withArgs({ pipelineId, name }).returns(jobId);
+            });
+
+            it('returns 201 on success', () => (
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineMock.sync);
+                    assert.calledWith(buildFactoryMock.create, {
+                        jobId,
+                        username,
+                        sha,
+                        apiUri,
+                        tokenGen: sinon.match.func
+                    });
+                    assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
+                        '{"username":"12345","scope":["build"]}"supersecret"');
+                })
+            ));
+
+            it('returns 404 when no pipeline', () => {
+                pipelineFactoryMock.get.resolves(null);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 404);
+                });
+            });
+
+            it('returns 500 when failed', () => {
+                buildFactoryMock.create.rejects(new Error('Failed to start'));
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 500);
                 });
             });
         });
@@ -195,23 +243,24 @@ describe('github plugin test', () => {
                     },
                     credentials: {}
                 };
+                name = 'PR-1';
             });
 
-            it('returns 404 when pipeline does not exist', (done) => {
+            it('returns 404 when pipeline does not exist', () => {
                 pipelineFactoryMock.get.resolves(null);
+                options.payload = testPayloadOpen;
 
-                server.inject(options, (reply) => {
+                return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 404);
-                    done();
                 });
             });
 
-            it('returns 500 when pipeline model returns error', (done) => {
+            it('returns 500 when pipeline model returns error', () => {
                 pipelineFactoryMock.get.rejects(new Error('model error'));
+                options.payload = testPayloadOpen;
 
-                server.inject(options, (reply) => {
+                return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 500);
-                    done();
                 });
             });
 
@@ -220,8 +269,8 @@ describe('github plugin test', () => {
                     options.payload = testPayloadOpen;
                 });
 
-                it('returns 201 on success', (done) => {
-                    server.inject(options, (reply) => {
+                it('returns 201 on success', () =>
+                    server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(pipelineMock.sync);
                         assert.calledWith(jobFactoryMock.create, {
@@ -238,14 +287,13 @@ describe('github plugin test', () => {
                         });
                         assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
                             '{"username":"12345","scope":["build"]}"supersecret"');
-                        done();
-                    });
-                });
+                    })
+                );
 
-                it('returns 500 when failed', (done) => {
+                it('returns 500 when failed', () => {
                     buildFactoryMock.create.rejects(new Error('Failed to start'));
 
-                    server.inject(options, (reply) => {
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledWith(pipelineMock.sync);
                         assert.calledWith(jobFactoryMock.create, {
@@ -262,7 +310,6 @@ describe('github plugin test', () => {
                         });
                         assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
                             '{"username":"12345","scope":["build"]}"supersecret"');
-                        done();
                     });
                 });
             });
@@ -272,8 +319,8 @@ describe('github plugin test', () => {
                     options.payload = testPayloadSync;
                 });
 
-                it('returns 201 on success', (done) => {
-                    server.inject(options, (reply) => {
+                it('returns 201 on success', () => (
+                    server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledOnce(buildMock.stop);
@@ -285,11 +332,10 @@ describe('github plugin test', () => {
                         });
                         assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
                             '{"username":"12345","scope":["build"]}"supersecret"');
-                        done();
-                    });
-                });
+                    })
+                ));
 
-                it('has the workflow for stopping builds before starting a new one', (done) => {
+                it('has the workflow for stopping builds before starting a new one', () => {
                     const model1 = { id: 1, stop: sinon.stub().resolves(null) };
                     const model2 = { id: 2, stop: sinon.stub().resolves(null) };
 
@@ -297,7 +343,7 @@ describe('github plugin test', () => {
                         [model1, model2]
                     );
 
-                    server.inject(options, (reply) => {
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(model1.stop);
                         assert.calledOnce(model2.stop);
@@ -312,16 +358,14 @@ describe('github plugin test', () => {
                         assert.isOk(model2.stop.calledBefore(buildFactoryMock.create));
                         assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
                             '{"username":"12345","scope":["build"]}"supersecret"');
-                        done();
                     });
                 });
 
-                it('returns 500 when failed', (done) => {
+                it('returns 500 when failed', () => {
                     buildFactoryMock.create.rejects(new Error('Failed to start'));
 
-                    server.inject(options, (reply) => {
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
-                        done();
                     });
                 });
             });
@@ -331,19 +375,18 @@ describe('github plugin test', () => {
                     options.payload = testPayloadClose;
                 });
 
-                it('returns 200 on success', (done) => {
-                    server.inject(options, (reply) => {
+                it('returns 200 on success', () => (
+                    server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
-                        done();
-                    });
-                });
+                    })
+                ));
 
-                it('stops running builds', (done) => {
+                it('stops running builds', () => {
                     const model1 = { id: 1, stop: sinon.stub().resolves(null) };
                     const model2 = { id: 2, stop: sinon.stub().resolves(null) };
 
@@ -351,36 +394,33 @@ describe('github plugin test', () => {
                         [model1, model2]
                     );
 
-                    server.inject(options, () => {
+                    return server.inject(options).then(() => {
                         assert.calledOnce(model1.stop);
                         assert.calledOnce(model2.stop);
-                        done();
                     });
                 });
 
-                it('returns 500 when failed', (done) => {
+                it('returns 500 when failed', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
 
-                    server.inject(options, (reply) => {
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
-                        done();
                     });
                 });
 
-                it('returns 404 when job is missing', (done) => {
+                it('returns 404 when job is missing', () => {
                     jobFactoryMock.get.resolves(null);
 
-                    server.inject(options, (reply) => {
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 404);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
-                        done();
                     });
                 });
             });
@@ -390,15 +430,14 @@ describe('github plugin test', () => {
                     options.payload = testPayloadOther;
                 });
 
-                it('returns 204 on success', (done) => {
-                    server.inject(options, (reply) => {
+                it('returns 204 on success', () =>
+                    server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 204);
-                        assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineFactoryMock.get, { scmUrl });
-                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
-                        done();
-                    });
-                });
+                        assert.equal(pipelineMock.sync.callCount, 0);
+                        assert.equal(pipelineFactoryMock.get.callCount, 0);
+                        assert.equal(jobFactoryMock.generateId.callCount, 0);
+                    })
+                );
             });
         });
     });

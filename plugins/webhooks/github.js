@@ -174,6 +174,10 @@ function pullRequestEvent(request, reply) {
     // "opened", "closed", "reopened", "synchronize",
     // "assigned", "unassigned", "labeled", "unlabeled", "edited"
 
+    if (!['opened', 'reopened', 'synchronize', 'closed'].includes(action)) {
+        return reply().code(204);
+    }
+
     // Fetch the pipeline associated with this hook
     return pipelineFactory.get({ scmUrl })
         .then(pipeline => {
@@ -209,17 +213,66 @@ function pullRequestEvent(request, reply) {
                         }, request, reply);
 
                     case 'closed':
+                    default:
                         return pullRequestClosed({
                             eventId,
                             jobId,
                             pipelineId,
                             name
                         }, request, reply);
-
-                    default:
-                        // Ignore other actions
-                        return reply().code(204);
                     }
+                });
+        })
+        .catch(err => reply(boom.wrap(err)));
+}
+
+/**
+ * Act on a Push event
+ *  - Should start a new main job
+ * @method pushEvent
+ * @param  {Hapi.request}       request Request from user
+ * @param  {Hapi.reply}         reply   Reply to user
+ */
+function pushEvent(request, reply) {
+    const pipelineFactory = request.server.app.pipelineFactory;
+    const jobFactory = request.server.app.jobFactory;
+    const buildFactory = request.server.app.buildFactory;
+    const eventId = request.headers['x-github-delivery'];
+    const payload = request.payload;
+    const repository = hoek.reach(payload, 'repository.ssh_url');
+    const branch = hoek.reach(payload, 'ref').replace(/^refs\/heads\//, '');
+    const sha = hoek.reach(payload, 'after');
+    const username = hoek.reach(payload, 'sender.login');
+    const scmUrl = `${repository}#${branch}`;
+    const apiUri = request.server.info.uri;
+
+    request.log(['webhook-github', eventId], `Push for ${scmUrl}`);
+
+    // Fetch the pipeline associated with this hook
+    return pipelineFactory.get({ scmUrl })
+        .then(pipeline => {
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
+
+            // sync the pipeline to get the latest jobs
+            return pipeline.sync()
+                // handle the PR action
+                .then(() => {
+                    const pipelineId = pipeline.id;
+                    const name = 'main';
+                    const jobId = jobFactory.generateId({ pipelineId, name });
+                    const tokenGen = (buildId) =>
+                        request.server.plugins.login.generateToken(buildId, ['build']);
+
+                    return buildFactory.create({ jobId, sha, username, apiUri, tokenGen })
+                        // log build created
+                        .then(build => {
+                            request.log(['webhook-github', eventId, jobId, build.id],
+                                `${name} started ${build.number}`);
+
+                            return reply().code(201);
+                        });
                 });
         })
         .catch(err => reply(boom.wrap(err)));
@@ -269,6 +322,8 @@ module.exports = (server, options) => {
                     return reply().code(204);
                 case 'pull_request':
                     return pullRequestEvent(request, reply);
+                case 'push':
+                    return pushEvent(request, reply);
                 default:
                     return reply(boom.badRequest(`Event ${eventType} not supported`));
                 }
