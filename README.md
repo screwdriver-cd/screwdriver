@@ -5,6 +5,10 @@
 
 ## Usage
 
+### Prerequisites
+
+- Node v6.0.0 or higher
+
 ### From Source
 
 ```bash
