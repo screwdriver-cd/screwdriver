@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: sdapi
 spec:
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:
@@ -19,6 +19,8 @@ spec:
         env:
           - name: DATASTORE_PLUGIN
             value: dynamodb
+          - name: LAUNCHER_VERSION
+            value: v1.0.4
           - name: URI
             value: http://api.screwdriver.cd
           - name: SECRET_JWT_PRIVATE_KEY
@@ -44,7 +46,7 @@ spec:
           - name: K8S_TOKEN
             valueFrom:
               secretKeyRef:
-                name: default-token-sw0ar     # insert your Kubernetes <DEFAULT_TOKEN_NAME> here
+                name: default-token-40rwp     # insert your Kubernetes <DEFAULT_TOKEN_NAME> here
                 key: token
           - name: DATASTORE_DYNAMODB_ID
             valueFrom:
