@@ -72,6 +72,7 @@
     "eslint": "^3.2.2",
     "eslint-config-screwdriver": "^2.0.0",
     "eslint-plugin-import": "^1.12.0",
+    "github": "^2.5.1",
     "jenkins-mocha": "^3.0.0",
     "mockery": "^1.7.0",
     "request": "^2.73.0",
