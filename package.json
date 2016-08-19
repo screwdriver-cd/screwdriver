@@ -60,7 +60,7 @@
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^4.0.0",
     "screwdriver-models": "^9.0.0",
-    "screwdriver-scm-github": "0.0.2",
+    "screwdriver-scm-github": "^1.0.1",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"
