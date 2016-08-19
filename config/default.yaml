@@ -38,6 +38,8 @@ datastore:
         # File to read/write the database to
         filename: ./database.json
     dynamodb:
+        # Prefix to table names
+        # prefix: prod_
         # AWS Access Key ID
         accessKeyId: WHAT-A-LEGITIMATE-LOOKING-KEY-ID
         # AWS Secret Access Key
