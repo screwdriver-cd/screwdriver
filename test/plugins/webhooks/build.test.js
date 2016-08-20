@@ -164,6 +164,7 @@ describe('build webhook plugin test', () => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(buildMock.update);
                 assert.strictEqual(buildMock.status, status);
+                assert.strictEqual(buildMock.startTime, expectedTime);
                 assert.isUndefined(buildMock.meta);
                 assert.isUndefined(buildMock.endTime);
                 done();
