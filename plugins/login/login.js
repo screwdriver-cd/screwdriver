@@ -2,28 +2,14 @@
 'use strict';
 const boom = require('boom');
 const creds = require('./credentials');
-const whitelist = {
-    FenrirUnbound: true,
-    Filbird: true,
-    cynthiax: true,
-    d2lam: true,
-    dvdizon: true,
-    jer: true,
-    minz1027: true,
-    nicolaifsf: true,
-    nkatzman: true,
-    petey: true,
-    'shruthi-venkateswaran': true,
-    stjohnjohnson: true,
-    tkyi: true
-};
 
 /**
  * Login to Screwdriver API
  * @method login
- * @param  {Object}      config          Configuration from the user
- * @param  {String}      config.password Password to encrypt/decrypt data in Iron
- * @return {Object}                      Hapi Plugin Route
+ * @param  {Object}      config           Configuration from the user
+ * @param  {String}      config.password  Password to encrypt/decrypt data in Iron
+ * @param  {Array}       config.whitelist List of whitelisted GitHub users (if empty, allow all)
+ * @return {Object}                       Hapi Plugin Route
  */
 module.exports = (config) => ({
     method: ['GET', 'POST'],
@@ -38,16 +24,16 @@ module.exports = (config) => ({
         handler: (request, reply) => {
             /* istanbul ignore if */
             if (!request.auth.isAuthenticated) {
-                const message = `Authentication failed due to: ${request.auth.error.message}`;
-
-                return reply(boom.unauthorized(message));
+                return reply(boom.unauthorized(
+                    `Authentication failed due to: ${request.auth.error.message}`
+                ));
             }
             const username = request.auth.credentials.profile.username;
 
-            if (!whitelist[username]) {
-                const message = `User ${username} is not whitelisted to use the api`;
-
-                return reply(boom.forbidden(message));
+            if (config.whitelist.length > 0 && !config.whitelist.includes(username)) {
+                return reply(boom.forbidden(
+                    `User ${username} is not whitelisted to use the api`
+                ));
             }
 
             const profile = creds.generateProfile(username, ['user']);
