@@ -327,6 +327,7 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
+                            sha,
                             apiUri,
                             tokenGen: sinon.match.func
                         });
@@ -351,6 +352,7 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
+                            sha,
                             apiUri,
                             tokenGen: sinon.match.func
                         });

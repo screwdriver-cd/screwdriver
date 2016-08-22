@@ -11,7 +11,7 @@ const boom = require('boom');
  * @param  {String}       options.eventId    Unique ID for this GitHub event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
  * @param  {String}       options.name       Name of the new job (PR-1)
- * @param  {String}       [options.sha]      specific SHA1 commit to start the build with
+ * @param  {String}       options.sha        specific SHA1 commit to start the build with
  * @param  {String}       options.username   User who created the PR
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
@@ -111,6 +111,7 @@ function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.eventId    Unique ID for this GitHub event
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the job (PR-1)
+ * @param  {String}       options.sha        specific SHA1 commit to start the build with
  * @param  {String}       options.username   User who created the PR
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
@@ -120,6 +121,7 @@ function pullRequestSync(options, request, reply) {
     const eventId = options.eventId;
     const name = options.name;
     const username = options.username;
+    const sha = options.sha;
     const jobId = options.jobId;
     const apiUri = request.server.info.uri;
     const tokenGen = (buildId) =>
@@ -133,7 +135,7 @@ function pullRequestSync(options, request, reply) {
             request.log(['webhook-github', eventId, jobId], `${name} stopped`);
         })
         // create a new build
-        .then(() => buildFactory.create({ jobId, username, apiUri, tokenGen }))
+        .then(() => buildFactory.create({ jobId, username, sha, apiUri, tokenGen }))
         // log build created
         .then(build => {
             request.log(['webhook-github', eventId, jobId, build.id],
@@ -209,6 +211,7 @@ function pullRequestEvent(request, reply) {
                             eventId,
                             jobId,
                             name,
+                            sha,
                             username
                         }, request, reply);
 
