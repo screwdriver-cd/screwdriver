@@ -1,8 +1,10 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
+const boom = require('boom');
 const githubWebhooks = require('hapi-github-webhooks');
 const hoek = require('hoek');
-const boom = require('boom');
+const ScrewdriverScmGithub = require('screwdriver-scm-github');
+const scmGithub = new ScrewdriverScmGithub();
 
 /**
  * Create a new job and start the build for an opened pull-request
@@ -173,8 +175,8 @@ function pullRequestEvent(request, reply) {
     const prNumber = hoek.reach(payload, 'pull_request.number');
     const repository = hoek.reach(payload, 'pull_request.base.repo.ssh_url');
     const branch = hoek.reach(payload, 'pull_request.base.ref');
-    const scmUrl = `${repository}#${branch}`;
-    const prRef = `${repository}#pull/${prNumber}/merge`;
+    const scmUrl = scmGithub.formatScmUrl(`${repository}#${branch}`);
+    const prRef = scmGithub.formatScmUrl(`${repository}#pull/${prNumber}/merge`);
     const sha = hoek.reach(payload, 'pull_request.head.sha');
     const username = hoek.reach(payload, 'pull_request.user.login');
 
