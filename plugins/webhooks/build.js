@@ -42,10 +42,13 @@ module.exports = () => ({
                 if (['SUCCESS', 'FAILURE', 'ABORTED'].indexOf(status) > -1) {
                     build.meta = request.payload.meta || {};
                     build.endTime = (new Date()).toISOString();
+                } else {
+                    build.startTime = (new Date()).toISOString();
                 }
 
                 // update the model in datastore
                 return build.update();
+                // @TODO trigger next build in workflow
             })
             .then(() => reply().code(204))
             .catch(err => reply(boom.wrap(err)));
