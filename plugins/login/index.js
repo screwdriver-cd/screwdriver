@@ -33,31 +33,32 @@ exports.register = (server, options, next) => {
             throw err;
         }
 
-        joi.assert(options, joi.object().keys({
+        const pluginOptions = joi.attempt(options, joi.object().keys({
             password: joi.string().min(32).required(),
             https: joi.boolean().required(),
             oauthClientId: joi.string().required(),
             oauthClientSecret: joi.string().required(),
-            jwtPrivateKey: joi.string().required()
+            jwtPrivateKey: joi.string().required(),
+            whitelist: joi.array().default([])
         }), 'Invalid config for plugin-login');
 
         server.auth.strategy('session', 'cookie', {
             cookie: 'sid',
-            password: options.password,
-            isSecure: options.https
+            password: pluginOptions.password,
+            isSecure: pluginOptions.https
         });
 
         server.auth.strategy('oauth', 'bell', {
             provider: 'github',
-            password: options.password,
-            clientId: options.oauthClientId,
-            clientSecret: options.oauthClientSecret,
+            password: pluginOptions.password,
+            clientId: pluginOptions.oauthClientId,
+            clientSecret: pluginOptions.oauthClientSecret,
             scope: ['admin:repo_hook', 'read:org', 'repo:status'],
-            isSecure: options.https
+            isSecure: pluginOptions.https
         });
 
         server.auth.strategy('token', 'jwt', {
-            key: options.jwtPrivateKey,
+            key: pluginOptions.jwtPrivateKey,
             verifyOptions: {
                 algorithms: ['HS256'],
                 maxAge: '12h'
@@ -65,7 +66,7 @@ exports.register = (server, options, next) => {
         });
 
         server.route([
-            login(options),
+            login(pluginOptions),
             logout()
         ]);
 

@@ -30,6 +30,7 @@ describe('login plugin test', () => {
     let userFactoryMock;
     let plugin;
     let server;
+    let whitelistServer;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
 
     beforeEach((done) => {
@@ -100,7 +101,7 @@ describe('login plugin test', () => {
     describe('/login', () => {
         describe('GET', () => {
             const id = '1234id5678';
-            const username = 'd2lam';
+            const username = 'batman';
             const token = 'qpekaljx';
             const user = {
                 id,
@@ -127,19 +128,18 @@ describe('login plugin test', () => {
                 userFactoryMock.create.resolves(userMock);
             });
 
-            it('exists', (done) => {
-                server.inject('/login', (reply) => {
+            it('exists', () => (
+                server.inject('/login').then((reply) => {
                     assert.notEqual(reply.statusCode, 404, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/github.com/),
-                    'Oauth does not point to git.corp.yahoo.com');
-                    done();
-                });
-            });
+                        'Oauth does not point to github.com');
+                })
+            ));
 
-            it('creates a user and returns token', (done) => {
+            it('creates a user and returns token', () => {
                 userFactoryMock.get.resolves(null);
 
-                server.inject(options, (reply) => {
+                return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
                     assert.calledWith(userFactoryMock.get, { username });
@@ -148,102 +148,136 @@ describe('login plugin test', () => {
                         token,
                         password
                     });
-                    done();
                 });
             });
 
-            it('returns error if fails to create user', (done) => {
+            it('returns error if fails to create user', () => {
                 userFactoryMock.get.resolves(null);
                 userFactoryMock.create.rejects(new Error('createError'));
 
-                server.inject(options, (reply) => {
+                return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 500);
                     assert.calledOnce(userFactoryMock.create);
-                    done();
                 });
             });
 
-            it('returns error if fails to update user', (done) => {
+            it('returns error if fails to update user', () => {
                 const err = new Error('updateError');
 
                 userMock.update.rejects(err);
 
-                server.inject(options, (reply) => {
+                return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 500);
                     assert.calledOnce(userMock.update);
                     assert.notCalled(userFactoryMock.create);
-                    done();
                 });
             });
 
-            it('updates user if the user exists', (done) => {
-                server.inject(options, (reply) => {
+            it('updates user if the user exists', () => (
+                server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledOnce(userMock.sealToken);
                     assert.calledWith(userMock.sealToken, token);
                     assert.calledOnce(userMock.update);
                     assert.notCalled(userFactoryMock.create);
-                    done();
-                });
-            });
+                })
+            ));
 
-            it('returns forbidden for invalid user', (done) => {
-                server.inject({
-                    url: '/login',
-                    credentials: {
-                        profile: {
-                            username: 'dne'
+            describe('with whitelist', () => {
+                beforeEach(() => {
+                    whitelistServer = new hapi.Server();
+                    whitelistServer.app.userFactory = userFactoryMock;
+
+                    whitelistServer.connection({
+                        port: 1234
+                    });
+
+                    return whitelistServer.register({
+                        register: plugin,
+                        options: {
+                            password,
+                            oauthClientId: 'oauth_client_id',
+                            oauthClientSecret: 'oauth_client_secret',
+                            jwtPrivateKey: '1234secretkeythatissupersecret5678',
+                            https: false,
+                            whitelist: ['batman']
                         }
-                    }
-                }, (reply) => {
-                    assert.equal(reply.statusCode, 403, 'Login route should be available');
-                    assert.notOk(reply.result.token, 'Token not returned');
-                    done();
+                    });
+                });
+
+                afterEach(() => {
+                    whitelistServer = null;
+                });
+
+                it('returns forbidden for non-whitelisted user', () => (
+                    whitelistServer.inject({
+                        url: '/login',
+                        credentials: {
+                            profile: {
+                                username: 'dne'
+                            }
+                        }
+                    }).then((reply) => {
+                        assert.equal(reply.statusCode, 403, 'Login route should be available');
+                        assert.notOk(reply.result.token, 'Token not returned');
+                    })
+                ));
+
+                it('returns 200 for whitelisted user', () => {
+                    userFactoryMock.get.resolves(null);
+
+                    return whitelistServer.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        assert.calledWith(userFactoryMock.get, { username });
+                        assert.calledWith(userFactoryMock.create, {
+                            username,
+                            token,
+                            password
+                        });
+                    });
                 });
             });
         });
 
-        it('POST exists', (done) => {
+        it('POST exists', () => (
             server.inject({
                 method: 'POST',
                 url: '/login'
-            }, (reply) => {
+            }).then((reply) => {
                 assert.notEqual(reply.statusCode, 404, 'Logout route should be available');
-                done();
-            });
-        });
+            })
+        ));
     });
 
     describe('POST /logout', () => {
-        it('exists', (done) => {
+        it('exists', () => (
             server.inject({
                 method: 'POST',
                 url: '/logout'
-            }, (reply) => {
+            }).then((reply) => {
                 assert.notEqual(reply.statusCode, 404, 'Logout route should be available');
-                done();
-            });
-        });
+            })
+        ));
 
-        it('returns 200', (done) => {
+        it('returns 200', () => (
             server.inject({
                 method: 'POST',
                 url: '/logout',
                 credentials: {
                     profile: {
-                        username: 'd2lam'
+                        username: 'batman'
                     }
                 }
-            }, (reply) => {
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Logout route returns wrong status');
                 assert.deepEqual(reply.result, {}, 'Logout returns data');
-                done();
-            });
-        });
+            })
+        ));
     });
 
     describe('protected routes', () => {
-        it('reroutes correctly when requires session state', (done) => {
+        it('reroutes correctly when requires session state', () => {
             server.route({
                 method: 'GET',
                 path: '/protected-route',
@@ -255,13 +289,12 @@ describe('login plugin test', () => {
                 }
             });
 
-            server.inject('/protected-route', (reply) => {
+            return server.inject('/protected-route').then((reply) => {
                 assert.equal(reply.statusCode, 401, 'Should be unauthorized');
-                done();
             });
         });
 
-        it('accepts token', (done) => {
+        it('accepts token', () => {
             userFactoryMock.get.resolves(null);
             userFactoryMock.create.resolves({});
 
@@ -278,26 +311,26 @@ describe('login plugin test', () => {
                 }
             });
 
-            server.inject({
+            return server.inject({
                 url: '/login',
                 credentials: {
                     profile: {
-                        username: 'd2lam'
+                        username: 'batman'
                     }
                 }
-            }, (reply) => {
+            }).then((reply) => {
                 const token = reply.result.token;
 
                 assert.ok(token, 'Did not return token');
-                server.inject({
+
+                return server.inject({
                     url: '/protected-route2',
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
-                }, (reply2) => {
+                }).then((reply2) => {
                     assert.ok(reply2.statusCode, 200, 'Did not return correctly');
                     assert.deepEqual(reply2.result, {}, 'Returned data');
-                    done();
                 });
             });
         });

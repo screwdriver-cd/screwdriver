@@ -13,6 +13,23 @@ login:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false
+    # Whitelist of users able to authenticate against the system
+    # if empty, it allows everyone
+    # @TODO remove this in the future
+    whitelist:
+        - FenrirUnbound
+        - Filbird
+        - cynthiax
+        - d2lam
+        - dvdizon
+        - jer
+        - minz1027
+        - nicolaifsf
+        - nkatzman
+        - petey
+        - shruthi-venkateswaran
+        - stjohnjohnson
+        - tkyi
 
 httpd:
     # Port to listen on
@@ -30,7 +47,6 @@ httpd:
         #     PRIVATE KEY HERE
         # cert: |
         #     YOUR CERT HERE
-
 
 datastore:
     plugin: imdb
