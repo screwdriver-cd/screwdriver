@@ -8,11 +8,13 @@ const boom = require('boom');
  * Create a new job and start the build for an opened pull-request
  * @method pullRequestOpened
  * @param  {Object}       options
- * @param  {String}       options.eventId    Unique ID for this GitHub event
- * @param  {String}       options.pipelineId Identifier for the Pipeline
- * @param  {String}       options.name       Name of the new job (PR-1)
- * @param  {String}       options.sha        specific SHA1 commit to start the build with
- * @param  {String}       options.username   User who created the PR
+ * @param  {String}       options.eventId       Unique ID for this GitHub event
+ * @param  {String}       options.pipelineId    Identifier for the Pipeline
+ * @param  {String}       options.name          Name of the new job (PR-1)
+ * @param  {String}       [options.sha]         specific SHA1 commit to start the build with
+ * @param  {String}       options.username      User who created the PR
+ * @param  {String}       options.prRef         Reference to pull request
+ * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
@@ -24,9 +26,14 @@ function pullRequestOpened(options, request, reply) {
     const name = options.name;
     const sha = options.sha;
     const username = options.username;
+    const ref = options.prRef;
+    const pipeline = options.pipeline;
 
-    // create a new job
-    return jobFactory.create({ pipelineId, name, containers: ['node:6'] })
+    return pipeline.getConfiguration(ref)
+        // get image(s) for "main" job
+        .then(config => config.jobs.main.map(b => b.image))
+        // create a new job
+        .then(containers => jobFactory.create({ pipelineId, name, containers }))
         // log stuff
         .then(job => {
             request.log(['webhook-github', eventId, job.id], `${job.name} created`);
@@ -167,6 +174,7 @@ function pullRequestEvent(request, reply) {
     const repository = hoek.reach(payload, 'pull_request.base.repo.ssh_url');
     const branch = hoek.reach(payload, 'pull_request.base.ref');
     const scmUrl = `${repository}#${branch}`;
+    const prRef = `${repository}#pull/${prNumber}/merge`;
     const sha = hoek.reach(payload, 'pull_request.head.sha');
     const username = hoek.reach(payload, 'pull_request.user.login');
 
@@ -203,7 +211,9 @@ function pullRequestEvent(request, reply) {
                             pipelineId,
                             name,
                             sha,
-                            username
+                            username,
+                            prRef,
+                            pipeline
                         }, request, reply);
 
                     case 'synchronize':
