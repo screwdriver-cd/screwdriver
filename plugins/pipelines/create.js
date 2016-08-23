@@ -38,6 +38,11 @@ module.exports = () => ({
             strategies: ['token', 'session'],
             scope: ['user']
         },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;

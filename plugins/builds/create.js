@@ -14,6 +14,11 @@ module.exports = (options) => ({
             strategies: ['token', 'session'],
             scope: ['user']
         },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const jobFactory = request.server.app.jobFactory;
             const buildFactory = request.server.app.buildFactory;
