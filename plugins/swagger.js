@@ -7,6 +7,14 @@ module.exports = {
         info: {
             title: 'Screwdriver API Documentation',
             version: '3'
+        },
+        securityDefinitions: {
+            token: {
+                type: 'bearer',
+                name: 'X-Token',
+                in: 'header'
+            }
         }
-    }
+    },
+    security: [{ token: [] }]
 };
