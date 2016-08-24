@@ -48,10 +48,12 @@ describe('server case', () => {
                 pipelineFactory: 'pipeline',
                 jobFactory: 'job',
                 userFactory: 'user',
-                buildFactory: 'build'
+                buildFactory: {}
             }, (e, s) => {
                 error = e;
                 server = s;
+                // Pretend we actually registered a login plugin
+                server.plugins.login = { generateToken: sinon.stub().returns('foo') };
                 done();
             });
         });
@@ -73,7 +75,10 @@ describe('server case', () => {
             Assert.strictEqual(server.app.pipelineFactory, 'pipeline');
             Assert.strictEqual(server.app.jobFactory, 'job');
             Assert.strictEqual(server.app.userFactory, 'user');
-            Assert.strictEqual(server.app.buildFactory, 'build');
+            Assert.isObject(server.app.buildFactory);
+            Assert.match(server.app.buildFactory.apiUri, /^http(s)?:\/\/[^:]+:12347$/);
+            Assert.isFunction(server.app.buildFactory.tokenGen);
+            Assert.strictEqual(server.app.buildFactory.tokenGen('bar'), 'foo');
         });
     });
 
