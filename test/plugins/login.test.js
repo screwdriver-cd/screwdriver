@@ -1,7 +1,11 @@
 'use strict';
-const assert = require('chai').assert;
+const chai = require('chai');
+const assert = chai.assert;
+const expect = chai.expect;
 const hapi = require('hapi');
 const sinon = require('sinon');
+
+chai.use(require('chai-jwt'));
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -30,7 +34,6 @@ describe('login plugin test', () => {
     let userFactoryMock;
     let plugin;
     let server;
-    let whitelistServer;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
 
     beforeEach((done) => {
@@ -136,6 +139,21 @@ describe('login plugin test', () => {
                 })
             ));
 
+            it('will return errors', () => (
+                server.inject({
+                    url: {
+                        pathname: '/login',
+                        query: {
+                            code: 'fasdasd',
+                            state: 'asdasd',
+                            refresh: 1
+                        }
+                    }
+                }).then((reply) => {
+                    assert.equal(reply.statusCode, 401, 'Unauthorized Warning');
+                })
+            ));
+
             it('creates a user and returns token', () => {
                 userFactoryMock.get.resolves(null);
 
@@ -185,14 +203,14 @@ describe('login plugin test', () => {
 
             describe('with whitelist', () => {
                 beforeEach(() => {
-                    whitelistServer = new hapi.Server();
-                    whitelistServer.app.userFactory = userFactoryMock;
+                    server = new hapi.Server();
+                    server.app.userFactory = userFactoryMock;
 
-                    whitelistServer.connection({
+                    server.connection({
                         port: 1234
                     });
 
-                    return whitelistServer.register({
+                    return server.register({
                         register: plugin,
                         options: {
                             password,
@@ -206,11 +224,11 @@ describe('login plugin test', () => {
                 });
 
                 afterEach(() => {
-                    whitelistServer = null;
+                    server = null;
                 });
 
                 it('returns forbidden for non-whitelisted user', () => (
-                    whitelistServer.inject({
+                    server.inject({
                         url: '/login',
                         credentials: {
                             profile: {
@@ -226,7 +244,156 @@ describe('login plugin test', () => {
                 it('returns 200 for whitelisted user', () => {
                     userFactoryMock.get.resolves(null);
 
-                    return whitelistServer.inject(options).then((reply) => {
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        assert.calledWith(userFactoryMock.get, { username });
+                        assert.calledWith(userFactoryMock.create, {
+                            username,
+                            token,
+                            password
+                        });
+                    });
+                });
+            });
+
+            describe('with admins', () => {
+                beforeEach(() => {
+                    server = new hapi.Server();
+                    server.app.userFactory = userFactoryMock;
+
+                    server.connection({
+                        port: 1234
+                    });
+
+                    return server.register({
+                        register: plugin,
+                        options: {
+                            password,
+                            oauthClientId: 'oauth_client_id',
+                            oauthClientSecret: 'oauth_client_secret',
+                            jwtPrivateKey: '1234secretkeythatissupersecret5678',
+                            https: false,
+                            admins: ['batman']
+                        }
+                    });
+                });
+
+                it('returns admin signed token', () => (
+                    server.inject({
+                        url: '/login',
+                        credentials: {
+                            profile: {
+                                username: 'batman'
+                            }
+                        }
+                    }).then((reply) => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('username', 'batman');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('scope')
+                            .with.lengthOf(2);
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[0]', 'user');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[1]', 'admin');
+                    })
+                ));
+
+                it('returns user signed token', () => (
+                    server.inject({
+                        url: '/login',
+                        credentials: {
+                            profile: {
+                                username: 'robin'
+                            }
+                        }
+                    }).then((reply) => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('username', 'robin');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('scope')
+                            .with.lengthOf(1);
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[0]', 'user');
+                    })
+                ));
+
+                it('returns admin impersonated user token', () => (
+                    server.inject({
+                        url: '/login/robin',
+                        credentials: {
+                            profile: {
+                                username: 'batman'
+                            }
+                        }
+                    }).then((reply) => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        assert.notCalled(userFactoryMock.get);
+                        assert.notCalled(userMock.update);
+
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('username', 'robin');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('scope')
+                            .with.lengthOf(2);
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[0]', 'user');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[1]', 'impersonated');
+                    })
+                ));
+
+                it('returns admin impersonated build token', () => (
+                    server.inject({
+                        url: '/login/474ee9ee179b0ecf0bc27408079a0b15eda4c99d/build',
+                        credentials: {
+                            profile: {
+                                username: 'batman'
+                            }
+                        }
+                    }).then((reply) => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        assert.notCalled(userFactoryMock.get);
+                        assert.notCalled(userMock.update);
+
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('username',
+                                '474ee9ee179b0ecf0bc27408079a0b15eda4c99d');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.have.property('scope')
+                            .with.lengthOf(2);
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[0]', 'build');
+                        expect(reply.result.token).to.be.a.jwt
+                            .and.deep.property('scope[1]', 'impersonated');
+                    })
+                ));
+
+                it('returns forbidden for non-admin attempting to impersonate', () => (
+                    server.inject({
+                        url: '/login/batman',
+                        credentials: {
+                            profile: {
+                                username: 'robin'
+                            }
+                        }
+                    }).then((reply) => {
+                        assert.equal(reply.statusCode, 403, 'Login route should be available');
+                        assert.notOk(reply.result.token, 'Token not returned');
+                    })
+                ));
+
+                it('returns 200 for whitelisted user', () => {
+                    userFactoryMock.get.resolves(null);
+
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200, 'Login route should be available');
                         assert.ok(reply.result.token, 'Token not returned');
                         assert.calledWith(userFactoryMock.get, { username });

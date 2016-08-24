@@ -30,6 +30,20 @@ login:
         - shruthi-venkateswaran
         - stjohnjohnson
         - tkyi
+    admins:
+        - FenrirUnbound
+        - Filbird
+        - cynthiax
+        - d2lam
+        - dvdizon
+        - jer
+        - minz1027
+        - nicolaifsf
+        - nkatzman
+        - petey
+        - shruthi-venkateswaran
+        - stjohnjohnson
+        - tkyi
 
 httpd:
     # Port to listen on
