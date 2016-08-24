@@ -20,7 +20,7 @@ describe('github plugin test', () => {
     let pipelineFactoryMock;
     let plugin;
     let server;
-    let apiUri;
+    const apiUri = 'http://foo.bar:12345';
 
     before(() => {
         mockery.enable({
@@ -58,7 +58,6 @@ describe('github plugin test', () => {
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock
         };
-        apiUri = 'http://foo.bar:12345';
         server.connection({
             host: 'localhost',
             port: 12345,
@@ -82,6 +81,9 @@ describe('github plugin test', () => {
                 secret: 'secretssecretsarenofun'
             }
         }], (err) => {
+            server.app.buildFactory.apiUri = apiUri;
+            server.app.buildFactory.tokenGen = (buildId) =>
+                server.plugins.login.generateToken(buildId, ['build']);
             done(err);
         });
     });
@@ -98,6 +100,8 @@ describe('github plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.webhooks);
+        assert.equal(server.app.buildFactory.tokenGen('12345'),
+            '{"username":"12345","scope":["build"]}"supersecret"');
     });
 
     describe('POST /webhooks/github', () => {
@@ -210,12 +214,8 @@ describe('github plugin test', () => {
                     assert.calledWith(buildFactoryMock.create, {
                         jobId,
                         username,
-                        sha,
-                        apiUri,
-                        tokenGen: sinon.match.func
+                        sha
                     });
-                    assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
-                        '{"username":"12345","scope":["build"]}"supersecret"');
                 })
             ));
 
@@ -287,12 +287,8 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
-                            apiUri,
-                            username,
-                            tokenGen: sinon.match.func
+                            username
                         });
-                        assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
-                            '{"username":"12345","scope":["build"]}"supersecret"');
                     })
                 );
 
@@ -310,12 +306,8 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
-                            apiUri,
-                            username,
-                            tokenGen: sinon.match.func
+                            username
                         });
-                        assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
-                            '{"username":"12345","scope":["build"]}"supersecret"');
                     });
                 });
             });
@@ -333,12 +325,8 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
-                            sha,
-                            apiUri,
-                            tokenGen: sinon.match.func
+                            sha
                         });
-                        assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
-                            '{"username":"12345","scope":["build"]}"supersecret"');
                     })
                 ));
 
@@ -358,14 +346,10 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
-                            sha,
-                            apiUri,
-                            tokenGen: sinon.match.func
+                            sha
                         });
                         assert.isOk(model1.stop.calledBefore(buildFactoryMock.create));
                         assert.isOk(model2.stop.calledBefore(buildFactoryMock.create));
-                        assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
-                            '{"username":"12345","scope":["build"]}"supersecret"');
                     });
                 });
 

@@ -47,13 +47,7 @@ function pullRequestOpened(options, request, reply) {
             return job.id;
         })
         // create a build
-        .then(jobId => {
-            const apiUri = request.server.info.uri;
-            const tokenGen = (buildId) =>
-                request.server.plugins.login.generateToken(buildId, ['build']);
-
-            return buildFactory.create({ jobId, sha, username, apiUri, tokenGen });
-        })
+        .then(jobId => buildFactory.create({ jobId, sha, username }))
         // log the build created/started
         .then(build => {
             request.log(['webhook-github', eventId, build.jobId, build.id], `${name} started `
@@ -130,9 +124,6 @@ function pullRequestSync(options, request, reply) {
     const username = options.username;
     const sha = options.sha;
     const jobId = options.jobId;
-    const apiUri = request.server.info.uri;
-    const tokenGen = (buildId) =>
-        request.server.plugins.login.generateToken(buildId, ['build']);
 
     return buildFactory.getBuildsForJobId({ jobId })
         // stop all running builds
@@ -142,7 +133,7 @@ function pullRequestSync(options, request, reply) {
             request.log(['webhook-github', eventId, jobId], `${name} stopped`);
         })
         // create a new build
-        .then(() => buildFactory.create({ jobId, username, sha, apiUri, tokenGen }))
+        .then(() => buildFactory.create({ jobId, username, sha }))
         // log build created
         .then(build => {
             request.log(['webhook-github', eventId, jobId, build.id],
@@ -257,7 +248,6 @@ function pushEvent(request, reply) {
     const sha = hoek.reach(payload, 'after');
     const username = hoek.reach(payload, 'sender.login');
     const scmUrl = `${repository}#${branch}`;
-    const apiUri = request.server.info.uri;
 
     request.log(['webhook-github', eventId], `Push for ${scmUrl}`);
 
@@ -275,10 +265,8 @@ function pushEvent(request, reply) {
                     const pipelineId = pipeline.id;
                     const name = 'main';
                     const jobId = jobFactory.generateId({ pipelineId, name });
-                    const tokenGen = (buildId) =>
-                        request.server.plugins.login.generateToken(buildId, ['build']);
 
-                    return buildFactory.create({ jobId, sha, username, apiUri, tokenGen })
+                    return buildFactory.create({ jobId, sha, username })
                         // log build created
                         .then(build => {
                             request.log(['webhook-github', eventId, jobId, build.id],
