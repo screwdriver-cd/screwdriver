@@ -48,6 +48,10 @@ httpd:
         # cert: |
         #     YOUR CERT HERE
 
+cors:
+    origin:
+        - http://cd.screwdriver.cd
+
 datastore:
     plugin: imdb
     imdb:
