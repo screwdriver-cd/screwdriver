@@ -39,11 +39,13 @@ exports.register = (server, options, next) => {
             oauthClientId: joi.string().required(),
             oauthClientSecret: joi.string().required(),
             jwtPrivateKey: joi.string().required(),
-            whitelist: joi.array().default([])
+            whitelist: joi.array().default([]),
+            admins: joi.array().default([])
         }), 'Invalid config for plugin-login');
 
         server.auth.strategy('session', 'cookie', {
             cookie: 'sid',
+            ttl: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
             password: pluginOptions.password,
             isSecure: pluginOptions.https
         });
