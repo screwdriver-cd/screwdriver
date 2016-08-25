@@ -62,6 +62,12 @@ httpd:
         # cert: |
         #     YOUR CERT HERE
 
+# Hapi Cross-origin resource sharing configuration
+# See http://hapijs.com/api for available options
+cors:
+    origin:
+        - http://cd.screwdriver.cd
+
 datastore:
     plugin: imdb
     imdb:

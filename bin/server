@@ -25,6 +25,9 @@ const loginConfig = config.get('login');
 // Setup httpd
 const httpdConfig = config.get('httpd');
 
+// Setup cors
+const corsConfig = config.get('cors');
+
 // Setup GitHub Webhooks
 const gitHubSecret = config.get('webhooks.github.secret');
 
@@ -39,6 +42,7 @@ const buildFactory = Models.BuildFactory.getInstance({ datastore, scmPlugin, exe
 
 require('../')({
     httpd: httpdConfig,
+    cors: corsConfig,
     login: loginConfig,
     pipelineFactory,
     jobFactory,
