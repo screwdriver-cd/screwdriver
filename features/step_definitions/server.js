@@ -5,7 +5,7 @@ const Assert = require('chai').assert;
 
 module.exports = function server() {
     this.Given(/^a running hapi server$/, (callback) => {
-        this.instance = process.env.INSTANCE || 'http://localhost:8080';
+        this.instance = 'http://api.screwdriver.cd';
         callback(null);
     });
 
