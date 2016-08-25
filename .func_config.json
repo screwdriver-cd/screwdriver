@@ -1,0 +1,5 @@
+{
+    "username": "YOUR-GITHUB-USERNAME",
+    "github_token": "YOUR-ACCESS-TOKEN",
+    "jwt": "YOUR-JWT"
+}

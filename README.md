@@ -82,14 +82,18 @@ npm test
 
 ### Functional tests
 
-First start the demo server:
-```bash
-npm start
+Update `.func_config.json` with your own username, github_token, and jwt:
+```json
+{
+    "username": "YOUR-GITHUB-USERNAME",
+    "github_token": "YOUR-ACCESS-TOKEN",
+    "jwt": "YOUR-JWT"
+}
 ```
 
 Then run the cucumber tests:
 ```bash
-INSTANCE="http://localhost:8080" npm run functional
+npm run functional
 ```
 
 ## Deployment
