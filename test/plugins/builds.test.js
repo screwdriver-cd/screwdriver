@@ -5,6 +5,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
+const nock = require('nock');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 
@@ -38,6 +39,7 @@ describe('build plugin test', () => {
     let pipelineFactoryMock;
     let plugin;
     let server;
+    const logBaseUrl = 'http://example.com/screwdriver-logs';
 
     before(() => {
         mockery.enable({
@@ -100,7 +102,9 @@ describe('build plugin test', () => {
             }
         }, {
             register: plugin,
-            options: { password: 'thispasswordismine' }
+            options: {
+                logBaseUrl
+            }
         }], (err) => {
             done(err);
         });
@@ -329,8 +333,7 @@ describe('build plugin test', () => {
         const params = {
             jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
             apiUri: 'http://localhost:12345',
-            username,
-            password: sinon.match.string
+            username
         };
 
         let options;
@@ -573,6 +576,35 @@ describe('build plugin test', () => {
     describe('GET /builds/{id}/steps/{step}/logs', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const step = 'install';
+        const logs = [
+            {
+                m: 'Building stuff',
+                n: 0,
+                t: 1472236246000
+            },
+            {
+                m: 'Still building...',
+                n: 1,
+                t: 1472236247000
+            },
+            {
+                m: 'Done Building stuff',
+                n: 2,
+                t: 1472236248000
+            }
+        ];
+
+        beforeEach(() => {
+            nock('http://example.com')
+                .get(`/screwdriver-logs/${id}/${step}`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+            nock.disableNetConnect();
+        });
+
+        afterEach(() => {
+            nock.cleanAll();
+            nock.enableNetConnect();
+        });
 
         it('returns 200 for a step that exists', () => {
             const buildMock = getMockBuilds(testBuild);
@@ -581,8 +613,52 @@ describe('build plugin test', () => {
 
             return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns correct lines after a given line', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/${step}/logs?from=2`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs.slice(2));
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns more-data for a step that is not done', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            nock('http://example.com')
+                .get(`/screwdriver-logs/${id}/test`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/test/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
+        });
+
+        it('returns empty array on invalid data', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            nock('http://example.com')
+                .get(`/screwdriver-logs/${id}/test`)
+                .reply(200, '<invalid JSON>\n<more bad JSON>');
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/test/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
-                assert.property(reply.headers, 'x-more-data', 'false');
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
             });
         });
 

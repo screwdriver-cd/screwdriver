@@ -289,7 +289,6 @@ function pushEvent(request, reply) {
  * @param  {Hapi.Server}    server
  * @param  {Object}         options
  * @param  {String}         options.secret    GitHub Webhook secret to sign payloads with
- * @param  {String}         options.password  Login password
  * @param  {Function}       next
  */
 module.exports = (server, options) => {

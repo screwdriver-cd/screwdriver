@@ -88,8 +88,10 @@ executor:
         host: kubernetes
         # The jwt token used for authenticating kubernetes requests
         token: NOT-A-REAL-JWT-TOKEN
-        # Container tag to use
-        version: latest
+        # Job Tools container tag to use
+        toolsVersion: latest
+        # Log Service container tag to use
+        logVersion: latest
 
 scm:
     plugin: github
@@ -98,3 +100,7 @@ webhooks:
     github:
         # Secret to add to GitHub webhooks so that we can validate them
         secret: SUPER-SECRET-SIGNING-THING
+
+logging:
+    # Base URL for accessing logs
+    baseUrl: https://s3-us-west-2.amazonaws.com/logs.screwdriver.cd
