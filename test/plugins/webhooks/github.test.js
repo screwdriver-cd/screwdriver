@@ -282,7 +282,28 @@ describe('github plugin test', () => {
                         assert.calledWith(jobFactoryMock.create, {
                             pipelineId,
                             name,
-                            containers: ['node:4', 'node:5', 'node:6']
+                            permutations: [{
+                                commands: [
+                                    { command: 'npm install', name: 'init' },
+                                    { command: 'npm test', name: 'test' }
+                                ],
+                                environment: { NODE_ENV: 'test', NODE_VERSION: '4' },
+                                image: 'node:4'
+                            }, {
+                                commands: [
+                                    { command: 'npm install', name: 'init' },
+                                    { command: 'npm test', name: 'test' }
+                                ],
+                                environment: { NODE_ENV: 'test', NODE_VERSION: '5' },
+                                image: 'node:5'
+                            }, {
+                                commands: [
+                                    { command: 'npm install', name: 'init' },
+                                    { command: 'npm test', name: 'test' }
+                                ],
+                                environment: { NODE_ENV: 'test', NODE_VERSION: '6' },
+                                image: 'node:6'
+                            }]
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
@@ -301,7 +322,28 @@ describe('github plugin test', () => {
                         assert.calledWith(jobFactoryMock.create, {
                             pipelineId,
                             name,
-                            containers: ['node:4', 'node:5', 'node:6']
+                            permutations: [{
+                                commands: [
+                                    { command: 'npm install', name: 'init' },
+                                    { command: 'npm test', name: 'test' }
+                                ],
+                                environment: { NODE_ENV: 'test', NODE_VERSION: '4' },
+                                image: 'node:4'
+                            }, {
+                                commands: [
+                                    { command: 'npm install', name: 'init' },
+                                    { command: 'npm test', name: 'test' }
+                                ],
+                                environment: { NODE_ENV: 'test', NODE_VERSION: '5' },
+                                image: 'node:5'
+                            }, {
+                                commands: [
+                                    { command: 'npm install', name: 'init' },
+                                    { command: 'npm test', name: 'test' }
+                                ],
+                                environment: { NODE_ENV: 'test', NODE_VERSION: '6' },
+                                image: 'node:6'
+                            }]
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
