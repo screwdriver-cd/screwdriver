@@ -30,10 +30,10 @@ function pullRequestOpened(options, request, reply) {
     const pipeline = options.pipeline;
 
     return pipeline.getConfiguration(ref)
-        // get image(s) for "main" job
-        .then(config => config.jobs.main.map(b => b.image))
+        // get permutations(s) for "main" job
+        .then(config => config.jobs.main)
         // create a new job
-        .then(containers => jobFactory.create({ pipelineId, name, containers }))
+        .then(permutations => jobFactory.create({ pipelineId, name, permutations }))
         // log stuff
         .then(job => {
             request.log(['webhook-github', eventId, job.id], `${job.name} created`);
