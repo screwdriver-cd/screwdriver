@@ -67,6 +67,8 @@ httpd:
 cors:
     origin:
         - http://cd.screwdriver.cd
+    additionalExposedHeaders:
+        - x-more-data
 
 datastore:
     plugin: imdb
