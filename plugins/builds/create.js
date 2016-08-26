@@ -3,7 +3,7 @@ const boom = require('boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 
-module.exports = (options) => ({
+module.exports = () => ({
     method: 'POST',
     path: '/builds',
     config: {
@@ -27,8 +27,7 @@ module.exports = (options) => ({
             const payload = {
                 jobId: request.payload.jobId,
                 apiUri: request.server.info.uri,
-                username,
-                password: options.password
+                username
             };
 
             // Fetch the job and user models

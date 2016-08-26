@@ -14,6 +14,7 @@ const stepLogsRoute = require('./steps/logs');
  * @method register
  * @param  {Hapi}     server                Hapi Server
  * @param  {Object}   options               Configuration
+ * @param  {String}   options.logBaseUrl    Log service's base URL
  * @param  {Function} next                  Function to call when done
  */
 exports.register = (server, options, next) => {
@@ -22,11 +23,11 @@ exports.register = (server, options, next) => {
         getRoute(),
         streamLogsRoute(),
         updateRoute(),
-        createRoute(options),
+        createRoute(),
         // Steps
         stepGetRoute(),
         stepUpdateRoute(),
-        stepLogsRoute()
+        stepLogsRoute(options)
     ]);
 
     next();

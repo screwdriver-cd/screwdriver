@@ -22,11 +22,14 @@ const scmPlugin = new ScmPlugin({});
 // Setup Login
 const loginConfig = config.get('login');
 
-// Setup httpd
+// Setup HTTPd
 const httpdConfig = config.get('httpd');
 
-// Setup cors
+// Setup CORS
 const corsConfig = config.get('cors');
+
+// Setup Logging
+const logBaseUrl = config.get('logging.baseUrl');
 
 // Setup GitHub Webhooks
 const gitHubSecret = config.get('webhooks.github.secret');
@@ -48,15 +51,11 @@ require('../')({
     jobFactory,
     userFactory,
     buildFactory,
-    pipelines: {
-        password: loginConfig.password
-    },
     builds: {
-        password: loginConfig.password
+        logBaseUrl
     },
     webhooks: {
-        secret: gitHubSecret,
-        password: loginConfig.password
+        secret: gitHubSecret
     },
     stats: {
         executor,
