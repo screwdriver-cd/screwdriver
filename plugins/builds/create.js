@@ -28,9 +28,7 @@ module.exports = (options) => ({
                 jobId: request.payload.jobId,
                 apiUri: request.server.info.uri,
                 username,
-                password: options.password,
-                tokenGen: (buildId) =>
-                    request.server.plugins.login.generateToken(buildId, ['build'])
+                password: options.password
             };
 
             // Fetch the job and user models
@@ -39,19 +37,20 @@ module.exports = (options) => ({
                 userFactory.get({ username })
             ]).then(([job, user]) =>
                 // scmUrl is buried in the pipeline, so we get that from the job
-                job.pipeline
+                job.pipeline.then(pipeline =>
                     // ask the user for permissions on this repo
-                    .then(pipeline => user.getPermissions(pipeline.scmUrl))
-                    // check if user has push access
-                    .then(permissions => {
-                        if (!permissions.push) {
-                            throw boom.unauthorized(`User ${username} `
-                                + 'does not have push permission for this repo');
-                        }
-                    })
-                    // user has good permissions, create a build
-                    .then(() => buildFactory.create(payload))
-            ).then(build => {
+                    user.getPermissions(pipeline.scmUrl)
+                        // check if user has push access
+                        .then(permissions => {
+                            if (!permissions.push) {
+                                throw boom.unauthorized(`User ${username} `
+                                    + 'does not have push permission for this repo');
+                            }
+                        })
+                        // user has good permissions, sync and create a build
+                        .then(() => pipeline.sync())
+                        .then(() => buildFactory.create(payload))
+            )).then(build => {
                 // everything succeeded, inform the user
                 const location = urlLib.format({
                     host: request.headers.host,

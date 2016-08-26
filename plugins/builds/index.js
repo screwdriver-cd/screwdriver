@@ -5,6 +5,9 @@ const listRoute = require('./list');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const streamLogsRoute = require('./stream');
+const stepGetRoute = require('./steps/get');
+const stepUpdateRoute = require('./steps/update');
+const stepLogsRoute = require('./steps/logs');
 
 /**
  * Build API Plugin
@@ -19,7 +22,11 @@ exports.register = (server, options, next) => {
         getRoute(),
         streamLogsRoute(),
         updateRoute(),
-        createRoute(options)
+        createRoute(options),
+        // Steps
+        stepGetRoute(),
+        stepUpdateRoute(),
+        stepLogsRoute()
     ]);
 
     next();

@@ -329,7 +329,6 @@ describe('build plugin test', () => {
         const params = {
             jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
             apiUri: 'http://localhost:12345',
-            tokenGen: sinon.match.func,
             username,
             password: sinon.match.string
         };
@@ -350,8 +349,7 @@ describe('build plugin test', () => {
                 credentials: {
                     scope: ['user'],
                     username
-                },
-                password: 'thiadchlsifhesfr'
+                }
             };
 
             buildMock = getMockBuilds({ id: buildId, other: 'dataToBeIncluded' });
@@ -361,7 +359,8 @@ describe('build plugin test', () => {
             };
             pipelineMock = {
                 id: pipelineId,
-                scmUrl
+                scmUrl,
+                sync: sinon.stub().resolves()
             };
             userMock = {
                 username,
@@ -376,10 +375,10 @@ describe('build plugin test', () => {
             userFactoryMock.get.resolves(userMock);
         });
 
-        it('returns 201 for a successful create', (done) => {
+        it('returns 201 for a successful create', () => {
             let expectedLocation;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then((reply) => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -393,29 +392,223 @@ describe('build plugin test', () => {
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(buildFactoryMock.create, params);
-                assert.equal(buildFactoryMock.create.getCall(0).args[0].tokenGen('12345'),
-                    '{"username":"12345","scope":["build"]}"1234secretkeythatissupersecret5678"');
-                done();
             });
         });
 
-        it('returns 500 when the model encounters an error', (done) => {
+        it('returns 500 when the model encounters an error', () => {
             const testError = new Error('datastoreSaveError');
 
             buildFactoryMock.create.withArgs(params).rejects(testError);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
 
-        it('returns unauthorized error when user does not have push permission', (done) => {
+        it('returns unauthorized error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
-                done();
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/steps/{step}', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const step = 'install';
+
+        it('returns 200 for a step that exists', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuild.steps[1]);
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when step does not exist', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/fail`).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /builds/{id}/steps/{step}', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const step = 'test';
+        let options;
+        let buildMock;
+
+        beforeEach(() => {
+            buildMock = getMockBuilds(testBuild);
+            buildMock.update.resolves(buildMock);
+
+            options = {
+                method: 'PUT',
+                url: `/builds/${id}/steps/${step}`,
+                payload: {
+                    code: 10,
+                    startTime: '2038-01-19T03:13:08.532Z',
+                    endTime: '2038-01-19T03:15:08.532Z'
+                },
+                credentials: {
+                    scope: ['build'],
+                    username: id
+                }
+            };
+        });
+
+        it('returns 200 when updating the code/endTime', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.deepProperty(reply.result, 'code', 10);
+                assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
+                assert.notDeepProperty(reply.result, 'startTime');
+            });
+        });
+
+        it('returns 200 when updating the code without endTime', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            delete options.payload.startTime;
+            delete options.payload.endTime;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.deepProperty(reply.result, 'code', 10);
+                assert.match(reply.result.endTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+                assert.notDeepProperty(reply.result, 'startTime');
+            });
+        });
+
+        it('returns 200 when updating the startTime', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            delete options.payload.code;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.notDeepProperty(reply.result, 'code');
+                assert.deepProperty(reply.result, 'startTime', options.payload.startTime);
+                assert.notDeepProperty(reply.result, 'endTime');
+            });
+        });
+
+        it('returns 200 when updating without any fields', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            delete options.payload.startTime;
+            delete options.payload.endTime;
+            delete options.payload.code;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.notDeepProperty(reply.result, 'code');
+                assert.match(reply.result.startTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+                assert.notDeepProperty(reply.result, 'endTime');
+            });
+        });
+
+        it('returns 403 for a the wrong build permission', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when step does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            options.url = `/builds/${id}/steps/fail`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/steps/{step}/logs', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const step = 'install';
+
+        it('returns 200 for a step that exists', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+                assert.property(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when step does not exist', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}/steps/fail/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
