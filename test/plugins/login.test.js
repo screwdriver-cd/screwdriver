@@ -6,6 +6,7 @@ const hapi = require('hapi');
 const sinon = require('sinon');
 
 chai.use(require('chai-jwt'));
+chai.use(require('chai-as-promised'));
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -85,20 +86,17 @@ describe('login plugin test', () => {
         assert.isOk(server.registrations['hapi-auth-jwt']);
     });
 
-    it('throws exception when config not passed', (done) => {
+    it('throws exception when config not passed', () => {
         const testServer = new hapi.Server();
 
         testServer.connection({
             port: 1234
         });
 
-        assert.throws(() => {
-            testServer.register({
-                register: plugin,
-                options: {}
-            }, () => {});
-        });
-        done();
+        assert.isRejected(testServer.register({
+            register: plugin,
+            options: {}
+        }), /Invalid config for plugin-login/);
     });
 
     describe('/login', () => {
