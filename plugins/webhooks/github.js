@@ -307,6 +307,9 @@ module.exports = (server, options) => {
             description: 'Handle events from GitHub',
             notes: 'Acts on pull request, pushes, comments, etc.',
             tags: ['api', 'github', 'webhook'],
+            plugins: {
+                crumb: false
+            },
             auth: {
                 strategies: ['githubwebhook'],
                 payload: 'required'

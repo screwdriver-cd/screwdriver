@@ -22,6 +22,9 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build']
         },
+        plugins: {
+            crumb: false
+        },
         handler: (request, reply) => {
             const id = request.auth.credentials.username;
             const status = request.payload.status;
