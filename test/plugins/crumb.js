@@ -68,4 +68,70 @@ describe('crumb plugin test', () => {
             });
         });
     });
+
+    describe('POST /webhooks/dummy', () => {
+        it('doesn\'t validate a crumb', () => {
+            server.route({
+                method: 'POST',
+                path: '/webhooks/dummy',
+                config: {
+                    description: 'dummy route for crumb test',
+                    tags: ['api', 'webhooks'],
+                    handler: (request, reply) => reply(true)
+                }
+            });
+
+            return server.inject({
+                url: '/webhooks/dummy',
+                method: 'POST'
+            }).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, true);
+            });
+        });
+    });
+
+    describe('POST /non-webhooks', () => {
+        it('validates a crumb', () => {
+            server.route({
+                method: 'POST',
+                path: '/non-webhooks',
+                config: {
+                    description: 'non-webhooks route for crumb test',
+                    tags: ['api'],
+                    handler: (request, reply) => reply(true)
+                }
+            });
+
+            return server.inject({
+                url: '/non-webhooks',
+                method: 'POST'
+            }).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('doesn\'t validate a crumb if jwt is used', () => {
+            server.route({
+                method: 'POST',
+                path: '/non-webhooks',
+                config: {
+                    description: 'non-webhooks route for crumb test',
+                    tags: ['api'],
+                    handler: (request, reply) => reply(true)
+                }
+            });
+
+            return server.inject({
+                url: '/non-webhooks',
+                method: 'POST',
+                headers: {
+                    authorization: 'Bearer token'
+                }
+            }).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, true);
+            });
+        });
+    });
 });

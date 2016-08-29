@@ -12,7 +12,10 @@ exports.register = (server, options, next) => {
     server.register({
         register: crumb,
         options: {
-            restful: true
+            restful: true,
+            skip: (request) =>
+                // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                !!request.headers.authorization || !!request.route.path.includes('/webhooks/')
         }
     }, (err) => {
         /* istanbul ignore if */
