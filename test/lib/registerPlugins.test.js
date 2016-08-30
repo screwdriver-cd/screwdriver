@@ -20,6 +20,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/jobs',
         '../plugins/pipelines',
         '../plugins/webhooks',
+        '../plugins/crumb',
         '../plugins/stats'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
