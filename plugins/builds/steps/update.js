@@ -37,7 +37,7 @@ module.exports = () => ({
                         throw boom.notFound('Step does not exist');
                     }
 
-                    if (request.payload.code) {
+                    if (request.payload.code !== undefined) {
                         steps[stepIndex].code = request.payload.code;
                         steps[stepIndex].endTime = request.payload.endTime || now;
                     } else {
