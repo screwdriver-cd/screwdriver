@@ -409,7 +409,7 @@ describe('build plugin test', () => {
                 method: 'PUT',
                 url: `/builds/${id}/steps/${step}`,
                 payload: {
-                    code: 10,
+                    code: 0,
                     startTime: '2038-01-19T03:13:08.532Z',
                     endTime: '2038-01-19T03:15:08.532Z'
                 },
@@ -426,7 +426,7 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 10);
+                assert.deepProperty(reply.result, 'code', 0);
                 assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
                 assert.notDeepProperty(reply.result, 'startTime');
             });
@@ -440,7 +440,7 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 10);
+                assert.deepProperty(reply.result, 'code', 0);
                 assert.match(reply.result.endTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
                 assert.notDeepProperty(reply.result, 'startTime');
             });
