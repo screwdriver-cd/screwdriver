@@ -34,6 +34,9 @@ const logBaseUrl = config.get('logging.baseUrl');
 // Setup GitHub Webhooks
 const gitHubSecret = config.get('webhooks.github.secret');
 
+// Special urls for things like the UI
+const ecosystem = config.get('ecosystem');
+
 // Setup Model Factories
 const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({ datastore, scmPlugin });
@@ -41,7 +44,12 @@ const jobFactory = Models.JobFactory.getInstance({ datastore, scmPlugin });
 const userFactory = Models.UserFactory.getInstance({
     datastore, scmPlugin, password: loginConfig.password
 });
-const buildFactory = Models.BuildFactory.getInstance({ datastore, scmPlugin, executor });
+const buildFactory = Models.BuildFactory.getInstance({
+    datastore,
+    scmPlugin,
+    executor,
+    uiUrl: ecosystem.ui
+});
 
 require('../')({
     httpd: httpdConfig,
