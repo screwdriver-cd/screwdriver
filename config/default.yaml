@@ -106,3 +106,6 @@ webhooks:
 logging:
     # Base URL for accessing logs
     baseUrl: https://s3-us-west-2.amazonaws.com/logs.screwdriver.cd
+
+ecosystem:
+    ui: http://cd.screwdriver.cd
