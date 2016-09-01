@@ -1,6 +1,5 @@
 'use strict';
 const githubRoute = require('./github');
-const buildRoute = require('./build');
 
 /**
  * Webhook API Plugin
@@ -12,8 +11,7 @@ const buildRoute = require('./build');
  */
 exports.register = (server, options, next) => {
     server.route([
-        githubRoute(server, options),
-        buildRoute()
+        githubRoute(server, options)
     ]);
 
     next();
