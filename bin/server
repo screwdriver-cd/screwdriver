@@ -48,7 +48,7 @@ const buildFactory = Models.BuildFactory.getInstance({
     datastore,
     scmPlugin,
     executor,
-    uiUrl: ecosystem.ui
+    uiUri: ecosystem.ui
 });
 
 require('../')({
