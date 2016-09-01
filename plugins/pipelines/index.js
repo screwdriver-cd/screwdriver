@@ -3,6 +3,7 @@ const createRoute = require('./create');
 const getRoute = require('./get');
 const listRoute = require('./list');
 const updateRoute = require('./update');
+const listJobsRoute = require('./listJobs');
 
 /**
  * Pipeline API Plugin
@@ -17,7 +18,8 @@ exports.register = (server, options, next) => {
         createRoute(),
         getRoute(),
         listRoute(),
-        updateRoute()
+        updateRoute(),
+        listJobsRoute()
     ]);
 
     next();

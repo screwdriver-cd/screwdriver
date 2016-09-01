@@ -7,9 +7,18 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
+const testJobs = require('./data/jobs.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
+
+const decorateJobMock = (job) => {
+    const mock = hoek.clone(job);
+
+    mock.toJson = sinon.stub().returns(job);
+
+    return mock;
+};
 
 const decoratePipelineMock = (pipeline) => {
     const mock = hoek.clone(pipeline);
@@ -18,9 +27,19 @@ const decoratePipelineMock = (pipeline) => {
     mock.update = sinon.stub();
     mock.formatScmUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
+    mock.jobs = sinon.stub();
 
     return mock;
 };
+
+const getJobsMocks = (jobs) => {
+    if (Array.isArray(jobs)) {
+        return jobs.map(decorateJobMock);
+    }
+
+    return decorateJobMock(jobs);
+};
+
 const getPipelineMocks = (pipelines) => {
     if (Array.isArray(pipelines)) {
         return pipelines.map(decoratePipelineMock);
@@ -172,6 +191,43 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
             server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
+                assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/jobs', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        let pipelineMock;
+
+        beforeEach(() => {
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.jobs = getJobsMocks(testJobs);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for getting jobs', (done) => {
+            server.inject(`/pipelines/${id}/jobs`, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testJobs);
+                done();
+            });
+        });
+
+        it('returns 404 for updating a pipeline that does not exist', (done) => {
+            pipelineFactoryMock.get.resolves(null);
+
+            server.inject(`/pipelines/${id}/jobs`, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', (done) => {
+            pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            server.inject(`/pipelines/${id}/jobs`, (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
             });
