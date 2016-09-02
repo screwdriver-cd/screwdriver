@@ -18,7 +18,6 @@ const decorateBuildObject = (build) => {
     decorated.update = sinon.stub();
     decorated.start = sinon.stub();
     decorated.stop = sinon.stub();
-    decorated.stream = sinon.stub();
     decorated.toJson = sinon.stub().returns(build);
 
     return decorated;
@@ -190,33 +189,15 @@ describe('build plugin test', () => {
         let buildMock;
 
         beforeEach(() => {
+            testBuild.status = 'QUEUED';
+            delete testBuild.meta;
+            delete testBuild.endTime;
+            delete testBuild.startTime;
+
             buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.resolves(buildMock);
             buildMock.update.resolves(buildMock);
-        });
-
-        it('returns 200 for updating a build that exists', (done) => {
-            const expected = hoek.applyToDefaults(testBuild, { status: 'SUCCESS' });
-            const options = {
-                method: 'PUT',
-                url: `/builds/${id}`,
-                payload: {
-                    status: 'SUCCESS'
-                },
-                credentials: {
-                    scope: ['user']
-                }
-            };
-
-            buildMock.toJson.returns(expected);
-
-            server.inject(options, (reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, expected);
-                assert.calledWith(buildFactoryMock.get, id);
-                done();
-            });
         });
 
         it('returns 404 for updating a build that does not exist', (done) => {
@@ -239,7 +220,7 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 500 when the datastore returns an error', (done) => {
+        it('returns 500 when the datastore returns an error', () => {
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -253,9 +234,194 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.rejects(new Error('error'));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
-                done();
+            });
+        });
+
+        describe('user token', () => {
+            it('returns 200 for updating a build that exists', () => {
+                const expected = hoek.applyToDefaults(testBuild, { status: 'ABORTED' });
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    payload: {
+                        status: 'ABORTED'
+                    },
+                    credentials: {
+                        scope: ['user']
+                    }
+                };
+
+                buildMock.toJson.returns(expected);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, expected);
+                    assert.calledWith(buildFactoryMock.get, id);
+                });
+            });
+
+            it('does not update completed builds', () => {
+                buildMock.status = 'SUCCESS';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    payload: {
+                        status: 'ABORTED'
+                    },
+                    credentials: {
+                        scope: ['user']
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.calledWith(buildFactoryMock.get, id);
+                });
+            });
+
+            it('does not allow users other than abort', () => {
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    payload: {
+                        status: 'SUCCESS'
+                    },
+                    credentials: {
+                        scope: ['user']
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 400);
+                    assert.calledWith(buildFactoryMock.get, id);
+                });
+            });
+        });
+
+        describe('build token', () => {
+            it('saves status and meta updates', () => {
+                const meta = {
+                    foo: 'bar'
+                };
+                const status = 'SUCCESS';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        meta,
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.deepEqual(buildMock.meta, meta);
+                    assert.isDefined(buildMock.endTime);
+                });
+            });
+
+            it('defaults meta to {}', () => {
+                const status = 'SUCCESS';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.deepEqual(buildMock.meta, {});
+                    assert.isDefined(buildMock.endTime);
+                });
+            });
+
+            it('skips meta and endTime on RUNNING', () => {
+                const meta = {
+                    foo: 'bar'
+                };
+                const status = 'RUNNING';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        meta,
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.isUndefined(buildMock.meta);
+                    assert.isDefined(buildMock.startTime);
+                    assert.isUndefined(buildMock.endTime);
+                });
+            });
+
+            it('does not allow updating to QUEUED', () => {
+                const status = 'QUEUED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 400);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.notCalled(buildMock.update);
+                });
+            });
+
+            it('does not allow updating other builds', () => {
+                const status = 'SUCCESS';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: `${id}a`,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.notCalled(buildFactoryMock.get);
+                    assert.notCalled(buildMock.update);
+                });
             });
         });
     });
