@@ -53,7 +53,10 @@ describe('server case', () => {
                 error = e;
                 server = s;
                 // Pretend we actually registered a login plugin
-                server.plugins.login = { generateToken: sinon.stub().returns('foo') };
+                server.plugins.auth = {
+                    generateToken: sinon.stub().returns('foo'),
+                    generateProfile: sinon.stub().returns('bar')
+                };
                 done();
             });
         });

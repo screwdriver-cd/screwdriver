@@ -1,9 +1,15 @@
 # All values in this document are the ENVIRONMENT variable names that can override the defaults
 # from `default.yaml`
 ---
-login:
-    # A private key uses for signing jwt tokens. Can be anything
+auth:
+    # A private key uses for signing jwt tokens
+    # Easily generate one by running
+    # $ openssl genrsa -out jwt.pem 2048
     jwtPrivateKey: SECRET_JWT_PRIVATE_KEY
+    # The public key used for verifying the signature
+    # Generate one by running
+    # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
+    jwtPublicKey: SECRET_JWT_PUBLIC_KEY
     # The client id used for OAuth with github. Look up GitHub OAuth for details
     # https://developer.github.com/v3/oauth/
     oauthClientId: SECRET_OAUTH_CLIENT_ID

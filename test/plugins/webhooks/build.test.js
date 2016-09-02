@@ -51,12 +51,13 @@ describe('build webhook plugin test', () => {
 
         server.register([{
             // eslint-disable-next-line global-require
-            register: require('../../../plugins/login'),
+            register: require('../../../plugins/auth'),
             options: {
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',
                 jwtPrivateKey: '1234secretkeythatissupersecret5678',
+                jwtPublicKey: '12345',
                 https: true
             }
         },

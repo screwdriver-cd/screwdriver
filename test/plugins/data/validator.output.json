@@ -19,7 +19,8 @@
                 ],
                 "environment": {
                     "NODE_VERSION": "4"
-                }
+                },
+                "secrets": []
             },
             {
                 "image": "node:6",
@@ -39,7 +40,8 @@
                 ],
                 "environment": {
                     "NODE_VERSION": "6"
-                }
+                },
+                "secrets": []
             }
         ],
         "publish": [
@@ -51,7 +53,8 @@
                         "command": "npm publish"
                     }
                 ],
-                "environment": {}
+                "environment": {},
+                "secrets": []
             }
         ]
     },

@@ -8,6 +8,7 @@ const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 
 sinon.assert.expose(assert, { prefix: '' });
+require('sinon-as-promised');
 
 const decorateJobMock = (data) => {
     const decorated = hoek.clone(data);
@@ -55,17 +56,13 @@ describe('job plugin test', () => {
             port: 1234
         });
 
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, reply) => reply.continue({})
+        }));
+        server.auth.strategy('token', 'custom');
+        server.auth.strategy('session', 'custom');
+
         server.register([{
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/login'),
-            options: {
-                password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
-                oauthClientId: '1234id5678',
-                oauthClientSecret: '1234secretoauthything5678',
-                jwtPrivateKey: '1234secretkeythatissupersecret5678',
-                https: true
-            }
-        }, {
             register: plugin
         }], (err) => {
             done(err);

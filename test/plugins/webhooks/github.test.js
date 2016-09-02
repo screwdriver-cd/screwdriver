@@ -43,11 +43,6 @@ describe('github plugin test', () => {
             get: sinon.stub()
         };
 
-        mockery.registerMock('./credentials', {
-            generateProfile: (username, scope) => ({ username, scope }),
-            generateToken: (profile, token) => JSON.stringify(profile) + JSON.stringify(token)
-        });
-
         /* eslint-disable global-require */
         plugin = require('../../../plugins/webhooks');
         /* eslint-enable global-require */
@@ -66,12 +61,13 @@ describe('github plugin test', () => {
 
         server.register([{
             // eslint-disable-next-line global-require
-            register: require('../../../plugins/login'),
+            register: require('../../../plugins/auth'),
             options: {
                 password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
                 oauthClientId: '1234id5678',
                 oauthClientSecret: '1234secretoauthything5678',
                 jwtPrivateKey: 'supersecret',
+                jwtPublicKey: 'lesssecret',
                 https: true
             }
         },
@@ -83,7 +79,10 @@ describe('github plugin test', () => {
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
             server.app.buildFactory.tokenGen = (buildId) =>
-                server.plugins.login.generateToken(buildId, ['build']);
+                JSON.stringify({
+                    username: buildId,
+                    scope: ['build']
+                });
             done(err);
         });
     });
@@ -101,7 +100,7 @@ describe('github plugin test', () => {
     it('registers the plugin', () => {
         assert.isOk(server.registrations.webhooks);
         assert.equal(server.app.buildFactory.tokenGen('12345'),
-            '{"username":"12345","scope":["build"]}"supersecret"');
+            '{"username":"12345","scope":["build"]}');
     });
 
     describe('POST /webhooks/github', () => {
