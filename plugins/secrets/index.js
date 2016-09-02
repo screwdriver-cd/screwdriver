@@ -1,12 +1,8 @@
 'use strict';
 const createRoute = require('./create');
-const getRoute = require('./get');
-const listRoute = require('./list');
-const updateRoute = require('./update');
-const listJobsRoute = require('./listJobs');
 
 /**
- * Pipeline API Plugin
+ * Secrets API Plugin
  * @method register
  * @param  {Hapi}     server            Hapi Server
  * @param  {Object}   options           Configuration
@@ -14,16 +10,12 @@ const listJobsRoute = require('./listJobs');
  */
 exports.register = (server, options, next) => {
     server.route([
-        createRoute(),
-        getRoute(),
-        listRoute(),
-        updateRoute(),
-        listJobsRoute()
+        createRoute()
     ]);
 
     next();
 };
 
 exports.register.attributes = {
-    name: 'pipelines'
+    name: 'secrets'
 };
