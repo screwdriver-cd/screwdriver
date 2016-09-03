@@ -90,8 +90,8 @@ executor:
         host: kubernetes
         # The jwt token used for authenticating kubernetes requests
         token: NOT-A-REAL-JWT-TOKEN
-        # Job Tools container tag to use
-        toolsVersion: latest
+        # Launcher container tag to use
+        launchVersion: latest
         # Log Service container tag to use
         logVersion: latest
 

@@ -38,8 +38,8 @@ executor:
         host: K8S_HOST
         # The jwt token used for authenticating kubernetes requests
         token: K8S_TOKEN
-        # Job Tools container tag to use
-        toolsVersion: TOOLS_VERSION
+        # Launcher container tag to use
+        launchVersion: LAUNCH_VERSION
         # Log Service container tag to use
         logVersion: LOG_VERSION
 
