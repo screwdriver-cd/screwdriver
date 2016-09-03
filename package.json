@@ -61,7 +61,7 @@
     "screwdriver-data-schema": "^10.1.1",
     "screwdriver-datastore-dynamodb": "^2.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
-    "screwdriver-executor-k8s": "^6.0.0",
+    "screwdriver-executor-k8s": "^7.0.0",
     "screwdriver-executor-l3l": "^1.0.0",
     "screwdriver-models": "^10.1.0",
     "screwdriver-scm-github": "^1.0.1",
