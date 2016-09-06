@@ -95,17 +95,13 @@ describe('pipeline plugin test', () => {
             port: 1234
         });
 
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, reply) => reply.continue({})
+        }));
+        server.auth.strategy('token', 'custom');
+        server.auth.strategy('session', 'custom');
+
         server.register([{
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/login'),
-            options: {
-                password,
-                oauthClientId: '1234id5678',
-                oauthClientSecret: '1234secretoauthything5678',
-                jwtPrivateKey: '1234secretkeythatissupersecret5678',
-                https: true
-            }
-        }, {
             register: plugin,
             options: {
                 password

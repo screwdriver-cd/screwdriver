@@ -1,7 +1,19 @@
 ---
-login:
-    # A private key uses for signing jwt tokens. Can be anything
-    jwtPrivateKey: THIS-IS-AN-INSECURE-KEY
+auth:
+    # A private key used for signing jwt tokens
+    # Easily generate one by running
+    # $ openssl genrsa -out jwt.pem 2048
+    jwtPrivateKey: |
+        -----BEGIN RSA PRIVATE KEY-----
+        YOUR-KEY-HERE
+        -----END RSA PRIVATE KEY-----
+    # The public key used for verifying the signature
+    # Generate one by running
+    # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
+    jwtPublicKey: |
+        -----BEGIN PUBLIC KEY-----
+        YOUR-KEY-HERE
+        -----END PUBLIC KEY-----
     # The client id used for OAuth with github. Look up GitHub OAuth for details
     # https://developer.github.com/v3/oauth/
     oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE

@@ -7,9 +7,9 @@
  */
 module.exports = () => ({
     method: 'POST',
-    path: '/logout',
+    path: '/auth/logout',
     config: {
-        description: 'Logout route',
+        description: 'logout of screwdriver',
         notes: 'Clears the cookie used for authentication',
         tags: ['api', 'logout'],
         auth: {

@@ -58,7 +58,7 @@
     "ndjson": "^1.4.3",
     "request": "^2.74.0",
     "screwdriver-config-parser": "^2.0.0",
-    "screwdriver-data-schema": "^10.1.1",
+    "screwdriver-data-schema": "^10.4.0",
     "screwdriver-datastore-dynamodb": "^2.0.0",
     "screwdriver-datastore-imdb": "^1.0.0",
     "screwdriver-executor-k8s": "^7.0.0",

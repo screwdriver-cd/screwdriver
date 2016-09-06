@@ -32,8 +32,5 @@ exports.register = (server, options, next) => {
 };
 
 exports.register.attributes = {
-    name: 'builds',
-    dependencies: [
-        'login'
-    ]
+    name: 'builds'
 };

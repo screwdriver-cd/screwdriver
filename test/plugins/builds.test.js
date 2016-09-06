@@ -69,11 +69,6 @@ describe('build plugin test', () => {
             list: sinon.stub()
         };
 
-        mockery.registerMock('./credentials', {
-            generateProfile: (username, scope) => ({ username, scope }),
-            generateToken: (profile, token) => JSON.stringify(profile) + JSON.stringify(token)
-        });
-
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
         /* eslint-enable global-require */
@@ -89,24 +84,18 @@ describe('build plugin test', () => {
             host: 'localhost'
         });
 
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, reply) => reply.continue({})
+        }));
+        server.auth.strategy('token', 'custom');
+        server.auth.strategy('session', 'custom');
+
         server.register([{
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/login'),
-            options: {
-                password: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
-                oauthClientId: '1234id5678',
-                oauthClientSecret: '1234secretoauthything5678',
-                jwtPrivateKey: '1234secretkeythatissupersecret5678',
-                https: true
-            }
-        }, {
             register: plugin,
             options: {
                 logBaseUrl
             }
-        }], (err) => {
-            done(err);
-        });
+        }], done);
     });
 
     afterEach(() => {

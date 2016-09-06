@@ -19,8 +19,8 @@ const scmConfig = config.get('scm');
 const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
 const scmPlugin = new ScmPlugin({});
 
-// Setup Login
-const loginConfig = config.get('login');
+// Setup Authentication
+const authConfig = config.get('auth');
 
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
@@ -42,7 +42,7 @@ const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({ datastore, scmPlugin });
 const jobFactory = Models.JobFactory.getInstance({ datastore, scmPlugin });
 const userFactory = Models.UserFactory.getInstance({
-    datastore, scmPlugin, password: loginConfig.password
+    datastore, scmPlugin, password: authConfig.password
 });
 const buildFactory = Models.BuildFactory.getInstance({
     datastore,
@@ -54,7 +54,7 @@ const buildFactory = Models.BuildFactory.getInstance({
 require('../')({
     httpd: httpdConfig,
     cors: corsConfig,
-    login: loginConfig,
+    auth: authConfig,
     pipelineFactory,
     jobFactory,
     userFactory,

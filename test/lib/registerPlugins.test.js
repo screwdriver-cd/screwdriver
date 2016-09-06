@@ -15,12 +15,11 @@ describe('Register Unit Test Case', () => {
         '../plugins/validator'
     ];
     const resourcePlugins = [
-        '../plugins/login',
+        '../plugins/auth',
         '../plugins/builds',
         '../plugins/jobs',
         '../plugins/pipelines',
         '../plugins/webhooks',
-        '../plugins/crumb',
         '../plugins/stats'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
@@ -106,14 +105,14 @@ describe('Register Unit Test Case', () => {
         serverMock.register.callsArgAsync(2);
 
         main(serverMock, {
-            login: {
+            auth: {
                 foo: 'bar'
             }
         }, () => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
             Assert.calledWith(serverMock.register, {
-                register: mocks['../plugins/login'],
+                register: mocks['../plugins/auth'],
                 options: {
                     foo: 'bar'
                 }
