@@ -110,7 +110,7 @@ describe('github plugin test', () => {
         const buildId = 'buildHash';
         const buildNumber = '12345';
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
-        const username = 'baxterthehacker';
+        const username = 'BaxterTheHacker';
         let name = 'PR-1';
         let pipelineMock;
         let buildMock;
