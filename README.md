@@ -62,12 +62,11 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 3 (three) resources:
+This API comes preloaded with 4 (four) resources:
  - [builds](plugins/builds/README.md)
  - [jobs](plugins/jobs/README.md)
  - [pipelines](plugins/pipelines/README.md)
-
-An (authentication/authorization)(plugins/login/README.md) plugin.
+ - [secrets](plugins/secrets/README.md)
 
 Two (2) options for datastores:
  - In-Memory Database (`imdb`)

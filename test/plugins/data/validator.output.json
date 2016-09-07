@@ -17,6 +17,7 @@
                         "command": "npm run build"
                     }
                 ],
+                "secrets": [],
                 "environment": {
                     "NODE_VERSION": "4"
                 },
@@ -38,6 +39,7 @@
                         "command": "npm run build"
                     }
                 ],
+                "secrets": [],
                 "environment": {
                     "NODE_VERSION": "6"
                 },

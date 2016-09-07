@@ -40,7 +40,7 @@ const ecosystem = config.get('ecosystem');
 // Setup Model Factories
 const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({ datastore, scmPlugin });
-const jobFactory = Models.JobFactory.getInstance({ datastore, scmPlugin });
+const jobFactory = Models.JobFactory.getInstance({ datastore });
 const userFactory = Models.UserFactory.getInstance({
     datastore, scmPlugin, password: authConfig.password
 });
@@ -49,6 +49,9 @@ const buildFactory = Models.BuildFactory.getInstance({
     scmPlugin,
     executor,
     uiUri: ecosystem.ui
+});
+const secretFactory = Models.SecretFactory.getInstance({
+    datastore, password: authConfig.password
 });
 
 require('../')({
@@ -59,6 +62,7 @@ require('../')({
     jobFactory,
     userFactory,
     buildFactory,
+    secretFactory,
     builds: {
         logBaseUrl
     },
