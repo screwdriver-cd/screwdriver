@@ -56,7 +56,8 @@ describe('secret plugin test', () => {
 
     beforeEach((done) => {
         secretFactoryMock = {
-            create: sinon.stub()
+            create: sinon.stub(),
+            get: sinon.stub()
         };
         pipelineFactoryMock = {
             get: sinon.stub()
@@ -160,8 +161,15 @@ describe('secret plugin test', () => {
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${secretId}`
                 };
+                const expected = {
+                    id: 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    name: 'NPM_TOKEN',
+                    allowInPR: false
+                };
+
                 assert.equal(reply.statusCode, 201);
-                assert.deepEqual(reply.result, testSecret);
+                assert.deepEqual(reply.result, expected);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(secretFactoryMock.create, options.payload);
                 done();
@@ -203,6 +211,135 @@ describe('secret plugin test', () => {
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
+            });
+        });
+    });
+
+    describe('GET /secrets/{id}', () => {
+        let options;
+        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const username = 'minz';
+        let secretMock;
+        let userMock;
+        let pipelineMock;
+
+        beforeEach(() => {
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipelineMock = getPipelineMock(testPipeline);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
+
+            secretMock = getSecretMock(testSecret);
+            secretFactoryMock.get.resolves(secretMock);
+        });
+
+        describe('User scope', () => {
+            beforeEach(() => {
+                options = {
+                    method: 'GET',
+                    url: `/secrets/${secretId}`,
+                    credentials: {
+                        username,
+                        scope: ['user']
+                    }
+                };
+            });
+
+            it('returns 404 when the pipeline does not exist', (done) => {
+                pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 404);
+                    done();
+                });
+            });
+
+            it('returns 404 when the secret does not exist', (done) => {
+                secretFactoryMock.get.resolves(null);
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 404);
+                    done();
+                });
+            });
+
+            it('returns 404 when the user does not exist', (done) => {
+                userFactoryMock.get.withArgs({ username }).resolves(null);
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 404);
+                    done();
+                });
+            });
+
+            it('returns 403 when the user does not have push permissions', (done) => {
+                userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 403);
+                    done();
+                });
+            });
+
+            it('does not show secret value if scope is user', (done) => {
+                const expected = {
+                    id: 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    name: 'NPM_TOKEN',
+                    allowInPR: false
+                };
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, expected);
+                    assert.calledWith(secretFactoryMock.get, secretId);
+                    done();
+                });
+            });
+        });
+
+        describe('Build scope', () => {
+            beforeEach(() => {
+                options = {
+                    method: 'GET',
+                    url: `/secrets/${secretId}`,
+                    credentials: {
+                        username,
+                        pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                        scope: ['build']
+                    }
+                };
+            });
+
+            it('shows secret value if scope is build', (done) => {
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, testSecret);
+                    assert.calledWith(secretFactoryMock.get, secretId);
+                    done();
+                });
+            });
+
+            it('returns 403 if build is not allowed to access secret', (done) => {
+                options.credentials.pipelineId = 'abcdfb192747c9a0124e9e5b4e6e8e841cf8c71c';
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 403);
+                    done();
+                });
+            });
+
+            it('returns 403 if not allowed in PR and build is running a PR job', (done) => {
+                options.credentials.isPR = true;
+
+                server.inject(options, (reply) => {
+                    assert.equal(reply.statusCode, 403);
+                    done();
+                });
             });
         });
     });

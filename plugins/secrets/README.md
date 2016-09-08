@@ -26,6 +26,10 @@ server.register({
 ```
 
 ### Routes
+#### Get a single secret
+
+`GET /secrets/{id}`
+
 #### Create a secret
 
 `POST /secrets`
