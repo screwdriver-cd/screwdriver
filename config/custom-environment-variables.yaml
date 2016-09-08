@@ -18,6 +18,9 @@ auth:
     # A password used for encrypting session, and OAuth data.
     # **Needs to be minimum 32 characters**
     password: SECRET_PASSWORD
+    # A flag to set if the server is running over https.
+    # Used as a flag for the OAuth flow
+    https: IS_HTTPS
 
 httpd:
     # Port to listen on
@@ -54,3 +57,7 @@ webhooks:
     github:
         # Secret to add to GitHub webhooks so that we can validate them
         secret: WEBHOOK_GITHUB_SECRET
+
+ecosystem:
+    # URL for the User Interface
+    ui: ECOSYSTEM_UI

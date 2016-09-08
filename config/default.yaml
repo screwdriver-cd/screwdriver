@@ -120,4 +120,5 @@ logging:
     baseUrl: https://s3-us-west-2.amazonaws.com/logs.screwdriver.cd
 
 ecosystem:
+    # URL for the User Interface
     ui: http://cd.screwdriver.cd
