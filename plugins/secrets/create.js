@@ -52,8 +52,11 @@ module.exports = () => ({
                             protocol: request.server.info.protocol,
                             pathname: `${request.path}/${secret.id}`
                         });
+                        const output = secret.toJson();
 
-                        return reply(secret.toJson()).header('Location', location).code(201);
+                        delete output.value;
+
+                        return reply(output).header('Location', location).code(201);
                     });
             })
             // something broke, respond with error
