@@ -6,8 +6,7 @@ if [ -z "$GIT_TOKEN" ] || [ -z "$NPM_TOKEN" ]; then
 fi
 
 echo Setting up secrets
-REPO=`git remote get-url origin | sed 's/git@github.com://'`
-git remote set-url --push origin https://${GIT_TOKEN}@github.com/$REPO
+git remote set-url --push origin https://${GIT_TOKEN}@github.com/screwdriver-cd/screwdriver
 npm config set access public > /dev/null 2>&1
 npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN} > /dev/null 2>&1
 
