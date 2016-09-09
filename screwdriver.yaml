@@ -8,3 +8,4 @@ jobs:
         secrets:
             - NPM_TOKEN
             - GIT_TOKEN
+            - DOCKER_TRIGGER
