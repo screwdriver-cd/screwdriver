@@ -100,7 +100,8 @@ exports.register = (server, options, next) => {
             clientId: pluginOptions.oauthClientId,
             clientSecret: pluginOptions.oauthClientSecret,
             scope: ['admin:repo_hook', 'read:org', 'repo:status'],
-            isSecure: pluginOptions.https
+            isSecure: pluginOptions.https,
+            forceHttps: pluginOptions.https
         });
 
         server.auth.strategy('token', 'jwt', {
