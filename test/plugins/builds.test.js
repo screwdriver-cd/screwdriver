@@ -8,9 +8,18 @@ const hoek = require('hoek');
 const nock = require('nock');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
+const testSecrets = require('./data/secrets.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
+
+const decorateSecretObject = (secret) => {
+    const decorated = hoek.clone(secret);
+
+    decorated.toJson = sinon.stub().returns(hoek.clone(secret));
+
+    return decorated;
+};
 
 const decorateBuildObject = (build) => {
     const decorated = hoek.clone(build);
@@ -19,6 +28,7 @@ const decorateBuildObject = (build) => {
     decorated.start = sinon.stub();
     decorated.stop = sinon.stub();
     decorated.toJson = sinon.stub().returns(build);
+    decorated.secrets = Promise.resolve(testSecrets.map(decorateSecretObject));
 
     return decorated;
 };
@@ -36,6 +46,8 @@ describe('build plugin test', () => {
     let userFactoryMock;
     let jobFactoryMock;
     let pipelineFactoryMock;
+    let secretMock;
+    let secretAccessMock;
     let plugin;
     let server;
     const logBaseUrl = 'http://example.com/screwdriver-logs';
@@ -68,6 +80,7 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub()
         };
+        secretAccessMock = sinon.stub().resolves(false);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
@@ -90,12 +103,25 @@ describe('build plugin test', () => {
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                logBaseUrl
+        secretMock = {
+            register: (s, o, next) => {
+                s.expose('canAccess', secretAccessMock);
+                next();
             }
-        }], done);
+        };
+        secretMock.register.attributes = {
+            name: 'secrets'
+        };
+
+        server.register([
+            secretMock,
+            {
+                register: plugin,
+                options: {
+                    logBaseUrl
+                }
+            }
+        ], done);
     });
 
     afterEach(() => {
@@ -504,6 +530,75 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/secrets', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        let options;
+        let username;
+
+        beforeEach(() => {
+            username = 'batman';
+            options = {
+                method: 'GET',
+                url: `/builds/${id}/secrets`,
+                credentials: {
+                    scope: ['user'],
+                    username
+                }
+            };
+        });
+
+        it('returns 200 with hidden secrets', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.isArray(reply.result);
+                assert.equal(reply.result.length, 2);
+                assert.equal(reply.result[0].name, 'NPM_TOKEN');
+                assert.notDeepProperty(reply.result[0], 'value');
+            });
+        });
+
+        it('returns 200 with shown secrets', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            secretAccessMock.resolves(true);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.isArray(reply.result);
+                assert.equal(reply.result.length, 2);
+                assert.equal(reply.result[0].name, 'NPM_TOKEN');
+                assert.deepProperty(reply.result[0], 'value');
+            });
+        });
+
+        it('returns 200 with no secrets', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildMock.secrets = Promise.resolve([]);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.isArray(reply.result);
+                assert.equal(reply.result.length, 0);
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });

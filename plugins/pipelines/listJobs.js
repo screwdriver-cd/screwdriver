@@ -8,7 +8,7 @@ module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/jobs',
     config: {
-        description: 'Get all jobs jobs for a given pipelines',
+        description: 'Get all jobs for a given pipeline',
         notes: 'Returns all jobs for a given pipeline',
         tags: ['api', 'pipelines', 'jobs'],
         handler: (request, reply) => {
