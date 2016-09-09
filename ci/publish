@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+if [ -z "$GIT_TOKEN" ] || [ -z "$NPM_TOKEN" ]; then
+  echo Skipping publish in Pull Request
+  exit 0
+fi
+
+echo Setting up secrets
+REPO=`git remote get-url origin | sed 's/git@github.com://'`
+git remote set-url --push origin https://${GIT_TOKEN}@github.com/$REPO
+npm config set access public > /dev/null 2>&1
+npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN} > /dev/null 2>&1
+
+echo Bump the version
+npm install -g npm-auto-version
+npm-auto-version
+
+echo Publish the package
+npm publish
+
+echo Push the new tag to GitHub
+git push origin --tags -q

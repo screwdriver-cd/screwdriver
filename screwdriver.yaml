@@ -1,15 +1,10 @@
-workflow:
-    - publish
-
-shared:
-    image: node:6
-
 jobs:
     main:
+        image: node:6
         steps:
             - install: npm install
             - test: npm test
-
-    publish:
-        steps:
-            - publish: npm publish
+            - publish: ./ci/publish
+        secrets:
+            - NPM_TOKEN
+            - GIT_TOKEN
