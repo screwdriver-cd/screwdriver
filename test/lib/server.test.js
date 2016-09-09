@@ -5,6 +5,9 @@ const sinon = require('sinon');
 
 describe('server case', () => {
     let hapiEngine;
+    const ecosystem = {
+        ui: 'http://example.com'
+    };
 
     before(() => {
         mockery.enable({
@@ -45,6 +48,7 @@ describe('server case', () => {
                 httpd: {
                     port: 12347
                 },
+                ecosystem,
                 pipelineFactory: 'pipeline',
                 jobFactory: 'job',
                 userFactory: 'user',
@@ -98,7 +102,7 @@ describe('server case', () => {
 
         it('callsback errors with register plugins', (done) => {
             registrationManMock.yieldsAsync('registrationMan fail');
-            hapiEngine({}, (error) => {
+            hapiEngine({ ecosystem }, (error) => {
                 Assert.strictEqual('registrationMan fail', error);
                 done();
             });
@@ -126,7 +130,7 @@ describe('server case', () => {
         });
 
         it('doesnt affect non-errors', (done) => {
-            hapiEngine({}, (error, server) => {
+            hapiEngine({ ecosystem }, (error, server) => {
                 Assert.notOk(error);
                 server.inject({
                     method: 'GET',
@@ -139,7 +143,7 @@ describe('server case', () => {
         });
 
         it('doesnt affect non-errors', (done) => {
-            hapiEngine({}, (error, server) => {
+            hapiEngine({ ecosystem }, (error, server) => {
                 Assert.notOk(error);
                 server.inject({
                     method: 'GET',
