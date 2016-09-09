@@ -4,6 +4,7 @@ const getRoute = require('./get');
 const listRoute = require('./list');
 const updateRoute = require('./update');
 const listJobsRoute = require('./listJobs');
+const listSecretsRoute = require('./listSecrets');
 
 /**
  * Pipeline API Plugin
@@ -18,7 +19,8 @@ exports.register = (server, options, next) => {
         getRoute(),
         listRoute(),
         updateRoute(),
-        listJobsRoute()
+        listJobsRoute(),
+        listSecretsRoute()
     ]);
 
     next();

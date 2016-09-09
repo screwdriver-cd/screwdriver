@@ -8,6 +8,7 @@ const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testJobs = require('./data/jobs.json');
+const testSecrets = require('./data/secrets.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
@@ -32,12 +33,28 @@ const decoratePipelineMock = (pipeline) => {
     return mock;
 };
 
+const decorateSecretMock = (secret) => {
+    const mock = hoek.clone(secret);
+
+    mock.toJson = sinon.stub().returns(secret);
+
+    return mock;
+};
+
 const getJobsMocks = (jobs) => {
     if (Array.isArray(jobs)) {
         return jobs.map(decorateJobMock);
     }
 
     return decorateJobMock(jobs);
+};
+
+const getSecretsMocks = (secrets) => {
+    if (Array.isArray(secrets)) {
+        return secrets.map(decorateSecretMock);
+    }
+
+    return decorateJobMock(secrets);
 };
 
 const getPipelineMocks = (pipelines) => {
@@ -103,6 +120,12 @@ describe('pipeline plugin test', () => {
 
         server.register([{
             register: plugin,
+            options: {
+                password
+            }
+        }, {
+            // eslint-disable-next-line global-require
+            register: require('../../plugins/secrets'),
             options: {
                 password
             }
@@ -225,6 +248,82 @@ describe('pipeline plugin test', () => {
 
             server.inject(`/pipelines/${id}/jobs`, (reply) => {
                 assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/secrets', () => {
+        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const username = 'myself';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        let options;
+        let pipelineMock;
+        let userMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${pipelineId}/secrets`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.secrets = getSecretsMocks(testSecrets);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+        });
+
+        it('returns 404 for updating a pipeline that does not exist', (done) => {
+            pipelineFactoryMock.get.resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+
+        it('returns 403 when the user does not have push permissions', (done) => {
+            userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 403);
+                done();
+            });
+        });
+
+        it('returns empty array if secrets is empty', (done) => {
+            pipelineMock.secrets = getSecretsMocks([]);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+                done();
+            });
+        });
+
+        it('returns 200 for getting secrets', (done) => {
+            server.inject(options, (reply) => {
+                const expected = [{
+                    id: 'a123fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    name: 'NPM_TOKEN',
+                    allowInPR: false
+                }, {
+                    id: 'b456fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    name: 'GIT_TOKEN',
+                    allowInPR: true
+                }];
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expected);
                 done();
             });
         });
