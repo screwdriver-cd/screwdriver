@@ -74,14 +74,6 @@ httpd:
         # cert: |
         #     YOUR CERT HERE
 
-# Hapi Cross-origin resource sharing configuration
-# See http://hapijs.com/api for available options
-cors:
-    origin:
-        - http://cd.screwdriver.cd
-    additionalExposedHeaders:
-        - x-more-data
-
 datastore:
     plugin: imdb
     imdb:
@@ -121,4 +113,4 @@ logging:
 
 ecosystem:
     # URL for the User Interface
-    ui: http://cd.screwdriver.cd
+    ui: https://cd.screwdriver.cd

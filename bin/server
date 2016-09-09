@@ -25,9 +25,6 @@ const authConfig = config.get('auth');
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
 
-// Setup CORS
-const corsConfig = config.get('cors');
-
 // Setup Logging
 const logBaseUrl = config.get('logging.baseUrl');
 
@@ -56,8 +53,8 @@ const secretFactory = Models.SecretFactory.getInstance({
 
 require('../')({
     httpd: httpdConfig,
-    cors: corsConfig,
     auth: authConfig,
+    ecosystem,
     pipelineFactory,
     jobFactory,
     userFactory,
