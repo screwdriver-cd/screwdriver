@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-if [ -z "$GIT_TOKEN" ] || [ -z "$NPM_TOKEN" ]; then
+if [ -z "$GIT_TOKEN" ] || [ -z "$NPM_TOKEN" ] || [ -z "$DOCKER_TRIGGER" ]; then
   echo Skipping publish in Pull Request
   exit 0
 fi
@@ -13,10 +13,13 @@ npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN} > /dev/null 2>&1
 
 echo Bump the version
 npm install -g npm-auto-version
-npm-auto-version
+/usr/local/bin/npm-auto-version
 
 echo Publish the package
 npm publish
 
 echo Push the new tag to GitHub
 git push origin --tags -q
+
+echo Trigger Docker build
+curl -X POST https://registry.hub.docker.com/u/screwdrivercd/screwdriver/trigger/${DOCKER_TRIGGER}/
