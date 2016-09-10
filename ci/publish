@@ -11,8 +11,7 @@ npm config set access public > /dev/null 2>&1
 npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN} > /dev/null 2>&1
 
 echo Bump the version
-npm install -g npm-auto-version
-/usr/local/bin/npm-auto-version
+./node_modules/.bin/npm-auto-version
 
 echo Publish the package
 npm publish
@@ -20,5 +19,10 @@ npm publish
 echo Push the new tag to GitHub
 git push origin --tags -q
 
-echo Trigger Docker build
-curl -X POST https://registry.hub.docker.com/u/screwdrivercd/screwdriver/trigger/${DOCKER_TRIGGER}/
+echo Trigger Docker builds
+GIT_TAG=`git describe --abbrev=0 --tags`
+DOCKER_URL=https://registry.hub.docker.com/u/screwdrivercd/screwdriver/trigger/${DOCKER_TRIGGER}/
+# Latest
+curl -H "Content-Type: application/json" --data '{"docker_tag": "master"}' -X POST $DOCKER_URL
+# Recent Tag
+curl -H "Content-Type: application/json" --data '{"source_type": "Tag", "source_name": "${GIT_TAG}"}' -X POST $DOCKER_URL

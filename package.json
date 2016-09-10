@@ -82,6 +82,7 @@
     "jenkins-mocha": "^3.0.0",
     "mockery": "^1.7.0",
     "nock": "^8.0.0",
+    "npm-auto-version": "^1.0.0",
     "request": "^2.73.0",
     "sinon": "~1.17.4",
     "sinon-as-promised": "^4.0.2",
