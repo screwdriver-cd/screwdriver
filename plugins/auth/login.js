@@ -11,7 +11,7 @@ const boom = require('boom');
  */
 module.exports = (config) => ({
     method: ['GET', 'POST'],
-    path: '/auth/login',
+    path: '/auth/login/{web?}',
     config: {
         description: 'login using github',
         notes: 'Authenticate user with github oauth provider',
@@ -57,7 +57,13 @@ module.exports = (config) => ({
 
                     return model.update();
                 })
-                .then(() => reply().redirect('/v3/auth/token'))
+                .then(() => {
+                    if (request.params.web === 'web') {
+                        return reply('<script>window.close();</script>');
+                    }
+
+                    return reply().redirect('/v3/auth/token');
+                })
                 .catch(err => reply(boom.wrap(err)));
         }
     }
