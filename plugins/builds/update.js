@@ -20,6 +20,7 @@ module.exports = () => ({
             const factory = request.server.app.buildFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
+            const jobFactory = request.server.app.jobFactory;
             const username = request.auth.credentials.username;
             const scope = request.auth.credentials.scope;
             const isBuild = scope.includes('build');
@@ -66,10 +67,38 @@ module.exports = () => ({
                     // Everyone is able to update the status
                     build.status = desiredStatus;
 
-                    // @TODO trigger next build in workflow
+                    // Guard against triggering non-successful builds
+                    if (desiredStatus !== 'SUCCESS') {
+                        return build.update();
+                    }
 
-                    // Update the model in datastore
-                    return build.update();
+                    // Only trigger next build on success
+                    return build.job.then((job) => job.pipeline.then((pipeline) => {
+                        const workflow = pipeline.workflow;
+
+                        if (!workflow) {  // No workflow to follow
+                            return null;
+                        }
+
+                        const workflowIndex = workflow.indexOf(job.name);
+
+                        // Current build is the last job in the workflow
+                        if (workflowIndex === workflow.length - 1) {
+                            return null;
+                        }
+
+                        const nextJobName = workflow[workflowIndex + 1];
+
+                        return jobFactory.get({
+                            name: nextJobName,
+                            pipelineId: pipeline.id
+                        }).then((nextJobToTrigger) => factory.create({
+                            jobId: nextJobToTrigger.id,
+                            sha: build.sha,
+                            username
+                        }));
+                    }))
+                    .then(() => build.update());
                 })
                 .then(build => reply(build.toJson()).code(200))
                 .catch(err => reply(boom.wrap(err)));

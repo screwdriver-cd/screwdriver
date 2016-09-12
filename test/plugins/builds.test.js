@@ -316,6 +316,32 @@ describe('build plugin test', () => {
         });
 
         describe('build token', () => {
+            const jobId = '62089f642bbfd1886623964b4cff12db59869e5d';
+            const pipelineId = '2d991790bab1ac8576097ca87f170df73410b55c';
+            const publishJobId = '1a58304c063c184cf37b4303252b8e44d69f44d5';
+            const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+
+            let jobMock;
+            let pipelineMock;
+
+            beforeEach(() => {
+                jobMock = {
+                    id: jobId,
+                    name: 'main',
+                    pipelineId
+                };
+                pipelineMock = {
+                    id: pipelineId,
+                    scmUrl,
+                    sync: sinon.stub().resolves()
+                };
+
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+
+                buildFactoryMock.create.resolves(buildMock);
+            });
+
             it('saves status and meta updates', () => {
                 const meta = {
                     foo: 'bar'
@@ -436,6 +462,93 @@ describe('build plugin test', () => {
                     assert.equal(reply.statusCode, 403);
                     assert.notCalled(buildFactoryMock.get);
                     assert.notCalled(buildMock.update);
+                });
+            });
+
+            describe('workflow', () => {
+                it('triggers the next job in the pipeline workflow', () => {
+                    const meta = {
+                        darren: 'thebest'
+                    };
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username,
+                            scope: ['build']
+                        },
+                        payload: {
+                            meta,
+                            status
+                        }
+                    };
+                    const publishJobMock = {
+                        id: publishJobId,
+                        pipelineId
+                    };
+
+                    pipelineMock.workflow = ['publish', 'nerf_fight'];
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
+                        .resolves(publishJobMock);
+                    buildFactoryMock.create.withArgs({
+                        jobId: publishJobId,
+                        username
+                    }).resolves('doesNotMatter');
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.deepEqual(buildMock.meta, meta);
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId: publishJobId,
+                            sha: testBuild.sha,
+                            username
+                        });
+                    });
+                });
+
+                it('skips triggering if the workflow is undefined', () => {
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username,
+                            scope: ['build']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.notCalled(buildFactoryMock.create);
+                    });
+                });
+
+                it('skips triggering if the job is last in the workflow', () => {
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    pipelineMock.workflow = ['main'];
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.notCalled(buildFactoryMock.create);
+                    });
                 });
             });
         });
