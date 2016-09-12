@@ -5,6 +5,7 @@ const expect = chai.expect;
 const hapi = require('hapi');
 const sinon = require('sinon');
 const fs = require('fs');
+const hoek = require('hoek');
 
 chai.use(require('chai-jwt'));
 chai.use(require('chai-as-promised'));
@@ -259,6 +260,28 @@ describe('auth plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 302, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
+                    assert.calledWith(userFactoryMock.get, { username });
+                    assert.calledWith(userFactoryMock.create, {
+                        username,
+                        token,
+                        password
+                    });
+                });
+            });
+
+            it('creates a user tries to close a window', () => {
+                userFactoryMock.get.resolves(null);
+                const webOptions = hoek.clone(options);
+
+                webOptions.url = '/auth/login/web';
+
+                return server.inject(webOptions).then((reply) => {
+                    assert.equal(reply.statusCode, 200, 'Login/web route should be available');
+                    assert.equal(
+                        reply.result,
+                        '<script>window.close();</script>',
+                        'add script to close window'
+                    );
                     assert.calledWith(userFactoryMock.get, { username });
                     assert.calledWith(userFactoryMock.create, {
                         username,
