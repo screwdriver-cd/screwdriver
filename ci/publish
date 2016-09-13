@@ -25,4 +25,4 @@ DOCKER_URL=https://registry.hub.docker.com/u/screwdrivercd/screwdriver/trigger/$
 # Latest
 curl -H "Content-Type: application/json" --data '{"docker_tag": "master"}' -X POST $DOCKER_URL
 # Recent Tag
-curl -H "Content-Type: application/json" --data '{"source_type": "Tag", "source_name": "${GIT_TAG}"}' -X POST $DOCKER_URL
+curl -H "Content-Type: application/json" --data "{\"source_type\": \"Tag\", \"source_name\": \"${GIT_TAG}\"}" -X POST $DOCKER_URL
