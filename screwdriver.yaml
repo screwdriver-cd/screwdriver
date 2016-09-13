@@ -4,8 +4,14 @@ jobs:
         steps:
             - install: npm install
             - test: npm test
+            - coverage: ./ci/coverage
             - publish: ./ci/publish
         secrets:
+            # Publishing to NPM
             - NPM_TOKEN
+            # Pushing tags to Git
             - GIT_TOKEN
+            # Trigger a Docker Hub build
             - DOCKER_TRIGGER
+            # Uploading coverage information to coveralls
+            - COVERALLS_REPO_TOKEN
