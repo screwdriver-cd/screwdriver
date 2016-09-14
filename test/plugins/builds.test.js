@@ -149,7 +149,8 @@ describe('build plugin test', () => {
                     paginate: {
                         page: 1,
                         count: 2
-                    }
+                    },
+                    sort: 'descending'
                 });
                 done();
             });

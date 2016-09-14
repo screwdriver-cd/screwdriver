@@ -15,7 +15,11 @@ module.exports = () => ({
             const factory = request.server.app.buildFactory;
 
             return factory.list({
-                paginate: request.query
+                paginate: {
+                    page: request.query.page,
+                    count: request.query.count
+                },
+                sort: request.query.sort
             })
             .then(builds => reply(builds.map(build => build.toJson())))
             .catch(err => reply(boom.wrap(err)));
