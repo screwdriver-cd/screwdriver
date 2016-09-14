@@ -9,6 +9,9 @@
     "start": "./bin/server",
     "functional": "cucumber-js --format=pretty"
   },
+  "bin": {
+    "screwdriver-api": "./bin/server"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:screwdriver-cd/screwdriver.git"
