@@ -4,20 +4,39 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
+const testBuilds = require('./data/builds.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
 
-const decorateJobMock = (data) => {
-    const decorated = hoek.clone(data);
+const decorateBuildMock = (build) => {
+    const mock = hoek.clone(build);
 
+    mock.toJson = sinon.stub().returns(build);
+
+    return mock;
+};
+
+const getBuildMocks = (builds) => {
+    if (Array.isArray(builds)) {
+        return builds.map(decorateBuildMock);
+    }
+
+    return decorateBuildMock(builds);
+};
+
+const decorateJobMock = (job) => {
+    const decorated = hoek.clone(job);
+
+    decorated.getBuilds = sinon.stub();
     decorated.update = sinon.stub();
-    decorated.toJson = sinon.stub().returns(data);
+    decorated.toJson = sinon.stub().returns(job);
 
     return decorated;
 };
+
 const getJobMocks = (jobs) => {
     if (Array.isArray(jobs)) {
         return jobs.map(decorateJobMock);
@@ -94,7 +113,8 @@ describe('job plugin test', () => {
                     paginate: {
                         page: 1,
                         count: 3
-                    }
+                    },
+                    sort: 'descending'
                 });
                 done();
             });
@@ -222,6 +242,82 @@ describe('job plugin test', () => {
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+    });
+
+    describe('/jobs/{id}/builds', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const options = {
+            method: 'GET',
+            url: `/jobs/${id}/builds`
+        };
+        let job;
+        let builds;
+
+        beforeEach(() => {
+            job = getJobMocks(testJob);
+            builds = getBuildMocks(testBuilds);
+
+            factoryMock.get.withArgs(id).resolves(job);
+            job.getBuilds.resolves(builds);
+        });
+
+        it('returns 404 if job does not exist', (done) => {
+            factoryMock.get.withArgs(id).resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+
+        it('returns 200 for getting builds', (done) => {
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    paginate: {
+                        count: 50,
+                        page: 1
+                    },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testBuilds);
+                done();
+            });
+        });
+
+        it('pass in the correct params to getBuilds', (done) => {
+            options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending`;
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    paginate: {
+                        count: 30,
+                        page: 2
+                    },
+                    sort: 'ascending'
+                });
+                assert.deepEqual(reply.result, testBuilds);
+                done();
+            });
+        });
+
+        it('pass in the correct params when some values are missing', (done) => {
+            options.url = `/jobs/${id}/builds?count=30`;
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    paginate: {
+                        count: 30,
+                        page: 1
+                    },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testBuilds);
                 done();
             });
         });

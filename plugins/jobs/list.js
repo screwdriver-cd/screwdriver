@@ -15,7 +15,11 @@ module.exports = () => ({
             const factory = request.server.app.jobFactory;
 
             return factory.list({
-                paginate: request.query
+                paginate: {
+                    page: request.query.page,
+                    count: request.query.count
+                },
+                sort: request.query.sort
             }).then(jobs => {
                 reply(jobs.map(job => job.toJson()));
             }).catch(err => reply(boom.wrap(err)));

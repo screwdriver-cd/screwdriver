@@ -161,7 +161,8 @@ describe('pipeline plugin test', () => {
                     paginate: {
                         page: 1,
                         count: 3
-                    }
+                    },
+                    sort: 'descending'
                 });
                 done();
             });
@@ -459,6 +460,19 @@ describe('pipeline plugin test', () => {
                     },
                     scmUrl
                 });
+                done();
+            });
+        });
+
+        it('formats scmUrl correctly', (done) => {
+            const goodScmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+
+            options.payload.scmUrl = goodScmUrl;
+
+            userMock.getPermissions.withArgs(goodScmUrl).resolves({ admin: false });
+
+            server.inject(options, () => {
+                assert.calledWith(userMock.getPermissions, goodScmUrl);
                 done();
             });
         });

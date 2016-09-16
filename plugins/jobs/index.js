@@ -3,6 +3,7 @@
 const getRoute = require('./get');
 const listRoute = require('./list');
 const updateRoute = require('./update');
+const listBuildsRoute = require('./listBuilds');
 
 /**
  * Job API Plugin
@@ -15,7 +16,8 @@ exports.register = (server, options, next) => {
     server.route([
         listRoute(),
         getRoute(),
-        updateRoute()
+        updateRoute(),
+        listBuildsRoute()
     ]);
 
     next();

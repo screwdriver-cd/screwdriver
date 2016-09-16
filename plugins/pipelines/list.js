@@ -14,7 +14,13 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
 
-            return factory.list({ paginate: request.query })
+            return factory.list({
+                paginate: {
+                    page: request.query.page,
+                    count: request.query.count
+                },
+                sort: request.query.sort
+            })
                 .then(pipelines => reply(pipelines.map(p => p.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
