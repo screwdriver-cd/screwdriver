@@ -249,14 +249,16 @@ describe('job plugin test', () => {
 
     describe('/jobs/{id}/builds', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const options = {
-            method: 'GET',
-            url: `/jobs/${id}/builds`
-        };
+        let options;
         let job;
         let builds;
 
         beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/builds`
+            };
+
             job = getJobMocks(testJob);
             builds = getBuildMocks(testBuilds);
 
@@ -269,6 +271,15 @@ describe('job plugin test', () => {
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+
+        it('returns 400 for wrong query format', (done) => {
+            options.url = `/jobs/${id}/builds?sort=blah`;
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 400);
                 done();
             });
         });
