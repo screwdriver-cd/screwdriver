@@ -8,17 +8,43 @@ const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testJobs = require('./data/jobs.json');
+const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
 
+const decorateBuildMock = (build) => {
+    const mock = hoek.clone(build);
+
+    mock.toJson = sinon.stub().returns(build);
+
+    return mock;
+};
+
+const getBuildMocks = (builds) => {
+    if (Array.isArray(builds)) {
+        return builds.map(decorateBuildMock);
+    }
+
+    return decorateBuildMock(builds);
+};
+
 const decorateJobMock = (job) => {
     const mock = hoek.clone(job);
 
+    mock.getBuilds = sinon.stub().resolves(getBuildMocks(testBuilds));
     mock.toJson = sinon.stub().returns(job);
 
     return mock;
+};
+
+const getJobsMocks = (jobs) => {
+    if (Array.isArray(jobs)) {
+        return jobs.map(decorateJobMock);
+    }
+
+    return decorateJobMock(jobs);
 };
 
 const decoratePipelineMock = (pipeline) => {
@@ -33,20 +59,20 @@ const decoratePipelineMock = (pipeline) => {
     return mock;
 };
 
+const getPipelineMocks = (pipelines) => {
+    if (Array.isArray(pipelines)) {
+        return pipelines.map(decoratePipelineMock);
+    }
+
+    return decoratePipelineMock(pipelines);
+};
+
 const decorateSecretMock = (secret) => {
     const mock = hoek.clone(secret);
 
     mock.toJson = sinon.stub().returns(secret);
 
     return mock;
-};
-
-const getJobsMocks = (jobs) => {
-    if (Array.isArray(jobs)) {
-        return jobs.map(decorateJobMock);
-    }
-
-    return decorateJobMock(jobs);
 };
 
 const getSecretsMocks = (secrets) => {
@@ -57,13 +83,6 @@ const getSecretsMocks = (secrets) => {
     return decorateJobMock(secrets);
 };
 
-const getPipelineMocks = (pipelines) => {
-    if (Array.isArray(pipelines)) {
-        return pipelines.map(decoratePipelineMock);
-    }
-
-    return decoratePipelineMock(pipelines);
-};
 const getUserMock = (user) => {
     const mock = hoek.clone(user);
 
@@ -106,7 +125,10 @@ describe('pipeline plugin test', () => {
         server = new hapi.Server();
         server.app = {
             pipelineFactory: pipelineFactoryMock,
-            userFactory: userFactoryMock
+            userFactory: userFactoryMock,
+            ecosystem: {
+                badges: '{{status}}/{{color}}'
+            }
         };
         server.connection({
             port: 1234
@@ -250,6 +272,63 @@ describe('pipeline plugin test', () => {
             server.inject(`/pipelines/${id}/jobs`, (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/jobs', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        let pipelineMock;
+
+        beforeEach(() => {
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.jobs = Promise.resolve(getJobsMocks(testJobs));
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 302 to for a valid build', () => (
+            server.inject(`/pipelines/${id}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'failure/red');
+            })
+        ));
+
+        it('returns 302 to unknown for a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+            });
+        });
+
+        it('returns 302 to unknown for a job that does not exist', () => {
+            pipelineMock.jobs = Promise.resolve([]);
+
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+            });
+        });
+
+        it('returns 302 to unknown for a build that does not exist', () => {
+            const mockJobs = getJobsMocks(testJobs);
+
+            mockJobs[0].getBuilds.resolves([]);
+            pipelineMock.jobs = Promise.resolve(mockJobs);
+
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+            });
+        });
+
+        it('returns 302 to unknown when the datastore returns an error', () => {
+            pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
             });
         });
     });

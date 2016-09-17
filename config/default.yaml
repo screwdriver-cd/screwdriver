@@ -114,3 +114,5 @@ logging:
 ecosystem:
     # URL for the User Interface
     ui: https://cd.screwdriver.cd
+    # Badge service (needs to add a status and color)
+    badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg
