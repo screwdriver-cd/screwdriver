@@ -490,7 +490,7 @@ describe('build plugin test', () => {
                         pipelineId
                     };
 
-                    pipelineMock.workflow = ['publish', 'nerf_fight'];
+                    pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
                     buildFactoryMock.create.withArgs({
@@ -545,6 +545,30 @@ describe('build plugin test', () => {
                     };
 
                     pipelineMock.workflow = ['main'];
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.notCalled(buildFactoryMock.create);
+                    });
+                });
+
+                it('skips triggering if the job is a PR', () => {
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    jobMock.name = 'PR-15';
+
+                    pipelineMock.workflow = ['main', 'publish'];
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);

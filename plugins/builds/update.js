@@ -76,7 +76,8 @@ module.exports = () => ({
                     return build.job.then((job) => job.pipeline.then((pipeline) => {
                         const workflow = pipeline.workflow;
 
-                        if (!workflow) {  // No workflow to follow
+                        // No workflow to follow
+                        if (!workflow) {
                             return null;
                         }
 
@@ -84,6 +85,11 @@ module.exports = () => ({
 
                         // Current build is the last job in the workflow
                         if (workflowIndex === workflow.length - 1) {
+                            return null;
+                        }
+
+                        // Skip if not in the workflow (like PRs)
+                        if (workflowIndex === -1) {
                             return null;
                         }
 
