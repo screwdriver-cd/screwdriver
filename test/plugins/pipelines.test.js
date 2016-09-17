@@ -79,6 +79,7 @@ const getUserMock = (user) => {
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
+    let scmMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -98,6 +99,9 @@ describe('pipeline plugin test', () => {
         };
         userFactoryMock = {
             get: sinon.stub()
+        };
+        scmMock = {
+            getRepoId: sinon.stub()
         };
 
         /* eslint-disable global-require */
@@ -121,7 +125,8 @@ describe('pipeline plugin test', () => {
         server.register([{
             register: plugin,
             options: {
-                password
+                password,
+                scmPlugin: scmMock
             }
         }, {
             // eslint-disable-next-line global-require
@@ -408,6 +413,8 @@ describe('pipeline plugin test', () => {
         let options;
         const unformattedScmUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const scmId = 'github.com:123456:master';
+        const token = 'secrettoken';
         const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const username = 'd2lam';
         const job = {
@@ -432,6 +439,7 @@ describe('pipeline plugin test', () => {
 
             userMock = getUserMock({ username });
             userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
+            userMock.unsealToken.resolves(token);
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
@@ -439,6 +447,8 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.resolves(null);
             pipelineFactoryMock.create.resolves(pipelineMock);
+
+            scmMock.getRepoId.withArgs({ scmUrl, token }).resolves({ id: scmId });
         });
 
         it('returns 201 and correct pipeline data', (done) => {
@@ -458,7 +468,8 @@ describe('pipeline plugin test', () => {
                     admins: {
                         d2lam: true
                     },
-                    scmUrl
+                    scmUrl,
+                    scmId
                 });
                 done();
             });

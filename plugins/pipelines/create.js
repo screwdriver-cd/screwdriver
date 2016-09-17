@@ -27,7 +27,7 @@ const formatScmUrl = (scmUrl) => {
     return result;
 };
 
-module.exports = () => ({
+module.exports = (options) => ({
     method: 'POST',
     path: '/pipelines',
     config: {
@@ -48,11 +48,17 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const scmUrl = formatScmUrl(request.payload.scmUrl);
             const username = request.auth.credentials.username;
+            let user;
 
             // fetch the user
             return userFactory.get({ username })
                 // get the user permissions for the repo
-                .then(user => user.getPermissions(scmUrl))
+                .then(u => {
+                    // store the user object for fetching token later
+                    user = u;
+
+                    return user.getPermissions(scmUrl);
+                })
                 // if the user isn't an admin, reject
                 .then(permissions => {
                     if (!permissions.admin) {
@@ -73,12 +79,17 @@ module.exports = () => ({
 
                     admins[username] = true;
 
-                    const pipelineConfig = hoek.applyToDefaults(request.payload, {
-                        admins,
-                        scmUrl
-                    });
+                    return user.unsealToken()
+                        .then(token => options.scmPlugin.getRepoId({ scmUrl, token }))
+                        .then(repo => {
+                            const pipelineConfig = hoek.applyToDefaults(request.payload, {
+                                admins,
+                                scmUrl,
+                                scmId: repo.id
+                            });
 
-                    return pipelineFactory.create(pipelineConfig);
+                            return pipelineFactory.create(pipelineConfig);
+                        });
                 })
                 // hooray, a pipeline is born!
                 .then(pipeline =>
