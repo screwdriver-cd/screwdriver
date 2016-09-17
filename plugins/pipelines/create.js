@@ -48,49 +48,44 @@ module.exports = (options) => ({
             const userFactory = request.server.app.userFactory;
             const scmUrl = formatScmUrl(request.payload.scmUrl);
             const username = request.auth.credentials.username;
-            let user;
 
             // fetch the user
             return userFactory.get({ username })
                 // get the user permissions for the repo
-                .then(u => {
-                    // store the user object for fetching token later
-                    user = u;
+                .then(user => user.getPermissions(scmUrl)
+                    // if the user isn't an admin, reject
+                    .then(permissions => {
+                        if (!permissions.admin) {
+                            throw boom.unauthorized(
+                              `User ${username} is not an admin of this repo`);
+                        }
+                    })
+                    // see if there is already a pipeline
+                    .then(() => pipelineFactory.get({ scmUrl }))
+                    // if there is already a pipeline for the scmUrl, reject
+                    .then(pipeline => {
+                        if (pipeline) {
+                            throw boom.conflict('scmUrl needs to be unique');
+                        }
+                    })
+                    // set up pipeline admins, and create a new pipeline
+                    .then(() => {
+                        const admins = {};
 
-                    return user.getPermissions(scmUrl);
-                })
-                // if the user isn't an admin, reject
-                .then(permissions => {
-                    if (!permissions.admin) {
-                        throw boom.unauthorized(`User ${username} is not an admin of this repo`);
-                    }
-                })
-                // see if there is already a pipeline
-                .then(() => pipelineFactory.get({ scmUrl }))
-                // if there is already a pipeline for the scmUrl, reject
-                .then(pipeline => {
-                    if (pipeline) {
-                        throw boom.conflict('scmUrl needs to be unique');
-                    }
-                })
-                // set up pipeline admins, and create a new pipeline
-                .then(() => {
-                    const admins = {};
+                        admins[username] = true;
 
-                    admins[username] = true;
+                        return user.unsealToken()
+                            .then(token => options.scmPlugin.getRepoId({ scmUrl, token }))
+                            .then(repo => {
+                                const pipelineConfig = hoek.applyToDefaults(request.payload, {
+                                    admins,
+                                    scmUrl,
+                                    scmId: repo.id
+                                });
 
-                    return user.unsealToken()
-                        .then(token => options.scmPlugin.getRepoId({ scmUrl, token }))
-                        .then(repo => {
-                            const pipelineConfig = hoek.applyToDefaults(request.payload, {
-                                admins,
-                                scmUrl,
-                                scmId: repo.id
+                                return pipelineFactory.create(pipelineConfig);
                             });
-
-                            return pipelineFactory.create(pipelineConfig);
-                        });
-                })
+                    }))
                 // hooray, a pipeline is born!
                 .then(pipeline =>
                     // sync pipeline to create jobs
