@@ -1,17 +1,32 @@
+workflow:
+    - publish
+
+shared:
+    image: node:6
+
 jobs:
     main:
-        image: node:6
         steps:
             - install: npm install
             - test: npm test
-            - coverage: ./ci/coverage
-            - publish: ./ci/publish
+            - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
+            - coverage: ./ci/coverage.sh
+        secrets:
+            # Uploading coverage information to coveralls
+            - COVERALLS_REPO_TOKEN
+
+    publish:
+        steps:
+            - install-ci: npm install npm-auto-version
+            - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
+            - publish-npm: ./ci/publish.sh
+            - publish-docker: ./ci/docker.sh
+        environment:
+            DOCKER_REPO: screwdrivercd/screwdriver
         secrets:
             # Publishing to NPM
             - NPM_TOKEN
             # Pushing tags to Git
-            - GIT_TOKEN
+            - GIT_KEY
             # Trigger a Docker Hub build
             - DOCKER_TRIGGER
-            # Uploading coverage information to coveralls
-            - COVERALLS_REPO_TOKEN
