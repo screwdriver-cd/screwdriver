@@ -174,7 +174,6 @@ function pullRequestEvent(request, reply) {
     // Possible actions
     // "opened", "closed", "reopened", "synchronize",
     // "assigned", "unassigned", "labeled", "unlabeled", "edited"
-
     if (!['opened', 'reopened', 'synchronize', 'closed'].includes(action)) {
         return reply().code(204);
     }
@@ -183,7 +182,10 @@ function pullRequestEvent(request, reply) {
     return pipelineFactory.get({ scmUrl })
         .then(pipeline => {
             if (!pipeline) {
-                throw boom.notFound('Pipeline does not exist');
+                request.log(['webhook-github', eventId],
+                    `Skipping since Pipeline ${scmUrl} does not exist`);
+
+                return reply().code(204);
             }
 
             // sync the pipeline ... reasons why will become clear later???
@@ -255,7 +257,10 @@ function pushEvent(request, reply) {
     return pipelineFactory.get({ scmUrl })
         .then(pipeline => {
             if (!pipeline) {
-                throw boom.notFound('Pipeline does not exist');
+                request.log(['webhook-github', eventId],
+                    `Skipping since Pipeline ${scmUrl} does not exist`);
+
+                return reply().code(204);
             }
 
             // sync the pipeline to get the latest jobs
