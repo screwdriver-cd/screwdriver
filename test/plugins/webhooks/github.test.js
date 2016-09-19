@@ -14,6 +14,8 @@ const PARSED_CONFIG = require('../data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
+require('sinon-as-promised');
+
 describe('github plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
@@ -218,11 +220,11 @@ describe('github plugin test', () => {
                 })
             ));
 
-            it('returns 404 when no pipeline', () => {
+            it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
 
                 return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 404);
+                    assert.equal(reply.statusCode, 204);
                 });
             });
 
@@ -249,12 +251,12 @@ describe('github plugin test', () => {
                 name = 'PR-1';
             });
 
-            it('returns 404 when pipeline does not exist', () => {
+            it('returns 204 when pipeline does not exist', () => {
                 pipelineFactoryMock.get.resolves(null);
                 options.payload = testPayloadOpen;
 
                 return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 404);
+                    assert.equal(reply.statusCode, 204);
                 });
             });
 
