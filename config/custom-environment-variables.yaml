@@ -61,3 +61,5 @@ webhooks:
 ecosystem:
     # URL for the User Interface
     ui: ECOSYSTEM_UI
+    # Badge service (needs to add a status and color)
+    badges: ECOSYSTEM_BADGES
