@@ -20,13 +20,30 @@ module.exports = () => ({
                       throw boom.notFound('Pipeline does not exist');
                   }
 
-                  return pipeline.jobs;
+                  const config = {
+                      params: {
+                          archived: request.query.archived
+                      },
+                      paginate: {
+                          page: request.query.page,
+                          count: request.query.count
+                      }
+                  };
+
+                  return pipeline.getJobs(config);
               })
               .then(jobs => reply(jobs.map(j => j.toJson())))
               .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema
+        },
+        validate: {
+            query: joi.object().keys({
+                page: joi.reach(schema.api.pagination, 'page'),
+                count: joi.reach(schema.api.pagination, 'count'),
+                archived: joi.reach(schema.models.job.base, 'archived')
+            })
         }
     }
 });

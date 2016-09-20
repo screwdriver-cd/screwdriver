@@ -55,6 +55,7 @@ const decoratePipelineMock = (pipeline) => {
     mock.formatScmUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
+    mock.getJobs = sinon.stub();
 
     return mock;
 };
@@ -241,18 +242,42 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/jobs', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        let options;
         let pipelineMock;
 
         beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/jobs`
+            };
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.jobs = getJobsMocks(testJobs);
+            pipelineMock.getJobs.resolves(getJobsMocks(testJobs));
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
         it('returns 200 for getting jobs', (done) => {
-            server.inject(`/pipelines/${id}/jobs`, (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    paginate: {
+                        count: 50,
+                        page: 1
+                    }
+                });
                 assert.deepEqual(reply.result, testJobs);
+                done();
+            });
+        });
+
+        it('returns 400 for wrong query format', (done) => {
+            pipelineFactoryMock.get.resolves(null);
+            options.url = `/pipelines/${id}/jobs?archived=blah`;
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 400);
                 done();
             });
         });
@@ -260,7 +285,7 @@ describe('pipeline plugin test', () => {
         it('returns 404 for updating a pipeline that does not exist', (done) => {
             pipelineFactoryMock.get.resolves(null);
 
-            server.inject(`/pipelines/${id}/jobs`, (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
                 done();
             });
@@ -269,8 +294,27 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the datastore returns an error', (done) => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
 
-            server.inject(`/pipelines/${id}/jobs`, (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+
+        it('pass in the correct params to getJobs', (done) => {
+            options.url = `/pipelines/${id}/jobs?page=2&count=30&archived=true`;
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: true
+                    },
+                    paginate: {
+                        count: 30,
+                        page: 2
+                    }
+                });
+                assert.deepEqual(reply.result, testJobs);
                 done();
             });
         });
