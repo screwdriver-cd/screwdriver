@@ -413,7 +413,9 @@ describe('pipeline plugin test', () => {
         let options;
         const unformattedScmUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
-        const scmId = 'github.com:123456:master';
+        const scmRepo = {
+            id: 'github.com:123456:master'
+        };
         const token = 'secrettoken';
         const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const username = 'd2lam';
@@ -448,7 +450,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(null);
             pipelineFactoryMock.create.resolves(pipelineMock);
 
-            scmMock.getRepoId.withArgs({ scmUrl, token }).resolves({ id: scmId });
+            scmMock.getRepoId.withArgs({ scmUrl, token }).resolves(scmRepo);
         });
 
         it('returns 201 and correct pipeline data', (done) => {
@@ -469,7 +471,7 @@ describe('pipeline plugin test', () => {
                         d2lam: true
                     },
                     scmUrl,
-                    scmId
+                    scmRepo
                 });
                 done();
             });

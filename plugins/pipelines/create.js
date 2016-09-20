@@ -80,7 +80,7 @@ module.exports = (options) => ({
                                 const pipelineConfig = hoek.applyToDefaults(request.payload, {
                                     admins,
                                     scmUrl,
-                                    scmId: repo.id
+                                    scmRepo: repo
                                 });
 
                                 return pipelineFactory.create(pipelineConfig);
