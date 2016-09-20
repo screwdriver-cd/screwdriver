@@ -418,6 +418,7 @@ describe('github plugin test', () => {
                         assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
+                        assert.isTrue(jobMock.archived);
                     })
                 ));
 

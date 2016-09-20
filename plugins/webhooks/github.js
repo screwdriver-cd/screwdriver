@@ -91,6 +91,7 @@ function pullRequestClosed(options, request, reply) {
                 }
 
                 job.state = 'DISABLED';
+                job.archived = true;
 
                 return job.update();
             })
