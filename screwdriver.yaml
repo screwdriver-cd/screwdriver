@@ -7,9 +7,10 @@ shared:
 jobs:
     main:
         steps:
-            - install: npm install
-            - test: npm test
             - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
+            - install: npm install
+            - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
+            - test: npm test
             - coverage: ./ci/coverage.sh
         secrets:
             # Uploading coverage information to coveralls
