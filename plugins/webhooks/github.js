@@ -5,6 +5,21 @@ const hoek = require('hoek');
 const boom = require('boom');
 
 /**
+ * If the build is running, set state to ABORTED
+ * @method stopRunningBuild
+ * @param  {Build}   build Build to stop
+ * @return {Promise}
+ */
+function stopRunningBuild(build) {
+    if (build.isDone()) {
+        return Promise.resolve();
+    }
+    build.state = 'ABORTED';
+
+    return build.update();
+}
+
+/**
  * Create a new job and start the build for an opened pull-request
  * @method pullRequestOpened
  * @param  {Object}       options
@@ -82,7 +97,7 @@ function pullRequestClosed(options, request, reply) {
     ])
     .then(([builds, job]) =>
         // stop all running builds
-        Promise.all(builds.map(b => b.stop()))
+        Promise.all(builds.map(stopRunningBuild))
             // disable the job
             .then(() => {
                 // no job to update?
@@ -128,7 +143,7 @@ function pullRequestSync(options, request, reply) {
 
     return buildFactory.getBuildsForJobId({ jobId })
         // stop all running builds
-        .then(builds => Promise.all(builds.map(b => b.stop())))
+        .then(builds => Promise.all(builds.map(stopRunningBuild)))
         // log build stoppage
         .then(() => {
             request.log(['webhook-github', eventId, jobId], `${name} stopped`);

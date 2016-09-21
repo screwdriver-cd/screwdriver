@@ -132,7 +132,8 @@ describe('github plugin test', () => {
             buildMock = {
                 id: buildId,
                 number: buildNumber,
-                stop: sinon.stub()
+                isDone: sinon.stub(),
+                update: sinon.stub()
             };
             jobMock = {
                 id: jobId,
@@ -143,7 +144,7 @@ describe('github plugin test', () => {
 
             buildFactoryMock.create.resolves(buildMock);
             buildFactoryMock.getBuildsForJobId.resolves([buildMock]);
-            buildMock.stop.resolves(null);
+            buildMock.update.resolves(null);
 
             jobFactoryMock.generateId.withArgs({ pipelineId, name }).returns(jobId);
             jobFactoryMock.create.resolves(jobMock);
@@ -364,7 +365,7 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledOnce(buildMock.stop);
+                        assert.calledOnce(buildMock.update);
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
@@ -374,25 +375,39 @@ describe('github plugin test', () => {
                 ));
 
                 it('has the workflow for stopping builds before starting a new one', () => {
-                    const model1 = { id: 1, stop: sinon.stub().resolves(null) };
-                    const model2 = { id: 2, stop: sinon.stub().resolves(null) };
+                    const model1 = {
+                        id: 1,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+                    const model2 = {
+                        id: 2,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+                    const model3 = {
+                        id: 3,
+                        isDone: sinon.stub().returns(true),
+                        update: sinon.stub().resolves(null)
+                    };
 
                     buildFactoryMock.getBuildsForJobId.withArgs({ jobId }).resolves(
-                        [model1, model2]
+                        [model1, model2, model3]
                     );
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
-                        assert.calledOnce(model1.stop);
-                        assert.calledOnce(model2.stop);
+                        assert.calledOnce(model1.update);
+                        assert.calledOnce(model2.update);
+                        assert.notCalled(model3.update);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
                             sha
                         });
-                        assert.isOk(model1.stop.calledBefore(buildFactoryMock.create));
-                        assert.isOk(model2.stop.calledBefore(buildFactoryMock.create));
+                        assert.isOk(model1.update.calledBefore(buildFactoryMock.create));
+                        assert.isOk(model2.update.calledBefore(buildFactoryMock.create));
                     });
                 });
 
@@ -423,16 +438,24 @@ describe('github plugin test', () => {
                 ));
 
                 it('stops running builds', () => {
-                    const model1 = { id: 1, stop: sinon.stub().resolves(null) };
-                    const model2 = { id: 2, stop: sinon.stub().resolves(null) };
+                    const model1 = {
+                        id: 1,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+                    const model2 = {
+                        id: 2,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
 
                     buildFactoryMock.getBuildsForJobId.withArgs({ jobId }).resolves(
                         [model1, model2]
                     );
 
                     return server.inject(options).then(() => {
-                        assert.calledOnce(model1.stop);
-                        assert.calledOnce(model2.stop);
+                        assert.calledOnce(model1.update);
+                        assert.calledOnce(model2.update);
                     });
                 });
 
