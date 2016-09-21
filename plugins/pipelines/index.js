@@ -16,7 +16,7 @@ const listSecretsRoute = require('./listSecrets');
  */
 exports.register = (server, options, next) => {
     server.route([
-        createRoute(),
+        createRoute(options),
         getRoute(),
         listRoute(),
         updateRoute(),
