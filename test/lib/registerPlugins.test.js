@@ -73,7 +73,7 @@ describe('Register Unit Test Case', () => {
             expectedPlugins.forEach((plugin) => {
                 Assert.calledWith(serverMock.register, mocks[plugin], {
                     routes: {
-                        prefix: '/v3'
+                        prefix: '/v4'
                     }
                 });
             });
@@ -93,7 +93,7 @@ describe('Register Unit Test Case', () => {
                     options: {}
                 }, {
                     routes: {
-                        prefix: '/v3'
+                        prefix: '/v4'
                     }
                 });
             });
@@ -119,7 +119,7 @@ describe('Register Unit Test Case', () => {
                 }
             }, {
                 routes: {
-                    prefix: '/v3'
+                    prefix: '/v4'
                 }
             });
 

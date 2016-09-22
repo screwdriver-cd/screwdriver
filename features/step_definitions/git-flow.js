@@ -118,7 +118,7 @@ function searchForBuild(screwdriverInstance, desiredSha, pageNumber) {
     return request({
         json: true,
         method: 'GET',
-        uri: `${screwdriverInstance}/v3/builds?page=${pageCounter}&count=${MAX_PAGE_COUNT}`
+        uri: `${screwdriverInstance}/v4/builds?page=${pageCounter}&count=${MAX_PAGE_COUNT}`
     })
     .then((response) => {
         const buildData = response.body;
@@ -180,7 +180,7 @@ module.exports = function server() {
 
     this.Given(/^an existing pipeline$/, () => {
         request({
-            uri: `${this.instance}/v3/pipelines`,
+            uri: `${this.instance}/v4/pipelines`,
             method: 'POST',
             auth: {
                 username: this.username,
@@ -292,7 +292,7 @@ module.exports = function server() {
         request({
             json: true,
             method: 'GET',
-            uri: `${this.instance}/v3/jobs/${this.jobId}`
+            uri: `${this.instance}/v4/jobs/${this.jobId}`
         })
         .then((response) => {
             Assert.strictEqual(response.statusCode, 200);

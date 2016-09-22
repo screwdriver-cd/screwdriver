@@ -62,7 +62,7 @@ module.exports = (config) => ({
                         return reply('<script>window.close();</script>');
                     }
 
-                    return reply().redirect('/v3/auth/token');
+                    return reply().redirect('/v4/auth/token');
                 })
                 .catch(err => reply(boom.wrap(err)));
         }

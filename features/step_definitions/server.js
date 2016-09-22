@@ -10,7 +10,7 @@ module.exports = function server() {
     });
 
     this.When(/^I access a status endpoint$/, (callback) => {
-        request.get(`${this.instance}/v3/status`, (err, result) => {
+        request.get(`${this.instance}/v4/status`, (err, result) => {
             this.body = result ? result.body : null;
             callback(err);
         });
