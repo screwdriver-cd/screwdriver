@@ -27,7 +27,7 @@ const formatScmUrl = (scmUrl) => {
     return result;
 };
 
-module.exports = (options) => ({
+module.exports = () => ({
     method: 'POST',
     path: '/pipelines',
     config: {
@@ -70,21 +70,14 @@ module.exports = (options) => ({
                     })
                     // set up pipeline admins, and create a new pipeline
                     .then(() => {
-                        const admins = {};
+                        const pipelineConfig = hoek.applyToDefaults(request.payload, {
+                            admins: {
+                                [username]: true
+                            },
+                            scmUrl
+                        });
 
-                        admins[username] = true;
-
-                        return user.unsealToken()
-                            .then(token => options.scmPlugin.getRepoId({ scmUrl, token }))
-                            .then(repo => {
-                                const pipelineConfig = hoek.applyToDefaults(request.payload, {
-                                    admins,
-                                    scmUrl,
-                                    scmRepo: repo
-                                });
-
-                                return pipelineFactory.create(pipelineConfig);
-                            });
+                        return pipelineFactory.create(pipelineConfig);
                     }))
                 // hooray, a pipeline is born!
                 .then(pipeline =>

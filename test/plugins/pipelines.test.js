@@ -466,6 +466,7 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.update.resolves(pipelineMock);
+            pipelineMock.sync.resolves();
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
@@ -523,7 +524,7 @@ describe('pipeline plugin test', () => {
                 }
             };
 
-            pipelineMock.update.rejects(new Error('icantdothatdave'));
+            pipelineMock.sync.rejects(new Error('icantdothatdave'));
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -593,8 +594,7 @@ describe('pipeline plugin test', () => {
                     admins: {
                         d2lam: true
                     },
-                    scmUrl,
-                    scmRepo
+                    scmUrl
                 });
                 done();
             });

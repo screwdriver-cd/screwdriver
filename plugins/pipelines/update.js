@@ -30,9 +30,9 @@ module.exports = () => ({
                         pipeline[key] = request.payload[key];
                     });
 
-                    return pipeline.update();
+                    return pipeline.sync()
+                        .then(() => reply(pipeline.toJson()).code(200));
                 })
-                .then(pipeline => reply(pipeline.toJson()).code(200))
                 .catch(err => reply(boom.wrap(err)));
         },
         validate: {
