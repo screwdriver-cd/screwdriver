@@ -13,7 +13,7 @@ module.exports = () => ({
         tags: ['api', 'secrets'],
         auth: {
             strategies: ['token', 'session'],
-            scope: ['user', 'build']
+            scope: ['user']
         },
         plugins: {
             'hapi-swagger': {
@@ -34,7 +34,7 @@ module.exports = () => ({
 
                     // Make sure that user/build has permission before deleting
                     return canAccess(credentials, secret).then(() =>
-                        reply(secretFactory.remove(request.params.id)));
+                        reply(secret.remove()));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },

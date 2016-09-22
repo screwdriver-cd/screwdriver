@@ -35,6 +35,7 @@ const getSecretMock = (secret) => {
     const mock = hoek.clone(secret);
 
     mock.toJson = sinon.stub().returns(secret);
+    mock.remove = sinon.stub();
 
     return mock;
 };
@@ -245,7 +246,7 @@ describe('secret plugin test', () => {
 
             secretMock = getSecretMock(testSecret);
             secretFactoryMock.get.resolves(secretMock);
-            secretFactoryMock.remove.resolves(null);
+            secretMock.remove.resolves(null);
         });
 
         it('returns 404 when the pipeline does not exist', (done) => {
@@ -269,7 +270,7 @@ describe('secret plugin test', () => {
         it('returns 200 if remove successfully', (done) => {
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledOnce(secretFactoryMock.remove);
+                assert.calledOnce(secretMock.remove);
                 done();
             });
         });
@@ -283,20 +284,10 @@ describe('secret plugin test', () => {
             });
         });
 
-        it('returns 403 if build is not allowed to access secret', (done) => {
-            options.credentials.pipelineId = 'abcdfb192747c9a0124e9e5b4e6e8e841cf8c71c';
-            options.credentials.scope = ['build'];
-
-            server.inject(options, (reply) => {
-                assert.equal(reply.statusCode, 403);
-                done();
-            });
-        });
-
         it('returns 500 when the secret model fails to remove', (done) => {
             const testError = new Error('secretModelRemoveError');
 
-            secretFactoryMock.remove.rejects(testError);
+            secretMock.remove.rejects(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
