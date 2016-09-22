@@ -49,6 +49,7 @@
     "good-console": "^6.1.1",
     "good-squeeze": "^5.0.0",
     "hapi": "^15.0.0",
+    "hapi-auth-bearer-token": "^4.3.0",
     "hapi-auth-cookie": "^6.1.1",
     "hapi-auth-jwt": "^4.0.0",
     "hapi-github-webhooks": "^1.0.1",
