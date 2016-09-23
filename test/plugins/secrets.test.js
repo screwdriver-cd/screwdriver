@@ -35,6 +35,7 @@ const getSecretMock = (secret) => {
     const mock = hoek.clone(secret);
 
     mock.toJson = sinon.stub().returns(secret);
+    mock.remove = sinon.stub();
 
     return mock;
 };
@@ -57,7 +58,8 @@ describe('secret plugin test', () => {
     beforeEach((done) => {
         secretFactoryMock = {
             create: sinon.stub(),
-            get: sinon.stub()
+            get: sinon.stub(),
+            remove: sinon.stub()
         };
         pipelineFactoryMock = {
             get: sinon.stub()
@@ -207,6 +209,85 @@ describe('secret plugin test', () => {
             const testError = new Error('secretModelCreateError');
 
             secretFactoryMock.create.rejects(testError);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+    });
+
+    describe('DELETE /secrets/{id}', () => {
+        let options;
+        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const username = 'myself';
+        let secretMock;
+        let userMock;
+        let pipelineMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/secrets/${secretId}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipelineMock = getPipelineMock(testPipeline);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
+
+            secretMock = getSecretMock(testSecret);
+            secretFactoryMock.get.resolves(secretMock);
+            secretMock.remove.resolves(null);
+        });
+
+        it('returns 404 when the pipeline does not exist', (done) => {
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+
+        it('returns 404 when the secret does not exist', (done) => {
+            secretFactoryMock.get.resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                done();
+            });
+        });
+
+        it('returns 200 if remove successfully', (done) => {
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(secretMock.remove);
+                done();
+            });
+        });
+
+        it('returns 403 when the user does not have admin permissions', (done) => {
+            userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 403);
+                done();
+            });
+        });
+
+        it('returns 500 when the secret model fails to remove', (done) => {
+            const testError = new Error('secretModelRemoveError');
+
+            secretMock.remove.rejects(testError);
 
             server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
