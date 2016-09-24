@@ -16,7 +16,7 @@ module.exports = () => ({
         notes: 'Generate a JWT for use throughout Screwdriver',
         tags: ['api', 'auth', 'token'],
         auth: {
-            strategies: ['token', 'session'],
+            strategies: ['token', 'session', 'auth_token'],
             scope: ['user']
         },
         handler: (request, reply) => {

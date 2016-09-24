@@ -1,5 +1,6 @@
 'use strict';
 
+const authToken = require('hapi-auth-bearer-token');
 const bell = require('bell');
 const sugar = require('hapi-auth-cookie');
 const authjwt = require('hapi-auth-jwt');
@@ -18,13 +19,15 @@ const ALGORITHM = 'RS256';
 /**
  * Auth API Plugin
  * @method register
- * @param  {Hapi}     server                        Hapi Server
- * @param  {Object}   options                       Configuration object
- * @param  {String}   options.password              Password used for iron encrypting
- * @param  {Boolean}  options.https                 For setting the isSecure flag. Needs to be false for non-https
- * @param  {String}   options.oauth_client_id       Oauth client id for talking to OAUTH provider
- * @param  {String}   options.oauth_client_secret   Oauth secret for OAUTH provider
- * @param  {String}   options.jwtPrivateKey         Secret for signing JWTs
+ * @param  {Hapi}     server                         Hapi Server
+ * @param  {Object}   options                        Configuration object
+ * @param  {String}   options.password               Password used for iron encrypting
+ * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
+ * @param  {String}   options.oauth_client_id        Oauth client id for talking to OAUTH provider
+ * @param  {String}   options.oauth_client_secret    Oauth secret for OAUTH provider
+ * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
+ * @param  {String}   [options.temporaryAccessKey]   Alternative access token to use for authentication
+ * @param  {String}   [options.temporaryAccessUser]  User name associated with the access token
  * @param  {Function} next                          Function to call when done
  */
 exports.register = (server, options, next) => {
@@ -33,6 +36,8 @@ exports.register = (server, options, next) => {
         https: joi.boolean().required(),
         oauthClientId: joi.string().required(),
         oauthClientSecret: joi.string().required(),
+        temporaryAccessKey: joi.string().optional(),
+        temporaryAccessUser: joi.string().optional(),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
@@ -71,7 +76,7 @@ exports.register = (server, options, next) => {
         expiresIn: EXPIRES_IN
     }));
 
-    return server.register([bell, sugar, authjwt, {
+    return server.register([bell, sugar, authjwt, authToken, {
         register: crumb,
         options: {
             restful: true,
@@ -109,6 +114,22 @@ exports.register = (server, options, next) => {
             verifyOptions: {
                 algorithms: [ALGORITHM],
                 maxAge: EXPIRES_IN
+            }
+        });
+
+        server.auth.strategy('auth_token', 'bearer-access-token', {
+            accessTokenName: 'access_key',
+            allowCookieToken: false,
+            allowQueryToken: true,
+            validateFunc: (token, cb) => {
+                if (token !== pluginOptions.temporaryAccessKey) {
+                    return cb(null, false, {});
+                }
+
+                return cb(null, true, {
+                    username: pluginOptions.temporaryAccessUser,
+                    scope: ['user']
+                });
             }
         });
 
