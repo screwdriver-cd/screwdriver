@@ -56,6 +56,7 @@ const decoratePipelineMock = (pipeline) => {
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
+    mock.remove = sinon.stub();
 
     return mock;
 };
@@ -179,10 +180,19 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/pipelines?page=1&count=3'
+            };
+        });
+
         it('returns 200 and all pipelines', (done) => {
             pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
 
-            server.inject('/pipelines?page=1&count=3', (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines);
                 assert.calledWith(pipelineFactoryMock.list, {
@@ -199,7 +209,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when datastore fails', (done) => {
             pipelineFactoryMock.list.rejects(new Error('fittoburst'));
 
-            server.inject('/pipelines?page=1&count=3', (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
             });
@@ -208,11 +218,19 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}', () => {
         const id = 'cf23df2207d99a74fbe169e3eba035e633b65d94';
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}`
+            };
+        });
 
         it('exposes a route for getting a pipeline', (done) => {
             pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
 
-            server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
                 done();
@@ -228,7 +246,7 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
-            server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
                 done();
@@ -238,7 +256,100 @@ describe('pipeline plugin test', () => {
         it('throws error when call returns error', (done) => {
             pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            server.inject('/pipelines/cf23df2207d99a74fbe169e3eba035e633b65d94', (reply) => {
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 500);
+                done();
+            });
+        });
+    });
+
+    describe('DELETE /pipelines/{id}', () => {
+        const id = 'cf23df2207d99a74fbe169e3eba035e633b65d94';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const username = 'myself';
+        let pipeline;
+        let options;
+        let userMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/pipelines/${id}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipeline = getPipelineMocks(testPipeline);
+            pipeline.remove.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
+        });
+
+        it('returns 200 when delete successfully', (done) => {
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 200);
+                done();
+            });
+        });
+
+        it('returns 200 when user does not have admin permission', (done) => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'User myself does not have admin permission for this repo'
+            };
+
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+                done();
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', (done) => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Pipeline does not exist'
+            };
+
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+                done();
+            });
+        });
+
+        it('returns 404 when user does not exist', (done) => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User myself does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            server.inject(options, (reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+                done();
+            });
+        });
+
+        it('returns 500 when call returns error', (done) => {
+            pipeline.remove.rejects('pipelineRemoveError');
+            pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
+
+            server.inject(options, (reply) => {
                 assert.equal(reply.statusCode, 500);
                 done();
             });
@@ -462,17 +573,10 @@ describe('pipeline plugin test', () => {
         const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#batman';
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         let pipelineMock;
+        let options;
 
         beforeEach(() => {
-            pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.update.resolves(pipelineMock);
-            pipelineMock.sync.resolves();
-            pipelineFactoryMock.get.resolves(pipelineMock);
-        });
-
-        it('returns 200 for updating a pipeline that exists', (done) => {
-            const expected = hoek.applyToDefaults(testPipeline, { scmUrl });
-            const options = {
+            options = {
                 method: 'PUT',
                 url: `/pipelines/${id}`,
                 payload: {
@@ -482,6 +586,15 @@ describe('pipeline plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.update.resolves(pipelineMock);
+            pipelineMock.sync.resolves();
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for updating a pipeline that exists', (done) => {
+            const expected = hoek.applyToDefaults(testPipeline, { scmUrl });
 
             pipelineMock.toJson.returns(expected);
 
@@ -493,17 +606,6 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 404 for updating a pipeline that does not exist', (done) => {
-            const options = {
-                method: 'PUT',
-                url: `/pipelines/${id}`,
-                payload: {
-                    scmUrl
-                },
-                credentials: {
-                    scope: ['user']
-                }
-            };
-
             pipelineFactoryMock.get.resolves(null);
 
             server.inject(options, (reply) => {
@@ -513,17 +615,6 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 500 when the datastore returns an error', (done) => {
-            const options = {
-                method: 'PUT',
-                url: `/pipelines/${id}`,
-                payload: {
-                    scmUrl
-                },
-                credentials: {
-                    scope: ['user']
-                }
-            };
-
             pipelineMock.sync.rejects(new Error('icantdothatdave'));
 
             server.inject(options, (reply) => {

@@ -1,5 +1,6 @@
 'use strict';
 const createRoute = require('./create');
+const removeRoute = require('./remove');
 const getRoute = require('./get');
 const listRoute = require('./list');
 const updateRoute = require('./update');
@@ -17,6 +18,7 @@ const listSecretsRoute = require('./listSecrets');
 exports.register = (server, options, next) => {
     server.route([
         createRoute(),
+        removeRoute(),
         getRoute(),
         listRoute(),
         updateRoute(),
