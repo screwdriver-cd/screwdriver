@@ -7,7 +7,7 @@
     "pretest": "eslint . && snyk test",
     "test": "jenkins-mocha --recursive",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty ./features/server.feature"
+    "functional": "cucumber-js --format=pretty ./features/server.feature ./features/secrets.feature ./features/git-flow.feature"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -63,7 +63,7 @@
     "request": "^2.74.0",
     "requestretry": "^1.12.0",
     "screwdriver-config-parser": "^2.0.0",
-    "screwdriver-data-schema": "^12.0.0",
+    "screwdriver-data-schema": "^13.0.0",
     "screwdriver-datastore-dynamodb": "^3.0.0",
     "screwdriver-executor-k8s": "^8.0.0",
     "screwdriver-models": "^13.0.0",

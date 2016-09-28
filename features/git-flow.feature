@@ -1,3 +1,4 @@
+@gitflow
 Feature: Git Flow
 
     One of the key features of Screwdriver is the ability to integrate directly into the developer's

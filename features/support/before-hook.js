@@ -22,8 +22,8 @@ function beforeHooks() {
     // eslint-disable-next-line new-cap
     this.Before((scenario, cb) => {
         this.username = process.env.USERNAME || config.username;
-        this.github_token = process.env.ACCESS_TOKEN || config.github_token;
-        this.accessKey = process.env.ACCESS_KEY;
+        this.gitToken = process.env.ACCESS_TOKEN || config.gitToken;
+        this.accessKey = process.env.ACCESS_KEY || config.accessKey;
         this.instance = 'https://api.screwdriver.cd';
         this.namespace = 'v4';
         this.waitForBuild = (buildID) =>

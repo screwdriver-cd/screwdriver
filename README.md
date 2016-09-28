@@ -89,7 +89,8 @@ Update `.func_config.json` with your own username, github_token, and jwt:
 ```json
 {
     "username": "YOUR-GITHUB-USERNAME",
-    "github_token": "YOUR-ACCESS-TOKEN",
+    "gitToken": "YOUR-ACCESS-TOKEN",
+    "accessKey": "YOUR-ACCESS-KEY",
     "jwt": "YOUR-JWT"
 }
 ```
