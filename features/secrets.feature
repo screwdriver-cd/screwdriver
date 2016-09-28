@@ -36,7 +36,6 @@ Feature: Secrets
         When a secret "foo" is added globally
         And the "main" job is started
         Then the "foo" secret should be available in the build
-        And the build succeeded
         And the "second" job is started
         Then the "foo" secret should be available in the build
 
