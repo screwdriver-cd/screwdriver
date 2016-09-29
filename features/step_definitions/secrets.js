@@ -3,8 +3,6 @@ const Assert = require('chai').assert;
 const request = require('../support/request');
 
 module.exports = function server() {
-    this.setDefaultTimeout(60000);
-
     this.Given(/^an existing repository for secret with these users and permissions:$/, (table) => {
         this.pipelineId = '4de9888518fd74beb336eb6e36f68b25697c219f';
 
@@ -27,15 +25,19 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             json: true
-        }).then(response => Assert.equal(response.statusCode, 201));
+        }).then(response => {
+            this.secretId = response.body.id;
+            Assert.equal(response.statusCode, 201);
+        });
     });
 
-    this.When(/^the "main" job is started$/, () =>
+    this.When(/^the "main" job is started$/, { timeout: 60 * 1000 }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
             method: 'GET',
             json: true
         }).then((response) => {
+            console.log(response);
             this.jobId = response.body[0].id;
             this.secondJobId = response.body[1].id;
 
@@ -60,14 +62,14 @@ module.exports = function server() {
         )
     );
 
-    this.When(/^the "foo" secret should be available in the build$/, () =>
+    this.Then(/^the "foo" secret should be available in the build$/, { timeout: 60 * 1000 }, () =>
         this.waitForBuild(this.buildId).then(response => {
             Assert.equal(response.body.status, 'SUCCESS');
             Assert.equal(response.statusCode, 200);
         })
     );
 
-    this.When(/^the "second" job is started$/, () =>
+    this.When(/^the "second" job is started$/, { timeout: 60 * 1000 }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
             method: 'GET',
@@ -79,6 +81,47 @@ module.exports = function server() {
                 Assert.equal(resp.body.status, 'SUCCESS');
                 Assert.equal(resp.statusCode, 200);
             });
+        })
+    );
+
+    this.Then(/^the user can view the secret exists$/, () =>
+        request({
+            uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        }).then(response => {
+            Assert.isNotNull(response.body.name);
+            Assert.equal(response.statusCode, 200);
+        })
+    );
+
+    this.Then(/^the user can not view the secret exists$/, () =>
+        request({
+            uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        }).then(response => {
+            Assert.equal(response.statusCode, 403);
+        })
+    );
+
+    this.Then(/^the user can not view the value$/, () =>
+        request({
+            uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        }).then(response => {
+            Assert.isUndefined(response.body.value);
+            Assert.equal(response.statusCode, 200);
         })
     );
 };
