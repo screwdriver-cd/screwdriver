@@ -2,7 +2,7 @@
 const Assert = require('chai').assert;
 const Github = require('github');
 const github = new Github();
-const request = require('./request');
+const request = require('../support/request');
 
 const MAX_CONTENT_LENGTH = 354;
 const MAX_FILENAME_LENGTH = 17;
