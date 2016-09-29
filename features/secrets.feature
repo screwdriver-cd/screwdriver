@@ -23,7 +23,7 @@ Feature: Secrets
         - Secrets should be available as environment variables
 
     Background:
-        Given an existing repository with these users and permissions:
+        Given an existing repository for secret with these users and permissions:
             | name          | permission  |
             | calvin        | admin       |
             | hobbes        | contributor |
