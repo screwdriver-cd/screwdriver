@@ -5,3 +5,4 @@ npm-debug.log
 .*.swp
 database.json
 config/local.*
+.func_config.json
