@@ -75,6 +75,10 @@ Example payload:
 }
 ```
 
+#### Delete a pipeline
+
+`DELETE /pipelines/{id}`
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:
 
