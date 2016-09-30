@@ -61,6 +61,7 @@
     "jsonwebtoken": "^7.1.6",
     "ndjson": "^1.4.3",
     "request": "^2.74.0",
+    "requestretry": "^1.12.0",
     "screwdriver-config-parser": "^2.0.0",
     "screwdriver-data-schema": "^12.0.0",
     "screwdriver-datastore-dynamodb": "^3.0.0",

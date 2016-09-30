@@ -23,7 +23,7 @@ Feature: Secrets
         - Secrets should be available as environment variables
 
     Background:
-        Given an existing repository with these users and permissions:
+        Given an existing repository for secret with these users and permissions:
             | name          | permission  |
             | calvin        | admin       |
             | hobbes        | contributor |
@@ -36,7 +36,6 @@ Feature: Secrets
         When a secret "foo" is added globally
         And the "main" job is started
         Then the "foo" secret should be available in the build
-        And the build succeeded
         And the "second" job is started
         Then the "foo" secret should be available in the build
 

@@ -157,7 +157,7 @@ function waitForBuild(screwdriverInstance, desiredSha) {
 module.exports = function server() {
     // eslint-disable-next-line new-cap
     this.Before(() => {
-        this.instance = 'http://api.screwdriver.cd';
+        this.instance = 'https://api.screwdriver.cd';
         this.repositoryOwner = 'screwdriver-cd';
         this.repository = 'garbage-repository-ignore-this';
         this.testBranch = 'testBranch';
