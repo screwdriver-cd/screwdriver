@@ -33,8 +33,9 @@ module.exports = () => ({
                     }
 
                     // Make sure that user/build has permission before deleting
-                    return canAccess(credentials, secret).then(() =>
-                        reply(secret.remove()));
+                    return canAccess(credentials, secret)
+                        .then(() => secret.remove())
+                        .then(() => reply().code(204));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },
