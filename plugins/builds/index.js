@@ -1,7 +1,6 @@
 'use strict';
 
 const getRoute = require('./get');
-const listRoute = require('./list');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
@@ -19,7 +18,6 @@ const listSecretsRoute = require('./listSecrets');
  */
 exports.register = (server, options, next) => {
     server.route([
-        listRoute(),
         getRoute(),
         updateRoute(),
         createRoute(),

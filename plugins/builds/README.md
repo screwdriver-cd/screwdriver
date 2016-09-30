@@ -24,10 +24,6 @@ server.register({
 ```
 
 ### Routes
-#### Lists builds with pagination
-`page` and `count` are optional
-
-`GET /builds?page={page}&count={count}`
 
 #### Returns a single build
 `GET /builds/{id}`
