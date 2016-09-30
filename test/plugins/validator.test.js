@@ -52,30 +52,28 @@ describe('validator plugin test', () => {
     });
 
     describe('POST /validator', () => {
-        it('returns 200 for a successful yaml', (done) => {
+        it('returns 200 for a successful yaml', () =>
             server.inject({
                 method: 'POST',
                 url: '/validator',
                 payload: testInput
-            }, (reply) => {
+            }).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testOutput);
-                done();
-            });
-        });
+            })
+        );
 
-        it('returns 400 for bad yaml', (done) => {
+        it('returns 400 for bad yaml', () =>
             server.inject({
                 method: 'POST',
                 url: '/validator',
                 payload: {
                     yaml: 'jobs: {}'
                 }
-            }, (reply) => {
+            }).then(reply => {
                 assert.equal(reply.statusCode, 400);
                 assert.match(reply.result.message, /"main" is required/);
-                done();
-            });
-        });
+            })
+        );
     });
 });

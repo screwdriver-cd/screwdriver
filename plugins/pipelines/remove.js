@@ -43,7 +43,8 @@ module.exports = () => ({
                     })
 
                     // user has good permissions, remove the pipeline
-                    .then(() => reply(pipeline.remove()));
+                    .then(() => pipeline.remove())
+                    .then(() => reply().code(204));
             })
             .catch(err => reply(boom.wrap(err)));
         },

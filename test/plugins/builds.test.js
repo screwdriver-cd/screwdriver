@@ -140,33 +140,30 @@ describe('build plugin test', () => {
     describe('GET /builds/{id}', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
 
-        it('returns 200 for a build that exists', (done) => {
+        it('returns 200 for a build that exists', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            server.inject(`/builds/${id}`, (reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild);
-                done();
             });
         });
 
-        it('returns 404 when build does not exist', (done) => {
+        it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            server.inject(`/builds/${id}`, (reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
 
-        it('returns 500 when datastore returns an error', (done) => {
+        it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            server.inject(`/builds/${id}`, (reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });
@@ -187,7 +184,7 @@ describe('build plugin test', () => {
             buildMock.update.resolves(buildMock);
         });
 
-        it('returns 404 for updating a build that does not exist', (done) => {
+        it('returns 404 for updating a build that does not exist', () => {
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -201,9 +198,8 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
 
@@ -862,7 +858,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            server.inject(options).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });

@@ -189,10 +189,10 @@ describe('pipeline plugin test', () => {
             };
         });
 
-        it('returns 200 and all pipelines', (done) => {
+        it('returns 200 and all pipelines', () => {
             pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines);
                 assert.calledWith(pipelineFactoryMock.list, {
@@ -202,16 +202,14 @@ describe('pipeline plugin test', () => {
                     },
                     sort: 'descending'
                 });
-                done();
             });
         });
 
-        it('returns 500 when datastore fails', (done) => {
+        it('returns 500 when datastore fails', () => {
             pipelineFactoryMock.list.rejects(new Error('fittoburst'));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });
@@ -227,17 +225,16 @@ describe('pipeline plugin test', () => {
             };
         });
 
-        it('exposes a route for getting a pipeline', (done) => {
+        it('exposes a route for getting a pipeline', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
-                done();
             });
         });
 
-        it('throws error not found when pipeline does not exist', (done) => {
+        it('throws error not found when pipeline does not exist', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
@@ -246,19 +243,17 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
-                done();
             });
         });
 
-        it('throws error when call returns error', (done) => {
+        it('throws error when call returns error', () => {
             pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });
@@ -290,14 +285,14 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
         });
 
-        it('returns 200 when delete successfully', (done) => {
-            server.inject(options, (reply) => {
-                assert.equal(reply.statusCode, 200);
-                done();
-            });
-        });
+        it('returns 204 when delete successfully', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipeline.remove);
+            })
+        );
 
-        it('returns 200 when user does not have admin permission', (done) => {
+        it('returns 401 when user does not have admin permission', () => {
             const error = {
                 statusCode: 401,
                 error: 'Unauthorized',
@@ -306,14 +301,13 @@ describe('pipeline plugin test', () => {
 
             userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(reply.result, error);
-                done();
             });
         });
 
-        it('returns 404 when pipeline does not exist', (done) => {
+        it('returns 404 when pipeline does not exist', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
@@ -322,14 +316,13 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
-                done();
             });
         });
 
-        it('returns 404 when user does not exist', (done) => {
+        it('returns 404 when user does not exist', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
@@ -338,20 +331,18 @@ describe('pipeline plugin test', () => {
 
             userFactoryMock.get.withArgs({ username }).resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
-                done();
             });
         });
 
-        it('returns 500 when call returns error', (done) => {
+        it('returns 500 when call returns error', () => {
             pipeline.remove.rejects('pipelineRemoveError');
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });
@@ -371,8 +362,8 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 200 for getting jobs', (done) => {
-            server.inject(options, (reply) => {
+        it('returns 200 for getting jobs', () =>
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
@@ -384,42 +375,38 @@ describe('pipeline plugin test', () => {
                     }
                 });
                 assert.deepEqual(reply.result, testJobs);
-                done();
-            });
-        });
+            })
+        );
 
-        it('returns 400 for wrong query format', (done) => {
+        it('returns 400 for wrong query format', () => {
             pipelineFactoryMock.get.resolves(null);
             options.url = `/pipelines/${id}/jobs?archived=blah`;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
-                done();
             });
         });
 
-        it('returns 404 for updating a pipeline that does not exist', (done) => {
+        it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
 
-        it('returns 500 when the datastore returns an error', (done) => {
+        it('returns 500 when the datastore returns an error', () => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
 
-        it('pass in the correct params to getJobs', (done) => {
+        it('pass in the correct params to getJobs', () => {
             options.url = `/pipelines/${id}/jobs?page=2&count=30&archived=true`;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
@@ -431,7 +418,6 @@ describe('pipeline plugin test', () => {
                     }
                 });
                 assert.deepEqual(reply.result, testJobs);
-                done();
             });
         });
     });
@@ -446,12 +432,12 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 302 to for a valid build', () => (
+        it('returns 302 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, 'failure/red');
             })
-        ));
+        );
 
         it('returns 302 to unknown for a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
@@ -519,37 +505,34 @@ describe('pipeline plugin test', () => {
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
         });
 
-        it('returns 404 for updating a pipeline that does not exist', (done) => {
+        it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
 
-        it('returns 403 when the user does not have push permissions', (done) => {
+        it('returns 403 when the user does not have push permissions', () => {
             userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
-                done();
             });
         });
 
-        it('returns empty array if secrets is empty', (done) => {
+        it('returns empty array if secrets is empty', () => {
             pipelineMock.secrets = getSecretsMocks([]);
             pipelineFactoryMock.get.resolves(pipelineMock);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
-                done();
             });
         });
 
-        it('returns 200 for getting secrets', (done) => {
-            server.inject(options, (reply) => {
+        it('returns 200 for getting secrets', () =>
+            server.inject(options).then(reply => {
                 const expected = [{
                     id: 'a123fb192747c9a0124e9e5b4e6e8e841cf8c71c',
                     pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
@@ -564,9 +547,8 @@ describe('pipeline plugin test', () => {
 
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
-                done();
-            });
-        });
+            })
+        );
     });
 
     describe('PUT /pipelines/{id}', () => {
@@ -593,33 +575,30 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 200 for updating a pipeline that exists', (done) => {
+        it('returns 200 for updating a pipeline that exists', () => {
             const expected = hoek.applyToDefaults(testPipeline, { scmUrl });
 
             pipelineMock.toJson.returns(expected);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
-                done();
             });
         });
 
-        it('returns 404 for updating a pipeline that does not exist', (done) => {
+        it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
 
-        it('returns 500 when the datastore returns an error', (done) => {
+        it('returns 500 when the datastore returns an error', () => {
             pipelineMock.sync.rejects(new Error('icantdothatdave'));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });
@@ -668,10 +647,10 @@ describe('pipeline plugin test', () => {
             scmMock.getRepoId.withArgs({ scmUrl, token }).resolves(scmRepo);
         });
 
-        it('returns 201 and correct pipeline data', (done) => {
+        it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -687,71 +666,64 @@ describe('pipeline plugin test', () => {
                     },
                     scmUrl
                 });
-                done();
             });
         });
 
-        it('formats scmUrl correctly', (done) => {
+        it('formats scmUrl correctly', () => {
             const goodScmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
 
             options.payload.scmUrl = goodScmUrl;
 
             userMock.getPermissions.withArgs(goodScmUrl).resolves({ admin: false });
 
-            server.inject(options, () => {
+            return server.inject(options, () => {
                 assert.calledWith(userMock.getPermissions, goodScmUrl);
-                done();
             });
         });
 
-        it('returns 401 when the user does not have admin permissions', (done) => {
+        it('returns 401 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
-                done();
             });
         });
 
-        it('returns 409 when the scmUrl already exists', (done) => {
+        it('returns 409 when the scmUrl already exists', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
-                done();
             });
         });
 
-        it('returns 500 when the pipeline model fails to get', (done) => {
+        it('returns 500 when the pipeline model fails to get', () => {
             const testError = new Error('pipelineModelGetError');
 
             pipelineFactoryMock.get.rejects(testError);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
 
-        it('returns 500 when the pipeline model fails to create', (done) => {
+        it('returns 500 when the pipeline model fails to create', () => {
             const testError = new Error('pipelineModelCreateError');
 
             pipelineFactoryMock.create.rejects(testError);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
 
-        it('returns 500 when the pipeline model fails to sync during create', (done) => {
+        it('returns 500 when the pipeline model fails to sync during create', () => {
             const testError = new Error('pipelineModelSyncError');
 
             pipelineMock.sync.rejects(testError);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });

@@ -104,17 +104,16 @@ describe('job plugin test', () => {
     describe('GET /jobs/{id}', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
 
-        it('exposes a route for getting a job', (done) => {
+        it('exposes a route for getting a job', () => {
             factoryMock.get.withArgs(id).resolves(getJobMocks(testJob));
 
-            server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c', (reply) => {
+            return server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c').then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testJob);
-                done();
             });
         });
 
-        it('returns 404 when job does not exist', (done) => {
+        it('returns 404 when job does not exist', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
@@ -123,19 +122,17 @@ describe('job plugin test', () => {
 
             factoryMock.get.withArgs(id).resolves(null);
 
-            server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c', (reply) => {
+            return server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c').then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
-                done();
             });
         });
 
-        it('returns errors when datastore returns an error', (done) => {
+        it('returns errors when datastore returns an error', () => {
             factoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c', (reply) => {
+            return server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c').then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
     });
@@ -153,7 +150,7 @@ describe('job plugin test', () => {
             factoryMock.get.resolves(jobMock);
         });
 
-        it('returns 200 for updating a job that exists', (done) => {
+        it('returns 200 for updating a job that exists', () => {
             const options = {
                 method: 'PUT',
                 url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
@@ -167,17 +164,16 @@ describe('job plugin test', () => {
 
             jobMock.toJson.returns({ id, state: 'ENABLED' });
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {
                     id,
                     state: 'ENABLED'
                 });
-                done();
             });
         });
 
-        it('returns 500 if datastore returns an error', (done) => {
+        it('returns 500 if datastore returns an error', () => {
             const options = {
                 method: 'PUT',
                 url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
@@ -191,13 +187,12 @@ describe('job plugin test', () => {
 
             jobMock.update.rejects(new Error('error'));
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-                done();
             });
         });
 
-        it('returns 404 if job does not exist', (done) => {
+        it('returns 404 if job does not exist', () => {
             const options = {
                 method: 'PUT',
                 url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
@@ -211,9 +206,8 @@ describe('job plugin test', () => {
 
             factoryMock.get.resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
     });
@@ -237,26 +231,24 @@ describe('job plugin test', () => {
             job.getBuilds.resolves(builds);
         });
 
-        it('returns 404 if job does not exist', (done) => {
+        it('returns 404 if job does not exist', () => {
             factoryMock.get.withArgs(id).resolves(null);
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                done();
             });
         });
 
-        it('returns 400 for wrong query format', (done) => {
+        it('returns 400 for wrong query format', () => {
             options.url = `/jobs/${id}/builds?sort=blah`;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
-                done();
             });
         });
 
-        it('returns 200 for getting builds', (done) => {
-            server.inject(options, (reply) => {
+        it('returns 200 for getting builds', () =>
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
@@ -266,14 +258,13 @@ describe('job plugin test', () => {
                     sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testBuilds);
-                done();
-            });
-        });
+            })
+        );
 
-        it('pass in the correct params to getBuilds', (done) => {
+        it('pass in the correct params to getBuilds', () => {
             options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending`;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
@@ -283,14 +274,13 @@ describe('job plugin test', () => {
                     sort: 'ascending'
                 });
                 assert.deepEqual(reply.result, testBuilds);
-                done();
             });
         });
 
-        it('pass in the correct params when some values are missing', (done) => {
+        it('pass in the correct params when some values are missing', () => {
             options.url = `/jobs/${id}/builds?count=30`;
 
-            server.inject(options, (reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
@@ -300,7 +290,6 @@ describe('job plugin test', () => {
                     sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testBuilds);
-                done();
             });
         });
     });
