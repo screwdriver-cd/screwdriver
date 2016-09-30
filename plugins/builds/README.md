@@ -40,10 +40,9 @@ server.register({
 
 Example payload:
 ```json
-    {
-        "jobId": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
-        "container": "node:6"
-    }
+{
+    "jobId": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c"
+}
 ```
 
 #### Updates a build
@@ -51,9 +50,9 @@ Example payload:
 
 Example payload:
 ```json
-    {
-        "status": "FAILURE"
-    }
+{
+    "status": "FAILURE"
+}
 ```
 
 ### Access to Factory methods
