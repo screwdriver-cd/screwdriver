@@ -6,7 +6,6 @@ const mockery = require('mockery');
 const hoek = require('hoek');
 const testBuilds = require('./data/builds.json');
 const testJob = require('./data/job.json');
-const testJobs = require('./data/jobs.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
@@ -100,34 +99,6 @@ describe('job plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.jobs);
-    });
-
-    describe('GET /jobs', () => {
-        it('returns 200 and all jobs', (done) => {
-            factoryMock.list.resolves(getJobMocks(testJobs));
-
-            server.inject('/jobs?page=1&count=3', (reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testJobs);
-                assert.calledWith(factoryMock.list, {
-                    paginate: {
-                        page: 1,
-                        count: 3
-                    },
-                    sort: 'descending'
-                });
-                done();
-            });
-        });
-
-        it('returns 500 when datastore errors', (done) => {
-            factoryMock.list.rejects(new Error('im!workinghere'));
-
-            server.inject('/jobs?page=1&count=3', (reply) => {
-                assert.equal(reply.statusCode, 500);
-                done();
-            });
-        });
     });
 
     describe('GET /jobs/{id}', () => {

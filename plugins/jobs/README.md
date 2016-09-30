@@ -25,10 +25,6 @@ server.register({
 ```
 
 ### Routes
-#### Lists jobs with pagination
-`page` and `count` are optional
-
-`GET /jobs?page={page}&count={count}`
 
 #### Returns a single job
 `GET /jobs/{id}`

@@ -7,7 +7,6 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const nock = require('nock');
 const testBuild = require('./data/build.json');
-const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -136,34 +135,6 @@ describe('build plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.builds);
-    });
-
-    describe('GET /builds', () => {
-        it('returns 200 and all builds', (done) => {
-            buildFactoryMock.list.resolves(getMockBuilds(testBuilds));
-
-            server.inject('/builds?page=1&count=2', (reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testBuilds);
-                assert.calledWith(buildFactoryMock.list, {
-                    paginate: {
-                        page: 1,
-                        count: 2
-                    },
-                    sort: 'descending'
-                });
-                done();
-            });
-        });
-
-        it('returns 500 when datastore errors', (done) => {
-            buildFactoryMock.list.rejects(new Error('sorry!sorry'));
-
-            server.inject('/builds?page=1&count=2', (reply) => {
-                assert.equal(reply.statusCode, 500);
-                done();
-            });
-        });
     });
 
     describe('GET /builds/{id}', () => {
