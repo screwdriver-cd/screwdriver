@@ -33,7 +33,7 @@ module.exports = () => ({
                         return reply([]);
                     }
 
-                    return canAccess(credentials, secrets[0])
+                    return canAccess(credentials, secrets[0], 'push')
                         .then(() => reply(secrets.map(s => {
                             const output = s.toJson();
 

@@ -36,6 +36,7 @@ const getSecretMock = (secret) => {
 
     mock.toJson = sinon.stub().returns(secret);
     mock.remove = sinon.stub();
+    mock.update = sinon.stub();
 
     return mock;
 };
@@ -233,7 +234,7 @@ describe('secret plugin test', () => {
             };
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUrl).resolves({ push: true });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
@@ -268,7 +269,7 @@ describe('secret plugin test', () => {
         );
 
         it('returns 403 when the user does not have admin permissions', () => {
-            userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -279,6 +280,94 @@ describe('secret plugin test', () => {
             const testError = new Error('secretModelRemoveError');
 
             secretMock.remove.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /secrets/{id}', () => {
+        let options;
+        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const username = 'myself';
+        let secretMock;
+        let userMock;
+        let pipelineMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/secrets/${secretId}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                },
+                payload: {
+                    value: 'newValue',
+                    allowInPR: true
+                }
+            };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipelineMock = getPipelineMock(testPipeline);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
+
+            secretMock = getSecretMock(testSecret);
+            secretFactoryMock.get.resolves(secretMock);
+            secretMock.update.resolves(secretMock);
+        });
+
+        it('returns 404 when the pipeline does not exist', () => {
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when the secret does not exist', () => {
+            secretFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if update successfully', () => {
+            const expected = {
+                id: 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                name: 'NPM_TOKEN',
+                allowInPR: true
+            };
+
+            secretMock.toJson.returns(hoek.applyToDefaults(expected, { value: 'encrypted' }));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(secretMock.update);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
+
+        it('returns 403 when the user does not have admin permissions', () => {
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 500 when the secret model fails to update', () => {
+            const testError = new Error('secretModelUpdateError');
+
+            secretMock.update.rejects(testError);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);

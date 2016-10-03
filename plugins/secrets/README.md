@@ -26,7 +26,11 @@ server.register({
 ```
 
 ### Routes
-#### Get a single secret
+`Get` requires **write** permission to the repository.
+
+`Create`, `Remove` and `Update` require **admin** permission to the repository.
+
+#### Get a secret
 
 `GET /secrets/{id}`
 
@@ -46,6 +50,28 @@ Example payload:
 {
   "pipelineId": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
   "name": "NPM_TOKEN",
+  "value": "batman",
+  "allowInPR": true
+}
+```
+#### Remove a secret
+
+`DELETE /secrets/{id}`
+
+#### Update a secret
+
+`PUT /secrets/{id}`
+
+**Arguments**
+
+Only `value` and `allowInPR` can be updated.
+
+* `value` - Value of the secret.
+* `allowInPR` - Flag to denote if this secret can be shown in PR builds.
+
+Example payload:
+```json
+{
   "value": "batman",
   "allowInPR": true
 }

@@ -2,6 +2,7 @@
 const createRoute = require('./create');
 const getRoute = require('./get');
 const removeRoute = require('./remove');
+const updateRoute = require('./update');
 const boom = require('boom');
 
 /**
@@ -22,9 +23,11 @@ exports.register = (server, options, next) => {
      * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
      * @param {String}  [credentials.jobId]      If credential is a build, this is the job ID
      * @param {String}  [credentials.isPR]       If credential is a build, this is true if a PR
-     * @return {Promise}
+     * @param {Object}  secret                   Secret object from Hapi
+     * @param {String}  permission               Required permission level
+     * @return {Boolean}
      */
-    server.expose('canAccess', (credentials, secret) => {
+    server.expose('canAccess', (credentials, secret, permission) => {
         const userFactory = server.root.app.userFactory;
         const pipelineFactory = server.root.app.pipelineFactory;
         const username = credentials.username;
@@ -42,9 +45,9 @@ exports.register = (server, options, next) => {
                     }
 
                     return user.getPermissions(pipeline.scmUrl).then(permissions => {
-                        if (!permissions.push) {
-                            throw boom.forbidden(`User ${username} does not have `
-                                + 'write access to this repository');
+                        if (!permissions[permission]) {
+                            throw boom.forbidden(`User ${username}
+                                does not have ${permission} access to this repo`);
                         }
 
                         return false;
@@ -67,7 +70,8 @@ exports.register = (server, options, next) => {
     server.route([
         createRoute(),
         getRoute(),
-        removeRoute()
+        removeRoute(),
+        updateRoute()
     ]);
 
     next();

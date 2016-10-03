@@ -38,7 +38,7 @@ module.exports = () => ({
                         return reply([]);
                     }
 
-                    return canAccess(credentials, secrets[0]).then((showSecret) =>
+                    return canAccess(credentials, secrets[0], 'push').then((showSecret) =>
                         reply(secrets.map(s => {
                             const output = s.toJson();
 
