@@ -37,7 +37,6 @@ module.exports = function server() {
             method: 'GET',
             json: true
         }).then((response) => {
-            console.log(response);
             this.jobId = response.body[0].id;
             this.secondJobId = response.body[1].id;
 
