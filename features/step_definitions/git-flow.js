@@ -22,7 +22,6 @@ module.exports = function server() {
         tags: ['@gitflow'],
         timeout: 60000
     }, () => {
-        this.instance = 'https://api.screwdriver.cd';
         this.branch = 'darrenBranch';
         this.repoOrg = 'screwdriver-cd-test';
         this.repoName = 'functional-git';
@@ -33,7 +32,7 @@ module.exports = function server() {
 
         return request({  // TODO : perform this in the before-hook for all func tests
             method: 'GET',
-            url: `${this.instance}/v4/auth/token?access_key=${this.accessKey}`,
+            url: `${this.instance}/${this.namespace}/auth/token?access_key=${this.accessKey}`,
             followAllRedirects: true,
             json: true
         }).then((response) => {
@@ -46,10 +45,9 @@ module.exports = function server() {
 
     this.Given(/^an existing pipeline$/, () =>
         request({
-            uri: `${this.instance}/v4/pipelines`,
+            uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
             auth: {
-                user: this.username,
                 bearer: this.jwt
             },
             body: {
@@ -171,7 +169,7 @@ module.exports = function server() {
         request({
             json: true,
             method: 'GET',
-            uri: `${this.instance}/v4/jobs/${this.jobId}`
+            uri: `${this.instance}/${this.namespace}/jobs/${this.jobId}`
         })
         .then((response) => {
             Assert.strictEqual(response.statusCode, 200);

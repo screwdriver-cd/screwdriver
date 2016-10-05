@@ -21,7 +21,7 @@ function promiseToWait(timeToWait) {
  * when given pull request-related information. Otherwise, it will look for the main job
  * by default.
  *
- * @method findBuild
+ * @method findBuilds
  * @param  {Object}  config                     Configuration object
  * @param  {String}  config.instance            Screwdriver instance to test against
  * @param  {String}  config.pipelineId          Pipeline ID to find the build in
@@ -119,8 +119,8 @@ function searchForBuild(config) {
  * @param  {Object}  config               Configuration object
  * @param  {String}  config.instance      Screwdriver instance to test against
  * @param  {String}  config.buildId       Build ID to find the build in
- * @param  {Array}  config.desiredStatus  Array of status strings. The status of the build to wait for
- * @return {[type]}                [description]
+ * @param  {Array}   config.desiredStatus Array of status strings. The status of the build to wait for
+ * @return {Object}                       Build data
  */
 function waitForBuildStatus(config) {
     const buildId = config.buildId;

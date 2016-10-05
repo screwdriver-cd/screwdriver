@@ -49,6 +49,10 @@ jobs:
             K8S_DEPLOYMENT: sdapi-beta
             SD_API: beta.api.screwdriver.cd
         secrets:
+            # Access key for functional tests
+            - ACCESS_KEY
+            # Git access token
+            - GIT_TOKEN
             # Talking to Kubernetes
             - K8S_TOKEN
 
@@ -68,5 +72,9 @@ jobs:
             K8S_DEPLOYMENT: sdapi
             SD_API: api.screwdriver.cd
         secrets:
+            # Access key for functional tests
+            - ACCESS_KEY
+            # Git access token
+            - GIT_TOKEN
             # Talking to Kubernetes
             - K8S_TOKEN

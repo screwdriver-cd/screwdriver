@@ -21,8 +21,7 @@ function buildRetryStrategy(err, response, body) {
 function beforeHooks() {
     // eslint-disable-next-line new-cap
     this.Before((scenario, cb) => {
-        this.username = process.env.USERNAME || config.username;
-        this.gitToken = process.env.ACCESS_TOKEN || config.gitToken;
+        this.gitToken = process.env.GIT_TOKEN || config.gitToken;
         this.accessKey = process.env.ACCESS_KEY || config.accessKey;
         this.instance = 'https://api.screwdriver.cd';
         this.namespace = 'v4';
