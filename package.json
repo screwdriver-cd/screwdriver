@@ -7,7 +7,7 @@
     "pretest": "eslint . && snyk test",
     "test": "jenkins-mocha --recursive",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty ./features/server.feature ./features/secrets.feature"
+    "functional": "cucumber-js --format=pretty ./features/server.feature ./features/secrets.feature ./features/git-flow.feature"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
