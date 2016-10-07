@@ -14,6 +14,8 @@ jobs:
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
             - test: npm test
             - coverage: ./ci/coverage.sh
+            - newstep1: echo PR OPEN
+            - newstep2: echo PR SYNC 
         secrets:
             # Uploading coverage information to coveralls
             - COVERALLS_REPO_TOKEN
