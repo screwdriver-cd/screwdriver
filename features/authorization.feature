@@ -1,3 +1,4 @@
+@auth
 Feature: Authorization
 
     Another part of the developer's daily process is their constant interaction with GitHub. Their
