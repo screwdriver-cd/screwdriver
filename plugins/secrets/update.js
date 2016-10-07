@@ -1,3 +1,4 @@
+/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
 const boom = require('boom');
 const joi = require('joi');
@@ -5,44 +6,51 @@ const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.secret.base, 'id');
 
 module.exports = () => ({
-    method: 'DELETE',
+    method: 'PUT',
     path: '/secrets/{id}',
     config: {
-        description: 'Remove a single secret',
-        notes: 'Returns null if successful',
+        description: 'Update a secret',
+        notes: 'Update a specific secret',
         tags: ['api', 'secrets'],
         auth: {
             strategies: ['token', 'session'],
             scope: ['user']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
         handler: (request, reply) => {
-            const secretFactory = request.server.app.secretFactory;
+            const factory = request.server.app.secretFactory;
             const credentials = request.auth.credentials;
             const canAccess = request.server.plugins.secrets.canAccess;
 
-            // Get the secret first
-            return secretFactory.get(request.params.id)
+            return factory.get(request.params.id)
                 .then(secret => {
                     if (!secret) {
                         throw boom.notFound('Secret does not exist');
                     }
 
-                    // Make sure that user has permission before deleting
+                    // Make sure that user has permission before updating
                     return canAccess(credentials, secret, 'admin')
-                        .then(() => secret.remove())
-                        .then(() => reply().code(204));
+                        .then(() => {
+                            Object.keys(request.payload).forEach(key => {
+                                secret[key] = request.payload[key];
+                            });
+
+                            return secret.update();
+                        })
+                        .then(() => {
+                            const output = secret.toJson();
+
+                            delete output.value;
+
+                            return reply(output).code(200);
+                        });
                 })
                 .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {
                 id: idSchema
-            }
+            },
+            payload: schema.models.secret.update
         }
     }
 });
