@@ -5,23 +5,34 @@ const hoek = require('hoek');
 const boom = require('boom');
 
 /**
+ * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
- * @method stopRunningBuild
- * @param  {Build}   build Build to stop
+ * @method stopJob
+ * @param  {Job}    job     Job to stop
  * @return {Promise}
  */
-function stopRunningBuild(build) {
-    if (build.isDone()) {
-        return Promise.resolve();
+function stopJob(job) {
+    if (!job) {
+        throw boom.notFound('Job does not exist');
     }
-    build.state = 'ABORTED';
 
-    return build.update();
+    const stopRunningBuild = (build) => {
+        if (build.isDone()) {
+            return Promise.resolve();
+        }
+        build.state = 'ABORTED';
+
+        return build.update();
+    };
+
+    return job.getRunningBuilds()
+        // Stop running builds
+        .then(builds => Promise.all(builds.map(stopRunningBuild)));
 }
 
 /**
- * Create a new job and start the build for an opened pull-request
- * @method pullRequestOpened
+ * Run pull request's main job
+ * @method startPRJob
  * @param  {Object}       options
  * @param  {String}       options.eventId       Unique ID for this GitHub event
  * @param  {String}       options.pipelineId    Identifier for the Pipeline
@@ -30,14 +41,15 @@ function stopRunningBuild(build) {
  * @param  {String}       options.username      User who created the PR
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
- * @param  {Hapi.request} request Request from user
- * @param  {Hapi.reply}   reply   Reply to user
+ * @param  {Hapi.request} request               Request from user
+ * @return {Promise}
  */
-function pullRequestOpened(options, request, reply) {
+function startPRJob(options, request) {
     const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
     const eventId = options.eventId;
     const pipelineId = options.pipelineId;
+    const jobId = options.jobId;
     const name = options.name;
     const sha = options.sha;
     const username = options.username;
@@ -50,24 +62,33 @@ function pullRequestOpened(options, request, reply) {
         // create a new job
         .then(permutations => jobFactory.create({ pipelineId, name, permutations }))
         // log stuff
-        .then(job => {
-            request.log(['webhook-github', eventId, job.id], `${job.name} created`);
+        .then(() => {
+            request.log(['webhook-github', eventId, jobId], `${name} created`);
             request.log([
                 'webhook-github',
                 eventId,
-                job.id,
+                jobId,
                 pipelineId
             ], `${username} selected`);
-
-            return job.id;
         })
         // create a build
-        .then(jobId => buildFactory.create({ jobId, sha, username }))
-        // log the build created/started
-        .then(build => {
-            request.log(['webhook-github', eventId, build.jobId, build.id], `${name} started `
-                + `${build.number}`);
-        })
+        .then(() => buildFactory.create({ jobId, sha, username }))
+        .then(build =>
+            request.log(['webhook-github', options.eventId, build.jobId, build.id],
+            `${name} started ${build.number}`));
+}
+
+/**
+ * Create a new job and start the build for an opened pull-request
+ * @method pullRequestOpened
+ * @param  {Object}       options
+ * @param  {String}       options.eventId       Unique ID for this GitHub event
+ * @param  {String}       options.name          Name of the new job (PR-1)
+ * @param  {Hapi.request} request               Request from user
+ * @param  {Hapi.reply}   reply                 Reply to user
+ */
+function pullRequestOpened(options, request, reply) {
+    return startPRJob(options, request)
         .then(() => reply().code(201))
         .catch(err => reply(boom.wrap(err)));
 }
@@ -85,75 +106,57 @@ function pullRequestOpened(options, request, reply) {
  */
 function pullRequestClosed(options, request, reply) {
     const jobFactory = request.server.app.jobFactory;
-    const buildFactory = request.server.app.buildFactory;
     const eventId = options.eventId;
     const jobId = options.jobId;
     const name = options.name;
 
-    // fetch the builds to stop, and the job to update
-    return Promise.all([
-        buildFactory.getBuildsForJobId({ jobId }), // someday this should just be job.builds
-        jobFactory.get(jobId)
-    ])
-    .then(([builds, job]) =>
-        // stop all running builds
-        Promise.all(builds.map(stopRunningBuild))
-            // disable the job
+    return jobFactory.get(jobId)
+        .then(job =>
+            stopJob(job)
+            .then(() => request.log(['webhook-github', eventId, jobId], `${name} stopped`))
+            // disable and archive the job
             .then(() => {
-                // no job to update?
-                if (!job) {
-                    throw boom.notFound('Job does not exist');
-                }
-
                 job.state = 'DISABLED';
                 job.archived = true;
 
                 return job.update();
             })
-    )
-    // log some stuff
-    .then(() => {
-        request.log(['webhook-github', eventId, jobId], `${name} disabled`);
+            // log some stuff
+            .then(() => {
+                request.log(['webhook-github', eventId, jobId], `${name} disabled and archived`);
 
-        return reply().code(200);
-    })
-    // something went wrong
-    .catch(err => reply(boom.wrap(err)));
+                return reply().code(200);
+            }))
+        // something went wrong
+        .catch(err => reply(boom.wrap(err)));
 }
 
 /**
  * Stop any running builds and start the build for the synchronized pull-request
  * @method pullRequestSync
  * @param  {Object}       options
- * @param  {String}       options.eventId    Unique ID for this GitHub event
- * @param  {String}       options.jobId      Identifier for the Job
- * @param  {String}       options.name       Name of the job (PR-1)
- * @param  {String}       options.sha        specific SHA1 commit to start the build with
- * @param  {String}       options.username   User who created the PR
- * @param  {Hapi.request} request Request from user
- * @param  {Hapi.reply}   reply   Reply to user
+ * @param  {String}       options.eventId       Unique ID for this GitHub event
+ * @param  {String}       options.pipelineId    Identifier for the Pipeline
+ * @param  {String}       options.jobId         Identifier for the Job
+ * @param  {String}       options.name          Name of the job (PR-1)
+ * @param  {String}       options.sha           Specific SHA1 commit to start the build with
+ * @param  {String}       options.username      User who created the PR
+ * @param  {String}       options.prRef         Reference to pull request
+ * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
+ * @param  {Hapi.request} request               Request from user
+ * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const buildFactory = request.server.app.buildFactory;
+    const jobFactory = request.server.app.jobFactory;
     const eventId = options.eventId;
     const name = options.name;
-    const username = options.username;
-    const sha = options.sha;
     const jobId = options.jobId;
 
-    return buildFactory.getBuildsForJobId({ jobId })
-        // stop all running builds
-        .then(builds => Promise.all(builds.map(stopRunningBuild)))
-        // log build stoppage
-        .then(() => {
-            request.log(['webhook-github', eventId, jobId], `${name} stopped`);
-        })
-        // create a new build
-        .then(() => buildFactory.create({ jobId, username, sha }))
+    return jobFactory.get(jobId)
+        .then(job => stopJob(job))
+        .then(() => startPRJob(options, request))
         // log build created
-        .then(build => {
-            request.log(['webhook-github', eventId, jobId, build.id],
-                `${name} started ${build.number}`);
+        .then(() => {
             request.log(['webhook-github', eventId, jobId], `${name} synced`);
 
             return reply().code(201);
@@ -211,37 +214,28 @@ function pullRequestEvent(request, reply) {
                     const pipelineId = pipeline.id;
                     const name = `PR-${prNumber}`;
                     const jobId = jobFactory.generateId({ pipelineId, name });
+                    const options = {
+                        eventId,
+                        pipelineId,
+                        jobId,
+                        name,
+                        sha,
+                        username,
+                        prRef,
+                        pipeline
+                    };
 
                     switch (action) {
                     case 'opened':
                     case 'reopened':
-                        return pullRequestOpened({
-                            eventId,
-                            pipelineId,
-                            name,
-                            sha,
-                            username,
-                            prRef,
-                            pipeline
-                        }, request, reply);
+                        return pullRequestOpened(options, request, reply);
 
                     case 'synchronize':
-                        return pullRequestSync({
-                            eventId,
-                            jobId,
-                            name,
-                            sha,
-                            username
-                        }, request, reply);
+                        return pullRequestSync(options, request, reply);
 
                     case 'closed':
                     default:
-                        return pullRequestClosed({
-                            eventId,
-                            jobId,
-                            pipelineId,
-                            name
-                        }, request, reply);
+                        return pullRequestClosed(options, request, reply);
                     }
                 });
         })

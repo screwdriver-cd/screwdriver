@@ -38,8 +38,7 @@ describe('github plugin test', () => {
             generateId: sinon.stub()
         };
         buildFactoryMock = {
-            create: sinon.stub(),
-            getBuildsForJobId: sinon.stub()
+            create: sinon.stub()
         };
         pipelineFactoryMock = {
             get: sinon.stub()
@@ -139,11 +138,11 @@ describe('github plugin test', () => {
                 id: jobId,
                 name,
                 state: 'ENABLED',
-                update: sinon.stub()
+                update: sinon.stub(),
+                getRunningBuilds: sinon.stub()
             };
 
             buildFactoryMock.create.resolves(buildMock);
-            buildFactoryMock.getBuildsForJobId.resolves([buildMock]);
             buildMock.update.resolves(null);
 
             jobFactoryMock.generateId.withArgs({ pipelineId, name }).returns(jobId);
@@ -357,49 +356,44 @@ describe('github plugin test', () => {
             });
 
             describe('synchronize pull request', () => {
+                let model1;
+                let model2;
+
                 beforeEach(() => {
+                    model1 = {
+                        id: 1,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+                    model2 = {
+                        id: 2,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+
                     options.payload = testPayloadSync;
+                    jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
+                    jobMock.getRunningBuilds.resolves([model1, model2]);
                 });
 
-                it('returns 201 on success', () => (
+                it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 201);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledOnce(buildMock.update);
+                        assert.calledWith(pipelineMock.getConfiguration,
+                            'git@github.com:baxterthehacker/public-repo.git#pull/1/merge');
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
                             sha
                         });
-                    })
-                ));
-
-                it('has the workflow for stopping builds before starting a new one', () => {
-                    const model1 = {
-                        id: 1,
-                        isDone: sinon.stub().returns(false),
-                        update: sinon.stub().resolves(null)
-                    };
-                    const model2 = {
-                        id: 2,
-                        isDone: sinon.stub().returns(false),
-                        update: sinon.stub().resolves(null)
-                    };
-                    const model3 = {
-                        id: 3,
-                        isDone: sinon.stub().returns(true),
-                        update: sinon.stub().resolves(null)
-                    };
-
-                    buildFactoryMock.getBuildsForJobId.withArgs({ jobId }).resolves(
-                        [model1, model2, model3]
-                    );
-
-                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
+                    })
+                );
+
+                it('has the workflow for stopping builds before starting a new one', () =>
+                    server.inject(options).then((reply) => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
-                        assert.notCalled(model3.update);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
@@ -408,6 +402,27 @@ describe('github plugin test', () => {
                         });
                         assert.isOk(model1.update.calledBefore(buildFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(buildFactoryMock.create));
+                        assert.equal(reply.statusCode, 201);
+                    })
+                );
+
+                it('does not update if build finished running', () => {
+                    model2.isDone.returns(true);
+
+                    return server.inject(options).then((reply) => {
+                        assert.notCalled(model2.update);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('returns 404 when job is missing', () => {
+                    jobFactoryMock.get.withArgs(jobId).resolves(null);
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 404);
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
+                        assert.calledWith(jobFactoryMock.get, jobId);
                     });
                 });
 
@@ -421,11 +436,27 @@ describe('github plugin test', () => {
             });
 
             describe('close pull request', () => {
+                let model1;
+                let model2;
+
                 beforeEach(() => {
+                    model1 = {
+                        id: 1,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+                    model2 = {
+                        id: 2,
+                        isDone: sinon.stub().returns(false),
+                        update: sinon.stub().resolves(null)
+                    };
+
                     options.payload = testPayloadClose;
+                    jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
+                    jobMock.getRunningBuilds.resolves([model1, model2]);
                 });
 
-                it('returns 200 on success', () => (
+                it('returns 200 on success', () =>
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
@@ -435,29 +466,14 @@ describe('github plugin test', () => {
                         assert.strictEqual(jobMock.state, 'DISABLED');
                         assert.isTrue(jobMock.archived);
                     })
-                ));
+                );
 
-                it('stops running builds', () => {
-                    const model1 = {
-                        id: 1,
-                        isDone: sinon.stub().returns(false),
-                        update: sinon.stub().resolves(null)
-                    };
-                    const model2 = {
-                        id: 2,
-                        isDone: sinon.stub().returns(false),
-                        update: sinon.stub().resolves(null)
-                    };
-
-                    buildFactoryMock.getBuildsForJobId.withArgs({ jobId }).resolves(
-                        [model1, model2]
-                    );
-
-                    return server.inject(options).then(() => {
+                it('stops running builds', () =>
+                    server.inject(options).then(() => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
-                    });
-                });
+                    })
+                );
 
                 it('returns 500 when failed', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
@@ -473,7 +489,7 @@ describe('github plugin test', () => {
                 });
 
                 it('returns 404 when job is missing', () => {
-                    jobFactoryMock.get.resolves(null);
+                    jobFactoryMock.get.withArgs(jobId).resolves(null);
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 404);
