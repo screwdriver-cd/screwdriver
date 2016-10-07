@@ -1,5 +1,5 @@
 # Screwdriver API
-[![Version][npm-image]][npm-url] [![Pulls][docker-pulls]][docker-url] [![Stars][docker-stars]][docker-url] [![Build Status][wercker-image]][wercker-url] [![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] [![Coverage][cov-image]][cov-url] [![Vulnerabilities][vul-image]][vul-url] ![License][license-image] [![Slack][slack-image]][slack-url]
+[![Version][npm-image]][npm-url] [![Pulls][docker-pulls]][docker-url] [![Stars][docker-stars]][docker-url][![Build Status][status-image]][status-url][![Open Issues][issues-image]][issues-url] [![Dependency Status][daviddm-image]][daviddm-url] [![Coverage][cov-image]][cov-url] [![Vulnerabilities][vul-image]][vul-url] ![License][license-image] [![Slack][slack-image]][slack-url]
 
 > API for the Screwdriver CD service
 
@@ -116,8 +116,8 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [license-image]: https://img.shields.io/npm/l/screwdriver-api.svg
 [issues-image]: https://img.shields.io/github/issues/screwdriver-cd/screwdriver.svg
 [issues-url]: https://github.com/screwdriver-cd/screwdriver/issues
-[wercker-image]: https://app.wercker.com/status/10229771f62f565cd62622ef56f0ca6d
-[wercker-url]: https://app.wercker.com/project/bykey/10229771f62f565cd62622ef56f0ca6d
+[status-image]: https://cd.screwdriver.cd/pipelines/27cec39c9baea6cf64c684479115300d22039b2a/badge
+[status-url]: https://cd.screwdriver.cd/pipelines/27cec39c9baea6cf64c684479115300d22039b2a
 [daviddm-image]: https://david-dm.org/screwdriver-cd/screwdriver.svg?theme=shields.io
 [daviddm-url]: https://david-dm.org/screwdriver-cd/screwdriver
 [slack-image]: http://slack.screwdriver.cd/badge.svg
