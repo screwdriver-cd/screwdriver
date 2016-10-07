@@ -20,7 +20,7 @@ module.exports = function server() {
     // eslint-disable-next-line new-cap
     this.Before({
         tags: ['@gitflow'],
-        timeout: 60000
+        timeout: 60 * 1000
     }, () => {
         this.branch = 'darrenBranch';
         this.repoOrg = 'screwdriver-cd-test';
@@ -63,7 +63,9 @@ module.exports = function server() {
         })
     );
 
-    this.Given(/^an existing pull request targeting the pipeline's branch$/, () => {
+    this.Given(/^an existing pull request targeting the pipeline's branch$/, {
+        timeout: 60 * 1000
+    }, () => {
         const branch = this.branch;
         const token = this.gitToken;
 
@@ -82,7 +84,7 @@ module.exports = function server() {
             });
     });
 
-    this.When(/^a pull request is opened$/, () => {
+    this.When(/^a pull request is opened$/, { timeout: 60 * 1000 }, () => {
         const branch = this.branch;
         const token = this.gitToken;
 
@@ -119,7 +121,7 @@ module.exports = function server() {
     );
 
     this.When(/^new changes are pushed to that pull request$/, {
-        timeout: 30 * 1000
+        timeout: 60 * 1000
     }, () =>
         promiseToWait(3)  // Find & save the previous build
         .then(() =>
@@ -139,7 +141,7 @@ module.exports = function server() {
 
     this.When(/^a new commit is pushed$/, () => null);
 
-    this.When(/^it is against the pipeline's branch$/, () => {
+    this.When(/^it is against the pipeline's branch$/, { timeout: 60 * 1000 }, () => {
         this.testBranch = 'master';
 
         return github.createFile(this.gitToken, this.testBranch, this.repoOrg, this.repoName);
@@ -160,7 +162,6 @@ module.exports = function server() {
             console.log('status: ', build.status);
 
             Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
-
             this.jobId = build.jobId;
         })
     );
@@ -188,7 +189,6 @@ module.exports = function server() {
             desiredStatus
         }).then((buildData) => {
             // TODO: save the status so the next step can verify the github status
-
             Assert.oneOf(buildData.status, desiredStatus);
         });
     });
