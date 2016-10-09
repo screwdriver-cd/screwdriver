@@ -31,10 +31,15 @@ module.exports = (config) => ({
                     }
 
                     const isNotDone = stepModel.code === undefined;
+                    const isNotStarted = stepModel.startTime === undefined;
                     const url = `${config.logBaseUrl}/${buildId}/${stepName}`;
                     const output = [];
 
-                    request
+                    if (isNotStarted) {
+                        return reply(output).header('X-More-Data', 'false');
+                    }
+
+                    return request
                         // Load NDJson from S3 bucket
                         .get(url)
                         .pipe(ndjson.parse({

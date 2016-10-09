@@ -752,7 +752,7 @@ describe('build plugin test', () => {
 
     describe('PUT /builds/{id}/steps/{step}', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const step = 'test';
+        const step = 'publish';
         let options;
         let buildMock;
 
@@ -921,19 +921,15 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns more-data for a step that is not done', () => {
+        it('returns false more-data for a step that is not started', () => {
             const buildMock = getMockBuilds(testBuild);
-
-            nock('http://example.com')
-                .get(`/screwdriver-logs/${id}/test`)
-                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}/steps/test/logs`).then((reply) => {
+            return server.inject(`/builds/${id}/steps/publish/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, logs);
-                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+                assert.deepEqual(reply.result, []);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
 
