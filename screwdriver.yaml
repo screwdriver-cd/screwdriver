@@ -11,6 +11,7 @@ jobs:
         steps:
             - newstep1: echo PR OPEN
             - newstep2: echo PR SYNC
+            - newstep3: echo PR BANANA
         secrets:
             # Uploading coverage information to coveralls
             - COVERALLS_REPO_TOKEN
