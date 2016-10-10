@@ -22,16 +22,11 @@
             "endTime": "2038-01-19T03:15:09.114Z"
         },
         {
+            "startTime": "2038-01-19T03:15:09.114Z",
             "name": "test"
         },
         {
             "name": "publish"
-        },
-        {
-            "name": "sd-cleanup",
-            "code": 0,
-            "startTime": "2038-01-19T03:15:09.115Z",
-            "endTime": "2038-01-19T03:15:10.130Z"
         }
     ],
     "status": "FAILURE"
