@@ -3,6 +3,8 @@ const Assert = require('chai').assert;
 const mockery = require('mockery');
 const sinon = require('sinon');
 
+require('sinon-as-promised');
+
 describe('server case', () => {
     let hapiEngine;
     const ecosystem = {
@@ -34,7 +36,7 @@ describe('server case', () => {
         let error;
         let server;
 
-        before((done) => {
+        before(() => {
             registrationManMock = sinon.stub();
 
             mockery.registerMock('./registerPlugins', registrationManMock);
@@ -42,9 +44,9 @@ describe('server case', () => {
             hapiEngine = require('../../lib/server');
             /* eslint-enable global-require */
 
-            registrationManMock.yieldsAsync(null);
+            registrationManMock.resolves(null);
 
-            hapiEngine({
+            return hapiEngine({
                 httpd: {
                     port: 12347
                 },
@@ -53,27 +55,27 @@ describe('server case', () => {
                 jobFactory: 'job',
                 userFactory: 'user',
                 buildFactory: {}
-            }, (e, s) => {
-                error = e;
+            }).then(s => {
                 server = s;
                 // Pretend we actually registered a login plugin
                 server.plugins.auth = {
                     generateToken: sinon.stub().returns('foo'),
                     generateProfile: sinon.stub().returns('bar')
                 };
-                done();
+            }).catch(e => {
+                error = e;
             });
         });
 
-        it('does it with a different port', (done) => {
+        it('does it with a different port', () => {
             Assert.notOk(error);
-            server.inject({
+
+            return server.inject({
                 method: 'GET',
                 url: '/blah'
-            }, (response) => {
+            }).then(response => {
                 Assert.equal(response.statusCode, 404);
                 Assert.include(response.request.info.host, '12347');
-                done();
             });
         });
 
@@ -100,18 +102,18 @@ describe('server case', () => {
             /* eslint-enable global-require */
         });
 
-        it('callsback errors with register plugins', (done) => {
-            registrationManMock.yieldsAsync('registrationMan fail');
-            hapiEngine({ ecosystem }, (error) => {
-                Assert.strictEqual('registrationMan fail', error);
-                done();
+        it('callsback errors with register plugins', () => {
+            registrationManMock.rejects('registrationMan fail');
+
+            return hapiEngine({ ecosystem }).catch((error) => {
+                Assert.strictEqual('registrationMan fail', error.message);
             });
         });
     });
 
     describe('error handling', () => {
         beforeEach(() => {
-            mockery.registerMock('./registerPlugins', (server, config, next) => {
+            mockery.registerMock('./registerPlugins', (server) => {
                 server.route({
                     method: 'GET',
                     path: '/yes',
@@ -122,38 +124,35 @@ describe('server case', () => {
                     path: '/no',
                     handler: (request, reply) => reply(new Error('Not OK'))
                 });
-                next();
+
+                return Promise.resolve();
             });
             /* eslint-disable global-require */
             hapiEngine = require('../../lib/server');
             /* eslint-enable global-require */
         });
 
-        it('doesnt affect non-errors', (done) => {
-            hapiEngine({ ecosystem }, (error, server) => {
-                Assert.notOk(error);
+        it('doesnt affect non-errors', () => (
+            hapiEngine({ ecosystem }).then((server) => (
                 server.inject({
                     method: 'GET',
                     url: '/yes'
-                }, (response) => {
+                }).then(response => {
                     Assert.equal(response.statusCode, 200);
-                    done();
-                });
-            });
-        });
+                })
+            ))
+        ));
 
-        it('doesnt affect non-errors', (done) => {
-            hapiEngine({ ecosystem }, (error, server) => {
-                Assert.notOk(error);
+        it('doesnt affect errors', () => (
+            hapiEngine({ ecosystem }).then((server) => (
                 server.inject({
                     method: 'GET',
                     url: '/no'
-                }, (response) => {
+                }).then(response => {
                     Assert.equal(response.statusCode, 500);
                     Assert.equal(JSON.parse(response.payload).message, 'Not OK');
-                    done();
-                });
-            });
-        });
+                })
+            ))
+        ));
     });
 });

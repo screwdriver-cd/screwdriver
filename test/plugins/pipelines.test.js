@@ -150,7 +150,7 @@ describe('pipeline plugin test', () => {
             register: plugin,
             options: {
                 password,
-                scmPlugin: scmMock
+                scm: scmMock
             }
         }, {
             // eslint-disable-next-line global-require

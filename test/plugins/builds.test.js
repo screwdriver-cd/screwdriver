@@ -117,7 +117,9 @@ describe('build plugin test', () => {
             {
                 register: plugin,
                 options: {
-                    logBaseUrl
+                    ecosystem: {
+                        store: logBaseUrl
+                    }
                 }
             }
         ], done);
