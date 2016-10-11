@@ -47,6 +47,7 @@ auth:
         - shruthi-venkateswaran
         - stjohnjohnson
         - tkyi
+        - outofjungle
     admins:
         - FenrirUnbound
         - Filbird
@@ -61,6 +62,7 @@ auth:
         - shruthi-venkateswaran
         - stjohnjohnson
         - tkyi
+        - outofjungle
 
 httpd:
     # Port to listen on
