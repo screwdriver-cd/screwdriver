@@ -42,12 +42,12 @@ auth:
         - minz1027
         - nicolaifsf
         - nkatzman
+        - outofjungle
         - petey
         - sd-buildbot
         - shruthi-venkateswaran
         - stjohnjohnson
         - tkyi
-        - outofjungle
     admins:
         - FenrirUnbound
         - Filbird
@@ -58,11 +58,11 @@ auth:
         - minz1027
         - nicolaifsf
         - nkatzman
+        - outofjungle
         - petey
         - shruthi-venkateswaran
         - stjohnjohnson
         - tkyi
-        - outofjungle
 
 httpd:
     # Port to listen on
