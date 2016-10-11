@@ -3,30 +3,28 @@
 
 const winston = require('winston');
 const config = require('config');
+const server = require('../');
 
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
-const datastore = new DatastorePlugin(datastoreConfig[datastoreConfig.plugin]);
+const datastore = new DatastorePlugin(datastoreConfig[datastoreConfig.plugin] || {});
 
 // Setup Executor
 const executorConfig = config.get('executor');
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
-const executor = new ExecutorPlugin(executorConfig[executorConfig.plugin]);
+const executor = new ExecutorPlugin(executorConfig[executorConfig.plugin] || {});
 
-// scm Plugin
+// Source Code Plugin
 const scmConfig = config.get('scm');
 const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
-const scmPlugin = new ScmPlugin({});
+const scm = new ScmPlugin(scmConfig[scmConfig.plugin] || {});
 
 // Setup Authentication
 const authConfig = config.get('auth');
 
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
-
-// Setup Logging
-const logBaseUrl = config.get('logging.baseUrl');
 
 // Setup GitHub Webhooks
 const gitHubSecret = config.get('webhooks.github.secret');
@@ -36,14 +34,18 @@ const ecosystem = config.get('ecosystem');
 
 // Setup Model Factories
 const Models = require('screwdriver-models');
-const pipelineFactory = Models.PipelineFactory.getInstance({ datastore, scmPlugin });
-const jobFactory = Models.JobFactory.getInstance({ datastore });
+const pipelineFactory = Models.PipelineFactory.getInstance({
+    datastore, scm
+});
+const jobFactory = Models.JobFactory.getInstance({
+    datastore
+});
 const userFactory = Models.UserFactory.getInstance({
-    datastore, scmPlugin, password: authConfig.password
+    datastore, scm, password: authConfig.password
 });
 const buildFactory = Models.BuildFactory.getInstance({
     datastore,
-    scmPlugin,
+    scm,
     executor,
     uiUri: ecosystem.ui
 });
@@ -51,31 +53,29 @@ const secretFactory = Models.SecretFactory.getInstance({
     datastore, password: authConfig.password
 });
 
-require('../')({
-    httpd: httpdConfig,
-    auth: authConfig,
-    ecosystem,
-    pipelineFactory,
-    jobFactory,
-    userFactory,
-    buildFactory,
-    secretFactory,
-    builds: {
-        logBaseUrl
-    },
-    webhooks: {
-        secret: gitHubSecret
-    },
-    stats: {
-        executor,
-        scmPlugin
-    }
-}, (err, server) => {
-    if (err) {
+// @TODO run setup for SCM and Executor
+datastore.setup()
+    .then(() => server({
+        httpd: httpdConfig,
+        auth: authConfig,
+        ecosystem,
+        pipelineFactory,
+        jobFactory,
+        userFactory,
+        buildFactory,
+        secretFactory,
+        builds: {
+            ecosystem
+        },
+        webhooks: {
+            secret: gitHubSecret
+        },
+        stats: {
+            executor, scm
+        }
+    }))
+    .then(instance => winston.info('Server running at %s', instance.info.uri))
+    .catch(err => {
         winston.error(err);
-
-        return process.exit(1);
-    }
-
-    return winston.info('Server running at %s', server.info.uri);
-});
+        process.exit(1);
+    });

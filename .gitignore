@@ -3,6 +3,6 @@ artifacts/
 npm-debug.log
 .DS_STORE
 .*.swp
-database.json
+database.*
 config/local.*
 .func_config.json

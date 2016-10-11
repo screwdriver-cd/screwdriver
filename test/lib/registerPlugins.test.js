@@ -65,10 +65,10 @@ describe('Register Unit Test Case', () => {
         mockery.disable();
     });
 
-    it('registered all the default plugins', (done) => {
+    it('registered all the default plugins', () => {
         serverMock.register.callsArgAsync(2);
 
-        main(serverMock, config, () => {
+        return main(serverMock, config).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
             expectedPlugins.forEach((plugin) => {
                 Assert.calledWith(serverMock.register, mocks[plugin], {
@@ -77,14 +77,13 @@ describe('Register Unit Test Case', () => {
                     }
                 });
             });
-            done();
         });
     });
 
-    it('registered resource plugins', (done) => {
+    it('registered resource plugins', () => {
         serverMock.register.callsArgAsync(2);
 
-        main(serverMock, config, () => {
+        return main(serverMock, config).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
             resourcePlugins.forEach((plugin) => {
@@ -97,19 +96,29 @@ describe('Register Unit Test Case', () => {
                     }
                 });
             });
-
-            done();
         });
     });
 
-    it('registers data for plugin when specified in the config object', (done) => {
+    it('bubbles failures up', () => {
+        serverMock.register.callsArgWithAsync(2, new Error('failure loading'));
+
+        return main(serverMock, config)
+            .then(() => {
+                throw new Error('should not be here');
+            })
+            .catch(err => {
+                Assert.equal(err.message, 'failure loading');
+            });
+    });
+
+    it('registers data for plugin when specified in the config object', () => {
         serverMock.register.callsArgAsync(2);
 
-        main(serverMock, {
+        return main(serverMock, {
             auth: {
                 foo: 'bar'
             }
-        }, () => {
+        }).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
             Assert.calledWith(serverMock.register, {
@@ -122,8 +131,6 @@ describe('Register Unit Test Case', () => {
                     prefix: '/v4'
                 }
             });
-
-            done();
         });
     });
 });

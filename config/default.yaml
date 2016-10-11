@@ -114,12 +114,10 @@ webhooks:
         # Secret to add to GitHub webhooks so that we can validate them
         secret: SUPER-SECRET-SIGNING-THING
 
-logging:
-    # Base URL for accessing logs
-    baseUrl: https://s3-us-west-2.amazonaws.com/logs.screwdriver.cd
-
 ecosystem:
     # URL for the User Interface
     ui: https://cd.screwdriver.cd
+    # URL for the Artifact Store
+    store: https://s3-us-west-2.amazonaws.com/logs.screwdriver.cd
     # Badge service (needs to add a status and color)
     badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg

@@ -67,7 +67,7 @@
     "screwdriver-datastore-dynamodb": "^3.0.0",
     "screwdriver-datastore-imdb": "^1.0.15",
     "screwdriver-executor-k8s": "^8.0.0",
-    "screwdriver-models": "^14.0.0",
+    "screwdriver-models": "^15.0.0",
     "screwdriver-scm-github": "^1.0.1",
     "tinytim": "^0.1.1",
     "verror": "^1.6.1",

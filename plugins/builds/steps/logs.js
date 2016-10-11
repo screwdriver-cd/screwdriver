@@ -32,7 +32,7 @@ module.exports = (config) => ({
 
                     const isNotDone = stepModel.code === undefined;
                     const isNotStarted = stepModel.startTime === undefined;
-                    const url = `${config.logBaseUrl}/${buildId}/${stepName}`;
+                    const url = `${config.ecosystem.store}/${buildId}/${stepName}`;
                     const output = [];
 
                     if (isNotStarted) {

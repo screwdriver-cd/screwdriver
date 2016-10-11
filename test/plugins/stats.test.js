@@ -36,7 +36,7 @@ describe('stats plugin test', () => {
             register: plugin,
             options: {
                 executor: mockStats,
-                scmPlugin: mockStats
+                scm: mockStats
             }
         }], (err) => {
             done(err);
