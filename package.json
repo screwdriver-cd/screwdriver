@@ -63,7 +63,7 @@
     "request": "^2.74.0",
     "requestretry": "^1.12.0",
     "screwdriver-config-parser": "^2.0.0",
-    "screwdriver-data-schema": "^13.0.0",
+    "screwdriver-data-schema": "^14.0.0",
     "screwdriver-datastore-dynamodb": "^3.0.0",
     "screwdriver-datastore-imdb": "^1.0.15",
     "screwdriver-executor-k8s": "^8.0.0",
