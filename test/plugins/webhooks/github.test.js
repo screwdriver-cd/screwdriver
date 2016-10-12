@@ -1,4 +1,5 @@
 'use strict';
+
 const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
@@ -79,7 +80,7 @@ describe('github plugin test', () => {
             }
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
-            server.app.buildFactory.tokenGen = (buildId) =>
+            server.app.buildFactory.tokenGen = buildId =>
                 JSON.stringify({
                     username: buildId,
                     scope: ['build']

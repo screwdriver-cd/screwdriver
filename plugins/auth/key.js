@@ -9,7 +9,7 @@ const schema = require('screwdriver-data-schema');
  * @param  {String} options.jwtPublicKey  Public Key for verifying a JWT was signed by us
  * @return {Object}                       Hapi Plugin Route
  */
-module.exports = (options) => ({
+module.exports = options => ({
     method: ['GET'],
     path: '/auth/key',
     config: {

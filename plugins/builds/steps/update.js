@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 
@@ -24,14 +25,14 @@ module.exports = () => ({
             }
 
             return factory.get(buildId)
-                .then(build => {
+                .then((build) => {
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }
                     const steps = build.steps;
                     const now = (new Date()).toISOString();
 
-                    stepIndex = steps.findIndex((step) => step.name === request.params.name);
+                    stepIndex = steps.findIndex(step => step.name === request.params.name);
 
                     if (stepIndex === -1) {
                         throw boom.notFound('Step does not exist');

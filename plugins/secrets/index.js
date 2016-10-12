@@ -1,4 +1,5 @@
 'use strict';
+
 const createRoute = require('./create');
 const getRoute = require('./get');
 const removeRoute = require('./remove');
@@ -33,18 +34,18 @@ exports.register = (server, options, next) => {
         const username = credentials.username;
         const scope = credentials.scope;
 
-        return pipelineFactory.get(secret.pipelineId).then(pipeline => {
+        return pipelineFactory.get(secret.pipelineId).then((pipeline) => {
             if (!pipeline) {
                 throw boom.notFound(`Pipeline ${secret.pipelineId} does not exist`);
             }
 
             if (scope.includes('user')) {
-                return userFactory.get({ username }).then(user => {
+                return userFactory.get({ username }).then((user) => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user.getPermissions(pipeline.scmUrl).then(permissions => {
+                    return user.getPermissions(pipeline.scmUrl).then((permissions) => {
                         if (!permissions[permission]) {
                             throw boom.forbidden(`User ${username}
                                 does not have ${permission} access to this repo`);

@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
@@ -40,7 +41,7 @@ module.exports = () => ({
                     // ask the user for permissions on this repo
                     user.getPermissions(pipeline.scmUrl)
                         // check if user has push access
-                        .then(permissions => {
+                        .then((permissions) => {
                             if (!permissions.push) {
                                 throw boom.unauthorized(`User ${username} `
                                     + 'does not have push permission for this repo');
@@ -49,7 +50,7 @@ module.exports = () => ({
                         // user has good permissions, sync and create a build
                         .then(() => pipeline.sync())
                         .then(() => buildFactory.create(payload))
-            )).then(build => {
+            )).then((build) => {
                 // everything succeeded, inform the user
                 const location = urlLib.format({
                     host: request.headers.host,

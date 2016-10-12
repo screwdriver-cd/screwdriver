@@ -1,5 +1,5 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
+
 const githubWebhooks = require('hapi-github-webhooks');
 const hoek = require('hoek');
 const boom = require('boom');
@@ -199,7 +199,7 @@ function pullRequestEvent(request, reply) {
 
     // Fetch the pipeline associated with this hook
     return pipelineFactory.get({ scmUrl })
-        .then(pipeline => {
+        .then((pipeline) => {
             if (!pipeline) {
                 request.log(['webhook-github', eventId],
                     `Skipping since Pipeline ${scmUrl} does not exist`);
@@ -265,7 +265,7 @@ function pushEvent(request, reply) {
 
     // Fetch the pipeline associated with this hook
     return pipelineFactory.get({ scmUrl })
-        .then(pipeline => {
+        .then((pipeline) => {
             if (!pipeline) {
                 request.log(['webhook-github', eventId],
                     `Skipping since Pipeline ${scmUrl} does not exist`);
@@ -283,7 +283,7 @@ function pushEvent(request, reply) {
 
                     return buildFactory.create({ jobId, sha, username })
                         // log build created
-                        .then(build => {
+                        .then((build) => {
                             request.log(['webhook-github', eventId, jobId, build.id],
                                 `${name} started ${build.number}`);
 

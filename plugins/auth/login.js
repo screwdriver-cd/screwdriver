@@ -1,5 +1,6 @@
-/* eslint no-param-reassign: ["error", { "props": false }]*/
 'use strict';
+
+/* eslint no-param-reassign: ["error", { "props": false }]*/
 const boom = require('boom');
 
 /**
@@ -9,7 +10,7 @@ const boom = require('boom');
  * @param  {String}      config.password  Password to encrypt/decrypt data in Iron
  * @return {Object}                       Hapi Plugin Route
  */
-module.exports = (config) => ({
+module.exports = config => ({
     method: ['GET', 'POST'],
     path: '/auth/login/{web?}',
     config: {
@@ -43,7 +44,7 @@ module.exports = (config) => ({
 
             return factory.get({ username })
                 // get success, so user exists
-                .then(model => {
+                .then((model) => {
                     if (!model) {
                         return factory.create({
                             username,

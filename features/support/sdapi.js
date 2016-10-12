@@ -1,4 +1,5 @@
 'use strict';
+
 const request = require('./request');
 
 /**
@@ -45,9 +46,9 @@ function findBuilds(config) {
         let result = [];
 
         if (pullRequestNumber) {
-            result = jobData.filter((job) => job.name === `PR-${pullRequestNumber}`);
+            result = jobData.filter(job => job.name === `PR-${pullRequestNumber}`);
         } else {
-            result = jobData.filter((job) => job.name === 'main');
+            result = jobData.filter(job => job.name === 'main');
         }
 
         if (result.length === 0) {
@@ -95,11 +96,11 @@ function searchForBuild(config) {
         let result = buildData.body || [];
 
         if (desiredSha) {
-            result = result.filter((item) => item.sha === desiredSha);
+            result = result.filter(item => item.sha === desiredSha);
         }
 
         if (desiredStatus) {
-            result = result.filter((item) => desiredStatus.includes(item.status));
+            result = result.filter(item => desiredStatus.includes(item.status));
         }
 
         if (result.length > 0) {

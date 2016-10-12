@@ -1,4 +1,5 @@
 'use strict';
+
 const Assert = require('chai').assert;
 const request = require('../support/request');
 const sdapi = require('../support/sdapi');

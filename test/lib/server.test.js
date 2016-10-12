@@ -1,4 +1,5 @@
 'use strict';
+
 const Assert = require('chai').assert;
 const mockery = require('mockery');
 const sinon = require('sinon');
@@ -55,14 +56,14 @@ describe('server case', () => {
                 jobFactory: 'job',
                 userFactory: 'user',
                 buildFactory: {}
-            }).then(s => {
+            }).then((s) => {
                 server = s;
                 // Pretend we actually registered a login plugin
                 server.plugins.auth = {
                     generateToken: sinon.stub().returns('foo'),
                     generateProfile: sinon.stub().returns('bar')
                 };
-            }).catch(e => {
+            }).catch((e) => {
                 error = e;
             });
         });
@@ -73,7 +74,7 @@ describe('server case', () => {
             return server.inject({
                 method: 'GET',
                 url: '/blah'
-            }).then(response => {
+            }).then((response) => {
                 Assert.equal(response.statusCode, 404);
                 Assert.include(response.request.info.host, '12347');
             });
@@ -133,22 +134,22 @@ describe('server case', () => {
         });
 
         it('doesnt affect non-errors', () => (
-            hapiEngine({ ecosystem }).then((server) => (
+            hapiEngine({ ecosystem }).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/yes'
-                }).then(response => {
+                }).then((response) => {
                     Assert.equal(response.statusCode, 200);
                 })
             ))
         ));
 
         it('doesnt affect errors', () => (
-            hapiEngine({ ecosystem }).then((server) => (
+            hapiEngine({ ecosystem }).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/no'
-                }).then(response => {
+                }).then((response) => {
                     Assert.equal(response.statusCode, 500);
                     Assert.equal(JSON.parse(response.payload).message, 'Not OK');
                 })

@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');

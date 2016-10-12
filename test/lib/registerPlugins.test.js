@@ -1,4 +1,5 @@
 'use strict';
+
 const Assert = require('chai').assert;
 const mockery = require('mockery');
 const sinon = require('sinon');
@@ -106,7 +107,7 @@ describe('Register Unit Test Case', () => {
             .then(() => {
                 throw new Error('should not be here');
             })
-            .catch(err => {
+            .catch((err) => {
                 Assert.equal(err.message, 'failure loading');
             });
     });

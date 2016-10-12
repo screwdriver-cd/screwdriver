@@ -1,4 +1,5 @@
 'use strict';
+
 const config = require('../../.func_config');
 const requestretry = require('requestretry');
 
@@ -25,7 +26,7 @@ function beforeHooks() {
         this.accessKey = process.env.ACCESS_KEY || config.accessKey;
         this.instance = 'https://api.screwdriver.cd';
         this.namespace = 'v4';
-        this.waitForBuild = (buildID) =>
+        this.waitForBuild = buildID =>
             requestretry({
                 uri: `${this.instance}/${this.namespace}/builds/${buildID}`,
                 method: 'GET',

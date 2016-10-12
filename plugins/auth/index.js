@@ -71,7 +71,7 @@ exports.register = (server, options, next) => {
      * @param  {Object} profile Object from generateProfile
      * @return {String}         Signed jwt that includes that profile
      */
-    server.expose('generateToken', (profile) => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
+    server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
         algorithm: ALGORITHM,
         expiresIn: EXPIRES_IN
     }));
@@ -80,7 +80,7 @@ exports.register = (server, options, next) => {
         register: crumb,
         options: {
             restful: true,
-            skip: (request) =>
+            skip: request =>
                 // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
                 !!request.headers.authorization ||
                 !!request.route.path.includes('/webhooks/') ||

@@ -1,4 +1,5 @@
 'use strict';
+
 const swagger = require('hapi-swagger');
 
 module.exports = {

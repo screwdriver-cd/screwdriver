@@ -1,5 +1,5 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -21,12 +21,12 @@ module.exports = () => ({
             const id = request.params.id;
 
             return factory.get(id)
-                .then(pipeline => {
+                .then((pipeline) => {
                     if (!pipeline) {
                         throw boom.notFound(`Pipeline ${id} does not exist`);
                     }
 
-                    Object.keys(request.payload).forEach(key => {
+                    Object.keys(request.payload).forEach((key) => {
                         pipeline[key] = request.payload[key];
                     });
 

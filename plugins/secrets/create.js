@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
@@ -38,14 +39,14 @@ module.exports = () => ({
                 }
 
                 return user.getPermissions(pipeline.scmUrl)
-                    .then(permissions => {
+                    .then((permissions) => {
                         if (!permissions.admin) {
                             throw boom.unauthorized(
                                 `User ${username} is not an admin of this repo`);
                         }
                     })
                     .then(() => secretFactory.create(request.payload))
-                    .then(secret => {
+                    .then((secret) => {
                         const location = urlLib.format({
                             host: request.headers.host,
                             port: request.headers.port,
