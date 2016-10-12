@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -27,7 +28,7 @@ module.exports = () => ({
 
             // Get the secret first
             return secretFactory.get(request.params.id)
-                .then(secret => {
+                .then((secret) => {
                     if (!secret) {
                         throw boom.notFound('Secret does not exist');
                     }

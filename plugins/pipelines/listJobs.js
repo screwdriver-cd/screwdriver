@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -15,7 +16,7 @@ module.exports = () => ({
             const factory = request.server.app.pipelineFactory;
 
             return factory.get(request.params.id)
-              .then(pipeline => {
+              .then((pipeline) => {
                   if (!pipeline) {
                       throw boom.notFound('Pipeline does not exist');
                   }

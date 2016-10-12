@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+
 const winston = require('winston');
 const config = require('config');
 const server = require('../');

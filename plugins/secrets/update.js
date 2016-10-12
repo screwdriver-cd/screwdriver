@@ -1,5 +1,5 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -22,7 +22,7 @@ module.exports = () => ({
             const canAccess = request.server.plugins.secrets.canAccess;
 
             return factory.get(request.params.id)
-                .then(secret => {
+                .then((secret) => {
                     if (!secret) {
                         throw boom.notFound('Secret does not exist');
                     }
@@ -30,7 +30,7 @@ module.exports = () => ({
                     // Make sure that user has permission before updating
                     return canAccess(credentials, secret, 'admin')
                         .then(() => {
-                            Object.keys(request.payload).forEach(key => {
+                            Object.keys(request.payload).forEach((key) => {
                                 secret[key] = request.payload[key];
                             });
 

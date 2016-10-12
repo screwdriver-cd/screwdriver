@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -26,20 +27,20 @@ module.exports = () => ({
             const canAccess = request.server.plugins.secrets.canAccess;
 
             return factory.get(request.params.id)
-                .then(build => {
+                .then((build) => {
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }
 
                     return build.secrets;
                 })
-                .then(secrets => {
+                .then((secrets) => {
                     if (secrets.length === 0) {
                         return reply([]);
                     }
 
-                    return canAccess(credentials, secrets[0], 'push').then((showSecret) =>
-                        reply(secrets.map(s => {
+                    return canAccess(credentials, secrets[0], 'push').then(showSecret =>
+                        reply(secrets.map((s) => {
                             const output = s.toJson();
 
                             if (!showSecret) {

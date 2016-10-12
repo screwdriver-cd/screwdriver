@@ -1,4 +1,5 @@
 'use strict';
+
 const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
@@ -192,7 +193,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 and all pipelines', () => {
             pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines);
                 assert.calledWith(pipelineFactoryMock.list, {
@@ -208,7 +209,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when datastore fails', () => {
             pipelineFactoryMock.list.rejects(new Error('fittoburst'));
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -228,7 +229,7 @@ describe('pipeline plugin test', () => {
         it('exposes a route for getting a pipeline', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
             });
@@ -243,7 +244,7 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -252,7 +253,7 @@ describe('pipeline plugin test', () => {
         it('throws error when call returns error', () => {
             pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -286,7 +287,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 204 when delete successfully', () =>
-            server.inject(options).then(reply => {
+            server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(pipeline.remove);
             })
@@ -301,7 +302,7 @@ describe('pipeline plugin test', () => {
 
             userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(reply.result, error);
             });
@@ -316,7 +317,7 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -331,7 +332,7 @@ describe('pipeline plugin test', () => {
 
             userFactoryMock.get.withArgs({ username }).resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -341,7 +342,7 @@ describe('pipeline plugin test', () => {
             pipeline.remove.rejects('pipelineRemoveError');
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -363,7 +364,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 for getting jobs', () =>
-            server.inject(options).then(reply => {
+            server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
@@ -382,7 +383,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(null);
             options.url = `/pipelines/${id}/jobs?archived=blah`;
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 400);
             });
         });
@@ -390,7 +391,7 @@ describe('pipeline plugin test', () => {
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -398,7 +399,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the datastore returns an error', () => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -406,7 +407,7 @@ describe('pipeline plugin test', () => {
         it('pass in the correct params to getJobs', () => {
             options.url = `/pipelines/${id}/jobs?page=2&count=30&archived=true`;
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
@@ -433,7 +434,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 302 to for a valid build', () =>
-            server.inject(`/pipelines/${id}/badge`).then(reply => {
+            server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, 'failure/red');
             })
@@ -442,7 +443,7 @@ describe('pipeline plugin test', () => {
         it('returns 302 to unknown for a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
             });
@@ -451,7 +452,7 @@ describe('pipeline plugin test', () => {
         it('returns 302 to unknown for a job that does not exist', () => {
             pipelineMock.jobs = Promise.resolve([]);
 
-            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
             });
@@ -463,7 +464,7 @@ describe('pipeline plugin test', () => {
             mockJobs[0].getBuilds.resolves([]);
             pipelineMock.jobs = Promise.resolve(mockJobs);
 
-            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
             });
@@ -472,7 +473,7 @@ describe('pipeline plugin test', () => {
         it('returns 302 to unknown when the datastore returns an error', () => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
 
-            return server.inject(`/pipelines/${id}/badge`).then(reply => {
+            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
             });
@@ -508,7 +509,7 @@ describe('pipeline plugin test', () => {
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -516,7 +517,7 @@ describe('pipeline plugin test', () => {
         it('returns 403 when the user does not have push permissions', () => {
             userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -525,14 +526,14 @@ describe('pipeline plugin test', () => {
             pipelineMock.secrets = getSecretsMocks([]);
             pipelineFactoryMock.get.resolves(pipelineMock);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
             });
         });
 
         it('returns 200 for getting secrets', () =>
-            server.inject(options).then(reply => {
+            server.inject(options).then((reply) => {
                 const expected = [{
                     id: 'a123fb192747c9a0124e9e5b4e6e8e841cf8c71c',
                     pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
@@ -580,7 +581,7 @@ describe('pipeline plugin test', () => {
 
             pipelineMock.toJson.returns(expected);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
             });
@@ -589,7 +590,7 @@ describe('pipeline plugin test', () => {
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -597,7 +598,7 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the datastore returns an error', () => {
             pipelineMock.sync.rejects(new Error('icantdothatdave'));
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -650,7 +651,7 @@ describe('pipeline plugin test', () => {
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -684,7 +685,7 @@ describe('pipeline plugin test', () => {
         it('returns 401 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
             });
         });
@@ -692,7 +693,7 @@ describe('pipeline plugin test', () => {
         it('returns 409 when the scmUrl already exists', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 409);
             });
         });
@@ -702,7 +703,7 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.get.rejects(testError);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -712,7 +713,7 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -722,7 +723,7 @@ describe('pipeline plugin test', () => {
 
             pipelineMock.sync.rejects(testError);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });

@@ -1,10 +1,11 @@
 'use strict';
+
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
 
-module.exports = (config) => ({
+module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}/logs',
     config: {
@@ -17,12 +18,12 @@ module.exports = (config) => ({
             const stepName = req.params.name;
 
             factory.get(buildId)
-                .then(model => {
+                .then((model) => {
                     if (!model) {
                         throw boom.notFound('Build does not exist');
                     }
 
-                    const stepModel = model.steps.filter((step) => (
+                    const stepModel = model.steps.filter(step => (
                         step.name === stepName
                     )).pop();
 

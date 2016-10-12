@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -35,7 +36,7 @@ module.exports = () => ({
                 // ask the user for permissions on this repo
                 return user.getPermissions(pipeline.scmUrl)
                     // check if user has admin access
-                    .then(permissions => {
+                    .then((permissions) => {
                         if (!permissions.admin) {
                             throw boom.unauthorized(`User ${username} `
                                 + 'does not have admin permission for this repo');

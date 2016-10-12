@@ -1,5 +1,5 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -30,7 +30,7 @@ module.exports = () => ({
             }
 
             return factory.get(id)
-                .then(build => {
+                .then((build) => {
                     if (!build) {
                         throw boom.notFound(`Build ${id} does not exist`);
                     }
@@ -73,7 +73,7 @@ module.exports = () => ({
                     }
 
                     // Only trigger next build on success
-                    return build.job.then((job) => job.pipeline.then((pipeline) => {
+                    return build.job.then(job => job.pipeline.then((pipeline) => {
                         const workflow = pipeline.workflow;
 
                         // No workflow to follow
@@ -98,7 +98,7 @@ module.exports = () => ({
                         return jobFactory.get({
                             name: nextJobName,
                             pipelineId: pipeline.id
-                        }).then((nextJobToTrigger) => factory.create({
+                        }).then(nextJobToTrigger => factory.create({
                             jobId: nextJobToTrigger.id,
                             sha: build.sha,
                             username

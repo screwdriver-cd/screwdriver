@@ -1,4 +1,5 @@
 'use strict';
+
 const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
@@ -147,7 +148,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}`).then(reply => {
+            return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild);
             });
@@ -156,7 +157,7 @@ describe('build plugin test', () => {
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(`/builds/${id}`).then(reply => {
+            return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -164,7 +165,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject(`/builds/${id}`).then(reply => {
+            return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -200,7 +201,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.resolves(null);
 
-            return server.inject(options).then(reply => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });

@@ -1,4 +1,5 @@
 'use strict';
+
 const Assert = require('chai').assert;
 const request = require('../support/request');
 const jwt = require('jsonwebtoken');
@@ -13,7 +14,7 @@ module.exports = function server() {
         this.pipelineId = null;
     });
 
-    this.Given(/^an existing repository with these users and permissions:$/, (table) => table);
+    this.Given(/^an existing repository with these users and permissions:$/, table => table);
 
     this.Given(/^an existing pipeline with that repository$/, () => null);
 

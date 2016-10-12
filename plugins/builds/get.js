@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -16,7 +17,7 @@ module.exports = () => ({
             const factory = request.server.app.buildFactory;
 
             factory.get(request.params.id)
-                .then(model => {
+                .then((model) => {
                     if (!model) {
                         throw boom.notFound('Build does not exist');
                     }

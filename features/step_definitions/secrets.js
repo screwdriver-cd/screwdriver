@@ -1,4 +1,5 @@
 'use strict';
+
 const Assert = require('chai').assert;
 const request = require('../support/request');
 
@@ -9,7 +10,7 @@ module.exports = function server() {
         return table;
     });
 
-    this.Given(/^an existing pipeline with that repository with the workflow:$/, (table) => table);
+    this.Given(/^an existing pipeline with that repository with the workflow:$/, table => table);
 
     this.When(/^a secret "foo" is added globally$/, () => {
         request({
@@ -25,7 +26,7 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             json: true
-        }).then(response => {
+        }).then((response) => {
             this.secretId = response.body.id;
             Assert.equal(response.statusCode, 201);
         });
@@ -62,7 +63,7 @@ module.exports = function server() {
     );
 
     this.Then(/^the "foo" secret should be available in the build$/, { timeout: 60 * 1000 }, () =>
-        this.waitForBuild(this.buildId).then(response => {
+        this.waitForBuild(this.buildId).then((response) => {
             Assert.equal(response.body.status, 'SUCCESS');
             Assert.equal(response.statusCode, 200);
         })
@@ -73,10 +74,10 @@ module.exports = function server() {
             uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
             method: 'GET',
             json: true
-        }).then(response => {
+        }).then((response) => {
             this.secondBuildId = response.body[0].id;
 
-            return this.waitForBuild(this.secondBuildId).then(resp => {
+            return this.waitForBuild(this.secondBuildId).then((resp) => {
                 Assert.equal(resp.body.status, 'SUCCESS');
                 Assert.equal(resp.statusCode, 200);
             });
@@ -91,7 +92,7 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             json: true
-        }).then(response => {
+        }).then((response) => {
             Assert.isNotNull(response.body.name);
             Assert.equal(response.statusCode, 200);
         })
@@ -105,7 +106,7 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             json: true
-        }).then(response => {
+        }).then((response) => {
             Assert.equal(response.statusCode, 403);
         })
     );
@@ -118,7 +119,7 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             json: true
-        }).then(response => {
+        }).then((response) => {
             Assert.isUndefined(response.body.value);
             Assert.equal(response.statusCode, 200);
         })

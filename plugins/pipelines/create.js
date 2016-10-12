@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const hoek = require('hoek');
 const schema = require('screwdriver-data-schema');
@@ -54,7 +55,7 @@ module.exports = () => ({
                 // get the user permissions for the repo
                 .then(user => user.getPermissions(scmUrl)
                     // if the user isn't an admin, reject
-                    .then(permissions => {
+                    .then((permissions) => {
                         if (!permissions.admin) {
                             throw boom.unauthorized(
                               `User ${username} is not an admin of this repo`);
@@ -63,7 +64,7 @@ module.exports = () => ({
                     // see if there is already a pipeline
                     .then(() => pipelineFactory.get({ scmUrl }))
                     // if there is already a pipeline for the scmUrl, reject
-                    .then(pipeline => {
+                    .then((pipeline) => {
                         if (pipeline) {
                             throw boom.conflict('scmUrl needs to be unique');
                         }

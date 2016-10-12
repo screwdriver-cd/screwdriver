@@ -1,4 +1,5 @@
 'use strict';
+
 const createRoute = require('./create');
 const removeRoute = require('./remove');
 const getRoute = require('./get');

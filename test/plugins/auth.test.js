@@ -1,4 +1,5 @@
 'use strict';
+
 const chai = require('chai');
 const assert = chai.assert;
 const expect = chai.expect;
@@ -541,7 +542,7 @@ describe('auth plugin test', () => {
 
             return server.inject({
                 url: '/auth/crumb'
-            }).then(reply => {
+            }).then((reply) => {
                 server.plugins.crumb.generate.restore();
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result.crumb, mockReturn);
@@ -563,7 +564,7 @@ describe('auth plugin test', () => {
                 return server.inject({
                     url: '/webhooks/dummy',
                     method: 'POST'
-                }).then(reply => {
+                }).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, true);
                 });
@@ -585,7 +586,7 @@ describe('auth plugin test', () => {
                 return server.inject({
                     url: '/non-webhooks',
                     method: 'POST'
-                }).then(reply => {
+                }).then((reply) => {
                     assert.equal(reply.statusCode, 403);
                 });
             });
@@ -607,7 +608,7 @@ describe('auth plugin test', () => {
                     headers: {
                         authorization: 'Bearer token'
                     }
-                }).then(reply => {
+                }).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, true);
                 });

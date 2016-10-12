@@ -1,4 +1,5 @@
 'use strict';
+
 const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
@@ -57,7 +58,7 @@ describe('validator plugin test', () => {
                 method: 'POST',
                 url: '/validator',
                 payload: testInput
-            }).then(reply => {
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testOutput);
             })
@@ -70,7 +71,7 @@ describe('validator plugin test', () => {
                 payload: {
                     yaml: 'jobs: {}'
                 }
-            }).then(reply => {
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 400);
                 assert.match(reply.result.message, /"main" is required/);
             })

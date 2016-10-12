@@ -1,4 +1,5 @@
 'use strict';
+
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const tinytim = require('tinytim');
@@ -40,12 +41,12 @@ module.exports = () => ({
             const badgeService = request.server.app.ecosystem.badges;
 
             return factory.get(request.params.id)
-                .then(pipeline => {
+                .then((pipeline) => {
                     if (!pipeline) {
                         return reply.redirect(getUrl(request.server.app.ecosystem.badges));
                     }
 
-                    return pipeline.jobs.then(jobs => {
+                    return pipeline.jobs.then((jobs) => {
                         const main = jobs.filter(job => job.name === 'main').pop();
 
                         if (!main) {
@@ -58,7 +59,7 @@ module.exports = () => ({
                                 count: 1
                             },
                             sort: 'descending'
-                        }).then(builds => {
+                        }).then((builds) => {
                             const build = builds.pop();
 
                             return reply.redirect(getUrl(badgeService, build && build.status));

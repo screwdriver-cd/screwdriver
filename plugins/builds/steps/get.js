@@ -1,4 +1,5 @@
 'use strict';
+
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.build.getStep;
@@ -14,12 +15,12 @@ module.exports = () => ({
             const factory = request.server.app.buildFactory;
 
             factory.get(request.params.id)
-                .then(model => {
+                .then((model) => {
                     if (!model) {
                         throw boom.notFound('Build does not exist');
                     }
 
-                    const stepModel = model.steps.filter((step) => (
+                    const stepModel = model.steps.filter(step => (
                         step.name === request.params.name
                     )).pop();
 

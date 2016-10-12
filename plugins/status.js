@@ -1,4 +1,5 @@
 'use strict';
+
 /**
  * Hapi interface for plugin to set up status endpoint (see Hapi docs)
  * @method register
