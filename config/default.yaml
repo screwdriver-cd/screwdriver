@@ -82,13 +82,10 @@ httpd:
         #     YOUR CERT HERE
 
 datastore:
-    plugin: imdb
+    plugin: sequelize
     sequelize:
         # Type of server to talk to
         dialect: sqlite
-    imdb:
-        # File to read/write the database to
-        filename: ./database.json
     dynamodb:
         # Prefix to table names
         prefix: ""

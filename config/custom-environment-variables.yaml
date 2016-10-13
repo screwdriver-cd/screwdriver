@@ -51,9 +51,6 @@ datastore:
         # Network settings
         host: DATASTORE_SEQUELIZE_HOST
         port: DATASTORE_SEQUELIZE_PORT
-    imdb:
-        # File to read/write the database to
-        filename: DATASTORE_IMDB_FILENAME
     dynamodb:
         # Prefix to the table names
         prefix: DATASTORE_DYNAMODB_PREFIX
