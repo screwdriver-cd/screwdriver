@@ -68,8 +68,7 @@ This API comes preloaded with 4 (four) resources:
  - [pipelines](plugins/pipelines/README.md)
  - [secrets](plugins/secrets/README.md)
 
-Three (3) options for datastores:
- - In-Memory Database (`imdb`)
+Two (2) options for datastores:
  - Amazon DynamoDB (`dynamodb`)
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
