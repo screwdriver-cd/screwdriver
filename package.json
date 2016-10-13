@@ -19,6 +19,20 @@
   "engines": {
     "node": ">=6.0.0"
   },
+  "greenkeeper": {
+    "ignore": [
+      "screwdriver-config-parser",
+      "screwdriver-data-schema",
+      "screwdriver-datastore-dynamodb",
+      "screwdriver-datastore-imdb",
+      "screwdriver-datastore-sequelize",
+      "screwdriver-executor-k8s",
+      "screwdriver-executor-s3m",
+      "screwdriver-models",
+      "screwdriver-scm-github",
+      "screwdriver-scm-bitbucket"
+    ]
+  },
   "homepage": "http://screwdriver.cd",
   "bugs": "https://github.com/screwdriver-cd/screwdriver/issues",
   "keywords": [
