@@ -52,27 +52,23 @@ auth:
         - jpcollins
     admins:
         - FenrirUnbound
-        - Filbird
         - cynthiax
         - d2lam
         - dvdizon
         - jer
         - minz1027
-        - nicolaifsf
-        - nkatzman
         - outofjungle
         - petey
-        - shruthi-venkateswaran
         - stjohnjohnson
         - tkyi
 
 httpd:
     # Port to listen on
-    port: 8080
+    port: 80
     # Host to listen on (set to localhost to only accept connections from this machine)
     host: 0.0.0.0
     # Externally routable URI (usually your load balancer or CNAME)
-    uri: http://localhost:8080
+    uri: http://localhost:80
     # SSL Support
     tls: false
         # If you want SSL, you can easily add it by replacing `tls: false` with an object that
@@ -88,13 +84,14 @@ datastore:
     sequelize:
         # Type of server to talk to
         dialect: sqlite
+        # More arguments here:
+        # http://docs.sequelizejs.com/en/latest/api/sequelize/
     dynamodb:
         # Prefix to table names
         prefix: ""
-        # AWS Access Key ID
-        accessKeyId: WHAT-A-LEGITIMATE-LOOKING-KEY-ID
-        # AWS Secret Access Key
-        secretAccessKey: TOTALLY-REAL-LOOKING-AWS-KEYS
+        # AWS Access Keys (required)
+        # accessKeyId:
+        # secretAccessKey:
 
 executor:
     plugin: k8s
@@ -102,11 +99,17 @@ executor:
         # The host or IP of the kubernetes cluster
         host: kubernetes
         # The jwt token used for authenticating kubernetes requests
-        token: NOT-A-REAL-JWT-TOKEN
-        # Launcher container tag to use
-        launchVersion: latest
-        # Log Service container tag to use
-        logVersion: latest
+        # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
+        # token:
+
+        # Container tags to use
+        launchVersion: stable
+    s3m:
+        # Dockerode configuration https://github.com/apocas/dockerode#getting-started
+        docker: {}
+
+        # Container tags to use
+        launchVersion: stable
 
 scm:
     plugin: github
@@ -117,9 +120,9 @@ webhooks:
         secret: SUPER-SECRET-SIGNING-THING
 
 ecosystem:
-    # URL for the User Interface
+    # Externally routable URL for the User Interface
     ui: https://cd.screwdriver.cd
-    # URL for the Artifact Store
-    store: https://s3-us-west-2.amazonaws.com/logs.screwdriver.cd
+    # Externally routable URL for the Artifact Store
+    store: https://store.screwdriver.cd
     # Badge service (needs to add a status and color)
     badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg

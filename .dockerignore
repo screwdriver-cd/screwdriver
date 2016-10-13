@@ -2,4 +2,3 @@ node_modules/
 test/
 features/
 artifacts/
-kubernetes/

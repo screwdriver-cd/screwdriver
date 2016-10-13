@@ -4,6 +4,7 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
+const MAX_LINES = 100;
 
 module.exports = config => ({
     method: 'GET',
@@ -31,14 +32,17 @@ module.exports = config => ({
                         throw boom.notFound('Step does not exist');
                     }
 
-                    const isNotDone = stepModel.code === undefined;
                     const isNotStarted = stepModel.startTime === undefined;
-                    const url = `${config.ecosystem.store}/${buildId}/${stepName}`;
                     const output = [];
 
                     if (isNotStarted) {
                         return reply(output).header('X-More-Data', 'false');
                     }
+
+                    const page = Math.floor(req.query.from / MAX_LINES);
+                    const isDone = stepModel.code !== undefined;
+                    const url = `${config.ecosystem.store}/v1/builds/`
+                        + `${buildId}/${stepName}/log.${page}`;
 
                     return request
                         // Load NDJson from S3 bucket
@@ -52,9 +56,10 @@ module.exports = config => ({
                                 output.push(line);
                             }
                         })
-                        // Set header X-More-Data: true if step not done
+                        // Set header X-More-Data: false if lines < MAX_LINES && step done
                         .on('end', () =>
-                            reply(output).header('X-More-Data', isNotDone.toString()));
+                            reply(output).header('X-More-Data',
+                                (!(output.length < MAX_LINES && isDone)).toString()));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },
