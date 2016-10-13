@@ -1,0 +1,20 @@
+{
+    "jobs": {
+        "main": [
+            {
+                "image": "alpine",
+                "commands": [
+                    {
+                        "name": "config-parse-error",
+                        "command": "echo \"ValidationError: child \"jobs\" fails because [child \"main\" fails because [\"main\" is required]]\"; exit 1"
+                    }
+                ],
+                "secrets": [],
+                "environment": {}
+            }
+        ]
+    },
+    "workflow": [
+        "main"
+    ]
+}
