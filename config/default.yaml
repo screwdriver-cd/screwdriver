@@ -83,6 +83,9 @@ httpd:
 
 datastore:
     plugin: imdb
+    sequelize:
+        # Type of server to talk to
+        dialect: sqlite
     imdb:
         # File to read/write the database to
         filename: ./database.json
