@@ -6,24 +6,25 @@ const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
-    method: 'DELETE',
-    path: '/pipelines/{id}',
+    method: 'GET',
+    path: '/pipelines/{id}/sync',
     config: {
-        description: 'Delete a single pipeline',
-        notes: 'Returns null if successful',
+        description: 'Sync a pipeline',
+        notes: 'Sync a specific pipeline',
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token', 'session'],
             scope: ['user']
         },
         handler: (request, reply) => {
+            const id = request.params.id;
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
 
             // Fetch the pipeline and user models
             return Promise.all([
-                pipelineFactory.get(request.params.id),
+                pipelineFactory.get(id),
                 userFactory.get({ username })
             ]).then(([pipeline, user]) => {
                 if (!pipeline) {
@@ -37,13 +38,13 @@ module.exports = () => ({
                 return user.getPermissions(pipeline.scmUri)
                     // check if user has admin access
                     .then((permissions) => {
-                        if (!permissions.admin) {
+                        if (!permissions.push) {
                             throw boom.unauthorized(`User ${username} `
-                                + 'does not have admin permission for this repo');
+                                + 'does not have write permission for this repo');
                         }
                     })
-                    // user has good permissions, remove the pipeline
-                    .then(() => pipeline.remove())
+                    // user has good permissions, sync the pipeline
+                    .then(() => pipeline.sync())
                     .then(() => reply().code(204));
             })
             .catch(err => reply(boom.wrap(err)));
