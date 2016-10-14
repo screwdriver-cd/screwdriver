@@ -233,7 +233,7 @@ describe('auth plugin test', () => {
 
         beforeEach(() => {
             userMock = getUserMock(user);
-            userMock.sealToken.returns(token);
+            userMock.sealToken.resolves(token);
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
@@ -407,7 +407,7 @@ describe('auth plugin test', () => {
 
         beforeEach(() => {
             userMock = getUserMock(user);
-            userMock.sealToken.returns(token);
+            userMock.sealToken.resolves(token);
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
