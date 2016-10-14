@@ -7,6 +7,7 @@ const mockery = require('mockery');
 
 const testInput = require('./data/validator.input.json');
 const testOutput = require('./data/validator.output.json');
+const testBadOutput = require('./data/validator.badoutput.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -64,7 +65,7 @@ describe('validator plugin test', () => {
             })
         );
 
-        it('returns 400 for bad yaml', () =>
+        it('returns 200 for bad yaml with custom job', () =>
             server.inject({
                 method: 'POST',
                 url: '/validator',
@@ -72,8 +73,8 @@ describe('validator plugin test', () => {
                     yaml: 'jobs: {}'
                 }
             }).then((reply) => {
-                assert.equal(reply.statusCode, 400);
-                assert.match(reply.result.message, /"main" is required/);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBadOutput);
             })
         );
     });

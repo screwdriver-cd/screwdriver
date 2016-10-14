@@ -20,8 +20,7 @@
                 "secrets": [],
                 "environment": {
                     "NODE_VERSION": "4"
-                },
-                "secrets": []
+                }
             },
             {
                 "image": "node:6",
@@ -42,8 +41,7 @@
                 "secrets": [],
                 "environment": {
                     "NODE_VERSION": "6"
-                },
-                "secrets": []
+                }
             }
         ],
         "publish": [
