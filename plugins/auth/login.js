@@ -54,9 +54,13 @@ module.exports = config => ({
                     }
                     // seal and save updated token
                     model.password = config.password;
-                    model.token = model.sealToken(githubToken);
 
-                    return model.update();
+                    return model.sealToken(githubToken)
+                        .then((token) => {
+                            model.token = token;
+
+                            return model.update();
+                        });
                 })
                 .then(() => {
                     if (request.params.web === 'web') {
