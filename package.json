@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "API server for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
@@ -77,12 +77,12 @@
     "request": "^2.74.0",
     "requestretry": "^1.12.0",
     "screwdriver-config-parser": "^2.0.0",
-    "screwdriver-data-schema": "^13.0.0",
+    "screwdriver-data-schema": "^14.0.2",
     "screwdriver-datastore-dynamodb": "^3.0.0",
     "screwdriver-datastore-sequelize": "^1.0.2",
     "screwdriver-executor-k8s": "^8.0.0",
-    "screwdriver-models": "^15.0.0",
-    "screwdriver-scm-github": "^1.0.1",
+    "screwdriver-models": "^16.0.0",
+    "screwdriver-scm-github": "^2.0.0",
     "tinytim": "^0.1.1",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
