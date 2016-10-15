@@ -34,7 +34,7 @@ module.exports = () => ({
                 }
 
                 // ask the user for permissions on this repo
-                return user.getPermissions(pipeline.scmUri)
+                return user.getPermissions(pipeline.scmUrl)
                     // check if user has admin access
                     .then((permissions) => {
                         if (!permissions.admin) {
@@ -42,6 +42,7 @@ module.exports = () => ({
                                 + 'does not have admin permission for this repo');
                         }
                     })
+
                     // user has good permissions, remove the pipeline
                     .then(() => pipeline.remove())
                     .then(() => reply().code(204));

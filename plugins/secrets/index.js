@@ -45,7 +45,7 @@ exports.register = (server, options, next) => {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
+                    return user.getPermissions(pipeline.scmUrl).then((permissions) => {
                         if (!permissions[permission]) {
                             throw boom.forbidden(`User ${username}
                                 does not have ${permission} access to this repo`);

@@ -17,6 +17,7 @@ const getPipelineMock = (pipeline) => {
 
     mock.sync = sinon.stub();
     mock.update = sinon.stub();
+    mock.formatScmUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
 
@@ -116,7 +117,7 @@ describe('secret plugin test', () => {
 
     describe('POST /secrets', () => {
         let options;
-        const scmUri = 'github.com:12345:branchName';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const name = 'NPM_TOKEN';
@@ -144,7 +145,7 @@ describe('secret plugin test', () => {
             };
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
@@ -195,7 +196,7 @@ describe('secret plugin test', () => {
         });
 
         it('returns 401 when the user does not have admin permissions', () => {
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -217,7 +218,7 @@ describe('secret plugin test', () => {
         let options;
         const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const scmUri = 'github.com:12345:branchName';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const username = 'myself';
         let secretMock;
         let userMock;
@@ -234,7 +235,7 @@ describe('secret plugin test', () => {
             };
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
@@ -269,7 +270,7 @@ describe('secret plugin test', () => {
         );
 
         it('returns 403 when the user does not have admin permissions', () => {
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
@@ -291,7 +292,7 @@ describe('secret plugin test', () => {
         let options;
         const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const scmUri = 'github.com:12345:branchName';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const username = 'myself';
         let secretMock;
         let userMock;
@@ -312,7 +313,7 @@ describe('secret plugin test', () => {
             };
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
@@ -357,7 +358,7 @@ describe('secret plugin test', () => {
         });
 
         it('returns 403 when the user does not have admin permissions', () => {
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
@@ -379,7 +380,7 @@ describe('secret plugin test', () => {
         let options;
         const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const scmUri = 'github.com:12345:branchName';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const username = 'minz';
         let secretMock;
         let userMock;
@@ -387,7 +388,7 @@ describe('secret plugin test', () => {
 
         beforeEach(() => {
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
+            userMock.getPermissions.withArgs(scmUrl).resolves({ push: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
@@ -434,7 +435,7 @@ describe('secret plugin test', () => {
             });
 
             it('returns 403 when the user does not have push permissions', () => {
-                userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+                userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 403);
