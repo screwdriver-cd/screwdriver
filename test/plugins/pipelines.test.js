@@ -53,7 +53,7 @@ const decoratePipelineMock = (pipeline) => {
 
     mock.sync = sinon.stub();
     mock.update = sinon.stub();
-    mock.formatScmUrl = sinon.stub();
+    mock.formatCheckoutUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
@@ -117,13 +117,16 @@ describe('pipeline plugin test', () => {
         pipelineFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            scm: {
+                parseUrl: sinon.stub()
+            }
         };
         userFactoryMock = {
             get: sinon.stub()
         };
         scmMock = {
-            getRepoId: sinon.stub()
+            decorateUrl: sinon.stub()
         };
 
         /* eslint-disable global-require */
@@ -261,7 +264,7 @@ describe('pipeline plugin test', () => {
 
     describe('DELETE /pipelines/{id}', () => {
         const id = 'cf23df2207d99a74fbe169e3eba035e633b65d94';
-        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
         let pipeline;
         let options;
@@ -278,7 +281,7 @@ describe('pipeline plugin test', () => {
             };
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipeline = getPipelineMocks(testPipeline);
@@ -300,7 +303,7 @@ describe('pipeline plugin test', () => {
                 message: 'User myself does not have admin permission for this repo'
             };
 
-            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -340,7 +343,6 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when call returns error', () => {
             pipeline.remove.rejects('pipelineRemoveError');
-            pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -483,7 +485,7 @@ describe('pipeline plugin test', () => {
     describe('GET /pipelines/{id}/secrets', () => {
         const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const username = 'myself';
-        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const scmUri = 'github.com:12345:branchName';
         let options;
         let pipelineMock;
         let userMock;
@@ -502,7 +504,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUrl).resolves({ push: true });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
         });
 
@@ -515,7 +517,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 403 when the user does not have push permissions', () => {
-            userMock.getPermissions.withArgs(scmUrl).resolves({ push: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
@@ -552,46 +554,74 @@ describe('pipeline plugin test', () => {
         );
     });
 
-    describe('PUT /pipelines/{id}', () => {
-        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#batman';
+    describe('GET /pipelines/{id}/sync', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const username = 'd2lam';
+        const scmUri = 'github.com:12345:branchName';
         let pipelineMock;
+        let userMock;
         let options;
 
         beforeEach(() => {
             options = {
-                method: 'PUT',
-                url: `/pipelines/${id}`,
-                payload: {
-                    scmUrl
-                },
+                method: 'GET',
+                url: `/pipelines/${id}/sync`,
                 credentials: {
+                    username,
                     scope: ['user']
                 }
             };
 
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.update.resolves(pipelineMock);
-            pipelineMock.sync.resolves();
-            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineMock.sync.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
         });
 
-        it('returns 200 for updating a pipeline that exists', () => {
-            const expected = hoek.applyToDefaults(testPipeline, { scmUrl });
+        it('returns 204 for updating a pipeline that exists', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+            })
+        );
 
-            pipelineMock.toJson.returns(expected);
+        it('returns 401 when user does not have admin permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'User d2lam does not have write permission for this repo'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, expected);
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
             });
         });
 
         it('returns 404 for updating a pipeline that does not exist', () => {
-            pipelineFactoryMock.get.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User d2lam does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
             });
         });
 
@@ -606,8 +636,9 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines', () => {
         let options;
-        const unformattedScmUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
+        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
+        const scmUri = 'github.com:12345:master';
         const scmRepo = {
             id: 'github.com:123456:master'
         };
@@ -626,7 +657,7 @@ describe('pipeline plugin test', () => {
                 method: 'POST',
                 url: '/pipelines',
                 payload: {
-                    scmUrl: unformattedScmUrl
+                    checkoutUrl: unformattedCheckoutUrl
                 },
                 credentials: {
                     username,
@@ -635,7 +666,7 @@ describe('pipeline plugin test', () => {
             };
 
             userMock = getUserMock({ username });
-            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: true });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
@@ -645,7 +676,8 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(null);
             pipelineFactoryMock.create.resolves(pipelineMock);
 
-            scmMock.getRepoId.withArgs({ scmUrl, token }).resolves(scmRepo);
+            pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+            scmMock.decorateUrl.resolves(scmRepo);
         });
 
         it('returns 201 and correct pipeline data', () => {
@@ -665,32 +697,33 @@ describe('pipeline plugin test', () => {
                     admins: {
                         d2lam: true
                     },
-                    scmUrl
+                    scmUri
                 });
             });
         });
 
-        it('formats scmUrl correctly', () => {
-            const goodScmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        it('formats the checkout url correctly', () => {
+            const goodCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
 
-            options.payload.scmUrl = goodScmUrl;
+            options.payload.checkoutUrl = goodCheckoutUrl;
 
-            userMock.getPermissions.withArgs(goodScmUrl).resolves({ admin: false });
+            userMock.getPermissions.withArgs(goodCheckoutUrl).resolves({ admin: false });
 
             return server.inject(options, () => {
-                assert.calledWith(userMock.getPermissions, goodScmUrl);
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, checkoutUrl);
+                assert.calledWith(userMock.getPermissions, goodCheckoutUrl);
             });
         });
 
         it('returns 401 when the user does not have admin permissions', () => {
-            userMock.getPermissions.withArgs(scmUrl).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
             });
         });
 
-        it('returns 409 when the scmUrl already exists', () => {
+        it('returns 409 when the pipieline already exists', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
 
             return server.inject(options).then((reply) => {
