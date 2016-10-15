@@ -160,6 +160,8 @@ module.exports = function server() {
         .then((data) => {
             const build = data;
 
+            console.log('status: ', build.status);
+
             Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
             this.jobId = build.jobId;
         })

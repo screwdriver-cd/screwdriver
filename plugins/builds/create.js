@@ -36,10 +36,10 @@ module.exports = () => ({
                 jobFactory.get(payload.jobId),
                 userFactory.get({ username })
             ]).then(([job, user]) =>
-                // scmUri is buried in the pipeline, so we get that from the job
+                // scmUrl is buried in the pipeline, so we get that from the job
                 job.pipeline.then(pipeline =>
                     // ask the user for permissions on this repo
-                    user.getPermissions(pipeline.scmUri)
+                    user.getPermissions(pipeline.scmUrl)
                         // check if user has push access
                         .then((permissions) => {
                             if (!permissions.push) {

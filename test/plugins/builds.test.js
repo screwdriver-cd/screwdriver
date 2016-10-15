@@ -290,7 +290,7 @@ describe('build plugin test', () => {
             const jobId = '62089f642bbfd1886623964b4cff12db59869e5d';
             const pipelineId = '2d991790bab1ac8576097ca87f170df73410b55c';
             const publishJobId = '1a58304c063c184cf37b4303252b8e44d69f44d5';
-            const scmUri = 'github.com:12345:branchName';
+            const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
 
             let jobMock;
             let pipelineMock;
@@ -303,7 +303,7 @@ describe('build plugin test', () => {
                 };
                 pipelineMock = {
                     id: pipelineId,
-                    scmUri,
+                    scmUrl,
                     sync: sinon.stub().resolves()
                 };
 
@@ -554,8 +554,7 @@ describe('build plugin test', () => {
         const buildId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const jobId = '62089f642bbfd1886623964b4cff12db59869e5d';
         const pipelineId = '2d991790bab1ac8576097ca87f170df73410b55c';
-        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
-        const scmUri = 'github.com:12345:branchName';
+        const scmUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const params = {
             jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
             apiUri: 'http://localhost:12345',
@@ -588,8 +587,7 @@ describe('build plugin test', () => {
             };
             pipelineMock = {
                 id: pipelineId,
-                checkoutUrl,
-                scmUri,
+                scmUrl,
                 sync: sinon.stub().resolves()
             };
             userMock = {

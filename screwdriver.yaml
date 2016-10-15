@@ -1,7 +1,7 @@
 workflow:
     - publish
     - beta
-    # - prod
+    - prod
 
 shared:
     image: node:6
@@ -56,25 +56,25 @@ jobs:
             # Talking to Kubernetes
             - K8S_TOKEN
 
-    ## Disable for now since there are changes to the API that will break things
+
     # Deploy to our prod environment and run tests
-    # prod:
-    #     steps:
-    #         - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
-    #         - wait-docker: DOCKER_TAG=`git describe --abbrev=0 --tags` ./ci/docker-wait.sh
-    #         - deploy-k8s: K8S_TAG=`git describe --abbrev=0 --tags` ./ci/k8s-deploy.sh
-    #         - test: npm install && npm run functional
-    #     environment:
-    #         DOCKER_REPO: screwdrivercd/screwdriver
-    #         K8S_CONTAINER: screwdriver-api
-    #         K8S_IMAGE: screwdrivercd/screwdriver
-    #         K8S_HOST: api.k8s.screwdriver.cd
-    #         K8S_DEPLOYMENT: sdapi
-    #         SD_API: api.screwdriver.cd
-    #     secrets:
-    #         # Access key for functional tests
-    #         - ACCESS_KEY
-    #         # Git access token
-    #         - GIT_TOKEN
-    #         # Talking to Kubernetes
-    #         - K8S_TOKEN
+    prod:
+        steps:
+            - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
+            - wait-docker: DOCKER_TAG=`git describe --abbrev=0 --tags` ./ci/docker-wait.sh
+            - deploy-k8s: K8S_TAG=`git describe --abbrev=0 --tags` ./ci/k8s-deploy.sh
+            - test: npm install && npm run functional
+        environment:
+            DOCKER_REPO: screwdrivercd/screwdriver
+            K8S_CONTAINER: screwdriver-api
+            K8S_IMAGE: screwdrivercd/screwdriver
+            K8S_HOST: api.k8s.screwdriver.cd
+            K8S_DEPLOYMENT: sdapi
+            SD_API: api.screwdriver.cd
+        secrets:
+            # Access key for functional tests
+            - ACCESS_KEY
+            # Git access token
+            - GIT_TOKEN
+            # Talking to Kubernetes
+            - K8S_TOKEN

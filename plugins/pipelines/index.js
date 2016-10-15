@@ -2,9 +2,9 @@
 
 const createRoute = require('./create');
 const removeRoute = require('./remove');
-const syncRoute = require('./sync');
 const getRoute = require('./get');
 const listRoute = require('./list');
+const updateRoute = require('./update');
 const badgeRoute = require('./badge');
 const listJobsRoute = require('./listJobs');
 const listSecretsRoute = require('./listSecrets');
@@ -20,9 +20,9 @@ exports.register = (server, options, next) => {
     server.route([
         createRoute(),
         removeRoute(),
-        syncRoute(),
         getRoute(),
         listRoute(),
+        updateRoute(),
         badgeRoute(),
         listJobsRoute(),
         listSecretsRoute()
