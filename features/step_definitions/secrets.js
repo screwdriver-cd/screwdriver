@@ -4,15 +4,45 @@ const Assert = require('chai').assert;
 const request = require('../support/request');
 
 module.exports = function server() {
-    this.Given(/^an existing repository for secret with these users and permissions:$/, (table) => {
-        this.pipelineId = '4de9888518fd74beb336eb6e36f68b25697c219f';
-
-        return table;
+    // eslint-disable-next-line new-cap
+    this.Before({
+        tags: ['@secrets']
+    }, () => {
+        this.repoOrg = 'screwdriver-cd-test';
+        this.repoName = 'functional-secrets';
+        this.pipelineId = null;
     });
+
+    this.Given(/^an existing repository for secret with these users and permissions:$/,
+        { timeout: 60 * 1000 }, table =>
+        this.getJwt(this.accessKey)
+        .then((response) => {
+            this.jwt = response.body.token;
+
+            return request({
+                uri: `${this.instance}/${this.namespace}/pipelines`,
+                method: 'POST',
+                auth: {
+                    bearer: this.jwt
+                },
+                body: {
+                    checkoutUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
+                },
+                json: true
+            });
+        })
+        .then((res) => {
+            this.pipelineId = res.body.id;
+
+            Assert.strictEqual(res.statusCode, 201);
+
+            return table;
+        })
+    );
 
     this.Given(/^an existing pipeline with that repository with the workflow:$/, table => table);
 
-    this.When(/^a secret "foo" is added globally$/, () => {
+    this.When(/^a secret "foo" is added globally$/, () =>
         request({
             uri: `${this.instance}/${this.namespace}/secrets`,
             method: 'POST',
@@ -29,8 +59,8 @@ module.exports = function server() {
         }).then((response) => {
             this.secretId = response.body.id;
             Assert.equal(response.statusCode, 201);
-        });
-    });
+        })
+    );
 
     this.When(/^the "main" job is started$/, { timeout: 60 * 1000 }, () =>
         request({
@@ -122,6 +152,24 @@ module.exports = function server() {
         }).then((response) => {
             Assert.isUndefined(response.body.value);
             Assert.equal(response.statusCode, 200);
+        })
+    );
+
+    // eslint-disable-next-line new-cap
+    this.After({
+        tags: ['@secrets']
+    }, () =>
+        request({
+            method: 'DELETE',
+            auth: {
+                bearer: this.jwt
+            },
+            url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
+            followAllRedirects: true,
+            json: true
+        })
+        .then((resp) => {
+            Assert.strictEqual(resp.statusCode, 204);
         })
     );
 };

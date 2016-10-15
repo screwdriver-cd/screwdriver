@@ -177,18 +177,19 @@ function pullRequestSync(options, request, reply) {
 function pullRequestEvent(request, reply) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const jobFactory = request.server.app.jobFactory;
+    const userFactory = request.server.app.userFactory;
     const eventId = request.headers['x-github-delivery'];
     const payload = request.payload;
     const action = hoek.reach(payload, 'action');
     const prNumber = hoek.reach(payload, 'pull_request.number');
     const repository = hoek.reach(payload, 'pull_request.base.repo.ssh_url');
     const branch = hoek.reach(payload, 'pull_request.base.ref');
-    const scmUrl = `${repository}#${branch}`;
+    const checkoutUrl = `${repository}#${branch}`;
     const prRef = `${repository}#pull/${prNumber}/merge`;
     const sha = hoek.reach(payload, 'pull_request.head.sha');
     const username = hoek.reach(payload, 'pull_request.user.login');
 
-    request.log(['webhook-github', eventId], `PR #${prNumber} ${action} for ${scmUrl}`);
+    request.log(['webhook-github', eventId], `PR #${prNumber} ${action} for ${checkoutUrl}`);
 
     // Possible actions
     // "opened", "closed", "reopened", "synchronize",
@@ -198,11 +199,14 @@ function pullRequestEvent(request, reply) {
     }
 
     // Fetch the pipeline associated with this hook
-    return pipelineFactory.get({ scmUrl })
+    return userFactory.get({ username })
+        .then(user => user.unsealToken())
+        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
+        .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
                 request.log(['webhook-github', eventId],
-                    `Skipping since Pipeline ${scmUrl} does not exist`);
+                    `Skipping since Pipeline ${checkoutUrl} does not exist`);
 
                 return reply().code(204);
             }
@@ -253,22 +257,26 @@ function pushEvent(request, reply) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
+    const userFactory = request.server.app.userFactory;
     const eventId = request.headers['x-github-delivery'];
     const payload = request.payload;
     const repository = hoek.reach(payload, 'repository.ssh_url');
     const branch = hoek.reach(payload, 'ref').replace(/^refs\/heads\//, '');
     const sha = hoek.reach(payload, 'after');
     const username = hoek.reach(payload, 'sender.login');
-    const scmUrl = `${repository}#${branch}`;
+    const checkoutUrl = `${repository}#${branch}`;
 
-    request.log(['webhook-github', eventId], `Push for ${scmUrl}`);
+    request.log(['webhook-github', eventId], `Push for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
-    return pipelineFactory.get({ scmUrl })
+    return userFactory.get({ username })
+        .then(user => user.unsealToken())
+        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
+        .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
                 request.log(['webhook-github', eventId],
-                    `Skipping since Pipeline ${scmUrl} does not exist`);
+                    `Skipping since Pipeline ${checkoutUrl} does not exist`);
 
                 return reply().code(204);
             }

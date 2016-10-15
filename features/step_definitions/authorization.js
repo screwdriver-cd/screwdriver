@@ -23,12 +23,7 @@ module.exports = function server() {
             throw new Error('insufficient set up, missing access key');
         }
 
-        return request({
-            followAllRedirects: true,
-            json: true,
-            method: 'GET',
-            url: `https://api.screwdriver.cd/v4/auth/token?access_key=${this.accessKey}`
-        }).then((response) => {
+        return this.getJwt(this.accessKey).then((response) => {
             const accessToken = response.body.token;
             const decodedToken = jwt.decode(accessToken);
 
@@ -56,7 +51,7 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             body: {
-                scmUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
+                checkoutUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
             },
             json: true
         }).then((response) => {
