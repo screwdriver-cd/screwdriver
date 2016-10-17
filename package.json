@@ -4,7 +4,7 @@
   "description": "API server for the Screwdriver CD service",
   "main": "index.js",
   "scripts": {
-    "pretest": "eslint . && snyk test",
+    "pretest": "eslint .",
     "test": "jenkins-mocha --recursive",
     "start": "./bin/server",
     "functional": "cucumber-js --format=pretty ./features/server.feature ./features/secrets.feature ./features/git-flow.feature ./features/authorization.feature"
@@ -80,7 +80,8 @@
     "screwdriver-data-schema": "^13.0.0",
     "screwdriver-datastore-dynamodb": "^3.0.0",
     "screwdriver-datastore-sequelize": "^1.0.2",
-    "screwdriver-executor-k8s": "^8.0.0",
+    "screwdriver-executor-k8s": "^9.0.0",
+    "screwdriver-executor-s3m": "^1.0.0",
     "screwdriver-models": "^15.0.0",
     "screwdriver-scm-github": "^1.0.1",
     "tinytim": "^0.1.1",
@@ -104,7 +105,6 @@
     "npm-auto-version": "^1.0.0",
     "request": "^2.73.0",
     "sinon": "~1.17.4",
-    "sinon-as-promised": "^4.0.2",
-    "snyk": "^1.17.5"
+    "sinon-as-promised": "^4.0.2"
   }
 }

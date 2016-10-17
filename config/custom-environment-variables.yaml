@@ -27,6 +27,12 @@ auth:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: IS_HTTPS
+    whitelist:
+        __name: SECRET_WHITELIST
+        __format: json
+    admins:
+        __name: SECRET_ADMINS
+        __format: json
 
 httpd:
     # Port to listen on
@@ -60,6 +66,7 @@ datastore:
         secretAccessKey: DATASTORE_DYNAMODB_SECRET
 
 executor:
+    plugin: EXECUTOR_PLUGIN
     k8s:
         # The host or IP of the kubernetes cluster
         host: K8S_HOST
@@ -67,8 +74,13 @@ executor:
         token: K8S_TOKEN
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
-        # Log Service container tag to use
-        logVersion: LOG_VERSION
+    s3m:
+        # Configuration of Docker
+        docker:
+            __name: EXECUTOR_S3M_DOCKER
+            __format: json
+        # Launcher container tag to use
+        launchVersion: LAUNCH_VERSION
 
 
 webhooks:
@@ -79,5 +91,7 @@ webhooks:
 ecosystem:
     # URL for the User Interface
     ui: ECOSYSTEM_UI
+    # Externally routable URL for the Artifact Store
+    store: ECOSYSTEM_STORE
     # Badge service (needs to add a status and color)
     badges: ECOSYSTEM_BADGES

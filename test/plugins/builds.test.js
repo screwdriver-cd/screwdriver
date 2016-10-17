@@ -50,7 +50,7 @@ describe('build plugin test', () => {
     let secretAccessMock;
     let plugin;
     let server;
-    const logBaseUrl = 'http://example.com/screwdriver-logs';
+    const logBaseUrl = 'https://store.screwdriver.cd';
 
     before(() => {
         mockery.enable({
@@ -889,9 +889,6 @@ describe('build plugin test', () => {
         ];
 
         beforeEach(() => {
-            nock('http://example.com')
-                .get(`/screwdriver-logs/${id}/${step}`)
-                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
             nock.disableNetConnect();
         });
 
@@ -904,6 +901,9 @@ describe('build plugin test', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -912,10 +912,58 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns more-data for a step that is over but max lines', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+
+            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 100);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
+        });
+
+        it('returns from second page', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
+
+            return server.inject(`/builds/${id}/steps/${step}/logs?from=100`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 2);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns from second empty page', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .reply(200, '');
+
+            return server.inject(`/builds/${id}/steps/${step}/logs?from=100`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 0);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
         it('returns correct lines after a given line', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             return server.inject(`/builds/${id}/steps/${step}/logs?from=2`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -928,6 +976,9 @@ describe('build plugin test', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             return server.inject(`/builds/${id}/steps/publish/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -939,11 +990,10 @@ describe('build plugin test', () => {
         it('returns empty array on invalid data', () => {
             const buildMock = getMockBuilds(testBuild);
 
-            nock('http://example.com')
-                .get(`/screwdriver-logs/${id}/test`)
-                .reply(200, '<invalid JSON>\n<more bad JSON>');
-
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/test/log.0`)
+                .reply(200, '<invalid JSON>\n<more bad JSON>');
 
             return server.inject(`/builds/${id}/steps/test/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);

@@ -1,25 +1,12 @@
 #!/usr/bin/env node
+
 'use strict';
 
-
+/* eslint-disable import/no-dynamic-require */
 const winston = require('winston');
 const config = require('config');
 const server = require('../');
-
-// Setup Datastore
-const datastoreConfig = config.get('datastore');
-const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
-const datastore = new DatastorePlugin(datastoreConfig[datastoreConfig.plugin] || {});
-
-// Setup Executor
-const executorConfig = config.get('executor');
-const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
-const executor = new ExecutorPlugin(executorConfig[executorConfig.plugin] || {});
-
-// Source Code Plugin
-const scmConfig = config.get('scm');
-const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
-const scm = new ScmPlugin(scmConfig[scmConfig.plugin] || {});
+const hoek = require('hoek');
 
 // Setup Authentication
 const authConfig = config.get('auth');
@@ -32,6 +19,26 @@ const gitHubSecret = config.get('webhooks.github.secret');
 
 // Special urls for things like the UI
 const ecosystem = config.get('ecosystem');
+
+ecosystem.api = httpdConfig.uri;
+
+// Setup Datastore
+const datastoreConfig = config.get('datastore');
+const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
+const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
+    (datastoreConfig[datastoreConfig.plugin] || {})));
+
+// Setup Executor
+const executorConfig = config.get('executor');
+const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
+const executor = new ExecutorPlugin(hoek.applyToDefaults({ ecosystem },
+    (executorConfig[executorConfig.plugin] || {})));
+
+// Source Code Plugin
+const scmConfig = config.get('scm');
+const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
+const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
+    (scmConfig[scmConfig.plugin] || {})));
 
 // Setup Model Factories
 const Models = require('screwdriver-models');
@@ -76,7 +83,7 @@ datastore.setup()
         }
     }))
     .then(instance => winston.info('Server running at %s', instance.info.uri))
-    .catch(err => {
+    .catch((err) => {
         winston.error(err);
         process.exit(1);
     });
