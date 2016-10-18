@@ -27,6 +27,17 @@ $ docker run --rm -it --volume=`pwd`/local.yaml:/config/local.yaml -p 8080 screw
 info: Server running at http://localhost:8080
 ```
 
+### In-A-Box
+
+This handy feature will bring up an entire Screwdriver instance (ui, api, and log store) locally for you to play with.
+
+Requires:
+ - [Docker Compose 1.8.1+][docker-compose]
+
+```bash
+$ python <(curl https://raw.githubusercontent.com/screwdriver-cd/screwdriver/master/in-a-box.py)
+```
+
 ## Configuration
 
 Screwdriver already [defaults most configuration](config/default.yaml), but you can override defaults using a `local.yaml` or environment variables.
@@ -123,3 +134,4 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [daviddm-url]: https://david-dm.org/screwdriver-cd/screwdriver
 [slack-image]: http://slack.screwdriver.cd/badge.svg
 [slack-url]: http://slack.screwdriver.cd/
+[docker-compose]: https://www.docker.com/products/docker-compose
