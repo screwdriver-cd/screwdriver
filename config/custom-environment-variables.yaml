@@ -74,10 +74,10 @@ executor:
         token: K8S_TOKEN
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
-    s3m:
+    docker:
         # Configuration of Docker
         docker:
-            __name: EXECUTOR_S3M_DOCKER
+            __name: EXECUTOR_DOCKER_DOCKER
             __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
