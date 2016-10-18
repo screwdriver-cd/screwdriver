@@ -104,7 +104,7 @@ executor:
 
         # Container tags to use
         launchVersion: stable
-    s3m:
+    docker:
         # Dockerode configuration https://github.com/apocas/dockerode#getting-started
         docker: {}
 

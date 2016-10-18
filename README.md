@@ -72,8 +72,9 @@ Two (2) options for datastores:
  - Amazon DynamoDB (`dynamodb`)
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
-One (1) option for executor:
+Two (2) options for executor:
  - Kubernetes (`k8s`)
+ - Docker (`docker`)
 
 ## Testing
 

@@ -27,7 +27,7 @@
       "screwdriver-datastore-imdb",
       "screwdriver-datastore-sequelize",
       "screwdriver-executor-k8s",
-      "screwdriver-executor-s3m",
+      "screwdriver-executor-docker",
       "screwdriver-models",
       "screwdriver-scm-github",
       "screwdriver-scm-bitbucket"
@@ -81,7 +81,7 @@
     "screwdriver-datastore-dynamodb": "^3.0.0",
     "screwdriver-datastore-sequelize": "^1.0.2",
     "screwdriver-executor-k8s": "^9.0.0",
-    "screwdriver-executor-s3m": "^1.0.0",
+    "screwdriver-executor-docker": "^1.1.2",
     "screwdriver-models": "^15.0.0",
     "screwdriver-scm-github": "^1.0.1",
     "tinytim": "^0.1.1",
