@@ -97,13 +97,13 @@ npm test
 
 ### Functional tests
 
-Update `.func_config.json` with your own username, github_token, and jwt:
+Update `.func_config.json` with your own username, github token, access key, and host:
 ```json
 {
     "username": "YOUR-GITHUB-USERNAME",
     "gitToken": "YOUR-ACCESS-TOKEN",
     "accessKey": "YOUR-ACCESS-KEY",
-    "jwt": "YOUR-JWT"
+    "host": "YOUR-LOCAL-HOST"
 }
 ```
 
