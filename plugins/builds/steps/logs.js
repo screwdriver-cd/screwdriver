@@ -6,6 +6,44 @@ const request = require('request');
 const ndjson = require('ndjson');
 const MAX_LINES = 100;
 
+/**
+ * Load all pages that are available
+ * @method loadAllLines
+ * @param  {String}     baseUrl   URL to load from (without the .$PAGE)
+ * @param  {Integer}    linesFrom What line number are we starting from
+ * @return {Promise}              Array of log lines
+ */
+function loadAllLines(baseUrl, linesFrom) {
+    return new Promise((resolve) => {
+        const page = Math.floor(linesFrom / MAX_LINES);
+        const output = [];
+
+        request
+            .get(`${baseUrl}.${page}`)
+            // Parse the ndjson
+            .pipe(ndjson.parse({
+                strict: false
+            }))
+            // Filter down to the lines we care about
+            .on('data', (line) => {
+                if (line.n >= linesFrom) {
+                    output.push(line);
+                }
+            })
+            .on('end', () => resolve(output));
+    }).then((lines) => {
+        const linesCount = lines.length;
+
+        // Load from next log if we got stuff AND we reached the edge of a page
+        if (linesCount > 0 && (linesCount + linesFrom) % MAX_LINES === 0) {
+            return loadAllLines(baseUrl, linesCount + linesFrom)
+                .then(nextLines => lines.concat(nextLines));
+        }
+
+        return lines;
+    });
+}
+
 module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}/logs',
@@ -39,27 +77,12 @@ module.exports = config => ({
                         return reply(output).header('X-More-Data', 'false');
                     }
 
-                    const page = Math.floor(req.query.from / MAX_LINES);
                     const isDone = stepModel.code !== undefined;
-                    const url = `${config.ecosystem.store}/v1/builds/`
-                        + `${buildId}/${stepName}/log.${page}`;
+                    const baseUrl = `${config.ecosystem.store}/v1/builds/`
+                        + `${buildId}/${stepName}/log`;
 
-                    return request
-                        // Load NDJson from S3 bucket
-                        .get(url)
-                        .pipe(ndjson.parse({
-                            strict: false
-                        }))
-                        // Parse until line request.query.from
-                        .on('data', (line) => {
-                            if (line.n >= req.query.from) {
-                                output.push(line);
-                            }
-                        })
-                        // Set header X-More-Data: false if lines < MAX_LINES && step done
-                        .on('end', () =>
-                            reply(output).header('X-More-Data',
-                                (!(output.length < MAX_LINES && isDone)).toString()));
+                    return loadAllLines(baseUrl, req.query.from)
+                        .then(lines => reply(lines).header('X-More-Data', (!isDone).toString()));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },

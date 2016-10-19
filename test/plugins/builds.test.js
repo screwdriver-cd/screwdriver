@@ -914,18 +914,21 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns more-data for a step that is over but max lines', () => {
+        it('returns all logs for a step that is split across logs', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
             return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 100);
-                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+                assert.equal(reply.result.length, 102);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
 
