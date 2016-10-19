@@ -3,7 +3,6 @@
 const parser = require('screwdriver-config-parser');
 const schema = require('screwdriver-data-schema');
 const validatorSchema = schema.api.validator;
-const boom = require('boom');
 
 /**
  * Hapi Validator Plugin
@@ -21,15 +20,8 @@ exports.register = (server, options, next) => {
             description: 'Validate a given screwdriver.yaml',
             notes: 'Returns the parsed config or validation errors',
             tags: ['api', 'validation', 'yaml'],
-            handler: (request, reply) => {
-                parser(request.payload.yaml, (err, pipeline) => {
-                    if (err) {
-                        return reply(boom.badRequest(err.message));
-                    }
-
-                    return reply(pipeline);
-                });
-            },
+            handler: (request, reply) => parser(request.payload.yaml)
+                    .then(pipeline => reply(pipeline)),
             validate: {
                 payload: validatorSchema.input
             },

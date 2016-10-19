@@ -48,6 +48,8 @@ jobs:
             K8S_HOST: api.k8s.screwdriver.cd
             K8S_DEPLOYMENT: sdapi-beta
             SD_API: beta.api.screwdriver.cd
+            K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
+            K8S_ENV_VALUE: beta_rc2_
         secrets:
             # Access key for functional tests
             - ACCESS_KEY
@@ -71,6 +73,8 @@ jobs:
             K8S_HOST: api.k8s.screwdriver.cd
             K8S_DEPLOYMENT: sdapi
             SD_API: api.screwdriver.cd
+            K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
+            K8S_ENV_VALUE: rc2_
         secrets:
             # Access key for functional tests
             - ACCESS_KEY

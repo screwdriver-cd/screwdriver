@@ -21,6 +21,7 @@ describe('github plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
+    let userFactoryMock;
     let plugin;
     let server;
     const apiUri = 'http://foo.bar:12345';
@@ -42,6 +43,12 @@ describe('github plugin test', () => {
             create: sinon.stub()
         };
         pipelineFactoryMock = {
+            get: sinon.stub(),
+            scm: {
+                parseUrl: sinon.stub()
+            }
+        };
+        userFactoryMock = {
             get: sinon.stub()
         };
 
@@ -53,7 +60,8 @@ describe('github plugin test', () => {
         server.app = {
             jobFactory: jobFactoryMock,
             buildFactory: buildFactoryMock,
-            pipelineFactory: pipelineFactoryMock
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock
         };
         server.connection({
             host: 'localhost',
@@ -106,23 +114,26 @@ describe('github plugin test', () => {
     });
 
     describe('POST /webhooks/github', () => {
-        const scmUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
+        const checkoutUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
+        const scmUri = 'github.com:123456:master';
         const pipelineId = 'pipelineHash';
         const jobId = 'jobHash';
         const buildId = 'buildHash';
         const buildNumber = '12345';
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
         const username = 'baxterthehacker';
+        const token = 'iamtoken';
         let name = 'PR-1';
         let pipelineMock;
         let buildMock;
         let jobMock;
+        let userMock;
         let options;
 
         beforeEach(() => {
             pipelineMock = {
                 id: pipelineId,
-                scmUrl,
+                scmUri,
                 admins: {
                     baxterthehacker: false
                 },
@@ -142,6 +153,9 @@ describe('github plugin test', () => {
                 update: sinon.stub(),
                 getRunningBuilds: sinon.stub()
             };
+            userMock = {
+                unsealToken: sinon.stub()
+            };
 
             buildFactoryMock.create.resolves(buildMock);
             buildMock.update.resolves(null);
@@ -154,6 +168,10 @@ describe('github plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
             pipelineMock.sync.resolves({});
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
+            pipelineFactoryMock.scm.parseUrl.withArgs({ checkoutUrl, token }).resolves(scmUri);
+
+            userFactoryMock.get.resolves(userMock);
+            userMock.unsealToken.resolves(token);
         });
 
         it('returns 400 for unsupported event type', () => {

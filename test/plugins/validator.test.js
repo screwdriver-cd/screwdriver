@@ -64,7 +64,7 @@ describe('validator plugin test', () => {
             })
         );
 
-        it('returns 400 for bad yaml', () =>
+        it('returns 200 and error yaml for bad yaml', () =>
             server.inject({
                 method: 'POST',
                 url: '/validator',
@@ -72,8 +72,11 @@ describe('validator plugin test', () => {
                     yaml: 'jobs: {}'
                 }
             }).then((reply) => {
-                assert.equal(reply.statusCode, 400);
-                assert.match(reply.result.message, /"main" is required/);
+                assert.equal(reply.statusCode, 200);
+
+                const payload = JSON.parse(reply.payload);
+
+                assert.match(payload.jobs.main[0].commands[0].command, /"main" is required/);
             })
         );
     });

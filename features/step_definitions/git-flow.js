@@ -5,18 +5,6 @@ const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
 
-/**
- * Promise to wait a certain number of seconds
- * @method promiseToWait
- * @param  {Number}      timeToWait  Number of seconds to wait before continuing the chain
- * @return {Promise}
- */
-function promiseToWait(timeToWait) {
-    return new Promise((resolve) => {
-        setTimeout(() => resolve(), timeToWait * 1000);
-    });
-}
-
 module.exports = function server() {
     // eslint-disable-next-line new-cap
     this.Before({
@@ -26,10 +14,10 @@ module.exports = function server() {
         this.branch = 'darrenBranch';
         this.repoOrg = 'screwdriver-cd-test';
         this.repoName = 'functional-git';
-        this.pipelineId = '2e0138dfa7c4ff83720dc0cd510d2252a3398fc3';  // TODO: determine dynamically
 
         // Reset shared information
         this.pullRequestNumber = null;
+        this.pipelineId = null;
 
         return request({  // TODO : perform this in the before-hook for all func tests
             method: 'GET',
@@ -44,7 +32,9 @@ module.exports = function server() {
         );
     });
 
-    this.Given(/^an existing pipeline$/, () =>
+    this.Given(/^an existing pipeline$/, {
+        timeout: 60 * 1000
+    }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
@@ -52,15 +42,13 @@ module.exports = function server() {
                 bearer: this.jwt
             },
             body: {
-                scmUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
+                checkoutUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
             },
             json: true
         }).then((response) => {
-            if (!this.pipelineId) {
-                this.pipelineId = response.body.id;
-            }
+            this.pipelineId = response.body.id;
 
-            Assert.oneOf(response.statusCode, [409, 201]);
+            Assert.strictEqual(response.statusCode, 201);
         })
     );
 
@@ -105,7 +93,7 @@ module.exports = function server() {
     this.When(/^the pull request is closed$/, {
         timeout: 60 * 1000
     }, () =>
-        promiseToWait(3)  // Wait for the build to be enabled before moving forward
+        this.promiseToWait(3)  // Wait for the build to be enabled before moving forward
         .then(() =>
             sdapi.searchForBuild({
                 instance: this.instance,
@@ -124,7 +112,7 @@ module.exports = function server() {
     this.When(/^new changes are pushed to that pull request$/, {
         timeout: 60 * 1000
     }, () =>
-        promiseToWait(3)  // Find & save the previous build
+        this.promiseToWait(3)  // Find & save the previous build
         .then(() =>
             sdapi.searchForBuild({
                 instance: this.instance,
@@ -151,7 +139,7 @@ module.exports = function server() {
     this.Then(/^a new build from `main` should be created to test that change$/, {
         timeout: 60 * 1000
     }, () =>
-        promiseToWait(8)
+        this.promiseToWait(8)
         .then(() => sdapi.searchForBuild({
             instance: this.instance,
             pipelineId: this.pipelineId,
@@ -159,8 +147,6 @@ module.exports = function server() {
         }))
         .then((data) => {
             const build = data;
-
-            console.log('status: ', build.status);
 
             Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
             this.jobId = build.jobId;
@@ -198,6 +184,24 @@ module.exports = function server() {
         github.getStatus(this.gitToken, this.repoOrg, this.repoName, this.sha)
         .then((data) => {
             Assert.oneOf(data.state, ['success', 'pending']);
+        })
+    );
+
+    // eslint-disable-next-line new-cap
+    this.After({
+        tags: ['@gitflow']
+    }, () =>
+        request({
+            method: 'DELETE',
+            auth: {
+                bearer: this.jwt
+            },
+            url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
+            followAllRedirects: true,
+            json: true
+        })
+        .then((resp) => {
+            Assert.strictEqual(resp.statusCode, 204);
         })
     );
 };

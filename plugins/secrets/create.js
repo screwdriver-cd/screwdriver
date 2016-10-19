@@ -38,7 +38,7 @@ module.exports = () => ({
                     throw boom.notFound(`User ${username} does not exist`);
                 }
 
-                return user.getPermissions(pipeline.scmUrl)
+                return user.getPermissions(pipeline.scmUri)
                     .then((permissions) => {
                         if (!permissions.admin) {
                             throw boom.unauthorized(
