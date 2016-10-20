@@ -34,7 +34,7 @@ function randomString(stringLength) {
  */
 function cleanUpRepository(token, branch, repoOwner, repoName) {
     const branchParams = {
-        owner: repoOwner,
+        user: repoOwner,
         repo: repoName,
         ref: `heads/${branch}`
     };
@@ -65,7 +65,7 @@ function closePullRequest(token, repoOwner, repoName, prNumber) {
     });
 
     return github.pullRequests.update({
-        owner: repoOwner,
+        user: repoOwner,
         repo: repoName,
         number: prNumber,
         state: 'closed'
@@ -155,7 +155,7 @@ function createPullRequest(token, branch, repoOwner, repoName) {
     });
 
     return github.pullRequests.create({
-        owner: repoOwner,
+        user: repoOwner,
         repo: repoName,
         title: '[DNM] testing',
         head: branch,
@@ -180,7 +180,7 @@ function getStatus(token, repoOwner, repoName, sha) {
     });
 
     return github.repos.getCombinedStatus({
-        owner: repoOwner,
+        user: repoOwner,
         repo: repoName,
         sha
     });
