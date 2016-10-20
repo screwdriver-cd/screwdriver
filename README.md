@@ -32,6 +32,8 @@ info: Server running at http://localhost:8080
 This handy feature will bring up an entire Screwdriver instance (ui, api, and log store) locally for you to play with.
 
 Requires:
+ - Mac OSX 10.10+
+ - [Docker for Mac][docker]
  - [Docker Compose 1.8.1+][docker-compose]
 
 ```bash
@@ -135,4 +137,4 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [slack-image]: http://slack.screwdriver.cd/badge.svg
 [slack-url]: http://slack.screwdriver.cd/
 [docker-compose]: https://www.docker.com/products/docker-compose
-
+[docker]: https://www.docker.com/products/docker
