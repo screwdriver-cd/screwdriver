@@ -104,7 +104,7 @@ module.exports = function server() {
             })
         ).then((buildData) => {
             this.previousBuildId = buildData.id;
-        }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoOwner,
+        }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
                 this.pullRequestNumber)
         )
     );

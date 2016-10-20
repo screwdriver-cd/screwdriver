@@ -34,7 +34,7 @@ function randomString(stringLength) {
  */
 function cleanUpRepository(token, branch, repoOwner, repoName) {
     const branchParams = {
-        user: repoOwner,
+        owner: repoOwner,
         repo: repoName,
         ref: `heads/${branch}`
     };
@@ -65,7 +65,7 @@ function closePullRequest(token, repoOwner, repoName, prNumber) {
     });
 
     return github.pullRequests.update({
-        user: repoOwner,
+        owner: repoOwner,
         repo: repoName,
         number: prNumber,
         state: 'closed'
@@ -82,7 +82,7 @@ function closePullRequest(token, repoOwner, repoName, prNumber) {
  * @return {Promise}
  */
 function createBranch(token, branch, repoOwner, repoName) {
-    const user = repoOwner || 'screwdriver-cd-test';
+    const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
     // Branch creation requires authentication
@@ -93,7 +93,7 @@ function createBranch(token, branch, repoOwner, repoName) {
 
     // Create a branch from the tip of the master branch
     return github.gitdata.getReference({
-        user,
+        owner,
         repo,
         ref: 'heads/master'
     })
@@ -101,7 +101,7 @@ function createBranch(token, branch, repoOwner, repoName) {
         const sha = referenceData.object.sha;
 
         return github.gitdata.createReference({
-            user,
+            owner,
             repo,
             ref: `refs/heads/${branch}`,
             sha
@@ -121,7 +121,7 @@ function createBranch(token, branch, repoOwner, repoName) {
 function createFile(token, branch, repoOwner, repoName) {
     const content = new Buffer(randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
-    const user = repoOwner || 'screwdriver-cd-test';
+    const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
     github.authenticate({
@@ -130,7 +130,7 @@ function createFile(token, branch, repoOwner, repoName) {
     });
 
     return github.repos.createFile({
-        user,
+        owner,
         repo,
         path: filename,
         message: (new Date()).toString(),    // commit message is the current time
@@ -155,7 +155,7 @@ function createPullRequest(token, branch, repoOwner, repoName) {
     });
 
     return github.pullRequests.create({
-        user: repoOwner,
+        owner: repoOwner,
         repo: repoName,
         title: '[DNM] testing',
         head: branch,
@@ -180,7 +180,7 @@ function getStatus(token, repoOwner, repoName, sha) {
     });
 
     return github.repos.getCombinedStatus({
-        user: repoOwner,
+        owner: repoOwner,
         repo: repoName,
         sha
     });
