@@ -75,11 +75,12 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 4 (four) resources:
+This API comes preloaded with 5 (five) resources:
  - [builds](plugins/builds/README.md)
  - [jobs](plugins/jobs/README.md)
  - [pipelines](plugins/pipelines/README.md)
  - [secrets](plugins/secrets/README.md)
+ - [webhooks](plugins/webhooks/README.md)
 
 Two (2) options for datastores:
  - Amazon DynamoDB (`dynamodb`)
