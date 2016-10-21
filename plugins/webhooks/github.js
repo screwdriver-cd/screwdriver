@@ -185,7 +185,7 @@ function pullRequestEvent(request, reply) {
     const repository = hoek.reach(payload, 'pull_request.base.repo.ssh_url');
     const branch = hoek.reach(payload, 'pull_request.base.ref');
     const checkoutUrl = `${repository}#${branch}`;
-    const prRef = `${repository}#pull/${prNumber}/merge`;
+    const prRef = `pull/${prNumber}/merge`;
     const sha = hoek.reach(payload, 'pull_request.head.sha');
     const username = hoek.reach(payload, 'pull_request.user.login');
 
