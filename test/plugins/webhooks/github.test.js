@@ -298,7 +298,7 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(pipelineMock.sync);
                         assert.calledWith(pipelineMock.getConfiguration,
-                            'git@github.com:baxterthehacker/public-repo.git#pull/1/merge');
+                            'pull/1/merge');
                         assert.calledWith(jobFactoryMock.create, {
                             pipelineId,
                             name,
@@ -399,7 +399,7 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(pipelineMock.getConfiguration,
-                            'git@github.com:baxterthehacker/public-repo.git#pull/1/merge');
+                            'pull/1/merge');
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
