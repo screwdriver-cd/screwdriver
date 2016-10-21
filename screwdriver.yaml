@@ -39,8 +39,8 @@ jobs:
         steps:
             - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
             - get-tag: ./ci/git-latest.sh
-            - wait-docker: DOCKER_TAG=$(<VERSION) ./ci/docker-wait.sh
-            - deploy-k8s: K8S_TAG=$(<VERSION) ./ci/k8s-deploy.sh
+            - wait-docker: DOCKER_TAG=`cat VERSION` ./ci/docker-wait.sh
+            - deploy-k8s: K8S_TAG=`cat VERSION` ./ci/k8s-deploy.sh
             - test: npm install && npm run functional
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
@@ -65,8 +65,8 @@ jobs:
         steps:
             - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
             - get-tag: ./ci/git-latest.sh
-            - wait-docker: DOCKER_TAG=$(<VERSION) ./ci/docker-wait.sh
-            - deploy-k8s: K8S_TAG=$(<VERSION) ./ci/k8s-deploy.sh
+            - wait-docker: DOCKER_TAG=`cat VERSION` ./ci/docker-wait.sh
+            - deploy-k8s: K8S_TAG=`cat VERSION` ./ci/k8s-deploy.sh
             - test: npm install && npm run functional
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
