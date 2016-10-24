@@ -133,8 +133,8 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [license-image]: https://img.shields.io/npm/l/screwdriver-api.svg
 [issues-image]: https://img.shields.io/github/issues/screwdriver-cd/screwdriver.svg
 [issues-url]: https://github.com/screwdriver-cd/screwdriver/issues
-[status-image]: https://cd.screwdriver.cd/pipelines/27cec39c9baea6cf64c684479115300d22039b2a/badge
-[status-url]: https://cd.screwdriver.cd/pipelines/27cec39c9baea6cf64c684479115300d22039b2a
+[status-image]: https://cd.screwdriver.cd/pipelines/613a05120b3c7166749d049b549d5edece076cdf/badge
+[status-url]: https://cd.screwdriver.cd/pipelines/613a05120b3c7166749d049b549d5edece076cdf
 [daviddm-image]: https://david-dm.org/screwdriver-cd/screwdriver.svg?theme=shields.io
 [daviddm-url]: https://david-dm.org/screwdriver-cd/screwdriver
 [slack-image]: http://slack.screwdriver.cd/badge.svg
