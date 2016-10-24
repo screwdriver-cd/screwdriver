@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
-    "test": "jenkins-mocha --recursive",
+    "test": "jenkins-mocha --recursive --timeout 3000",
     "start": "./bin/server",
     "functional": "cucumber-js --format=pretty ./features/server.feature ./features/secrets.feature ./features/git-flow.feature ./features/authorization.feature"
   },
@@ -83,7 +83,7 @@
     "screwdriver-executor-k8s": "^9.0.0",
     "screwdriver-executor-docker": "^1.1.2",
     "screwdriver-models": "^16.0.0",
-    "screwdriver-scm-github": "^2.0.0",
+    "screwdriver-scm-github": "^3.0.0",
     "tinytim": "^0.1.1",
     "verror": "^1.6.1",
     "vision": "^4.1.0",

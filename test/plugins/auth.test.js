@@ -27,8 +27,7 @@ function getUserMock(user) {
         sealToken: sinon.stub(),
         id: user.id,
         username: user.username,
-        token: user.token,
-        password: user.password
+        token: user.token
     };
 
     return result;
@@ -38,9 +37,11 @@ describe('auth plugin test', () => {
     let userFactoryMock;
     let plugin;
     let server;
+    let scm;
     const jwtPrivateKey = fs.readFileSync(`${__dirname}/data/jwt.private.key`).toString();
     const jwtPublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
-    const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
+    const cookiePassword = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
+    const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
     const temporaryAccessKey = '9ForMortalMenDoomedToDie';
     const temporaryAccessUser = 'maiar';
 
@@ -48,6 +49,20 @@ describe('auth plugin test', () => {
         userFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub()
+        };
+        scm = {
+            getBellConfiguration: sinon.stub().resolves({
+                clientId: 'abcdefg',
+                clientSecret: 'hijklmno',
+                forceHttps: false,
+                isSecure: false,
+                provider: 'github',
+                scope: [
+                    'admin:repo_hook',
+                    'read:org',
+                    'repo:status'
+                ]
+            })
         };
 
         /* eslint-disable global-require */
@@ -62,9 +77,9 @@ describe('auth plugin test', () => {
         server.register({
             register: plugin,
             options: {
-                password,
-                oauthClientId: 'oauth_client_id',
-                oauthClientSecret: 'oauth_client_secret',
+                cookiePassword,
+                encryptionPassword,
+                scm,
                 temporaryAccessKey,
                 temporaryAccessUser,
                 jwtPrivateKey,
@@ -78,24 +93,52 @@ describe('auth plugin test', () => {
         server = null;
     });
 
-    it('registers the auth plugin', () => {
-        assert.isOk(server.registrations.auth);
-    });
+    describe('constructor', () => {
+        it('registers the auth plugin', () => {
+            assert.isOk(server.registrations.auth);
+        });
 
-    it('registers the bell plugin', () => {
-        assert.isOk(server.registrations.bell);
-    });
+        it('registers the bell plugin', () => {
+            assert.isOk(server.registrations.bell);
+        });
 
-    it('registers the hapi-auth-cookie plugin', () => {
-        assert.isOk(server.registrations['hapi-auth-cookie']);
-    });
+        it('throws an error when the SCM plugin fails to register', () => {
+            scm.getBellConfiguration.rejects(new Error('Failure'));
 
-    it('registers the hapi-auth-cookie plugin', () => {
-        assert.isOk(server.registrations['hapi-auth-jwt']);
-    });
+            const badServer = new hapi.Server();
 
-    it('registers the auth_token plugin', () => {
-        assert.isOk(server.registrations['hapi-auth-bearer-token']);
+            badServer.connection({
+                port: 12345
+            });
+
+            return badServer.register({
+                register: plugin,
+                options: {
+                    cookiePassword,
+                    encryptionPassword,
+                    scm,
+                    temporaryAccessKey,
+                    temporaryAccessUser,
+                    jwtPrivateKey,
+                    jwtPublicKey,
+                    https: false
+                }
+            })
+            .then(() => Promise.reject(new Error('should not be here')))
+            .catch(err => assert.equal(err.message, 'Failure'));
+        });
+
+        it('registers the hapi-auth-cookie plugin', () => {
+            assert.isOk(server.registrations['hapi-auth-cookie']);
+        });
+
+        it('registers the hapi-auth-cookie plugin', () => {
+            assert.isOk(server.registrations['hapi-auth-jwt']);
+        });
+
+        it('registers the auth_token plugin', () => {
+            assert.isOk(server.registrations['hapi-auth-bearer-token']);
+        });
     });
 
     it('throws exception when config not passed', () => {
@@ -123,9 +166,9 @@ describe('auth plugin test', () => {
             server.register({
                 register: plugin,
                 options: {
-                    password,
-                    oauthClientId: 'oauth_client_id',
-                    oauthClientSecret: 'oauth_client_secret',
+                    encryptionPassword,
+                    cookiePassword,
+                    scm,
                     jwtPrivateKey,
                     jwtPublicKey,
                     https: false,
@@ -217,8 +260,7 @@ describe('auth plugin test', () => {
         const user = {
             id,
             username,
-            token,
-            password
+            token
         };
         const options = {
             url: '/auth/login',
@@ -272,8 +314,7 @@ describe('auth plugin test', () => {
                     assert.calledWith(userFactoryMock.get, { username });
                     assert.calledWith(userFactoryMock.create, {
                         username,
-                        token,
-                        password
+                        token
                     });
                 });
             });
@@ -294,8 +335,7 @@ describe('auth plugin test', () => {
                     assert.calledWith(userFactoryMock.get, { username });
                     assert.calledWith(userFactoryMock.create, {
                         username,
-                        token,
-                        password
+                        token
                     });
                 });
             });
@@ -345,9 +385,9 @@ describe('auth plugin test', () => {
                     return server.register({
                         register: plugin,
                         options: {
-                            password,
-                            oauthClientId: 'oauth_client_id',
-                            oauthClientSecret: 'oauth_client_secret',
+                            cookiePassword,
+                            encryptionPassword,
+                            scm,
                             jwtPrivateKey,
                             jwtPublicKey,
                             https: false,
@@ -384,8 +424,7 @@ describe('auth plugin test', () => {
                         assert.calledWith(userFactoryMock.get, { username });
                         assert.calledWith(userFactoryMock.create, {
                             username,
-                            token,
-                            password
+                            token
                         });
                     });
                 });
@@ -400,8 +439,7 @@ describe('auth plugin test', () => {
         const user = {
             id,
             username,
-            token,
-            password
+            token
         };
         let userMock;
 
@@ -470,9 +508,9 @@ describe('auth plugin test', () => {
                 server.register({
                     register: plugin,
                     options: {
-                        password,
-                        oauthClientId: 'oauth_client_id',
-                        oauthClientSecret: 'oauth_client_secret',
+                        cookiePassword,
+                        encryptionPassword,
+                        scm,
                         jwtPrivateKey,
                         jwtPublicKey,
                         https: false,

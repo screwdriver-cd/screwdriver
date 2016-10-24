@@ -10,20 +10,18 @@ auth:
     # Generate one by running
     # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
     jwtPublicKey: SECRET_JWT_PUBLIC_KEY
-    # The client id used for OAuth with github. Look up GitHub OAuth for details
-    # https://developer.github.com/v3/oauth/
-    oauthClientId: SECRET_OAUTH_CLIENT_ID
-    # The client secret used for OAuth with github
-    oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
     # The access token to use on behalf of a user to access the API. Used as
     # an alternative to the OAuth flow
     temporaryAccessKey: SECRET_ACCESS_KEY
     # The user name associated with the temproary access token. Used as a
     # means of functionally testing the API
     temporaryAccessUser: SECRET_ACCESS_USER
-    # A password used for encrypting session, and OAuth data.
+    # A password used for encrypting session data.
     # **Needs to be minimum 32 characters**
-    password: SECRET_PASSWORD
+    cookiePassword: SECRET_COOKIE_PASSWORD
+    # A password used for encrypting stored secrets.
+    # **Needs to be minimum 32 characters**
+    encryptionPassword: SECRET_PASSWORD
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: IS_HTTPS
@@ -82,6 +80,16 @@ executor:
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
 
+scm:
+    plugin: SCM_PLUGIN
+    github:
+        # The client id used for OAuth with github. Look up GitHub OAuth for details
+        # https://developer.github.com/v3/oauth/
+        oauthClientId: SECRET_OAUTH_CLIENT_ID
+        # The client secret used for OAuth with github
+        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+        # You can also configure for use with GitHub enterprise
+        gheHost: SCM_GITHUB_GHE_HOST
 
 webhooks:
     github:

@@ -7,15 +7,15 @@ const boom = require('boom');
  * Login to Screwdriver API
  * @method login
  * @param  {Object}      config           Configuration from the user
- * @param  {String}      config.password  Password to encrypt/decrypt data in Iron
+ * @param  {Array}       config.whitelist List of allowed users to the API
  * @return {Object}                       Hapi Plugin Route
  */
 module.exports = config => ({
     method: ['GET', 'POST'],
     path: '/auth/login/{web?}',
     config: {
-        description: 'login using github',
-        notes: 'Authenticate user with github oauth provider',
+        description: 'login using oauth',
+        notes: 'Authenticate user with oauth provider',
         tags: ['api', 'login'],
         auth: {
             strategy: 'oauth',
@@ -29,7 +29,7 @@ module.exports = config => ({
             }
 
             const factory = request.server.app.userFactory;
-            const githubToken = request.auth.credentials.token;
+            const accessToken = request.auth.credentials.token;
             const username = request.auth.credentials.profile.username;
             const profile = request.server.plugins.auth.generateProfile(username, ['user'], {});
 
@@ -48,14 +48,11 @@ module.exports = config => ({
                     if (!model) {
                         return factory.create({
                             username,
-                            token: githubToken,
-                            password: config.password
+                            token: accessToken
                         });
                     }
-                    // seal and save updated token
-                    model.password = config.password;
 
-                    return model.sealToken(githubToken)
+                    return model.sealToken(accessToken)
                         .then((token) => {
                             model.token = token;
 
