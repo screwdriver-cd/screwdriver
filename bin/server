@@ -14,9 +14,6 @@ const authConfig = config.get('auth');
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
 
-// Setup GitHub Webhooks
-const gitHubSecret = config.get('webhooks.github.secret');
-
 // Special urls for things like the UI
 const ecosystem = config.get('ecosystem');
 
@@ -80,9 +77,6 @@ datastore.setup()
         secretFactory,
         builds: {
             ecosystem
-        },
-        webhooks: {
-            secret: gitHubSecret
         },
         stats: {
             executor, scm
