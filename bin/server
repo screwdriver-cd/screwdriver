@@ -40,16 +40,21 @@ const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
 const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
     (scmConfig[scmConfig.plugin] || {})));
 
+authConfig.scm = scm;
+
 // Setup Model Factories
 const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({
-    datastore, scm
+    datastore,
+    scm
 });
 const jobFactory = Models.JobFactory.getInstance({
     datastore
 });
 const userFactory = Models.UserFactory.getInstance({
-    datastore, scm, password: authConfig.password
+    datastore,
+    scm,
+    password: authConfig.encryptionPassword
 });
 const buildFactory = Models.BuildFactory.getInstance({
     datastore,
@@ -58,7 +63,8 @@ const buildFactory = Models.BuildFactory.getInstance({
     uiUri: ecosystem.ui
 });
 const secretFactory = Models.SecretFactory.getInstance({
-    datastore, password: authConfig.password
+    datastore,
+    password: authConfig.encryptionPassword
 });
 
 // @TODO run setup for SCM and Executor

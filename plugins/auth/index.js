@@ -21,28 +21,28 @@ const ALGORITHM = 'RS256';
  * @method register
  * @param  {Hapi}     server                         Hapi Server
  * @param  {Object}   options                        Configuration object
- * @param  {String}   options.password               Password used for iron encrypting
+ * @param  {String}   options.cookiePassword         Password used for temporary encryption of cookie secrets
+ * @param  {String}   options.encryptionPassword     Password used for iron encrypting
  * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
- * @param  {String}   options.oauth_client_id        Oauth client id for talking to OAUTH provider
- * @param  {String}   options.oauth_client_secret    Oauth secret for OAUTH provider
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
+ * @param  {Object}   options.scm                    SCM class to setup Authentication
  * @param  {String}   [options.temporaryAccessKey]   Alternative access token to use for authentication
  * @param  {String}   [options.temporaryAccessUser]  User name associated with the access token
- * @param  {Function} next                          Function to call when done
+ * @param  {Function} next                           Function to call when done
  */
 exports.register = (server, options, next) => {
     const pluginOptions = joi.attempt(options, joi.object().keys({
-        password: joi.string().min(32).required(),
         https: joi.boolean().required(),
-        oauthClientId: joi.string().required(),
-        oauthClientSecret: joi.string().required(),
+        cookiePassword: joi.string().min(32).required(),
+        encryptionPassword: joi.string().min(32).required(),
         temporaryAccessKey: joi.string().optional(),
         temporaryAccessUser: joi.string().optional(),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
-        admins: joi.array().default([])
-    }), 'Invalid config for plugin-login');
+        admins: joi.array().default([]),
+        scm: joi.object().required()
+    }), 'Invalid config for plugin-auth');
 
     /**
      * Generates a profile for storage in cookie and jwt
@@ -76,7 +76,7 @@ exports.register = (server, options, next) => {
         expiresIn: EXPIRES_IN
     }));
 
-    return server.register([bell, sugar, authjwt, authToken, {
+    const modules = [bell, sugar, authjwt, authToken, {
         register: crumb,
         options: {
             restful: true,
@@ -86,63 +86,54 @@ exports.register = (server, options, next) => {
                 !!request.route.path.includes('/webhooks/') ||
                 !!request.route.path.includes('/auth/')
         }
-    }], (err) => {
-        /* istanbul ignore if */
-        if (err) { // Completely untestable
-            next(err);
-        }
+    }];
 
-        server.auth.strategy('session', 'cookie', {
-            cookie: 'sid',
-            ttl: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
-            password: pluginOptions.password,
-            isSecure: pluginOptions.https
-        });
+    return server.register(modules)
+        .then(() => pluginOptions.scm.getBellConfiguration())
+        .then((bellConfig) => {
+            bellConfig.password = pluginOptions.cookiePassword;
 
-        server.auth.strategy('oauth', 'bell', {
-            provider: 'github',
-            password: pluginOptions.password,
-            clientId: pluginOptions.oauthClientId,
-            clientSecret: pluginOptions.oauthClientSecret,
-            scope: ['admin:repo_hook', 'read:org', 'repo:status'],
-            isSecure: pluginOptions.https,
-            forceHttps: pluginOptions.https
-        });
-
-        server.auth.strategy('token', 'jwt', {
-            key: pluginOptions.jwtPublicKey,
-            verifyOptions: {
-                algorithms: [ALGORITHM],
-                maxAge: EXPIRES_IN
-            }
-        });
-
-        server.auth.strategy('auth_token', 'bearer-access-token', {
-            accessTokenName: 'access_key',
-            allowCookieToken: false,
-            allowQueryToken: true,
-            validateFunc: (token, cb) => {
-                if (token !== pluginOptions.temporaryAccessKey) {
-                    return cb(null, false, {});
+            server.auth.strategy('session', 'cookie', {
+                cookie: 'sid',
+                ttl: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+                password: pluginOptions.cookiePassword,
+                isSecure: pluginOptions.https
+            });
+            server.auth.strategy('oauth', 'bell', bellConfig);
+            server.auth.strategy('token', 'jwt', {
+                key: pluginOptions.jwtPublicKey,
+                verifyOptions: {
+                    algorithms: [ALGORITHM],
+                    maxAge: EXPIRES_IN
                 }
+            });
+            server.auth.strategy('auth_token', 'bearer-access-token', {
+                accessTokenName: 'access_key',
+                allowCookieToken: false,
+                allowQueryToken: true,
+                validateFunc: (token, cb) => {
+                    if (token !== pluginOptions.temporaryAccessKey) {
+                        return cb(null, false, {});
+                    }
 
-                return cb(null, true, {
-                    username: pluginOptions.temporaryAccessUser,
-                    scope: ['user']
-                });
-            }
-        });
+                    return cb(null, true, {
+                        username: pluginOptions.temporaryAccessUser,
+                        scope: ['user']
+                    });
+                }
+            });
 
-        server.route([
-            loginRoute(pluginOptions),
-            logoutRoute(),
-            tokenRoute(),
-            crumbRoute(),
-            keyRoute(pluginOptions)
-        ]);
+            server.route([
+                loginRoute(pluginOptions),
+                logoutRoute(),
+                tokenRoute(),
+                crumbRoute(),
+                keyRoute(pluginOptions)
+            ]);
 
-        next();
-    });
+            next();
+        })
+        .catch(ex => next(ex));
 };
 
 exports.register.attributes = {

@@ -14,14 +14,12 @@ auth:
         -----BEGIN PUBLIC KEY-----
         YOUR-KEY-HERE
         -----END PUBLIC KEY-----
-    # The client id used for OAuth with github. Look up GitHub OAuth for details
-    # https://developer.github.com/v3/oauth/
-    oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
-    # The client secret used for OAuth with github
-    oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
-    # A password used for encrypting session, and OAuth data.
+    # A password used for encrypting session data.
     # **Needs to be minimum 32 characters**
-    password: WOW-ANOTHER-INSECURE-PASSWORD!!!
+    cookiePassword: WOW-ANOTHER-INSECURE-PASSWORD!!!
+    # A password used for encrypting stored secrets.
+    # **Needs to be minimum 32 characters**
+    encryptionPassword: WOW-ANOTHER-MORE-INSECURE-PASSWORD!!!
     # A single access token used as an alternative to the Oauth login flow
     temporaryAccessKey: someAccessTokenThatIsTemporaryForUsingInTheMeantime
     # User name that is associated with the temporary access key
@@ -113,6 +111,14 @@ executor:
 
 scm:
     plugin: github
+    github:
+        # The client id used for OAuth with github. Look up GitHub OAuth for details
+        # https://developer.github.com/v3/oauth/
+        oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
+        # The client secret used for OAuth with github
+        oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
+        # You can also configure for use with GitHub enterprise
+        #gheHost: github.screwdriver.cd
 
 webhooks:
     github:
