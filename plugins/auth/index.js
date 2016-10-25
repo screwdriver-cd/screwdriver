@@ -92,6 +92,8 @@ exports.register = (server, options, next) => {
         .then(() => pluginOptions.scm.getBellConfiguration())
         .then((bellConfig) => {
             bellConfig.password = pluginOptions.cookiePassword;
+            bellConfig.isSecure = pluginOptions.https;
+            bellConfig.forceHttps = pluginOptions.https;
 
             server.auth.strategy('session', 'cookie', {
                 cookie: 'sid',

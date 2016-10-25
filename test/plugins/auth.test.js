@@ -54,8 +54,6 @@ describe('auth plugin test', () => {
             getBellConfiguration: sinon.stub().resolves({
                 clientId: 'abcdefg',
                 clientSecret: 'hijklmno',
-                forceHttps: false,
-                isSecure: false,
                 provider: 'github',
                 scope: [
                     'admin:repo_hook',
