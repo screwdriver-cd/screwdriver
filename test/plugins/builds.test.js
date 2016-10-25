@@ -457,7 +457,8 @@ describe('build plugin test', () => {
                     };
                     const publishJobMock = {
                         id: publishJobId,
-                        pipelineId
+                        pipelineId,
+                        state: 'ENABLED'
                     };
 
                     pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
@@ -539,6 +540,40 @@ describe('build plugin test', () => {
                     jobMock.name = 'PR-15';
 
                     pipelineMock.workflow = ['main', 'publish'];
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.notCalled(buildFactoryMock.create);
+                    });
+                });
+
+                it('skips triggering if next job is disabled', () => {
+                    const meta = {
+                        darren: 'thebest'
+                    };
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username,
+                            scope: ['build']
+                        },
+                        payload: {
+                            meta,
+                            status
+                        }
+                    };
+                    const publishJobMock = {
+                        id: publishJobId,
+                        pipelineId,
+                        state: 'DISABLED'
+                    };
+
+                    pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
+                        .resolves(publishJobMock);
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
