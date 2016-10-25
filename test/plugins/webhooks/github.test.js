@@ -70,31 +70,6 @@ describe('github plugin test', () => {
         });
 
         server.register([{
-            // eslint-disable-next-line global-require
-            register: require('../../../plugins/auth'),
-            options: {
-                cookiePassword: 'this_is_a_password_that_needs_to_be_atleast_32_characters',
-                encryptionPassword: 'this_is_another_password_that_needs_to_be_atleast_32_chars',
-                jwtPrivateKey: 'supersecret',
-                jwtPublicKey: 'lesssecret',
-                https: true,
-                scm: {
-                    getBellConfiguration: sinon.stub().resolves({
-                        clientId: 'abcdefg',
-                        clientSecret: 'hijklmno',
-                        forceHttps: false,
-                        isSecure: false,
-                        provider: 'github',
-                        scope: [
-                            'admin:repo_hook',
-                            'read:org',
-                            'repo:status'
-                        ]
-                    })
-                }
-            }
-        },
-        {
             register: plugin,
             options: {
                 secret: 'secretssecretsarenofun'
