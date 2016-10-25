@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
-    "test": "jenkins-mocha --recursive --timeout 3000",
+    "test": "jenkins-mocha --recursive",
     "start": "./bin/server",
     "functional": "cucumber-js --format=pretty ./features/server.feature ./features/secrets.feature ./features/git-flow.feature ./features/authorization.feature"
   },
