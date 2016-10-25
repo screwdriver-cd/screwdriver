@@ -98,11 +98,17 @@ module.exports = () => ({
                         return jobFactory.get({
                             name: nextJobName,
                             pipelineId: pipeline.id
-                        }).then(nextJobToTrigger => factory.create({
-                            jobId: nextJobToTrigger.id,
-                            sha: build.sha,
-                            username
-                        }));
+                        }).then((nextJobToTrigger) => {
+                            if (nextJobToTrigger.state === 'ENABLED') {
+                                return factory.create({
+                                    jobId: nextJobToTrigger.id,
+                                    sha: build.sha,
+                                    username
+                                });
+                            }
+
+                            return null;
+                        });
                     }))
                     .then(() => build.update());
                 })
