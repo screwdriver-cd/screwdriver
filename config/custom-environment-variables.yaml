@@ -90,6 +90,12 @@ scm:
         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
         # You can also configure for use with GitHub enterprise
         gheHost: SCM_GITHUB_GHE_HOST
+    bitbucket:
+        # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
+        # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
+        oauthClientId: SECRET_OAUTH_CLIENT_ID
+        # The client secret used for OAuth with bitbucket
+        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
 
 webhooks:
     github:
