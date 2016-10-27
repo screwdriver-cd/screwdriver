@@ -92,9 +92,9 @@ Two (2) options for executor:
  - Kubernetes (`k8s`)
  - Docker (`docker`)
 
- Two (2) options for SCM:
-  - Github (`github`)
-  - Bitbucket (`bitbucket`)
+Two (2) options for SCM:
+ - Github (`github`)
+ - Bitbucket (`bitbucket`)
 
 ## Testing
 
