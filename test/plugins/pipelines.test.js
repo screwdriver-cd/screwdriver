@@ -162,10 +162,7 @@ describe('pipeline plugin test', () => {
             options: {
                 password
             }
-        }
-    ], (err) => {
-            done(err);
-        });
+        }], done);
     });
 
     afterEach(() => {

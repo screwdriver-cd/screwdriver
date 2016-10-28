@@ -93,10 +93,7 @@ describe('secret plugin test', () => {
             options: {
                 password
             }
-        }
-    ], (err) => {
-            done(err);
-        });
+        }], done);
     });
 
     afterEach(() => {

@@ -172,12 +172,14 @@ describe('github plugin test', () => {
         });
 
         it('returns 204 for unsupported event type', () => {
-            reqHeaders = { 'x-github-event': 'notSupported',
-              'x-github-delivery': 'bar',
-              'user-agent': 'shot',
-              host: 'localhost:12345',
-              'content-type': 'application/json',
-              'content-length': '2' };
+            reqHeaders = {
+                'x-github-event': 'notSupported',
+                'x-github-delivery': 'bar',
+                'user-agent': 'shot',
+                host: 'localhost:12345',
+                'content-type': 'application/json',
+                'content-length': '2'
+            };
             pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(null);
 
             options = {
@@ -200,12 +202,14 @@ describe('github plugin test', () => {
             beforeEach(() => {
                 parsed.type = 'repo';
                 parsed.action = 'push';
-                reqHeaders = { 'x-github-event': 'push',
-                  'x-github-delivery': 'eventId',
-                  'user-agent': 'shot',
-                  host: 'localhost:12345',
-                  'content-type': 'application/json',
-                  'content-length': '6632' };
+                reqHeaders = {
+                    'x-github-event': 'push',
+                    'x-github-delivery': 'eventId',
+                    'user-agent': 'shot',
+                    host: 'localhost:12345',
+                    'content-type': 'application/json',
+                    'content-length': '6632'
+                };
                 payload = testPayloadPush;
                 options = {
                     method: 'POST',
@@ -255,12 +259,14 @@ describe('github plugin test', () => {
             beforeEach(() => {
                 parsed.type = 'pr';
                 parsed.action = 'opened';
-                reqHeaders = { 'x-github-event': 'pull_request',
-                  'x-github-delivery': 'eventId',
-                  'user-agent': 'shot',
-                  host: 'localhost:12345',
-                  'content-type': 'application/json',
-                  'content-length': '21236' };
+                reqHeaders = {
+                    'x-github-event': 'pull_request',
+                    'x-github-delivery': 'eventId',
+                    'user-agent': 'shot',
+                    host: 'localhost:12345',
+                    'content-type': 'application/json',
+                    'content-length': '21236'
+                };
                 payload = testPayloadOpen;
                 options = {
                     method: 'POST',
@@ -401,12 +407,14 @@ describe('github plugin test', () => {
                     };
 
                     parsed.action = 'synchronized';
-                    reqHeaders = { 'x-github-event': 'pull_request',
-                      'x-github-delivery': 'eventId',
-                      'user-agent': 'shot',
-                      host: 'localhost:12345',
-                      'content-type': 'application/json',
-                      'content-length': '21241' };
+                    reqHeaders = {
+                        'x-github-event': 'pull_request',
+                        'x-github-delivery': 'eventId',
+                        'user-agent': 'shot',
+                        host: 'localhost:12345',
+                        'content-type': 'application/json',
+                        'content-length': '21241'
+                    };
                     options.payload = testPayloadSync;
                     jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
@@ -490,12 +498,14 @@ describe('github plugin test', () => {
                     };
 
                     parsed.action = 'closed';
-                    reqHeaders = { 'x-github-event': 'pull_request',
-                      'x-github-delivery': 'eventId',
-                      'user-agent': 'shot',
-                      host: 'localhost:12345',
-                      'content-type': 'application/json',
-                      'content-length': '21236' };
+                    reqHeaders = {
+                        'x-github-event': 'pull_request',
+                        'x-github-delivery': 'eventId',
+                        'user-agent': 'shot',
+                        host: 'localhost:12345',
+                        'content-type': 'application/json',
+                        'content-length': '21236'
+                    };
                     options.payload = testPayloadClose;
                     jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
