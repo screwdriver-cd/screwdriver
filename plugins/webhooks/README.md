@@ -27,12 +27,8 @@ server.register({
 
 ### Routes
 
-#### Post github events
-Follow instructions here to set up webhooks for your repository or organization:  https://developer.github.com/webhooks/
+#### Post webhooks events
+Follow instructions from your SCM provider to set up webhooks for your repository or organization:  
 
-`POST /webhooks/github`
-
-
-Example payload:
-https://developer.github.com/webhooks/#payloads
+`POST /webhooks`
 

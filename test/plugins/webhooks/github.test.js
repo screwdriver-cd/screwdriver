@@ -45,6 +45,7 @@ describe('github plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub(),
             scm: {
+                parseHook: sinon.stub(),
                 parseUrl: sinon.stub()
             }
         };
@@ -57,7 +58,7 @@ describe('github plugin test', () => {
         /* eslint-enable global-require */
 
         server = new hapi.Server();
-        server.app = {
+        server.root.app = {
             jobFactory: jobFactoryMock,
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
@@ -70,10 +71,7 @@ describe('github plugin test', () => {
         });
 
         server.register([{
-            register: plugin,
-            options: {
-                secret: 'secretssecretsarenofun'
-            }
+            register: plugin
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
             server.app.buildFactory.tokenGen = buildId =>
@@ -101,7 +99,7 @@ describe('github plugin test', () => {
             '{"username":"12345","scope":["build"]}');
     });
 
-    describe('POST /webhooks/github', () => {
+    describe('POST /webhooks', () => {
         const checkoutUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
         const scmUri = 'github.com:123456:master';
         const pipelineId = 'pipelineHash';
@@ -111,12 +109,23 @@ describe('github plugin test', () => {
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
         const username = 'baxterthehacker';
         const token = 'iamtoken';
+        const parsed = {
+            hookId: '81e6bd80-9a2c-11e6-939d-beaa5d9adaf3',
+            username,
+            checkoutUrl,
+            branch: 'master',
+            sha,
+            prNum: 1,
+            prRef: 'pull/1/merge'
+        };
         let name = 'PR-1';
         let pipelineMock;
         let buildMock;
         let jobMock;
         let userMock;
         let options;
+        let reqHeaders;
+        let payload;
 
         beforeEach(() => {
             pipelineMock = {
@@ -162,57 +171,55 @@ describe('github plugin test', () => {
             userMock.unsealToken.resolves(token);
         });
 
-        it('returns 400 for unsupported event type', () => {
+        it('returns 204 for unsupported event type', () => {
+            reqHeaders = { 'x-github-event': 'notSupported',
+              'x-github-delivery': 'bar',
+              'user-agent': 'shot',
+              host: 'localhost:12345',
+              'content-type': 'application/json',
+              'content-length': '2' };
+            pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(null);
+
             options = {
                 method: 'POST',
-                url: '/webhooks/github',
+                url: '/webhooks',
                 headers: {
                     'x-github-event': 'notSupported',
                     'x-github-delivery': 'bar'
                 },
-                credentials: {}
+                credentials: {},
+                payload: {}
             };
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.statusCode, 204);
             });
-        });
-
-        describe('ping event', () => {
-            beforeEach(() => {
-                options = {
-                    method: 'POST',
-                    url: '/webhooks/github',
-                    headers: {
-                        'x-github-event': 'ping',
-                        'x-github-delivery': 'eventId'
-                    },
-                    payload: testPayloadOpen,
-                    credentials: {}
-                };
-            });
-
-            it('returns 204', () =>
-                server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 204);
-                })
-            );
         });
 
         describe('push event', () => {
             beforeEach(() => {
+                parsed.type = 'repo';
+                parsed.action = 'push';
+                reqHeaders = { 'x-github-event': 'push',
+                  'x-github-delivery': 'eventId',
+                  'user-agent': 'shot',
+                  host: 'localhost:12345',
+                  'content-type': 'application/json',
+                  'content-length': '6632' };
+                payload = testPayloadPush;
                 options = {
                     method: 'POST',
-                    url: '/webhooks/github',
+                    url: '/webhooks',
                     headers: {
                         'x-github-event': 'push',
                         'x-github-delivery': 'eventId'
                     },
-                    payload: testPayloadPush,
+                    payload,
                     credentials: {}
                 };
                 name = 'main';
                 jobFactoryMock.generateId.withArgs({ pipelineId, name }).returns(jobId);
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
             });
 
             it('returns 201 on success', () => (
@@ -246,19 +253,30 @@ describe('github plugin test', () => {
 
         describe('pull-request event', () => {
             beforeEach(() => {
+                parsed.type = 'pr';
+                parsed.action = 'opened';
+                reqHeaders = { 'x-github-event': 'pull_request',
+                  'x-github-delivery': 'eventId',
+                  'user-agent': 'shot',
+                  host: 'localhost:12345',
+                  'content-type': 'application/json',
+                  'content-length': '21236' };
+                payload = testPayloadOpen;
                 options = {
                     method: 'POST',
-                    url: '/webhooks/github',
+                    url: '/webhooks',
                     headers: {
                         'x-github-event': 'pull_request',
                         'x-github-delivery': 'eventId'
                     },
-                    credentials: {}
+                    credentials: {},
+                    payload
                 };
                 name = 'PR-1';
             });
 
             it('returns 204 when pipeline does not exist', () => {
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.get.resolves(null);
                 options.payload = testPayloadOpen;
 
@@ -268,6 +286,7 @@ describe('github plugin test', () => {
             });
 
             it('returns 500 when pipeline model returns error', () => {
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.get.rejects(new Error('model error'));
                 options.payload = testPayloadOpen;
 
@@ -278,7 +297,10 @@ describe('github plugin test', () => {
 
             describe('open pull request', () => {
                 beforeEach(() => {
+                    parsed.action = 'opened';
                     options.payload = testPayloadOpen;
+                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
+                        .resolves(parsed);
                 });
 
                 it('returns 201 on success', () =>
@@ -378,9 +400,18 @@ describe('github plugin test', () => {
                         update: sinon.stub().resolves(null)
                     };
 
+                    parsed.action = 'synchronized';
+                    reqHeaders = { 'x-github-event': 'pull_request',
+                      'x-github-delivery': 'eventId',
+                      'user-agent': 'shot',
+                      host: 'localhost:12345',
+                      'content-type': 'application/json',
+                      'content-length': '21241' };
                     options.payload = testPayloadSync;
                     jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
+                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
+                        .resolves(parsed);
                 });
 
                 it('returns 201 on success', () =>
@@ -458,9 +489,18 @@ describe('github plugin test', () => {
                         update: sinon.stub().resolves(null)
                     };
 
+                    parsed.action = 'closed';
+                    reqHeaders = { 'x-github-event': 'pull_request',
+                      'x-github-delivery': 'eventId',
+                      'user-agent': 'shot',
+                      host: 'localhost:12345',
+                      'content-type': 'application/json',
+                      'content-length': '21236' };
                     options.payload = testPayloadClose;
                     jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
+                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
+                        .resolves(parsed);
                 });
 
                 it('returns 200 on success', () =>
@@ -508,18 +548,27 @@ describe('github plugin test', () => {
             });
 
             describe('other change pull request', () => {
-                beforeEach(() => {
+                it('returns 204 for unsupported event action', () => {
                     options.payload = testPayloadOther;
-                });
+                    pipelineFactoryMock.scm.parseHook.resolves(null);
 
-                it('returns 204 on success', () =>
-                    server.inject(options).then((reply) => {
+                    return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 204);
                         assert.equal(pipelineMock.sync.callCount, 0);
                         assert.equal(pipelineFactoryMock.get.callCount, 0);
                         assert.equal(jobFactoryMock.generateId.callCount, 0);
-                    })
-                );
+                    });
+                });
+            });
+        });
+
+        describe('something went wrong with parseHook', () => {
+            it('returns 500 when failed', () => {
+                pipelineFactoryMock.scm.parseHook.rejects(new Error('Invalid x-hub-signature'));
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 500);
+                });
             });
         });
     });
