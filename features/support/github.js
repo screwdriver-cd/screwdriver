@@ -68,7 +68,8 @@ function closePullRequest(token, repoOwner, repoName, prNumber) {
         owner: repoOwner,
         repo: repoName,
         number: prNumber,
-        state: 'closed'
+        state: 'closed',
+        base: 'master'
     });
 }
 
@@ -182,7 +183,7 @@ function getStatus(token, repoOwner, repoName, sha) {
     return github.repos.getCombinedStatus({
         owner: repoOwner,
         repo: repoName,
-        sha
+        ref: sha
     });
 }
 
