@@ -83,7 +83,7 @@ exports.register = (server, options, next) => {
             skip: request =>
                 // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
                 !!request.headers.authorization ||
-                !!request.route.path.includes('/webhooks/') ||
+                !!request.route.path.includes('/webhooks') ||
                 !!request.route.path.includes('/auth/')
         }
     }];
