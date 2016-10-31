@@ -1,0 +1,7 @@
+ci/
+.editorconfig
+eslint*
+CONTRIBUTING.md
+screwdriver.yaml
+test/
+features/
