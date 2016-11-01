@@ -609,7 +609,7 @@ describe('build plugin test', () => {
             type: 'pr',
             pipelineId,
             username,
-            workflow: ['main'],
+            workflow: ['PR-15'],
             sha: testBuild.sha
         };
 
@@ -655,6 +655,7 @@ describe('build plugin test', () => {
                 id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
             };
 
+            jobMock.name = 'PR-15';
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
             jobMock.isPR.returns(true);
             userMock.getPermissions.resolves({ push: true });

@@ -56,7 +56,7 @@ module.exports = () => ({
                     .then(sha => eventFactory.create({
                         pipelineId: pipeline.id,
                         type: job.isPR() ? 'pr' : 'pipeline',
-                        workflow: job.isPR() ? ['main'] : pipeline.workflow,
+                        workflow: job.isPR() ? [job.name] : pipeline.workflow,
                         username,
                         sha
                     }))
