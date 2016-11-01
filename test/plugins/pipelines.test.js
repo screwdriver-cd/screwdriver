@@ -11,6 +11,7 @@ const testPipelines = require('./data/pipelines.json');
 const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
+const testEvents = require('./data/events.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
@@ -57,6 +58,7 @@ const decoratePipelineMock = (pipeline) => {
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
+    mock.getEvents = sinon.stub();
     mock.remove = sinon.stub();
 
     return mock;
@@ -68,6 +70,22 @@ const getPipelineMocks = (pipelines) => {
     }
 
     return decoratePipelineMock(pipelines);
+};
+
+const decorateEventMock = (event) => {
+    const mock = hoek.clone(event);
+
+    mock.toJson = sinon.stub().returns(event);
+
+    return mock;
+};
+
+const getEventsMocks = (events) => {
+    if (Array.isArray(events)) {
+        return events.map(decorateEventMock);
+    }
+
+    return decorateEventMock(events);
 };
 
 const decorateSecretMock = (secret) => {
@@ -549,6 +567,47 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, expected);
             })
         );
+    });
+
+    describe('GET /pipelines/{id}/events', () => {
+        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        let options;
+        let pipelineMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/events`
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getEvents.resolves(getEventsMocks(testEvents));
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for getting events', () =>
+            server.inject(options).then((reply) => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 404 for pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', () => {
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineMock.getEvents.rejects(new Error('getEventsError'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /pipelines/{id}/sync', () => {
