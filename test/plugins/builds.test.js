@@ -46,6 +46,7 @@ describe('build plugin test', () => {
     let userFactoryMock;
     let jobFactoryMock;
     let pipelineFactoryMock;
+    let eventFactoryMock;
     let secretMock;
     let secretAccessMock;
     let plugin;
@@ -63,7 +64,10 @@ describe('build plugin test', () => {
         buildFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            scm: {
+                getCommitSha: sinon.stub()
+            }
         };
         jobFactoryMock = {
             get: sinon.stub(),
@@ -80,6 +84,9 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub()
         };
+        eventFactoryMock = {
+            create: sinon.stub()
+        };
         secretAccessMock = sinon.stub().resolves(false);
 
         /* eslint-disable global-require */
@@ -90,7 +97,8 @@ describe('build plugin test', () => {
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             jobFactory: jobFactoryMock,
-            userFactory: userFactoryMock
+            userFactory: userFactoryMock,
+            eventFactory: eventFactoryMock
         };
         server.connection({
             port: 12345,
@@ -593,8 +601,16 @@ describe('build plugin test', () => {
         const scmUri = 'github.com:12345:branchName';
         const params = {
             jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
+            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
             apiUri: 'http://localhost:12345',
             username
+        };
+        const eventConfig = {
+            type: 'pr',
+            pipelineId,
+            username,
+            workflow: ['main'],
+            sha: testBuild.sha
         };
 
         let options;
@@ -602,6 +618,7 @@ describe('build plugin test', () => {
         let jobMock;
         let pipelineMock;
         let userMock;
+        let eventMock;
 
         beforeEach(() => {
             options = {
@@ -619,28 +636,41 @@ describe('build plugin test', () => {
             buildMock = getMockBuilds({ id: buildId, other: 'dataToBeIncluded' });
             jobMock = {
                 id: jobId,
-                pipelineId
+                pipelineId,
+                isPR: sinon.stub()
             };
             pipelineMock = {
                 id: pipelineId,
                 checkoutUrl,
                 scmUri,
+                workflow: ['main'],
                 sync: sinon.stub().resolves()
             };
             userMock = {
                 username,
-                getPermissions: sinon.stub()
+                getPermissions: sinon.stub(),
+                unsealToken: sinon.stub()
+            };
+            eventMock = {
+                id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
             };
 
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+            jobMock.isPR.returns(true);
             userMock.getPermissions.resolves({ push: true });
+            userMock.unsealToken.resolves('iamtoken');
 
             buildFactoryMock.create.resolves(buildMock);
+            buildFactoryMock.scm.getCommitSha.withArgs({
+                token: 'iamtoken',
+                scmUri
+            }).resolves(testBuild.sha);
             jobFactoryMock.get.resolves(jobMock);
             userFactoryMock.get.resolves(userMock);
+            eventFactoryMock.create.resolves(eventMock);
         });
 
-        it('returns 201 for a successful create', () => {
+        it('returns 201 for a successful create for a PR build', () => {
             let expectedLocation;
 
             return server.inject(options).then((reply) => {
@@ -656,6 +686,33 @@ describe('build plugin test', () => {
                     other: 'dataToBeIncluded'
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledWith(buildFactoryMock.create, params);
+            });
+        });
+
+        it('returns 201 for a successful create for a pipeline build', () => {
+            let expectedLocation;
+
+            pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
+            jobMock.isPR.returns(false);
+            eventConfig.type = 'pipeline';
+            eventConfig.workflow = ['main', 'publish', 'nerf_fight'];
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${buildId}`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, {
+                    id: buildId,
+                    other: 'dataToBeIncluded'
+                });
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
             });
         });

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.4.0
+
+Features:
+  * Create an event when creating a build
+  * Add eventId to the build
+
 ## 3.3.0
 
 Breaking changes:
