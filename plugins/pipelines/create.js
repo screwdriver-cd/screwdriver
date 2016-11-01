@@ -71,7 +71,7 @@ module.exports = () => ({
                         // if there is already a pipeline for the checkoutUrl, reject
                         .then((pipeline) => {
                             if (pipeline) {
-                                throw boom.conflict('pipeline already exists');
+                                throw boom.conflict(`Pipeline already exists: ${pipeline.id}`);
                             }
                         })
                         // set up pipeline admins, and create a new pipeline

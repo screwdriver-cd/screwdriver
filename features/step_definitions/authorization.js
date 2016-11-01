@@ -56,7 +56,14 @@ module.exports = function server() {
             json: true
         }).then((response) => {
             if (!this.pipelineId) {
-                this.pipelineId = response.body.id;
+                if (response.statusCode === 201) {
+                    this.pipelineId = response.body.id;
+                } else if (response.statusCode === 409) {
+                    const str = response.body.message;
+                    const id = str.split(': ')[1];
+
+                    this.pipelineId = id;
+                }
             }
 
             Assert.oneOf(response.statusCode, [409, 201]);

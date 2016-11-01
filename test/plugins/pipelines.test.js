@@ -725,6 +725,8 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 409);
+                assert.strictEqual(reply.result.message,
+                    `Pipeline already exists: ${pipelineMock.id}`);
             });
         });
 
