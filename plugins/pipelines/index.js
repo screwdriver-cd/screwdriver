@@ -8,6 +8,7 @@ const listRoute = require('./list');
 const badgeRoute = require('./badge');
 const listJobsRoute = require('./listJobs');
 const listSecretsRoute = require('./listSecrets');
+const listEventsRoute = require('./listEvents');
 
 /**
  * Pipeline API Plugin
@@ -25,7 +26,8 @@ exports.register = (server, options, next) => {
         listRoute(),
         badgeRoute(),
         listJobsRoute(),
-        listSecretsRoute()
+        listSecretsRoute(),
+        listEventsRoute()
     ]);
 
     next();
