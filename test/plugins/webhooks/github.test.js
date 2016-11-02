@@ -253,6 +253,16 @@ describe('github plugin test', () => {
                     assert.equal(reply.statusCode, 500);
                 });
             });
+
+            it('handles checkouting when given a non-listed user', () => {
+                userFactoryMock.get.resolves(null);
+                userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
+
+                return server.inject(options)
+                .then((response) => {
+                    assert.equal(response.statusCode, 201);
+                });
+            });
         });
 
         describe('pull-request event', () => {
@@ -386,6 +396,16 @@ describe('github plugin test', () => {
                             sha,
                             username
                         });
+                    });
+                });
+
+                it('handles checkout when given a non-listed user', () => {
+                    userFactoryMock.get.resolves(null);
+                    userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
+
+                    return server.inject(options)
+                    .then((response) => {
+                        assert.equal(response.statusCode, 201);
                     });
                 });
             });

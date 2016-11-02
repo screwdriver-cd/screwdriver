@@ -2,6 +2,8 @@
 
 const boom = require('boom');
 
+const GENERIC_SCM_USER = 'sd-buildbot';
+
 /**
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
@@ -164,6 +166,28 @@ function pullRequestSync(options, request, reply) {
 }
 
 /**
+ * Obtains the SCM token for a given user. If a user does not have a valid SCM token registered
+ * with Screwdriver, it will use a generic user's token instead.
+ * Some SCM services have different thresholds between IP requests and token requests. This is
+ * to ensure we have a token to access the SCM service without being restricted by these quotas
+ * @method obtainScmToken
+ * @param  {UserFactory}       userFactory UserFactory object
+ * @param  {String}            username    Name of the user that the SCM token is associated with
+ * @return {Promise}                       Promise that resolves into a SCM token
+ */
+function obtainScmToken(userFactory, username) {
+    return userFactory.get({ username })
+        .then((user) => {
+            if (!user) {
+                return userFactory.get({ username: GENERIC_SCM_USER })
+                    .then(buildBotUser => buildBotUser.unsealToken());
+            }
+
+            return user.unsealToken();
+        });
+}
+
+/**
  * Act on a Pull Request change (create, sync, close)
  *  - Opening a PR should sync the pipeline (creating the job) and start the new PR job
  *  - Syncing a PR should stop the existing PR job and start a new one
@@ -189,8 +213,7 @@ function pullRequestEvent(request, reply, parsed) {
     request.log(['webhook', eventId], `PR #${prNumber} ${action} for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
-    return userFactory.get({ username })
-        .then(user => user.unsealToken())
+    return obtainScmToken(userFactory, username)
         .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
@@ -258,8 +281,7 @@ function pushEvent(request, reply, parsed) {
     request.log(['webhook', eventId], `Push for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
-    return userFactory.get({ username })
-        .then(user => user.unsealToken())
+    return obtainScmToken(userFactory, username)
         .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
