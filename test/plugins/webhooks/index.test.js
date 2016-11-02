@@ -204,7 +204,7 @@ describe('github plugin test', () => {
                 parsed.action = 'push';
                 reqHeaders = {
                     'x-github-event': 'push',
-                    'x-github-delivery': 'eventId',
+                    'x-github-delivery': 'hookId',
                     'user-agent': 'shot',
                     host: 'localhost:12345',
                     'content-type': 'application/json',
@@ -216,7 +216,7 @@ describe('github plugin test', () => {
                     url: '/webhooks',
                     headers: {
                         'x-github-event': 'push',
-                        'x-github-delivery': 'eventId'
+                        'x-github-delivery': 'hookId'
                     },
                     payload,
                     credentials: {}
@@ -271,7 +271,7 @@ describe('github plugin test', () => {
                 parsed.action = 'opened';
                 reqHeaders = {
                     'x-github-event': 'pull_request',
-                    'x-github-delivery': 'eventId',
+                    'x-github-delivery': 'hookId',
                     'user-agent': 'shot',
                     host: 'localhost:12345',
                     'content-type': 'application/json',
@@ -283,7 +283,7 @@ describe('github plugin test', () => {
                     url: '/webhooks',
                     headers: {
                         'x-github-event': 'pull_request',
-                        'x-github-delivery': 'eventId'
+                        'x-github-delivery': 'hookId'
                     },
                     credentials: {},
                     payload
@@ -429,7 +429,7 @@ describe('github plugin test', () => {
                     parsed.action = 'synchronized';
                     reqHeaders = {
                         'x-github-event': 'pull_request',
-                        'x-github-delivery': 'eventId',
+                        'x-github-delivery': 'hookId',
                         'user-agent': 'shot',
                         host: 'localhost:12345',
                         'content-type': 'application/json',
@@ -520,7 +520,7 @@ describe('github plugin test', () => {
                     parsed.action = 'closed';
                     reqHeaders = {
                         'x-github-event': 'pull_request',
-                        'x-github-delivery': 'eventId',
+                        'x-github-delivery': 'hookId',
                         'user-agent': 'shot',
                         host: 'localhost:12345',
                         'content-type': 'application/json',
