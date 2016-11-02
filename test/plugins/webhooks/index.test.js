@@ -22,6 +22,7 @@ describe('github plugin test', () => {
     let buildFactoryMock;
     let pipelineFactoryMock;
     let userFactoryMock;
+    let eventFactoryMock;
     let plugin;
     let server;
     const apiUri = 'http://foo.bar:12345';
@@ -52,6 +53,9 @@ describe('github plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
+        eventFactoryMock = {
+            create: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../../plugins/webhooks');
@@ -62,7 +66,8 @@ describe('github plugin test', () => {
             jobFactory: jobFactoryMock,
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
-            userFactory: userFactoryMock
+            userFactory: userFactoryMock,
+            eventFactory: eventFactoryMock
         };
         server.connection({
             host: 'localhost',
@@ -123,6 +128,7 @@ describe('github plugin test', () => {
         let buildMock;
         let jobMock;
         let userMock;
+        let eventMock;
         let options;
         let reqHeaders;
         let payload;
@@ -153,6 +159,9 @@ describe('github plugin test', () => {
             userMock = {
                 unsealToken: sinon.stub()
             };
+            eventMock = {
+                id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
+            };
 
             buildFactoryMock.create.resolves(buildMock);
             buildMock.update.resolves(null);
@@ -169,6 +178,8 @@ describe('github plugin test', () => {
 
             userFactoryMock.get.resolves(userMock);
             userMock.unsealToken.resolves(token);
+
+            eventFactoryMock.create.resolves(eventMock);
         });
 
         it('returns 204 for unsupported event type', () => {
@@ -204,7 +215,7 @@ describe('github plugin test', () => {
                 parsed.action = 'push';
                 reqHeaders = {
                     'x-github-event': 'push',
-                    'x-github-delivery': 'hookId',
+                    'x-github-delivery': parsed.hookId,
                     'user-agent': 'shot',
                     host: 'localhost:12345',
                     'content-type': 'application/json',
@@ -216,7 +227,7 @@ describe('github plugin test', () => {
                     url: '/webhooks',
                     headers: {
                         'x-github-event': 'push',
-                        'x-github-delivery': 'hookId'
+                        'x-github-delivery': parsed.hookId
                     },
                     payload,
                     credentials: {}
@@ -230,10 +241,18 @@ describe('github plugin test', () => {
                 server.inject(options, (reply) => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineMock.sync);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        workflow: name,
+                        username,
+                        sha
+                    });
                     assert.calledWith(buildFactoryMock.create, {
                         jobId,
                         username,
-                        sha
+                        sha,
+                        eventId: eventMock.id
                     });
                 })
             ));
@@ -271,7 +290,7 @@ describe('github plugin test', () => {
                 parsed.action = 'opened';
                 reqHeaders = {
                     'x-github-event': 'pull_request',
-                    'x-github-delivery': 'hookId',
+                    'x-github-delivery': parsed.hookId,
                     'user-agent': 'shot',
                     host: 'localhost:12345',
                     'content-type': 'application/json',
@@ -283,7 +302,7 @@ describe('github plugin test', () => {
                     url: '/webhooks',
                     headers: {
                         'x-github-event': 'pull_request',
-                        'x-github-delivery': 'hookId'
+                        'x-github-delivery': parsed.hookId
                     },
                     credentials: {},
                     payload
@@ -351,10 +370,18 @@ describe('github plugin test', () => {
                                 image: 'node:6'
                             }]
                         });
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            workflow: [name],
+                            username,
+                            sha
+                        });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
-                            username
+                            username,
+                            eventId: eventMock.id
                         });
                     })
                 );
@@ -394,7 +421,8 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
-                            username
+                            username,
+                            eventId: eventMock.id
                         });
                     });
                 });
@@ -429,7 +457,7 @@ describe('github plugin test', () => {
                     parsed.action = 'synchronized';
                     reqHeaders = {
                         'x-github-event': 'pull_request',
-                        'x-github-delivery': 'hookId',
+                        'x-github-delivery': parsed.hookId,
                         'user-agent': 'shot',
                         host: 'localhost:12345',
                         'content-type': 'application/json',
@@ -447,10 +475,18 @@ describe('github plugin test', () => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(pipelineMock.getConfiguration,
                             'pull/1/merge');
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            workflow: [name],
+                            username,
+                            sha
+                        });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
-                            sha
+                            sha,
+                            eventId: eventMock.id
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -464,7 +500,8 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
-                            sha
+                            sha,
+                            eventId: eventMock.id
                         });
                         assert.isOk(model1.update.calledBefore(buildFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(buildFactoryMock.create));
@@ -520,7 +557,7 @@ describe('github plugin test', () => {
                     parsed.action = 'closed';
                     reqHeaders = {
                         'x-github-event': 'pull_request',
-                        'x-github-delivery': 'hookId',
+                        'x-github-delivery': parsed.hookId,
                         'user-agent': 'shot',
                         host: 'localhost:12345',
                         'content-type': 'application/json',

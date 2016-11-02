@@ -34,10 +34,10 @@ function stopJob(job) {
  * Run pull request's main job
  * @method startPRJob
  * @param  {Object}       options
- * @param  {String}       options.hookId       Unique ID for this scm event
+ * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.pipelineId    Identifier for the Pipeline
  * @param  {String}       options.name          Name of the new job (PR-1)
- * @param  {String}       [options.sha]         specific SHA1 commit to start the build with
+ * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.username      User who created the PR
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
@@ -47,6 +47,7 @@ function stopJob(job) {
 function startPRJob(options, request) {
     const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
+    const eventFactory = request.server.app.eventFactory;
     const hookId = options.hookId;
     const pipelineId = options.pipelineId;
     const jobId = options.jobId;
@@ -62,7 +63,7 @@ function startPRJob(options, request) {
         // create a new job
         .then(permutations => jobFactory.create({ pipelineId, name, permutations }))
         // log stuff
-        .then(() => {
+        .then((job) => {
             request.log(['webhook', hookId, jobId], `${name} created`);
             request.log([
                 'webhook',
@@ -70,9 +71,18 @@ function startPRJob(options, request) {
                 jobId,
                 pipelineId
             ], `${username} selected`);
+
+            // create an event
+            return eventFactory.create({
+                pipelineId,
+                type: 'pr',
+                workflow: [job.name],
+                username,
+                sha
+            });
         })
         // create a build
-        .then(() => buildFactory.create({ jobId, sha, username }))
+        .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
         .then(build =>
             request.log(['webhook', hookId, build.jobId, build.id],
             `${name} started ${build.number}`));
@@ -82,7 +92,7 @@ function startPRJob(options, request) {
  * Create a new job and start the build for an opened pull-request
  * @method pullRequestOpened
  * @param  {Object}       options
- * @param  {String}       options.hookId       Unique ID for this GitHub event
+ * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.name          Name of the new job (PR-1)
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
@@ -97,7 +107,7 @@ function pullRequestOpened(options, request, reply) {
  * Stop any running builds and disable the job for closed pull-request
  * @method pullRequestClosed
  * @param  {Object}       options
- * @param  {String}       options.hookId    Unique ID for this GitHub event
+ * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the job (PR-1)
@@ -135,7 +145,7 @@ function pullRequestClosed(options, request, reply) {
  * Stop any running builds and start the build for the synchronized pull-request
  * @method pullRequestSync
  * @param  {Object}       options
- * @param  {String}       options.hookId       Unique ID for this GitHub event
+ * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.pipelineId    Identifier for the Pipeline
  * @param  {String}       options.jobId         Identifier for the Job
  * @param  {String}       options.name          Name of the job (PR-1)
@@ -271,6 +281,7 @@ function pushEvent(request, reply, parsed) {
     const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
     const userFactory = request.server.app.userFactory;
+    const eventFactory = request.server.app.eventFactory;
     const hookId = parsed.hookId;
     const repository = parsed.checkoutUrl;
     const branch = parsed.branch;
@@ -292,23 +303,29 @@ function pushEvent(request, reply, parsed) {
                 return reply().code(204);
             }
 
+            const pipelineId = pipeline.id;
+            const name = 'main';
+            const jobId = jobFactory.generateId({ pipelineId, name });
+
             // sync the pipeline to get the latest jobs
             return pipeline.sync()
-                // handle the PR action
-                .then(() => {
-                    const pipelineId = pipeline.id;
-                    const name = 'main';
-                    const jobId = jobFactory.generateId({ pipelineId, name });
+            // create an event
+            .then(() => eventFactory.create({
+                pipelineId,
+                type: 'pipeline',
+                workflow: pipeline.workflow,
+                username,
+                sha
+            }))
+            // create a build
+            .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
+            // log build created
+            .then((build) => {
+                request.log(['webhook', hookId, jobId, build.id],
+                    `${name} started ${build.number}`);
 
-                    return buildFactory.create({ jobId, sha, username })
-                        // log build created
-                        .then((build) => {
-                            request.log(['webhook', hookId, jobId, build.id],
-                                `${name} started ${build.number}`);
-
-                            return reply().code(201);
-                        });
-                });
+                return reply().code(201);
+            });
         })
         .catch(err => reply(boom.wrap(err)));
 }
