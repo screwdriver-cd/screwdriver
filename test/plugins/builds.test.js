@@ -476,6 +476,7 @@ describe('build plugin test', () => {
                         jobId: publishJobId,
                         username
                     }).resolves('doesNotMatter');
+                    buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -483,7 +484,8 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
-                            username
+                            username,
+                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
                         });
                     });
                 });
