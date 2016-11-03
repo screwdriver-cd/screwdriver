@@ -29,8 +29,7 @@ const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
 const executorConfig = config.get('executor');
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
 const executor = new ExecutorPlugin(hoek.applyToDefaults({ ecosystem },
-    (executorConfig[executorConfig.plugin] || {})));
-
+    ({ executor: executorConfig[executorConfig.plugin] } || {})));
 // Source Code Plugin
 const scmConfig = config.get('scm');
 const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
