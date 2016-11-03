@@ -66,10 +66,11 @@ datastore:
 executor:
     plugin: EXECUTOR_PLUGIN
     k8s:
-        # The host or IP of the kubernetes cluster
-        host: K8S_HOST
-        # The jwt token used for authenticating kubernetes requests
-        token: K8S_TOKEN
+        kubernetes:
+            # The host or IP of the kubernetes cluster
+            host: K8S_HOST
+            # The jwt token used for authenticating kubernetes requests
+            token: K8S_TOKEN
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
     docker:
@@ -97,7 +98,7 @@ scm:
         # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
         oauthClientId: SECRET_OAUTH_CLIENT_ID
         # The client secret used for OAuth with bitbucket
-        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET    
+        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
 
 ecosystem:
     # URL for the User Interface
