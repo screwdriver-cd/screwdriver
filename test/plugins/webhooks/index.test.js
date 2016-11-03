@@ -140,6 +140,7 @@ describe('github plugin test', () => {
                 admins: {
                     baxterthehacker: false
                 },
+                workflow: ['main'],
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub()
             };
@@ -237,16 +238,17 @@ describe('github plugin test', () => {
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
             });
 
-            it('returns 201 on success', () => (
-                server.inject(options, (reply) => {
+            it('returns 201 on success', () =>
+                server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineMock.sync);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
                         type: 'pipeline',
-                        workflow: name,
+                        workflow: [name],
                         username,
-                        sha
+                        sha,
+                        causeMessage: `Merged by ${username}`
                     });
                     assert.calledWith(buildFactoryMock.create, {
                         jobId,
@@ -255,7 +257,7 @@ describe('github plugin test', () => {
                         eventId: eventMock.id
                     });
                 })
-            ));
+            );
 
             it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
@@ -375,7 +377,8 @@ describe('github plugin test', () => {
                             type: 'pr',
                             workflow: [name],
                             username,
-                            sha
+                            sha,
+                            causeMessage: `Opened by ${username}`
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
@@ -480,7 +483,8 @@ describe('github plugin test', () => {
                             type: 'pr',
                             workflow: [name],
                             username,
-                            sha
+                            sha,
+                            causeMessage: `Synchronized by ${username}`
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,

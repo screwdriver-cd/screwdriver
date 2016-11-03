@@ -78,7 +78,8 @@ function startPRJob(options, request) {
                 type: 'pr',
                 workflow: [job.name],
                 username,
-                sha
+                sha,
+                causeMessage: `${options.action} by ${username}`
             });
         })
         // create a build
@@ -249,7 +250,8 @@ function pullRequestEvent(request, reply, parsed) {
                         sha,
                         username,
                         prRef,
-                        pipeline
+                        pipeline,
+                        action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
 
                     switch (action) {
@@ -315,7 +317,8 @@ function pushEvent(request, reply, parsed) {
                 type: 'pipeline',
                 workflow: pipeline.workflow,
                 username,
-                sha
+                sha,
+                causeMessage: `Merged by ${username}`
             }))
             // create a build
             .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
