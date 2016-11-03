@@ -1,4 +1,5 @@
-Feature: Event
+@events
+Feature: Events
 
     The most straight-forward change to a pipeline is by committing code. It has
     a unique identifier, a committer (user), a notification (webhooks), and a way
@@ -31,29 +32,29 @@ Feature: Event
         And "calvin" has admin permission to the pipeline
 
     Scenario: Create an event when user starts a job
-        Given "calvin" is logged in
-        When "calvin" starts the job "main"
-        Then the "main" job is started
-        And an event is created
-        And the "main" build is created
+        And "calvin" is logged in
+        When the "main" job is started
+        Then an event is created
         And the "main" build succeeds
-        And the "publish" build is created
-        And the "publish" build has the same eventId as the "main" build
+        And the "publish" build succeeds with the same eventId as the "main" build
 
+    @ignore
     Scenario: Create an event when a PR is opened
         When a pull request is opened
-        Then the "main" job is started
-        And an event is created
+        And the "main" job is started
+        Then an event is created
         And the "main" build is created
 
+    @ignore
     Scenario: Create an event when a PR is synced
         When a pull request is synced
-        Then the "main" job is started
-        And an event is created
+        And the "main" job is started
+        Then an event is created
         And the "main" build is created
 
+    @ignore
     Scenario: Create an event when a PR is merged
         When a pull request is merged
-        Then the "main" job is started
-        And an event is created
+        And the "main" job is started
+        Then an event is created
         And the "main" build is created

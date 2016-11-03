@@ -25,18 +25,21 @@ Feature: Authorization
             | miss wormwood | no access   |
         And an existing pipeline with that repository
 
+    @ignore
     Scenario: No Access
         And "miss wormwood" is logged in
         Then they can not see the project
         And they can not start the "main" job
         And they can not delete the pipeline
 
+    @ignore
     Scenario: Read Only
         And "susie" is logged in
         Then they can see the project
         And they can not start the "main" job
         And they can not delete the pipeline
 
+    @ignore
     Scenario: Committer
         And "hobbes" is logged in
         Then they can see the project

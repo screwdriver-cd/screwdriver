@@ -187,11 +187,34 @@ function getStatus(token, repoOwner, repoName, sha) {
     });
 }
 
+/**
+ * Merge a pull request for a given repository
+ * @method mergePullRequest
+ * @param  {String}     token              Github token
+ * @param  {String}     repoOwner          Owner of the repository
+ * @param  {String}     repoName           Name of the repository
+ * @param  {Number}     prNumber           Number of the pull request
+ * @return {Promise}
+ */
+function mergePullRequest(token, repoOwner, repoName, prNumber) {
+    github.authenticate({
+        type: 'oauth',
+        token
+    });
+
+    return github.pullRequests.merge({
+        owner: repoOwner,
+        repo: repoName,
+        number: prNumber
+    });
+}
+
 module.exports = {
     cleanUpRepository,
     closePullRequest,
     createBranch,
     createFile,
     createPullRequest,
-    getStatus
+    getStatus,
+    mergePullRequest
 };
