@@ -94,11 +94,12 @@ datastore:
 executor:
     plugin: k8s
     k8s:
-        # The host or IP of the kubernetes cluster
-        host: kubernetes.default
-        # The jwt token used for authenticating kubernetes requests
-        # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
-        # token:
+        kubernetes:
+            # The host or IP of the kubernetes cluster
+            host: kubernetes.default
+            # The jwt token used for authenticating kubernetes requests
+            # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
+            # token:
 
         # Container tags to use
         launchVersion: stable
