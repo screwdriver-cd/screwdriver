@@ -103,7 +103,8 @@ module.exports = () => ({
                                 return factory.create({
                                     jobId: nextJobToTrigger.id,
                                     sha: build.sha,
-                                    username
+                                    username,
+                                    eventId: build.eventId
                                 });
                             }
 
