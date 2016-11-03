@@ -71,6 +71,7 @@ executor:
             host: K8S_HOST
             # The jwt token used for authenticating kubernetes requests
             token: K8S_TOKEN
+            jobsNamespace: K8S_JOBS_NAMESPACE
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
     docker:
