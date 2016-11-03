@@ -34,10 +34,10 @@ function stopJob(job) {
  * Run pull request's main job
  * @method startPRJob
  * @param  {Object}       options
- * @param  {String}       options.eventId       Unique ID for this GitHub event
+ * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.pipelineId    Identifier for the Pipeline
  * @param  {String}       options.name          Name of the new job (PR-1)
- * @param  {String}       [options.sha]         specific SHA1 commit to start the build with
+ * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.username      User who created the PR
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
@@ -47,7 +47,8 @@ function stopJob(job) {
 function startPRJob(options, request) {
     const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
-    const eventId = options.eventId;
+    const eventFactory = request.server.app.eventFactory;
+    const hookId = options.hookId;
     const pipelineId = options.pipelineId;
     const jobId = options.jobId;
     const name = options.name;
@@ -62,19 +63,28 @@ function startPRJob(options, request) {
         // create a new job
         .then(permutations => jobFactory.create({ pipelineId, name, permutations }))
         // log stuff
-        .then(() => {
-            request.log(['webhook', eventId, jobId], `${name} created`);
+        .then((job) => {
+            request.log(['webhook', hookId, jobId], `${name} created`);
             request.log([
                 'webhook',
-                eventId,
+                hookId,
                 jobId,
                 pipelineId
             ], `${username} selected`);
+
+            // create an event
+            return eventFactory.create({
+                pipelineId,
+                type: 'pr',
+                workflow: [job.name],
+                username,
+                sha
+            });
         })
         // create a build
-        .then(() => buildFactory.create({ jobId, sha, username }))
+        .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
         .then(build =>
-            request.log(['webhook', options.eventId, build.jobId, build.id],
+            request.log(['webhook', hookId, build.jobId, build.id],
             `${name} started ${build.number}`));
 }
 
@@ -82,7 +92,7 @@ function startPRJob(options, request) {
  * Create a new job and start the build for an opened pull-request
  * @method pullRequestOpened
  * @param  {Object}       options
- * @param  {String}       options.eventId       Unique ID for this GitHub event
+ * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.name          Name of the new job (PR-1)
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
@@ -97,7 +107,7 @@ function pullRequestOpened(options, request, reply) {
  * Stop any running builds and disable the job for closed pull-request
  * @method pullRequestClosed
  * @param  {Object}       options
- * @param  {String}       options.eventId    Unique ID for this GitHub event
+ * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
  * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the job (PR-1)
@@ -106,14 +116,14 @@ function pullRequestOpened(options, request, reply) {
  */
 function pullRequestClosed(options, request, reply) {
     const jobFactory = request.server.app.jobFactory;
-    const eventId = options.eventId;
+    const hookId = options.hookId;
     const jobId = options.jobId;
     const name = options.name;
 
     return jobFactory.get(jobId)
         .then(job =>
             stopJob(job)
-            .then(() => request.log(['webhook', eventId, jobId], `${name} stopped`))
+            .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
             // disable and archive the job
             .then(() => {
                 job.state = 'DISABLED';
@@ -123,7 +133,7 @@ function pullRequestClosed(options, request, reply) {
             })
             // log some stuff
             .then(() => {
-                request.log(['webhook', eventId, jobId], `${name} disabled and archived`);
+                request.log(['webhook', hookId, jobId], `${name} disabled and archived`);
 
                 return reply().code(200);
             }))
@@ -135,7 +145,7 @@ function pullRequestClosed(options, request, reply) {
  * Stop any running builds and start the build for the synchronized pull-request
  * @method pullRequestSync
  * @param  {Object}       options
- * @param  {String}       options.eventId       Unique ID for this GitHub event
+ * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.pipelineId    Identifier for the Pipeline
  * @param  {String}       options.jobId         Identifier for the Job
  * @param  {String}       options.name          Name of the job (PR-1)
@@ -148,7 +158,7 @@ function pullRequestClosed(options, request, reply) {
  */
 function pullRequestSync(options, request, reply) {
     const jobFactory = request.server.app.jobFactory;
-    const eventId = options.eventId;
+    const hookId = options.hookId;
     const name = options.name;
     const jobId = options.jobId;
 
@@ -157,7 +167,7 @@ function pullRequestSync(options, request, reply) {
         .then(() => startPRJob(options, request))
         // log build created
         .then(() => {
-            request.log(['webhook', eventId, jobId], `${name} synced`);
+            request.log(['webhook', hookId, jobId], `${name} synced`);
 
             return reply().code(201);
         })
@@ -200,7 +210,7 @@ function pullRequestEvent(request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const jobFactory = request.server.app.jobFactory;
     const userFactory = request.server.app.userFactory;
-    const eventId = parsed.hookId;
+    const hookId = parsed.hookId;
     const action = parsed.action;
     const prNumber = parsed.prNum;
     const repository = parsed.checkoutUrl;
@@ -210,7 +220,7 @@ function pullRequestEvent(request, reply, parsed) {
     const sha = parsed.sha;
     const username = parsed.username;
 
-    request.log(['webhook', eventId], `PR #${prNumber} ${action} for ${checkoutUrl}`);
+    request.log(['webhook', hookId], `PR #${prNumber} ${action} for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(userFactory, username)
@@ -218,7 +228,7 @@ function pullRequestEvent(request, reply, parsed) {
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
-                request.log(['webhook', eventId],
+                request.log(['webhook', hookId],
                     `Skipping since Pipeline ${checkoutUrl} does not exist`);
 
                 return reply().code(204);
@@ -232,7 +242,7 @@ function pullRequestEvent(request, reply, parsed) {
                     const name = `PR-${prNumber}`;
                     const jobId = jobFactory.generateId({ pipelineId, name });
                     const options = {
-                        eventId,
+                        hookId,
                         pipelineId,
                         jobId,
                         name,
@@ -271,14 +281,15 @@ function pushEvent(request, reply, parsed) {
     const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
     const userFactory = request.server.app.userFactory;
-    const eventId = parsed.hookId;
+    const eventFactory = request.server.app.eventFactory;
+    const hookId = parsed.hookId;
     const repository = parsed.checkoutUrl;
     const branch = parsed.branch;
     const sha = parsed.sha;
     const username = parsed.username;
     const checkoutUrl = `${repository}#${branch}`;
 
-    request.log(['webhook', eventId], `Push for ${checkoutUrl}`);
+    request.log(['webhook', hookId], `Push for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(userFactory, username)
@@ -286,29 +297,35 @@ function pushEvent(request, reply, parsed) {
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
-                request.log(['webhook', eventId],
+                request.log(['webhook', hookId],
                     `Skipping since Pipeline ${checkoutUrl} does not exist`);
 
                 return reply().code(204);
             }
 
+            const pipelineId = pipeline.id;
+            const name = 'main';
+            const jobId = jobFactory.generateId({ pipelineId, name });
+
             // sync the pipeline to get the latest jobs
             return pipeline.sync()
-                // handle the PR action
-                .then(() => {
-                    const pipelineId = pipeline.id;
-                    const name = 'main';
-                    const jobId = jobFactory.generateId({ pipelineId, name });
+            // create an event
+            .then(() => eventFactory.create({
+                pipelineId,
+                type: 'pipeline',
+                workflow: pipeline.workflow,
+                username,
+                sha
+            }))
+            // create a build
+            .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
+            // log build created
+            .then((build) => {
+                request.log(['webhook', hookId, jobId, build.id],
+                    `${name} started ${build.number}`);
 
-                    return buildFactory.create({ jobId, sha, username })
-                        // log build created
-                        .then((build) => {
-                            request.log(['webhook', eventId, jobId, build.id],
-                                `${name} started ${build.number}`);
-
-                            return reply().code(201);
-                        });
-                });
+                return reply().code(201);
+            });
         })
         .catch(err => reply(boom.wrap(err)));
 }
@@ -342,9 +359,9 @@ exports.register = (server, options, next) => {
                     }
 
                     const eventType = parsed.type;
-                    const eventId = parsed.hookId;
+                    const hookId = parsed.hookId;
 
-                    request.log(['webhook', eventId], `Received event type ${eventType}`);
+                    request.log(['webhook', hookId], `Received event type ${eventType}`);
 
                     if (eventType === 'pr') {
                         return pullRequestEvent(request, reply, parsed);
