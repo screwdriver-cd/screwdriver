@@ -40,6 +40,7 @@ Feature: Secrets
         And the "second" job is started
         Then the "foo" secret should be available in the build
 
+    @ignore
     Scenario: Adding Job Secrets
         And "calvin" is logged in
         When a secret "foo" is added to the "main" job
@@ -49,6 +50,7 @@ Feature: Secrets
         And the "second" job is started
         Then the "foo" secret should not be available in the build
 
+    @ignore
     Scenario: Adding PR Secrets
         And "calvin" is logged in
         When a secret "foo" is added to the "PR-nofork" job
@@ -63,6 +65,7 @@ Feature: Secrets
         Then the user can view the secret exists
         And the user can not view the value
 
+    @ignore
     Scenario: Secret Non-Admin Permissions
         And "calvin" is logged in
         When a secret "foo" is added globally

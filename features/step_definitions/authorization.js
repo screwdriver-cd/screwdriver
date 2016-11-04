@@ -3,6 +3,7 @@
 const Assert = require('chai').assert;
 const request = require('../support/request');
 const jwt = require('jsonwebtoken');
+const TIMEOUT = 60 * 1000;
 
 module.exports = function server() {
     // eslint-disable-next-line new-cap
@@ -55,18 +56,16 @@ module.exports = function server() {
             },
             json: true
         }).then((response) => {
-            if (!this.pipelineId) {
-                if (response.statusCode === 201) {
-                    this.pipelineId = response.body.id;
-                } else if (response.statusCode === 409) {
-                    const str = response.body.message;
-                    const id = str.split(': ')[1];
-
-                    this.pipelineId = id;
-                }
-            }
-
             Assert.oneOf(response.statusCode, [409, 201]);
+
+            if (response.statusCode === 201) {
+                this.pipelineId = response.body.id;
+            } else {
+                const str = response.body.message;
+                const id = str.split(': ')[1];
+
+                this.pipelineId = id;
+            }
         })
         .then(() => request({
             method: 'GET',
@@ -79,7 +78,7 @@ module.exports = function server() {
         })
     );
 
-    this.Then(/^they can start the "main" job$/, { timeout: 60 * 1000 }, () =>
+    this.Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
             method: 'GET',
@@ -109,14 +108,13 @@ module.exports = function server() {
         )
     );
 
-    this.Then(/^they can delete the pipeline$/, { timeout: 60 * 1000 }, () =>
+    this.Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, () =>
         request({
             method: 'DELETE',
             auth: {
                 bearer: this.jwt
             },
             url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-            followAllRedirects: true,
             json: true
         })
         .then((resp) => {

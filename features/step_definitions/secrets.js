@@ -11,6 +11,7 @@ module.exports = function server() {
         this.repoOrg = 'screwdriver-cd-test';
         this.repoName = 'functional-secrets';
         this.pipelineId = null;
+        this.secretId = null;
     });
 
     this.Given(/^an existing repository for secret with these users and permissions:$/,
@@ -31,10 +32,17 @@ module.exports = function server() {
                 json: true
             });
         })
-        .then((res) => {
-            this.pipelineId = res.body.id;
+        .then((response) => {
+            Assert.oneOf(response.statusCode, [409, 201]);
 
-            Assert.strictEqual(res.statusCode, 201);
+            if (response.statusCode === 201) {
+                this.pipelineId = response.body.id;
+            } else {
+                const str = response.body.message;
+                const id = str.split(': ')[1];
+
+                this.pipelineId = id;
+            }
 
             return table;
         })
@@ -86,6 +94,7 @@ module.exports = function server() {
                 json: true
             }).then((resp) => {
                 this.buildId = resp.body.id;
+                this.eventId = resp.body.eventId;
 
                 Assert.equal(resp.statusCode, 201);
             })
@@ -160,16 +169,14 @@ module.exports = function server() {
         tags: ['@secrets']
     }, () =>
         request({
+            uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
             method: 'DELETE',
             auth: {
                 bearer: this.jwt
             },
-            url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-            followAllRedirects: true,
             json: true
-        })
-        .then((resp) => {
-            Assert.strictEqual(resp.statusCode, 204);
+        }).then((response) => {
+            Assert.equal(response.statusCode, 204);
         })
     );
 };

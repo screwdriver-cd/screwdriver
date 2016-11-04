@@ -4,12 +4,13 @@ const Assert = require('chai').assert;
 const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
+const TIMEOUT = 60 * 1000;
 
 module.exports = function server() {
     // eslint-disable-next-line new-cap
     this.Before({
         tags: ['@gitflow'],
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () => {
         this.branch = 'darrenBranch';
         this.repoOrg = 'screwdriver-cd-test';
@@ -33,7 +34,7 @@ module.exports = function server() {
     });
 
     this.Given(/^an existing pipeline$/, {
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines`,
@@ -46,14 +47,21 @@ module.exports = function server() {
             },
             json: true
         }).then((response) => {
-            this.pipelineId = response.body.id;
+            Assert.oneOf(response.statusCode, [409, 201]);
 
-            Assert.strictEqual(response.statusCode, 201);
+            if (response.statusCode === 201) {
+                this.pipelineId = response.body.id;
+            } else {
+                const str = response.body.message;
+                const id = str.split(': ')[1];
+
+                this.pipelineId = id;
+            }
         })
     );
 
     this.Given(/^an existing pull request targeting the pipeline's branch$/, {
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () => {
         const branch = this.branch;
         const token = this.gitToken;
@@ -73,7 +81,7 @@ module.exports = function server() {
             });
     });
 
-    this.When(/^a pull request is opened$/, { timeout: 60 * 1000 }, () => {
+    this.When(/^a pull request is opened$/, { timeout: TIMEOUT }, () => {
         const branch = this.branch;
         const token = this.gitToken;
 
@@ -91,7 +99,7 @@ module.exports = function server() {
     this.When(/^it is targeting the pipeline's branch$/, () => null);
 
     this.When(/^the pull request is closed$/, {
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () =>
         this.promiseToWait(3)  // Wait for the build to be enabled before moving forward
         .then(() =>
@@ -110,7 +118,7 @@ module.exports = function server() {
     );
 
     this.When(/^new changes are pushed to that pull request$/, {
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () =>
         this.promiseToWait(3)  // Find & save the previous build
         .then(() =>
@@ -130,14 +138,14 @@ module.exports = function server() {
 
     this.When(/^a new commit is pushed$/, () => null);
 
-    this.When(/^it is against the pipeline's branch$/, { timeout: 60 * 1000 }, () => {
+    this.When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, () => {
         this.testBranch = 'master';
 
         return github.createFile(this.gitToken, this.testBranch, this.repoOrg, this.repoName);
     });
 
     this.Then(/^a new build from `main` should be created to test that change$/, {
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () =>
         this.promiseToWait(8)
         .then(() => sdapi.searchForBuild({
@@ -166,7 +174,7 @@ module.exports = function server() {
     );
 
     this.Then(/^any existing builds should be stopped$/, {
-        timeout: 60 * 1000
+        timeout: TIMEOUT
     }, () => {
         const desiredStatus = ['ABORTED', 'SUCCESS'];
 
@@ -184,24 +192,6 @@ module.exports = function server() {
         github.getStatus(this.gitToken, this.repoOrg, this.repoName, this.sha)
         .then((data) => {
             Assert.oneOf(data.state, ['success', 'pending']);
-        })
-    );
-
-    // eslint-disable-next-line new-cap
-    this.After({
-        tags: ['@gitflow']
-    }, () =>
-        request({
-            method: 'DELETE',
-            auth: {
-                bearer: this.jwt
-            },
-            url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-            followAllRedirects: true,
-            json: true
-        })
-        .then((resp) => {
-            Assert.strictEqual(resp.statusCode, 204);
         })
     );
 };
