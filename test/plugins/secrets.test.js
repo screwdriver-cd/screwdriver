@@ -175,6 +175,16 @@ describe('secret plugin test', () => {
             });
         });
 
+        it('returns 409 when the secret already exists', () => {
+            secretFactoryMock.get.resolves(secretMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 409);
+                assert.strictEqual(reply.result.message,
+                    `Secret already exists with the ID: ${secretMock.id}`);
+            });
+        });
+
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username }).resolves(null);
 

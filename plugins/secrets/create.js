@@ -45,7 +45,19 @@ module.exports = () => ({
                                 `User ${username} is not an admin of this repo`);
                         }
                     })
-                    .then(() => secretFactory.create(request.payload))
+                    // check if secret already exists
+                    .then(() => secretFactory.get({
+                        pipelineId: request.payload.pipelineId,
+                        name: request.payload.name
+                    }))
+                    // if secret already exists, reject
+                    .then((secret) => {
+                        if (secret) {
+                            throw boom.conflict(`Secret already exists with the ID: ${secret.id}`);
+                        }
+
+                        return secretFactory.create(request.payload);
+                    })
                     .then((secret) => {
                         const location = urlLib.format({
                             host: request.headers.host,

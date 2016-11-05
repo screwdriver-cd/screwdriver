@@ -779,13 +779,13 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 409 when the pipieline already exists', () => {
+        it('returns 409 when the pipeline already exists', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 409);
                 assert.strictEqual(reply.result.message,
-                    `Pipeline already exists: ${pipelineMock.id}`);
+                    `Pipeline already exists with the ID: ${pipelineMock.id}`);
             });
         });
 
