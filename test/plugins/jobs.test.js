@@ -138,7 +138,7 @@ describe('job plugin test', () => {
         });
     });
 
-    describe('/jobs/{id}', () => {
+    describe('PUT /jobs/{id}', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         const state = 'DISABLED';
         let jobMock;
@@ -213,7 +213,7 @@ describe('job plugin test', () => {
         });
     });
 
-    describe('/jobs/{id}/builds', () => {
+    describe('GET /jobs/{id}/builds', () => {
         const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
         let options;
         let job;
