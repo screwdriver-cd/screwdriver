@@ -54,10 +54,10 @@ function startPRJob(options, request) {
     const name = options.name;
     const sha = options.sha;
     const username = options.username;
-    const ref = options.prRef;
+    const prRef = options.prRef;
     const pipeline = options.pipeline;
 
-    return pipeline.getConfiguration(ref)
+    return pipeline.getConfiguration(prRef)
         // get permutations(s) for "main" job
         .then(config => config.jobs.main)
         // create a new job
@@ -83,7 +83,7 @@ function startPRJob(options, request) {
             });
         })
         // create a build
-        .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
+        .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id, prRef }))
         .then(build =>
             request.log(['webhook', hookId, build.jobId, build.id],
             `${name} started ${build.number}`));

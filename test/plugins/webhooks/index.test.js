@@ -114,6 +114,7 @@ describe('github plugin test', () => {
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
         const username = 'baxterthehacker';
         const token = 'iamtoken';
+        const prRef = 'pull/1/merge';
         const parsed = {
             hookId: '81e6bd80-9a2c-11e6-939d-beaa5d9adaf3',
             username,
@@ -121,7 +122,7 @@ describe('github plugin test', () => {
             branch: 'master',
             sha,
             prNum: 1,
-            prRef: 'pull/1/merge'
+            prRef
         };
         let name = 'PR-1';
         let pipelineMock;
@@ -384,7 +385,8 @@ describe('github plugin test', () => {
                             jobId,
                             sha,
                             username,
-                            eventId: eventMock.id
+                            eventId: eventMock.id,
+                            prRef
                         });
                     })
                 );
@@ -425,7 +427,8 @@ describe('github plugin test', () => {
                             jobId,
                             sha,
                             username,
-                            eventId: eventMock.id
+                            eventId: eventMock.id,
+                            prRef
                         });
                     });
                 });
@@ -490,7 +493,8 @@ describe('github plugin test', () => {
                             jobId,
                             username,
                             sha,
-                            eventId: eventMock.id
+                            eventId: eventMock.id,
+                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -505,7 +509,8 @@ describe('github plugin test', () => {
                             jobId,
                             username,
                             sha,
-                            eventId: eventMock.id
+                            eventId: eventMock.id,
+                            prRef
                         });
                         assert.isOk(model1.update.calledBefore(buildFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(buildFactoryMock.create));
