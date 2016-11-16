@@ -4,7 +4,7 @@ const Assert = require('chai').assert;
 const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
-const TIMEOUT = 60 * 1000;
+const TIMEOUT = 120 * 1000;
 
 module.exports = function server() {
     // eslint-disable-next-line new-cap
