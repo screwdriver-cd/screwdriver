@@ -133,3 +133,6 @@ ecosystem:
     store: https://store.screwdriver.cd
     # Badge service (needs to add a status and color)
     badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg
+    # Plugins for build setup
+    setup:
+        - sd-scm
