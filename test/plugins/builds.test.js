@@ -1009,7 +1009,7 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns all logs for a step that is split across logs', () => {
+        it('returns logs for a step that is split across pages', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
@@ -1023,6 +1023,63 @@ describe('build plugin test', () => {
             return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 102);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns logs for a step that is split across max pages', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            for (let i = 0; i < 15; i += 1) {
+                const lines = [];
+
+                for (let j = 0; j < 100; j += 1) {
+                    lines.push(JSON.stringify({
+                        t: Date.now(),
+                        m: 'Random message here',
+                        n: (100 * i) + j
+                    }));
+                }
+
+                nock('https://store.screwdriver.cd')
+                    .get(`/v1/builds/${id}/${step}/log.${i}`)
+                    .reply(200, lines.join('\n'));
+            }
+
+            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1000);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
+        });
+
+        it('returns logs for a step that ends at max pages', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            for (let i = 0; i < 10; i += 1) {
+                const lines = [];
+                const maxLines = (i === 9) ? 50 : 100;
+
+                for (let j = 0; j < maxLines; j += 1) {
+                    lines.push(JSON.stringify({
+                        t: Date.now(),
+                        m: 'Random message here',
+                        n: (100 * i) + j
+                    }));
+                }
+
+                nock('https://store.screwdriver.cd')
+                    .get(`/v1/builds/${id}/${step}/log.${i}`)
+                    .reply(200, lines.join('\n'));
+            }
+
+            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 950);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
