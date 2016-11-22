@@ -42,8 +42,8 @@ authConfig.scm = scm;
 
 const bookend = new Bookend(
     { 'sd-scm': scm },          // default plugins defined by screwdriver
-    ecosystem.setup || [],      // plugins required for the sd-setup step
-    ecosystem.teardown || [],   // plugins required for the sd-teardown step
+    ecosystem.setup || [],      // plugins required for the setup- steps
+    ecosystem.teardown || []    // plugins required for the teardown- steps
 );
 
 // Setup Model Factories
