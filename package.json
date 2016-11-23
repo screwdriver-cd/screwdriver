@@ -21,6 +21,7 @@
   },
   "greenkeeper": {
     "ignore": [
+      "screwdriver-build-bookend",
       "screwdriver-config-parser",
       "screwdriver-data-schema",
       "screwdriver-datastore-dynamodb",
@@ -80,8 +81,8 @@
     "screwdriver-data-schema": "^15.3.0",
     "screwdriver-datastore-dynamodb": "^3.3.0",
     "screwdriver-datastore-sequelize": "^1.1.0",
-    "screwdriver-executor-docker": "^1.1.2",
-    "screwdriver-executor-k8s": "^9.0.0",
+    "screwdriver-executor-docker": "^2.0.0",
+    "screwdriver-executor-k8s": "^10.0.0",
     "screwdriver-models": "^19.0.2",
     "screwdriver-scm-bitbucket": "^2.3.0",
     "screwdriver-scm-github": "^4.4.0",
