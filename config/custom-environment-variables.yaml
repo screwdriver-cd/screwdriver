@@ -39,6 +39,11 @@ httpd:
     host: HOST
     # Externally routable URI (usually your load balancer or CNAME)
     uri: URI
+    # TLS configuration (key, cert, etc.)
+    # https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
+    tls:
+        __name: HTTPD_TLS
+        __format: json
 
 datastore:
     plugin: DATASTORE_PLUGIN
