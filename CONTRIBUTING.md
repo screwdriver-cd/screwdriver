@@ -27,6 +27,25 @@ Patches for fixes, features, and improvements are accepted through pull requests
 
 Please ask before embarking on a large improvement so you're not disappointed if it does not align with the goals of the project or owner(s).
 
+## Commit message format
+
+We use [semantic-release](https://www.npmjs.com/package/semantic-release), which requires commit messages to be in this specific format: `<type>(<scope>): <subject>`
+
+* Types:
+  * feat (feature)
+  * fix (bug fix)
+  * docs (documentation)
+  * style (formatting, missing semi colons, …)
+  * refactor
+  * test (when adding missing tests)
+  * chore (maintain)
+* Scope: anything that specifies the scope of the commit. Can be blank or `*`
+* Subject: description of the commit. For **breaking changes** that require major version bump, add `BREAKING CHANGE` to the commit message.
+
+**Examples commit messages:**
+* Bug fix: `fix: Remove extra space`
+* Breaking change: `feat(scm): Support new scm plugin. BREAKING CHANGE: github no longer works`
+
 ## Feature Requests
 
 Make the case for a feature via an issue with a good title. The feature should be discussed and given a target inclusion milestone or closed.
