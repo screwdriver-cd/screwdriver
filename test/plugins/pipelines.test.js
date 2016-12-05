@@ -425,7 +425,6 @@ describe('pipeline plugin test', () => {
             options.url = `/pipelines/${id}/jobs?page=2&count=30&archived=true`;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
                         archived: true
@@ -436,6 +435,7 @@ describe('pipeline plugin test', () => {
                     }
                 });
                 assert.deepEqual(reply.result, testJobs);
+                assert.equal(reply.statusCode, 200);
             });
         });
     });
