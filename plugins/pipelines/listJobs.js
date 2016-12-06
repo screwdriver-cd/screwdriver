@@ -43,7 +43,7 @@ module.exports = () => ({
             query: joi.object().keys({
                 page: joi.reach(schema.api.pagination, 'page'),
                 count: joi.reach(schema.api.pagination, 'count'),
-                archived: joi.reach(schema.models.job.base, 'archived')
+                archived: joi.boolean().truthy('true').falsy('false').default(false)
             })
         }
     }
