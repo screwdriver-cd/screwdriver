@@ -32,7 +32,7 @@ const ALGORITHM = 'RS256';
  */
 exports.register = (server, options, next) => {
     const pluginOptions = joi.attempt(options, joi.object().keys({
-        https: joi.boolean().required(),
+        https: joi.boolean().truthy('true').falsy('false').required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
         temporaryAccessKey: joi.string().optional(),
