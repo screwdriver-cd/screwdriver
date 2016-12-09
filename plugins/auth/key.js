@@ -13,7 +13,7 @@ module.exports = options => ({
     method: ['GET'],
     path: '/auth/key',
     config: {
-        description: 'jwt public key',
+        description: 'Get jwt public key',
         notes: 'Public Key for verifying JSON Web Tokens',
         tags: ['api', 'auth', 'key'],
         handler: (request, reply) => reply({

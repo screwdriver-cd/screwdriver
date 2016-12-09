@@ -9,8 +9,8 @@ module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
     config: {
-        description: 'Save a build',
-        notes: 'Save a specific build',
+        description: 'Update a build',
+        notes: 'Update a specific build',
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token', 'session'],

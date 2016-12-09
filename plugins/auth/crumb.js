@@ -11,7 +11,7 @@ module.exports = () => ({
     method: 'GET',
     path: '/auth/crumb',
     config: {
-        description: 'crumb generator',
+        description: 'Generate crumb',
         notes: 'Should return a crumb',
         tags: ['api', 'crumb', 'auth'],
         handler: (request, reply) => reply({
