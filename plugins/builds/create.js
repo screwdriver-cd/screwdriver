@@ -8,8 +8,8 @@ module.exports = () => ({
     method: 'POST',
     path: '/builds',
     config: {
-        description: 'Save a build',
-        notes: 'Save a specific build',
+        description: 'Create and start a build',
+        notes: 'Create and start a specific build',
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token', 'session'],

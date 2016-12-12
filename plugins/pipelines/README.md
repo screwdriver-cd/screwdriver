@@ -36,7 +36,6 @@ server.register({
 
 `GET /pipelines/{id}`
 
-
 #### Create a pipeline
 Create a pipeline and create a job called 'main'
 
@@ -59,6 +58,26 @@ Example payload:
 #### Delete a pipeline
 
 `DELETE /pipelines/{id}`
+
+#### Synchronize a pipeline
+* Synchronize the pipeline by looking up latest screwdriver.yaml
+* Create, update, or disable jobs if necessary.
+* Store/update the pipeline workflow
+
+`GET /pipelines/{id}/sync`
+
+#### Get all pipeline events
+
+`GET /pipelines/{id}/events`
+
+#### Get all jobs (including pull requests jobs)
+`archived` is optional and has a default value of `false`, which makes the endpoint do not return archived jobs, e.g. closed pull requests.
+
+`GET /pipelines/{id}/jobs?archived={boolean}`
+
+#### Get all pipeline secrets
+
+`GET /pipelines/{id}/secrets`
 
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:

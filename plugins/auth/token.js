@@ -12,7 +12,7 @@ module.exports = () => ({
     method: ['GET'],
     path: '/auth/token/{buildId?}',
     config: {
-        description: 'generate jwt',
+        description: 'Generate jwt',
         notes: 'Generate a JWT for use throughout Screwdriver',
         tags: ['api', 'auth', 'token'],
         auth: {

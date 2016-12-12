@@ -14,7 +14,7 @@ module.exports = config => ({
     method: ['GET', 'POST'],
     path: '/auth/login/{web?}',
     config: {
-        description: 'login using oauth',
+        description: 'Login using oauth',
         notes: 'Authenticate user with oauth provider',
         tags: ['api', 'login'],
         auth: {
