@@ -1,6 +1,6 @@
 {
-    "id": "c211ff9dfd0952dcb14dcc739340cd4cd73b87f6",
-    "jobId": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c",
+    "id": 12345,
+    "jobId": 1234,
     "number": 1,
     "sha": "58393af682d61de87789fb4961645c42180cec5a",
     "cause": "Started by user foo",

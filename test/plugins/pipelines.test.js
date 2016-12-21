@@ -234,7 +234,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}', () => {
-        const id = 'cf23df2207d99a74fbe169e3eba035e633b65d94';
+        const id = 123;
         let options;
 
         beforeEach(() => {
@@ -278,7 +278,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('DELETE /pipelines/{id}', () => {
-        const id = 'cf23df2207d99a74fbe169e3eba035e633b65d94';
+        const id = 123;
         const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
         let pipeline;
@@ -366,7 +366,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/jobs', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '123';
         let options;
         let pipelineMock;
 
@@ -441,7 +441,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/jobs', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '123';
         let pipelineMock;
 
         beforeEach(() => {
@@ -498,7 +498,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/secrets', () => {
-        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const pipelineId = '123';
         const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         let options;
@@ -552,13 +552,13 @@ describe('pipeline plugin test', () => {
         it('returns 200 for getting secrets', () =>
             server.inject(options).then((reply) => {
                 const expected = [{
-                    id: 'a123fb192747c9a0124e9e5b4e6e8e841cf8c71c',
-                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    id: 1234,
+                    pipelineId: 123,
                     name: 'NPM_TOKEN',
                     allowInPR: false
                 }, {
-                    id: 'b456fb192747c9a0124e9e5b4e6e8e841cf8c71c',
-                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    id: 1235,
+                    pipelineId: 123,
                     name: 'GIT_TOKEN',
                     allowInPR: true
                 }];
@@ -570,7 +570,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/events', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '123';
         let options;
         let pipelineMock;
 
@@ -611,7 +611,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/sync', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 123;
         const username = 'd2lam';
         const scmUri = 'github.com:12345:branchName';
         let pipelineMock;
@@ -699,7 +699,7 @@ describe('pipeline plugin test', () => {
             id: 'github.com:123456:master'
         };
         const token = 'secrettoken';
-        const testId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const testId = '123';
         const username = 'd2lam';
         const job = {
             id: 'someJobId',
