@@ -53,6 +53,7 @@ const decoratePipelineMock = (pipeline) => {
     const mock = hoek.clone(pipeline);
 
     mock.sync = sinon.stub();
+    mock.addWebhook = sinon.stub();
     mock.update = sinon.stub();
     mock.formatCheckoutUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
@@ -701,10 +702,10 @@ describe('pipeline plugin test', () => {
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
-        const job = {
-            id: 'someJobId',
-            other: 'dataToBeIncluded'
-        };
+        // const job = {
+        //     id: 'someJobId',
+        //     other: 'dataToBeIncluded'
+        // };
         let pipelineMock;
         let userMock;
 
@@ -727,7 +728,8 @@ describe('pipeline plugin test', () => {
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.sync.resolves(job);
+            pipelineMock.sync.resolves(getPipelineMocks(testPipeline));
+            pipelineMock.addWebhook.resolves(null);
 
             pipelineFactoryMock.get.resolves(null);
             pipelineFactoryMock.create.resolves(pipelineMock);
@@ -746,7 +748,6 @@ describe('pipeline plugin test', () => {
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testId}`
                 };
-                assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testPipeline);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(pipelineFactoryMock.create, {
@@ -755,6 +756,7 @@ describe('pipeline plugin test', () => {
                     },
                     scmUri
                 });
+                assert.equal(reply.statusCode, 201);
             });
         });
 
@@ -813,6 +815,16 @@ describe('pipeline plugin test', () => {
             const testError = new Error('pipelineModelSyncError');
 
             pipelineMock.sync.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the pipeline model fails to add webhook during create', () => {
+            const testError = new Error('pipelineModelAddWebhookError');
+
+            pipelineMock.addWebhook.rejects(testError);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
