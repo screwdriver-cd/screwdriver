@@ -37,7 +37,7 @@ function beforeHooks() {
     this.Before((scenario, cb) => {
         const host = process.env.SD_API;
 
-        this.gitToken = process.env.GIT_TOKEN || config.gitToken;
+        this.gitToken = process.env.GITHUB_TOKEN || config.gitToken;
         this.accessKey = process.env.ACCESS_KEY || config.accessKey;
         this.instance = host ? `https://${host}` : config.host;
         this.namespace = 'v4';
