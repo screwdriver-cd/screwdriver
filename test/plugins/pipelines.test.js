@@ -691,6 +691,86 @@ describe('pipeline plugin test', () => {
         });
     });
 
+    describe('GET /pipelines/{id}/sync/webhooks', () => {
+        const id = 123;
+        const username = 'd2lam';
+        const scmUri = 'github.com:12345:branchName';
+        let pipelineMock;
+        let userMock;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/sync/webhooks`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.sync.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+        });
+
+        it('returns 204 for syncing webhooks successfully', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+            })
+        );
+
+        it('returns 401 when user does not have admin permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'User d2lam does not have push permission for this repo'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 for updating a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User d2lam does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when model returns an error', () => {
+            pipelineMock.addWebhook.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('POST /pipelines', () => {
         let options;
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
@@ -702,10 +782,6 @@ describe('pipeline plugin test', () => {
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
-        // const job = {
-        //     id: 'someJobId',
-        //     other: 'dataToBeIncluded'
-        // };
         let pipelineMock;
         let userMock;
 
@@ -728,7 +804,7 @@ describe('pipeline plugin test', () => {
             userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.sync.resolves(getPipelineMocks(testPipeline));
+            pipelineMock.sync.resolves(pipelineMock);
             pipelineMock.addWebhook.resolves(null);
 
             pipelineFactoryMock.get.resolves(null);
@@ -821,7 +897,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 500 when the pipeline model fails to add webhook during create', () => {
+        it('returns 500 when the pipeline model fails to add webhooks during create', () => {
             const testError = new Error('pipelineModelAddWebhookError');
 
             pipelineMock.addWebhook.rejects(testError);

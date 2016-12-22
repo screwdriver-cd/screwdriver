@@ -66,6 +66,12 @@ Example payload:
 
 `GET /pipelines/{id}/sync`
 
+#### Synchronize webhooks
+* Synchronize webhooks for the pipeline
+* Add or update webhooks if necessary
+
+`GET /pipelines/{id}/sync/webhooks`
+
 #### Get all pipeline events
 
 `GET /pipelines/{id}/events`
