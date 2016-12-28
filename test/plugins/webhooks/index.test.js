@@ -37,8 +37,7 @@ describe('github plugin test', () => {
     beforeEach((done) => {
         jobFactoryMock = {
             get: sinon.stub(),
-            create: sinon.stub(),
-            generateId: sinon.stub()
+            create: sinon.stub()
         };
         buildFactoryMock = {
             create: sinon.stub()
@@ -108,7 +107,7 @@ describe('github plugin test', () => {
         const checkoutUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
         const scmUri = 'github.com:123456:master';
         const pipelineId = 'pipelineHash';
-        const jobId = 'jobHash';
+        const jobId = 2;
         const buildId = 'buildHash';
         const buildNumber = '12345';
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
@@ -143,7 +142,14 @@ describe('github plugin test', () => {
                 },
                 workflow: ['main'],
                 sync: sinon.stub(),
-                getConfiguration: sinon.stub()
+                getConfiguration: sinon.stub(),
+                jobs: Promise.resolve([{
+                    id: 1,
+                    name: 'main'
+                }, {
+                    id: 2,
+                    name: 'PR-1'
+                }])
             };
             buildMock = {
                 id: buildId,
@@ -168,13 +174,12 @@ describe('github plugin test', () => {
             buildFactoryMock.create.resolves(buildMock);
             buildMock.update.resolves(null);
 
-            jobFactoryMock.generateId.withArgs({ pipelineId, name }).returns(jobId);
             jobFactoryMock.create.resolves(jobMock);
             jobFactoryMock.get.resolves(jobMock);
             jobMock.update.resolves(jobMock);
 
             pipelineFactoryMock.get.resolves(pipelineMock);
-            pipelineMock.sync.resolves({});
+            pipelineMock.sync.resolves(pipelineMock);
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.scm.parseUrl.withArgs({ checkoutUrl, token }).resolves(scmUri);
 
@@ -235,7 +240,6 @@ describe('github plugin test', () => {
                     credentials: {}
                 };
                 name = 'main';
-                jobFactoryMock.generateId.withArgs({ pipelineId, name }).returns(jobId);
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
             });
 
@@ -252,7 +256,7 @@ describe('github plugin test', () => {
                         causeMessage: `Merged by ${username}`
                     });
                     assert.calledWith(buildFactoryMock.create, {
-                        jobId,
+                        jobId: 1,
                         username,
                         sha,
                         eventId: eventMock.id
@@ -343,36 +347,9 @@ describe('github plugin test', () => {
 
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 201);
-                        assert.calledWith(pipelineMock.sync);
+                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(pipelineMock.getConfiguration,
                             'pull/1/merge');
-                        assert.calledWith(jobFactoryMock.create, {
-                            pipelineId,
-                            name,
-                            permutations: [{
-                                commands: [
-                                    { command: 'npm install', name: 'init' },
-                                    { command: 'npm test', name: 'test' }
-                                ],
-                                environment: { NODE_ENV: 'test', NODE_VERSION: '4' },
-                                image: 'node:4'
-                            }, {
-                                commands: [
-                                    { command: 'npm install', name: 'init' },
-                                    { command: 'npm test', name: 'test' }
-                                ],
-                                environment: { NODE_ENV: 'test', NODE_VERSION: '5' },
-                                image: 'node:5'
-                            }, {
-                                commands: [
-                                    { command: 'npm install', name: 'init' },
-                                    { command: 'npm test', name: 'test' }
-                                ],
-                                environment: { NODE_ENV: 'test', NODE_VERSION: '6' },
-                                image: 'node:6'
-                            }]
-                        });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -388,6 +365,7 @@ describe('github plugin test', () => {
                             eventId: eventMock.id,
                             prRef
                         });
+                        assert.equal(reply.statusCode, 201);
                     })
                 );
 
@@ -397,32 +375,6 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledWith(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.create, {
-                            pipelineId,
-                            name,
-                            permutations: [{
-                                commands: [
-                                    { command: 'npm install', name: 'init' },
-                                    { command: 'npm test', name: 'test' }
-                                ],
-                                environment: { NODE_ENV: 'test', NODE_VERSION: '4' },
-                                image: 'node:4'
-                            }, {
-                                commands: [
-                                    { command: 'npm install', name: 'init' },
-                                    { command: 'npm test', name: 'test' }
-                                ],
-                                environment: { NODE_ENV: 'test', NODE_VERSION: '5' },
-                                image: 'node:5'
-                            }, {
-                                commands: [
-                                    { command: 'npm install', name: 'init' },
-                                    { command: 'npm test', name: 'test' }
-                                ],
-                                environment: { NODE_ENV: 'test', NODE_VERSION: '6' },
-                                image: 'node:6'
-                            }]
-                        });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             sha,
@@ -533,7 +485,6 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 404);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
                     });
                 });
@@ -583,7 +534,6 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
@@ -604,7 +554,6 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
@@ -617,7 +566,6 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 404);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.generateId, { pipelineId, name });
                         assert.calledWith(jobFactoryMock.get, jobId);
                     });
                 });
@@ -632,7 +580,6 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 204);
                         assert.equal(pipelineMock.sync.callCount, 0);
                         assert.equal(pipelineFactoryMock.get.callCount, 0);
-                        assert.equal(jobFactoryMock.generateId.callCount, 0);
                     });
                 });
             });

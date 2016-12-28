@@ -209,7 +209,6 @@ function obtainScmToken(userFactory, username) {
  */
 function pullRequestEvent(request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
-    const jobFactory = request.server.app.jobFactory;
     const userFactory = request.server.app.userFactory;
     const hookId = parsed.hookId;
     const action = parsed.action;
@@ -235,13 +234,13 @@ function pullRequestEvent(request, reply, parsed) {
                 return reply().code(204);
             }
 
-            // sync the pipeline ... reasons why will become clear later???
             return pipeline.sync()
                 // handle the PR action
-                .then(() => {
-                    const pipelineId = pipeline.id;
+                .then(p => p.jobs.then((jobs) => {
+                    const pipelineId = p.id;
                     const name = `PR-${prNumber}`;
-                    const jobId = jobFactory.generateId({ pipelineId, name });
+                    const i = jobs.findIndex(j => j.name === name);   // get job's index
+                    const jobId = jobs[i].id;
                     const options = {
                         hookId,
                         pipelineId,
@@ -250,7 +249,7 @@ function pullRequestEvent(request, reply, parsed) {
                         sha,
                         username,
                         prRef,
-                        pipeline,
+                        pipeline: p,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
 
@@ -266,7 +265,8 @@ function pullRequestEvent(request, reply, parsed) {
                     default:
                         return pullRequestClosed(options, request, reply);
                     }
-                });
+                }
+            ));
         })
         .catch(err => reply(boom.wrap(err)));
 }
@@ -280,7 +280,6 @@ function pullRequestEvent(request, reply, parsed) {
  */
 function pushEvent(request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
-    const jobFactory = request.server.app.jobFactory;
     const buildFactory = request.server.app.buildFactory;
     const userFactory = request.server.app.userFactory;
     const eventFactory = request.server.app.eventFactory;
@@ -305,30 +304,33 @@ function pushEvent(request, reply, parsed) {
                 return reply().code(204);
             }
 
-            const pipelineId = pipeline.id;
-            const name = 'main';
-            const jobId = jobFactory.generateId({ pipelineId, name });
-
-            // sync the pipeline to get the latest jobs
             return pipeline.sync()
-            // create an event
-            .then(() => eventFactory.create({
-                pipelineId,
-                type: 'pipeline',
-                workflow: pipeline.workflow,
-                username,
-                sha,
-                causeMessage: `Merged by ${username}`
-            }))
-            // create a build
-            .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
-            // log build created
-            .then((build) => {
-                request.log(['webhook', hookId, jobId, build.id],
-                    `${name} started ${build.number}`);
+                // handle the PR action
+                .then(p => p.jobs.then((jobs) => {
+                    const pipelineId = p.id;
+                    const name = 'main';
+                    const i = jobs.findIndex(j => j.name === name);   // get job's index
+                    const jobId = jobs[i].id;
 
-                return reply().code(201);
-            });
+                    // create an event
+                    return eventFactory.create({
+                        pipelineId,
+                        type: 'pipeline',
+                        workflow: pipeline.workflow,
+                        username,
+                        sha,
+                        causeMessage: `Merged by ${username}`
+                    })
+                    // create a build
+                    .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id }))
+                    // log build created
+                    .then((build) => {
+                        request.log(['webhook', hookId, jobId, build.id],
+                            `${name} started ${build.number}`);
+
+                        return reply().code(201);
+                    });
+                }));
         })
         .catch(err => reply(boom.wrap(err)));
 }
