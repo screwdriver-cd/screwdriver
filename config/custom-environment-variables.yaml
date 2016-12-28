@@ -60,6 +60,8 @@ datastore:
         # Network settings
         host: DATASTORE_SEQUELIZE_HOST
         port: DATASTORE_SEQUELIZE_PORT
+        # Prefix to the table names
+        prefix: DATASTORE_SEQUELIZE_PREFIX
     dynamodb:
         # Prefix to the table names
         prefix: DATASTORE_DYNAMODB_PREFIX
