@@ -114,8 +114,8 @@ describe('secret plugin test', () => {
     describe('POST /secrets', () => {
         let options;
         const scmUri = 'github.com:12345:branchName';
-        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const secretId = 1234;
+        const pipelineId = 123;
         const name = 'NPM_TOKEN';
         const value = 'batman';
         const allowInPR = true;
@@ -162,8 +162,8 @@ describe('secret plugin test', () => {
                     pathname: `${options.url}/${secretId}`
                 };
                 const expected = {
-                    id: 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c',
-                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    id: 1234,
+                    pipelineId: 123,
                     name: 'NPM_TOKEN',
                     allowInPR: false
                 };
@@ -222,8 +222,8 @@ describe('secret plugin test', () => {
 
     describe('DELETE /secrets/{id}', () => {
         let options;
-        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const pipelineId = 123;
+        const secretId = 1234;
         const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
         let secretMock;
@@ -296,8 +296,8 @@ describe('secret plugin test', () => {
 
     describe('PUT /secrets/{id}', () => {
         let options;
-        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const pipelineId = 123;
+        const secretId = 1234;
         const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
         let secretMock;
@@ -348,8 +348,8 @@ describe('secret plugin test', () => {
 
         it('returns 200 if update successfully', () => {
             const expected = {
-                id: 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c',
-                pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                id: 1234,
+                pipelineId: 123,
                 name: 'NPM_TOKEN',
                 allowInPR: true
             };
@@ -384,8 +384,8 @@ describe('secret plugin test', () => {
 
     describe('GET /secrets/{id}', () => {
         let options;
-        const pipelineId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const secretId = 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const pipelineId = 123;
+        const secretId = 1234;
         const scmUri = 'github.com:12345:branchName';
         const username = 'minz';
         let secretMock;
@@ -450,8 +450,8 @@ describe('secret plugin test', () => {
 
             it('does not show secret value if scope is user', () => {
                 const expected = {
-                    id: 'a328fb192747c9a0124e9e5b4e6e8e841cf8c71c',
-                    pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                    id: 1234,
+                    pipelineId: 123,
                     name: 'NPM_TOKEN',
                     allowInPR: false
                 };
@@ -471,7 +471,7 @@ describe('secret plugin test', () => {
                     url: `/secrets/${secretId}`,
                     credentials: {
                         username,
-                        pipelineId: 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                        pipelineId: 123,
                         scope: ['build']
                     }
                 };
@@ -486,7 +486,7 @@ describe('secret plugin test', () => {
             );
 
             it('returns 403 if build is not allowed to access secret', () => {
-                options.credentials.pipelineId = 'abcdfb192747c9a0124e9e5b4e6e8e841cf8c71c';
+                options.credentials.pipelineId = 124;
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 403);

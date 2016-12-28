@@ -84,12 +84,6 @@ datastore:
         dialect: sqlite
         # More arguments here:
         # http://docs.sequelizejs.com/en/latest/api/sequelize/
-    dynamodb:
-        # Prefix to table names
-        prefix: ""
-        # AWS Access Keys (required)
-        # accessKeyId:
-        # secretAccessKey:
 
 executor:
     plugin: k8s

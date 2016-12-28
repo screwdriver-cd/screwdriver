@@ -85,8 +85,7 @@ This API comes preloaded with 7 (seven) resources:
  - [secrets](plugins/secrets/README.md)
  - [webhooks](plugins/webhooks/README.md)
 
-Two (2) options for datastores:
- - Amazon DynamoDB (`dynamodb`)
+One (1) option for datastores:
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
 Two (2) options for executor:

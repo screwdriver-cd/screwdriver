@@ -6,3 +6,4 @@ npm-debug.log
 database.*
 config/local.*
 .func_config.json
+.nyc_output

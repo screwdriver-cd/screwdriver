@@ -149,7 +149,7 @@ describe('build plugin test', () => {
     });
 
     describe('GET /builds/{id}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 12345;
 
         it('returns 200 for a build that exists', () => {
             const buildMock = getMockBuilds(testBuild);
@@ -180,7 +180,7 @@ describe('build plugin test', () => {
     });
 
     describe('PUT /builds/{id}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 12345;
         let buildMock;
 
         beforeEach(() => {
@@ -295,9 +295,9 @@ describe('build plugin test', () => {
         });
 
         describe('build token', () => {
-            const jobId = '62089f642bbfd1886623964b4cff12db59869e5d';
-            const pipelineId = '2d991790bab1ac8576097ca87f170df73410b55c';
-            const publishJobId = '1a58304c063c184cf37b4303252b8e44d69f44d5';
+            const jobId = 1234;
+            const pipelineId = 123;
+            const publishJobId = 1235;
             const scmUri = 'github.com:12345:branchName';
 
             let jobMock;
@@ -596,14 +596,14 @@ describe('build plugin test', () => {
 
     describe('POST /builds', () => {
         const username = 'myself';
-        const buildId = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
-        const jobId = '62089f642bbfd1886623964b4cff12db59869e5d';
-        const pipelineId = '2d991790bab1ac8576097ca87f170df73410b55c';
+        const buildId = 12345;
+        const jobId = 1234;
+        const pipelineId = 123;
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
         const params = {
-            jobId: '62089f642bbfd1886623964b4cff12db59869e5d',
-            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+            jobId: 1234,
+            eventId: 12345,
             apiUri: 'http://localhost:12345',
             username
         };
@@ -654,7 +654,7 @@ describe('build plugin test', () => {
                 unsealToken: sinon.stub()
             };
             eventMock = {
-                id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
+                id: 12345
             };
 
             jobMock.name = 'PR-15';
@@ -740,7 +740,7 @@ describe('build plugin test', () => {
     });
 
     describe('GET /builds/{id}/secrets', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '12345';
         let options;
         let username;
 
@@ -809,7 +809,7 @@ describe('build plugin test', () => {
     });
 
     describe('GET /builds/{id}/steps/{step}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 12345;
         const step = 'install';
 
         it('returns 200 for a step that exists', () => {
@@ -851,7 +851,7 @@ describe('build plugin test', () => {
     });
 
     describe('PUT /builds/{id}/steps/{step}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 12345;
         const step = 'publish';
         let options;
         let buildMock;
@@ -965,7 +965,7 @@ describe('build plugin test', () => {
     });
 
     describe('GET /builds/{id}/steps/{step}/logs', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 12345;
         const step = 'install';
         const logs = [
             {

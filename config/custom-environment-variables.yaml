@@ -60,13 +60,8 @@ datastore:
         # Network settings
         host: DATASTORE_SEQUELIZE_HOST
         port: DATASTORE_SEQUELIZE_PORT
-    dynamodb:
         # Prefix to the table names
-        prefix: DATASTORE_DYNAMODB_PREFIX
-        # AWS Access Key ID
-        accessKeyId: DATASTORE_DYNAMODB_ID
-        # AWS Secret Access Key
-        secretAccessKey: DATASTORE_DYNAMODB_SECRET
+        prefix: DATASTORE_SEQUELIZE_PREFIX
 
 executor:
     plugin: EXECUTOR_PLUGIN

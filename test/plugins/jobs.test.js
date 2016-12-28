@@ -103,12 +103,12 @@ describe('job plugin test', () => {
     });
 
     describe('GET /jobs/{id}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 1234;
 
         it('exposes a route for getting a job', () => {
             factoryMock.get.withArgs(id).resolves(getJobMocks(testJob));
 
-            return server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c').then((reply) => {
+            return server.inject('/jobs/1234').then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testJob);
             });
@@ -123,7 +123,7 @@ describe('job plugin test', () => {
 
             factoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c').then((reply) => {
+            return server.inject('/jobs/1234').then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -132,14 +132,14 @@ describe('job plugin test', () => {
         it('returns errors when datastore returns an error', () => {
             factoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject('/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c').then((reply) => {
+            return server.inject('/jobs/1234').then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
     });
 
     describe('PUT /jobs/{id}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '1234';
         const state = 'DISABLED';
         let jobMock;
 
@@ -154,7 +154,7 @@ describe('job plugin test', () => {
         it('returns 200 for updating a job that exists', () => {
             const options = {
                 method: 'PUT',
-                url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                url: '/jobs/1234',
                 payload: {
                     state: 'ENABLED'
                 },
@@ -177,7 +177,7 @@ describe('job plugin test', () => {
         it('returns 500 if datastore returns an error', () => {
             const options = {
                 method: 'PUT',
-                url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                url: '/jobs/1234',
                 payload: {
                     state: 'DISABLED'
                 },
@@ -196,7 +196,7 @@ describe('job plugin test', () => {
         it('returns 404 if job does not exist', () => {
             const options = {
                 method: 'PUT',
-                url: '/jobs/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c',
+                url: '/jobs/1234',
                 payload: {
                     state: 'DISABLED'
                 },
@@ -214,7 +214,7 @@ describe('job plugin test', () => {
     });
 
     describe('GET /jobs/{id}/builds', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '1234';
         let options;
         let job;
         let builds;

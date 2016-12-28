@@ -93,12 +93,12 @@ describe('event plugin test', () => {
     });
 
     describe('GET /events/{id}', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = 12345;
 
         it('exposes a route for getting a event', () => {
             factoryMock.get.withArgs(id).resolves(decorateEventMock(testEvent));
 
-            return server.inject('/events/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c')
+            return server.inject('/events/12345')
                 .then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, testEvent);
@@ -114,7 +114,7 @@ describe('event plugin test', () => {
 
             factoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject('/events/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c')
+            return server.inject('/events/12345')
                 .then((reply) => {
                     assert.equal(reply.statusCode, 404);
                     assert.deepEqual(reply.result, error);
@@ -124,7 +124,7 @@ describe('event plugin test', () => {
         it('returns errors when datastore returns an error', () => {
             factoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject('/events/d398fb192747c9a0124e9e5b4e6e8e841cf8c71c')
+            return server.inject('/events/12345')
                 .then((reply) => {
                     assert.equal(reply.statusCode, 500);
                 });
@@ -132,7 +132,7 @@ describe('event plugin test', () => {
     });
 
     describe('GET /events/{id}/builds', () => {
-        const id = 'd398fb192747c9a0124e9e5b4e6e8e841cf8c71c';
+        const id = '12345';
         let options;
         let event;
         let builds;
