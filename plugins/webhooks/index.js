@@ -27,7 +27,14 @@ function stopJob(job) {
 
     return job.getRunningBuilds()
         // Stop running builds
-        .then(builds => Promise.all(builds.map(stopRunningBuild)));
+        .then(builds => Promise.all(builds.map(stopRunningBuild)))
+        // disable and archive the job
+        .then(() => {
+            job.state = 'DISABLED';
+            job.archived = true;
+
+            return job.update();
+        });
 }
 
 /**
@@ -126,13 +133,6 @@ function pullRequestClosed(options, request, reply) {
         .then(job =>
             stopJob(job)
             .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
-            // disable and archive the job
-            .then(() => {
-                job.state = 'DISABLED';
-                job.archived = true;
-
-                return job.update();
-            })
             // log some stuff
             .then(() => {
                 request.log(['webhook', hookId, jobId], `${name} disabled and archived`);
@@ -166,8 +166,8 @@ function pullRequestSync(options, request, reply) {
 
     return jobFactory.get(jobId)
         .then(job => stopJob(job))
+        .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
         .then(() => startPRJob(options, request))
-        // log build created
         .then(() => {
             request.log(['webhook', hookId, jobId], `${name} synced`);
 
