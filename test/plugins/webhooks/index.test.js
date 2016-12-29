@@ -114,16 +114,6 @@ describe('github plugin test', () => {
         const username = 'baxterthehacker';
         const token = 'iamtoken';
         const prRef = 'pull/1/merge';
-        const parsed = {
-            hookId: '81e6bd80-9a2c-11e6-939d-beaa5d9adaf3',
-            username,
-            checkoutUrl,
-            branch: 'master',
-            sha,
-            prNum: 1,
-            prRef
-        };
-        let name = 'PR-1';
         let pipelineMock;
         let buildMock;
         let jobMock;
@@ -132,8 +122,20 @@ describe('github plugin test', () => {
         let options;
         let reqHeaders;
         let payload;
+        let parsed;
+        let name;
 
         beforeEach(() => {
+            name = 'PR-1';
+            parsed = {
+                hookId: '81e6bd80-9a2c-11e6-939d-beaa5d9adaf3',
+                username,
+                checkoutUrl,
+                branch: 'master',
+                sha,
+                prNum: 1,
+                prRef
+            };
             pipelineMock = {
                 id: pipelineId,
                 scmUri,
@@ -339,6 +341,9 @@ describe('github plugin test', () => {
 
             describe('open pull request', () => {
                 beforeEach(() => {
+                    name = 'PR-2';
+                    jobMock.name = name;
+                    parsed.prNum = 2;
                     parsed.action = 'opened';
                     options.payload = testPayloadOpen;
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)

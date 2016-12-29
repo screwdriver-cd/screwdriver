@@ -50,7 +50,6 @@ function startPRJob(options, request) {
     const eventFactory = request.server.app.eventFactory;
     const hookId = options.hookId;
     const pipelineId = options.pipelineId;
-    const jobId = options.jobId;
     const name = options.name;
     const sha = options.sha;
     const username = options.username;
@@ -64,6 +63,8 @@ function startPRJob(options, request) {
         .then(permutations => jobFactory.create({ pipelineId, name, permutations }))
         // log stuff
         .then((job) => {
+            const jobId = job.id;
+
             request.log(['webhook', hookId, jobId], `${name} created`);
             request.log([
                 'webhook',
@@ -80,10 +81,10 @@ function startPRJob(options, request) {
                 username,
                 sha,
                 causeMessage: `${options.action} by ${username}`
-            });
+            })
+            .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id, prRef }));
         })
         // create a build
-        .then(event => buildFactory.create({ jobId, sha, username, eventId: event.id, prRef }))
         .then(build =>
             request.log(['webhook', hookId, build.jobId, build.id],
             `${name} started ${build.number}`));
@@ -239,12 +240,9 @@ function pullRequestEvent(request, reply, parsed) {
                 .then(p => p.jobs.then((jobs) => {
                     const pipelineId = p.id;
                     const name = `PR-${prNumber}`;
-                    const i = jobs.findIndex(j => j.name === name);   // get job's index
-                    const jobId = jobs[i].id;
                     const options = {
                         hookId,
                         pipelineId,
-                        jobId,
                         name,
                         sha,
                         username,
@@ -252,6 +250,11 @@ function pullRequestEvent(request, reply, parsed) {
                         pipeline: p,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
+                    const i = jobs.findIndex(j => j.name === name);
+
+                    if (i > -1) {
+                        options.jobId = jobs[i].id;
+                    }
 
                     switch (action) {
                     case 'opened':
