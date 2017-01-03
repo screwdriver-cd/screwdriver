@@ -1,7 +1,6 @@
 'use strict';
 
 const boom = require('boom');
-
 const GENERIC_SCM_USER = 'sd-buildbot';
 
 /**
@@ -27,14 +26,7 @@ function stopJob(job) {
 
     return job.getRunningBuilds()
         // Stop running builds
-        .then(builds => Promise.all(builds.map(stopRunningBuild)))
-        // disable and archive the job
-        .then(() => {
-            job.state = 'DISABLED';
-            job.archived = true;
-
-            return job.update();
-        });
+        .then(builds => Promise.all(builds.map(stopRunningBuild)));
 }
 
 /**
@@ -65,9 +57,24 @@ function startPRJob(options, request) {
 
     return pipeline.getConfiguration(prRef)
         // get permutations(s) for "main" job
-        .then(config => config.jobs.main)
+        .then(config => Promise.all([config.jobs.main, pipeline.jobs]))
         // create a new job
-        .then(permutations => jobFactory.create({ pipelineId, name, permutations }))
+        .then(([permutations, jobs]) => {
+            const jobNamesArray = jobs.map(j => j.name);
+            const jobIndex = jobNamesArray.indexOf(name);
+
+            // if PR job already exists, update
+            if (jobIndex > -1) {
+                const job = jobs[jobIndex];
+
+                job.permutations = permutations;
+
+                return job.update();
+            }
+
+            // if the PR is new, create a job
+            return jobFactory.create({ pipelineId, name, permutations });
+        })
         // log stuff
         .then((job) => {
             const jobId = job.id;
@@ -133,6 +140,13 @@ function pullRequestClosed(options, request, reply) {
         .then(job =>
             stopJob(job)
             .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
+            // disable and archive the job
+            .then(() => {
+                job.state = 'DISABLED';
+                job.archived = true;
+
+                return job.update();
+            })
             // log some stuff
             .then(() => {
                 request.log(['webhook', hookId, jobId], `${name} disabled and archived`);

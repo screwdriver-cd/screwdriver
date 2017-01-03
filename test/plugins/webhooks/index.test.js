@@ -116,6 +116,7 @@ describe('github plugin test', () => {
         const prRef = 'pull/1/merge';
         let pipelineMock;
         let buildMock;
+        let mainJobMock;
         let jobMock;
         let userMock;
         let eventMock;
@@ -136,6 +137,20 @@ describe('github plugin test', () => {
                 prNum: 1,
                 prRef
             };
+            mainJobMock = {
+                id: 1,
+                name: 'main',
+                state: 'ENABLED',
+                update: sinon.stub(),
+                getRunningBuilds: sinon.stub()
+            };
+            jobMock = {
+                id: jobId,
+                name,
+                state: 'ENABLED',
+                update: sinon.stub(),
+                getRunningBuilds: sinon.stub()
+            };
             pipelineMock = {
                 id: pipelineId,
                 scmUri,
@@ -145,26 +160,13 @@ describe('github plugin test', () => {
                 workflow: ['main'],
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),
-                jobs: Promise.resolve([{
-                    id: 1,
-                    name: 'main'
-                }, {
-                    id: 2,
-                    name: 'PR-1'
-                }])
+                jobs: Promise.resolve([mainJobMock, jobMock])
             };
             buildMock = {
                 id: buildId,
                 number: buildNumber,
                 isDone: sinon.stub(),
                 update: sinon.stub()
-            };
-            jobMock = {
-                id: jobId,
-                name,
-                state: 'ENABLED',
-                update: sinon.stub(),
-                getRunningBuilds: sinon.stub()
             };
             userMock = {
                 unsealToken: sinon.stub()
@@ -342,12 +344,16 @@ describe('github plugin test', () => {
             describe('open pull request', () => {
                 beforeEach(() => {
                     name = 'PR-2';
-                    jobMock.name = name;
                     parsed.prNum = 2;
                     parsed.action = 'opened';
                     options.payload = testPayloadOpen;
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
+                    jobFactoryMock.create.resolves({
+                        id: 3,
+                        name,
+                        state: 'ENABLED'
+                    });
                 });
 
                 it('returns 201 on success', () =>
@@ -355,6 +361,11 @@ describe('github plugin test', () => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(pipelineMock.getConfiguration,
                             'pull/1/merge');
+                        assert.calledWith(jobFactoryMock.create, {
+                            name,
+                            pipelineId: 'pipelineHash',
+                            permutations: PARSED_CONFIG.jobs.main
+                        });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -364,7 +375,7 @@ describe('github plugin test', () => {
                             causeMessage: `Opened by ${username}`
                         });
                         assert.calledWith(buildFactoryMock.create, {
-                            jobId,
+                            jobId: 3,
                             sha,
                             username,
                             eventId: eventMock.id,
@@ -381,7 +392,7 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledWith(pipelineMock.sync);
                         assert.calledWith(buildFactoryMock.create, {
-                            jobId,
+                            jobId: 3,
                             sha,
                             username,
                             eventId: eventMock.id,
@@ -438,6 +449,7 @@ describe('github plugin test', () => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(pipelineMock.getConfiguration,
                             'pull/1/merge');
+                        assert.calledOnce(jobMock.update);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
