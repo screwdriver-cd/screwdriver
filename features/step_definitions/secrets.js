@@ -2,6 +2,7 @@
 
 const Assert = require('chai').assert;
 const request = require('../support/request');
+const TIMEOUT = 240 * 1000;
 
 module.exports = function server() {
     // eslint-disable-next-line new-cap
@@ -15,7 +16,7 @@ module.exports = function server() {
     });
 
     this.Given(/^an existing repository for secret with these users and permissions:$/,
-        { timeout: 60 * 1000 }, table =>
+        { timeout: TIMEOUT }, table =>
         this.getJwt(this.accessKey)
         .then((response) => {
             this.jwt = response.body.token;
@@ -70,7 +71,7 @@ module.exports = function server() {
         })
     );
 
-    this.When(/^the "main" job is started$/, { timeout: 60 * 1000 }, () =>
+    this.When(/^the "main" job is started$/, { timeout: TIMEOUT }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
             method: 'GET',
@@ -101,14 +102,14 @@ module.exports = function server() {
         )
     );
 
-    this.Then(/^the "foo" secret should be available in the build$/, { timeout: 60 * 1000 }, () =>
+    this.Then(/^the "foo" secret should be available in the build$/, { timeout: TIMEOUT }, () =>
         this.waitForBuild(this.buildId).then((response) => {
             Assert.equal(response.body.status, 'SUCCESS');
             Assert.equal(response.statusCode, 200);
         })
     );
 
-    this.When(/^the "second" job is started$/, { timeout: 60 * 1000 }, () =>
+    this.When(/^the "second" job is started$/, { timeout: TIMEOUT }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
             method: 'GET',
