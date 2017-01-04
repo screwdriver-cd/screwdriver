@@ -74,6 +74,8 @@ executor:
             jobsNamespace: K8S_JOBS_NAMESPACE
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
+        # Prefix to the pod
+        prefix: EXECUTOR_PREFIX
     docker:
         # Configuration of Docker
         docker:
@@ -81,6 +83,8 @@ executor:
             __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
+        # Prefix to the container
+        prefix: EXECUTOR_PREFIX
 
 scm:
     plugin: SCM_PLUGIN
