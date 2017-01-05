@@ -7,10 +7,10 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/pipelines/{id}/sync',
+    path: '/pipelines/{id}/sync/webhooks',
     config: {
-        description: 'Sync a pipeline',
-        notes: 'Sync a specific pipeline',
+        description: 'Add webhooks or update webhooks if already exists',
+        notes: 'Add or update Screwdriver API webhooks',
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token', 'session'],
@@ -40,11 +40,11 @@ module.exports = () => ({
                     .then((permissions) => {
                         if (!permissions.push) {
                             throw boom.unauthorized(`User ${username} `
-                                + 'does not have write permission for this repo');
+                                + 'does not have push permission for this repo');
                         }
                     })
-                    // user has good permissions, sync the pipeline
-                    .then(() => pipeline.sync())
+                    // user has good permissions, add or update webhooks
+                    .then(() => pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`))
                     .then(() => reply().code(204));
             })
             .catch(err => reply(boom.wrap(err)));

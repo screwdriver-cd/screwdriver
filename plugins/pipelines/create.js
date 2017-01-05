@@ -88,19 +88,19 @@ module.exports = () => ({
                         })))
                 // hooray, a pipeline is born!
                 .then(pipeline =>
-                    // sync pipeline to create jobs
-                    pipeline.sync()
-                        // return pipeline info to requester
-                        .then(() => {
-                            const location = urlLib.format({
-                                host: request.headers.host,
-                                port: request.headers.port,
-                                protocol: request.server.info.protocol,
-                                pathname: `${request.path}/${pipeline.id}`
-                            });
+                    Promise.all([
+                        pipeline.sync(),
+                        pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
+                    ]).then((results) => {
+                        const location = urlLib.format({
+                            host: request.headers.host,
+                            port: request.headers.port,
+                            protocol: request.server.info.protocol,
+                            pathname: `${request.path}/${pipeline.id}`
+                        });
 
-                            return reply(pipeline.toJson()).header('Location', location).code(201);
-                        })
+                        return reply(results[0].toJson()).header('Location', location).code(201);
+                    })
                 )
                 // something broke, respond with error
                 .catch(err => reply(boom.wrap(err)));
