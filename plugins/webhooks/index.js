@@ -68,6 +68,7 @@ function startPRJob(options, request) {
                 const job = jobs[jobIndex];
 
                 job.permutations = permutations;
+                job.archived = false;
 
                 return job.update();
             }

@@ -385,6 +385,37 @@ describe('github plugin test', () => {
                     })
                 );
 
+                it('returns 201 on success for reopened after closed', () => {
+                    name = 'PR-1';
+                    parsed.prNum = 1;
+                    parsed.action = 'reopened';
+                    jobMock.archived = true;
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(pipelineMock.getConfiguration,
+                            'pull/1/merge');
+                        assert.equal(jobMock.archived, false);
+                        assert.calledOnce(jobMock.update);
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            workflow: [name],
+                            username,
+                            sha,
+                            causeMessage: `Reopened by ${username}`
+                        });
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId: 2,
+                            sha,
+                            username,
+                            eventId: eventMock.id,
+                            prRef
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
                 it('returns 500 when failed', () => {
                     buildFactoryMock.create.rejects(new Error('Failed to start'));
 
