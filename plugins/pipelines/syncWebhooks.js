@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
-    method: 'GET',
+    method: 'POST',
     path: '/pipelines/{id}/sync/webhooks',
     config: {
         description: 'Add webhooks or update webhooks if already exists',

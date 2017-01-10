@@ -54,6 +54,7 @@ const decoratePipelineMock = (pipeline) => {
 
     mock.sync = sinon.stub();
     mock.addWebhook = sinon.stub();
+    mock.syncPRs = sinon.stub();
     mock.update = sinon.stub();
     mock.formatCheckoutUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
@@ -611,7 +612,7 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('GET /pipelines/{id}/sync', () => {
+    describe('POST /pipelines/{id}/sync', () => {
         const id = 123;
         const username = 'd2lam';
         const scmUri = 'github.com:12345:branchName';
@@ -621,7 +622,7 @@ describe('pipeline plugin test', () => {
 
         beforeEach(() => {
             options = {
-                method: 'GET',
+                method: 'POST',
                 url: `/pipelines/${id}/sync`,
                 credentials: {
                     username,
@@ -691,7 +692,7 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('GET /pipelines/{id}/sync/webhooks', () => {
+    describe('POST /pipelines/{id}/sync/webhooks', () => {
         const id = 123;
         const username = 'd2lam';
         const scmUri = 'github.com:12345:branchName';
@@ -701,7 +702,7 @@ describe('pipeline plugin test', () => {
 
         beforeEach(() => {
             options = {
-                method: 'GET',
+                method: 'POST',
                 url: `/pipelines/${id}/sync/webhooks`,
                 credentials: {
                     username,
@@ -764,6 +765,86 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when model returns an error', () => {
             pipelineMock.addWebhook.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('POST /pipelines/{id}/sync/pullrequests', () => {
+        const id = 123;
+        const username = 'batman';
+        const scmUri = 'github.com:12345:branchName';
+        let pipelineMock;
+        let userMock;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: `/pipelines/${id}/sync/pullrequests`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.syncPRs.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+        });
+
+        it('returns 204 for syncing pull requests successfully', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+            })
+        );
+
+        it('returns 401 when user does not have push permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'User batman does not have push permission for this repo'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 for updating a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User batman does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when model returns an error', () => {
+            pipelineMock.syncPRs.rejects(new Error('icantdothatdave'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);

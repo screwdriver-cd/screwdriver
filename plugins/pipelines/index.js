@@ -4,6 +4,7 @@ const createRoute = require('./create');
 const removeRoute = require('./remove');
 const syncRoute = require('./sync');
 const syncWebhooksRoute = require('./syncWebhooks');
+const syncPRsRoute = require('./syncPRs');
 const getRoute = require('./get');
 const listRoute = require('./list');
 const badgeRoute = require('./badge');
@@ -24,6 +25,7 @@ exports.register = (server, options, next) => {
         removeRoute(),
         syncRoute(),
         syncWebhooksRoute(),
+        syncPRsRoute(),
         getRoute(),
         listRoute(),
         badgeRoute(),

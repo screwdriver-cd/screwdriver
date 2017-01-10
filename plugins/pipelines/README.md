@@ -64,13 +64,19 @@ Example payload:
 * Create, update, or disable jobs if necessary.
 * Store/update the pipeline workflow
 
-`GET /pipelines/{id}/sync`
+`POST /pipelines/{id}/sync`
 
 #### Synchronize webhooks
 * Synchronize webhooks for the pipeline
 * Add or update webhooks if necessary
 
-`GET /pipelines/{id}/sync/webhooks`
+`POST /pipelines/{id}/sync/webhooks`
+
+#### Synchronize pull requests
+* Synchronize pull requests for the pipeline
+* Add or update pull request jobs if necessary
+
+`POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
 
