@@ -7,10 +7,10 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
     method: 'POST',
-    path: '/pipelines/{id}/sync',
+    path: '/pipelines/{id}/sync/pullrequests',
     config: {
-        description: 'Sync a pipeline',
-        notes: 'Sync a specific pipeline',
+        description: 'Add or update pull request of a pipeline',
+        notes: 'Add or update pull request jobs',
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token', 'session'],
@@ -22,7 +22,6 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
 
-            // Fetch the pipeline and user models
             return Promise.all([
                 pipelineFactory.get(id),
                 userFactory.get({ username })
@@ -34,17 +33,14 @@ module.exports = () => ({
                     throw boom.notFound(`User ${username} does not exist`);
                 }
 
-                // ask the user for permissions on this repo
                 return user.getPermissions(pipeline.scmUri)
-                    // check if user has push access
                     .then((permissions) => {
                         if (!permissions.push) {
                             throw boom.unauthorized(`User ${username} `
-                                + 'does not have write permission for this repo');
+                                + 'does not have push permission for this repo');
                         }
                     })
-                    // user has good permissions, sync the pipeline
-                    .then(() => pipeline.sync())
+                    .then(() => pipeline.syncPRs())
                     .then(() => reply().code(204));
             })
             .catch(err => reply(boom.wrap(err)));
