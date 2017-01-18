@@ -23,7 +23,7 @@ info: Server running at http://localhost:8080
 
 ```bash
 $ vim ./local.yaml # See below for configuration
-$ docker run --rm -it --volume=`pwd`/local.yaml:/config/local.yaml -p 8080 screwdrivercd/api:latest
+$ docker run --rm -it --volume=`pwd`/local.yaml:/config/local.yaml -p 8080 screwdrivercd/screwdriver:stable
 info: Server running at http://localhost:8080
 ```
 
