@@ -76,7 +76,7 @@ def generate_oauth(ip):
     print Template('''
     Please create a new OAuth application on GitHub.com
     Go to https://github.com/settings/applications/new to start the process
-    For 'Authorization callback URL' put http://${ip}:9001
+    For 'Authorization callback URL' put http://${ip}:9001/v4/auth/login
     When done, please provide the following values:
     ''').substitute(ip=ip)
 
