@@ -1,5 +1,7 @@
 # coding=utf-8
 import socket
+import sys
+import distutils.spawn
 from string import Template
 from subprocess import check_output, call, STDOUT, PIPE
 
@@ -76,6 +78,7 @@ def generate_oauth(ip):
     print Template('''
     Please create a new OAuth application on GitHub.com
     Go to https://github.com/settings/applications/new to start the process
+    For 'Homepage URL' put http://${ip}:9000
     For 'Authorization callback URL' put http://${ip}:9001/v4/auth/login
     When done, please provide the following values:
     ''').substitute(ip=ip)
@@ -89,11 +92,21 @@ def generate_oauth(ip):
         'oauth_secret': secret
     }
 
+def check_component(component):
+    if distutils.spawn.find_executable(component) == None:
+        print '💀   Could not find {0}, please install and set path to {0}'.format(component)
+        sys.exit(1)
+
 def main():
     fields = {
         'ip': get_ip_address()
     }
     print '🎁   Boxing up Screwdriver'
+
+    print '👀   Checking prerequisites'
+    check_component('docker')
+    check_component('docker-compose')
+    check_component('openssl')
 
     print '🔐   Generating signing secrets'
     fields = dict(fields, **generate_jwt())
@@ -108,11 +121,13 @@ def main():
     print '🚀   Screwdriver is ready to launch!'
     print Template('''
     Just run the following commands to get started!
+      $ docker-compose pull
       $ docker-compose -p screwdriver up -d
       $ open http://${ip}:9000
     ''').safe_substitute(fields)
     prompt = raw_input('    Would you like to run them now? (y/n) ')
     if prompt.lower() == 'y':
+        call('docker-compose pull', shell=True)
         call('docker-compose -p screwdriver up -d', shell=True)
         call(Template('open http://${ip}:9000').safe_substitute(fields), shell=True)
         print '\n👍   Launched!'
@@ -124,6 +139,7 @@ def main():
       - To stop/reset Screwdriver
         $ docker-compose -p screwdriver down
       - If your internal IP changes, update the docker-compose.yml and your GitHub OAuth application
+      - In-a-box does not support Webhooks including PullRequests for triggering builds
       - For help with this and more, find us on Slack at https://slack.screwdriver.cd
 
 ❤️   Screwdriver Crew
