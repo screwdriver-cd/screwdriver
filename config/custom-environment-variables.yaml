@@ -112,3 +112,7 @@ ecosystem:
     store: ECOSYSTEM_STORE
     # Badge service (needs to add a status and color)
     badges: ECOSYSTEM_BADGES
+    # List of module names, or objects { name, config } for instantiation to use in sd-setup
+    setup: SD_SETUP_PLUGINS
+    # List of module names, or objects { name, config } for instantiation to use in sd-teardown
+    teardown: SD_TEARDOWN_PLUGINS
