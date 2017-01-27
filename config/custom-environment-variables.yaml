@@ -113,6 +113,10 @@ ecosystem:
     # Badge service (needs to add a status and color)
     badges: ECOSYSTEM_BADGES
     # List of module names, or objects { name, config } for instantiation to use in sd-setup
-    setup: SD_SETUP_PLUGINS
+    setup:
+        __name: BOOKENDS_SETUP
+        __format: json
     # List of module names, or objects { name, config } for instantiation to use in sd-teardown
-    teardown: SD_TEARDOWN_PLUGINS
+    teardown:
+        __name: BOOKENDS_TEARDOWN
+        __format: json
