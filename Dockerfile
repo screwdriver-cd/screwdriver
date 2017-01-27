@@ -11,6 +11,9 @@ WORKDIR /usr/src/app
 RUN npm install screwdriver-api@$VERSION
 WORKDIR /usr/src/app/node_modules/screwdriver-api
 
+# Setup configuration folder
+RUN ln -s /usr/src/app/node_modules/screwdriver-api/config /config
+
 # Expose the web service port
 EXPOSE 8080
 
