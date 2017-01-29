@@ -1,7 +1,9 @@
 # coding=utf-8
+import os
 import socket
 import sys
 import distutils.spawn
+from urlparse import urlparse
 from string import Template
 from subprocess import check_output, call, STDOUT, PIPE
 
@@ -50,8 +52,13 @@ ${public_key}
 ${public_key}
 '''
 
-# Get the external IP by poking at Google's DNS
+# Check IP locally if running a docker-machine from docker-toolbox,
+# otherwise, get IP by poking at Google's DNS.
+# note: docker-for-mac does not set DOCKER environment variables
 def get_ip_address():
+    if os.environ.get('DOCKER_HOST'):
+        url = urlparse(os.environ['DOCKER_HOST'])
+        return url.hostname
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     return s.getsockname()[0]
