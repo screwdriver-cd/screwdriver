@@ -122,6 +122,11 @@ scm:
         oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
         oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
 
+bookends:
+    # Plugins for build setup
+    setup:
+        - scm
+
 ecosystem:
     # Externally routable URL for the User Interface
     ui: https://cd.screwdriver.cd
@@ -129,6 +134,3 @@ ecosystem:
     store: https://store.screwdriver.cd
     # Badge service (needs to add a status and color)
     badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg
-    # Plugins for build setup
-    setup:
-        - sd-scm

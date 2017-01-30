@@ -105,13 +105,7 @@ scm:
         # The client secret used for OAuth with bitbucket
         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
 
-ecosystem:
-    # URL for the User Interface
-    ui: ECOSYSTEM_UI
-    # Externally routable URL for the Artifact Store
-    store: ECOSYSTEM_STORE
-    # Badge service (needs to add a status and color)
-    badges: ECOSYSTEM_BADGES
+bookends:
     # List of module names, or objects { name, config } for instantiation to use in sd-setup
     setup:
         __name: BOOKENDS_SETUP
@@ -120,3 +114,11 @@ ecosystem:
     teardown:
         __name: BOOKENDS_TEARDOWN
         __format: json
+
+ecosystem:
+    # URL for the User Interface
+    ui: ECOSYSTEM_UI
+    # Externally routable URL for the Artifact Store
+    store: ECOSYSTEM_STORE
+    # Badge service (needs to add a status and color)
+    badges: ECOSYSTEM_BADGES
