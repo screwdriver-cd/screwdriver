@@ -40,10 +40,12 @@ const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
 
 authConfig.scm = scm;
 
+// Plugins to run before/after a build
+const bookends = config.get('bookends');
 const bookend = new Bookend(
-    { 'sd-scm': scm },          // default plugins defined by screwdriver
-    ecosystem.setup || [],      // plugins required for the setup- steps
-    ecosystem.teardown || []    // plugins required for the teardown- steps
+    { scm },                    // default plugins defined by screwdriver
+    bookends.setup || [],      // plugins required for the setup- steps
+    bookends.teardown || []    // plugins required for the teardown- steps
 );
 
 // Setup Model Factories
