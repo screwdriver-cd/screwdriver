@@ -118,6 +118,10 @@ scm:
         #gheHost: github.screwdriver.cd
         # Secret to add to GitHub webhooks so that we can validate them
         secret: SUPER-SECRET-SIGNING-THING
+        # Whether it supports private repo: boolean value.
+        # If true, it will ask for read and write access to public and private repos
+        # https://developer.github.com/v3/oauth/#scopes
+        privateRepo: false
     bitbucket:
         oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
         oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
