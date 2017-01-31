@@ -98,6 +98,10 @@ scm:
         gheHost: SCM_GITHUB_GHE_HOST
         # Secret to add to GitHub webhooks so that we can validate them
         secret: WEBHOOK_GITHUB_SECRET
+        # Whether it supports private repo: boolean value.
+        # If true, it will ask for read and write access to public and private repos
+        # https://developer.github.com/v3/oauth/#scopes
+        privateRepo: SCM_PRIVATE_REPO_SUPPORT
     bitbucket:
         # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
         # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
