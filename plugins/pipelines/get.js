@@ -15,6 +15,8 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
+            const credentials = request.auth.credentials;
+            const canAccess = request.server.plugins.pipelines.canAccess;
 
             return factory.get(request.params.id)
                 .then((pipeline) => {
@@ -22,7 +24,12 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return reply(pipeline.toJson());
+                    return canAccess(credentials, pipeline, 'pull').then((hasAccess) => {
+                        if (hasAccess) {
+                            return reply(pipeline.toJson());
+                        }
+                        throw boom.notFound('Pipeline does not exist');
+                    });
                 })
                 .catch(err => reply(boom.wrap(err)));
         },

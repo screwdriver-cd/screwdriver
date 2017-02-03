@@ -201,13 +201,22 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines', () => {
+        const username = 'myself';
         let options;
+        let userMock;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: '/pipelines?page=1&count=3'
+                url: '/pipelines?page=1&count=3',
+                credentials: {
+                    username
+                }
             };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.resolves({ pull: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
         });
 
         it('returns 200 and all pipelines', () => {
@@ -226,6 +235,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('does not show private pipelines', () => {
+            pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
+            userMock.getPermissions.withArgs('github.com:124:branchName').resolves({ pull: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result.length, 2);
+            });
+        });
+
         it('returns 500 when datastore fails', () => {
             pipelineFactoryMock.list.rejects(new Error('fittoburst'));
 
@@ -237,13 +256,22 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}', () => {
         const id = 123;
+        const username = 'myself';
         let options;
+        let userMock;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/pipelines/${id}`
+                url: `/pipelines/${id}`,
+                credentials: {
+                    username
+                }
             };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.resolves({ pull: true });
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
         });
 
         it('exposes a route for getting a pipeline', () => {
@@ -252,6 +280,15 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipeline);
+            });
+        });
+
+        it('cannot see pipeline if does not have permission', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
+            userMock.getPermissions.resolves({ pull: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
 
@@ -267,6 +304,15 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('throws error when user does not exist', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
 
