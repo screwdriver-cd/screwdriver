@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const joi = require('joi');
 const GENERIC_SCM_USER = 'sd-buildbot';
 
 /**
@@ -198,15 +199,19 @@ function pullRequestSync(options, request, reply) {
  * Some SCM services have different thresholds between IP requests and token requests. This is
  * to ensure we have a token to access the SCM service without being restricted by these quotas
  * @method obtainScmToken
- * @param  {UserFactory}       userFactory UserFactory object
- * @param  {String}            username    Name of the user that the SCM token is associated with
- * @return {Promise}                       Promise that resolves into a SCM token
+ * @param  {Object}            pluginOptions
+ * @param  {String}            pluginOptions.username Generic scm username
+ * @param  {UserFactory}       userFactory            UserFactory object
+ * @param  {String}            username               Name of the user that the SCM token is associated with
+ * @return {Promise}                                  Promise that resolves into a SCM token
  */
-function obtainScmToken(userFactory, username) {
+function obtainScmToken(pluginOptions, userFactory, username) {
+    const genericUsername = pluginOptions.username;
+
     return userFactory.get({ username })
         .then((user) => {
             if (!user) {
-                return userFactory.get({ username: GENERIC_SCM_USER })
+                return userFactory.get({ username: genericUsername })
                     .then(buildBotUser => buildBotUser.unsealToken());
             }
 
@@ -220,10 +225,12 @@ function obtainScmToken(userFactory, username) {
  *  - Syncing a PR should stop the existing PR job and start a new one
  *  - Closing a PR should stop the PR job and sync the pipeline (disabling the job)
  * @method pullRequestEvent
- * @param  {Hapi.request}       request Request from user
- * @param  {Hapi.reply}         reply   Reply to user
+ * @param  {Object}             pluginOptions
+ * @param  {String}             pluginOptions.username Generic scm username
+ * @param  {Hapi.request}       request                Request from user
+ * @param  {Hapi.reply}         reply                  Reply to user
  */
-function pullRequestEvent(request, reply, parsed) {
+function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const hookId = parsed.hookId;
@@ -239,7 +246,7 @@ function pullRequestEvent(request, reply, parsed) {
     request.log(['webhook', hookId], `PR #${prNumber} ${action} for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
-    return obtainScmToken(userFactory, username)
+    return obtainScmToken(pluginOptions, userFactory, username)
         .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
@@ -293,10 +300,12 @@ function pullRequestEvent(request, reply, parsed) {
  * Act on a Push event
  *  - Should start a new main job
  * @method pushEvent
- * @param  {Hapi.request}       request Request from user
- * @param  {Hapi.reply}         reply   Reply to user
+ * @param  {Object}             pluginOptions
+ * @param  {String}             pluginOptions.username Generic scm username
+ * @param  {Hapi.request}       request                Request from user
+ * @param  {Hapi.reply}         reply                  Reply to user
  */
-function pushEvent(request, reply, parsed) {
+function pushEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const buildFactory = request.server.app.buildFactory;
     const userFactory = request.server.app.userFactory;
@@ -311,7 +320,7 @@ function pushEvent(request, reply, parsed) {
     request.log(['webhook', hookId], `Push for ${checkoutUrl}`);
 
     // Fetch the pipeline associated with this hook
-    return obtainScmToken(userFactory, username)
+    return obtainScmToken(pluginOptions, userFactory, username)
         .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
@@ -362,10 +371,14 @@ function pushEvent(request, reply, parsed) {
  * @method register
  * @param  {Hapi}       server            Hapi Server
  * @param  {Object}     options           Configuration
+ * @param  {String}     options.username  Generic scm username
  * @param  {Function}   next              Function to call when done
  */
 exports.register = (server, options, next) => {
     const scm = server.root.app.pipelineFactory.scm;
+    const pluginOptions = joi.attempt(options, joi.object().keys({
+        username: joi.string().optional().default(GENERIC_SCM_USER)
+    }), 'Invalid config for plugin-webhooks');
 
     server.route({
         method: 'POST',
@@ -387,10 +400,10 @@ exports.register = (server, options, next) => {
                     request.log(['webhook', hookId], `Received event type ${eventType}`);
 
                     if (eventType === 'pr') {
-                        return pullRequestEvent(request, reply, parsed);
+                        return pullRequestEvent(pluginOptions, request, reply, parsed);
                     }
 
-                    return pushEvent(request, reply, parsed);
+                    return pushEvent(pluginOptions, request, reply, parsed);
                 })
                 .catch(err => reply(boom.wrap(err)))
         }

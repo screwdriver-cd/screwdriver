@@ -293,6 +293,38 @@ describe('github plugin test', () => {
                     assert.equal(response.statusCode, 201);
                 });
             });
+
+            it('handles checkouting when given a custom username', () => {
+                const testServer = new hapi.Server();
+
+                testServer.root.app = {
+                    jobFactory: jobFactoryMock,
+                    buildFactory: buildFactoryMock,
+                    pipelineFactory: pipelineFactoryMock,
+                    userFactory: userFactoryMock,
+                    eventFactory: eventFactoryMock
+                };
+                testServer.connection({
+                    host: 'localhost',
+                    port: 12345,
+                    uri: apiUri
+                });
+
+                testServer.register([{
+                    register: plugin,
+                    options: {
+                        username: 'abcd'
+                    }
+                }]);
+
+                userFactoryMock.get.resolves(null);
+                userFactoryMock.get.withArgs({ username: 'abcd' }).resolves(userMock);
+
+                return testServer.inject(options)
+                .then((response) => {
+                    assert.equal(response.statusCode, 201);
+                });
+            });
         });
 
         describe('pull-request event', () => {
@@ -437,6 +469,38 @@ describe('github plugin test', () => {
                     userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
 
                     return server.inject(options)
+                    .then((response) => {
+                        assert.equal(response.statusCode, 201);
+                    });
+                });
+
+                it('handles checkouting when given a custom username', () => {
+                    const testServer = new hapi.Server();
+
+                    testServer.root.app = {
+                        jobFactory: jobFactoryMock,
+                        buildFactory: buildFactoryMock,
+                        pipelineFactory: pipelineFactoryMock,
+                        userFactory: userFactoryMock,
+                        eventFactory: eventFactoryMock
+                    };
+                    testServer.connection({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
+
+                    testServer.register([{
+                        register: plugin,
+                        options: {
+                            username: 'abcd'
+                        }
+                    }]);
+
+                    userFactoryMock.get.resolves(null);
+                    userFactoryMock.get.withArgs({ username: 'abcd' }).resolves(userMock);
+
+                    return testServer.inject(options)
                     .then((response) => {
                         assert.equal(response.statusCode, 201);
                     });
