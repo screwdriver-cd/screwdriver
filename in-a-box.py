@@ -17,10 +17,6 @@ except ImportError:
     from urlparse import urlparse
 
 
-# if 'raw_input' not in dir():
-#     raw_input = input
-
-
 DOCKER_TEMPLATE = '''
 version: '2'
 services:
@@ -65,6 +61,32 @@ ${public_key}
             SECRET_JWT_PUBLIC_KEY: |
 ${public_key}
 '''
+
+
+def get_input(prompt=None):
+    """
+    Read a string from standard input.  The trailing newline is stripped.
+
+    The prompt string, if given, is printed to standard output without a
+    trailing newline before reading input.
+
+    Parameters
+    ----------
+    prompt: str, optional
+        The prompt string to present
+
+    Returns
+    -------
+    str
+        User input
+
+    Raises
+    ------
+    EOFError - If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return)
+    """
+    if sys.version_info.major < 3:
+        return raw_input(prompt)
+    return input(prompt)
 
 
 def get_ip_address():
@@ -131,12 +153,12 @@ def generate_oauth(ip):
     print('''
     Please create a new OAuth application on GitHub.com
     Go to https://github.com/settings/applications/new to start the process
-    For 'Homepage URL' put http://${ip}:9000
-    For 'Authorization callback URL' put http://${ip}:9001/v4/auth/login
+    For 'Homepage URL' put http://{ip}:9000
+    For 'Authorization callback URL' put http://{ip}:9001/v4/auth/login
     When done, please provide the following values:
     '''.format(ip=ip))
 
-    client_id = raw_input('    Client ID: ')
+    client_id = get_input('    Client ID: ')
     secret = getpass.getpass('    Client Secret: ')
 
     print('')
@@ -188,7 +210,7 @@ def main():
       $ open http://${ip}:9000
     ''').safe_substitute(fields)
     )
-    prompt = raw_input('    Would you like to run them now? (y/n) ')
+    prompt = get_input('    Would you like to run them now? (y/n) ')
     if prompt.lower() == 'y':
         call(['docker-compose', 'pull'])
         call(['docker-compose', '-p', 'screwdriver', 'up', '-d'])
