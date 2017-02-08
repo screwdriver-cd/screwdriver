@@ -110,9 +110,9 @@ def pad_lines(lines, length):
     """
     Left pad set of lines with spaces
     """
-    return '\n'.join(
-        map((lambda row: ''.rjust(length, ' ') + row), lines.split('\n'))
-    )
+    lines = lines.split(os.linesep)
+    prefix = os.linesep + ' ' * int(length)
+    return prefix + prefix.join(lines)
 
 
 def generate_jwt():
@@ -192,10 +192,10 @@ def main():
     check_component('openssl')
 
     print('🔐   Generating signing secrets')
-    fields = dict(fields, **generate_jwt())
+    fields.update(generate_jwt())
 
     print('📦   Generating OAuth credentials')
-    fields = dict(fields, **generate_oauth(fields['ip']))
+    fields.update(generate_oauth(fields['ip']))
 
     print('💾   Writing Docker Compose file')
     compose = Template(DOCKER_TEMPLATE).substitute(fields)
