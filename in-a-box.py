@@ -17,8 +17,8 @@ except ImportError:
     from urlparse import urlparse
 
 
-if 'raw_input' not in dir():
-    raw_input = input
+# if 'raw_input' not in dir():
+#     raw_input = input
 
 
 DOCKER_TEMPLATE = '''
@@ -128,13 +128,13 @@ def generate_oauth(ip):
     ip: str
         The IP address
     """
-    print(Template('''
+    print('''
     Please create a new OAuth application on GitHub.com
     Go to https://github.com/settings/applications/new to start the process
     For 'Homepage URL' put http://${ip}:9000
     For 'Authorization callback URL' put http://${ip}:9001/v4/auth/login
     When done, please provide the following values:
-    ''').substitute(ip=ip))
+    '''.format(ip=ip))
 
     client_id = raw_input('    Client ID: ')
     secret = getpass.getpass('    Client Secret: ')
