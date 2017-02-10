@@ -472,10 +472,6 @@ describe('build plugin test', () => {
                     pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
-                    buildFactoryMock.create.withArgs({
-                        jobId: publishJobId,
-                        username
-                    }).resolves('doesNotMatter');
                     buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
 
                     return server.inject(options).then((reply) => {
@@ -484,6 +480,7 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
+                            parentBuildId: id,
                             username,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
                         });
