@@ -1,13 +1,23 @@
+#!/usr/bin/env python
 # coding=utf-8
+"""
+Set up a local instance of screwdriver on the local system
+"""
+from __future__ import print_function
+import getpass
 import os
 import socket
 import sys
 import distutils.spawn
-from urlparse import urlparse
 from string import Template
-from subprocess import check_output, call, STDOUT, PIPE
+from subprocess import check_output, call, STDOUT
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
-dockerTemplate = '''
+
+DOCKER_TEMPLATE = '''
 version: '2'
 services:
     api:
@@ -52,96 +62,164 @@ ${public_key}
 ${public_key}
 '''
 
-# Check IP locally if running a docker-machine from docker-toolbox,
-# otherwise, get IP by poking at Google's DNS.
-# note: docker-for-mac does not set DOCKER environment variables
+
+def get_input(prompt=None):
+    """
+    Read a string from standard input.  The trailing newline is stripped.
+
+    The prompt string, if given, is printed to standard output without a
+    trailing newline before reading input.
+
+    Parameters
+    ----------
+    prompt: str, optional
+        The prompt string to present
+
+    Returns
+    -------
+    str
+        User input
+
+    Raises
+    ------
+    EOFError - If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return)
+    """
+    if sys.version_info.major < 3:
+        return raw_input(prompt)
+    return input(prompt)
+
+
 def get_ip_address():
+    """
+    Check IP locally if running in a docker-machine from docker-toolbox
+    otherwise, get IP by poking at Google's DNS.
+
+    Note
+    ----
+    docker-for-mac does not set DOCKER environment variables
+    """
     if os.environ.get('DOCKER_HOST'):
         url = urlparse(os.environ['DOCKER_HOST'])
         return url.hostname
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    return s.getsockname()[0]
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.connect(("8.8.8.8", 80))
+    return sock.getsockname()[0]
 
-# Left-Pad a set of lines (split by \n) with spaces
+
 def pad_lines(lines, length):
-    return '\n'.join(map((lambda row: ''.rjust(length, ' ') + row), lines.split('\n')))
+    """
+    Left pad set of lines with spaces
+    """
+    lines = lines.split(os.linesep)
+    prefix = os.linesep + ' ' * int(length)
+    return prefix + prefix.join(lines)
 
-# Generate a new JWT
+
 def generate_jwt():
-    junk = check_output(['openssl', 'genrsa', '-out', 'jwt.pem', '1024'], stderr=STDOUT)
-    junk = check_output(['openssl', 'rsa', '-in', 'jwt.pem', '-pubout', '-out', 'jwt.pub'], stderr=STDOUT)
-    jwtPrivate = open('jwt.pem', 'r').read()
-    jwtPublic = open('jwt.pub', 'r').read()
-    junk = check_output(['rm', 'jwt.pem', 'jwt.pub'], stderr=STDOUT)
+    """
+    Generate a new JWT
+
+    Returns
+    -------
+    dict
+        Dictionary with public_key and private_key
+    """
+    check_output(
+        ['openssl', 'genrsa', '-out', 'jwt.pem', '1024'], stderr=STDOUT
+    )
+    check_output(
+        ['openssl', 'rsa', '-in', 'jwt.pem', '-pubout', '-out', 'jwt.pub'],
+        stderr=STDOUT
+    )
+    jwt_private = open('jwt.pem', 'r').read()
+    jwt_public = open('jwt.pub', 'r').read()
+    check_output(['rm', 'jwt.pem', 'jwt.pub'], stderr=STDOUT)
 
     return {
-        'public_key': pad_lines(jwtPublic, 16),
-        'private_key': pad_lines(jwtPrivate, 16)
+        'public_key': pad_lines(jwt_public, 16),
+        'private_key': pad_lines(jwt_private, 16)
     }
 
-# Generate OAuth credentials from GitHub.com
+
 def generate_oauth(ip):
-    print Template('''
+    """
+    Generate OAuth credentials from GitHub.com
+
+    Parameters
+    ----------
+    ip: str
+        The IP address
+    """
+    print('''
     Please create a new OAuth application on GitHub.com
     Go to https://github.com/settings/applications/new to start the process
-    For 'Homepage URL' put http://${ip}:9000
-    For 'Authorization callback URL' put http://${ip}:9001/v4/auth/login
+    For 'Homepage URL' put http://{ip}:9000
+    For 'Authorization callback URL' put http://{ip}:9001/v4/auth/login
     When done, please provide the following values:
-    ''').substitute(ip=ip)
+    '''.format(ip=ip))
 
-    id = raw_input('    Client ID: ');
-    secret = raw_input('    Client Secret: ');
+    client_id = get_input('    Client ID: ')
+    secret = getpass.getpass('    Client Secret: ')
 
-    print ''
-    return {
-        'oauth_id': id,
-        'oauth_secret': secret
-    }
+    print('')
+    return dict(oauth_id=client_id, oauth_secret=secret)
+
 
 def check_component(component):
-    if distutils.spawn.find_executable(component) == None:
-        print '💀   Could not find {0}, please install and set path to {0}'.format(component)
+    """
+    Search for a component executable and exit if not found
+    """
+    if distutils.spawn.find_executable(component) is None:
+        print(
+            '💀   Could not find {0}, please install and set path to '
+            '{0}'.format(component)
+        )
         sys.exit(1)
 
+
 def main():
+    """
+    Main code function
+    """
     fields = {
         'ip': get_ip_address()
     }
-    print '🎁   Boxing up Screwdriver'
+    print('🎁   Boxing up Screwdriver')
 
-    print '👀   Checking prerequisites'
+    print('👀   Checking prerequisites')
     check_component('docker')
     check_component('docker-compose')
     check_component('openssl')
 
-    print '🔐   Generating signing secrets'
-    fields = dict(fields, **generate_jwt())
+    print('🔐   Generating signing secrets')
+    fields.update(generate_jwt())
 
-    print '📦   Generating OAuth credentials'
-    fields = dict(fields, **generate_oauth(fields['ip']))
+    print('📦   Generating OAuth credentials')
+    fields.update(generate_oauth(fields['ip']))
 
-    print '💾   Writing Docker Compose file'
-    compose = Template(dockerTemplate).substitute(fields)
+    print('💾   Writing Docker Compose file')
+    compose = Template(DOCKER_TEMPLATE).substitute(fields)
     open('docker-compose.yml', 'w').write(compose)
 
-    print '🚀   Screwdriver is ready to launch!'
-    print Template('''
+    print('🚀   Screwdriver is ready to launch!')
+    print(
+        Template('''
     Just run the following commands to get started!
       $ docker-compose pull
       $ docker-compose -p screwdriver up -d
       $ open http://${ip}:9000
     ''').safe_substitute(fields)
-    prompt = raw_input('    Would you like to run them now? (y/n) ')
+    )
+    prompt = get_input('    Would you like to run them now? (y/n) ')
     if prompt.lower() == 'y':
-        call('docker-compose pull', shell=True)
-        call('docker-compose -p screwdriver up -d', shell=True)
-        call(Template('open http://${ip}:9000').safe_substitute(fields), shell=True)
-        print '\n👍   Launched!'
+        call(['docker-compose', 'pull'])
+        call(['docker-compose', '-p', 'screwdriver', 'up', '-d'])
+        call(['open', Template('http://${ip}:9000').safe_substitute(fields)])
+        print('\n👍   Launched!')
     else:
-        print '\n👍   Skipping launch (for now)'
+        print('\n👍   Skipping launch (for now)')
 
-    print '''
+    print('''
     A few more things to note:
       - To stop/reset Screwdriver
         $ docker-compose -p screwdriver down
@@ -150,7 +228,9 @@ def main():
       - For help with this and more, find us on Slack at https://slack.screwdriver.cd
 
 ❤️   Screwdriver Crew
-    '''
+    ''')
+
 
 if __name__ == "__main__":
+    sys.stdin.flush()
     main()
