@@ -117,8 +117,8 @@ scm:
         # You can also configure for use with GitHub enterprise
         #gheHost: github.screwdriver.cd
         # The username and email used for checkout with github
-        #username: sd-buildbot
-        #email: dev-null@screwdriver.cd
+        username: sd-buildbot
+        email: dev-null@screwdriver.cd
         # Secret to add to GitHub webhooks so that we can validate them
         secret: SUPER-SECRET-SIGNING-THING
         # Whether it supports private repo: boolean value.
@@ -134,7 +134,7 @@ scm:
 
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
-    #username: sd-buildbot
+    username: sd-buildbot
 
 bookends:
     # Plugins for build setup

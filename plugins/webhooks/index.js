@@ -2,7 +2,6 @@
 
 const boom = require('boom');
 const joi = require('joi');
-const GENERIC_SCM_USER = 'sd-buildbot';
 
 /**
  * Stop a job by stopping all the builds associated with it
@@ -377,7 +376,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 exports.register = (server, options, next) => {
     const scm = server.root.app.pipelineFactory.scm;
     const pluginOptions = joi.attempt(options, joi.object().keys({
-        username: joi.string().optional().default(GENERIC_SCM_USER)
+        username: joi.string().required()
     }), 'Invalid config for plugin-webhooks');
 
     server.route({
