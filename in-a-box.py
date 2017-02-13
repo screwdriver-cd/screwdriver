@@ -128,8 +128,8 @@ def generate_jwt():
         ['openssl', 'rsa', '-in', 'jwt.pem', '-pubout', '-out', 'jwt.pub'],
         stderr=STDOUT
     )
-    jwt_private = open('jwt.pem', 'r').read()
-    jwt_public = open('jwt.pub', 'r').read()
+    jwt_private = open('jwt.pem', 'r').read().strip()
+    jwt_public = open('jwt.pub', 'r').read().strip()
     check_output(['rm', 'jwt.pem', 'jwt.pub'], stderr=STDOUT)
 
     return {
