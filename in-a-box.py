@@ -41,10 +41,8 @@ services:
                 }
             SECRET_OAUTH_CLIENT_ID: ${oauth_id}
             SECRET_OAUTH_CLIENT_SECRET: ${oauth_secret}
-            SECRET_JWT_PRIVATE_KEY: |
-${private_key}
-            SECRET_JWT_PUBLIC_KEY: |
-${public_key}
+            SECRET_JWT_PRIVATE_KEY: |${private_key}
+            SECRET_JWT_PUBLIC_KEY: |${public_key}
     ui:
         image: screwdrivercd/ui:stable
         ports:
@@ -58,8 +56,7 @@ ${public_key}
             - 9002:80
         environment:
             URI: http://${ip}:9002
-            SECRET_JWT_PUBLIC_KEY: |
-${public_key}
+            SECRET_JWT_PUBLIC_KEY: |${public_key}
 '''
 
 
@@ -131,8 +128,8 @@ def generate_jwt():
         ['openssl', 'rsa', '-in', 'jwt.pem', '-pubout', '-out', 'jwt.pub'],
         stderr=STDOUT
     )
-    jwt_private = open('jwt.pem', 'r').read()
-    jwt_public = open('jwt.pub', 'r').read()
+    jwt_private = open('jwt.pem', 'r').read().strip()
+    jwt_public = open('jwt.pub', 'r').read().strip()
     check_output(['rm', 'jwt.pem', 'jwt.pub'], stderr=STDOUT)
 
     return {
