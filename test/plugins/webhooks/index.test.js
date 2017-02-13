@@ -75,7 +75,10 @@ describe('github plugin test', () => {
         });
 
         server.register([{
-            register: plugin
+            register: plugin,
+            options: {
+                username: 'sd-buildbot'
+            }
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
             server.app.buildFactory.tokenGen = buildId =>
@@ -101,6 +104,30 @@ describe('github plugin test', () => {
         assert.isOk(server.registrations.webhooks);
         assert.equal(server.app.buildFactory.tokenGen('12345'),
             '{"username":"12345","scope":["build"]}');
+    });
+
+    it('throws exception when config not passed', () => {
+        const testServer = new hapi.Server();
+
+        testServer.root.app = {
+            jobFactory: jobFactoryMock,
+            buildFactory: buildFactoryMock,
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock,
+            eventFactory: eventFactoryMock
+        };
+        testServer.connection({
+            host: 'localhost',
+            port: 12345,
+            uri: apiUri
+        });
+
+        assert.isRejected(testServer.register([{
+            register: plugin,
+            options: {
+                username: ''
+            }
+        }]), /Invalid config for plugin-webhooks/);
     });
 
     describe('POST /webhooks', () => {

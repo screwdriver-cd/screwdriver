@@ -96,6 +96,9 @@ scm:
         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
         # You can also configure for use with GitHub enterprise
         gheHost: SCM_GITHUB_GHE_HOST
+        # The username and email used for checkout with github
+        username: SCM_USERNAME
+        email: SCM_EMAIL
         # Secret to add to GitHub webhooks so that we can validate them
         secret: WEBHOOK_GITHUB_SECRET
         # Whether it supports private repo: boolean value.
@@ -108,6 +111,13 @@ scm:
         oauthClientId: SECRET_OAUTH_CLIENT_ID
         # The client secret used for OAuth with bitbucket
         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+        # The username and email used for checkout with bitbucket
+        username: SCM_USERNAME
+        email: SCM_EMAIL
+
+webhooks:
+    # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
+    username: SCM_USERNAME
 
 bookends:
     # List of module names, or objects { name, config } for instantiation to use in sd-setup

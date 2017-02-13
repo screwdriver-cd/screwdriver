@@ -15,6 +15,9 @@ const authConfig = config.get('auth');
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
 
+// Setup Webhooks
+const webhooksConfig = config.get('webhooks');
+
 // Special urls for things like the UI
 const ecosystem = config.get('ecosystem');
 
@@ -83,6 +86,7 @@ datastore.setup()
     .then(() => server({
         httpd: httpdConfig,
         auth: authConfig,
+        webhooks: webhooksConfig,
         ecosystem,
         pipelineFactory,
         jobFactory,
