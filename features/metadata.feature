@@ -33,9 +33,8 @@ Feature: Metadata
     - meta get --previous can read from the previous successful event.
 
     Background:
-        Given a metadata starts with:
-            {}
-    
+        Given a metadata starts with an empty object
+
     @ignore
     Scenario Outline: Adding some data to metadata
         Given an existing pipeline with the workflow:
