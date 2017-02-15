@@ -46,21 +46,15 @@ module.exports = () => ({
                         return reply.redirect(getUrl(request.server.app.ecosystem.badges));
                     }
 
-                    return pipeline.jobs.then((jobs) => {
-                        const main = jobs.filter(job => job.name === 'main').pop();
+                    return pipeline.getEvents({ sort: 'ascending' }).then((events) => {
+                        const lastEvent = events.pop();
 
-                        if (!main) {
+                        if (!lastEvent) {
                             return reply.redirect(getUrl(badgeService));
                         }
 
-                        return main.getBuilds({
-                            paginate: {
-                                page: 1,
-                                count: 1
-                            },
-                            sort: 'descending'
-                        }).then((builds) => {
-                            const build = builds.pop();
+                        return lastEvent.getBuilds().then((builds) => {
+                            const build = builds.reverse().pop();
 
                             return reply.redirect(getUrl(badgeService, build && build.status));
                         });

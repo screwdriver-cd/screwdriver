@@ -77,6 +77,7 @@ const getPipelineMocks = (pipelines) => {
 const decorateEventMock = (event) => {
     const mock = hoek.clone(event);
 
+    mock.getBuilds = sinon.stub();
     mock.toJson = sinon.stub().returns(event);
 
     return mock;
@@ -442,14 +443,17 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('GET /pipelines/{id}/jobs', () => {
+    describe('GET /pipelines/{id}/badge', () => {
         const id = '123';
         let pipelineMock;
+        let eventsMock;
 
         beforeEach(() => {
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.jobs = Promise.resolve(getJobsMocks(testJobs));
             pipelineFactoryMock.get.resolves(pipelineMock);
+            eventsMock = getEventsMocks(testEvents);
+            eventsMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
+            pipelineMock.getEvents.resolves(eventsMock);
         });
 
         it('returns 302 to for a valid build', () =>
@@ -468,8 +472,8 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 302 to unknown for a job that does not exist', () => {
-            pipelineMock.jobs = Promise.resolve([]);
+        it('returns 302 to unknown for an event that does not exist', () => {
+            pipelineMock.getEvents.resolves([]);
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
@@ -478,10 +482,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 302 to unknown for a build that does not exist', () => {
-            const mockJobs = getJobsMocks(testJobs);
-
-            mockJobs[0].getBuilds.resolves([]);
-            pipelineMock.jobs = Promise.resolve(mockJobs);
+            eventsMock[0].getBuilds.resolves([]);
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
