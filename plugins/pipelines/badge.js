@@ -9,23 +9,45 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
  * Generate Badge URL
  * @method getUrl
  * @param  {string}  badgeService    Template URL for badges - needs {{status}} and {{color}}
- * @param  {string}  [currentStatus] Current Build Status
+ * @param  {Array}  [buildsStatus]   Current status of all builds in the same event
  * @return {string}                  URL to redirect to
  */
-function getUrl(badgeService, currentStatus) {
-    const status = (currentStatus || 'UNKNOWN').toLowerCase();
+function getUrl(badgeService, buildsStatus = []) {
+    const counts = {};
+    const parts = [];
+    let worst = 'lightgrey';
+
     const statusColor = {
-        unknown: 'lightgrey',
         success: 'green',
-        failure: 'red',
-        aborted: 'red',
         queued: 'blue',
-        running: 'blue'
+        running: 'blue',
+        unknown: 'lightgrey',
+        failure: 'red',
+        aborted: 'red'
     };
-    const color = statusColor[status];
+
+    const levels = [
+        'success',
+        'queued',
+        'running',
+        'unknown',
+        'failure',
+        'aborted'
+    ];
+
+    buildsStatus.forEach((status) => {
+        counts[status] = (counts[status] || 0) + 1;
+    });
+
+    levels.forEach((status) => {
+        if (counts[status]) {
+            parts.push(`${counts[status]} ${status}`);
+            worst = statusColor[status];
+        }
+    });
 
     return tinytim.tim(badgeService, {
-        status, color
+        status: parts.join(', '), color: worst
     });
 }
 
@@ -43,7 +65,7 @@ module.exports = () => ({
             return factory.get(request.params.id)
                 .then((pipeline) => {
                     if (!pipeline) {
-                        return reply.redirect(getUrl(request.server.app.ecosystem.badges));
+                        return reply.redirect(getUrl(badgeService));
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then((events) => {
@@ -54,9 +76,18 @@ module.exports = () => ({
                         }
 
                         return lastEvent.getBuilds().then((builds) => {
-                            const build = builds.reverse().pop();
+                            if (!builds || builds.length < 1) {
+                                return reply.redirect(getUrl(badgeService));
+                            }
 
-                            return reply.redirect(getUrl(badgeService, build && build.status));
+                            const buildsStatus = builds.reverse()
+                                .map(build => build.status.toLowerCase());
+
+                            for (let i = builds.length; i < lastEvent.workflow.length; i += 1) {
+                                buildsStatus[i] = 'unknown';
+                            }
+
+                            return reply.redirect(getUrl(badgeService, buildsStatus));
                         });
                     });
                 })

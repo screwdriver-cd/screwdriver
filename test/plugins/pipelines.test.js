@@ -459,7 +459,7 @@ describe('pipeline plugin test', () => {
         it('returns 302 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'failure/red');
+                assert.deepEqual(reply.headers.location, '1 unknown, 2 failure/red');
             })
         );
 
@@ -468,7 +468,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+                assert.deepEqual(reply.headers.location, '/lightgrey');
             });
         });
 
@@ -477,7 +477,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+                assert.deepEqual(reply.headers.location, '/lightgrey');
             });
         });
 
@@ -486,7 +486,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+                assert.deepEqual(reply.headers.location, '/lightgrey');
             });
         });
 
@@ -495,7 +495,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'unknown/lightgrey');
+                assert.deepEqual(reply.headers.location, '/lightgrey');
             });
         });
     });
