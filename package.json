@@ -74,6 +74,7 @@
     "ndjson": "^1.4.3",
     "request": "^2.74.0",
     "requestretry": "^1.12.0",
+    "screwdriver-artifact-bookend": "1.0.0",
     "screwdriver-build-bookend": "^2.0.1",
     "screwdriver-config-parser": "^3.1.0",
     "screwdriver-data-schema": "^16.0.1",

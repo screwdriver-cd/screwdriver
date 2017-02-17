@@ -140,6 +140,8 @@ bookends:
     # Plugins for build setup
     setup:
         - scm
+    teardown:
+        - screwdriver-artifact-bookend
 
 ecosystem:
     # Externally routable URL for the User Interface
