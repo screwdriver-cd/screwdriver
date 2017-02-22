@@ -101,7 +101,6 @@
     "mockery": "^2.0.0",
     "nock": "^9.0.0",
     "npm-auto-version": "^1.0.0",
-    "request": "^2.73.0",
     "sinon": "~1.17.4",
     "sinon-as-promised": "^4.0.2"
   }
