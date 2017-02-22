@@ -43,10 +43,15 @@ const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
 
 authConfig.scm = scm;
 
+// Plugin to upload artifacts to store
+const ArtifactPlugin = require('screwdriver-artifact-bookend');
+const artifact = new ArtifactPlugin(ecosystem.store);
+
 // Plugins to run before/after a build
 const bookends = config.get('bookends');
-const bookend = new Bookend(
-    { scm },                    // default plugins defined by screwdriver
+const bookend = new Bookend({
+    scm,
+    'screwdriver-artifact-bookend': artifact },
     bookends.setup || [],      // plugins required for the setup- steps
     bookends.teardown || []    // plugins required for the teardown- steps
 );
