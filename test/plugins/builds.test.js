@@ -110,6 +110,7 @@ describe('build plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
+        server.event('build_status');
 
         secretMock = {
             register: (s, o, next) => {
@@ -181,7 +182,15 @@ describe('build plugin test', () => {
 
     describe('PUT /builds/{id}', () => {
         const id = 12345;
+        const pipelineId = 123;
+        const scmUri = 'github.com:12345:branchName';
+        const scmRepo = {
+            branch: 'master',
+            name: 'screwdriver-cd/screwdriver',
+            url: 'https://github.com/screwdriver-cd/screwdriver/tree/branchName'
+        };
         let buildMock;
+        let pipelineMock;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
@@ -193,6 +202,62 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.resolves(buildMock);
             buildMock.update.resolves(buildMock);
+
+            pipelineMock = {
+                id: pipelineId,
+                scmUri,
+                scmRepo,
+                sync: sinon.stub().resolves()
+            };
+        });
+
+        it('emits event buid_status', () => {
+            const jobMock = {
+                id: 1234,
+                name: 'main',
+                pipelineId,
+                permutations: [{
+                    settings: {
+                        email: 'foo@bar.com'
+                    }
+                }]
+            };
+
+            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+            buildMock.job = sinon.stub().resolves(jobMock)();
+            buildMock.settings = {
+                email: 'foo@bar.com'
+            };
+
+            buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+
+            const options = {
+                method: 'PUT',
+                url: `/builds/${id}`,
+                payload: {
+                    status: 'ABORTED'
+                },
+                credentials: {
+                    scope: ['user']
+                }
+            };
+
+            server.emit = sinon.stub().resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(server.emit, 'build_status', {
+                    buildId: 12345,
+                    buildLink: 'http://foo.bar/builds/12345',
+                    jobName: 'main',
+                    pipelineName: 'screwdriver-cd/screwdriver',
+                    settings: {
+                        email: 'foo@bar.com'
+                    },
+                    status: 'ABORTED'
+                });
+                assert.equal(reply.statusCode, 200);
+            });
         });
 
         it('returns 404 for updating a build that does not exist', () => {
@@ -235,6 +300,22 @@ describe('build plugin test', () => {
 
         describe('user token', () => {
             it('returns 200 for updating a build that exists', () => {
+                const jobMock = {
+                    id: 1234,
+                    name: 'main',
+                    pipelineId,
+                    permutations: [{
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }]
+                };
+
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+
+                buildFactoryMock.get.resolves(buildMock);
+
                 const expected = hoek.applyToDefaults(testBuild, { status: 'ABORTED' });
                 const options = {
                     method: 'PUT',
@@ -250,9 +331,9 @@ describe('build plugin test', () => {
                 buildMock.toJson.returns(expected);
 
                 return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
+                    assert.equal(reply.statusCode, 200);
                 });
             });
 
@@ -296,23 +377,18 @@ describe('build plugin test', () => {
 
         describe('build token', () => {
             const jobId = 1234;
-            const pipelineId = 123;
             const publishJobId = 1235;
-            const scmUri = 'github.com:12345:branchName';
 
             let jobMock;
-            let pipelineMock;
 
             beforeEach(() => {
                 jobMock = {
                     id: jobId,
                     name: 'main',
-                    pipelineId
-                };
-                pipelineMock = {
-                    id: pipelineId,
-                    scmUri,
-                    sync: sinon.stub().resolves()
+                    pipelineId,
+                    permutations: [{
+                        settings: {}
+                    }]
                 };
 
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();

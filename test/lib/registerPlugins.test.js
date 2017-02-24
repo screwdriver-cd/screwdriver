@@ -101,6 +101,38 @@ describe('Register Unit Test Case', () => {
         });
     });
 
+    it('registered notifications plugins', () => {
+        serverMock.register.callsArgAsync(2);
+
+        const newConfig = {
+            notifications: {
+                email: {
+                    foo: 'abc'
+                },
+                slack: {
+                    baz: 'def'
+                }
+            }
+        };
+
+        const notificationPlugins = [
+            'screwdriver-notifications-email',
+            'screwdriver-notifications-slack'
+        ];
+
+        notificationPlugins.forEach((plugin) => {
+            mocks[plugin] = sinon.stub();
+            mocks[plugin].prototype.notify = sinon.stub();
+            mockery.registerMock(plugin, mocks[plugin]);
+        });
+
+        return main(serverMock, newConfig).then(() =>
+            notificationPlugins.forEach(plugin =>
+                Assert.called(mocks[plugin].prototype.notify)
+            )
+        );
+    });
+
     it('bubbles failures up', () => {
         serverMock.register.callsArgWithAsync(2, new Error('failure loading'));
 

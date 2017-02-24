@@ -17,7 +17,7 @@ module.exports = () => ({
             scope: ['user', 'build']
         },
         handler: (request, reply) => {
-            const factory = request.server.app.buildFactory;
+            const buildFactory = request.server.app.buildFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
             const jobFactory = request.server.app.jobFactory;
@@ -29,7 +29,7 @@ module.exports = () => ({
                 throw boom.forbidden(`Credential only valid for ${username}`);
             }
 
-            return factory.get(id)
+            return buildFactory.get(id)
                 .then((build) => {
                     if (!build) {
                         throw boom.notFound(`Build ${id} does not exist`);
@@ -67,13 +67,22 @@ module.exports = () => ({
                     // Everyone is able to update the status
                     build.status = desiredStatus;
 
-                    // Guard against triggering non-successful builds
-                    if (desiredStatus !== 'SUCCESS') {
-                        return build.update();
-                    }
-
                     // Only trigger next build on success
                     return build.job.then(job => job.pipeline.then((pipeline) => {
+                        request.server.emit('build_status', {
+                            settings: job.permutations[0].settings,
+                            status: build.status,
+                            pipelineName: pipeline.scmRepo.name,
+                            jobName: job.name,
+                            buildId: build.id,
+                            buildLink: `${buildFactory.uiUri}/builds/${id}`
+                        });
+
+                        // Guard against triggering non-successful builds
+                        if (desiredStatus !== 'SUCCESS') {
+                            return null;
+                        }
+
                         const workflow = pipeline.workflow;
 
                         // No workflow to follow
@@ -100,7 +109,7 @@ module.exports = () => ({
                             pipelineId: pipeline.id
                         }).then((nextJobToTrigger) => {
                             if (nextJobToTrigger.state === 'ENABLED') {
-                                return factory.create({
+                                return buildFactory.create({
                                     jobId: nextJobToTrigger.id,
                                     sha: build.sha,
                                     parentBuildId: id,

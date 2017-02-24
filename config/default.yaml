@@ -143,6 +143,12 @@ bookends:
     teardown:
         - screwdriver-artifact-bookend
 
+notifications:
+    # Email notification when build finishes
+    # email:
+    #     host: email-host
+    #     port: email-port
+    #     from: email-address-to-send-from
 ecosystem:
     # Externally routable URL for the User Interface
     ui: https://cd.screwdriver.cd
