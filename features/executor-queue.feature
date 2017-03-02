@@ -15,19 +15,54 @@ Feature: Executor Queue
         - Users know how far in the queue a build is.
     
     @ignore
-    Scenario: Push a build into the queue
+    Scenario Outline: Push a build into the queue
+        Given an executor type is <type>
         When a new build is created
         Then that build is pushed into the queue
-    
+        
+        Examples:
+            | type   |
+            | k8s    |
+            | docker |
+            | j5s    |
+
     @ignore
-    Scenario: Run a queued build
+    Scenario Outline: Run a queued build
+        Given an executor type is <type>
         When the queue has one or more queued builds
         And an executor is capable of running a new build
         Then a build is taken from the queue
         And that build is running
+
+        Examples:
+            | type   |
+            | k8s    |
+            | docker |
+            | j5s    |
     
     @ignore
-    Scenario: Check how far a build in the queue a build is
+    Scenario Outline: No executors can handle a new build
+        Given an executor type is <type>
+        When the queue has one or more queued builds
+        And all executors are offline or full
+        Then no new builds are running
+        And the queue remains as it is
+
+        Examples:
+            | type   |
+            | k8s    |
+            | docker |
+            | j5s    |
+
+    @ignore
+    Scenario Outline: Check how far a build in the queue a build is
+        Given an executor type is <type>
         When a new build is created
         And that build is pushed into the queue
         Then users know how far in the queue that build is
+
+        Examples:
+            | type   |
+            | k8s    |
+            | docker |
+            | j5s    |
