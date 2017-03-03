@@ -21,10 +21,10 @@ Feature: Executor Queue
         Then that build is pushed into the queue
         
         Examples:
-            | type   |
-            | k8s    |
-            | docker |
-            | j5s    |
+            | type    |
+            | k8s     |
+            | docker  |
+            | jenkins |
 
     @ignore
     Scenario Outline: Run a queued build
@@ -35,10 +35,10 @@ Feature: Executor Queue
         And that build is running
 
         Examples:
-            | type   |
-            | k8s    |
-            | docker |
-            | j5s    |
+            | type    |
+            | k8s     |
+            | docker  |
+            | jenkins |
     
     @ignore
     Scenario Outline: No executors can handle a new build
@@ -49,10 +49,10 @@ Feature: Executor Queue
         And the queue remains as it is
 
         Examples:
-            | type   |
-            | k8s    |
-            | docker |
-            | j5s    |
+            | type    |
+            | k8s     |
+            | docker  |
+            | jenkins |
 
     @ignore
     Scenario Outline: Check how far a build in the queue a build is
@@ -62,7 +62,7 @@ Feature: Executor Queue
         Then users know how far in the queue that build is
 
         Examples:
-            | type   |
-            | k8s    |
-            | docker |
-            | j5s    |
+            | type    |
+            | k8s     |
+            | docker  |
+            | jenkins |
