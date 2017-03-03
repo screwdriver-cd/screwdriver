@@ -129,6 +129,10 @@ bookends:
         __name: BOOKENDS_TEARDOWN
         __format: json
 
+notifications:
+    __name: NOTIFICATIONS
+    __format: json
+
 ecosystem:
     # URL for the User Interface
     ui: ECOSYSTEM_UI

@@ -21,7 +21,8 @@
                 "environment": {
                     "NODE_VERSION": "4"
                 },
-                "secrets": []
+                "secrets": [],
+                "settings": {}
             },
             {
                 "image": "node:6",
@@ -43,7 +44,8 @@
                 "environment": {
                     "NODE_VERSION": "6"
                 },
-                "secrets": []
+                "secrets": [],
+                "settings": {}
             }
         ],
         "publish": [
@@ -56,7 +58,8 @@
                     }
                 ],
                 "environment": {},
-                "secrets": []
+                "secrets": [],
+                "settings": {}
             }
         ]
     },

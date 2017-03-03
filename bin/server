@@ -23,6 +23,9 @@ const ecosystem = config.get('ecosystem');
 
 ecosystem.api = httpdConfig.uri;
 
+// Notification config
+const notificationConfig = config.get('notifications');
+
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
@@ -92,6 +95,7 @@ datastore.setup()
         httpd: httpdConfig,
         auth: authConfig,
         webhooks: webhooksConfig,
+        notifications: notificationConfig,
         ecosystem,
         pipelineFactory,
         jobFactory,
