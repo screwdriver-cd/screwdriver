@@ -1,0 +1,17 @@
+---
+name: template_namespace/template_name
+version: 1.2.3
+# description is intentionally omitted to assert an error case
+# description: template description
+maintainer: name@domain.suffix
+config:
+  # image is supposed to be a string
+  # is intentionally a Number type to assert an error case
+  image: 1
+  steps:
+    - first_step: first_command
+    - second_step: ./second_script.sh
+  environment:
+    KEYNAME: value
+  secrets:
+     - SECRET_NAME
