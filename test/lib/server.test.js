@@ -1,6 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
+const boom = require('boom');
 const mockery = require('mockery');
 const sinon = require('sinon');
 
@@ -125,6 +126,17 @@ describe('server case', () => {
                     path: '/no',
                     handler: (request, reply) => reply(new Error('Not OK'))
                 });
+                server.route({
+                    method: 'GET',
+                    path: '/noStack',
+                    handler: (request, reply) => {
+                        const response = boom.wrap(new Error('whatStackTrace'));
+
+                        delete response.stack;
+
+                        return reply(response);
+                    }
+                });
 
                 return Promise.resolve();
             });
@@ -152,6 +164,18 @@ describe('server case', () => {
                 }).then((response) => {
                     Assert.equal(response.statusCode, 500);
                     Assert.equal(JSON.parse(response.payload).message, 'Not OK');
+                })
+            ))
+        ));
+
+        it('defaults to the error message if the stack trace is missing', () => (
+            hapiEngine({ ecosystem }).then(server => (
+                server.inject({
+                    method: 'GET',
+                    url: '/noStack'
+                }).then((response) => {
+                    Assert.equal(response.statusCode, 500);
+                    Assert.equal(JSON.parse(response.payload).message, 'whatStackTrace');
                 })
             ))
         ));
