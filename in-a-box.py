@@ -50,12 +50,14 @@ services:
             - 9000:80
         environment:
             ECOSYSTEM_API: http://${ip}:9001
+            ECOSYSTEM_STORE: http://${ip}:9002
 
     store:
         image: screwdrivercd/store:stable
         ports:
             - 9002:80
         environment:
+            ECOSYSTEM_UI: http://${ip}:9000
             URI: http://${ip}:9002
             SECRET_JWT_PUBLIC_KEY: |${public_key}
 '''
