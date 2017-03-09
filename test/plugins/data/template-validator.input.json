@@ -1,0 +1,1 @@
+{"yaml":"{\"name\":\"template_namespace/nodejs_main\",\"version\":\"1.1.2\",\"description\":\"Template for building a NodeJS module\\nInstalls dependencies and runs tests\\n\",\"maintainer\":\"me@nowhere.com\",\"config\":{\"image\":\"node:6\",\"steps\":[{\"install\":\"npm install\"},{\"test\":\"npm test\"}],\"environment\":{\"KEYNAME\":\"value\"},\"secrets\":[\"NPM_TOKEN\"]}}"}
