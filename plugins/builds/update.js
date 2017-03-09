@@ -68,62 +68,63 @@ module.exports = () => ({
                     build.status = desiredStatus;
 
                     // Only trigger next build on success
-                    return build.job.then(job => job.pipeline.then((pipeline) => {
-                        request.server.emit('build_status', {
-                            settings: job.permutations[0].settings,
-                            status: build.status,
-                            pipelineName: pipeline.scmRepo.name,
-                            jobName: job.name,
-                            buildId: build.id,
-                            buildLink: `${buildFactory.uiUri}/builds/${id}`
-                        });
+                    return build.update()
+                        .then(() => build.job.then(job => job.pipeline.then((pipeline) => {
+                            request.server.emit('build_status', {
+                                settings: job.permutations[0].settings,
+                                status: build.status,
+                                pipelineName: pipeline.scmRepo.name,
+                                jobName: job.name,
+                                buildId: build.id,
+                                buildLink: `${buildFactory.uiUri}/builds/${id}`
+                            });
 
-                        // Guard against triggering non-successful builds
-                        if (desiredStatus !== 'SUCCESS') {
-                            return null;
-                        }
-
-                        const workflow = pipeline.workflow;
-
-                        // No workflow to follow
-                        if (!workflow) {
-                            return null;
-                        }
-
-                        const workflowIndex = workflow.indexOf(job.name);
-
-                        // Current build is the last job in the workflow
-                        if (workflowIndex === workflow.length - 1) {
-                            return null;
-                        }
-
-                        // Skip if not in the workflow (like PRs)
-                        if (workflowIndex === -1) {
-                            return null;
-                        }
-
-                        const nextJobName = workflow[workflowIndex + 1];
-
-                        return jobFactory.get({
-                            name: nextJobName,
-                            pipelineId: pipeline.id
-                        }).then((nextJobToTrigger) => {
-                            if (nextJobToTrigger.state === 'ENABLED') {
-                                return buildFactory.create({
-                                    jobId: nextJobToTrigger.id,
-                                    sha: build.sha,
-                                    parentBuildId: id,
-                                    username,
-                                    eventId: build.eventId
-                                });
+                            // Guard against triggering non-successful builds
+                            if (desiredStatus !== 'SUCCESS') {
+                                return null;
                             }
 
-                            return null;
-                        });
-                    }))
-                    .then(() => build.update());
+                            const workflow = pipeline.workflow;
+
+                            // No workflow to follow
+                            if (!workflow) {
+                                return null;
+                            }
+
+                            const workflowIndex = workflow.indexOf(job.name);
+
+                            // Current build is the last job in the workflow
+                            if (workflowIndex === workflow.length - 1) {
+                                return null;
+                            }
+
+                            // Skip if not in the workflow (like PRs)
+                            if (workflowIndex === -1) {
+                                return null;
+                            }
+
+                            const nextJobName = workflow[workflowIndex + 1];
+
+                            return jobFactory.get({
+                                name: nextJobName,
+                                pipelineId: pipeline.id
+                            }).then((nextJobToTrigger) => {
+                                if (nextJobToTrigger.state === 'ENABLED') {
+                                    return buildFactory.create({
+                                        jobId: nextJobToTrigger.id,
+                                        sha: build.sha,
+                                        parentBuildId: id,
+                                        username,
+                                        eventId: build.eventId
+                                    });
+                                }
+
+                                return null;
+                            });
+                        }))
+                        .then(() => reply(build.toJson()).code(200))
+                    );
                 })
-                .then(build => reply(build.toJson()).code(200))
                 .catch(err => reply(boom.wrap(err)));
         },
         validate: {
