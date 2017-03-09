@@ -140,50 +140,6 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('GET /templates/{id}', () => {
-        const id = 123;
-        let options;
-
-        beforeEach(() => {
-            options = {
-                method: 'GET',
-                url: `/templates/${id}`
-            };
-        });
-
-        it('exposes a route for getting a template', () => {
-            templateFactoryMock.get.withArgs(id).resolves(getTemplateMocks(testtemplate));
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testtemplate);
-            });
-        });
-
-        it('throws error not found when template does not exist', () => {
-            const error = {
-                statusCode: 404,
-                error: 'Not Found',
-                message: 'Template does not exist'
-            };
-
-            templateFactoryMock.get.withArgs(id).resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-                assert.deepEqual(reply.result, error);
-            });
-        });
-
-        it('throws error when call returns error', () => {
-            templateFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-    });
-
     describe('POST /templates', () => {
         let options;
         let templateMock;
@@ -288,24 +244,12 @@ describe('template plugin test', () => {
             });
         });
 
-        it('update labels if has good permission and it is an existing version', () => {
-            let expectedLocation;
-
-            templateMock.update = sinon.stub().resolves(templateMock);
+        it('returns 409 it is an existing version', () => {
             templateFactoryMock.list.resolves([templateMock]);
             templateFactoryMock.get.resolves(templateMock);
 
             return server.inject(options).then((reply) => {
-                expectedLocation = {
-                    host: reply.request.headers.host,
-                    port: reply.request.headers.port,
-                    protocol: reply.request.server.info.protocol,
-                    pathname: `${options.url}/${testId}`
-                };
-                assert.deepEqual(reply.result, testtemplate);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledOnce(templateMock.update);
-                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.statusCode, 409);
             });
         });
 

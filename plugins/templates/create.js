@@ -28,7 +28,6 @@ module.exports = () => ({
             const name = request.payload.name;
             const version = request.payload.version;
             const labels = request.payload.labels || [];
-            let statusCode = 201;
 
             return Promise.all([
                 pipelineFactory.get(pipelineId),
@@ -39,30 +38,27 @@ module.exports = () => ({
                     labels
                 });
 
-                // If template doesn't exist yet, just create a new entry
+                // If template name doesn't exist yet, just create a new entry
                 if (templates.length === 0) {
                     return templateFactory.create(templateConfig);
                 }
 
-                // If template exists, but this build's scmUri is not the same as template's scmUri
+                // If template name exists, but this build's scmUri is not the same as template's scmUri
                 // Then this build does not have permission to publish
                 if (pipeline.scmUri !== templates[0].scmUri) {
                     throw boom.unauthorized('Not allowed to publish this template');
                 }
 
-                // If template exists and has good permission, check the exact version
+                // If template name exists and has good permission, check the exact version
                 return templateFactory.get({ name, version })
                     .then((template) => {
-                        // If the version doesn't exist, create a new entry
-                        if (!template) {
-                            return templateFactory.create(templateConfig);
+                        // If the exact version exists, throw 409
+                        if (template) {
+                            throw boom.conflict(`Template ${name}@${version} already exists`);
                         }
 
-                        // If the version exists, just update the labels
-                        template.labels = [...new Set([...template.labels, ...labels])];
-                        statusCode = 200;
-
-                        return template.update();
+                        // If the exact version doesn't exists, create a new entry
+                        return templateFactory.create(templateConfig);
                     });
             })
             .then((template) => {
@@ -73,7 +69,7 @@ module.exports = () => ({
                     pathname: `${request.path}/${template.id}`
                 });
 
-                return reply(template.toJson()).header('Location', location).code(statusCode);
+                return reply(template.toJson()).header('Location', location).code(201);
             })
             // something broke, respond with error
             .catch(err => reply(boom.wrap(err)));
