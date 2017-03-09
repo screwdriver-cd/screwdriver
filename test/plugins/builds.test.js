@@ -553,6 +553,7 @@ describe('build plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.deepEqual(buildMock.meta, meta);
+                        assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
