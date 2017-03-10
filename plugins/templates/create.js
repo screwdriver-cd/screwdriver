@@ -6,11 +6,11 @@ const hoek = require('hoek');
 const urlLib = require('url');
 
 module.exports = () => ({
-    method: 'POST',
-    path: '/templates',
+    method: 'PUT',
+    path: '/templates/{name}/{version}',
     config: {
         description: 'Create a new template',
-        notes: 'Create a specific template',
+        notes: 'Create a specific template with name and version',
         tags: ['api', 'templates'],
         auth: {
             strategies: ['token', 'session'],
@@ -34,6 +34,8 @@ module.exports = () => ({
                 templateFactory.list({ name })
             ]).then(([pipeline, templates]) => {
                 const templateConfig = hoek.applyToDefaults(request.payload, {
+                    name: request.params.name,
+                    version: request.params.version,
                     scmUri: pipeline.scmUri,
                     labels
                 });
