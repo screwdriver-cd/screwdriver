@@ -102,6 +102,7 @@
     "github": "^8.1.1",
     "jenkins-mocha": "^4.0.0",
     "mockery": "^2.0.0",
+    "mz": "^2.6.0",
     "nock": "^9.0.0",
     "npm-auto-version": "^1.0.0",
     "sinon": "~1.17.4",
