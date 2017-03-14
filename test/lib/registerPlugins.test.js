@@ -13,7 +13,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/status',
         '../plugins/logging',
         '../plugins/swagger',
-        '../plugins/validator'
+        '../plugins/validator',
+        '../plugins/template-validator'
     ];
     const resourcePlugins = [
         '../plugins/auth',
@@ -22,7 +23,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/jobs',
         '../plugins/pipelines',
         '../plugins/secrets',
-        '../plugins/template-validator',
+        '../plugins/templates',
         '../plugins/webhooks',
         '../plugins/stats'
     ];

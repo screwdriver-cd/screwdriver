@@ -61,6 +61,9 @@ const bookend = new Bookend({
 
 // Setup Model Factories
 const Models = require('screwdriver-models');
+const templateFactory = Models.TemplateFactory.getInstance({
+    datastore
+});
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm
@@ -97,6 +100,7 @@ datastore.setup()
         webhooks: webhooksConfig,
         notifications: notificationConfig,
         ecosystem,
+        templateFactory,
         pipelineFactory,
         jobFactory,
         userFactory,
