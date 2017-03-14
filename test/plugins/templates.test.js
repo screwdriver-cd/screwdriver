@@ -140,7 +140,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('PUT /templates', () => {
+    describe('POST /templates', () => {
         let options;
         let templateMock;
         let pipelineMock;
@@ -148,10 +148,10 @@ describe('template plugin test', () => {
 
         beforeEach(() => {
             options = {
-                method: 'PUT',
-                url: '/templates/mytemplate/1.7',
+                method: 'POST',
+                url: '/templates',
                 payload: {
-                    name: 'mytemplate',
+                    name: 'template',
                     version: '1.7',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
@@ -199,7 +199,7 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplate);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.create, {
-                    name: 'mytemplate',
+                    name: 'template',
                     version: '1.7',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
@@ -216,11 +216,10 @@ describe('template plugin test', () => {
 
             templateFactoryMock.list.resolves([templateMock]);
             templateFactoryMock.get.withArgs({
-                name: 'mytemplate',
+                name: 'template',
                 version: '1.8'
             }).resolves(null);
 
-            options.url = '/templates/mytemplate/1.8';
             options.payload.version = '1.8';
 
             return server.inject(options).then((reply) => {
@@ -233,7 +232,7 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplate);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.create, {
-                    name: 'mytemplate',
+                    name: 'template',
                     version: '1.8',
                     maintainer: 'foo@bar.com',
                     description: 'test template',

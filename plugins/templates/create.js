@@ -4,13 +4,16 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const hoek = require('hoek');
 const urlLib = require('url');
+const MAJOR_MATCH = 1;
+const MINOR_MATCH = 2;
+const PATCH_MATCH = 3;
 
 module.exports = () => ({
-    method: 'PUT',
-    path: '/templates/{name}/{version}',
+    method: 'POST',
+    path: '/templates',
     config: {
         description: 'Create a new template',
-        notes: 'Create a specific template with name and version',
+        notes: 'Create a specific template',
         tags: ['api', 'templates'],
         auth: {
             strategies: ['token', 'session'],
@@ -26,7 +29,6 @@ module.exports = () => ({
             const templateFactory = request.server.app.templateFactory;
             const pipelineId = request.auth.credentials.pipelineId;
             const name = request.payload.name;
-            const version = request.payload.version;
             const labels = request.payload.labels || [];
 
             return Promise.all([
@@ -34,8 +36,6 @@ module.exports = () => ({
                 templateFactory.list({ name })
             ]).then(([pipeline, templates]) => {
                 const templateConfig = hoek.applyToDefaults(request.payload, {
-                    name: request.params.name,
-                    version: request.params.version,
                     scmUri: pipeline.scmUri,
                     labels
                 });
@@ -51,17 +51,28 @@ module.exports = () => ({
                     throw boom.unauthorized('Not allowed to publish this template');
                 }
 
-                // If template name exists and has good permission, check the exact version
-                return templateFactory.get({ name, version })
-                    .then((template) => {
-                        // If the exact version exists, throw 409
-                        if (template) {
-                            throw boom.conflict(`Template ${name}@${version} already exists`);
-                        }
+                // If template name exists and has good permission, get the latest version for major and minor
+                const VERSION_REGEX = schema.config.regex.VERSION;
+                const version = VERSION_REGEX.exec(request.payload.version);
+                const majorminor = `${version[MAJOR_MATCH]}${version[MINOR_MATCH]}`;
 
-                        // If the exact version doesn't exists, create a new entry
-                        return templateFactory.create(templateConfig);
-                    });
+                return templateFactory.getTemplate({
+                    name,
+                    version: majorminor,
+                    labels
+                }).then((latest) => {
+                    if (!latest) {
+                        templateConfig.version = `${majorminor}.0`;
+                    } else {
+                        const patch = parseInt(
+                            VERSION_REGEX.exec(latest.version)[PATCH_MATCH].slice(1), 10) + 1;
+
+                        templateConfig.version = `${majorminor}${patch}`;
+                    }
+
+                    // If the exact version doesn't exists, create a new entry
+                    return templateFactory.create(templateConfig);
+                });
             })
             .then((template) => {
                 const location = urlLib.format({
