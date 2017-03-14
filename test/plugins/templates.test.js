@@ -61,7 +61,7 @@ describe('template plugin test', () => {
     beforeEach((done) => {
         templateFactoryMock = {
             create: sinon.stub(),
-            get: sinon.stub(),
+            getTemplate: sinon.stub(),
             list: sinon.stub()
         };
         pipelineFactoryMock = {
@@ -157,7 +157,7 @@ describe('template plugin test', () => {
                     description: 'test template',
                     config: {
                         steps: [{
-                            echo: 'echo hello'
+                            echo: 'echo bye'
                         }]
                     }
                 },
@@ -167,7 +167,7 @@ describe('template plugin test', () => {
             };
 
             templateMock = getTemplateMocks(testtemplate);
-            templateFactoryMock.get.resolves(null);
+            templateFactoryMock.getTemplate.resolves(null);
             templateFactoryMock.create.resolves(templateMock);
             templateFactoryMock.list.resolves([templateMock]);
 
@@ -177,7 +177,7 @@ describe('template plugin test', () => {
 
         it('returns 401 when scmUri does not match', () => {
             templateMock.scmUri = 'github.com:67890:branchName';
-            templateFactoryMock.get.resolves(templateMock);
+            templateFactoryMock.getTemplate.resolves(templateMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -200,12 +200,12 @@ describe('template plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.create, {
                     name: 'template',
-                    version: '1.7',
+                    version: '1.7.0',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
                     scmUri: 'github.com:12345:branchName',
                     labels: [],
-                    config: { steps: [{ echo: 'echo hello' }] }
+                    config: { steps: [{ echo: 'echo bye' }] }
                 });
                 assert.equal(reply.statusCode, 201);
             });
@@ -215,10 +215,7 @@ describe('template plugin test', () => {
             let expectedLocation;
 
             templateFactoryMock.list.resolves([templateMock]);
-            templateFactoryMock.get.withArgs({
-                name: 'template',
-                version: '1.8'
-            }).resolves(null);
+            templateFactoryMock.getTemplate.resolves(null);
 
             options.payload.version = '1.8';
 
@@ -233,23 +230,51 @@ describe('template plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.create, {
                     name: 'template',
-                    version: '1.8',
+                    version: '1.8.0',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
                     scmUri: 'github.com:12345:branchName',
                     labels: [],
-                    config: { steps: [{ echo: 'echo hello' }] }
+                    config: { steps: [{ echo: 'echo bye' }] }
                 });
                 assert.equal(reply.statusCode, 201);
             });
         });
 
-        it('returns 409 it is an existing version', () => {
+        it('auto-bump patch version', () => {
             templateFactoryMock.list.resolves([templateMock]);
-            templateFactoryMock.get.resolves(templateMock);
+            templateFactoryMock.getTemplate.resolves(templateMock);
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 409);
+                assert.calledWith(templateFactoryMock.create, {
+                    name: 'template',
+                    version: '1.7.4',
+                    maintainer: 'foo@bar.com',
+                    description: 'test template',
+                    scmUri: 'github.com:12345:branchName',
+                    labels: [],
+                    config: { steps: [{ echo: 'echo bye' }] }
+                });
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('auto-bump patch version when only major version is passed in', () => {
+            options.payload.version = '1';
+            templateFactoryMock.list.resolves([templateMock]);
+            templateFactoryMock.getTemplate.resolves(templateMock);
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(templateFactoryMock.create, {
+                    name: 'template',
+                    version: '1.7.4',
+                    maintainer: 'foo@bar.com',
+                    description: 'test template',
+                    scmUri: 'github.com:12345:branchName',
+                    labels: [],
+                    config: { steps: [{ echo: 'echo bye' }] }
+                });
+                assert.equal(reply.statusCode, 201);
             });
         });
 

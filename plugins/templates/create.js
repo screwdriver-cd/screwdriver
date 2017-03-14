@@ -35,9 +35,16 @@ module.exports = () => ({
                 pipelineFactory.get(pipelineId),
                 templateFactory.list({ name })
             ]).then(([pipeline, templates]) => {
+                const VERSION_REGEX = schema.config.regex.VERSION;
+                const match = VERSION_REGEX.exec(request.payload.version);
+                const major = match[MAJOR_MATCH];
+                const minor = match[MINOR_MATCH];
+                const version = minor ? `${major}${minor}.0` : `${major}.0.0`;
+
                 const templateConfig = hoek.applyToDefaults(request.payload, {
                     scmUri: pipeline.scmUri,
-                    labels
+                    labels,
+                    version
                 });
 
                 // If template name doesn't exist yet, just create a new entry
@@ -52,22 +59,22 @@ module.exports = () => ({
                 }
 
                 // If template name exists and has good permission, get the latest version for major and minor
-                const VERSION_REGEX = schema.config.regex.VERSION;
-                const version = VERSION_REGEX.exec(request.payload.version);
-                const majorminor = `${version[MAJOR_MATCH]}${version[MINOR_MATCH]}`;
+                const searchVersion = minor ? `${major}${minor}` : major;
 
                 return templateFactory.getTemplate({
                     name,
-                    version: majorminor,
+                    version: searchVersion,
                     labels
                 }).then((latest) => {
                     if (!latest) {
-                        templateConfig.version = `${majorminor}.0`;
+                        templateConfig.version = version;
                     } else {
+                        const latestMatch = VERSION_REGEX.exec(latest.version);
+                        const latestMinor = latestMatch[MINOR_MATCH];
                         const patch = parseInt(
-                            VERSION_REGEX.exec(latest.version)[PATCH_MATCH].slice(1), 10) + 1;
+                            latestMatch[PATCH_MATCH].slice(1), 10) + 1;
 
-                        templateConfig.version = `${majorminor}${patch}`;
+                        templateConfig.version = `${major}${latestMinor}.${patch}`;
                     }
 
                     // If the exact version doesn't exists, create a new entry
