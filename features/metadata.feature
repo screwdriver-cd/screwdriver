@@ -35,7 +35,6 @@ Feature: Metadata
     Background:
         Given a metadata starts with an empty object
 
-    @ignore
     Scenario Outline: Adding some data to metadata
         Given an existing pipeline with the workflow:
             | job | triggers |
@@ -60,7 +59,6 @@ Feature: Metadata
             | ["arrg"]     | ["ARRG"]     |
             | { "x": "y" } | { "w": "z" } |
     
-    @ignore
     Scenario: Store a record of the metadata when the event is done
         Given an existing pipeline with the workflow:
             | job | triggers |
