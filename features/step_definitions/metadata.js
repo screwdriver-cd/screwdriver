@@ -19,39 +19,6 @@ module.exports = function server() {
 
     this.Given(/^a metadata starts with an empty object$/);
 
-    this.Given(/^an existing pipeline with the workflow:$/, { timeout: TIMEOUT }, table =>
-        this.getJwt(this.accessKey)
-        .then((response) => {
-            this.jwt = response.body.token;
-
-            return request({
-                uri: `${this.instance}/${this.namespace}/pipelines`,
-                method: 'POST',
-                auth: {
-                    bearer: this.jwt
-                },
-                body: {
-                    checkoutUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
-                },
-                json: true
-            });
-        })
-        .then((response) => {
-            Assert.oneOf(response.statusCode, [409, 201]);
-
-            if (response.statusCode === 201) {
-                this.pipelineId = response.body.id;
-            } else {
-                const str = response.body.message;
-                const id = str.split(': ')[1];
-
-                this.pipelineId = id;
-            }
-
-            return table;
-        })
-    );
-
     this.When(/^the "FOO" job is started$/, { timeout: TIMEOUT }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
