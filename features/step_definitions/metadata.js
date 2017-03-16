@@ -19,9 +19,22 @@ module.exports = function server() {
 
     this.Given(/^a metadata starts with an empty object$/);
 
-    this.Then(/^the "BAR" job is started$/, { timeout: TIMEOUT }, () =>
+    this.Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, (jobName) => {
+        let jobId = '';
+
+        switch (jobName) {
+        case 'BAR':
+            jobId = this.secondJobId;
+            break;
+        case 'BAZ':
+            jobId = this.thirdJobId;
+            break;
+        default:
+            throw new Error('jobName is neither BAR or BAZ');
+        }
+
         request({
-            uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
+            uri: `${this.instance}/${this.namespace}/jobs/${jobId}/builds`,
             method: 'GET',
             json: true
         }).then((response) => {
@@ -29,21 +42,8 @@ module.exports = function server() {
             this.meta = response.body.meta;
 
             Assert.equal(response.statusCode, 200);
-        })
-    );
-
-    this.Then(/^the "BAZ" job is started$/, { timeout: TIMEOUT }, () =>
-        request({
-            uri: `${this.instance}/${this.namespace}/jobs/${this.thirdJobId}/builds`,
-            method: 'GET',
-            json: true
-        }).then((response) => {
-            this.buildId = response.body[0].id;
-            this.meta = response.body.meta;
-
-            Assert.equal(response.statusCode, 200);
-        })
-    );
+        });
+    });
 
     this.Then(/^add the { "foo": <foobar> } to metadata in the "main" build container$/);
 
