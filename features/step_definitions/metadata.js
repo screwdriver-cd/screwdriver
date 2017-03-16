@@ -19,38 +19,6 @@ module.exports = function server() {
 
     this.Given(/^a metadata starts with an empty object$/);
 
-    this.When(/^the "FOO" job is started$/, { timeout: TIMEOUT }, () =>
-        request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
-            method: 'GET',
-            json: true
-        }).then((response) => {
-            this.jobId = response.body[0].id;
-            this.secondJobId = response.body[1].id;
-            this.thirdJobId = response.body[2].id;
-
-            Assert.equal(response.statusCode, 200);
-        }).then(() =>
-            request({
-                uri: `${this.instance}/${this.namespace}/builds`,
-                method: 'POST',
-                body: {
-                    jobId: this.jobId
-                },
-                auth: {
-                    bearer: this.jwt
-                },
-                json: true
-            }).then((resp) => {
-                this.buildId = resp.body.id;
-                this.eventId = resp.body.eventId;
-                this.meta = resp.body.meta;
-
-                Assert.equal(resp.statusCode, 201);
-            })
-        )
-    );
-
     this.Then(/^the "BAR" job is started$/, { timeout: TIMEOUT }, () =>
         request({
             uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
@@ -70,11 +38,14 @@ module.exports = function server() {
             method: 'GET',
             json: true
         }).then((response) => {
+            this.buildId = response.body[0].id;
+            this.meta = response.body.meta;
+
             Assert.equal(response.statusCode, 200);
         })
     );
 
-    this.Then(/^add the { "foo": <foobar> } to metadata in the "FOO" build container$/);
+    this.Then(/^add the { "foo": <foobar> } to metadata in the "main" build container$/);
 
     this.Then(/^add the { "bar": <barbaz> } to metadata in the "BAR" build container$/);
 
@@ -88,7 +59,7 @@ module.exports = function server() {
         Assert.equal('barbaz', this.meta.bar);
     });
 
-    this.Then(/^add the { "foo": "foobar" } to metadata in the "FOO" build$/);
+    this.Then(/^add the { "foo": "foobar" } to metadata in the "main" build$/);
 
     this.Then(/^add the { "bar": "barbaz" } to metadata in the "BAR" build$/);
 
