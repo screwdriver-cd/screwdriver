@@ -80,6 +80,7 @@ module.exports = function server() {
             this.jobId = response.body[0].id;
             this.secondJobId = response.body[1].id;
             if (2 in response.body) this.thirdJobId = response.body[2].id;
+            this.lastJobId = response.body[response.body.length - 1].id;
 
             Assert.equal(response.statusCode, 200);
         })

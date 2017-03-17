@@ -59,10 +59,6 @@ module.exports = function server() {
         Assert.equal('barbaz', this.meta.bar);
     });
 
-    this.Then(/^add the { "foo": "foobar" } to metadata in the "main" build$/);
-
-    this.Then(/^add the { "bar": "barbaz" } to metadata in the "BAR" build$/);
-
     this.Then(/^the build succeeded$/, { timeout: TIMEOUT }, () =>
         this.waitForBuild(this.buildId).then((resp) => {
             Assert.equal(resp.body.status, 'SUCCESS');
@@ -71,18 +67,8 @@ module.exports = function server() {
     );
 
     this.Then(/^the event is done$/, { timeout: TIMEOUT }, () =>
-        request({
-            uri: `${this.instance}/${this.namespace}/jobs/${this.thirdJobId}/builds`,
-            method: 'GET',
-            json: true
-        }).then((response) => {
-            Assert.equal(response.statusCode, 200);
-            this.buildId = response.body[0].id;
-
-            this.waitForBuild(this.buildId).then((resp) => {
-                Assert.equal(resp.body.status, 'SUCCESS');
-                Assert.equal(resp.statusCode, 200);
-            });
+        this.waitForBuild(this.buildId).then((resp) => {
+            Assert.equal(resp.statusCode, 200);
         })
     );
 

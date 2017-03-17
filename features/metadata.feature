@@ -51,27 +51,17 @@ Feature: Metadata
         Then in the build, the { "foo": <foobar> } is available from metadata
         And in the build, the { "bar": <barbaz> } is available from metadata
         And the build succeeded
+        And the event is done
+        Then a record of the metadata is stored
 
         Examples:
             | foobar       | barbaz       |
-            | "Foo"        | "Bar"        |
+            | "foobar"     | "barbaz"     |
             | 10           | 20           |
             | true         | false        |
             | ["arrg"]     | ["ARRG"]     |
             | { "x": "y" } | { "w": "z" } |
     
-    Scenario: Store a record of the metadata when the event is done
-        Given an existing pipeline with the workflow:
-            | job  | triggers |
-            | main | BAR      |
-        When the "main" job is started
-        Then add the { "foo": "foobar" } to metadata in the "main" build
-        And the build succeeded
-        And the "BAR" job is started
-        And add the { "bar": "barbaz" } to metadata in the "BAR" build
-        And the event is done
-        Then a record of the metadata is stored
-        
     @ignore
     Scenario: Combining the results of matrix builds
         Given an existing pipeline with the workflow:
