@@ -80,15 +80,7 @@ module.exports = function server() {
             this.jobId = response.body[0].id;
             this.secondJobId = response.body[1].id;
             this.thirdJobId = typeof response.body[2] === 'object' ? response.body[2].id : null;
-            this.lastJobId = (function getLastJobId() {
-                for (let i = response.body.length - 1; i >= 0; i -= 1) {
-                    if (typeof response.body[i] === 'object') {
-                        return response.body[i].id;
-                    }
-                }
-
-                return null;
-            }(response));
+            this.lastJobId = response.body.reverse().find(b => typeof b === 'object').id || null;
 
             Assert.equal(response.statusCode, 200);
         })
