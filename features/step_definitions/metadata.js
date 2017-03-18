@@ -67,8 +67,16 @@ module.exports = function server() {
     );
 
     this.Then(/^the event is done$/, { timeout: TIMEOUT }, () =>
-        this.waitForBuild(this.buildId).then((resp) => {
-            Assert.equal(resp.statusCode, 200);
+        request({
+            uri: `${this.instance}/${this.namespace}/jobs/${this.lastJobId}/builds`,
+            method: 'GET',
+            json: true
+        }).then((response) => {
+            this.buildId = response.body[0].id;
+
+            return this.waitForBuild(this.buildId).then((resp) => {
+                Assert.equal(resp.statusCode, 200);
+            });
         })
     );
 
