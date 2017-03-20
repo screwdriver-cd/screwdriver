@@ -35,14 +35,13 @@ Feature: Metadata
     Background:
         Given a metadata starts with an empty object
 
-    @ignore
     Scenario Outline: Adding some data to metadata
         Given an existing pipeline with the workflow:
-            | job | triggers |
-            | FOO | BAR      |
-            | BAR | BAZ      |
-        When the "FOO" job is started
-        Then add the { "foo": <foobar> } to metadata in the "FOO" build container
+            | job  | triggers |
+            | main | BAR      |
+            | BAR  | BAZ      |
+        When the "main" job is started
+        Then add the { "foo": <foobar> } to metadata in the "main" build container
         And the build succeeded
         And the "BAR" job is started
         Then in the build, the { "foo": <foobar> } is available from metadata
@@ -51,37 +50,27 @@ Feature: Metadata
         And the "BAZ" job is started
         Then in the build, the { "foo": <foobar> } is available from metadata
         And in the build, the { "bar": <barbaz> } is available from metadata
+        And the build succeeded
+        And the event is done
+        Then a record of the metadata is stored
 
         Examples:
             | foobar       | barbaz       |
-            | "Foo"        | "Bar"        |
+            | "foobar"     | "barbaz"     |
             | 10           | 20           |
             | true         | false        |
             | ["arrg"]     | ["ARRG"]     |
             | { "x": "y" } | { "w": "z" } |
     
     @ignore
-    Scenario: Store a record of the metadata when the event is done
-        Given an existing pipeline with the workflow:
-            | job | triggers |
-            | FOO | BAR      |
-        When the "FOO" job is started
-        Then add the { "foo": "foobar" } to metadata in the "FOO" build
-        And the build succeeded
-        And the "BAR" job is started
-        And add the { "bar": "barbaz" } to metadata in the "BAR" build
-        And the event is done
-        Then a record of the metadata is stored
-        
-    @ignore
     Scenario: Combining the results of matrix builds
         Given an existing pipeline with the workflow:
-            | job | triggers |
-            | FOO | BAR      |
-        And "FOO" is a matrix job with BAZ:[1,2]
-        When the "FOO" job is started
-        Then add the { "foo": "foobar" } to metadata in the BAZ = 1, "FOO" build
-        And add the { "foo": "barbaz" } to metadata in the BAZ = 2, "FOO" build
+            | job  | triggers |
+            | main | BAR      |
+        And "main" is a matrix job with BAZ:[1,2]
+        When the "main" job is started
+        Then add the { "foo": "foobar" } to metadata in the BAZ = 1, "main" build
+        And add the { "foo": "barbaz" } to metadata in the BAZ = 2, "main" build
         And the build succeeded
         And the "BAR" job is started
         Then in the build, the value of "foo" is either "foobar" or "barbaz" from metadata

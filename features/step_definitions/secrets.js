@@ -79,6 +79,8 @@ module.exports = function server() {
         }).then((response) => {
             this.jobId = response.body[0].id;
             this.secondJobId = response.body[1].id;
+            this.thirdJobId = typeof response.body[2] === 'object' ? response.body[2].id : null;
+            this.lastJobId = response.body.reverse().find(b => typeof b === 'object').id || null;
 
             Assert.equal(response.statusCode, 200);
         })
@@ -96,6 +98,7 @@ module.exports = function server() {
             }).then((resp) => {
                 this.buildId = resp.body.id;
                 this.eventId = resp.body.eventId;
+                this.meta = resp.body.meta;
 
                 Assert.equal(resp.statusCode, 201);
             })
