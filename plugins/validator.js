@@ -20,8 +20,9 @@ exports.register = (server, options, next) => {
             description: 'Validate a given screwdriver.yaml',
             notes: 'Returns the parsed config or validation errors',
             tags: ['api', 'validation', 'yaml'],
-            handler: (request, reply) => parser(request.payload.yaml)
-                    .then(pipeline => reply(pipeline)),
+            handler: (request, reply) =>
+                parser(request.payload.yaml, request.server.app.templateFactory)
+                .then(pipeline => reply(pipeline)),
             validate: {
                 payload: validatorSchema.input
             },
