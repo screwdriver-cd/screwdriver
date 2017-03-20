@@ -61,7 +61,6 @@ describe('template plugin test', () => {
     beforeEach((done) => {
         templateFactoryMock = {
             create: sinon.stub(),
-            get: sinon.stub(),
             list: sinon.stub()
         };
         pipelineFactoryMock = {
@@ -140,7 +139,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('PUT /templates', () => {
+    describe('POST /templates', () => {
         let options;
         let templateMock;
         let pipelineMock;
@@ -148,11 +147,11 @@ describe('template plugin test', () => {
 
         beforeEach(() => {
             options = {
-                method: 'PUT',
-                url: '/templates/mytemplate/1.7',
+                method: 'POST',
+                url: '/templates',
                 payload: {
                     name: 'mytemplate',
-                    version: '1.7',
+                    version: '1',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
                     config: {
@@ -167,7 +166,6 @@ describe('template plugin test', () => {
             };
 
             templateMock = getTemplateMocks(testtemplate);
-            templateFactoryMock.get.resolves(null);
             templateFactoryMock.create.resolves(templateMock);
             templateFactoryMock.list.resolves([templateMock]);
 
@@ -177,7 +175,6 @@ describe('template plugin test', () => {
 
         it('returns 401 when scmUri does not match', () => {
             templateMock.scmUri = 'github.com:67890:branchName';
-            templateFactoryMock.get.resolves(templateMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -200,7 +197,7 @@ describe('template plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.create, {
                     name: 'mytemplate',
-                    version: '1.7',
+                    version: '1',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
                     scmUri: 'github.com:12345:branchName',
@@ -215,12 +212,7 @@ describe('template plugin test', () => {
             let expectedLocation;
 
             templateFactoryMock.list.resolves([templateMock]);
-            templateFactoryMock.get.withArgs({
-                name: 'mytemplate',
-                version: '1.8'
-            }).resolves(null);
 
-            options.url = '/templates/mytemplate/1.8';
             options.payload.version = '1.8';
 
             return server.inject(options).then((reply) => {
@@ -242,15 +234,6 @@ describe('template plugin test', () => {
                     config: { steps: [{ echo: 'echo hello' }] }
                 });
                 assert.equal(reply.statusCode, 201);
-            });
-        });
-
-        it('returns 409 it is an existing version', () => {
-            templateFactoryMock.list.resolves([templateMock]);
-            templateFactoryMock.get.resolves(templateMock);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 409);
             });
         });
 

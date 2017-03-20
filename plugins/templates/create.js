@@ -6,11 +6,11 @@ const hoek = require('hoek');
 const urlLib = require('url');
 
 module.exports = () => ({
-    method: 'PUT',
-    path: '/templates/{name}/{version}',
+    method: 'POST',
+    path: '/templates',
     config: {
         description: 'Create a new template',
-        notes: 'Create a specific template with name and version',
+        notes: 'Create a specific template',
         tags: ['api', 'templates'],
         auth: {
             strategies: ['token', 'session'],
@@ -26,7 +26,6 @@ module.exports = () => ({
             const templateFactory = request.server.app.templateFactory;
             const pipelineId = request.auth.credentials.pipelineId;
             const name = request.payload.name;
-            const version = request.payload.version;
             const labels = request.payload.labels || [];
 
             return Promise.all([
@@ -34,8 +33,6 @@ module.exports = () => ({
                 templateFactory.list({ name })
             ]).then(([pipeline, templates]) => {
                 const templateConfig = hoek.applyToDefaults(request.payload, {
-                    name: request.params.name,
-                    version: request.params.version,
                     scmUri: pipeline.scmUri,
                     labels
                 });
@@ -51,17 +48,9 @@ module.exports = () => ({
                     throw boom.unauthorized('Not allowed to publish this template');
                 }
 
-                // If template name exists and has good permission, check the exact version
-                return templateFactory.get({ name, version })
-                    .then((template) => {
-                        // If the exact version exists, throw 409
-                        if (template) {
-                            throw boom.conflict(`Template ${name}@${version} already exists`);
-                        }
-
-                        // If the exact version doesn't exists, create a new entry
-                        return templateFactory.create(templateConfig);
-                    });
+                // If template name exists and has good permission, then create
+                // Create would automatically bump the patch version
+                return templateFactory.create(templateConfig);
             })
             .then((template) => {
                 const location = urlLib.format({
