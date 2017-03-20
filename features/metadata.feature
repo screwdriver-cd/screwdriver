@@ -1,8 +1,8 @@
-@metadata
+@ignore
 Feature: Metadata
 
     Users want to pass structured data between their builds.
-    The most common way is to use the value of the current Git tag. But that data 
+    The most common way is to use the value of the current Git tag. But that data
     cannot be guaranteed to be correct.
 
     Given this simple pipeline:
@@ -20,7 +20,7 @@ Feature: Metadata
     build container.
     - Metadata should be passed from one job to the next in succession (in the same
     event).
-    - When combining the results of matrix builds, they should be merge/replaced in 
+    - When combining the results of matrix builds, they should be merge/replaced in
     a random order (to ensure users don't depend on a side-effect).
     - When the event is done, a record of the metadata should be stored there as well.
     - Metadata can contain strings, numbers, boolean, objects, and arrays. The interface
@@ -61,7 +61,7 @@ Feature: Metadata
             | true         | false        |
             | ["arrg"]     | ["ARRG"]     |
             | { "x": "y" } | { "w": "z" } |
-    
+
     @ignore
     Scenario: Combining the results of matrix builds
         Given an existing pipeline with the workflow:
