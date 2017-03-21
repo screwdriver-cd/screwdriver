@@ -17,7 +17,7 @@ module.exports = function server() {
         this.jwt = null;
     });
 
-    this.Given(/^a metadata starts with an empty object$/);
+    this.Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
     this.Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, (jobName) => {
         let jobId = '';
@@ -45,18 +45,18 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^add the { "foo": <foobar> } to metadata in the "main" build container$/);
+    this.Then(/^add the { "foo": (.*) } to metadata in the "main" build container$/, () => null);
 
-    this.Then(/^add the { "bar": <barbaz> } to metadata in the "BAR" build container$/);
+    this.Then(/^add the { "bar": (.*) } to metadata in the "BAR" build container$/, () => null);
 
-    this.Then(/^in the build, the { "foo": <foobar> } is available from metadata$/, () => {
+    this.Then(/^in the build, the { "foo": (.*) } is available from metadata$/, (value) => {
         Assert.ok('foo', this.meta);
-        Assert.equal('foobar', this.meta.foo);
+        Assert.equal(value, this.meta.foo);
     });
 
-    this.Then(/^in the build, the { "bar": <barbaz> } is available from metadata$/, () => {
+    this.Then(/^in the build, the { "bar": (.*) } is available from metadata$/, (value) => {
         Assert.ok('bar', this.meta);
-        Assert.equal('barbaz', this.meta.bar);
+        Assert.equal(value, this.meta.bar);
     });
 
     this.Then(/^the build succeeded$/, { timeout: TIMEOUT }, () =>
