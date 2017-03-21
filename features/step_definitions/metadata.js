@@ -49,12 +49,12 @@ module.exports = function server() {
 
     this.Then(/^add the { "bar": (.*) } to metadata in the "BAR" build container$/, () => null);
 
-    this.Then(/^in the build, the { "foo": (.*) } is available from metadata$/, (value) => {
+    this.Then(/^in the build, the { "foo": "(.*)" } is available from metadata$/, (value) => {
         Assert.ok('foo', this.meta);
         Assert.equal(value, this.meta.foo);
     });
 
-    this.Then(/^in the build, the { "bar": (.*) } is available from metadata$/, (value) => {
+    this.Then(/^in the build, the { "bar": "(.*)" } is available from metadata$/, (value) => {
         Assert.ok('bar', this.meta);
         Assert.equal(value, this.meta.bar);
     });
