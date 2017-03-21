@@ -132,7 +132,7 @@ describe('template validator plugin test', () => {
 
                 const payload = JSON.parse(reply.payload);
 
-                assert.match(payload.message, /YAMLException/);
+                assert.match(payload.message, /incomplete explicit mapping pair/);
             })
         );
 

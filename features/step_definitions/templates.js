@@ -5,7 +5,7 @@ const request = require('../support/request');
 const path = require('path');
 const Assert = require('chai').assert;
 
-module.exports = function () {
+module.exports = function server() {
     this.Given(/^a (valid|invalid)\b job-level template$/, (templateType) => {
         let targetFile = '';
 
