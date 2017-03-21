@@ -85,6 +85,7 @@
     "screwdriver-notifications-email": "^1.0.3",
     "screwdriver-scm-bitbucket": "^2.6.0",
     "screwdriver-scm-github": "^4.6.0",
+    "screwdriver-scm-gitlab": "^0.1.0",
     "screwdriver-template-validator": "^3.0.0",
     "tinytim": "^0.1.1",
     "verror": "^1.6.1",
