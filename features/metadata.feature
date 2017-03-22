@@ -1,4 +1,4 @@
-@ignore
+@metadata
 Feature: Metadata
 
     Users want to pass structured data between their builds.
@@ -57,10 +57,10 @@ Feature: Metadata
         Examples:
             | foobar       | barbaz       |
             | "foobar"     | "barbaz"     |
-            | 10           | 20           |
-            | true         | false        |
-            | ["arrg"]     | ["ARRG"]     |
-            | { "x": "y" } | { "w": "z" } |
+#            | 10           | 20           |
+#            | true         | false        |
+#            | ["arrg"]     | ["ARRG"]     |
+#            | { "x": "y" } | { "w": "z" } |
 
     @ignore
     Scenario: Combining the results of matrix builds
