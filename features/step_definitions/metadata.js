@@ -45,9 +45,9 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^add the { "foo": (.*) } to metadata in the "main" build container$/, () => null);
+    this.Then(/^add the { "foo": (?:.*) } to metadata in the "main" build container$/, () => null);
 
-    this.Then(/^add the { "bar": (.*) } to metadata in the "BAR" build container$/, () => null);
+    this.Then(/^add the { "bar": (?:.*) } to metadata in the "BAR" build container$/, () => null);
 
     this.Then(/^in the build, the { "foo": "(.*)" } is available from metadata$/, (value) => {
         Assert.ok('foo', this.meta);
