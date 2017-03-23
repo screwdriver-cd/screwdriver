@@ -61,7 +61,8 @@ describe('template plugin test', () => {
     beforeEach((done) => {
         templateFactoryMock = {
             create: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            getTemplate: sinon.stub()
         };
         pipelineFactoryMock = {
             get: sinon.stub()
@@ -132,6 +133,46 @@ describe('template plugin test', () => {
 
         it('returns 500 when datastore fails', () => {
             templateFactoryMock.list.rejects(new Error('fittoburst'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /templates/name/version', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/1.7.3'
+            };
+        });
+
+        it('returns 200 and all templates', () => {
+            templateFactoryMock.getTemplate.resolves(testtemplate);
+
+            return server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, testtemplate);
+                assert.calledWith(templateFactoryMock.getTemplate, {
+                    name: 'screwdriver/build',
+                    version: '1.7.3'
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.getTemplate.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            templateFactoryMock.getTemplate.rejects(new Error('some error'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
