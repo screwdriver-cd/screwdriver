@@ -98,7 +98,6 @@ module.exports = function server() {
             }).then((resp) => {
                 this.buildId = resp.body.id;
                 this.eventId = resp.body.eventId;
-                this.meta = resp.body.meta;
 
                 Assert.equal(resp.statusCode, 201);
             })
