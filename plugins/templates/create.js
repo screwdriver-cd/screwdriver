@@ -30,7 +30,7 @@ module.exports = () => ({
 
             return Promise.all([
                 pipelineFactory.get(pipelineId),
-                templateFactory.list({ name })
+                templateFactory.list({ params: { name } })
             ]).then(([pipeline, templates]) => {
                 const templateConfig = hoek.applyToDefaults(request.payload, {
                     scmUri: pipeline.scmUri,
