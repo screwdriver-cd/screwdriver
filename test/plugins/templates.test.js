@@ -236,6 +236,11 @@ describe('template plugin test', () => {
                 };
                 assert.deepEqual(reply.result, testtemplate);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(templateFactoryMock.list, {
+                    params: {
+                        name: 'mytemplate'
+                    }
+                });
                 assert.calledWith(templateFactoryMock.create, {
                     name: 'mytemplate',
                     version: '1',
@@ -265,6 +270,11 @@ describe('template plugin test', () => {
                 };
                 assert.deepEqual(reply.result, testtemplate);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(templateFactoryMock.list, {
+                    params: {
+                        name: 'mytemplate'
+                    }
+                });
                 assert.calledWith(templateFactoryMock.create, {
                     name: 'mytemplate',
                     version: '1.8',
