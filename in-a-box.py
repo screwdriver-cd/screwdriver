@@ -26,6 +26,7 @@ services:
             - 9001:80
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:rw
+            - ./data/:/tmp/sd-data/:rw
         environment:
             PORT: 80
             URI: http://${ip}:9001
@@ -34,6 +35,7 @@ services:
             SCM_PLUGIN: ${scm_plugin}
             DATASTORE_PLUGIN: sequelize
             DATASTORE_SEQUELIZE_DIALECT: sqlite
+            DATASTORE_SEQUELIZE_STORAGE: /tmp/sd-data/storage.db
             EXECUTOR_PLUGIN: docker
             SECRET_WHITELIST: "[]"
             EXECUTOR_DOCKER_DOCKER: |
