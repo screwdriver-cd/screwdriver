@@ -30,6 +30,7 @@ info: Server running at http://localhost:8080
 ### In-A-Box
 
 This handy feature will bring up an entire Screwdriver instance (ui, api, and log store) locally for you to play with.
+All data written to a database will be stored in `data` directory.
 
 Requires:
  - Mac OSX 10.10+
