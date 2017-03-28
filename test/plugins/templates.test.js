@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
+const testtemplateversions = require('./data/templateVersions.json');
 const testpipeline = require('./data/pipeline.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -176,6 +177,42 @@ describe('template plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /templates/name', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild'
+            };
+        });
+
+        it('returns 200 and all template versions for a template name', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplateversions));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplateversions);
+                assert.calledWith(templateFactoryMock.list, {
+                    params: { name: 'screwdriver/build' },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });
