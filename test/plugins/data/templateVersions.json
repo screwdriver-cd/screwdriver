@@ -1,0 +1,40 @@
+[{
+  "id": 7969,
+  "name": "screwdriver/build",
+  "labels": ["stable"],
+  "version": "0.0.1",
+  "description": "this is a template to test",
+  "maintainer": "foo@bar.com",
+  "scmUri": "github.com:12345678:master",
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  }
+},{
+  "id": 7970,
+  "name": "screwdriver/build",
+  "labels": ["stable"],
+  "version": "1.0.2",
+  "description": "this is a template to test",
+  "maintainer": "foo@bar.com",
+  "scmUri": "github.com:12345678:master",
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  }
+}, {
+  "id": 7971,
+  "name": "screwdriver/build",
+  "labels": ["stable"],
+  "version": "3.2.1",
+  "description": "this is a template to test",
+  "maintainer": "foo@bar.com",
+  "scmUri": "github.com:12345678:master",
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  }
+}]
