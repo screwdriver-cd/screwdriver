@@ -248,7 +248,7 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.calledWith(server.emit, 'build_status', {
                     buildId: 12345,
-                    buildLink: 'http://foo.bar/builds/12345',
+                    buildLink: 'http://foo.bar/pipelines/123/builds/12345',
                     jobName: 'main',
                     pipelineName: 'screwdriver-cd/screwdriver',
                     settings: {

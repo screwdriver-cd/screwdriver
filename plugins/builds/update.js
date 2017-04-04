@@ -76,7 +76,8 @@ module.exports = () => ({
                                 pipelineName: pipeline.scmRepo.name,
                                 jobName: job.name,
                                 buildId: build.id,
-                                buildLink: `${buildFactory.uiUri}/builds/${id}`
+                                buildLink:
+                                    `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                             });
 
                             // Guard against triggering non-successful builds
