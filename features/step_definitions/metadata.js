@@ -44,13 +44,12 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^add the { "foo": (?:.*) } to metadata in the "main" build container$/, () => null);
+    this.Then(/^add the { "(.*)": "(.*)" } to metadata/, (key, value) => {
+        this.expectedMeta = this.expectedMeta || {};
+        this.expectedMeta[key] = value;
+    });
 
-    this.Then(/^add the { "bar": (?:.*) } to metadata in the "BAR" build container$/, () => null);
-
-    this.Then(/^in the build, the { "foo": "(?:.*)" } is available from metadata$/, () => null);
-
-    this.Then(/^in the build, the { "bar": "(?:.*)" } is available from metadata$/, () => null);
+    this.Then(/^in the build, the { "(?:.*)": "(?:.*)" } is available from metadata$/, () => null);
 
     this.Then(/^the build succeeded$/, { timeout: TIMEOUT }, () =>
         this.waitForBuild(this.buildId).then((resp) => {
@@ -75,9 +74,9 @@ module.exports = function server() {
     );
 
     this.Then(/^a record of the metadata is stored$/, { timeout: TIMEOUT }, () => {
-        Assert.ok('foo', this.meta);
-        Assert.ok('bar', this.meta);
-        Assert.equal('foobar', this.meta.foo);
-        Assert.equal('barbaz', this.meta.bar);
+        Object.keys(this.expectedMeta).forEach((key) => {
+            Assert.ok(key, this.meta);
+            Assert.equal(this.meta[key], this.expectedMeta[key]);
+        });
     });
 };
