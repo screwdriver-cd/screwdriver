@@ -5,7 +5,7 @@
   "version": "1.7.3",
   "description": "this is a template to test",
   "maintainer": "foo@bar.com",
-  "scmUri": "github.com:12345678:master",
+  "pipelineId": 123,
   "config": {
       "steps": [{
           "echo": "echo hello"
@@ -18,7 +18,7 @@
   "version": "1.0.1",
   "description": "this is a template to publish",
   "maintainer": "foo@bar.com",
-  "scmUri": "github.com:12345678:master",
+  "pipelineId": 124,
   "config": {
       "steps": [{
           "echo": "echo goodbye"

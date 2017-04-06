@@ -251,8 +251,8 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when scmUri does not match', () => {
-            templateMock.scmUri = 'github.com:67890:branchName';
+        it('returns 401 when pipelineId does not match', () => {
+            templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -283,7 +283,7 @@ describe('template plugin test', () => {
                     version: '1',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
-                    scmUri: 'github.com:12345:branchName',
+                    pipelineId: 123,
                     labels: [],
                     config: { steps: [{ echo: 'echo hello' }] }
                 });
@@ -317,7 +317,7 @@ describe('template plugin test', () => {
                     version: '1.8',
                     maintainer: 'foo@bar.com',
                     description: 'test template',
-                    scmUri: 'github.com:12345:branchName',
+                    pipelineId: 123,
                     labels: [],
                     config: { steps: [{ echo: 'echo hello' }] }
                 });
