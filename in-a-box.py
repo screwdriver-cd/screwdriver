@@ -144,9 +144,9 @@ def generate_jwt():
 
 # Ask to select a SCM provider
 def select_scm_provider():
-    scm_plugins = ['github', 'bitbucket']
+    scm_plugins = ['github', 'gitlab', 'bitbucket']
     while True:
-        prompt = get_input('📤   Which SCM provider would you like to use? (github/bitbucket) ')
+        prompt = get_input('📤   Which SCM provider would you like to use? (github/gitlab/bitbucket) ')
         scm_plugin = prompt.lower()
         if scm_plugin in scm_plugins:
             break
@@ -157,7 +157,7 @@ def select_scm_provider():
 
 def generate_oauth(scm_plugin, ip):
     """
-    Generate OAuth credentials from GitHub.com
+    Generate OAuth credentials from SCM
 
     Parameters
     ----------
@@ -169,7 +169,7 @@ def generate_oauth(scm_plugin, ip):
     if scm_plugin == 'github':
         service_name = 'GitHub.com'
         start_url = 'https://github.com/settings/applications/new'
-        homepage_url = 'Homepage URL'
+        homepage_url_msg = "For 'Homepage URL' put http://" + ip + ':9000'
         callback_url = 'Authorization callback URL'
         additional_process = ''
         client_id_name = 'Client ID'
@@ -177,16 +177,24 @@ def generate_oauth(scm_plugin, ip):
     elif scm_plugin == 'bitbucket':
         service_name = 'Bitbucket.org'
         start_url = 'https://bitbucket.org/account/user/<your username>/oauth-consumers/new'
-        homepage_url = 'URL'
+        homepage_url_msg =  "For 'URL' put http://" + ip + ':9000'
         callback_url = 'Callback URL'
         additional_process = "for 'Permissions' enable Read checkbox for Repositories, Account and Pull requests"
         client_id_name = 'Key'
+        client_secret_name = 'Secret'
+    elif scm_plugin == 'gitlab':
+        service_name = 'Gitlab.com'
+        start_url = 'https://gitlab.com/profile/applications'
+        homepage_url_msg = ''
+        callback_url = 'Redirect URL'
+        additional_process = ''
+        client_id_name = 'Application Id'
         client_secret_name = 'Secret'
 
     print('''
     Please create a new OAuth application on {service_name}
     Go to {start_url} to start the process
-    For '{homepage_url}' put http://{ip}:9000
+    {homepage_url_msg}
     For '{callback_url}' put http://{ip}:9001/v4/auth/login
     {additional_process}
     When done, please provide the following values:
@@ -194,7 +202,7 @@ def generate_oauth(scm_plugin, ip):
         ip = ip,
         start_url = start_url,
         service_name = service_name,
-        homepage_url = homepage_url,
+        homepage_url_msg = homepage_url_msg,
         callback_url = callback_url,
         additional_process = additional_process
     ))
@@ -266,7 +274,7 @@ def main():
     A few more things to note:
       - To stop/reset Screwdriver
         $ docker-compose -p screwdriver down
-      - If your internal IP changes, update the docker-compose.yml and your GitHub OAuth application
+      - If your internal IP changes, update the docker-compose.yml and your SCM OAuth application
       - In-a-box does not support Webhooks including PullRequests for triggering builds
       - For help with this and more, find us on Slack at https://slack.screwdriver.cd
 
