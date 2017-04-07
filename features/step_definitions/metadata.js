@@ -75,7 +75,6 @@ module.exports = function server() {
 
     this.Then(/^a record of the metadata is stored$/, { timeout: TIMEOUT }, () => {
         Object.keys(this.expectedMeta).forEach((key) => {
-            Assert.ok(key, this.meta);
             Assert.equal(this.meta[key], this.expectedMeta[key]);
         });
     });
