@@ -5,7 +5,7 @@
   "version": "1.7.3",
   "description": "this is a template",
   "maintainer": "foo@bar.com",
-  "scmUri": "github.com:12345:branchName",
+  "pipelineId": 123,
   "config": {
       "steps": [{
           "echo": "echo hello"

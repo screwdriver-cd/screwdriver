@@ -33,7 +33,7 @@ module.exports = () => ({
                 templateFactory.list({ params: { name } })
             ]).then(([pipeline, templates]) => {
                 const templateConfig = hoek.applyToDefaults(request.payload, {
-                    scmUri: pipeline.scmUri,
+                    pipelineId: pipeline.id,
                     labels
                 });
 
@@ -42,9 +42,9 @@ module.exports = () => ({
                     return templateFactory.create(templateConfig);
                 }
 
-                // If template name exists, but this build's scmUri is not the same as template's scmUri
+                // If template name exists, but this build's pipelineId is not the same as template's pipelineId
                 // Then this build does not have permission to publish
-                if (pipeline.scmUri !== templates[0].scmUri) {
+                if (pipeline.id !== templates[0].pipelineId) {
                     throw boom.unauthorized('Not allowed to publish this template');
                 }
 
