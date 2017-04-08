@@ -9,7 +9,7 @@ module.exports = function server() {
     this.Before({
         tags: ['@secrets']
     }, () => {
-        this.repoOrg = 'screwdriver-cd-test';
+        this.repoOrg = this.testOrg;
         this.repoName = 'functional-secrets';
         this.pipelineId = null;
         this.secretId = null;

@@ -107,13 +107,16 @@ npm test
 
 ### Functional tests
 
-Update `.func_config.json` with your own username, github token, access key, and host:
+Fork `functional-*` repositories to your organization from [screwdriver-cd-test](https://github.com/screwdriver-cd-test)
+
+Update `.func_config.json` with your own username, github token, access key, host, and organization for test:
 ```json
 {
     "username": "YOUR-GITHUB-USERNAME",
     "gitToken": "YOUR-ACCESS-TOKEN",
     "accessKey": "YOUR-ACCESS-KEY",
-    "host": "YOUR-LOCAL-API-HOST"
+    "host": "YOUR-LOCAL-API-HOST",
+    "testOrg": "YOUR-TEST-ORGANIZATION"
 }
 ```
 

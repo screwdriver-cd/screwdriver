@@ -9,7 +9,7 @@ module.exports = function server() {
     this.Before({
         tags: ['@metadata']
     }, () => {
-        this.repoOrg = 'screwdriver-cd-test';
+        this.repoOrg = this.testOrg;
         this.repoName = 'functional-metadata';
         this.pipelineId = null;
         this.eventId = null;
