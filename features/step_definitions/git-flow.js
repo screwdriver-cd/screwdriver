@@ -13,7 +13,7 @@ module.exports = function server() {
         timeout: TIMEOUT
     }, () => {
         this.branch = 'darrenBranch';
-        this.repoOrg = 'screwdriver-cd-test';
+        this.repoOrg = this.testOrg;
         this.repoName = 'functional-git';
 
         // Reset shared information

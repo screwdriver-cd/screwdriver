@@ -40,6 +40,8 @@ function beforeHooks() {
         this.gitToken = process.env.GIT_TOKEN || config.gitToken;
         this.accessKey = process.env.ACCESS_KEY || config.accessKey;
         this.instance = host ? `https://${host}` : config.host;
+        this.testOrg = process.env.TEST_ORG || config.testOrg;
+        this.username = process.env.TEST_USERNAME || config.username;
         this.namespace = 'v4';
         this.promiseToWait = time => promiseToWait(time);
         this.getJwt = accessKey =>

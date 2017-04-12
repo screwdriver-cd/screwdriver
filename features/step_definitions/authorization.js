@@ -10,7 +10,7 @@ module.exports = function server() {
     this.Before({
         tags: ['@auth']
     }, () => {
-        this.repoOrg = 'screwdriver-cd-test';
+        this.repoOrg = this.testOrg;
         this.repoName = 'functional-auth';
         this.pipelineId = null;
     });
@@ -34,7 +34,7 @@ module.exports = function server() {
 
             switch (user) {
             case 'calvin':
-                Assert.strictEqual(decodedToken.username, 'sd-buildbot');
+                Assert.strictEqual(decodedToken.username, this.username);
                 break;
             default:
                 return Promise.resolve('pending');
@@ -44,7 +44,7 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^they can see the project$/, () =>
+    this.Then(/^they can see the project$/, { timeout: TIMEOUT }, () =>
         request({                           // make sure pipeline exists (TODO: move to Given an existing pipeline with that repository scenario)
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
