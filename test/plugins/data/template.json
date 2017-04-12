@@ -1,8 +1,8 @@
 {
   "id": 7969,
-  "name": "screwdriver/build",
+  "name": "template_namespace/nodejs_main",
   "labels": ["stable"],
-  "version": "1.7.3",
+  "version": "1.0.0",
   "description": "this is a template",
   "maintainer": "foo@bar.com",
   "pipelineId": 123,

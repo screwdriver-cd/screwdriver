@@ -10,6 +10,13 @@ const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplateversions = require('./data/templateVersions.json');
 const testpipeline = require('./data/pipeline.json');
+const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
+const TEMPLATE_VALID = require('./data/template-validator.input.json');
+const TEMPLATE_VALID_NEW_VERSION = require('./data/template-create.input.json');
+const TEMPLATE_DESCRIPTION = [
+    'Template for building a NodeJS module',
+    'Installs dependencies and runs tests\n'
+].join('\n');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
@@ -222,25 +229,42 @@ describe('template plugin test', () => {
         let templateMock;
         let pipelineMock;
         const testId = 7969;
+        let expected;
 
         beforeEach(() => {
             options = {
                 method: 'POST',
                 url: '/templates',
-                payload: {
-                    name: 'mytemplate',
-                    version: '1',
-                    maintainer: 'foo@bar.com',
-                    description: 'test template',
-                    config: {
-                        steps: [{
-                            echo: 'echo hello'
-                        }]
-                    }
-                },
+                payload: TEMPLATE_VALID,
                 credentials: {
                     scope: ['build']
                 }
+            };
+
+            expected = {
+                config: {
+                    environment: {
+                        KEYNAME: 'value'
+                    },
+                    image: 'node:6',
+                    secrets: [
+                        'NPM_TOKEN'
+                    ],
+                    steps: [
+                        {
+                            install: 'npm install'
+                        },
+                        {
+                            test: 'npm test'
+                        }
+                    ]
+                },
+                description: TEMPLATE_DESCRIPTION,
+                maintainer: 'me@nowhere.com',
+                name: 'template_namespace/nodejs_main',
+                pipelineId: 123,
+                version: '1.1.2',
+                labels: []
             };
 
             templateMock = getTemplateMocks(testtemplate);
@@ -260,67 +284,49 @@ describe('template plugin test', () => {
         });
 
         it('creates template if template does not exist yet', () => {
-            let expectedLocation;
-
             templateFactoryMock.list.resolves([]);
 
             return server.inject(options).then((reply) => {
-                expectedLocation = {
+                const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testId}`
                 };
+
                 assert.deepEqual(reply.result, testtemplate);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
-                        name: 'mytemplate'
+                        name: 'template_namespace/nodejs_main'
                     }
                 });
-                assert.calledWith(templateFactoryMock.create, {
-                    name: 'mytemplate',
-                    version: '1',
-                    maintainer: 'foo@bar.com',
-                    description: 'test template',
-                    pipelineId: 123,
-                    labels: [],
-                    config: { steps: [{ echo: 'echo hello' }] }
-                });
+                assert.calledWith(templateFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
             });
         });
 
         it('creates template if has good permission and it is a new version', () => {
-            let expectedLocation;
-
+            options.payload = TEMPLATE_VALID_NEW_VERSION;
+            expected.version = '1.2';
             templateFactoryMock.list.resolves([templateMock]);
 
-            options.payload.version = '1.8';
-
             return server.inject(options).then((reply) => {
-                expectedLocation = {
+                const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testId}`
                 };
+
                 assert.deepEqual(reply.result, testtemplate);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
-                        name: 'mytemplate'
+                        name: 'template_namespace/nodejs_main'
                     }
                 });
-                assert.calledWith(templateFactoryMock.create, {
-                    name: 'mytemplate',
-                    version: '1.8',
-                    maintainer: 'foo@bar.com',
-                    description: 'test template',
-                    pipelineId: 123,
-                    labels: [],
-                    config: { steps: [{ echo: 'echo hello' }] }
-                });
+                assert.calledWith(templateFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
             });
         });
@@ -342,6 +348,15 @@ describe('template plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 400 when the template is invalid', () => {
+            options.payload = TEMPLATE_INVALID;
+            templateFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 400);
             });
         });
     });
