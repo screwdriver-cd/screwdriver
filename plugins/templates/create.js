@@ -2,6 +2,8 @@
 
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
+const validator = require('screwdriver-template-validator');
+const templateSchema = schema.api.templateValidator;
 const hoek = require('hoek');
 const urlLib = require('url');
 
@@ -21,38 +23,42 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const templateFactory = request.server.app.templateFactory;
-            const pipelineId = request.auth.credentials.pipelineId;
-            const name = request.payload.name;
-            const labels = request.payload.labels || [];
+        handler: (request, reply) => validator(request.payload.yaml)
+            .then((config) => {
+                if (config.errors.length > 0) {
+                    throw boom.badRequest(
+                        'Template has invalid format: ', config.errors.toString());
+                }
 
-            return Promise.all([
-                pipelineFactory.get(pipelineId),
-                templateFactory.list({ params: { name } })
-            ]).then(([pipeline, templates]) => {
-                const templateConfig = hoek.applyToDefaults(request.payload, {
-                    pipelineId: pipeline.id,
-                    labels
-                });
+                const pipelineFactory = request.server.app.pipelineFactory;
+                const templateFactory = request.server.app.templateFactory;
+                const pipelineId = request.auth.credentials.pipelineId;
 
-                // If template name doesn't exist yet, just create a new entry
-                if (templates.length === 0) {
+                return Promise.all([
+                    pipelineFactory.get(pipelineId),
+                    templateFactory.list({ params: { name: config.template.name } })
+                ]).then(([pipeline, templates]) => {
+                    const templateConfig = hoek.applyToDefaults(config.template, {
+                        pipelineId: pipeline.id,
+                        labels: config.template.labels || []
+                    });
+
+                    // If template name doesn't exist yet, just create a new entry
+                    if (templates.length === 0) {
+                        return templateFactory.create(templateConfig);
+                    }
+
+                    // If template name exists, but this build's pipelineId is not the same as template's pipelineId
+                    // Then this build does not have permission to publish
+                    if (pipeline.id !== templates[0].pipelineId) {
+                        throw boom.unauthorized('Not allowed to publish this template');
+                    }
+
+                    // If template name exists and has good permission, then create
+                    // Create would automatically bump the patch version
                     return templateFactory.create(templateConfig);
-                }
-
-                // If template name exists, but this build's pipelineId is not the same as template's pipelineId
-                // Then this build does not have permission to publish
-                if (pipeline.id !== templates[0].pipelineId) {
-                    throw boom.unauthorized('Not allowed to publish this template');
-                }
-
-                // If template name exists and has good permission, then create
-                // Create would automatically bump the patch version
-                return templateFactory.create(templateConfig);
-            })
-            .then((template) => {
+                });
+            }).then((template) => {
                 const location = urlLib.format({
                     host: request.headers.host,
                     port: request.headers.port,
@@ -61,12 +67,9 @@ module.exports = () => ({
                 });
 
                 return reply(template.toJson()).header('Location', location).code(201);
-            })
-            // something broke, respond with error
-            .catch(err => reply(boom.wrap(err)));
-        },
+            }).catch(err => reply(boom.wrap(err))),
         validate: {
-            payload: schema.models.template.create
+            payload: templateSchema.input
         }
     }
 });
