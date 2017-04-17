@@ -1,4 +1,4 @@
-@ignore
+@metadata
 Feature: Metadata
 
     Users want to pass structured data between their builds.
