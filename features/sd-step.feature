@@ -9,7 +9,7 @@ Feature: Shared Steps
     options are limited to either only share shell scripts or specific to one language.
     We need an option to effectively share language independent commands.
 
-    Screwdriver should support an "omnibus-like" package manager natively and offer a 
+    Screwdriver should support an "omnibus-like" package manager natively and offer a
     cached installation/download of a global Screwdriver SDK state.
 
     Rules:
@@ -23,19 +23,18 @@ Feature: Shared Steps
         Given an existing pipeline with these images and packages with version:
             | image          | package        | version        |
             | golang:latest  | node           | ^4.0.0         |
-    
+        And <image> image is used in the pipeline
+
     @ignore
     Scenario: Use package via sd-step
         When the main job is started
         And sd-step command is executed to use <package> package
-        And <image> image is used in the pipeline
         Then <package> package is available via sd-step
 
     @ignore
     Scenario: Use package via sd-step with specified version
         When the main job is started
         And sd-step command is executed to use <package> package with specified version <version>
-        And <image> image is used in the pipeline
         Then <package> package is available via sd-step with specified version <version>
 
     @ignore
@@ -43,5 +42,4 @@ Feature: Shared Steps
         And <package> package is shared
         When the main job is started
         And sd-step command is executed to use <package> package
-        And <image> image is used in the pipeline
         Then <package> package is available via sd-step without installation/download time
