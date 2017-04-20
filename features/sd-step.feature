@@ -1,13 +1,13 @@
 @sd-step
 Feature: Shared Steps
 
-    Users want to be able to share code for building software, so that my builds are
+    Users want to be able to share code for building software, so that their builds are
     less prone to drift.
 
     Users share code by cloning git repositories or installing packages in their build.
     However, due to the ability to select your own containers to run it, both of these
     options are limited to either only share shell scripts or specific to one language.
-    We need an option to effectively share language independent commands.
+    We need an option to effectively share language-independent commands.
 
     Screwdriver should support an "omnibus-like" package manager natively and offer a
     cached installation/download of a global Screwdriver SDK state.
