@@ -6,15 +6,18 @@
                 "commands": [
                     {
                         "name": "install",
-                        "command": "npm install"
+                        "command": "npm install",
+                        "alwaysRun": false
                     },
                     {
                         "name": "test",
-                        "command": "npm test"
+                        "command": "npm test",
+                        "alwaysRun": false
                     },
                     {
                         "name": "build",
-                        "command": "npm run build"
+                        "command": "npm run build",
+                        "alwaysRun": false
                     }
                 ],
                 "secrets": [],
@@ -29,15 +32,18 @@
                 "commands": [
                     {
                         "name": "install",
-                        "command": "npm install"
+                        "command": "npm install",
+                        "alwaysRun": false
                     },
                     {
                         "name": "test",
-                        "command": "npm test"
+                        "command": "npm test",
+                        "alwaysRun": false
                     },
                     {
                         "name": "build",
-                        "command": "npm run build"
+                        "command": "npm run build",
+                        "alwaysRun": false
                     }
                 ],
                 "secrets": [],
@@ -54,7 +60,8 @@
                 "commands": [
                     {
                         "name": "publish",
-                        "command": "npm publish"
+                        "command": "npm publish",
+                        "alwaysRun": false
                     }
                 ],
                 "environment": {},
