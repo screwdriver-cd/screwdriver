@@ -38,9 +38,9 @@ module.exports = function server() {
             method: 'GET',
             json: true
         }).then((response) => {
-            this.buildId = response.body[0].id;
-
             Assert.equal(response.statusCode, 200);
+
+            this.buildId = response.body[0].id;
         });
     });
 

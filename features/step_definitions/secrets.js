@@ -66,8 +66,9 @@ module.exports = function server() {
             },
             json: true
         }).then((response) => {
-            this.secretId = response.body.id;
             Assert.equal(response.statusCode, 201);
+
+            this.secretId = response.body.id;
         })
     );
 
@@ -77,12 +78,12 @@ module.exports = function server() {
             method: 'GET',
             json: true
         }).then((response) => {
+            Assert.equal(response.statusCode, 200);
+
             this.jobId = response.body[0].id;
             this.secondJobId = response.body[1].id;
             this.thirdJobId = typeof response.body[2] === 'object' ? response.body[2].id : null;
             this.lastJobId = response.body.reverse().find(b => typeof b === 'object').id || null;
-
-            Assert.equal(response.statusCode, 200);
         })
         .then(() =>
             request({
@@ -96,10 +97,10 @@ module.exports = function server() {
                 },
                 json: true
             }).then((resp) => {
+                Assert.equal(resp.statusCode, 201);
+
                 this.buildId = resp.body.id;
                 this.eventId = resp.body.eventId;
-
-                Assert.equal(resp.statusCode, 201);
             })
         )
     );

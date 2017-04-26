@@ -85,9 +85,9 @@ module.exports = function server() {
             json: true
         })
         .then((response) => {
-            this.jobId = response.body[0].id;
-
             Assert.equal(response.statusCode, 200);
+
+            this.jobId = response.body[0].id;
         })
         .then(() =>
             request({
@@ -101,9 +101,9 @@ module.exports = function server() {
                 },
                 json: true
             }).then((resp) => {
-                this.buildId = resp.body.id;
-
                 Assert.equal(resp.statusCode, 201);
+
+                this.buildId = resp.body.id;
             })
         )
     );
