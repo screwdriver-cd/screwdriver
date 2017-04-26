@@ -25,7 +25,6 @@ Feature: Shared Steps
             | golang:latest  | node           | ^4.0.0         |
         And <image> image is used in the pipeline
 
-    @ignore
     Scenario: Use package via sd-step
         When the main job is started
         And sd-step command is executed to use <package> package
