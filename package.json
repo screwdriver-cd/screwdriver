@@ -82,7 +82,7 @@
     "screwdriver-executor-docker": "^2.0.0",
     "screwdriver-executor-k8s": "^10.0.0",
     "screwdriver-models": "^21.5.0",
-    "screwdriver-notifications-email": "^1.0.3",
+    "screwdriver-notifications-email": "^1.1.2",
     "screwdriver-scm-bitbucket": "^2.6.0",
     "screwdriver-scm-github": "^4.6.0",
     "screwdriver-scm-gitlab": "^0.1.0",
