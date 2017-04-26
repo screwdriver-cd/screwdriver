@@ -42,7 +42,8 @@ describe('Register Unit Test Case', () => {
 
     beforeEach(() => {
         serverMock = {
-            register: sinon.stub()
+            register: sinon.stub(),
+            on: sinon.stub()
         };
 
         expectedPlugins.forEach((plugin) => {
@@ -124,15 +125,16 @@ describe('Register Unit Test Case', () => {
 
         notificationPlugins.forEach((plugin) => {
             mocks[plugin] = sinon.stub();
+            mocks[plugin].prototype.events = ['build_status'];
             mocks[plugin].prototype.notify = sinon.stub();
             mockery.registerMock(plugin, mocks[plugin]);
         });
 
-        return main(serverMock, newConfig).then(() =>
-            notificationPlugins.forEach(plugin =>
-                Assert.called(mocks[plugin].prototype.notify)
-            )
-        );
+        return main(serverMock, newConfig).then(() => {
+            notificationPlugins.forEach(() =>
+                Assert.calledTwice(serverMock.on)
+            );
+        });
     });
 
     it('bubbles failures up', () => {
