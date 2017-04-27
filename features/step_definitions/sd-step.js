@@ -71,11 +71,12 @@ module.exports = function server() {
             method: 'GET',
             json: true
         }).then((response) => {
+            Assert.equal(response.statusCode, 200);
+
             this.jobId = response.body[0].id;
             this.image = response.body[0].permutations[0].image;
             this.commands = response.body[0].permutations[0].commands;
 
-            Assert.equal(response.statusCode, 200);
             Assert.equal(this.image, this.expectedImage);
         })
         .then(() =>
@@ -90,11 +91,11 @@ module.exports = function server() {
                 },
                 json: true
             }).then((resp) => {
+                Assert.equal(resp.statusCode, 201);
+
                 this.buildId = resp.body.id;
                 this.eventId = resp.body.eventId;
                 this.meta = resp.body.meta;
-
-                Assert.equal(resp.statusCode, 201);
             })
         )
     );
