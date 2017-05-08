@@ -207,7 +207,8 @@ describe('build plugin test', () => {
                 id: pipelineId,
                 scmUri,
                 scmRepo,
-                sync: sinon.stub().resolves()
+                sync: sinon.stub().resolves(),
+                syncPR: sinon.stub().resolves()
             };
         });
 
@@ -675,12 +676,6 @@ describe('build plugin test', () => {
         const pipelineId = 123;
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
-        const params = {
-            jobId: 1234,
-            eventId: 12345,
-            apiUri: 'http://localhost:12345',
-            username
-        };
         const eventConfig = {
             type: 'pr',
             pipelineId,
@@ -695,6 +690,7 @@ describe('build plugin test', () => {
         let pipelineMock;
         let userMock;
         let eventMock;
+        let params;
 
         beforeEach(() => {
             options = {
@@ -720,7 +716,8 @@ describe('build plugin test', () => {
                 checkoutUrl,
                 scmUri,
                 workflow: ['main'],
-                sync: sinon.stub().resolves()
+                sync: sinon.stub().resolves(),
+                syncPR: sinon.stub().resolves()
             };
             userMock = {
                 username,
@@ -730,18 +727,18 @@ describe('build plugin test', () => {
             eventMock = {
                 id: 12345
             };
+            params = {
+                jobId: 1234,
+                eventId: 12345,
+                apiUri: 'http://localhost:12345',
+                username
+            };
 
-            jobMock.name = 'PR-15';
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
-            jobMock.isPR.returns(true);
             userMock.getPermissions.resolves({ push: true });
             userMock.unsealToken.resolves('iamtoken');
-
             buildFactoryMock.create.resolves(buildMock);
-            buildFactoryMock.scm.getCommitSha.withArgs({
-                token: 'iamtoken',
-                scmUri
-            }).resolves(testBuild.sha);
+            buildFactoryMock.scm.getCommitSha.resolves(testBuild.sha);
             jobFactoryMock.get.resolves(jobMock);
             userFactoryMock.get.resolves(userMock);
             eventFactoryMock.create.resolves(eventMock);
@@ -749,6 +746,11 @@ describe('build plugin test', () => {
 
         it('returns 201 for a successful create for a PR build', () => {
             let expectedLocation;
+
+            jobMock.name = 'PR-15';
+            jobMock.isPR.returns(true);
+            jobMock.prNum = 15;
+            params.sha = '58393af682d61de87789fb4961645c42180cec5a';
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -762,6 +764,13 @@ describe('build plugin test', () => {
                     id: buildId,
                     other: 'dataToBeIncluded'
                 });
+                assert.calledWith(pipelineMock.syncPR, 15);
+                assert.notCalled(pipelineMock.sync);
+                assert.calledWith(buildFactoryMock.scm.getCommitSha, {
+                    token: 'iamtoken',
+                    scmUri,
+                    prNum: 15
+                });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
@@ -772,7 +781,9 @@ describe('build plugin test', () => {
             let expectedLocation;
 
             pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
+            jobMock.name = 'main';
             jobMock.isPR.returns(false);
+            jobMock.prNum = null;
             eventConfig.type = 'pipeline';
             eventConfig.workflow = ['main', 'publish', 'nerf_fight'];
 
@@ -787,6 +798,13 @@ describe('build plugin test', () => {
                 assert.deepEqual(reply.result, {
                     id: buildId,
                     other: 'dataToBeIncluded'
+                });
+                assert.notCalled(pipelineMock.syncPR);
+                assert.calledOnce(pipelineMock.sync);
+                assert.calledWith(buildFactoryMock.scm.getCommitSha, {
+                    token: 'iamtoken',
+                    scmUri,
+                    prNum: null
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.create, eventConfig);
