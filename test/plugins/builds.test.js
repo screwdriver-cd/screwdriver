@@ -98,7 +98,8 @@ describe('build plugin test', () => {
             pipelineFactory: pipelineFactoryMock,
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
-            eventFactory: eventFactoryMock
+            eventFactory: eventFactoryMock,
+            ecosystem: { ui: 'http://foo.bar' }
         };
         server.connection({
             port: 12345,
@@ -211,7 +212,7 @@ describe('build plugin test', () => {
             };
         });
 
-        it('emits event buid_status', () => {
+        it('emits event build_status', () => {
             const jobMock = {
                 id: 1234,
                 name: 'main',
@@ -230,7 +231,7 @@ describe('build plugin test', () => {
             };
 
             buildFactoryMock.get.resolves(buildMock);
-            buildFactoryMock.uiUri = 'http://foo.bar';
+            // buildFactoryMock.uiUri = 'http://foo.bar';
 
             const options = {
                 method: 'PUT',
