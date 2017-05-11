@@ -8,6 +8,7 @@
 ### Prerequisites
 
 - Node v6.0.0 or higher
+- [Kubernetes][kubectl] or [Docker][docker]
 
 ### From Source
 
@@ -44,6 +45,8 @@ $ python <(curl https://raw.githubusercontent.com/screwdriver-cd/screwdriver/mas
 ## Configuration
 
 Screwdriver already [defaults most configuration](config/default.yaml), but you can override defaults using a `local.yaml` or environment variables.
+
+To continue set up, follow the [instructions for cluster management](https://github.com/screwdriver-cd/guide/blob/master/docs/cluster-management/configure-api.md#managing-the-api).
 
 ### Yaml
 
@@ -149,3 +152,4 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [slack-url]: http://slack.screwdriver.cd/
 [docker-compose]: https://www.docker.com/products/docker-compose
 [docker]: https://www.docker.com/products/docker
+[kubectl]: https://kubernetes.io/docs/user-guide/kubectl-overview/
