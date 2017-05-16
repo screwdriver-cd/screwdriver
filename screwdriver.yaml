@@ -57,7 +57,7 @@ jobs:
             # Access key for functional tests
             - ACCESS_KEY
             # Git access token
-            - GIT_TOKEN
+            - GITHUB_TOKEN
             # Talking to Kubernetes
             - K8S_TOKEN
 
@@ -85,6 +85,6 @@ jobs:
             # Access key for functional tests
             - ACCESS_KEY
             # Git access token
-            - GIT_TOKEN
+            - GITHUB_TOKEN
             # Talking to Kubernetes
             - K8S_TOKEN
