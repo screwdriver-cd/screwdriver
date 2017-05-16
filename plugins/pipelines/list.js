@@ -14,6 +14,9 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
+            const credentials = request.auth.credentials;
+            const canAccess = request.server.plugins.pipelines.canAccess;
+            const filtered = [];
 
             return factory.list({
                 paginate: {
@@ -22,8 +25,17 @@ module.exports = () => ({
                 },
                 sort: request.query.sort
             })
-                .then(pipelines => reply(pipelines.map(p => p.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+            .then(pipelines => Promise.all(pipelines.map(p => canAccess(credentials, p, 'pull')))
+            .then((results) => {
+                results.forEach((hasAccess, index) => {
+                    if (hasAccess) {
+                        filtered.push(pipelines[index]);
+                    }
+                });
+
+                return reply(filtered.map(p => p.toJson()));
+            }))
+            .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema

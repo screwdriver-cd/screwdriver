@@ -11,6 +11,7 @@ const badgeRoute = require('./badge');
 const listJobsRoute = require('./listJobs');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
+const boom = require('boom');
 
 /**
  * Pipeline API Plugin
@@ -20,6 +21,25 @@ const listEventsRoute = require('./listEvents');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
+    server.expose('canAccess', (credentials, pipeline, permission) => {
+        const userFactory = server.root.app.userFactory;
+        const username = credentials.username;
+
+        return userFactory.get({ username }).then((user) => {
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
+
+            return user.getPermissions(pipeline.scmUri).then((permissions) => {
+                if (!permissions[permission]) {
+                    return false;
+                }
+
+                return true;
+            });
+        });
+    });
+
     server.route([
         createRoute(),
         removeRoute(),
