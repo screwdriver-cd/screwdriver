@@ -66,15 +66,22 @@ exports.register = (server, options, next) => {
     });
 
     /**
-     * Generates a jwt that is signed and has a 12h lifespan
+     * Generates a jwt that is signed
      * @method generateToken
-     * @param  {Object} profile Object from generateProfile
-     * @return {String}         Signed jwt that includes that profile
+     * @param  {Object}     profile     Object from generateProfile
+     * @return {String}                 Signed jwt that includes that profile
      */
-    server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
-        algorithm: ALGORITHM,
-        expiresIn: EXPIRES_IN
-    }));
+    server.expose('generateToken', (profile) => {
+        const opts = {
+            algorithm: ALGORITHM
+        };
+
+        if (!profile.uuid) {
+            opts.expiresIn = EXPIRES_IN;
+        }
+
+        return jwt.sign(profile, pluginOptions.jwtPrivateKey, opts);
+    });
 
     const modules = [bell, sugar, authjwt, authToken, {
         register: crumb,
@@ -105,8 +112,25 @@ exports.register = (server, options, next) => {
             server.auth.strategy('token', 'jwt', {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
-                    algorithms: [ALGORITHM],
-                    maxAge: EXPIRES_IN
+                    algorithms: [ALGORITHM]
+                },
+                validateFunc: (request, token, cb) => {
+                    if (!token.exp) {
+                        // Token is a user API token
+                        const userFactory = request.server.app.userFactory;
+
+                        return userFactory.get({ username: token.username })
+                        .then(user => user.validateToken(token.uuid))
+                        .then(() => {
+                            cb(null, true, token);
+                        })
+                        .catch(() => {
+                            cb(null, false, {});
+                        });
+                    }
+
+                    // Token is a 12h access token
+                    return cb(null, true, token);
                 }
             });
             server.auth.strategy('auth_token', 'bearer-access-token', {
