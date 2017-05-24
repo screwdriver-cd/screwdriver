@@ -434,6 +434,7 @@ describe('auth plugin test', () => {
         const id = '1234id5678';
         const username = 'batman';
         const token = 'qpekaljx';
+        const apiKey = 'aUserApiToken';
         const user = {
             id,
             username,
@@ -485,14 +486,34 @@ describe('auth plugin test', () => {
             })
         );
 
-        it('fails to issue a jwt given an invalid application auth token', () =>
+        it('returns user signed token given an API access token', () =>
             server.inject({
-                url: '/auth/token?access_key=openSaysMe'
+                url: `/auth/token?access_key=${apiKey}`
             }).then((reply) => {
-                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
-                assert.notOk(reply.result.token, 'Token should not be issued');
+                assert.equal(reply.statusCode, 200, 'Login route should be available');
+                assert.ok(reply.result.token, 'Token not returned');
+                assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('username', username);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('scope')
+                    .with.lengthOf(1);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.deep.property('scope[0]', 'user');
             })
         );
+
+        it('fails to issue a jwt given an invalid application auth token', () => {
+            userFactoryMock.get.resolves(null);
+
+            return server.inject({
+                url: '/auth/token?access_key=openSaysMe'
+            }).then((reply) => {
+                assert.calledWith(userFactoryMock.get, { accessToken: 'openSaysMe' });
+                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                assert.notOk(reply.result.token, 'Token should not be issued');
+            });
+        });
 
         describe('with admins', () => {
             beforeEach((next) => {
