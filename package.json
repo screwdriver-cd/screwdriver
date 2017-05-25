@@ -7,7 +7,9 @@
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 3000",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty --tags ~@ignore"
+    "functional": "cucumber-js --format=pretty --tags ~@ignore",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -90,7 +92,8 @@
     "tinytim": "^0.1.1",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
-    "winston": "^2.2.0"
+    "winston": "^2.2.0",
+    "snyk": "^1.30.1"
   },
   "devDependencies": {
     "chai": "~3.5.0",
@@ -108,5 +111,6 @@
     "npm-auto-version": "^1.0.0",
     "sinon": "~1.17.4",
     "sinon-as-promised": "^4.0.2"
-  }
+  },
+  "snyk": true
 }
