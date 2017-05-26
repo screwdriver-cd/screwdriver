@@ -172,4 +172,49 @@ describe('token plugin test', () => {
             });
         });
     });
+
+    describe('GET /tokens', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/tokens',
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+        });
+
+        it('correctly returns a list of tokens', () => {
+            const expected = [{
+                name: testToken.name,
+                description: testToken.description,
+                id: testToken.id,
+                lastUsed: testToken.lastUsed
+            }];
+
+            userMock.tokens = tokensGetterMock([tokenMock]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(JSON.parse(reply.payload), expected);
+            });
+        });
+
+        it('returns an empty array if the user has no tokens', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(JSON.parse(reply.payload), []);
+            }));
+
+        it('returns 404 when the user does not exist', () => {
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
 });

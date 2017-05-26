@@ -1,6 +1,7 @@
 'use strict';
 
 const createRoute = require('./create');
+const listRoute = require('./list');
 
 /**
  * Tokens API Plugin
@@ -11,7 +12,8 @@ const createRoute = require('./create');
  */
 exports.register = (server, options, next) => {
     server.route([
-        createRoute()
+        createRoute(),
+        listRoute()
     ]);
 
     next();
