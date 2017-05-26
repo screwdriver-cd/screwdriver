@@ -1,7 +1,9 @@
 'use strict';
 
+const boom = require('boom');
 const createRoute = require('./create');
 const listRoute = require('./list');
+const removeRoute = require('./remove');
 
 /**
  * Tokens API Plugin
@@ -11,9 +13,36 @@ const listRoute = require('./list');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
+    /**
+     * Throws error if a credential does not have access to a token
+     * If credential has access, returns true
+     * @method canAccess
+     * @param {Object}  credentials              Credential object from Hapi
+     * @param {String}  credentials.username     Username of the person logged in
+     * @param {Object}  token                    Token object
+     * @return {Boolean}
+     */
+    server.expose('canAccess', (credentials, token) => {
+        const userFactory = server.root.app.userFactory;
+        const username = credentials.username;
+
+        return userFactory.get({ username }).then((user) => {
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
+
+            if (user.id !== token.userId) {
+                throw boom.forbidden('User does not own token');
+            }
+
+            return true;
+        });
+    });
+
     server.route([
         createRoute(),
-        listRoute()
+        listRoute(),
+        removeRoute()
     ]);
 
     next();
