@@ -79,7 +79,7 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 7 (seven) resources:
+This API comes preloaded with 8 (eight) resources:
 
  - [auth](plugins/auth/README.md)
  - [builds](plugins/builds/README.md)
@@ -87,6 +87,7 @@ This API comes preloaded with 7 (seven) resources:
  - [jobs](plugins/jobs/README.md)
  - [pipelines](plugins/pipelines/README.md)
  - [secrets](plugins/secrets/README.md)
+ - [tokens](plugins/tokens/README.md)
  - [webhooks](plugins/webhooks/README.md)
 
 One (1) option for datastores:
