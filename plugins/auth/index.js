@@ -113,15 +113,30 @@ exports.register = (server, options, next) => {
                 accessTokenName: 'access_key',
                 allowCookieToken: false,
                 allowQueryToken: true,
-                validateFunc: (token, cb) => {
-                    if (token !== pluginOptions.temporaryAccessKey) {
-                        return cb(null, false, {});
+                validateFunc: function _validateFunc(token, cb) {
+                    if (token === pluginOptions.temporaryAccessKey) {
+                        return cb(null, true, {
+                            username: pluginOptions.temporaryAccessUser,
+                            scope: ['user']
+                        });
                     }
 
-                    return cb(null, true, {
-                        username: pluginOptions.temporaryAccessUser,
-                        scope: ['user']
-                    });
+                    // Token is an API token
+                    // using function syntax makes 'this' the request
+                    // TODO: Should log that we're authenticating a user with a token
+                    const factory = this.server.app.userFactory;
+
+                    return factory.get({ accessToken: token })
+                        .then((user) => {
+                            if (!user) {
+                                return cb(null, false, {});
+                            }
+
+                            return cb(null, true, {
+                                username: user.username,
+                                scope: ['user']
+                            });
+                        });
                 }
             });
 

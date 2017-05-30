@@ -87,6 +87,9 @@ const secretFactory = Models.SecretFactory.getInstance({
     datastore,
     password: authConfig.encryptionPassword
 });
+const tokenFactory = Models.TokenFactory.getInstance({
+    datastore
+});
 const eventFactory = Models.EventFactory.getInstance({
     datastore,
     scm
@@ -106,6 +109,7 @@ datastore.setup()
         userFactory,
         buildFactory,
         secretFactory,
+        tokenFactory,
         eventFactory,
         builds: {
             ecosystem
