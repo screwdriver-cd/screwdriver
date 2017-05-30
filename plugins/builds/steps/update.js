@@ -21,7 +21,7 @@ module.exports = () => ({
             let stepIndex = -1;
 
             if (buildId !== buildIdCred) {
-                throw boom.forbidden(`Credential only valid for ${buildIdCred}`);
+                return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
             }
 
             return factory.get(buildId)

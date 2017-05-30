@@ -26,7 +26,7 @@ module.exports = () => ({
             const isBuild = scope.includes('build');
 
             if (isBuild && username !== id) {
-                throw boom.forbidden(`Credential only valid for ${username}`);
+                return reply(boom.forbidden(`Credential only valid for ${username}`));
             }
 
             return buildFactory.get(id)
