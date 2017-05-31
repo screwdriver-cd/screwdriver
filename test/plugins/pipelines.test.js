@@ -856,7 +856,7 @@ describe('pipeline plugin test', () => {
     describe('POST /pipelines', () => {
         let options;
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
         const scmRepo = {
             id: 'github.com:123456:master'
@@ -919,15 +919,14 @@ describe('pipeline plugin test', () => {
         });
 
         it('formats the checkout url correctly', () => {
-            const goodCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
-            options.payload.checkoutUrl = goodCheckoutUrl;
-
-            userMock.getPermissions.withArgs(goodCheckoutUrl).resolves({ admin: false });
-
-            return server.inject(options, () => {
-                assert.calledWith(pipelineFactoryMock.scm.parseUrl, checkoutUrl);
-                assert.calledWith(userMock.getPermissions, goodCheckoutUrl);
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    checkoutUrl: formattedCheckoutUrl,
+                    token
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
             });
         });
 
