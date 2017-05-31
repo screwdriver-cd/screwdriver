@@ -27,6 +27,10 @@ server.register({
 
 ### Routes
 
+#### Get a list of tokens belonging to the currently signed-in user
+
+`GET /tokens`
+
 #### Create a token
 
 `POST /tokens`
