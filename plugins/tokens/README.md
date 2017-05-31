@@ -48,6 +48,10 @@ Example payload:
 }
 ```
 
+#### Remove a token
+
+`DELETE /tokens/{id}`
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:
 

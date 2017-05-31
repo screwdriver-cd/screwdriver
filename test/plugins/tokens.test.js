@@ -217,4 +217,68 @@ describe('token plugin test', () => {
             });
         });
     });
+
+    describe('DELETE /tokens/{id}', () => {
+        let options;
+        const tokenId = testToken.id;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/tokens/${tokenId}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            tokenFactoryMock.get.resolves(tokenMock);
+            userFactoryMock.get.withArgs({ username }).resolves({
+                id: testToken.userId
+            });
+        });
+
+        it('returns 404 when the token does not exist', () => {
+            tokenFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when the user does not exist', () => {
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 204 if remove successfully', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(tokenMock.remove);
+            })
+        );
+
+        it('returns 403 when the user does not own the token', () => {
+            userFactoryMock.get.withArgs({ username }).resolves({
+                id: testToken.userId + 1
+            });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 500 when the secret model fails to remove', () => {
+            const testError = new Error('secretModelRemoveError');
+
+            tokenMock.remove.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
 });
