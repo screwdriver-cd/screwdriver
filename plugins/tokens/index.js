@@ -3,6 +3,7 @@
 const boom = require('boom');
 const createRoute = require('./create');
 const listRoute = require('./list');
+const updateRoute = require('./update');
 const removeRoute = require('./remove');
 
 /**
@@ -42,6 +43,7 @@ exports.register = (server, options, next) => {
     server.route([
         createRoute(),
         listRoute(),
+        updateRoute(),
         removeRoute()
     ]);
 

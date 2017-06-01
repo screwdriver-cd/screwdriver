@@ -5,25 +5,24 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
 const testToken = require('./data/token.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 require('sinon-as-promised');
 
 const getTokenMock = (token) => {
-    const mock = hoek.clone(token);
+    const mock = Object.assign({}, token);
 
     mock.update = sinon.stub();
     mock.regenerate = sinon.stub();
-    mock.toJson = sinon.stub().returns(token);
+    mock.toJson = sinon.stub().returns(Object.assign({}, token));
     mock.remove = sinon.stub();
 
     return mock;
 };
 
 const getUserMock = (user) => {
-    const mock = hoek.clone(user);
+    const mock = Object.assign({}, user);
 
     mock.tokens = sinon.stub();
 
@@ -35,6 +34,7 @@ const tokensGetterMock = tokens => Promise.resolve(tokens);
 describe('token plugin test', () => {
     const username = 'ifox';
     const userId = testToken.userId;
+    const tokenId = testToken.id;
     let tokenFactoryMock;
     let userFactoryMock;
     let tokenMock;
@@ -61,14 +61,15 @@ describe('token plugin test', () => {
         tokenMock = getTokenMock(testToken);
         tokenMock.remove.resolves(null);
         tokenMock.update.resolves(tokenMock);
-        tokenMock.regenerate.resolves(hoek.applyToDefaults(tokenMock, { value: 'newValue' }));
+        tokenMock.regenerate.resolves(Object.assign({}, tokenMock, { value: 'newValue' }));
         tokenFactoryMock.create.resolves(tokenMock);
+        tokenFactoryMock.get.resolves(tokenMock);
 
         userMock = getUserMock({
             username,
             id: userId
         });
-        userMock.tokens = tokensGetterMock([]);
+        userMock.tokens = tokensGetterMock([tokenMock]);
         userFactoryMock.get.withArgs({ username }).resolves(userMock);
 
         /* eslint-disable global-require */
@@ -127,6 +128,8 @@ describe('token plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            userMock.tokens = tokensGetterMock([]);
         });
 
         it('returns 201 and correct token data', () =>
@@ -141,7 +144,8 @@ describe('token plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testToken);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(tokenFactoryMock.create, hoek.merge(options.payload, { userId }));
+                assert.calledWith(tokenFactoryMock.create,
+                    Object.assign({}, options.payload, { userId }));
             }));
 
         it('returns 409 when a token with the same name already exists', () => {
@@ -195,19 +199,20 @@ describe('token plugin test', () => {
                 lastUsed: testToken.lastUsed
             }];
 
-            userMock.tokens = tokensGetterMock([tokenMock]);
-
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(JSON.parse(reply.payload), expected);
             });
         });
 
-        it('returns an empty array if the user has no tokens', () =>
-            server.inject(options).then((reply) => {
+        it('returns an empty array if the user has no tokens', () => {
+            userMock.tokens = tokensGetterMock([]);
+
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(JSON.parse(reply.payload), []);
-            }));
+            });
+        });
 
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username }).resolves(null);
@@ -218,9 +223,87 @@ describe('token plugin test', () => {
         });
     });
 
+    describe('PATCH /tokens/{id}', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'PATCH',
+                url: `/tokens/${tokenId}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                },
+                payload: {
+                    name: testToken.name,
+                    description: 'a new description'
+                }
+            };
+        });
+
+        it('returns 404 when the token does not exist', () => {
+            tokenFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when the user does not exist', () => {
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 409 when a token with the same name already exists', () => {
+            options.url = `/tokens/${tokenId + 1}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 409);
+                assert.strictEqual(reply.result.message,
+                    `Token with name ${testToken.name} already exists`);
+            });
+        });
+
+        it('returns 200 if update successfully', () => {
+            const expected = Object.assign({}, testToken, {
+                description: 'a new description'
+            });
+
+            tokenMock.toJson.returns(expected);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(tokenMock.update);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
+
+        it('returns 403 when the user does not own the token', () => {
+            userFactoryMock.get.withArgs({ username }).resolves({
+                id: testToken.userId + 1
+            });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 500 when the token model fails to update', () => {
+            const testError = new Error('tokenModelUpdateError');
+
+            tokenMock.update.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('DELETE /tokens/{id}', () => {
         let options;
-        const tokenId = testToken.id;
 
         beforeEach(() => {
             options = {
@@ -231,11 +314,6 @@ describe('token plugin test', () => {
                     scope: ['user']
                 }
             };
-
-            tokenFactoryMock.get.resolves(tokenMock);
-            userFactoryMock.get.withArgs({ username }).resolves({
-                id: testToken.userId
-            });
         });
 
         it('returns 404 when the token does not exist', () => {
