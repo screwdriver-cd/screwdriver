@@ -14,7 +14,7 @@ const getTokenMock = (token) => {
     const mock = Object.assign({}, token);
 
     mock.update = sinon.stub();
-    mock.regenerate = sinon.stub();
+    mock.refresh = sinon.stub();
     mock.toJson = sinon.stub().returns(Object.assign({}, token));
     mock.remove = sinon.stub();
 
@@ -61,7 +61,7 @@ describe('token plugin test', () => {
         tokenMock = getTokenMock(testToken);
         tokenMock.remove.resolves(null);
         tokenMock.update.resolves(tokenMock);
-        tokenMock.regenerate.resolves(Object.assign({}, tokenMock, { value: 'newValue' }));
+        tokenMock.refresh.resolves(Object.assign({}, tokenMock, { value: 'newValue' }));
         tokenFactoryMock.create.resolves(tokenMock);
         tokenFactoryMock.get.resolves(tokenMock);
 
@@ -272,7 +272,7 @@ describe('token plugin test', () => {
                 description: 'a new description'
             });
 
-            tokenMock.toJson.returns(expected);
+            tokenMock.toJson.returns(Object.assign({}, tokenMock.toJson(), expected));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -295,6 +295,69 @@ describe('token plugin test', () => {
             const testError = new Error('tokenModelUpdateError');
 
             tokenMock.update.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PATCH /tokens/{id}/refresh', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'PATCH',
+                url: `/tokens/${tokenId}/refresh`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+        });
+
+        it('returns 404 when the token does not exist', () => {
+            tokenFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when the user does not exist', () => {
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if refreshd successfully', () => {
+            const expected = Object.assign({}, testToken, { value: 'newValue' });
+
+            tokenMock.toJson.returns(Object.assign({}, tokenMock.toJson(), expected));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(tokenMock.refresh);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
+
+        it('returns 403 when the user does not own the token', () => {
+            userFactoryMock.get.withArgs({ username }).resolves({
+                id: testToken.userId + 1
+            });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 500 when the token model fails to refresh', () => {
+            const testError = new Error('tokenModelUpdateError');
+
+            tokenMock.refresh.rejects(testError);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
