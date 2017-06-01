@@ -65,6 +65,10 @@ Example payload:
 }
 ```
 
+#### Refresh a token value
+
+`PATCH /tokens/{id}/refresh`
+
 #### Remove a token
 
 `DELETE /tokens/{id}`
