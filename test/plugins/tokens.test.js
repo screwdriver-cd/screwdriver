@@ -8,7 +8,6 @@ const urlLib = require('url');
 const testToken = require('./data/token.json');
 
 sinon.assert.expose(assert, { prefix: '' });
-require('sinon-as-promised');
 
 const getTokenMock = (token) => {
     const mock = Object.assign({}, token);

@@ -15,8 +15,6 @@ const PARSED_CONFIG = require('../data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-require('sinon-as-promised');
-
 describe('github plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
