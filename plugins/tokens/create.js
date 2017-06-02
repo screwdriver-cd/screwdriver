@@ -56,6 +56,8 @@ module.exports = () => ({
                 });
                 const output = token.toJson();
 
+                // toJson only encodes the row data of the model, have to add value manually
+                output.value = token.value;
                 delete output.hash;
 
                 return reply(output).header('Location', location).code(201);
