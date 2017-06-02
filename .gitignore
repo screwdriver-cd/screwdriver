@@ -5,6 +5,6 @@ npm-debug.log
 .*.swp
 database.*
 config/local.*
-.func_config.json
+.func_config
 .nyc_output
 data/*

@@ -1,8 +1,7 @@
 'use strict';
 
-/* eslint-disable import/no-unresolved */
-const config = require('../../.func_config');
-/* eslint-enable import/no-unresolved */
+const path = require('path');
+const env = require('node-env-file');
 const requestretry = require('requestretry');
 const request = require('../support/request');
 
@@ -37,13 +36,12 @@ function promiseToWait(timeToWait) {
 function beforeHooks() {
     // eslint-disable-next-line new-cap
     this.Before((scenario, cb) => {
-        const host = process.env.SD_API;
-
-        this.gitToken = process.env.GIT_TOKEN || config.gitToken;
-        this.accessKey = process.env.ACCESS_KEY || config.accessKey;
-        this.instance = host ? `https://${host}` : config.host;
-        this.testOrg = process.env.TEST_ORG || config.testOrg;
-        this.username = process.env.TEST_USERNAME || config.username;
+        env(path.join(__dirname, '../../.func_config'), { raise: false });
+        this.gitToken = process.env.GIT_TOKEN;
+        this.accessKey = process.env.ACCESS_KEY;
+        this.instance = `https://${process.env.SD_API}`;
+        this.testOrg = process.env.TEST_ORG;
+        this.username = process.env.TEST_USERNAME;
         this.namespace = 'v4';
         this.promiseToWait = time => promiseToWait(time);
         this.getJwt = accessKey =>
