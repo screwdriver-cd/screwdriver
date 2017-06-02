@@ -113,7 +113,9 @@ npm test
 
 Fork `functional-*` repositories to your organization from [screwdriver-cd-test](https://github.com/screwdriver-cd-test)
 
-Update `.func_config.json` with your own username, github token, access key, host, and organization for test:
+#### With `.func_config.json`
+
+Add `.func_config.json` to the root of the Screwdriver API folder with your username, github token, access key, host, and organization for test:
 ```json
 {
     "username": "YOUR-GITHUB-USERNAME",
@@ -122,6 +124,18 @@ Update `.func_config.json` with your own username, github token, access key, hos
     "host": "YOUR-LOCAL-API-HOST",
     "testOrg": "YOUR-TEST-ORGANIZATION"
 }
+```
+
+#### With environment variables
+
+Set the environment variables:
+
+```bash
+$ export TEST_USERNAME=YOUR-GITHUB-USERNAME
+$ export GIT_TOKEN=YOUR-ACCESS-TOKEN
+$ export ACCESS_KEY=YOUR-ACCESS-KEY
+$ export SD_API=YOUR-LOCAL-API-HOST
+$ export TEST_ORG=YOUR-TEST-ORGANIZATION
 ```
 
 Then run the cucumber tests:

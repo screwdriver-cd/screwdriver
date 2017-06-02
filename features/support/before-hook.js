@@ -1,6 +1,8 @@
 'use strict';
 
+/* eslint-disable import/no-unresolved */
 const config = require('../../.func_config');
+/* eslint-enable import/no-unresolved */
 const requestretry = require('requestretry');
 const request = require('../support/request');
 
