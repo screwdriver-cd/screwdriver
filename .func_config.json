@@ -1,7 +1,0 @@
-{
-    "username": "YOUR-GITHUB-USERNAME",
-    "gitToken": "YOUR-ACCESS-TOKEN",
-    "accessKey": "YOUR-ACCESS-KEY",
-    "host": "YOUR-LOCAL-API-HOST",
-    "testOrg": "YOUR-TEST-ORGANIZATION"
-}
