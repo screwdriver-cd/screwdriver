@@ -35,7 +35,7 @@ module.exports = () => ({
 
                 // Check that the user is deleting their own token
                 return canAccess(credentials, token)
-                    .then(token.remove);
+                    .then(() => token.remove());
             })
             .then(() => reply().code(204))
             .catch(err => reply(boom.wrap(err)));
