@@ -113,17 +113,16 @@ npm test
 
 Fork `functional-*` repositories to your organization from [screwdriver-cd-test](https://github.com/screwdriver-cd-test)
 
-#### With `.func_config.json`
+#### With `.func_config`
 
-Add `.func_config.json` to the root of the Screwdriver API folder with your username, github token, access key, host, and organization for test:
-```json
-{
-    "username": "YOUR-GITHUB-USERNAME",
-    "gitToken": "YOUR-ACCESS-TOKEN",
-    "accessKey": "YOUR-ACCESS-KEY",
-    "host": "YOUR-LOCAL-API-HOST",
-    "testOrg": "YOUR-TEST-ORGANIZATION"
-}
+Add `.func_config` to the root of the Screwdriver API folder with your username, github token, access key, host, and organization for test:
+```
+GIT_TOKEN=YOUR-GITHUB-TOKEN
+ACCESS_KEY=YOUR-ACCESS-KEY
+SD_API=YOUR-LOCAL-API-HOST
+TEST_ORG=OUR-TEST-ORGANIZATION
+TEST_USERNAME=YOUR-GITHUB-USERNAME
+
 ```
 
 #### With environment variables
@@ -132,7 +131,7 @@ Set the environment variables:
 
 ```bash
 $ export TEST_USERNAME=YOUR-GITHUB-USERNAME
-$ export GIT_TOKEN=YOUR-ACCESS-TOKEN
+$ export GIT_TOKEN=YOUR-GITHUB-TOKEN
 $ export ACCESS_KEY=YOUR-ACCESS-KEY
 $ export SD_API=YOUR-LOCAL-API-HOST
 $ export TEST_ORG=YOUR-TEST-ORGANIZATION
