@@ -39,7 +39,8 @@ function beforeHooks() {
         env(path.join(__dirname, '../../.func_config'), { raise: false });
         this.gitToken = process.env.GIT_TOKEN;
         this.accessKey = process.env.ACCESS_KEY;
-        this.instance = `https://${process.env.SD_API}`;
+        this.protocol = process.env.PROTOCOL || 'https';
+        this.instance = `${this.protocol}://${process.env.SD_API}`;
         this.testOrg = process.env.TEST_ORG;
         this.username = process.env.TEST_USERNAME;
         this.namespace = 'v4';
