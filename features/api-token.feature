@@ -29,11 +29,11 @@ Feature: User API Token
         Then their "tiger" token is in the list
         And their token is safely described
 
-    @ignore
     Scenario: Edit API Token Labels
-        And owns an existing API token
-        When "calvin" changes the label associated with the token
+        Given "calvin" owns an existing API token named "tiger"
+        When they change the label associated with the token
         Then their token will have that new label
+        And the token's 'last used' property will not be updated
 
     @ignore
     Scenario: Revoke API Token

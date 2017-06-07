@@ -235,12 +235,12 @@ describe('token plugin test', () => {
         });
     });
 
-    describe('PATCH /tokens/{id}', () => {
+    describe('PUT /tokens/{id}', () => {
         let options;
 
         beforeEach(() => {
             options = {
-                method: 'PATCH',
+                method: 'PUT',
                 url: `/tokens/${tokenId}`,
                 credentials: {
                     username,
@@ -316,12 +316,12 @@ describe('token plugin test', () => {
         });
     });
 
-    describe('PATCH /tokens/{id}/refresh', () => {
+    describe('PUT /tokens/{id}/refresh', () => {
         let options;
 
         beforeEach(() => {
             options = {
-                method: 'PATCH',
+                method: 'PUT',
                 url: `/tokens/${tokenId}/refresh`,
                 credentials: {
                     username,
