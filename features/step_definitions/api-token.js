@@ -68,4 +68,51 @@ module.exports = function server() {
 
             Assert.notEqual(lastUsed, '');
         }));
+
+    this.Given(/^"calvin" owns an existing API token named "([^"]*)"$/, tokenName =>
+        request({
+            uri: `${this.instance}/${this.namespace}/tokens`,
+            method: 'POST',
+            auth: {
+                bearer: this.jwt
+            },
+            body: {
+                name: tokenName
+            },
+            json: true
+        }).then((response) => {
+            Assert.oneOf(response.statusCode, [409, 201]);
+        }));
+
+    this.When(/^they list all their tokens$/, () =>
+        request({
+            uri: `${this.instance}/${this.namespace}/tokens`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            }
+        }).then((response) => {
+            Assert.strictEqual(response.statusCode, 200);
+
+            this.tokenList = JSON.parse(response.body);
+        }));
+
+    this.Then(/^their "([^"]*)" token is in the list$/, (tokenName) => {
+        const match = this.tokenList.find(token => token.name === tokenName);
+
+        Assert.isOk(match);
+
+        this.testToken = match;
+    });
+
+    this.Then(/^their token is safely described$/, () => {
+        const expectedKeys = ['id', 'name', 'lastUsed'];
+        const forbiddenKeys = ['hash', 'value'];
+
+        expectedKeys.forEach(property =>
+            Assert.property(this.testToken, property));
+
+        forbiddenKeys.forEach(property =>
+            Assert.notProperty(this.testToken, property));
+    });
 };

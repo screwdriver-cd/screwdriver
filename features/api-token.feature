@@ -23,11 +23,10 @@ Feature: User API Token
         Then a valid JWT is received that represents "calvin"
         And the "tiger" token's 'last used' property is updated
 
-    @ignore
     Scenario: List API Tokens
-        And owns an existing API token
-        When "calvin" lists all their tokens
-        Then their API token is in the list
+        Given "calvin" owns an existing API token named "tiger"
+        When they list all their tokens
+        Then their "tiger" token is in the list
         And their token is safely described
 
     @ignore
