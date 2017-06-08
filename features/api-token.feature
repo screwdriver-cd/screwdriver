@@ -13,14 +13,12 @@ Feature: User API Token
         - Users can revoke a token at any time
         - No one can ever look up the raw value after initially generating the token
 
-    Background:
-        Given the user "calvin" exists
-
-    @ignore
+    @create
     Scenario: Generate New API Token
-        When a new API token is generated
+        When the user generates a new API token
         And the token is used to log in
-        Then a valid JWT is received that represents "calvin"
+        Then a valid JWT is received that represents the user
+        And the token's 'last used' property is updated
 
     @ignore
     Scenario: List API Tokens
