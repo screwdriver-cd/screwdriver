@@ -4,9 +4,11 @@ const chai = require('chai');
 const assert = chai.assert;
 const expect = chai.expect;
 const hapi = require('hapi');
+const jwt = require('jsonwebtoken');
 const sinon = require('sinon');
 const fs = require('fs');
 const hoek = require('hoek');
+const badToken = require('./data/badToken');
 
 chai.use(require('chai-jwt'));
 chai.use(require('chai-as-promised'));
@@ -25,6 +27,7 @@ function getUserMock(user) {
     const result = {
         update: sinon.stub(),
         sealToken: sinon.stub(),
+        validateToken: sinon.stub(),
         id: user.id,
         username: user.username,
         token: user.token
@@ -697,5 +700,92 @@ describe('auth plugin test', () => {
                 assert.deepEqual(reply.result, {}, 'Logout returns data');
             })
         ));
+    });
+
+    describe('Authenticate with API tokens', () => {
+        let options;
+        let userMock;
+
+        beforeEach(() => {
+            const username = 'frodo';
+            const id = 1234;
+            const profile = {
+                username,
+                uuid: 'abc123',
+                scope: ['user']
+            };
+            const token = server.plugins.auth.generateToken(profile);
+
+            userMock = getUserMock({
+                username,
+                id,
+                token
+            });
+
+            userMock.update.resolves(userMock);
+            userMock.validateToken.resolves(token);
+            userFactoryMock.get.resolves(userMock);
+
+            server.route({
+                method: 'GET',
+                path: '/protected-route',
+                config: {
+                    // Use the 'token' auth strategy to only allow users
+                    // with a token to use this route.
+                    auth: {
+                        strategies: ['token']
+                    },
+                    handler: (request, reply) => reply('Success')
+                }
+            });
+
+            options = {
+                url: {
+                    pathname: '/protected-route'
+                },
+                headers: {
+                    authorization: `Bearer ${token}`
+                },
+                method: 'GET'
+            };
+        });
+
+        it('Authorizes a request with a valid API token', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('Rejects a request with an invalid API token', () => {
+            const newOptions = hoek.clone(options);
+
+            newOptions.headers.authorization = badToken;
+
+            return server.inject(newOptions).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.notCalled(userFactoryMock.get);
+            });
+        });
+
+        it('Rejects a request if the token does not validate', () => {
+            userMock.validateToken.rejects('Token has been revoked.');
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('Enforces expiry if the token is not an API token', () => {
+            const expiredToken = jwt.sign({
+                exp: 1451606400 // January 1, 2016
+            }, jwtPrivateKey, {});
+            const newOptions = hoek.clone(options);
+
+            newOptions.headers.authorization = `Bearer ${expiredToken}`;
+
+            return server.inject(newOptions).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
     });
 });
