@@ -6,16 +6,24 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const testToken = require('./data/token.json');
+const testTokenWithValue = Object.assign({}, testToken, { value: '1234' });
+
+delete testTokenWithValue.hash;
 
 sinon.assert.expose(assert, { prefix: '' });
-require('sinon-as-promised');
 
 const getTokenMock = (token) => {
     const mock = Object.assign({}, token);
 
     mock.update = sinon.stub();
     mock.refresh = sinon.stub();
-    mock.toJson = sinon.stub().returns(Object.assign({}, token));
+    mock.toJson = sinon.stub().callsFake(() => {
+        const output = Object.assign({}, token);
+
+        delete output.hash;
+
+        return output;
+    });
     mock.remove = sinon.stub();
 
     return mock;
@@ -132,8 +140,11 @@ describe('token plugin test', () => {
             userMock.tokens = tokensGetterMock([]);
         });
 
-        it('returns 201 and correct token data', () =>
-            server.inject(options).then((reply) => {
+        it('returns 201 and correct token data', () => {
+            tokenMock = getTokenMock(Object.assign({}, testToken, { value: '1234' }));
+            tokenFactoryMock.create.resolves(tokenMock);
+
+            return server.inject(options).then((reply) => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -142,11 +153,12 @@ describe('token plugin test', () => {
                 };
 
                 assert.equal(reply.statusCode, 201);
-                assert.deepEqual(reply.result, testToken);
+                assert.deepEqual(reply.result, testTokenWithValue);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(tokenFactoryMock.create,
                     Object.assign({}, options.payload, { userId }));
-            }));
+            });
+        });
 
         it('returns 409 when a token with the same name already exists', () => {
             userMock.tokens = tokensGetterMock([{ name }]);
@@ -272,6 +284,8 @@ describe('token plugin test', () => {
                 description: 'a new description'
             });
 
+            delete expected.hash;
+
             tokenMock.toJson.returns(Object.assign({}, tokenMock.toJson(), expected));
 
             return server.inject(options).then((reply) => {
@@ -332,8 +346,8 @@ describe('token plugin test', () => {
             });
         });
 
-        it('returns 200 if refreshd successfully', () => {
-            const expected = Object.assign({}, testToken, { value: 'newValue' });
+        it('returns 200 if refreshed successfully', () => {
+            const expected = Object.assign({}, testTokenWithValue, { value: 'newValue' });
 
             tokenMock.toJson.returns(Object.assign({}, tokenMock.toJson(), expected));
 

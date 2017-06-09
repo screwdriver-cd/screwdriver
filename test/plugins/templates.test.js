@@ -19,7 +19,6 @@ const TEMPLATE_DESCRIPTION = [
 ].join('\n');
 
 sinon.assert.expose(assert, { prefix: '' });
-require('sinon-as-promised');
 
 const decorateTemplateMock = (template) => {
     const mock = hoek.clone(template);

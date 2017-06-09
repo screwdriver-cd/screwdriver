@@ -11,7 +11,6 @@ const testBuild = require('./data/build.json');
 const testSecrets = require('./data/secrets.json');
 
 sinon.assert.expose(assert, { prefix: '' });
-require('sinon-as-promised');
 
 const decorateSecretObject = (secret) => {
     const decorated = hoek.clone(secret);

@@ -54,11 +54,8 @@ module.exports = () => ({
                     protocol: request.server.info.protocol,
                     pathname: `${request.path}/${token.id}`
                 });
-                const output = token.toJson();
 
-                delete output.hash;
-
-                return reply(output).header('Location', location).code(201);
+                return reply(token.toJson()).header('Location', location).code(201);
             })
             // something broke, respond with error
             .catch(err => reply(boom.wrap(err)));

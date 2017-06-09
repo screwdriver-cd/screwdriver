@@ -143,7 +143,46 @@ function waitForBuildStatus(config) {
     });
 }
 
+/**
+ * cleanupToken: remove the test token
+ * @method
+ * @param  {Object}  config
+ * @param  {String}  config.token         Name of the token to delete
+ * @param  {String}  config.instance      Screwdriver instance to test against
+ * @param  {String}  config.namespace     Screwdriver namespace to test against
+ * @param  {String}  config.jwt           JWT for authenticating
+ * @return {Promise}
+ */
+function cleanupToken(config) {
+    const tokenName = config.token;
+    const instance = config.instance;
+    const namespace = config.namespace;
+    const jwt = config.jwt;
+
+    return request({
+        uri: `${instance}/${namespace}/tokens`,
+        method: 'GET',
+        auth: {
+            bearer: jwt
+        }
+    }).then((response) => {
+        const match = JSON.parse(response.body)
+            .find(token => token.name === tokenName);
+
+        if (!match) return Promise.resolve();
+
+        return request({
+            uri: `${instance}/${namespace}/tokens/${match.id}`,
+            method: 'DELETE',
+            auth: {
+                bearer: jwt
+            }
+        });
+    });
+}
+
 module.exports = {
+    cleanupToken,
     searchForBuild,
     waitForBuildStatus
 };

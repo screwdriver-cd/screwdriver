@@ -13,8 +13,6 @@ chai.use(require('chai-as-promised'));
 
 sinon.assert.expose(assert, { prefix: '' });
 
-require('sinon-as-promised');
-
 /**
  * helper to generate a user model mock
  * @method getUserMock
@@ -595,7 +593,7 @@ describe('auth plugin test', () => {
         it('returns 200 with a crumb', () => {
             const mockReturn = 'foo';
 
-            sinon.stub(server.plugins.crumb, 'generate', () => mockReturn);
+            sinon.stub(server.plugins.crumb, 'generate').callsFake(() => mockReturn);
 
             return server.inject({
                 url: '/auth/crumb'
