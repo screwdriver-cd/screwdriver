@@ -34,7 +34,6 @@ function promiseToWait(timeToWait) {
  * @return
  */
 function beforeHooks() {
-    // eslint-disable-next-line new-cap
     this.Before((scenario, cb) => {
         env(path.join(__dirname, '../../.func_config'), { raise: false });
         this.gitToken = process.env.GIT_TOKEN;

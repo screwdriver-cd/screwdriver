@@ -8,7 +8,6 @@ const sdapi = require('../support/sdapi');
 const TIMEOUT = 240 * 1000;
 
 module.exports = function server() {
-    // eslint-disable-next-line new-cap
     this.Before({
         tags: ['@sd-step']
     }, () => {
