@@ -33,7 +33,7 @@ module.exports = () => ({
                     }
 
                     return canAccess(credentials, token)
-                        .then(token.refresh)
+                        .then(() => token.refresh())
                         .then(() => {
                             const output = token.toJson();
 

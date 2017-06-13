@@ -60,6 +60,17 @@ function beforeHooks() {
                 retryStrategy: buildRetryStrategy,
                 json: true
             });
+        this.loginWithToken = accessKey =>
+            request({
+                uri: `${this.instance}/${this.namespace}/auth/logout`,
+                method: 'POST',
+                auth: {
+                    bearer: this.jwt
+                }
+            // Actual login is accomplished through getJwt
+            }).then(() => this.getJwt(accessKey).then((response) => {
+                this.loginResponse = response;
+            }));
         cb();
     });
 }
