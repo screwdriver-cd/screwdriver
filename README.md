@@ -42,6 +42,9 @@ Requires:
 $ python <(curl https://raw.githubusercontent.com/screwdriver-cd/screwdriver/master/in-a-box.py)
 ```
 
+#### Alternative pod template for K8S executor:
+You can create your own pod template at `./alternative_pod_template.yaml.tim` and it will override the default pod template define in the [screwdriver-executor-k8s](https://github.com/screwdriver-cd/executor-k8s/blob/master/config/pod.yaml.tim) plugin.
+
 ## Configuration
 
 Screwdriver already [defaults most configuration](config/default.yaml), but you can override defaults using a `local.yaml` or environment variables.
