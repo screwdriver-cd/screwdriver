@@ -6,6 +6,10 @@ const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 
 module.exports = function server() {
+    this.Before('@apitoken', () => {
+        this.testToken = null;
+    });
+
     this.Given(/^"calvin" does not own a token named "([^"]*)"$/, token =>
         // Ensure there won't be a conflict: delete the token if it's already there
         sdapi.cleanupToken({
@@ -82,6 +86,25 @@ module.exports = function server() {
             json: true
         }).then((response) => {
             Assert.oneOf(response.statusCode, [409, 201]);
+
+            if (response.statusCode === 201) {
+                this.testToken = response.body;
+
+                return null;
+            }
+
+            return request({
+                uri: `${this.instance}/${this.namespace}/tokens`,
+                method: 'GET',
+                auth: {
+                    bearer: this.jwt
+                }
+            }).then((listResponse) => {
+                Assert.strictEqual(listResponse.statusCode, 200);
+
+                this.testToken = JSON.parse(listResponse.body)
+                                     .find(token => token.name === tokenName);
+            });
         }));
 
     this.When(/^they list all their tokens$/, () =>
@@ -114,5 +137,34 @@ module.exports = function server() {
 
         forbiddenKeys.forEach(property =>
             Assert.notProperty(this.testToken, property));
+    });
+
+    this.When(/^they change the label associated with the token$/, () => {
+        // Make sure update is getting called with a value that isn't already there
+        this.newDescription = this.testToken.description === 'tiger' ? 'not tiger' : 'tiger';
+
+        return request({
+            uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
+            method: 'PUT',
+            auth: {
+                bearer: this.jwt
+            },
+            body: {
+                description: this.newDescription
+            },
+            json: true
+        }).then((response) => {
+            Assert.strictEqual(response.statusCode, 200);
+
+            this.updatedToken = response.body;
+        });
+    });
+
+    this.Then(/^their token will have that new label$/, () => {
+        Assert.strictEqual(this.updatedToken.description, this.newDescription);
+    });
+
+    this.Then(/^the token's 'last used' property will not be updated$/, () => {
+        Assert.strictEqual(this.updatedToken.lastUsed, this.testToken.lastUsed);
     });
 };
