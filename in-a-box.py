@@ -27,6 +27,7 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:rw
             - ./data/:/tmp/sd-data/:rw
+            ${alternative_pod_template}
         environment:
             PORT: 80
             URI: http://${ip}:9001
@@ -213,6 +214,15 @@ def generate_oauth(scm_plugin, ip):
     print('')
     return dict(oauth_id=client_id, oauth_secret=secret)
 
+def generate_alternative_pod_template():
+    if os.path.isfile('./alternative_pod_template.yaml.tim'):
+            return {
+                'alternative_pod_template': '- ./alternative_pod_template.yaml.tim:/usr/src/app/node_modules/screwdriver-executor-k8s/config/pod.yaml.tim'
+            }
+
+    return {
+        'alternative_pod_template': ''
+    }
 
 def check_component(component):
     """
@@ -247,6 +257,9 @@ def main():
 
     print('📦   Generating OAuth credentials')
     fields.update(generate_oauth(fields['scm_plugin'], fields['ip']))
+
+    print('🗒   Generating alternative pod tempalte if it exists')
+    fields.update(generate_alternative_pod_template())
 
     print('💾   Writing Docker Compose file')
     compose = Template(DOCKER_TEMPLATE).substitute(fields)
