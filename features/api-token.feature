@@ -25,19 +25,18 @@ Feature: User API Token
 
     Scenario: List API Tokens
         Given "calvin" owns an existing API token named "tiger"
-        When they list all their tokens
-        Then their "tiger" token is in the list
-        And their token is safely described
+        When he lists all his tokens
+        Then his "tiger" token is in the list
+        And his token is safely described
 
     Scenario: Edit API Token Labels
         Given "calvin" owns an existing API token named "tiger"
-        When they change the label associated with the token
-        Then their token will have that new label
+        When he changes the label associated with the token
+        Then his token will have that new label
         And the token's 'last used' property will not be updated
 
-    @ignore
     Scenario: Revoke API Token
-        And owns an existing API token
-        When "calvin" revokes the token
+        Given "calvin" owns an existing API token named "tiger"
+        When he revokes the token
         And the token is used to log in
         Then the login attempt fails

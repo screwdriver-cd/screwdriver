@@ -8,6 +8,7 @@ const sdapi = require('../support/sdapi');
 module.exports = function server() {
     this.Before('@apitoken', () => {
         this.testToken = null;
+        this.loginResponse = null;
     });
 
     this.Given(/^"calvin" does not own a token named "([^"]*)"$/, token =>
@@ -46,14 +47,17 @@ module.exports = function server() {
             auth: {
                 bearer: this.jwt
             }
+        // Logging in is accomplished through this.getJwt
         }).then(() => this.getJwt(this.testToken.value).then((response) => {
-            Assert.strictEqual(response.statusCode, 200);
+            Assert.oneOf(response.statusCode, [200, 401]);
 
-            this.newJwt = response.body.token;
+            this.loginResponse = response;
         })));
 
     this.Then(/^a valid JWT is received that represents "calvin"$/, () => {
-        const decodedToken = jwt.decode(this.newJwt);
+        Assert.strictEqual(this.loginResponse.statusCode, 200);
+
+        const decodedToken = jwt.decode(this.loginResponse.body.token);
 
         Assert.strictEqual(decodedToken.username, this.username);
     });
@@ -107,7 +111,7 @@ module.exports = function server() {
             });
         }));
 
-    this.When(/^they list all their tokens$/, () =>
+    this.When(/^he lists all his tokens$/, () =>
         request({
             uri: `${this.instance}/${this.namespace}/tokens`,
             method: 'GET',
@@ -120,7 +124,7 @@ module.exports = function server() {
             this.tokenList = JSON.parse(response.body);
         }));
 
-    this.Then(/^their "([^"]*)" token is in the list$/, (tokenName) => {
+    this.Then(/^his "([^"]*)" token is in the list$/, (tokenName) => {
         const match = this.tokenList.find(token => token.name === tokenName);
 
         Assert.isOk(match);
@@ -128,7 +132,7 @@ module.exports = function server() {
         this.testToken = match;
     });
 
-    this.Then(/^their token is safely described$/, () => {
+    this.Then(/^his token is safely described$/, () => {
         const expectedKeys = ['id', 'name', 'lastUsed'];
         const forbiddenKeys = ['hash', 'value'];
 
@@ -139,7 +143,7 @@ module.exports = function server() {
             Assert.notProperty(this.testToken, property));
     });
 
-    this.When(/^they change the label associated with the token$/, () => {
+    this.When(/^he changes the label associated with the token$/, () => {
         // Make sure update is getting called with a value that isn't already there
         this.newDescription = this.testToken.description === 'tiger' ? 'not tiger' : 'tiger';
 
@@ -160,11 +164,24 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^their token will have that new label$/, () => {
+    this.Then(/^his token will have that new label$/, () => {
         Assert.strictEqual(this.updatedToken.description, this.newDescription);
     });
 
     this.Then(/^the token's 'last used' property will not be updated$/, () => {
         Assert.strictEqual(this.updatedToken.lastUsed, this.testToken.lastUsed);
+    });
+
+    this.When(/^he revokes the token$/, () =>
+        request({
+            uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
+            method: 'DELETE',
+            auth: {
+                bearer: this.jwt
+            }
+        }).then(response => Assert.strictEqual(response.statusCode, 204)));
+
+    this.Then(/^the login attempt fails$/, () => {
+        Assert.strictEqual(this.loginResponse.statusCode, 401);
     });
 };
