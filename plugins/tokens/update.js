@@ -58,11 +58,11 @@ module.exports = () => ({
                             });
 
                             return token.update()
-                            .then(() => {
-                                const output = token.toJson();
+                                .then(() => {
+                                    const output = token.toJson();
 
-                                return reply(output).code(200);
-                            });
+                                    return reply(output).code(200);
+                                });
                         });
                 })
                 .catch(err => reply(boom.wrap(err)));

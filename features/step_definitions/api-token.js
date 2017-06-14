@@ -7,8 +7,9 @@ const sdapi = require('../support/sdapi');
 
 module.exports = function server() {
     this.Before('@apitoken', () => {
-        this.testToken = null;
         this.loginResponse = null;
+        this.testToken = null;
+        this.updatedToken = null;
     });
 
     this.Given(/^"calvin" does not own a token named "([^"]*)"$/, token =>
@@ -41,18 +42,7 @@ module.exports = function server() {
         }));
 
     this.When(/^the token is used to log in$/, () =>
-        request({
-            uri: `${this.instance}/${this.namespace}/auth/logout`,
-            method: 'POST',
-            auth: {
-                bearer: this.jwt
-            }
-        // Logging in is accomplished through this.getJwt
-        }).then(() => this.getJwt(this.testToken.value).then((response) => {
-            Assert.oneOf(response.statusCode, [200, 401]);
-
-            this.loginResponse = response;
-        })));
+        this.loginWithToken(this.testToken.value));
 
     this.Then(/^a valid JWT is received that represents "calvin"$/, () => {
         Assert.strictEqual(this.loginResponse.statusCode, 200);
@@ -68,9 +58,10 @@ module.exports = function server() {
             method: 'GET',
             auth: {
                 bearer: this.jwt
-            }
+            },
+            json: true
         }).then((response) => {
-            const lastUsed = JSON.parse(response.body)
+            const lastUsed = response.body
                 .find(token => token.name === tokenName)
                 .lastUsed;
 
@@ -102,12 +93,13 @@ module.exports = function server() {
                 method: 'GET',
                 auth: {
                     bearer: this.jwt
-                }
+                },
+                json: true
             }).then((listResponse) => {
                 Assert.strictEqual(listResponse.statusCode, 200);
 
-                this.testToken = JSON.parse(listResponse.body)
-                                     .find(token => token.name === tokenName);
+                this.testToken = listResponse.body
+                    .find(token => token.name === tokenName);
             });
         }));
 
@@ -117,11 +109,12 @@ module.exports = function server() {
             method: 'GET',
             auth: {
                 bearer: this.jwt
-            }
+            },
+            json: true
         }).then((response) => {
             Assert.strictEqual(response.statusCode, 200);
 
-            this.tokenList = JSON.parse(response.body);
+            this.tokenList = response.body;
         }));
 
     this.Then(/^his "([^"]*)" token is in the list$/, (tokenName) => {
@@ -184,4 +177,24 @@ module.exports = function server() {
     this.Then(/^the login attempt fails$/, () => {
         Assert.strictEqual(this.loginResponse.statusCode, 401);
     });
+
+    this.When(/^he refreshes the token$/, () =>
+        request({
+            uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}/refresh`,
+            method: 'PUT',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        }).then((response) => {
+            Assert.strictEqual(response.statusCode, 200);
+
+            this.updatedToken = response.body;
+        }));
+
+    this.When(/^the old token value is used to log in$/, () =>
+        this.loginWithToken(this.testToken.value));
+
+    this.When(/^the new token value is used to log in$/, () =>
+        this.loginWithToken(this.updatedToken.value));
 };

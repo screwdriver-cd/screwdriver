@@ -40,3 +40,12 @@ Feature: User API Token
         When he revokes the token
         And the token is used to log in
         Then the login attempt fails
+
+    Scenario: Refresh API Token
+        Given "calvin" owns an existing API token named "tiger"
+        When he refreshes the token
+        And the old token value is used to log in
+        Then the login attempt fails
+        When the new token value is used to log in
+        Then a valid JWT is received that represents "calvin"
+        And the "tiger" token's 'last used' property is updated

@@ -144,8 +144,8 @@ function waitForBuildStatus(config) {
 }
 
 /**
- * cleanupToken: remove the test token
- * @method
+ * Remove the test token
+ * @method cleanupToken
  * @param  {Object}  config
  * @param  {String}  config.token         Name of the token to delete
  * @param  {String}  config.instance      Screwdriver instance to test against
