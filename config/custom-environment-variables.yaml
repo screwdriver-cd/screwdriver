@@ -65,7 +65,9 @@ datastore:
 
 executor:
     plugin: EXECUTOR_PLUGIN
+    # The NPM module object(s) for the executor plugin(s)
     k8s:
+      options:
         kubernetes:
             # The host or IP of the kubernetes cluster
             host: K8S_HOST
@@ -77,6 +79,7 @@ executor:
         # Prefix to the pod
         prefix: EXECUTOR_PREFIX
     docker:
+      options:
         # Configuration of Docker
         docker:
             __name: EXECUTOR_DOCKER_DOCKER
