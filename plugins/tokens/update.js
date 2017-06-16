@@ -58,11 +58,7 @@ module.exports = () => ({
                             });
 
                             return token.update()
-                                .then(() => {
-                                    const output = token.toJson();
-
-                                    return reply(output).code(200);
-                                });
+                                .then(() => reply(token.toJson()).code(200));
                         });
                 })
                 .catch(err => reply(boom.wrap(err)));

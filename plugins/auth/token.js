@@ -19,6 +19,11 @@ module.exports = () => ({
             strategies: ['token', 'session', 'auth_token'],
             scope: ['user']
         },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             let profile = request.auth.credentials;
             const username = profile.username;

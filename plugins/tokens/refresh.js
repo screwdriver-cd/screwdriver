@@ -34,13 +34,7 @@ module.exports = () => ({
 
                     return canAccess(credentials, token)
                         .then(() => token.refresh())
-                        .then(() => {
-                            const output = token.toJson();
-
-                            delete output.hash;
-
-                            return reply(output).code(200);
-                        });
+                        .then(() => reply(token.toJson()).code(200));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },
