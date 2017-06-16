@@ -1,7 +1,9 @@
 {
+    "annotations": {},
     "jobs": {
         "main": [
             {
+                "annotations": {},
                 "image": "node:4",
                 "commands": [
                     {
@@ -25,6 +27,7 @@
                 "settings": {}
             },
             {
+                "annotations": {},
                 "image": "node:6",
                 "commands": [
                     {
@@ -50,6 +53,7 @@
         ],
         "publish": [
             {
+                "annotations": {},
                 "image": "node:4",
                 "commands": [
                     {
