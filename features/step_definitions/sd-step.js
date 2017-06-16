@@ -23,12 +23,12 @@ module.exports = function server() {
         this.commands = null;
     });
 
-    this.Given(/^an existing pipeline with this image and package:$/,
-        { timeout: TIMEOUT }, table =>
+    this.Given(/^an existing pipeline with (.*) image and (.*) package:$/,
+        { timeout: TIMEOUT }, (image, pkg) =>
         this.getJwt(this.accessKey)
         .then((response) => {
             this.jwt = response.body.token;
-            this.expectedImage = table.hashes()[0].image;
+            this.expectedImage = image;
 
             return request({
                 uri: `${this.instance}/${this.namespace}/pipelines`,
@@ -53,8 +53,6 @@ module.exports = function server() {
 
                 this.pipelineId = id;
             }
-
-            return table;
         })
     );
 
