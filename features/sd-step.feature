@@ -19,7 +19,7 @@ Feature: Shared Steps
     - Method to refer to installed packages via semver.
 
     Scenario Outline: Use package via sd-step
-        Given an existing pipeline with <image> image and <package> package:
+        Given an existing pipeline with <image> image and <package> package
         When the main job is started
         And sd-step command is executed to use <package> package
         Then <package> package is available via sd-step
@@ -30,7 +30,7 @@ Feature: Shared Steps
 
     @ignore
     Scenario Outline: Use package via sd-step with specified version
-        Given an existing pipeline with <image> image and <package> package:
+        Given an existing pipeline with <image> image and <package> package
         When the <job> job is started
         And sd-step command is executed to use <package> package with specified version <version>
         Then <package> package is available via sd-step with specified version <version>

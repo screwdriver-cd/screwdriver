@@ -23,7 +23,7 @@ module.exports = function server() {
         this.commands = null;
     });
 
-    this.Given(/^an existing pipeline with (.*) image and (.*) package:$/,
+    this.Given(/^an existing pipeline with (.*) image and (.*) package$/,
         { timeout: TIMEOUT }, (image, pkg) =>
         this.getJwt(this.accessKey)
         .then((response) => {
