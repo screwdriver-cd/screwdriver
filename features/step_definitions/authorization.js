@@ -4,21 +4,20 @@ const Assert = require('chai').assert;
 const request = require('../support/request');
 const jwt = require('jsonwebtoken');
 const TIMEOUT = 240 * 1000;
+const { defineSupportCode } = require('cucumber');
 
-module.exports = function server() {
-    this.Before({
-        tags: ['@auth']
-    }, () => {
+defineSupportCode(({ Before, Given, Then }) => {
+    Before('@auth', function hook() {
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-auth';
         this.pipelineId = null;
     });
 
-    this.Given(/^an existing repository with these users and permissions:$/, table => table);
+    Given(/^an existing repository with these users and permissions:$/, table => table);
 
-    this.Given(/^an existing pipeline with that repository$/, () => null);
+    Given(/^an existing pipeline with that repository$/, () => null);
 
-    this.Given(/^"([^"]*)" is logged in$/, (user) => {
+    Given(/^"([^"]*)" is logged in$/, function step(user) {
         if (!(this.accessKey)) {
             throw new Error('insufficient set up, missing access key');
         }
@@ -43,8 +42,8 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^they can see the project$/, { timeout: TIMEOUT }, () =>
-        request({                           // make sure pipeline exists (TODO: move to Given an existing pipeline with that repository scenario)
+    Then(/^they can see the project$/, { timeout: TIMEOUT }, function step() {
+        return request({                           // make sure pipeline exists (TODO: move to Given an existing pipeline with that repository scenario)
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
             auth: {
@@ -74,11 +73,11 @@ module.exports = function server() {
         }))
         .then((response) => {
             Assert.strictEqual(response.statusCode, 200);
-        })
-    );
+        });
+    });
 
-    this.Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, () =>
-        request({
+    Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
             method: 'GET',
             json: true
@@ -104,11 +103,11 @@ module.exports = function server() {
 
                 this.buildId = resp.body.id;
             })
-        )
-    );
+        );
+    });
 
-    this.Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, () =>
-        request({
+    Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, function step() {
+        return request({
             method: 'DELETE',
             auth: {
                 bearer: this.jwt
@@ -118,6 +117,6 @@ module.exports = function server() {
         })
         .then((resp) => {
             Assert.strictEqual(resp.statusCode, 204);
-        })
-    );
-};
+        });
+    });
+});
