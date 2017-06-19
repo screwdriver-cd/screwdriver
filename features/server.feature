@@ -1,6 +1,11 @@
-Feature: hapi server
+Feature: API Server
 
-Scenario: hapi server is running
-    Given a running hapi server
-    When I access a status endpoint
+Scenario: Server is running
+    Given a running API server
+    When I access the status endpoint
     Then I should get an OK response
+
+Scenario: Versions are available
+    Given a running API server
+    When I access the versions endpoint
+    Then I should get a list of versions

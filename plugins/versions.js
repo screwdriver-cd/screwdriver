@@ -1,0 +1,58 @@
+'use strict';
+
+const checker = require('license-checker');
+const process = require('process');
+const VError = require('verror');
+
+/**
+ * Hapi interface for plugin to return package list
+ * @method register
+ * @param  {Hapi.Server}    server
+ * @param  {Object}         options
+ * @param  {Function} next
+ */
+exports.register = (server, options, next) => {
+    // Designed to match Screwdriver specific packages
+    const SD_REGEX = /^screwdriver-/;
+
+    // Load licenses
+    checker.init({
+        production: true,
+        start: process.cwd()
+    }, (err, json) => {
+        if (err) {
+            return next(new VError(err, 'Unable to load package dependencies'));
+        }
+
+        const depArray = Object.keys(json).map(key => Object.assign({ name: key }, json[key]));
+        const depDisplay = depArray.map(dep => ({
+            name: dep.name.split('@').slice(0, -1).join('@'),
+            repository: dep.repository || 'UNKNOWN',
+            licenses: dep.licenses || 'UNKNOWN'
+        }));
+        const sdVersions = depArray.filter(dep => SD_REGEX.test(dep.name)).map(dep => dep.name);
+
+        server.route({
+            method: 'GET',
+            path: '/versions',
+            handler: (request, reply) => reply({
+                // List of Screwdriver package versions
+                versions: sdVersions,
+                // List of licenses for third-party dependencies
+                licenses: depDisplay
+            }),
+            config: {
+                description: 'API Package Versions',
+                notes: 'Returns list of Screwdriver package versions and third-party dependencies',
+                tags: ['api']
+            }
+        });
+
+        return next();
+    });
+};
+
+exports.register.attributes = {
+    name: 'versions',
+    version: '1.0.0'
+};
