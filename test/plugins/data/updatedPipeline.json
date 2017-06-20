@@ -1,0 +1,8 @@
+{
+  "id": 123,
+  "scmUri": "github.com:12345:master",
+  "createTime": "2038-01-19T03:14:08.131Z",
+  "admins": {
+    "d2lam": true
+  }
+}

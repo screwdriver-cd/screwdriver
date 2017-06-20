@@ -1,6 +1,7 @@
 'use strict';
 
 const createRoute = require('./create');
+const updateRoute = require('./update');
 const removeRoute = require('./remove');
 const syncRoute = require('./sync');
 const syncWebhooksRoute = require('./syncWebhooks');
@@ -23,6 +24,7 @@ exports.register = (server, options, next) => {
     server.route([
         createRoute(),
         removeRoute(),
+        updateRoute(),
         syncRoute(),
         syncWebhooksRoute(),
         syncPRsRoute(),
