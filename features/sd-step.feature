@@ -15,30 +15,28 @@ Feature: Shared Steps
     Rules:
     - Package manager is available in every build.
     - Global SDK state is restored into the package manager installation/download location.
-    - Package manager can use the global SDK state to reduce installation/download time.
     - Method to update global SDK state.
     - Method to refer to installed packages via semver.
 
-    Background:
-        Given an existing pipeline with these images and packages with version:
-            | image          | package        | version        |
-            | golang:latest  | node           | ^4.0.0         |
-        And <image> image is used in the pipeline
-
-    Scenario: Use package via sd-step
+    Scenario Outline: Use package via sd-step
+        Given an existing pipeline with <image> image and <package> package
         When the main job is started
         And sd-step command is executed to use <package> package
         Then <package> package is available via sd-step
 
+        Examples:
+            | image         | package   |
+            | golang:latest | core/node |
+
     @ignore
-    Scenario: Use package via sd-step with specified version
-        When the main job is started
+    Scenario Outline: Use package via sd-step with specified version
+        Given an existing pipeline with <image> image and <package> package
+        When the <job> job is started
         And sd-step command is executed to use <package> package with specified version <version>
         Then <package> package is available via sd-step with specified version <version>
 
-    @ignore
-    Scenario: Use shared package via sd-step
-        And <package> package is shared
-        When the main job is started
-        And sd-step command is executed to use <package> package
-        Then <package> package is available via sd-step without installation/download time
+        Examples:
+            | job     | image         | package   | version |
+            | tilde   | golang:latest | core/node |  ~6.9.0 |
+            | hat     | golang:latest | core/node |  ^6.0.0 |
+            | specify | golang:latest | core/node |   4.2.6 |

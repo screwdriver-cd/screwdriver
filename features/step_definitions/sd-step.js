@@ -14,22 +14,18 @@ module.exports = function server() {
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-shared-steps';
         this.pipelineId = null;
-        this.eventId = null;
-        this.meta = null;
         this.jwt = null;
         this.image = null;
         this.expectedImage = null;
-        this.expectedPackage = null;
         this.commands = null;
     });
 
-    this.Given(/^an existing pipeline with these images and packages with version:$/,
-        { timeout: TIMEOUT }, table =>
+    this.Given(/^an existing pipeline with (.*) image and (.*) package$/,
+        { timeout: TIMEOUT }, (image, pkg) =>
         this.getJwt(this.accessKey)
         .then((response) => {
             this.jwt = response.body.token;
-            this.expectedImage = table.rows()[0][0];
-            this.expectedPackage = table.rows()[0][1];
+            this.expectedImage = image;
 
             return request({
                 uri: `${this.instance}/${this.namespace}/pipelines`,
@@ -54,17 +50,10 @@ module.exports = function server() {
 
                 this.pipelineId = id;
             }
-
-            return table;
         })
     );
 
-    // for second pass
-    this.Given(/^(.*) package is shared/, { timeout: TIMEOUT }, pkg => null);
-
-    this.Given(/^(.*) image is used in the pipeline$/, { timeout: TIMEOUT }, image => null);
-
-    this.When(/^the main job is started$/, { timeout: TIMEOUT }, () =>
+    this.When(/^the (.*) job is started$/, { timeout: TIMEOUT }, jobName =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
             method: 'GET',
@@ -72,10 +61,14 @@ module.exports = function server() {
         }).then((response) => {
             Assert.equal(response.statusCode, 200);
 
-            this.jobId = response.body[0].id;
-            this.image = response.body[0].permutations[0].image;
-            this.commands = response.body[0].permutations[0].commands;
-
+            for (let i = 0; i < response.body.length; i += 1) {
+                if (response.body[i].name === jobName) {
+                    this.jobId = response.body[i].id;
+                    this.image = response.body[i].permutations[0].image;
+                    this.commands = response.body[i].permutations[0].commands;
+                    break;
+                }
+            }
             Assert.equal(this.image, this.expectedImage);
         })
         .then(() =>
@@ -93,8 +86,6 @@ module.exports = function server() {
                 Assert.equal(resp.statusCode, 201);
 
                 this.buildId = resp.body.id;
-                this.eventId = resp.body.eventId;
-                this.meta = resp.body.meta;
             })
         )
     );
@@ -102,7 +93,19 @@ module.exports = function server() {
     this.When(/^sd-step command is executed to use (.*) package$/, { timeout: TIMEOUT }, (pkg) => {
         this.commands.forEach((c) => {
             if (c.name === 'sd_step') {
-                Assert.include(c.command, this.expectedPackage);
+                Assert.include(c.command, pkg);
+            } else if (c.name.match(/^sd_step_/)) {
+                Assert.include(c.command, '--pkg-version');
+            }
+        });
+    });
+
+    this.When(/^sd-step command is executed to use (.*) package with specified version (.*)$/, {
+        timeout: TIMEOUT
+    }, (pkg, version) => {
+        this.commands.forEach((c) => {
+            if (c.name === 'sd_step') {
+                Assert.include(c.command, `--pkg-version "${version}" ${pkg}`);
             }
         });
     });
@@ -114,10 +117,12 @@ module.exports = function server() {
         });
     });
 
-    // for second pass
-    this.Then(/^(.*) package is available via sd-step with specified version (.*)$/,
-        { timeout: TIMEOUT }, (pkg, version) => null);
-    // for second pass
-    this.Then(/^(.*) package is available via sd-step without installation\/download time$/,
-        { timeout: TIMEOUT }, pkg => null);
+    this.Then(/^(.*) package is available via sd-step with specified version (.*)$/, {
+        timeout: TIMEOUT
+    }, (pkg, version) => {
+        this.waitForBuild(this.buildId).then((response) => {
+            Assert.equal(response.statusCode, 200);
+            Assert.equal(response.body.status, 'SUCCESS');
+        });
+    });
 };
