@@ -36,7 +36,6 @@ module.exports = () => ({
             .then(tokens => reply(tokens.map((token) => {
                 const output = token.toJson();
 
-                delete output.value;
                 delete output.userId;
 
                 return output;

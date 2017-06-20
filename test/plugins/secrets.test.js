@@ -10,7 +10,6 @@ const testPipeline = require('./data/pipeline.json');
 const testSecret = require('./data/secret.json');
 
 sinon.assert.expose(assert, { prefix: '' });
-require('sinon-as-promised');
 
 const getPipelineMock = (pipeline) => {
     const mock = hoek.clone(pipeline);

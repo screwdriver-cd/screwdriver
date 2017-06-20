@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.token.base, 'id');
 
 module.exports = () => ({
-    method: 'PATCH',
+    method: 'PUT',
     path: '/tokens/{id}/refresh',
     config: {
         description: 'Refresh a token',
@@ -33,14 +33,8 @@ module.exports = () => ({
                     }
 
                     return canAccess(credentials, token)
-                        .then(token.refresh)
-                        .then(() => {
-                            const output = token.toJson();
-
-                            delete output.hash;
-
-                            return reply(output).code(200);
-                        });
+                        .then(() => token.refresh())
+                        .then(() => reply(token.toJson()).code(200));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },

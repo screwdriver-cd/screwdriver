@@ -14,30 +14,38 @@ Feature: User API Token
         - No one can ever look up the raw value after initially generating the token
 
     Background:
-        Given the user "calvin" exists
+        Given "calvin" is logged in
 
-    @ignore
     Scenario: Generate New API Token
-        When a new API token is generated
+        Given "calvin" does not own a token named "tiger"
+        When a new API token named "tiger" is generated
         And the token is used to log in
         Then a valid JWT is received that represents "calvin"
+        And the "tiger" token's 'last used' property is updated
 
-    @ignore
     Scenario: List API Tokens
-        And owns an existing API token
-        When "calvin" lists all their tokens
-        Then their API token is in the list
-        And their token is safely described
+        Given "calvin" owns an existing API token named "tiger"
+        When he lists all his tokens
+        Then his "tiger" token is in the list
+        And his token is safely described
 
-    @ignore
     Scenario: Edit API Token Labels
-        And owns an existing API token
-        When "calvin" changes the label associated with the token
-        Then their token will have that new label
+        Given "calvin" owns an existing API token named "tiger"
+        When he changes the label associated with the token
+        Then his token will have that new label
+        And the token's 'last used' property will not be updated
 
-    @ignore
     Scenario: Revoke API Token
-        And owns an existing API token
-        When "calvin" revokes the token
+        Given "calvin" owns an existing API token named "tiger"
+        When he revokes the token
         And the token is used to log in
         Then the login attempt fails
+
+    Scenario: Refresh API Token
+        Given "calvin" owns an existing API token named "tiger"
+        When he refreshes the token
+        And the old token value is used to log in
+        Then the login attempt fails
+        When the new token value is used to log in
+        Then a valid JWT is received that represents "calvin"
+        And the "tiger" token's 'last used' property is updated

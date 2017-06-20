@@ -34,7 +34,6 @@ function promiseToWait(timeToWait) {
  * @return
  */
 function beforeHooks() {
-    // eslint-disable-next-line new-cap
     this.Before((scenario, cb) => {
         env(path.join(__dirname, '../../.func_config'), { raise: false });
         this.gitToken = process.env.GIT_TOKEN;
@@ -61,6 +60,17 @@ function beforeHooks() {
                 retryStrategy: buildRetryStrategy,
                 json: true
             });
+        this.loginWithToken = accessKey =>
+            request({
+                uri: `${this.instance}/${this.namespace}/auth/logout`,
+                method: 'POST',
+                auth: {
+                    bearer: this.jwt
+                }
+            // Actual login is accomplished through getJwt
+            }).then(() => this.getJwt(accessKey).then((response) => {
+                this.loginResponse = response;
+            }));
         cb();
     });
 }

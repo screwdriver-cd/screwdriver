@@ -50,7 +50,7 @@ Example payload:
 
 #### Update a token
 
-`PATCH /tokens/{id}`
+`PUT /tokens/{id}`
 
 **Arguments**
 
@@ -67,7 +67,7 @@ Example payload:
 
 #### Refresh a token value
 
-`PATCH /tokens/{id}/refresh`
+`PUT /tokens/{id}/refresh`
 
 #### Remove a token
 

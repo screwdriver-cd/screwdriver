@@ -7,7 +7,6 @@ const github = require('../support/github');
 const TIMEOUT = 240 * 1000;
 
 module.exports = function server() {
-    // eslint-disable-next-line new-cap
     this.Before({
         tags: ['@gitflow'],
         timeout: TIMEOUT

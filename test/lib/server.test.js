@@ -5,8 +5,6 @@ const boom = require('boom');
 const mockery = require('mockery');
 const sinon = require('sinon');
 
-require('sinon-as-promised');
-
 describe('server case', () => {
     let hapiEngine;
     const ecosystem = {
@@ -105,7 +103,7 @@ describe('server case', () => {
         });
 
         it('callsback errors with register plugins', () => {
-            registrationManMock.rejects('registrationMan fail');
+            registrationManMock.rejects(new Error('registrationMan fail'));
 
             return hapiEngine({ ecosystem }).catch((error) => {
                 Assert.strictEqual('registrationMan fail', error.message);

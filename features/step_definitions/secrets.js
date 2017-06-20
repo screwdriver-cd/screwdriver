@@ -5,7 +5,6 @@ const request = require('../support/request');
 const TIMEOUT = 240 * 1000;
 
 module.exports = function server() {
-    // eslint-disable-next-line new-cap
     this.Before({
         tags: ['@secrets']
     }, () => {
@@ -168,7 +167,6 @@ module.exports = function server() {
         })
     );
 
-    // eslint-disable-next-line new-cap
     this.After({
         tags: ['@secrets']
     }, () =>
