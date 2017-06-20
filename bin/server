@@ -78,6 +78,7 @@ const userFactory = Models.UserFactory.getInstance({
 });
 const buildFactory = Models.BuildFactory.getInstance({
     datastore,
+    dockerRegistry: ecosystem.dockerRegistry,
     scm,
     executor,
     bookend,

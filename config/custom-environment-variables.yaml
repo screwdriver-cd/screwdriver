@@ -151,3 +151,5 @@ ecosystem:
     store: ECOSYSTEM_STORE
     # Badge service (needs to add a status and color)
     badges: ECOSYSTEM_BADGES
+    # Default registry to pull build containers from
+    dockerRegistry: ECOSYSTEM_DOCKER_REGISTRY
