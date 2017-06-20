@@ -15,8 +15,6 @@ module.exports = function server() {
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-shared-steps';
         this.pipelineId = null;
-        this.eventId = null;
-        this.meta = null;
         this.jwt = null;
         this.image = null;
         this.expectedImage = null;
@@ -89,8 +87,6 @@ module.exports = function server() {
                 Assert.equal(resp.statusCode, 201);
 
                 this.buildId = resp.body.id;
-                this.eventId = resp.body.eventId;
-                this.meta = resp.body.meta;
             })
         )
     );
