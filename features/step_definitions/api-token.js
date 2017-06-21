@@ -4,25 +4,27 @@ const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
 const request = require('../support/request');
 const sdapi = require('../support/sdapi');
+const { defineSupportCode } = require('cucumber');
 
-module.exports = function server() {
-    this.Before('@apitoken', () => {
+defineSupportCode(({ Before, Given, When, Then }) => {
+    Before('@apitoken', function hook() {
         this.loginResponse = null;
         this.testToken = null;
         this.updatedToken = null;
     });
 
-    this.Given(/^"calvin" does not own a token named "([^"]*)"$/, token =>
+    Given(/^"calvin" does not own a token named "([^"]*)"$/, function step(token) {
         // Ensure there won't be a conflict: delete the token if it's already there
-        sdapi.cleanupToken({
+        return sdapi.cleanupToken({
             token,
             instance: this.instance,
             namespace: this.namespace,
             jwt: this.jwt
-        }));
+        });
+    });
 
-    this.When(/^a new API token named "([^"]*)" is generated$/, tokenName =>
-        request({
+    When(/^a new API token named "([^"]*)" is generated$/, function step(tokenName) {
+        return request({
             uri: `${this.instance}/${this.namespace}/tokens`,
             method: 'POST',
             auth: {
@@ -39,12 +41,14 @@ module.exports = function server() {
             // encoded with https://www.npmjs.com/package/base64url
             Assert.match(response.body.value, /[a-zA-Z0-9_-]{43}/);
             this.testToken = response.body;
-        }));
+        });
+    });
 
-    this.When(/^the token is used to log in$/, () =>
-        this.loginWithToken(this.testToken.value));
+    When(/^the token is used to log in$/, function step() {
+        return this.loginWithToken(this.testToken.value);
+    });
 
-    this.Then(/^a valid JWT is received that represents "calvin"$/, () => {
+    Then(/^a valid JWT is received that represents "calvin"$/, function step() {
         Assert.strictEqual(this.loginResponse.statusCode, 200);
 
         const decodedToken = jwt.decode(this.loginResponse.body.token);
@@ -52,8 +56,8 @@ module.exports = function server() {
         Assert.strictEqual(decodedToken.username, this.username);
     });
 
-    this.Then(/^the "([^"]*)" token's 'last used' property is updated$/, tokenName =>
-        request({
+    Then(/^the "([^"]*)" token's 'last used' property is updated$/, function step(tokenName) {
+        return request({
             uri: `${this.instance}/${this.namespace}/tokens`,
             method: 'GET',
             auth: {
@@ -66,10 +70,11 @@ module.exports = function server() {
                 .lastUsed;
 
             Assert.notEqual(lastUsed, '');
-        }));
+        });
+    });
 
-    this.Given(/^"calvin" owns an existing API token named "([^"]*)"$/, tokenName =>
-        request({
+    Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tokenName) {
+        return request({
             uri: `${this.instance}/${this.namespace}/tokens`,
             method: 'POST',
             auth: {
@@ -101,10 +106,11 @@ module.exports = function server() {
                 this.testToken = listResponse.body
                     .find(token => token.name === tokenName);
             });
-        }));
+        });
+    });
 
-    this.When(/^he lists all his tokens$/, () =>
-        request({
+    When(/^he lists all his tokens$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/tokens`,
             method: 'GET',
             auth: {
@@ -115,9 +121,10 @@ module.exports = function server() {
             Assert.strictEqual(response.statusCode, 200);
 
             this.tokenList = response.body;
-        }));
+        });
+    });
 
-    this.Then(/^his "([^"]*)" token is in the list$/, (tokenName) => {
+    Then(/^his "([^"]*)" token is in the list$/, function step(tokenName) {
         const match = this.tokenList.find(token => token.name === tokenName);
 
         Assert.isOk(match);
@@ -125,7 +132,7 @@ module.exports = function server() {
         this.testToken = match;
     });
 
-    this.Then(/^his token is safely described$/, () => {
+    Then(/^his token is safely described$/, function step() {
         const expectedKeys = ['id', 'name', 'lastUsed'];
         const forbiddenKeys = ['hash', 'value'];
 
@@ -136,7 +143,7 @@ module.exports = function server() {
             Assert.notProperty(this.testToken, property));
     });
 
-    this.When(/^he changes the label associated with the token$/, () => {
+    When(/^he changes the label associated with the token$/, function step() {
         // Make sure update is getting called with a value that isn't already there
         this.newDescription = this.testToken.description === 'tiger' ? 'not tiger' : 'tiger';
 
@@ -157,29 +164,30 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^his token will have that new label$/, () => {
+    Then(/^his token will have that new label$/, function step() {
         Assert.strictEqual(this.updatedToken.description, this.newDescription);
     });
 
-    this.Then(/^the token's 'last used' property will not be updated$/, () => {
+    Then(/^the token's 'last used' property will not be updated$/, function step() {
         Assert.strictEqual(this.updatedToken.lastUsed, this.testToken.lastUsed);
     });
 
-    this.When(/^he revokes the token$/, () =>
-        request({
+    When(/^he revokes the token$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
             method: 'DELETE',
             auth: {
                 bearer: this.jwt
             }
-        }).then(response => Assert.strictEqual(response.statusCode, 204)));
+        }).then(response => Assert.strictEqual(response.statusCode, 204));
+    });
 
-    this.Then(/^the login attempt fails$/, () => {
+    Then(/^the login attempt fails$/, function step() {
         Assert.strictEqual(this.loginResponse.statusCode, 401);
     });
 
-    this.When(/^he refreshes the token$/, () =>
-        request({
+    When(/^he refreshes the token$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}/refresh`,
             method: 'PUT',
             auth: {
@@ -190,11 +198,14 @@ module.exports = function server() {
             Assert.strictEqual(response.statusCode, 200);
 
             this.updatedToken = response.body;
-        }));
+        });
+    });
 
-    this.When(/^the old token value is used to log in$/, () =>
-        this.loginWithToken(this.testToken.value));
+    When(/^the old token value is used to log in$/, function step() {
+        return this.loginWithToken(this.testToken.value);
+    });
 
-    this.When(/^the new token value is used to log in$/, () =>
-        this.loginWithToken(this.updatedToken.value));
-};
+    When(/^the new token value is used to log in$/, function step() {
+        return this.loginWithToken(this.updatedToken.value);
+    });
+});

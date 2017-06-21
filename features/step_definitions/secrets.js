@@ -2,56 +2,29 @@
 
 const Assert = require('chai').assert;
 const request = require('../support/request');
+const { defineSupportCode } = require('cucumber');
+
 const TIMEOUT = 240 * 1000;
 
-module.exports = function server() {
-    this.Before({
-        tags: ['@secrets']
-    }, () => {
-        this.repoOrg = this.testOrg;
+defineSupportCode(({ Before, Given, When, Then, After }) => {
+    Before({
+        tags: '@secrets'
+    }, function hook() {
         this.repoName = 'functional-secrets';
         this.pipelineId = null;
         this.secretId = null;
     });
 
-    this.Given(/^an existing repository for secret with these users and permissions:$/,
-        { timeout: TIMEOUT }, table =>
-        this.getJwt(this.accessKey)
-        .then((response) => {
-            this.jwt = response.body.token;
+    Given(/^an existing repository for secret with these users and permissions:$/,
+        { timeout: TIMEOUT }, function step(table) {
+            return this.ensurePipelineExists({ repoName: this.repoName })
+                .then(() => table);
+        });
 
-            return request({
-                uri: `${this.instance}/${this.namespace}/pipelines`,
-                method: 'POST',
-                auth: {
-                    bearer: this.jwt
-                },
-                body: {
-                    checkoutUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
-                },
-                json: true
-            });
-        })
-        .then((response) => {
-            Assert.oneOf(response.statusCode, [409, 201]);
+    Given(/^an existing pipeline with that repository with the workflow:$/, table => table);
 
-            if (response.statusCode === 201) {
-                this.pipelineId = response.body.id;
-            } else {
-                const str = response.body.message;
-                const id = str.split(': ')[1];
-
-                this.pipelineId = id;
-            }
-
-            return table;
-        })
-    );
-
-    this.Given(/^an existing pipeline with that repository with the workflow:$/, table => table);
-
-    this.When(/^a secret "foo" is added globally$/, () =>
-        request({
+    When(/^a secret "foo" is added globally$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/secrets`,
             method: 'POST',
             body: {
@@ -68,51 +41,38 @@ module.exports = function server() {
             Assert.equal(response.statusCode, 201);
 
             this.secretId = response.body.id;
-        })
-    );
+        });
+    });
 
-    this.When(/^the "main" job is started$/, { timeout: TIMEOUT }, () =>
-        request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
-            method: 'GET',
+    When(/^the "main" job is started$/, { timeout: TIMEOUT }, function step() {
+        return request({
+            uri: `${this.instance}/${this.namespace}/builds`,
+            method: 'POST',
+            body: {
+                jobId: this.jobId
+            },
+            auth: {
+                bearer: this.jwt
+            },
             json: true
-        }).then((response) => {
-            Assert.equal(response.statusCode, 200);
+        }).then((resp) => {
+            Assert.equal(resp.statusCode, 201);
 
-            this.jobId = response.body[0].id;
-            this.secondJobId = response.body[1].id;
-            this.thirdJobId = typeof response.body[2] === 'object' ? response.body[2].id : null;
-            this.lastJobId = response.body.reverse().find(b => typeof b === 'object').id || null;
-        })
-        .then(() =>
-            request({
-                uri: `${this.instance}/${this.namespace}/builds`,
-                method: 'POST',
-                body: {
-                    jobId: this.jobId
-                },
-                auth: {
-                    bearer: this.jwt
-                },
-                json: true
-            }).then((resp) => {
-                Assert.equal(resp.statusCode, 201);
+            this.buildId = resp.body.id;
+            this.eventId = resp.body.eventId;
+        });
+    });
 
-                this.buildId = resp.body.id;
-                this.eventId = resp.body.eventId;
-            })
-        )
-    );
-
-    this.Then(/^the "foo" secret should be available in the build$/, { timeout: TIMEOUT }, () =>
-        this.waitForBuild(this.buildId).then((response) => {
+    Then(/^the "foo" secret should be available in the build$/,
+    { timeout: TIMEOUT }, function step() {
+        return this.waitForBuild(this.buildId).then((response) => {
             Assert.equal(response.body.status, 'SUCCESS');
             Assert.equal(response.statusCode, 200);
-        })
-    );
+        });
+    });
 
-    this.When(/^the "second" job is started$/, { timeout: TIMEOUT }, () =>
-        request({
+    When(/^the "second" job is started$/, { timeout: TIMEOUT }, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
             method: 'GET',
             json: true
@@ -123,11 +83,11 @@ module.exports = function server() {
                 Assert.equal(resp.body.status, 'SUCCESS');
                 Assert.equal(resp.statusCode, 200);
             });
-        })
-    );
+        });
+    });
 
-    this.Then(/^the user can view the secret exists$/, () =>
-        request({
+    Then(/^the user can view the secret exists$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
             method: 'GET',
             auth: {
@@ -137,11 +97,11 @@ module.exports = function server() {
         }).then((response) => {
             Assert.isNotNull(response.body.name);
             Assert.equal(response.statusCode, 200);
-        })
-    );
+        });
+    });
 
-    this.Then(/^the user can not view the secret exists$/, () =>
-        request({
+    Then(/^the user can not view the secret exists$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
             method: 'GET',
             auth: {
@@ -150,11 +110,11 @@ module.exports = function server() {
             json: true
         }).then((response) => {
             Assert.equal(response.statusCode, 403);
-        })
-    );
+        });
+    });
 
-    this.Then(/^the user can not view the value$/, () =>
-        request({
+    Then(/^the user can not view the value$/, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
             method: 'GET',
             auth: {
@@ -164,13 +124,13 @@ module.exports = function server() {
         }).then((response) => {
             Assert.isUndefined(response.body.value);
             Assert.equal(response.statusCode, 200);
-        })
-    );
+        });
+    });
 
-    this.After({
-        tags: ['@secrets']
-    }, () =>
-        request({
+    After({
+        tags: '@secrets'
+    }, function hook() {
+        return request({
             uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
             method: 'DELETE',
             auth: {
@@ -179,6 +139,6 @@ module.exports = function server() {
             json: true
         }).then((response) => {
             Assert.equal(response.statusCode, 204);
-        })
-    );
-};
+        });
+    });
+});

@@ -4,13 +4,15 @@ const Assert = require('chai').assert;
 const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
+const { defineSupportCode } = require('cucumber');
+
 const TIMEOUT = 240 * 1000;
 
-module.exports = function server() {
-    this.Before({
-        tags: ['@gitflow'],
+defineSupportCode(({ Before, Given, When, Then }) => {
+    Before({
+        tags: '@gitflow',
         timeout: TIMEOUT
-    }, () => {
+    }, function hook() {
         this.branch = 'darrenBranch';
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-git';
@@ -32,10 +34,10 @@ module.exports = function server() {
         );
     });
 
-    this.Given(/^an existing pipeline$/, {
+    Given(/^an existing pipeline$/, {
         timeout: TIMEOUT
-    }, () =>
-        request({
+    }, function step() {
+        return request({
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
             auth: {
@@ -56,12 +58,12 @@ module.exports = function server() {
 
                 this.pipelineId = id;
             }
-        })
-    );
+        });
+    });
 
-    this.Given(/^an existing pull request targeting the pipeline's branch$/, {
+    Given(/^an existing pull request targeting the pipeline's branch$/, {
         timeout: TIMEOUT
-    }, () => {
+    }, function step() {
         const branch = this.branch;
         const token = this.gitToken;
 
@@ -80,7 +82,7 @@ module.exports = function server() {
             });
     });
 
-    this.When(/^a pull request is opened$/, { timeout: TIMEOUT }, () => {
+    When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
         const branch = this.branch;
         const token = this.gitToken;
 
@@ -95,12 +97,12 @@ module.exports = function server() {
             });
     });
 
-    this.When(/^it is targeting the pipeline's branch$/, () => null);
+    When(/^it is targeting the pipeline's branch$/, () => null);
 
-    this.When(/^the pull request is closed$/, {
+    When(/^the pull request is closed$/, {
         timeout: TIMEOUT
-    }, () =>
-        this.promiseToWait(3)  // Wait for the build to be enabled before moving forward
+    }, function step() {
+        return this.promiseToWait(3)  // Wait for the build to be enabled before moving forward
         .then(() =>
             sdapi.searchForBuild({
                 instance: this.instance,
@@ -113,13 +115,13 @@ module.exports = function server() {
             this.previousBuildId = buildData.id;
         }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
                 this.pullRequestNumber)
-        )
-    );
+        );
+    });
 
-    this.When(/^new changes are pushed to that pull request$/, {
+    When(/^new changes are pushed to that pull request$/, {
         timeout: TIMEOUT
-    }, () =>
-        this.promiseToWait(3)  // Find & save the previous build
+    }, function step() {
+        return this.promiseToWait(3)  // Find & save the previous build
         .then(() =>
             sdapi.searchForBuild({
                 instance: this.instance,
@@ -132,21 +134,21 @@ module.exports = function server() {
             })
         )
         .then(() => github.createFile(this.gitToken, this.branch, this.repoOrg,
-            this.repoName))
-    );
+            this.repoName));
+    });
 
-    this.When(/^a new commit is pushed$/, () => null);
+    When(/^a new commit is pushed$/, () => null);
 
-    this.When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, () => {
+    When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
         this.testBranch = 'master';
 
         return github.createFile(this.gitToken, this.testBranch, this.repoOrg, this.repoName);
     });
 
-    this.Then(/^a new build from `main` should be created to test that change$/, {
+    Then(/^a new build from `main` should be created to test that change$/, {
         timeout: TIMEOUT
-    }, () =>
-        this.promiseToWait(8)
+    }, function step() {
+        return this.promiseToWait(8)
         .then(() => sdapi.searchForBuild({
             instance: this.instance,
             pipelineId: this.pipelineId,
@@ -157,11 +159,11 @@ module.exports = function server() {
 
             Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
             this.jobId = build.jobId;
-        })
-    );
+        });
+    });
 
-    this.Then(/^the build should know they are in a pull request/, () =>
-        request({
+    Then(/^the build should know they are in a pull request/, function step() {
+        return request({
             json: true,
             method: 'GET',
             uri: `${this.instance}/${this.namespace}/jobs/${this.jobId}`
@@ -169,12 +171,12 @@ module.exports = function server() {
         .then((response) => {
             Assert.strictEqual(response.statusCode, 200);
             Assert.match(response.body.name, /^PR-(.*)$/);
-        })
-    );
+        });
+    });
 
-    this.Then(/^any existing builds should be stopped$/, {
+    Then(/^any existing builds should be stopped$/, {
         timeout: TIMEOUT
-    }, () => {
+    }, function step() {
         const desiredStatus = ['ABORTED', 'SUCCESS'];
 
         return sdapi.waitForBuildStatus({
@@ -187,10 +189,10 @@ module.exports = function server() {
         });
     });
 
-    this.Then(/^the GitHub status should be updated to reflect the build's status$/, () =>
-        github.getStatus(this.gitToken, this.repoOrg, this.repoName, this.sha)
+    Then(/^the GitHub status should be updated to reflect the build's status$/, function step() {
+        return github.getStatus(this.gitToken, this.repoOrg, this.repoName, this.sha)
         .then((data) => {
             Assert.oneOf(data.state, ['success', 'pending']);
-        })
-    );
-};
+        });
+    });
+});

@@ -7,7 +7,7 @@
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 3000",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty --tags ~@ignore"
+    "functional": "cucumber-js --format=pretty --tags 'not @ignore'"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -100,7 +100,7 @@
     "chai-as-promised": "^6.0.0",
     "chai-jwt": "^2.0.0",
     "coveralls": "^2.11.12",
-    "cucumber": "^1.0.0",
+    "cucumber": "2.3.1",
     "eslint": "^3.2.2",
     "eslint-config-screwdriver": "^2.0.0",
     "github": "^8.1.1",

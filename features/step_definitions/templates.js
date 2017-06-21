@@ -4,9 +4,10 @@ const fs = require('mz/fs');
 const request = require('../support/request');
 const path = require('path');
 const Assert = require('chai').assert;
+const { defineSupportCode } = require('cucumber');
 
-module.exports = function server() {
-    this.Given(/^a (valid|invalid)\b job-level template$/, (templateType) => {
+defineSupportCode(({ Given, When, Then }) => {
+    Given(/^a (valid|invalid)\b job-level template$/, function step(templateType) {
         let targetFile = '';
 
         switch (templateType) {
@@ -26,8 +27,8 @@ module.exports = function server() {
         });
     });
 
-    this.When(/^they submit it to the API$/, () =>
-        this.getJwt(this.accessKey)
+    When(/^they submit it to the API$/, function step() {
+        return this.getJwt(this.accessKey)
         .then((response) => {
             const jwt = response.body.token;
 
@@ -47,10 +48,10 @@ module.exports = function server() {
             Assert.equal(response.statusCode, 200);
 
             this.body = response.body;
-        })
-    );
+        });
+    });
 
-    this.Then(/^they are notified it has (no|some) errors$/, (quantity) => {
+    Then(/^they are notified it has (no|some) errors$/, function step(quantity) {
         switch (quantity) {
         case 'no':
             Assert.equal(this.body.errors.length, 0);
@@ -67,4 +68,4 @@ module.exports = function server() {
 
         return null;
     });
-};
+});
