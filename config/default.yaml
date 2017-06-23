@@ -87,8 +87,10 @@ datastore:
         # http://docs.sequelizejs.com/en/latest/api/sequelize/
 
 executor:
-    plugin: k8s
+    # Default executor
+    plugin: docker
     k8s:
+      options:
         kubernetes:
             # The host or IP of the kubernetes cluster
             host: kubernetes.default
@@ -99,6 +101,7 @@ executor:
         # Container tags to use
         launchVersion: stable
     docker:
+      options:
         # Dockerode configuration https://github.com/apocas/dockerode#getting-started
         docker: {}
 
