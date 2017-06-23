@@ -11,6 +11,7 @@ describe('Register Unit Test Case', () => {
         'inert',
         'vision',
         '../plugins/status',
+        '../plugins/versions',
         '../plugins/logging',
         '../plugins/swagger',
         '../plugins/validator',
