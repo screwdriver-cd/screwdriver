@@ -96,7 +96,6 @@ executor:
             host: kubernetes.default
             # The jwt token used for authenticating kubernetes requests
             # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
-            # token:
 
         # Container tags to use
         launchVersion: stable
@@ -106,6 +105,17 @@ executor:
         docker: {}
 
         # Container tags to use
+        launchVersion: stable
+    k8s-vm:
+      options:
+        # Configuration of Docker
+        kubernetes:
+            # The host or IP of the kubernetes cluster
+            host: kubernetes.default
+            # The jwt token used for authenticating kubernetes requests
+            # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
+
+        # Launcher container tag to use
         launchVersion: stable
 
 scm:
