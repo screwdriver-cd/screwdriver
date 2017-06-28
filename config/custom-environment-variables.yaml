@@ -88,6 +88,20 @@ executor:
         launchVersion: LAUNCH_VERSION
         # Prefix to the container
         prefix: EXECUTOR_PREFIX
+    k8s-vm:
+      options:
+        # Configuration of Docker
+        kubernetes:
+            # The host or IP of the kubernetes cluster
+            host: K8S_HOST
+            # The jwt token used for authenticating kubernetes requests
+            token: K8S_TOKEN
+            jobsNamespace: K8S_JOBS_NAMESPACE
+            baseImage: K8S_BASE_IMAGE
+        # Launcher container tag to use
+        launchVersion: LAUNCH_VERSION
+        # Prefix to the container
+        prefix: EXECUTOR_PREFIX
 
 scm:
     plugin: SCM_PLUGIN
