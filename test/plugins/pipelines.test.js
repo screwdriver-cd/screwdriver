@@ -7,6 +7,7 @@ const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
+const updatedPipeline = require('./data/updatedPipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
@@ -55,7 +56,6 @@ const decoratePipelineMock = (pipeline) => {
     mock.addWebhook = sinon.stub();
     mock.syncPRs = sinon.stub();
     mock.update = sinon.stub();
-    mock.formatCheckoutUrl = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
@@ -137,6 +137,7 @@ describe('pipeline plugin test', () => {
         pipelineFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
+            update: sinon.stub(),
             list: sinon.stub(),
             scm: {
                 parseUrl: sinon.stub()
@@ -981,6 +982,146 @@ describe('pipeline plugin test', () => {
             const testError = new Error('pipelineModelAddWebhookError');
 
             pipelineMock.addWebhook.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /pipelines/{id}', () => {
+        let options;
+        const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
+        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const scmUri = 'github.com:12345:master';
+        const scmRepo = {
+            id: 'github.com:123456:master'
+        };
+        const id = 123;
+        const token = 'secrettoken';
+        const username = 'd2lam';
+        let pipelineMock;
+        let updatedPipelineMock;
+        let userMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/pipelines/${id}`,
+                payload: {
+                    checkoutUrl: unformattedCheckoutUrl
+                },
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            userMock = getUserMock({ username });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userMock.unsealToken.resolves(token);
+            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+
+            pipelineMock = getPipelineMocks(testPipeline);
+            updatedPipelineMock = hoek.clone(pipelineMock);
+            updatedPipelineMock.scmUri = 'github.com:12345:master';
+            updatedPipelineMock.admins = {
+                d2lam: true
+            };
+
+            pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
+            pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
+            pipelineMock.update.resolves(updatedPipelineMock);
+            pipelineMock.sync.resolves(updatedPipelineMock);
+            pipelineMock.toJson.returns(updatedPipeline);
+            pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+            scmMock.decorateUrl.resolves(scmRepo);
+        });
+
+        it('returns 200 and correct pipeline data', () =>
+            server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, updatedPipeline);
+                assert.calledOnce(pipelineMock.update);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('formats the checkout url correctly', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    checkoutUrl: formattedCheckoutUrl,
+                    token
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('formats the checkout url correctly branch is provided', () => {
+            options.payload.checkoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git#branchName';
+            formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#branchName';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    checkoutUrl: formattedCheckoutUrl,
+                    token
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('returns 404 when the pipeline id is not found', () => {
+            pipelineFactoryMock.get.withArgs({ id }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 401 when the user does not have admin permissions', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 409 when the pipeline already exists', () => {
+            pipelineFactoryMock.get.withArgs({ scmUri }).resolves(pipelineMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 409);
+                assert.strictEqual(reply.result.message,
+                    `Pipeline already exists with the ID: ${pipelineMock.id}`);
+            });
+        });
+
+        it('returns 500 when the pipeline model fails to get', () => {
+            const testError = new Error('pipelineModelGetError');
+
+            pipelineFactoryMock.get.withArgs({ id }).rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the pipeline model fails to update', () => {
+            const testError = new Error('pipelineModelUpdateError');
+
+            pipelineMock.update.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the pipeline model fails to sync during create', () => {
+            const testError = new Error('pipelineModelSyncError');
+
+            pipelineMock.sync.rejects(testError);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);

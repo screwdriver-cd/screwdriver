@@ -55,6 +55,22 @@ Example payload:
 }
 ```
 
+#### Update a pipeline
+You can update the checkoutUrl of a pipeline.
+
+`PUT /pipelines/{id}`
+
+**Arguments**
+
+* `checkoutUrl` - Source code URL for the application. For a git-based repository, it is typically the SSH endpoint and the branch name, separated by a octothorpe. Must be unique.
+
+Example payload:
+```json
+{
+  "checkoutUrl": "git@github.com:screwdriver-cd/data-model.git#master"
+}
+```
+
 #### Delete a pipeline
 
 `DELETE /pipelines/{id}`
