@@ -88,7 +88,7 @@
     "screwdriver-executor-docker": "^2.2.2",
     "screwdriver-executor-k8s": "^10.3.3",
     "screwdriver-executor-k8s-vm": "^0.0.2",
-    "screwdriver-executor-router": "^0.1.2",
+    "screwdriver-executor-router": "^1.0.0",
     "screwdriver-models": "^22.2.2",
     "screwdriver-notifications-email": "^1.1.2",
     "screwdriver-scm-bitbucket": "^2.8.1",
