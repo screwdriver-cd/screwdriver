@@ -42,7 +42,7 @@ defineSupportCode(({ Before, Given, Then }) => {
         });
     });
 
-    Then(/^they can see the project$/, { timeout: TIMEOUT }, function step() {
+    Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
         return request({                           // make sure pipeline exists (TODO: move to Given an existing pipeline with that repository scenario)
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',

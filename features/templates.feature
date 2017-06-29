@@ -70,7 +70,7 @@ Feature: Templates
     Scenario Outline: Publish template stores the template
         Given a template with a(n) <format> format
         And the template does not exist
-        When a project with the <permission> permissions publishes the template
+        When a pipeline with the <permission> permissions publishes the template
         Then the template <stored> stored
 
         Examples:
