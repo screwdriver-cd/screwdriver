@@ -28,26 +28,33 @@ Feature: Authorization
     @ignore
     Scenario: No Access
         And "miss wormwood" is logged in
-        Then they can not see the project
+        Then they can not see the pipeline
         And they can not start the "main" job
         And they can not delete the pipeline
 
     @ignore
     Scenario: Read Only
         And "susie" is logged in
-        Then they can see the project
+        Then they can see the pipeline
         And they can not start the "main" job
         And they can not delete the pipeline
 
     @ignore
     Scenario: Committer
         And "hobbes" is logged in
-        Then they can see the project
+        Then they can see the pipeline
         And they can start the "main" job
         And they can not delete the pipeline
 
     Scenario: Admin
         And "calvin" is logged in
-        Then they can see the project
+        Then they can see the pipeline
         And they can start the "main" job
         And they can delete the pipeline
+
+    @ignore
+    Scenario: Admin2
+        And "calvin" is logged in
+        And they update the checkoutUrl
+        Then the pipeline checkoutUrl is updated
+        And the pipeline has the same id as before
