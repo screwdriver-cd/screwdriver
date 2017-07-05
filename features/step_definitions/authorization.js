@@ -34,6 +34,10 @@ defineSupportCode(({ Before, Given, Then }) => {
             case 'calvin':
                 Assert.strictEqual(decodedToken.username, this.username);
                 break;
+            case 'github:calvin':
+                Assert.strictEqual(decodedToken.username, this.username);
+                Assert.strictEqual(decodedToken.scmContext, this.scmContext);
+                break;
             default:
                 return Promise.resolve('pending');
             }
