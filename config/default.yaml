@@ -29,35 +29,40 @@ auth:
     https: false
     # Whitelist of users able to authenticate against the system
     # if empty, it allows everyone
-    # @TODO remove this in the future
+    # @TODO Move this content to our configuration and change the default to []
     whitelist:
+        # Primary Contributors
         - FenrirUnbound
-        - Filbird
         - cynthiax
         - d2lam
         - dvdizon
         - ian-fox
         - jer
         - joelseq
-        - jpae
         - minz1027
-        - nkatzman
         - petey
         - r3rastogi
-        - sd-buildbot
         - stjohnjohnson
         - tkyi
-        - tonytamsf
+        # Automated Account
+        - sd-buildbot
+        # Pilots
+        - aressem
+        - bjorncs
+        - gjoranv2
         - jpcollins
+        - tonytamsf
     admins:
         - FenrirUnbound
         - cynthiax
         - d2lam
         - dvdizon
+        - ian-fox
         - jer
+        - joelseq
         - minz1027
-        - outofjungle
         - petey
+        - r3rastogi
         - stjohnjohnson
         - tkyi
 
