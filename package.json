@@ -92,7 +92,7 @@
     "screwdriver-models": "^22.2.2",
     "screwdriver-notifications-email": "^1.1.2",
     "screwdriver-scm-bitbucket": "^2.8.1",
-    "screwdriver-scm-github": "4.8.2",
+    "screwdriver-scm-github": "^4.8.2",
     "screwdriver-scm-gitlab": "^0.1.0",
     "screwdriver-template-validator": "^3.0.0",
     "tinytim": "^0.1.1",
