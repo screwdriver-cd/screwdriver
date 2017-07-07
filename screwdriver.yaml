@@ -55,7 +55,7 @@ jobs:
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
-            - ACCESS_KEY
+            - API_TOKEN
             # Git access token
             - GIT_TOKEN
             # Talking to Kubernetes
@@ -83,7 +83,7 @@ jobs:
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
-            - ACCESS_KEY
+            - API_TOKEN
             # Git access token
             - GIT_TOKEN
             # Talking to Kubernetes

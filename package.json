@@ -7,7 +7,8 @@
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 3000",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty --tags 'not @ignore'"
+    "functional": "cucumber-js --format=pretty --tags 'not @ignore'",
+    "create-test-user": "node ./features/scripts/create-test-user.js"
   },
   "bin": {
     "screwdriver-api": "./bin/server"

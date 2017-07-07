@@ -20,10 +20,6 @@ auth:
     # A password used for encrypting stored secrets.
     # **Needs to be minimum 32 characters**
     encryptionPassword: WOW-ANOTHER-MORE-INSECURE-PASSWORD!!!
-    # A single access token used as an alternative to the Oauth login flow
-    temporaryAccessKey: someAccessTokenThatIsTemporaryForUsingInTheMeantime
-    # User name that is associated with the temporary access key
-    temporaryAccessUser: quality_automation
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false

@@ -39,7 +39,7 @@ function promiseToWait(timeToWait) {
  * @return {Promise}
  */
 function ensurePipelineExists(config) {
-    return this.getJwt(this.accessKey)
+    return this.getJwt(this.apiToken)
         .then((response) => {
             this.jwt = response.body.token;
 
@@ -95,7 +95,7 @@ function CustomWorld({ attach, parameters }) {
     this.parameters = parameters;
     env(path.join(__dirname, '../../.func_config'), { raise: false });
     this.gitToken = process.env.GIT_TOKEN;
-    this.accessKey = process.env.ACCESS_KEY;
+    this.apiToken = process.env.API_TOKEN;
     this.protocol = process.env.PROTOCOL || 'https';
     this.instance = `${this.protocol}://${process.env.SD_API}`;
     this.testOrg = process.env.TEST_ORG;
@@ -103,12 +103,12 @@ function CustomWorld({ attach, parameters }) {
     this.scmContext = process.env.TEST_SCM_CONTEXT;
     this.namespace = 'v4';
     this.promiseToWait = time => promiseToWait(time);
-    this.getJwt = accessKey =>
+    this.getJwt = apiToken =>
         request({
             followAllRedirects: true,
             json: true,
             method: 'GET',
-            url: `${this.instance}/${this.namespace}/auth/token?access_key=${accessKey}`
+            url: `${this.instance}/${this.namespace}/auth/token?api_token=${apiToken}`
         });
     this.waitForBuild = buildID =>
         requestretry({
@@ -119,7 +119,7 @@ function CustomWorld({ attach, parameters }) {
             retryStrategy: buildRetryStrategy,
             json: true
         });
-    this.loginWithToken = accessKey =>
+    this.loginWithToken = apiToken =>
         request({
             uri: `${this.instance}/${this.namespace}/auth/logout`,
             method: 'POST',
@@ -127,7 +127,7 @@ function CustomWorld({ attach, parameters }) {
                 bearer: this.jwt
             }
         // Actual login is accomplished through getJwt
-        }).then(() => this.getJwt(accessKey).then((response) => {
+        }).then(() => this.getJwt(apiToken).then((response) => {
             this.loginResponse = response;
         }));
     this.ensurePipelineExists = ensurePipelineExists;

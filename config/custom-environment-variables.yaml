@@ -10,12 +10,6 @@ auth:
     # Generate one by running
     # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
     jwtPublicKey: SECRET_JWT_PUBLIC_KEY
-    # The access token to use on behalf of a user to access the API. Used as
-    # an alternative to the OAuth flow
-    temporaryAccessKey: SECRET_ACCESS_KEY
-    # The user name associated with the temproary access token. Used as a
-    # means of functionally testing the API
-    temporaryAccessUser: SECRET_ACCESS_USER
     # A password used for encrypting session data.
     # **Needs to be minimum 32 characters**
     cookiePassword: SECRET_COOKIE_PASSWORD
