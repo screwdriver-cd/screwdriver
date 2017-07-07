@@ -100,6 +100,7 @@ function CustomWorld({ attach, parameters }) {
     this.instance = `${this.protocol}://${process.env.SD_API}`;
     this.testOrg = process.env.TEST_ORG;
     this.username = process.env.TEST_USERNAME;
+    this.scmContext = process.env.TEST_SCM_CONTEXT;
     this.namespace = 'v4';
     this.promiseToWait = time => promiseToWait(time);
     this.getJwt = accessKey =>
