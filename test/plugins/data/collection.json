@@ -1,0 +1,7 @@
+{
+    "id": 12,
+    "name": "screwdriver",
+    "description": "pipelines for screwdriver",
+    "userId": 34,
+    "pipelineIds": [12, 34, 56, 78]
+}

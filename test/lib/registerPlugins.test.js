@@ -20,6 +20,7 @@ describe('Register Unit Test Case', () => {
     const resourcePlugins = [
         '../plugins/auth',
         '../plugins/builds',
+        '../plugins/collections',
         '../plugins/events',
         '../plugins/jobs',
         '../plugins/pipelines',
