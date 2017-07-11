@@ -49,7 +49,9 @@ module.exports = () => ({
                         .then((pipeline) => {
                             if (pipeline) {
                                 throw boom.conflict(
-                                    `Pipeline already exists with the ID: ${pipeline.id}`);
+                                    `Pipeline already exists with the ID: ${pipeline.id}`,
+                                    { existingId: pipeline.id }
+                                );
                             }
                         })
                         // set up pipeline admins, and create a new pipeline
