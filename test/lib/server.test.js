@@ -136,6 +136,16 @@ describe('server case', () => {
                     }
                 });
 
+                server.route({
+                    method: 'GET',
+                    path: '/noWithResponse',
+                    handler: (request, reply) => {
+                        const response = boom.wrap(boom.conflict('conflict', { conflictOn: 1 }));
+
+                        return reply(response);
+                    }
+                });
+
                 return Promise.resolve();
             });
             /* eslint-disable global-require */
@@ -174,6 +184,21 @@ describe('server case', () => {
                 }).then((response) => {
                     Assert.equal(response.statusCode, 500);
                     Assert.equal(JSON.parse(response.payload).message, 'whatStackTrace');
+                })
+            ))
+        ));
+
+        it('responds with error response data', () => (
+            hapiEngine({ ecosystem }).then(server => (
+                server.inject({
+                    method: 'GET',
+                    url: '/noWithResponse'
+                }).then((response) => {
+                    const { message, data } = JSON.parse(response.payload);
+
+                    Assert.equal(response.statusCode, 409);
+                    Assert.equal(message, 'conflict');
+                    Assert.deepEqual(data, { conflictOn: 1 });
                 })
             ))
         ));
