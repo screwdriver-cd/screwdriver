@@ -26,8 +26,6 @@ const ALGORITHM = 'RS256';
  * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
  * @param  {Object}   options.scm                    SCM class to setup Authentication
- * @param  {String}   [options.temporaryAccessKey]   Alternative access token to use for authentication
- * @param  {String}   [options.temporaryAccessUser]  User name associated with the access token
  * @param  {Function} next                           Function to call when done
  */
 exports.register = (server, options, next) => {
@@ -35,8 +33,6 @@ exports.register = (server, options, next) => {
         https: joi.boolean().truthy('true').falsy('false').required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
-        temporaryAccessKey: joi.string().optional(),
-        temporaryAccessUser: joi.string().optional(),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
@@ -110,17 +106,10 @@ exports.register = (server, options, next) => {
                 }
             });
             server.auth.strategy('auth_token', 'bearer-access-token', {
-                accessTokenName: 'access_key',
+                accessTokenName: 'api_token',
                 allowCookieToken: false,
                 allowQueryToken: true,
                 validateFunc: function _validateFunc(token, cb) {
-                    if (token === pluginOptions.temporaryAccessKey) {
-                        return cb(null, true, {
-                            username: pluginOptions.temporaryAccessUser,
-                            scope: ['user']
-                        });
-                    }
-
                     // Token is an API token
                     // using function syntax makes 'this' the request
                     // TODO: Should log that we're authenticating a user with a token

@@ -33,7 +33,7 @@ server.register({
 
 #### Get a token
 
-`GET /auth/token` (with OAuth) or `GET /auth/token?access_key=YOUR_ACCESS_KEY` (with API token)
+`GET /auth/token` (with OAuth) or `GET /auth/token?api_token=YOUR_API_TOKEN` (with API token)
 
 #### Get a public key for verifying JSON Web Tokens (JWTs)
 
