@@ -1,0 +1,23 @@
+[
+    {
+        "id": 12,
+        "name": "collection1",
+        "description": "pipelines for collection 1",
+        "userId": 34,
+        "pipelineIds": [123, 124, 125]
+    },
+    {
+        "id": 13,
+        "name": "collection2",
+        "description": "pipelines for collection 2",
+        "userId": 34,
+        "pipelineIds": [123, 124, 125]
+    },
+    {
+        "id": 14,
+        "name": "collection3",
+        "description": "pipelines for collection 3",
+        "userId": 34,
+        "pipelineIds": [123, 124, 125]
+    }
+]
