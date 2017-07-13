@@ -32,7 +32,7 @@ server.register({
 
 `GET /templates?page={pageNumber}&count={countNumber}`
 
-#### Get single template
+#### Get a single template
 
 You can get a single template by providing the template name and the specific version or the tag.
 
@@ -47,13 +47,13 @@ You can get a single template by providing the template name and the specific ve
 * `version` - Version of the template
 
 #### Create a template
-Create a template will store the template data (`config`, `name`, `version`, `description`, `maintainer`, `labels`) into the datastore.
+Creating a template will store the template data (`config`, `name`, `version`, `description`, `maintainer`, `labels`) into the datastore.
 
 If the exact template and version already exist, the only thing that can be changed is `labels`.
 
 If the template already exists but not the version, the new version will be stored provided that the build has correct permissions.
 
-This endpoint is only accessible in `build` scope.
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that first creates the template.*
 
 `POST /templates`
 
@@ -83,3 +83,26 @@ Example payload:
   }
 }
 ```
+
+#### Create/Update a tag for a template version
+
+Tagging a template version allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`. 
+
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the template.*
+
+`PUT /templates/tags` with the following payload
+
+* `name` - Name of the template (ex: `mytemplate`)
+* `version` - Version of the template (ex: `1.1.0`)
+* `tag` - Name of the tag (ex: `stable`)
+
+#### Delete a template tag
+
+Delete the template tag. This does not delete the template itself. 
+
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the template.*
+
+`DELETE /templates/tags` with the following payload
+
+* `name` - Name of the template (ex: `mytemplate`)
+* `tag` - Name of the tag (ex: `stable`)

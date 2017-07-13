@@ -20,36 +20,28 @@ const TEMPLATE_DESCRIPTION = [
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateTemplateMock = (template) => {
-    const mock = hoek.clone(template);
+const decorateObj = (obj) => {
+    const mock = hoek.clone(obj);
 
-    mock.toJson = sinon.stub().returns(template);
-
-    return mock;
-};
-
-const decoratePipelineMock = (template) => {
-    const mock = hoek.clone(template);
-
-    mock.toJson = sinon.stub().returns(template);
+    mock.toJson = sinon.stub().returns(obj);
 
     return mock;
 };
 
 const getTemplateMocks = (templates) => {
     if (Array.isArray(templates)) {
-        return templates.map(decorateTemplateMock);
+        return templates.map(decorateObj);
     }
 
-    return decorateTemplateMock(templates);
+    return decorateObj(templates);
 };
 
 const getPipelineMocks = (pipelines) => {
     if (Array.isArray(pipelines)) {
-        return pipelines.map(decoratePipelineMock);
+        return pipelines.map(decorateObj);
     }
 
-    return decoratePipelineMock(pipelines);
+    return decorateObj(pipelines);
 };
 
 describe('template plugin test', () => {
@@ -70,7 +62,13 @@ describe('template plugin test', () => {
         templateFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
-            getTemplate: sinon.stub()
+            getTemplate: sinon.stub(),
+            get: sinon.stub()
+        };
+        templateTagFactoryMock = {
+            create: sinon.stub(),
+            get: sinon.stub(),
+            remove: sinon.stub()
         };
         templateTagFactoryMock = {
             get: sinon.stub()
@@ -398,6 +396,166 @@ describe('template plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 400);
+            });
+        });
+    });
+
+    describe('DELETE /templates/tags', () => {
+        let options;
+        let templateMock;
+        let pipelineMock;
+        const payload = {
+            name: 'testtemplate',
+            tag: 'stable'
+        };
+        const testTemplateTag = decorateObj(hoek.merge({
+            id: 1,
+            remove: sinon.stub().resolves(null)
+        }, payload));
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: '/templates/tags',
+                payload,
+                credentials: {
+                    scope: ['build']
+                }
+            };
+
+            templateMock = getTemplateMocks(testtemplate);
+            templateFactoryMock.get.resolves(templateMock);
+
+            templateTagFactoryMock.get.resolves(testTemplateTag);
+
+            pipelineMock = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 401 when pipelineId does not match', () => {
+            templateMock.pipelineId = 8888;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 404 when template tag does not exist', () => {
+            templateTagFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('deletes template tag if has good permission and tag exists', () =>
+            server.inject(options).then((reply) => {
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
+            }));
+    });
+
+    describe('PUT /templates/tags', () => {
+        let options;
+        let templateMock;
+        let pipelineMock;
+        const payload = {
+            name: 'testtemplate',
+            tag: 'stable',
+            version: '1.2.0'
+        };
+        const testTemplateTag = decorateObj(hoek.merge({ id: 1 }, payload));
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: '/templates/tags',
+                payload,
+                credentials: {
+                    scope: ['build']
+                }
+            };
+
+            templateMock = getTemplateMocks(testtemplate);
+            templateFactoryMock.get.resolves(templateMock);
+
+            templateTagFactoryMock.get.resolves(null);
+
+            pipelineMock = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 401 when pipelineId does not match', () => {
+            templateMock.pipelineId = 8888;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('creates template tag if has good permission and tag does not exist', () => {
+            templateTagFactoryMock.create.resolves(testTemplateTag);
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/1`
+                };
+
+                assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(templateFactoryMock.get, {
+                    name: 'testtemplate',
+                    version: '1.2.0'
+                });
+                assert.calledWith(templateTagFactoryMock.get, {
+                    name: 'testtemplate',
+                    tag: 'stable'
+                });
+                assert.calledWith(templateTagFactoryMock.create, payload);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('update template tag if has good permission and tag exists', () => {
+            const template = hoek.merge({
+                update: sinon.stub().resolves(testTemplateTag)
+            }, testTemplateTag);
+
+            templateTagFactoryMock.get.resolves(template);
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(templateFactoryMock.get, {
+                    name: 'testtemplate',
+                    version: '1.2.0'
+                });
+                assert.calledWith(templateTagFactoryMock.get, {
+                    name: 'testtemplate',
+                    tag: 'stable'
+                });
+                assert.calledOnce(template.update);
+                assert.notCalled(templateTagFactoryMock.create);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 500 when the template tag model fails to create', () => {
+            const testError = new Error('templateModelCreateError');
+
+            templateTagFactoryMock.create.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
