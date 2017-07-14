@@ -5,8 +5,7 @@
         "createTime": "2038-01-19T03:14:08.131Z",
         "admins": {
             "stjohn": true
-        },
-        "scmContext": "github.com"
+        }
     },
     {
         "id": 124,
@@ -14,8 +13,7 @@
         "createTime": "2038-01-19T03:14:08.131Z",
         "admins": {
             "tkyi": true
-        },
-        "scmContext": "github.com"
+        }
     },
     {
         "id": 125,
@@ -23,7 +21,6 @@
         "createTime": "2038-01-19T03:14:08.131Z",
         "admins": {
             "d2lam": true
-        },
-        "scmContext": "github.com"
+        }
     }
 ]
