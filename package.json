@@ -84,7 +84,7 @@
     "screwdriver-artifact-bookend": "^1.0.1",
     "screwdriver-build-bookend": "^2.0.1",
     "screwdriver-config-parser": "^3.3.0",
-    "screwdriver-data-schema": "^16.12.1",
+    "screwdriver-data-schema": "^16.14.1",
     "screwdriver-datastore-sequelize": "^2.0.0",
     "screwdriver-executor-docker": "^2.2.2",
     "screwdriver-executor-k8s": "^10.3.3",

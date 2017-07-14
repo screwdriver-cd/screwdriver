@@ -54,6 +54,7 @@ const getPipelineMocks = (pipelines) => {
 
 describe('template plugin test', () => {
     let templateFactoryMock;
+    let templateTagFactoryMock;
     let pipelineFactoryMock;
     let plugin;
     let server;
@@ -71,6 +72,9 @@ describe('template plugin test', () => {
             list: sinon.stub(),
             getTemplate: sinon.stub()
         };
+        templateTagFactoryMock = {
+            get: sinon.stub()
+        };
         pipelineFactoryMock = {
             get: sinon.stub()
         };
@@ -81,6 +85,7 @@ describe('template plugin test', () => {
         server = new hapi.Server();
         server.app = {
             templateFactory: templateFactoryMock,
+            templateTagFactory: templateTagFactoryMock,
             pipelineFactory: pipelineFactoryMock
         };
         server.connection({
@@ -147,7 +152,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('GET /templates/name/version', () => {
+    describe('GET /templates/name/versionOrTag', () => {
         let options;
 
         beforeEach(() => {
@@ -157,7 +162,32 @@ describe('template plugin test', () => {
             };
         });
 
-        it('returns 200 and all templates', () => {
+        it('returns 200 and a template when given the template name and version', () => {
+            templateFactoryMock.getTemplate.resolves(testtemplate);
+
+            return server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, testtemplate);
+                assert.calledWith(templateFactoryMock.getTemplate, {
+                    name: 'screwdriver/build',
+                    version: '1.7.3'
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and a template when given the template name and tag', () => {
+            const testTagTemplate = {
+                id: 1,
+                name: 'template_namespace/nodejs_main',
+                tag: 'stable',
+                version: '1.7.3'
+            };
+
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/stable'
+            };
+            templateTagFactoryMock.get.resolves(testTagTemplate);
             templateFactoryMock.getTemplate.resolves(testtemplate);
 
             return server.inject(options).then((reply) => {
@@ -172,6 +202,18 @@ describe('template plugin test', () => {
 
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.getTemplate.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when template tag does not exist', () => {
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/stable'
+            };
+            templateTagFactoryMock.get.resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
