@@ -34,7 +34,17 @@ server.register({
 
 #### Get single template
 
-`GET /templates/{id}`
+You can get a single template by providing the template name and the specific version or the tag.
+
+`GET /templates/{name}/{tag}` or `GET /templates/{name}/{version}`
+
+**Arguments**
+
+'name', 'tag' or 'version'
+
+* `name` - Name of the template
+* `tag` - Tag of the template (e.g. `stable`, `latest`, etc)
+* `version` - Version of the template
 
 #### Create a template
 Create a template will store the template data (`config`, `name`, `version`, `description`, `maintainer`, `labels`) into the datastore.
