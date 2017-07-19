@@ -18,11 +18,11 @@ defineSupportCode(({ Before, Given, Then }) => {
     Given(/^an existing pipeline with that repository$/, () => null);
 
     Given(/^"([^"]*)" is logged in$/, function step(user) {
-        if (!(this.accessKey)) {
+        if (!(this.apiToken)) {
             throw new Error('insufficient set up, missing access key');
         }
 
-        return this.getJwt(this.accessKey).then((response) => {
+        return this.getJwt(this.apiToken).then((response) => {
             const accessToken = response.body.token;
             const decodedToken = jwt.decode(accessToken);
 
@@ -33,6 +33,10 @@ defineSupportCode(({ Before, Given, Then }) => {
             switch (user) {
             case 'calvin':
                 Assert.strictEqual(decodedToken.username, this.username);
+                break;
+            case 'github:calvin':
+                Assert.strictEqual(decodedToken.username, this.username);
+                Assert.strictEqual(decodedToken.scmContext, this.scmContext);
                 break;
             default:
                 return Promise.resolve('pending');

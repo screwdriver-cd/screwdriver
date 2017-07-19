@@ -40,8 +40,6 @@ describe('auth plugin test', () => {
     const jwtPublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
     const cookiePassword = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
-    const temporaryAccessKey = '9ForMortalMenDoomedToDie';
-    const temporaryAccessUser = 'maiar';
 
     beforeEach((done) => {
         userFactoryMock = {
@@ -76,8 +74,6 @@ describe('auth plugin test', () => {
                 cookiePassword,
                 encryptionPassword,
                 scm,
-                temporaryAccessKey,
-                temporaryAccessUser,
                 jwtPrivateKey,
                 jwtPublicKey,
                 https: false
@@ -113,8 +109,6 @@ describe('auth plugin test', () => {
                     cookiePassword,
                     encryptionPassword,
                     scm,
-                    temporaryAccessKey,
-                    temporaryAccessUser,
                     jwtPrivateKey,
                     jwtPublicKey,
                     https: false
@@ -468,25 +462,9 @@ describe('auth plugin test', () => {
             })
         ));
 
-        it('returns user signed token given an application auth token', () =>
-            server.inject({
-                url: `/auth/token?access_key=${temporaryAccessKey}`
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Login route should be available');
-                assert.ok(reply.result.token, 'Token not returned');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('username', temporaryAccessUser);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('scope')
-                    .with.lengthOf(1);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.deep.property('scope[0]', 'user');
-            })
-        );
-
         it('returns user signed token given an API access token', () =>
             server.inject({
-                url: `/auth/token?access_key=${apiKey}`
+                url: `/auth/token?api_token=${apiKey}`
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Login route should be available');
                 assert.ok(reply.result.token, 'Token not returned');
@@ -505,7 +483,7 @@ describe('auth plugin test', () => {
             userFactoryMock.get.resolves(null);
 
             return server.inject({
-                url: '/auth/token?access_key=openSaysMe'
+                url: '/auth/token?api_token=openSaysMe'
             }).then((reply) => {
                 assert.calledWith(userFactoryMock.get, { accessToken: 'openSaysMe' });
                 assert.equal(reply.statusCode, 401, 'Login route should be unavailable');

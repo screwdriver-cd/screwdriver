@@ -1,12 +1,16 @@
 'use strict';
 
-const assert = require('chai').assert;
-const sinon = require('sinon');
+const { assert } = require('chai');
 const hapi = require('hapi');
 const mockery = require('mockery');
+const { PassThrough } = require('stream');
+const sinon = require('sinon');
+const suppressAPITokens = require('../../plugins/tokens/filter');
 const urlLib = require('url');
+
 const testToken = require('./data/token.json');
-const testTokenWithValue = Object.assign({}, testToken, { value: '1234' });
+const testValue = '1234123412341234123412341234123412341234123';
+const testTokenWithValue = Object.assign({}, testToken, { value: testValue });
 
 delete testTokenWithValue.hash;
 
@@ -141,7 +145,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 201 and correct token data', () => {
-            tokenMock = getTokenMock(Object.assign({}, testToken, { value: '1234' }));
+            tokenMock = getTokenMock(testTokenWithValue);
             tokenFactoryMock.create.resolves(tokenMock);
 
             return server.inject(options).then((reply) => {
@@ -433,6 +437,22 @@ describe('token plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('Logging suppresses API tokens', () => {
+        it('does not print API tokens in logs', (done) => {
+            const source = new PassThrough({ objectMode: true });
+            const result = new PassThrough({ objectMode: true });
+
+            source.write(`This is a string with a token in it! ${testTokenWithValue.value}`);
+
+            source.pipe(suppressAPITokens).pipe(result);
+
+            result.on('data', (chunk) => {
+                assert.equal(chunk, 'This is a string with a token in it! (API Token Suppressed)');
+                done();
             });
         });
     });

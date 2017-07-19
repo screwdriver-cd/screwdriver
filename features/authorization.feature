@@ -58,3 +58,10 @@ Feature: Authorization
         And they update the checkoutUrl
         Then the pipeline checkoutUrl is updated
         And the pipeline has the same id as before
+
+    @ignore
+    Scenario: SCM Context
+        And "github:calvin" is logged in
+        Then they can see the pipeline
+        And they can start the "main" job
+        And they can delete the pipeline

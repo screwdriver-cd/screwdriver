@@ -24,7 +24,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
     Given(/^an existing pipeline with (.*) image and (.*) package$/,
         { timeout: TIMEOUT }, function step(image, pkg) {
-            return this.getJwt(this.accessKey)
+            return this.getJwt(this.apiToken)
                 .then((response) => {
                     this.jwt = response.body.token;
                     this.expectedImage = image;

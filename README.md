@@ -82,10 +82,11 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 8 (eight) resources:
+This API comes preloaded with 9 (nine) resources:
 
  - [auth](plugins/auth/README.md)
  - [builds](plugins/builds/README.md)
+ - [collections](plugins/collections/README.md)
  - [events](plugins/events/README.md)
  - [jobs](plugins/jobs/README.md)
  - [pipelines](plugins/pipelines/README.md)
@@ -121,7 +122,7 @@ Fork `functional-*` repositories to your organization from [screwdriver-cd-test]
 Add `.func_config` to the root of the Screwdriver API folder with your username, github token, access key, host, and organization for test:
 ```
 GIT_TOKEN=YOUR-GITHUB-TOKEN
-ACCESS_KEY=YOUR-ACCESS-KEY
+API_TOKEN=YOUR-API-TOKEN
 SD_API=YOUR-LOCAL-API-HOST
 TEST_ORG=OUR-TEST-ORGANIZATION
 TEST_USERNAME=YOUR-GITHUB-USERNAME
@@ -134,9 +135,7 @@ PROTOCOL=PROTOCOL-FOR-SD-API // e.g.PROTOCOL=http; by default it is https
 Set the environment variables:
 
 ```bash
-$ export TEST_USERNAME=YOUR-GITHUB-USERNAME
-$ export GIT_TOKEN=YOUR-GITHUB-TOKEN
-$ export ACCESS_KEY=YOUR-ACCESS-KEY
+$ export API_TOKEN=YOUR-API-TOKEN
 $ export SD_API=YOUR-LOCAL-API-HOST
 $ export TEST_ORG=YOUR-TEST-ORGANIZATION
 $ export PROTOCOL=PROTOCAL-FOR-SD-API

@@ -20,44 +20,46 @@ auth:
     # A password used for encrypting stored secrets.
     # **Needs to be minimum 32 characters**
     encryptionPassword: WOW-ANOTHER-MORE-INSECURE-PASSWORD!!!
-    # A single access token used as an alternative to the Oauth login flow
-    temporaryAccessKey: someAccessTokenThatIsTemporaryForUsingInTheMeantime
-    # User name that is associated with the temporary access key
-    temporaryAccessUser: quality_automation
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false
     # Whitelist of users able to authenticate against the system
     # if empty, it allows everyone
-    # @TODO remove this in the future
+    # @TODO Move this content to our configuration and change the default to []
     whitelist:
+        # Primary Contributors
         - FenrirUnbound
-        - Filbird
+        - cynthiax
+        - d2lam
+        - dvdizon
+        - ian-fox
+        - jer
+        - jithin1987
+        - joelseq
+        - minz1027
+        - petey
+        - r3rastogi
+        - stjohnjohnson
+        - tkyi
+        # Automated Account
+        - sd-buildbot
+        # Pilots
+        - aressem
+        - bjorncs
+        - gjoranv2
+        - jpcollins
+        - tonytamsf
+    admins:
+        - FenrirUnbound
         - cynthiax
         - d2lam
         - dvdizon
         - ian-fox
         - jer
         - joelseq
-        - jpae
         - minz1027
-        - nkatzman
         - petey
         - r3rastogi
-        - sd-buildbot
-        - stjohnjohnson
-        - tkyi
-        - tonytamsf
-        - jpcollins
-    admins:
-        - FenrirUnbound
-        - cynthiax
-        - d2lam
-        - dvdizon
-        - jer
-        - minz1027
-        - outofjungle
-        - petey
         - stjohnjohnson
         - tkyi
 

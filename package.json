@@ -7,7 +7,8 @@
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 3000",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty --tags 'not @ignore'"
+    "functional": "cucumber-js --format=pretty --tags 'not @ignore'",
+    "create-test-user": "node ./features/scripts/create-test-user.js"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -83,13 +84,13 @@
     "screwdriver-artifact-bookend": "^1.0.1",
     "screwdriver-build-bookend": "^2.0.1",
     "screwdriver-config-parser": "^3.3.0",
-    "screwdriver-data-schema": "^16.9.0",
+    "screwdriver-data-schema": "^16.12.1",
     "screwdriver-datastore-sequelize": "^2.0.0",
     "screwdriver-executor-docker": "^2.2.2",
     "screwdriver-executor-k8s": "^10.3.3",
     "screwdriver-executor-k8s-vm": "^1.0.0",
     "screwdriver-executor-router": "^1.0.0",
-    "screwdriver-models": "^22.2.2",
+    "screwdriver-models": "^22.5.0",
     "screwdriver-notifications-email": "^1.1.2",
     "screwdriver-scm-bitbucket": "^2.8.1",
     "screwdriver-scm-github": "^4.8.2",

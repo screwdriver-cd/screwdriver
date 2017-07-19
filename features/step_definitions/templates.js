@@ -28,7 +28,7 @@ defineSupportCode(({ Given, When, Then }) => {
     });
 
     When(/^they submit it to the API$/, function step() {
-        return this.getJwt(this.accessKey)
+        return this.getJwt(this.apiToken)
         .then((response) => {
             const jwt = response.body.token;
 

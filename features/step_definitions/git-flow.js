@@ -23,7 +23,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
         return request({  // TODO : perform this in the before-hook for all func tests
             method: 'GET',
-            url: `${this.instance}/${this.namespace}/auth/token?access_key=${this.accessKey}`,
+            url: `${this.instance}/${this.namespace}/auth/token?api_token=${this.apiToken}`,
             followAllRedirects: true,
             json: true
         }).then((response) => {
