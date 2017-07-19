@@ -5,27 +5,59 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.template.get;
 const baseSchema = schema.models.template.base;
+const versionRegex = schema.config.regex.VERSION;
+const versionSchema = joi.reach(baseSchema, 'version');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/templates/{name}/{version}',
+    path: '/templates/{name}/{versionOrTag}',
     config: {
-        description: 'Get a single template',
+        description: 'Get a single template given template name and version or tag',
         notes: 'Returns a template record',
         tags: ['api', 'templates'],
         handler: (request, reply) => {
-            const factory = request.server.app.templateFactory;
+            const versionOrTag = request.params.versionOrTag;
+            const templateFactory = request.server.app.templateFactory;
 
-            return factory.getTemplate({
-                name: request.params.name,
-                version: request.params.version
-            }).then((template) => {
-                if (!template) {
-                    throw boom.notFound('Template does not exist');
+            // check if version or tag
+            const isVersion = versionOrTag.match(versionRegex);
+
+            return new Promise((resolve, reject) => {
+                // if tag, get template tag version
+                if (!isVersion) {
+                    const templateTagFactory = request.server.app.templateTagFactory;
+
+                    return templateTagFactory.get({
+                        name: request.params.name,
+                        tag: request.params.versionOrTag
+                    })
+                    .then((templateTag) => {
+                        if (!templateTag) {
+                            return reject(boom.notFound(`Template ${request.params.name} ` +
+                                `does not exist with tag ${request.params.versionOrTag}`));
+                        }
+
+                        return resolve(templateTag.version);
+                    });
                 }
 
-                return reply(template);
+                // otherwise just return the version
+                return resolve(versionOrTag);
             })
+            .then(version =>
+                // get the template
+                templateFactory.getTemplate({
+                    name: request.params.name,
+                    version
+                }).then((template) => {
+                    if (!template) {
+                        throw boom.notFound(`Template ${request.params.name} ` +
+                            `does not exist with version ${version}`);
+                    }
+
+                    return reply(template);
+                })
+            )
             .catch(err => reply(boom.wrap(err)));
         },
         response: {
@@ -34,7 +66,10 @@ module.exports = () => ({
         validate: {
             params: {
                 name: joi.reach(baseSchema, 'name'),
-                version: joi.reach(baseSchema, 'version')
+                versionOrTag: joi.alternatives().try(
+                    versionSchema,
+                    joi.reach(schema.models.templateTag.base, 'tag')
+                )
             }
         }
     }
