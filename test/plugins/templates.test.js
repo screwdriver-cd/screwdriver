@@ -70,9 +70,6 @@ describe('template plugin test', () => {
             get: sinon.stub(),
             remove: sinon.stub()
         };
-        templateTagFactoryMock = {
-            get: sinon.stub()
-        };
         pipelineFactoryMock = {
             get: sinon.stub()
         };
@@ -404,20 +401,17 @@ describe('template plugin test', () => {
         let options;
         let templateMock;
         let pipelineMock;
-        const payload = {
-            name: 'testtemplate',
-            tag: 'stable'
-        };
-        const testTemplateTag = decorateObj(hoek.merge({
+        const testTemplateTag = decorateObj({
             id: 1,
+            name: 'testtemplate',
+            tag: 'stable',
             remove: sinon.stub().resolves(null)
-        }, payload));
+        });
 
         beforeEach(() => {
             options = {
                 method: 'DELETE',
-                url: '/templates/tags',
-                payload,
+                url: '/templates/testtemplate/tags/stable',
                 credentials: {
                     scope: ['build']
                 }
@@ -460,8 +454,6 @@ describe('template plugin test', () => {
         let templateMock;
         let pipelineMock;
         const payload = {
-            name: 'testtemplate',
-            tag: 'stable',
             version: '1.2.0'
         };
         const testTemplateTag = decorateObj(hoek.merge({ id: 1 }, payload));
@@ -469,7 +461,7 @@ describe('template plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'PUT',
-                url: '/templates/tags',
+                url: '/templates/testtemplate/tags/stable',
                 payload,
                 credentials: {
                     scope: ['build']
@@ -522,7 +514,11 @@ describe('template plugin test', () => {
                     name: 'testtemplate',
                     tag: 'stable'
                 });
-                assert.calledWith(templateTagFactoryMock.create, payload);
+                assert.calledWith(templateTagFactoryMock.create, {
+                    name: 'testtemplate',
+                    tag: 'stable',
+                    version: '1.2.0'
+                });
                 assert.equal(reply.statusCode, 201);
             });
         });

@@ -1,14 +1,16 @@
 'use strict';
 
 const boom = require('boom');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const baseSchema = schema.models.templateTag.base;
 
 /* Currently, only build scope is allowed to tag template due to security reasons.
  * The same pipeline that publishes the template has the permission to tag it.
  */
 module.exports = () => ({
     method: 'DELETE',
-    path: '/templates/tags',
+    path: '/templates/{templateName}/tags/{tagName}',
     config: {
         description: 'Delete a template tag',
         notes: 'Delete a specific template',
@@ -27,12 +29,10 @@ module.exports = () => ({
             const templateFactory = request.server.app.templateFactory;
             const templateTagFactory = request.server.app.templateTagFactory;
             const pipelineId = request.auth.credentials.pipelineId;
-            const config = request.payload;
+            const name = request.params.templateName;
+            const tag = request.params.tagName;
 
-            return templateTagFactory.get({
-                name: config.name,
-                tag: config.tag
-            })
+            return templateTagFactory.get({ name, tag })
             .then((templateTag) => {
                 if (!templateTag) {
                     throw boom.notFound('Template tag does not exist');
@@ -41,7 +41,7 @@ module.exports = () => ({
                 return Promise.all([
                     pipelineFactory.get(pipelineId),
                     templateFactory.get({
-                        name: config.name,
+                        name,
                         version: templateTag.version
                     })
                 ])
@@ -59,7 +59,10 @@ module.exports = () => ({
             .catch(err => reply(boom.wrap(err)));
         },
         validate: {
-            payload: schema.models.templateTag.remove
+            params: {
+                templateName: joi.reach(baseSchema, 'name'),
+                tagName: joi.reach(baseSchema, 'tag')
+            }
         }
     }
 });
