@@ -398,6 +398,12 @@ exports.register = (server, options, next) => {
 
                     request.log(['webhook', hookId], `Received event type ${eventType}`);
 
+                    if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
+                        request.log(['webhook', hookId], 'Skipping due to the commit message');
+
+                        return reply().code(204);
+                    }
+
                     if (eventType === 'pr') {
                         return pullRequestEvent(pluginOptions, request, reply, parsed);
                     }
