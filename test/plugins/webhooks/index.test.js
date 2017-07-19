@@ -44,7 +44,8 @@ describe('github plugin test', () => {
             get: sinon.stub(),
             scm: {
                 parseHook: sinon.stub(),
-                parseUrl: sinon.stub()
+                parseUrl: sinon.stub(),
+                getDisplayName: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -137,8 +138,10 @@ describe('github plugin test', () => {
         const buildNumber = '12345';
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
         const username = 'baxterthehacker';
+        const scmContext = 'github:github.com';
         const token = 'iamtoken';
         const prRef = 'pull/1/merge';
+        const scmDisplayName = 'github';
         let pipelineMock;
         let buildMock;
         let mainJobMock;
@@ -156,6 +159,7 @@ describe('github plugin test', () => {
             parsed = {
                 hookId: '81e6bd80-9a2c-11e6-939d-beaa5d9adaf3',
                 username,
+                scmContext,
                 checkoutUrl,
                 branch: 'master',
                 sha,
@@ -281,12 +285,14 @@ describe('github plugin test', () => {
                         type: 'pipeline',
                         workflow: [name],
                         username,
+                        scmContext,
                         sha,
                         causeMessage: `Merged by ${username}`
                     });
                     assert.calledWith(buildFactoryMock.create, {
                         jobId: 1,
                         username,
+                        scmContext,
                         sha,
                         eventId: eventMock.id
                     });
@@ -311,7 +317,10 @@ describe('github plugin test', () => {
 
             it('handles checkouting when given a non-listed user', () => {
                 userFactoryMock.get.resolves(null);
-                userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
+                userFactoryMock.get.withArgs({
+                    username: 'sd-buildbot',
+                    scmContext: 'github:github.com'
+                }).resolves(userMock);
 
                 return server.inject(options)
                 .then((response) => {
@@ -374,6 +383,8 @@ describe('github plugin test', () => {
                     options.payload = testPayloadOpen;
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
+                    pipelineFactoryMock.scm.getDisplayName.withArgs(scmContext)
+                        .returns(scmDisplayName);
                     jobFactoryMock.create.resolves({
                         id: 3,
                         name,
@@ -396,13 +407,15 @@ describe('github plugin test', () => {
                             type: 'pr',
                             workflow: [name],
                             username,
+                            scmContext,
                             sha,
-                            causeMessage: `Opened by ${username}`
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: 3,
                             sha,
                             username,
+                            scmContext,
                             eventId: eventMock.id,
                             prRef
                         });
@@ -427,13 +440,15 @@ describe('github plugin test', () => {
                             type: 'pr',
                             workflow: [name],
                             username,
+                            scmContext,
                             sha,
-                            causeMessage: `Reopened by ${username}`
+                            causeMessage: `Reopened by ${scmDisplayName}:${username}`
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: 2,
                             sha,
                             username,
+                            scmContext,
                             eventId: eventMock.id,
                             prRef
                         });
@@ -451,6 +466,7 @@ describe('github plugin test', () => {
                             jobId: 3,
                             sha,
                             username,
+                            scmContext,
                             eventId: eventMock.id,
                             prRef
                         });
@@ -459,7 +475,10 @@ describe('github plugin test', () => {
 
                 it('handles checkout when given a non-listed user', () => {
                     userFactoryMock.get.resolves(null);
-                    userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
+                    userFactoryMock.get.withArgs({
+                        username: 'sd-buildbot',
+                        scmContext: 'github:github.com'
+                    }).resolves(userMock);
 
                     return server.inject(options)
                     .then((response) => {
@@ -498,6 +517,8 @@ describe('github plugin test', () => {
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
+                    pipelineFactoryMock.scm.getDisplayName.withArgs(scmContext)
+                        .returns(scmDisplayName);
                 });
 
                 it('returns 201 on success', () =>
@@ -511,12 +532,14 @@ describe('github plugin test', () => {
                             type: 'pr',
                             workflow: [name],
                             username,
+                            scmContext,
                             sha,
-                            causeMessage: `Synchronized by ${username}`
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
+                            scmContext,
                             sha,
                             eventId: eventMock.id,
                             prRef
@@ -533,6 +556,7 @@ describe('github plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId,
                             username,
+                            scmContext,
                             sha,
                             eventId: eventMock.id,
                             prRef

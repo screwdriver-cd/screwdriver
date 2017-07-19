@@ -24,8 +24,9 @@ module.exports = () => ({
             const tokenFactory = request.server.app.tokenFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
 
-            return userFactory.get({ username })
+            return userFactory.get({ username, scmContext })
             .then((user) => {
                 if (!user) {
                     throw boom.notFound(`User ${username} does not exist`);

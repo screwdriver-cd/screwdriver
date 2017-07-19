@@ -2,6 +2,7 @@
 
 /* eslint no-param-reassign: ["error", { "props": false }]*/
 const boom = require('boom');
+const urlLib = require('url');
 
 /**
  * Login to Screwdriver API
@@ -12,13 +13,13 @@ const boom = require('boom');
  */
 module.exports = config => ({
     method: ['GET', 'POST'],
-    path: '/auth/login/{web?}',
+    path: `/auth/login/${config.scmContext}/{web?}`,
     config: {
         description: 'Login using oauth',
         notes: 'Authenticate user with oauth provider',
         tags: ['api', 'login'],
         auth: {
-            strategy: 'oauth',
+            strategy: `oauth_${config.scmContext}`,
             mode: 'try'
         },
         handler: (request, reply) => {
@@ -28,26 +29,46 @@ module.exports = config => ({
                 ));
             }
 
+            const pathNames = request.path.split('/');
+            const scmContext = pathNames[pathNames.indexOf('login') + 1];
+
+            // Redirect to the default login path if request path doesn't have a context
+            if (!scmContext) {
+                const defaultContext = request.server.app.userFactory.scm.getScmContexts()[0];
+                const location = urlLib.format({
+                    host: request.headers.host,
+                    port: request.headers.port,
+                    protocol: request.server.info.protocol,
+                    pathname: `/auth/login/${defaultContext}`
+                });
+
+                return reply().header('Location', location).code(301);
+            }
+
             const factory = request.server.app.userFactory;
             const accessToken = request.auth.credentials.token;
             const username = request.auth.credentials.profile.username;
-            const profile = request.server.plugins.auth.generateProfile(username, ['user'], {});
+            const profile = request.server.plugins.auth
+                                .generateProfile(username, scmContext, ['user'], {});
+            const scmDisplayName = factory.scm.getDisplayName(scmContext);
+            const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
 
             // Check whitelist
-            if (config.whitelist.length > 0 && !config.whitelist.includes(username)) {
+            if (config.whitelist.length > 0 && !config.whitelist.includes(userDisplayName)) {
                 return reply(boom.forbidden(
-                    `User ${username} is not whitelisted to use the api`
+                    `User ${userDisplayName} is not whitelisted to use the api`
                 ));
             }
 
             request.cookieAuth.set(profile);
 
-            return factory.get({ username })
+            return factory.get({ username, scmContext })
                 // get success, so user exists
                 .then((model) => {
                     if (!model) {
                         return factory.create({
                             username,
+                            scmContext,
                             token: accessToken
                         });
                     }

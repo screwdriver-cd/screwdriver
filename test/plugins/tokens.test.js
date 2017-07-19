@@ -45,6 +45,7 @@ const tokensGetterMock = tokens => Promise.resolve(tokens);
 
 describe('token plugin test', () => {
     const username = 'ifox';
+    const scmContext = 'github:github.com';
     const userId = testToken.userId;
     const tokenId = testToken.id;
     let tokenFactoryMock;
@@ -82,7 +83,7 @@ describe('token plugin test', () => {
             id: userId
         });
         userMock.tokens = tokensGetterMock([tokenMock]);
-        userFactoryMock.get.withArgs({ username }).resolves(userMock);
+        userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/tokens');
@@ -137,6 +138,7 @@ describe('token plugin test', () => {
                 },
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -175,7 +177,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -202,6 +204,7 @@ describe('token plugin test', () => {
                 url: '/tokens',
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -231,7 +234,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -248,6 +251,7 @@ describe('token plugin test', () => {
                 url: `/tokens/${tokenId}`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 },
                 payload: {
@@ -266,7 +270,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -300,7 +304,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 403 when the user does not own the token', () => {
-            userFactoryMock.get.withArgs({ username }).resolves({
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves({
                 id: testToken.userId + 1
             });
 
@@ -329,6 +333,7 @@ describe('token plugin test', () => {
                 url: `/tokens/${tokenId}/refresh`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -343,7 +348,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -363,7 +368,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 403 when the user does not own the token', () => {
-            userFactoryMock.get.withArgs({ username }).resolves({
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves({
                 id: testToken.userId + 1
             });
 
@@ -392,6 +397,7 @@ describe('token plugin test', () => {
                 url: `/tokens/${tokenId}`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -406,7 +412,7 @@ describe('token plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -421,7 +427,7 @@ describe('token plugin test', () => {
         );
 
         it('returns 403 when the user does not own the token', () => {
-            userFactoryMock.get.withArgs({ username }).resolves({
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves({
                 id: testToken.userId + 1
             });
 

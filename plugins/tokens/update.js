@@ -25,10 +25,11 @@ module.exports = () => ({
             const tokenFactory = request.server.app.tokenFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
 
             return Promise.all([
                 tokenFactory.get(request.params.id),
-                userFactory.get({ username })
+                userFactory.get({ username, scmContext })
             ])
                 .then(([token, user]) => {
                     if (!token) {

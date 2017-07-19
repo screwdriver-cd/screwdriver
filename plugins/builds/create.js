@@ -27,16 +27,18 @@ module.exports = () => ({
             const eventFactory = request.server.app.eventFactory;
             const scm = buildFactory.scm;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
             const payload = {
                 jobId: request.payload.jobId,
                 apiUri: request.server.info.uri,
-                username
+                username,
+                scmContext
             };
 
             // Fetch the job and user models
             return Promise.all([
                 jobFactory.get(payload.jobId),
-                userFactory.get({ username })
+                userFactory.get({ username, scmContext })
             ])
             // scmUri is buried in the pipeline, so we get that from the job
             .then(([job, user]) => job.pipeline.then(pipeline =>
@@ -53,6 +55,7 @@ module.exports = () => ({
                 .then(() => user.unsealToken())
                 .then(token => scm.getCommitSha({
                     token,
+                    scmContext,
                     scmUri: pipeline.scmUri,
                     prNum: job.prNum
                 }))
@@ -71,6 +74,7 @@ module.exports = () => ({
                         type,
                         workflow,
                         username,
+                        scmContext,
                         sha
                     });
                 })

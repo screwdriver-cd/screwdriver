@@ -26,11 +26,13 @@ module.exports = () => ({
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
 
             // fetch the user
-            return userFactory.get({ username })
+            return userFactory.get({ username, scmContext })
                 .then(user => user.unsealToken()
                     .then(token => pipelineFactory.scm.parseUrl({
+                        scmContext,
                         checkoutUrl,
                         token
                     }))
@@ -40,7 +42,7 @@ module.exports = () => ({
                         .then((permissions) => {
                             if (!permissions.admin) {
                                 throw boom.unauthorized(
-                                  `User ${username} is not an admin of this repo`);
+                                  `User ${user.getFullDisplayName()} is not an admin of this repo`);
                             }
                         })
                         // see if there is already a pipeline
@@ -60,6 +62,7 @@ module.exports = () => ({
                                 admins: {
                                     [username]: true
                                 },
+                                scmContext,
                                 scmUri
                             };
 
