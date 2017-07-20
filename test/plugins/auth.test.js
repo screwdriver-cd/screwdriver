@@ -200,7 +200,7 @@ describe('auth plugin test', () => {
         });
 
         it('adds admin scope for admins even if displayName is missing', () => {
-            scm.getDisplayName.withArgs('github:github.com').returns('');
+            scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('');
 
             const profile = server.plugins.auth
                                 .generateProfile('batman', 'github:github.com', ['user'], {});
@@ -739,8 +739,8 @@ describe('auth plugin test', () => {
                 'github:github.com',
                 'github:mygithub.com'
             ]);
-            scm.getDisplayName.withArgs('github:github.com').returns('github');
-            scm.getDisplayName.withArgs('github:mygithub.com').returns('mygithub');
+            scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('github');
+            scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
         });
 
         it('returns 200', () => (
