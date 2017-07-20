@@ -8,7 +8,7 @@
  * @return {Object}                       Hapi Plugin Route
  */
 module.exports = () => ({
-    method: ['GET', 'POST'],
+    method: ['GET'],
     path: '/auth/contexts',
     config: {
         description: 'Get all scm contexts',
