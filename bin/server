@@ -76,6 +76,9 @@ const Models = require('screwdriver-models');
 const templateFactory = Models.TemplateFactory.getInstance({
     datastore
 });
+const templateTagFactory = Models.TemplateTagFactory.getInstance({
+    datastore
+});
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm
@@ -120,6 +123,7 @@ datastore.setup()
         notifications: notificationConfig,
         ecosystem,
         templateFactory,
+        templateTagFactory,
         pipelineFactory,
         jobFactory,
         userFactory,
