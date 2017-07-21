@@ -27,6 +27,14 @@ server.register({
 
 ### Routes
 
+#### Get a list of collections belonging to the requesting user
+
+`GET /collections`
+
+#### Get a single collection
+
+`GET /collections/{id}`
+
 #### Create a collection
 
 `POST /collections`
