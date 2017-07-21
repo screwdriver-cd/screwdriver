@@ -96,6 +96,34 @@ executor:
         launchVersion: LAUNCH_VERSION
         # Prefix to the container
         prefix: EXECUTOR_PREFIX
+    jenkins:
+      jenkins:
+          host: EXECUTOR_JENKINS_HOST
+          port: EXECUTOR_JENKINS_PORT
+          username: EXECUTOR_JENKINS_USERNAME
+          # Jenkins password/token used for authenticating jenkins requests
+          password: EXECUTOR_JENKINS_PASSWORD
+          # Node labels of Jenkins slaves
+          nodeLabel: EXECUTOR_JENKINS_NODE_LABEL
+      docker:
+          # The path to the docker command
+          command: EXECUTOR_JENKINS_DOCKER_COMMAND
+          # Prefix to the container
+          prefix: EXECUTOR_JENKINS_DOCKER_PREFIX
+          # Launcher container tag to use
+          launchVersion: EXECUTOR_JENKINS_LAUNCH_VERSION
+          # Memory limit (docker run `--memory` option)
+          memory: EXECUTOR_JENKINS_DOCKER_MEMORY
+          # Memory limit include swap (docker run `--memory-swap` option)
+          memoryLimit: EXECUTOR_JENKINS_DOCKER_MEMORY_LIMIT
+      # The command to start build
+      buildScript: EXECUTOR_JENKINS_BUILD_SCRIPT
+      # The command to clean up build system
+      cleanupScript: EXECUTOR_JENKINS_CLEANUP_SCRIPT
+      # Time (seconds) to destory the job
+      cleanupTimeLimit: EXECUTOR_JENKINS_CLEANUP_TIME_LIMIT
+      # Interval to detect the stopped job (seconds)
+      cleanupWatchInterval: EXECUTOR_JENKINS_CLEANUP_WATCH_INTERVAL
 
 scm:
     plugin: SCM_PLUGIN
