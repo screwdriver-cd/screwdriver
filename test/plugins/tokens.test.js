@@ -442,16 +442,16 @@ describe('token plugin test', () => {
     });
 
     describe('Logging suppresses API tokens', () => {
-        it('does not print API tokens in logs', (done) => {
+        it('does not print API tokens in GET /auth/token', (done) => {
             const source = new PassThrough({ objectMode: true });
             const result = new PassThrough({ objectMode: true });
 
-            source.write(`This is a string with a token in it! ${testTokenWithValue.value}`);
+            source.write(`GET /v4/auth/token {"api_token":"${testValue}"} (200)`);
 
             source.pipe(suppressAPITokens).pipe(result);
 
             result.on('data', (chunk) => {
-                assert.equal(chunk, 'This is a string with a token in it! (API Token Suppressed)');
+                assert.equal(chunk, 'GET /v4/auth/token {} (200)');
                 done();
             });
         });
