@@ -1,0 +1,16 @@
+@startuml
+
+title Login Flow (SCM)
+
+participant Auth
+actor User
+collections SCM
+
+User -> Auth  : Login
+Auth --> User : 302 Redirect to SCM
+User -> SCM   : OAuth Flow
+SCM --> User  : 302 Redirect to Auth
+User -> Auth  : OAuth Token
+Auth --> User : 24h Refresh Token
+
+@enduml
