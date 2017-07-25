@@ -57,7 +57,7 @@ function startPRJob(options, request) {
     const prRef = options.prRef;
     const pipeline = options.pipeline;
     const scm = request.server.app.pipelineFactory.scm;
-    const scmDisplayName = scm.getDisplayName(scmContext);
+    const scmDisplayName = scm.getDisplayName({ scmContext });
     const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
 
     return pipeline.getConfiguration(prRef)
@@ -256,7 +256,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
+        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token, scmContext }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
@@ -332,7 +332,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token }))
+        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token, scmContext }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {

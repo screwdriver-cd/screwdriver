@@ -719,7 +719,7 @@ describe('pipeline plugin test', () => {
 
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.sync.resolves(null);
@@ -762,7 +762,7 @@ describe('pipeline plugin test', () => {
                 message: 'User d2lam does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -800,7 +800,7 @@ describe('pipeline plugin test', () => {
 
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.syncPRs.resolves(null);
@@ -843,7 +843,7 @@ describe('pipeline plugin test', () => {
                 message: 'User batman does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

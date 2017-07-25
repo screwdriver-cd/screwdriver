@@ -13,15 +13,12 @@ const urlLib = require('url');
  */
 module.exports = config => ({
     method: ['GET', 'POST'],
-    path: `/auth/login/${config.scmContext}/{web?}`,
+    path: config.scmContext ? `/auth/login/${config.scmContext}/{web?}` : '/auth/login/',
     config: {
         description: 'Login using oauth',
         notes: 'Authenticate user with oauth provider',
         tags: ['api', 'login'],
-        auth: {
-            strategy: `oauth_${config.scmContext}`,
-            mode: 'try'
-        },
+        auth: config.auth,
         handler: (request, reply) => {
             if (!request.auth.isAuthenticated) {
                 return reply(boom.unauthorized(
@@ -34,7 +31,7 @@ module.exports = config => ({
 
             // Redirect to the default login path if request path doesn't have a context
             if (!scmContext) {
-                const defaultContext = request.server.app.userFactory.scm.getScmContexts()[0];
+                const defaultContext = request.server.root.app.userFactory.scm.getScmContexts()[0];
                 const location = urlLib.format({
                     host: request.headers.host,
                     port: request.headers.port,

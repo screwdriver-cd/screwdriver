@@ -21,10 +21,11 @@ module.exports = () => ({
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
 
             return Promise.all([
                 pipelineFactory.get(id),
-                userFactory.get({ username })
+                userFactory.get({ username, scmContext })
             ]).then(([pipeline, user]) => {
                 if (!pipeline) {
                     throw boom.notFound('Pipeline does not exist');

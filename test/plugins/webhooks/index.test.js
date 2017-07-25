@@ -214,7 +214,8 @@ describe('github plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
             pipelineMock.sync.resolves(pipelineMock);
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
-            pipelineFactoryMock.scm.parseUrl.withArgs({ checkoutUrl, token }).resolves(scmUri);
+            pipelineFactoryMock.scm.parseUrl
+                .withArgs({ checkoutUrl, token, scmContext }).resolves(scmUri);
 
             userFactoryMock.get.resolves(userMock);
             userMock.unsealToken.resolves(token);
@@ -383,7 +384,7 @@ describe('github plugin test', () => {
                     options.payload = testPayloadOpen;
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
-                    pipelineFactoryMock.scm.getDisplayName.withArgs(scmContext)
+                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext })
                         .returns(scmDisplayName);
                     jobFactoryMock.create.resolves({
                         id: 3,
@@ -517,7 +518,7 @@ describe('github plugin test', () => {
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
-                    pipelineFactoryMock.scm.getDisplayName.withArgs(scmContext)
+                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext })
                         .returns(scmDisplayName);
                 });
 

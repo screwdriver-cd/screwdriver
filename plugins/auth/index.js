@@ -41,7 +41,7 @@ exports.register = (server, options, next) => {
         admins: joi.array().default([]),
         scm: joi.object().required()
     }), 'Invalid config for plugin-auth');
-    const scmContexts = server.app.userFactory.scm.getScmContexts();
+    const scmContexts = server.root.app.userFactory.scm.getScmContexts();
 
     /**
      * Generates a profile for storage in cookie and jwt
@@ -56,7 +56,7 @@ exports.register = (server, options, next) => {
         const profile = Object.assign({
             username, scmContext, scope
         }, metadata || {});
-        const scm = server.app.userFactory.scm;
+        const scm = server.root.app.userFactory.scm;
         const scmDisplayName = scm.getDisplayName({ scmContext });
         const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
 
@@ -146,8 +146,14 @@ exports.register = (server, options, next) => {
 
             const loginRoutes = [];
 
-            scmContexts.forEach((scmContext) => {
-                const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext });
+            [''].concat(scmContexts).forEach((scmContext) => {
+                let auth;
+
+                if (scmContext) {
+                    auth = { strategy: `oauth_${scmContext}`, mode: 'try' };
+                }
+
+                const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext, auth });
 
                 loginRoutes.push(loginRoute(loginOptions));
             });

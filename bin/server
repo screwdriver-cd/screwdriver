@@ -52,16 +52,12 @@ const executor = new ExecutorPlugin({
 
 // Source Code Plugin
 let scm;
-const scmContextMap;
 
-if (config.get('scms')) {
+if (config.has('scms')) {
     const scmConfigs = config.get('scms');
     const ScmPlugin = require('screwdriver-scm-router');
     scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
-        { scms: scmConfigs });
-    scmConfigs.forEach((scmCofnig) => {
-        scmContextMap[scmConfig.displayName] = scmConfig;
-    });
+        { scms: scmConfigs }));
 } else {
     const scmConfig = config.get('scm');
     const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
