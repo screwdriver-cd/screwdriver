@@ -1,0 +1,7 @@
+{
+    "id": 12,
+    "name": "updated name",
+    "description": "updated description",
+    "userId": 34,
+    "pipelineIds": [123, 124]
+}

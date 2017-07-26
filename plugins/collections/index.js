@@ -1,6 +1,9 @@
 'use strict';
 
 const createRoute = require('./create');
+const getRoute = require('./get');
+const listRoute = require('./list');
+const updateRoute = require('./update');
 
 /**
  * Collections API Plugin
@@ -11,7 +14,10 @@ const createRoute = require('./create');
  */
 exports.register = (server, options, next) => {
     server.route([
-        createRoute()
+        createRoute(),
+        getRoute(),
+        listRoute(),
+        updateRoute()
     ]);
 
     next();
