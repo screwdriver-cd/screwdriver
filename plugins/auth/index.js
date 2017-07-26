@@ -146,17 +146,20 @@ exports.register = (server, options, next) => {
 
             const loginRoutes = [];
 
-            [''].concat(scmContexts).forEach((scmContext) => {
-                let auth;
-
-                if (scmContext) {
-                    auth = { strategy: `oauth_${scmContext}`, mode: 'try' };
-                }
-
+            scmContexts.forEach((scmContext) => {
+                const auth = {
+                    strategy: `oauth_${scmContext}`,
+                    mode: 'try'
+                };
                 const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext, auth });
 
                 loginRoutes.push(loginRoute(loginOptions));
             });
+            // The login route for which scmContext isn't set
+            // This login route just redirects to a default login route which has ${scmContext} path param
+            loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
+                scmContext: '', auth: null
+            })));
 
             server.route(loginRoutes.concat([
                 logoutRoute(),
