@@ -13,33 +13,39 @@ const urlLib = require('url');
  */
 module.exports = config => ({
     method: ['GET', 'POST'],
-    path: config.scmContext ? `/auth/login/${config.scmContext}/{web?}` : '/auth/login',
+    path: config.scmContext ? `/auth/login/${config.scmContext}/{web?}` : '/auth/login/{web?}',
     config: {
         description: 'Login using oauth',
         notes: 'Authenticate user with oauth provider',
         tags: ['api', 'login'],
         auth: config.auth,
         handler: (request, reply) => {
-            if (!request.auth.isAuthenticated) {
-                return reply(boom.unauthorized(
-                    `Authentication failed due to: ${request.auth.error.message}`
-                ));
-            }
-
             const pathNames = request.path.split('/');
             const scmContext = pathNames[pathNames.indexOf('login') + 1];
 
             // Redirect to the default login path if request path doesn't have a context
-            if (!scmContext) {
+            if (!scmContext || scmContext === 'web') {
                 const defaultContext = request.server.root.app.userFactory.scm.getScmContexts()[0];
+                let pathName = `/auth/login/${defaultContext}`;
+
+                if (request.params.web) {
+                    pathName += '/web';
+                }
+
                 const location = urlLib.format({
                     host: request.headers.host,
                     port: request.headers.port,
                     protocol: request.server.info.protocol,
-                    pathname: `/auth/login/${defaultContext}`
+                    pathname: pathName
                 });
 
                 return reply().header('Location', location).code(301);
+            }
+
+            if (!request.auth.isAuthenticated) {
+                return reply(boom.unauthorized(
+                    `Authentication failed due to: ${request.auth.error.message}`
+                ));
             }
 
             const factory = request.server.app.userFactory;

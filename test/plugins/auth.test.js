@@ -282,6 +282,26 @@ describe('auth plugin test', () => {
     });
 
     describe('GET /auth/login', () => {
+        describe('GET', () => {
+            it('redirects to a default login route', () => (
+                server.inject('/auth/login').then((reply) => {
+                    assert.equal(reply.statusCode, 301, 'Login route should redirect');
+                    assert.isOk(reply.headers.location.match(/\/auth\/login\/github:github.com/),
+                        'The location to redirect is not correct');
+                })
+            ));
+            it('redirects even if web parameter is passed', () => (
+                server.inject('/auth/login/web').then((reply) => {
+                    assert.equal(reply.statusCode, 301, 'Login route should redirect');
+                    assert.isOk(
+                        reply.headers.location.match(/\/auth\/login\/github:github.com\/web/),
+                        'The location to redirect is not correct');
+                })
+            ));
+        });
+    });
+
+    describe('GET /auth/login/{scmContext}', () => {
         const id = '1234id5678';
         const username = 'batman';
         const scmContext = 'github:github.com';
