@@ -26,7 +26,8 @@ module.exports = config => ({
             // Redirect to the default login path if request path doesn't have a context
             if (!scmContext || scmContext === 'web') {
                 const defaultContext = request.server.root.app.userFactory.scm.getScmContexts()[0];
-                let pathName = `/auth/login/${defaultContext}`;
+                const prefix = request.route.realm.modifiers.route.prefix;
+                let pathName = `${prefix}/auth/login/${defaultContext}`;
 
                 if (request.params.web) {
                     pathName += '/web';
