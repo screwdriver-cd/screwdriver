@@ -13,7 +13,7 @@ const urlLib = require('url');
  */
 module.exports = config => ({
     method: ['GET', 'POST'],
-    path: config.scmContext ? `/auth/login/${config.scmContext}/{web?}` : '/auth/login/',
+    path: config.scmContext ? `/auth/login/${config.scmContext}/{web?}` : '/auth/login',
     config: {
         description: 'Login using oauth',
         notes: 'Authenticate user with oauth provider',
