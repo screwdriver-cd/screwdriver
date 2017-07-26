@@ -155,8 +155,7 @@ exports.register = (server, options, next) => {
 
                 loginRoutes.push(loginRoute(loginOptions));
             });
-            // The login route for which scmContext isn't set
-            // This login route just redirects to a default login route which has ${scmContext} path param
+            // This login route for which scmContext isn't passed just redirects to a default login route, so this login route doesn't need to have any auth strategy
             loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
                 scmContext: '', auth: null
             })));
