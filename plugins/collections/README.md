@@ -53,3 +53,23 @@ Example payload:
     "pipelineIds": [12, 35, 47, 89]
 }
 ```
+
+#### Update a collection
+You can update the name, description, or pipelineIds of a collection.
+
+`PUT /collections/{id}`
+
+**Arguments**
+
+* `name` - An optional new name for the collection. Names must be unique.
+* `description` - An optional new description for the collection.
+* `pipelineIds` - An optional new array of ids of pipelines for the collection.
+
+Example payload:
+```json
+{
+    "name": "foo",
+    "description": "bar",
+    "pipelineIds": [1, 2, 5]
+}
+```

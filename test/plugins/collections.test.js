@@ -10,6 +10,7 @@ const testCollection = require('./data/collection.json');
 const testCollectionResponse = require('./data/collection.response.json');
 const testCollections = require('./data/collections.json');
 const testPipelines = require('./data/pipelines.json');
+const updatedCollection = require('./data/updatedCollection.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -283,6 +284,84 @@ describe('collection plugin test', () => {
 
         it('throws error when call returns error', () => {
             collectionFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /collections/{id}', () => {
+        const id = testCollection.id;
+        let options;
+        let updatedCollectionMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/collections/${id}`,
+                payload: {
+                    name: 'updated name',
+                    description: 'updated description',
+                    pipelineIds: [123, 124]
+                },
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            updatedCollectionMock = getCollectionMock(updatedCollection);
+            collectionFactoryMock.get.withArgs({ id }).resolves(collectionMock);
+            collectionMock.update.resolves(updatedCollectionMock);
+            updatedCollectionMock.toJson.returns(updatedCollection);
+        });
+
+        it('returns 200 and correct collection data', () =>
+            server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, updatedCollection);
+                assert.calledOnce(collectionMock.update);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 404 when the collection id is not found', () => {
+            collectionFactoryMock.get.withArgs({ id }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 401 when the user does not have permission', () => {
+            const fakeUserId = 12;
+
+            const fakeUserMock = getUserMock({
+                username,
+                userId: fakeUserId
+            });
+
+            userFactoryMock.get.withArgs({ username }).resolves(fakeUserMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 500 when the collectionFactory fails to get', () => {
+            const testError = new Error('collectionFactoryGetError');
+
+            collectionFactoryMock.get.withArgs({ id }).rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the collection model fails to update', () => {
+            const testError = new Error('collectionModelUpdateError');
+
+            collectionMock.update.rejects(testError);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
