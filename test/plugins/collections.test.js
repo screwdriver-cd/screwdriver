@@ -335,7 +335,6 @@ describe('collection plugin test', () => {
 
         it('returns 401 when the user does not have permission', () => {
             const fakeUserId = 12;
-
             const fakeUserMock = getUserMock({
                 username,
                 userId: fakeUserId
@@ -362,6 +361,69 @@ describe('collection plugin test', () => {
             const testError = new Error('collectionModelUpdateError');
 
             collectionMock.update.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('DELETE /collections/{id}', () => {
+        const id = testCollection.id;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/collections/${id}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+
+            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
+        });
+
+        it('returns 204 when delete is successful', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(collectionMock.remove);
+            })
+        );
+
+        it('returns 401 when user does not have permission', () => {
+            const fakeUserId = 12;
+            const fakeUserMock = getUserMock({
+                username,
+                userId: fakeUserId
+            });
+
+            userFactoryMock.get.withArgs({ username }).resolves(fakeUserMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 404 when collection does not exist', () => {
+            collectionFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            userFactoryMock.get.withArgs({ username }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when call returns error', () => {
+            collectionMock.remove.rejects('collectionRemoveError');
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);

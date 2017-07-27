@@ -73,3 +73,7 @@ Example payload:
     "pipelineIds": [1, 2, 5]
 }
 ```
+
+#### Delete a collection
+
+`DELETE /collections/{id}`
