@@ -51,7 +51,7 @@ const executor = new ExecutorPlugin({
 });
 
 // Source Code Plugin
-const scmConfig = config.has('scms') ? config.get('scms') : config.get('scm');
+const scmConfig = config.has('scms') ? { scms: config.get('scms') } : { scm: config.get('scm') };
 const ScmPlugin = require('screwdriver-scm-router');
 const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem }, (scmConfig || {})));
 
