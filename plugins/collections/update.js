@@ -43,6 +43,23 @@ module.exports = () => ({
 
                 Object.assign(oldCollection, request.payload);
 
+                // Check that all pipelines exist before updating the pipelineIds of
+                // the collection
+                if (request.payload.pipelineIds) {
+                    const { pipelineFactory } = request.server.app;
+
+                    return Promise.all(request.payload.pipelineIds.map(pipelineFactory.get))
+                    .then((pipelines) => {
+                        // If the pipeline exists, then add its id to the array of pipelineIds
+                        // in oldCollection
+                        oldCollection.pipelineIds = pipelines.filter(pipeline =>
+                            pipeline).map(pipeline => pipeline.id);
+
+                        return oldCollection.update()
+                        .then(updatedCollection => reply(updatedCollection.toJson()).code(200));
+                    });
+                }
+
                 return oldCollection.update()
                 .then(updatedCollection => reply(updatedCollection.toJson()).code(200));
             })
