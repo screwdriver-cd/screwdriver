@@ -92,6 +92,7 @@
     "screwdriver-executor-router": "^1.0.0",
     "screwdriver-models": "^22.5.0",
     "screwdriver-notifications-email": "^1.1.2",
+    "screwdriver-scm-router": "^0.0.1",
     "screwdriver-scm-bitbucket": "^2.8.1",
     "screwdriver-scm-github": "^4.8.2",
     "screwdriver-scm-gitlab": "^0.1.0",

@@ -51,19 +51,9 @@ const executor = new ExecutorPlugin({
 });
 
 // Source Code Plugin
-let scm;
-
-if (config.has('scms')) {
-    const scmConfigs = config.get('scms');
-    const ScmPlugin = require('screwdriver-scm-router');
-    scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
-        { scms: scmConfigs }));
-} else {
-    const scmConfig = config.get('scm');
-    const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
-    scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
-        (scmConfig[scmConfig.plugin] || {})));
-}
+const scmConfig = config.has('scms') ? config.get('scms') : config.get('scm');
+const ScmPlugin = require('screwdriver-scm-router');
+const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem }, (scmConfig || {})));
 
 authConfig.scm = scm;
 
