@@ -301,6 +301,15 @@ describe('github plugin test', () => {
                 });
             });
 
+            it('returns 204 when "[skip ci]"', () => {
+                parsed.lastCommitMessage = 'foo[skip ci]bar';
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                });
+            });
+
             it('returns 500 when failed', () => {
                 buildFactoryMock.create.rejects(new Error('Failed to start'));
 
