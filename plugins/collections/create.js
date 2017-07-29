@@ -30,12 +30,23 @@ module.exports = () => ({
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return collectionFactory.create({
-                        name: request.payload.name,
-                        description: request.payload.description,
-                        userId: user.id,
-                        pipelineIds: request.payload.pipelineIds
-                    });
+                    const config = Object.assign({}, request.payload, { userId: user.id });
+
+                    // Check that the pipelines exist for the pipelineIds specified.
+                    if (request.payload.pipelineIds) {
+                        const { pipelineFactory } = request.server.app;
+
+                        return Promise.all(request.payload.pipelineIds.map(pipelineFactory.get))
+                        .then((pipelines) => {
+                            // If the pipeline exists, then add it to pipelineIds
+                            config.pipelineIds = pipelines.filter(pipeline =>
+                                pipeline).map(pipeline => pipeline.id);
+
+                            return collectionFactory.create(config);
+                        });
+                    }
+
+                    return collectionFactory.create(config);
                 })
                 .then((collection) => {
                     const location = urlLib.format({

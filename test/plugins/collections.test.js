@@ -15,7 +15,7 @@ const updatedCollection = require('./data/updatedCollection.json');
 sinon.assert.expose(assert, { prefix: '' });
 
 const getCollectionMock = (collection) => {
-    const mock = hoek.clone(collection);
+    const mock = Object.assign({}, collection);
 
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(collection);
@@ -139,9 +139,7 @@ describe('collection plugin test', () => {
 
     describe('POST /collections', () => {
         let options;
-        const name = testCollection.name;
-        const description = testCollection.description;
-        const pipelineIds = testCollection.pipelineIds;
+        const { name, description, pipelineIds } = testCollection;
 
         beforeEach(() => {
             options = {
@@ -167,21 +165,68 @@ describe('collection plugin test', () => {
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testCollection.id}`
                 };
+                const expected = Object.assign({}, testCollection);
 
-                const expected = {
-                    name: testCollection.name,
-                    description: testCollection.description,
-                    pipelineIds: testCollection.pipelineIds,
-                    userId: testCollection.userId
-                };
-
+                delete expected.id;
                 assert.calledWith(collectionFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testCollection);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(collectionFactoryMock.create,
-                    hoek.merge(options.payload, { userId }));
-            }));
+            })
+        );
+
+        it('returns 201 and creates a collection when no pipelineIds given', () => {
+            delete options.payload.pipelineIds;
+            const resultCollection = Object.assign({}, testCollection);
+
+            // collectionFactoryMock will resolve a collection model with the pipelineIds
+            // field being an empty array
+            resultCollection.pipelineIds = [];
+            collectionMock = getCollectionMock(resultCollection);
+            collectionMock.remove.resolves(null);
+            collectionMock.update.resolves(collectionMock);
+            collectionFactoryMock.create.resolves(collectionMock);
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testCollection.id}`
+                };
+                const expectedInput = Object.assign({}, testCollection);
+
+                delete expectedInput.id;
+                delete expectedInput.pipelineIds;
+                assert.calledWith(collectionFactoryMock.create, expectedInput);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.result, resultCollection);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+            });
+        });
+
+        it('returns 201 and correct collection data when given invalid pipelineId', () => {
+            // Add an invalid pipelineId
+            options.payload.pipelineIds = [...testCollection.pipelineIds, 126];
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testCollection.id}`
+                };
+                const expected = Object.assign({}, testCollection);
+
+                delete expected.id;
+                // It is expected that the invalid pipelineId will be removed from the
+                // create call
+                assert.calledWith(collectionFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, testCollection);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+            });
+        });
 
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username }).resolves(null);
@@ -267,6 +312,22 @@ describe('collection plugin test', () => {
             });
         });
 
+        it('returns a collection only with pipelines that exist', () => {
+            const newTestCollection = Object.assign({}, testCollection);
+
+            // Add a pipelineId which doesn't exist in testPipelines
+            newTestCollection.pipelineIds.push(126);
+            collectionMock = getCollectionMock(newTestCollection);
+            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
+
+            // Since there is no pipeline with id 126, it should only return
+            // all the other pipelines
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testCollectionResponse);
+            });
+        });
+
         it('throws error not found when collection does not exist', () => {
             const error = {
                 statusCode: 404,
@@ -324,6 +385,25 @@ describe('collection plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             })
         );
+
+        it('returns 200 when no pipelineIds in payload', () => {
+            // The pipelineIds field should not be changed
+            const expectedOutput = Object.assign({}, updatedCollection, {
+                pipelineIds: testCollection.pipelineIds
+            });
+
+            updatedCollectionMock.toJson.returns(expectedOutput);
+            delete options.payload.pipelineIds;
+
+            return server.inject(options).then((reply) => {
+                // Make sure that the pipelineIds field is not modified in the model
+                assert.deepEqual(collectionMock.pipelineIds, testCollection.pipelineIds);
+                // Make sure that the output has the unmodified list of pipelineIds
+                assert.deepEqual(reply.result, expectedOutput);
+                assert.calledOnce(collectionMock.update);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
 
         it('returns 404 when the collection id is not found', () => {
             collectionFactoryMock.get.withArgs({ id }).resolves(null);
