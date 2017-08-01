@@ -48,7 +48,8 @@ module.exports = () => ({
                 if (request.payload.pipelineIds) {
                     const { pipelineFactory } = request.server.app;
 
-                    return Promise.all(request.payload.pipelineIds.map(pipelineFactory.get))
+                    return Promise.all(request.payload.pipelineIds.map(pipelineId =>
+                        pipelineFactory.get(pipelineId)))
                     .then((pipelines) => {
                         // If the pipeline exists, then add its id to the array of pipelineIds
                         // in oldCollection
