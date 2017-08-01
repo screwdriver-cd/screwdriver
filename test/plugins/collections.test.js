@@ -228,6 +228,17 @@ describe('collection plugin test', () => {
             });
         });
 
+        it('makes sure that pipelineFactory calls the pipelineFactory get method', () => {
+            pipelineFactoryMock.get = sinon.spy();
+
+            return server.inject(options)
+            .then(() => {
+                // This makes sure that the object that calls the get method of pipelineFactory
+                // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
+                assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
+            });
+        });
+
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username }).resolves(null);
 
@@ -402,6 +413,17 @@ describe('collection plugin test', () => {
                 assert.deepEqual(reply.result, expectedOutput);
                 assert.calledOnce(collectionMock.update);
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('makes sure that pipelineFactory calls the pipelineFactory get method', () => {
+            pipelineFactoryMock.get = sinon.spy();
+
+            return server.inject(options)
+            .then(() => {
+                // This makes sure that the object that calls the get method of pipelineFactory
+                // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
+                assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
             });
         });
 
