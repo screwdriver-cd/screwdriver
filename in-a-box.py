@@ -5,6 +5,7 @@ Set up a local instance of screwdriver on the local system
 """
 from __future__ import print_function
 import getpass
+import json
 import os
 import socket
 import sys
@@ -45,11 +46,7 @@ services:
                 [
                     {
                         "plugin": "${scm_plugin}",
-                        "config": {
-                            "displayName": "${scm_plugin}",
-                            "oauthClientId": "${oauth_id}",
-                            "oauthClientSecret": "${oauth_secret}"
-                        }
+                        "config": ${scm_config}
                     }
                 ]
             SECRET_JWT_PRIVATE_KEY: |${private_key}
@@ -163,7 +160,7 @@ def select_scm_provider():
         'scm_plugin': scm_plugin
     }
 
-def generate_oauth(scm_plugin, ip):
+def generate_scm_config(scm_plugin, ip):
     """
     Generate OAuth credentials from SCM
 
@@ -174,6 +171,10 @@ def generate_oauth(scm_plugin, ip):
     ip: str
         The IP address
     """
+    scm_config = {
+        'username': 'sd-buildbot',
+        'email': 'dev-null@screwdriver.cd'
+    }
     if scm_plugin == 'github':
         service_name = 'GitHub.com'
         start_url = 'https://github.com/settings/applications/new'
@@ -182,6 +183,8 @@ def generate_oauth(scm_plugin, ip):
         additional_process = ''
         client_id_name = 'Client ID'
         client_secret_name = 'Client Secret'
+        scm_config['displayName'] = 'github'
+        scm_config['secret'] = 'SUPER-SECRET-SIGNING-THING'
     elif scm_plugin == 'bitbucket':
         service_name = 'Bitbucket.org'
         start_url = 'https://bitbucket.org/account/user/<your username>/oauth-consumers/new'
@@ -190,6 +193,7 @@ def generate_oauth(scm_plugin, ip):
         additional_process = "for 'Permissions' enable Read checkbox for Repositories, Account and Pull requests"
         client_id_name = 'Key'
         client_secret_name = 'Secret'
+        scm_config['displayName'] = 'bitbucket'
     elif scm_plugin == 'gitlab':
         service_name = 'Gitlab.com'
         start_url = 'https://gitlab.com/profile/applications'
@@ -198,6 +202,7 @@ def generate_oauth(scm_plugin, ip):
         additional_process = ''
         client_id_name = 'Application Id'
         client_secret_name = 'Secret'
+        scm_config['displayName'] = 'gitlab'
 
     print('''
     Please create a new OAuth application on {service_name}
@@ -218,8 +223,11 @@ def generate_oauth(scm_plugin, ip):
     client_id = get_input('    %s: ' % client_id_name)
     secret = getpass.getpass('    %s: ' % client_secret_name)
 
+    scm_config['oauthClientId'] = client_id
+    scm_config['oauthClientSecret'] = secret
+
     print('')
-    return dict(oauth_id=client_id, oauth_secret=secret)
+    return dict(scm_config=json.dumps(scm_config))
 
 
 def check_component(component):
@@ -254,7 +262,7 @@ def main():
     fields = dict(fields, **select_scm_provider())
 
     print('📦   Generating OAuth credentials')
-    fields.update(generate_oauth(fields['scm_plugin'], fields['ip']))
+    fields.update(generate_scm_config(fields['scm_plugin'], fields['ip']))
 
     print('💾   Writing Docker Compose file')
     compose = Template(DOCKER_TEMPLATE).substitute(fields)

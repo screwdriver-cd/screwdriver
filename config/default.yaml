@@ -120,47 +120,49 @@ executor:
         # Launcher container tag to use
         launchVersion: stable
 
-scms:
-    - plugin: github
-      config:
-          # The name of the SCM to display in Screwdriver.
-          displayName: github
-          # The client id used for OAuth with github. Look up GitHub OAuth for details
-          # https://developer.github.com/v3/oauth/
-          oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
-          # The client secret used for OAuth with github
-          oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
-          # You can also configure for use with GitHub enterprise
-          # gheHost: github.screwdriver.cd
-          # The username and email used for checkout with github
-          username: sd-buildbot
-          email: dev-null@screwdriver.cd
-          # Secret to add to GitHub webhooks so that we can validate them
-          secret: SUPER-SECRET-SIGNING-THING
-          # Whether it supports private repo: boolean value.
-          # If true, it will ask for read and write access to public and private repos
-          # https://developer.github.com/v3/oauth/#scopes
-          privateRepo: false
-    # You can remove below comment out to enable other scm settings.
-    # - plugin: bitbucket
-    #   config:
-    #       displayName: bitbucket
-    #       oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
-    #       oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
-    #       # The username and email used for checkout with bitbucket
-    #       username: sd-buildbot
-    #       email: dev-null@screwdriver.cd
-    # - plugin: gitlab
-    #   config:
-    #       displayName: gitlab
-    #       oauthClientId: YOUR-GITLAB-OAUTH-CLIENT-ID
-    #       oauthClientSecret: YOUR-GITLAB-OAUTH-CLIENT-SECRET
-            # If you have on-premise gitlab, you can specify that here
-            # gitlabHost: mygitlab.com
-            # gitlabProtocol: https
-            # The username and email used for checkout with gitlab
-            # username: sd-buildbot
-            # email: dev-null@screwdriver.cd
+# An example of setting for SCMs is as below.
+# You can set these settings in your local.yaml
+#
+# scms:
+#     - plugin: github
+#       config:
+#           # The name of the SCM to display in Screwdriver.
+#           displayName: github
+#           # The client id used for OAuth with github. Look up GitHub OAuth for details
+#           # https://developer.github.com/v3/oauth/
+#           oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
+#           # The client secret used for OAuth with github
+#           oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
+#           # You can also configure for use with GitHub enterprise
+#           # gheHost: github.screwdriver.cd
+#           # The username and email used for checkout with github
+#           username: sd-buildbot
+#           email: dev-null@screwdriver.cd
+#           # Secret to add to GitHub webhooks so that we can validate them
+#           secret: SUPER-SECRET-SIGNING-THING
+#           # Whether it supports private repo: boolean value.
+#           # If true, it will ask for read and write access to public and private repos
+#           # https://developer.github.com/v3/oauth/#scopes
+#           privateRepo: false
+#     - plugin: bitbucket
+#       config:
+#           displayName: bitbucket
+#           oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
+#           oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
+#           # The username and email used for checkout with bitbucket
+#           username: sd-buildbot
+#           email: dev-null@screwdriver.cd
+#     - plugin: gitlab
+#       config:
+#           displayName: gitlab
+#           oauthClientId: YOUR-GITLAB-OAUTH-CLIENT-ID
+#           oauthClientSecret: YOUR-GITLAB-OAUTH-CLIENT-SECRET
+#           # If you have on-premise gitlab, you can specify that here
+#           # gitlabHost: mygitlab.com
+#           # gitlabProtocol: https
+#           # The username and email used for checkout with gitlab
+#           # username: sd-buildbot
+#           # email: dev-null@screwdriver.cd
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
     username: sd-buildbot
