@@ -123,6 +123,7 @@ executor:
 scms:
     - plugin: github
       config:
+          # The name of the SCM to display in Screwdriver.
           displayName: github
           # The client id used for OAuth with github. Look up GitHub OAuth for details
           # https://developer.github.com/v3/oauth/
@@ -143,6 +144,7 @@ scms:
     # You can remove below comment out to enable other scm settings.
     # - plugin: bitbucket
     #   config:
+    #       displayName: bitbucket
     #       oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
     #       oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
     #       # The username and email used for checkout with bitbucket
@@ -150,6 +152,7 @@ scms:
     #       email: dev-null@screwdriver.cd
     # - plugin: gitlab
     #   config:
+    #       displayName: gitlab
     #       oauthClientId: YOUR-GITLAB-OAUTH-CLIENT-ID
     #       oauthClientSecret: YOUR-GITLAB-OAUTH-CLIENT-SECRET
             # If you have on-premise gitlab, you can specify that here

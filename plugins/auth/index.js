@@ -41,7 +41,7 @@ exports.register = (server, options, next) => {
         admins: joi.array().default([]),
         scm: joi.object().required()
     }), 'Invalid config for plugin-auth');
-    const scm = server.root.app.userFactory.scm;
+    const scmContexts = server.root.app.userFactory.scm.getScmContexts();
 
     /**
      * Generates a profile for storage in cookie and jwt
@@ -56,6 +56,7 @@ exports.register = (server, options, next) => {
         const profile = Object.assign({
             username, scmContext, scope
         }, metadata || {});
+        const scm = server.root.app.userFactory.scm;
         const scmDisplayName = scm.getDisplayName({ scmContext });
         const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
 
@@ -143,35 +144,31 @@ exports.register = (server, options, next) => {
                 }
             });
 
-            return scm.getScmContexts()
-                .then((scmContexts) => {
-                    const loginRoutes = [];
+            const loginRoutes = [];
 
-                    scmContexts.forEach((scmContext) => {
-                        const auth = {
-                            strategy: `oauth_${scmContext}`,
-                            mode: 'try'
-                        };
-                        const loginOptions = hoek.applyToDefaults(pluginOptions,
-                                                { scmContext, auth });
+            scmContexts.forEach((scmContext) => {
+                const auth = {
+                    strategy: `oauth_${scmContext}`,
+                    mode: 'try'
+                };
+                const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext, auth });
 
-                        loginRoutes.push(loginRoute(loginOptions));
-                    });
-                    // This login route for which scmContext isn't passed just redirects to a default login route, so this login route doesn't need to have any auth strategy
-                    loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
-                        scmContext: '', auth: null
-                    })));
+                loginRoutes.push(loginRoute(loginOptions));
+            });
+            // This login route for which scmContext isn't passed just redirects to a default login route, so this login route doesn't need to have any auth strategy
+            loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
+                scmContext: '', auth: null
+            })));
 
-                    server.route(loginRoutes.concat([
-                        logoutRoute(),
-                        tokenRoute(),
-                        crumbRoute(),
-                        keyRoute(pluginOptions),
-                        contextsRoute()
-                    ]));
+            server.route(loginRoutes.concat([
+                logoutRoute(),
+                tokenRoute(),
+                crumbRoute(),
+                keyRoute(pluginOptions),
+                contextsRoute()
+            ]));
 
-                    next();
-                });
+            next();
         })
         .catch(ex => next(ex));
 };

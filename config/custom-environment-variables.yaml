@@ -98,32 +98,11 @@ executor:
         prefix: EXECUTOR_PREFIX
 
 scms:
-    # You can add another SCM settings, if you want.
-    - plugin: SCM_PLUGIN
-      config:
-          # The name of the SCM to display in Screwdriver.
-          # This setting is required to determine SCM instance in multiple SCMs.
-          displayName: SCM_DISPLAY_NAME
-          # The client id used for OAuth with the SCM. Look up each OAuth for details
-          # GitHub: https://developer.github.com/v3/oauth/
-          # Bitbucket: https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
-          # GitLab: https://docs.gitlab.com/ee/integration/oauth_provider.html
-          oauthClientId: SECRET_OAUTH_CLIENT_ID
-          # The client secret used for OAuth with the SCM
-          oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-          # The username and email used for checkout with the SCM
-          username: SCM_USERNAME
-          email: SCM_EMAIL
-          # You can also configure for use with any SCM instances
-          gheHost: SCM_GITHUB_GHE_HOST (for github plugin)
-          gitlabHost: SCM_GITLAB_HOST (for github plugin)
-          gitlabProtocol: SCM_GITLAB_PROTOCOL (for gitlab plugin)
-          # Secret to add to GitHub webhooks so that we can validate them (for GitHub setting)
-          secret: WEBHOOK_GITHUB_SECRET (for github plugin)
-          # Whether it supports private repo: boolean value.
-          # If true, it will ask for read and write access to public and private repos
-          # https://developer.github.com/v3/oauth/#scopes
-          privateRepo: SCM_PRIVATE_REPO_SUPPORT (for github plugin)
+    # The settings for SCMs
+    # See also default.yaml for more details in the settings
+    __name: SCM_SETTING
+    __format: json
+
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
     username: SCM_USERNAME

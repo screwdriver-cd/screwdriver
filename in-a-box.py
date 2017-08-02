@@ -32,7 +32,6 @@ services:
             URI: http://${ip}:9001
             ECOSYSTEM_UI: http://${ip}:9000
             ECOSYSTEM_STORE: http://${ip}:9002
-            SCM_PLUGIN: ${scm_plugin}
             DATASTORE_PLUGIN: sequelize
             DATASTORE_SEQUELIZE_DIALECT: sqlite
             DATASTORE_SEQUELIZE_STORAGE: /tmp/sd-data/storage.db
@@ -42,8 +41,17 @@ services:
                 {
                     "socketPath": "/var/run/docker.sock"
                 }
-            SECRET_OAUTH_CLIENT_ID: ${oauth_id}
-            SECRET_OAUTH_CLIENT_SECRET: ${oauth_secret}
+            SCM_SETTING: |
+                [
+                    {
+                        "plugin": "${scm_plugin}",
+                        "config": {
+                            "displayName": "${scm_plugin}",
+                            "oauthClientId": "${oauth_id}",
+                            "oauthClientSecret": "${oauth_secret}"
+                        }
+                    }
+                ]
             SECRET_JWT_PRIVATE_KEY: |${private_key}
             SECRET_JWT_PUBLIC_KEY: |${public_key}
     ui:
