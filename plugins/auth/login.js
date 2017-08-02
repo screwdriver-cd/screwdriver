@@ -55,7 +55,7 @@ module.exports = config => ({
             const profile = request.server.plugins.auth
                                 .generateProfile(username, scmContext, ['user'], {});
             const scmDisplayName = factory.scm.getDisplayName({ scmContext });
-            const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
+            const userDisplayName = `${scmDisplayName}:${username}`;
 
             // Check whitelist
             if (config.whitelist.length > 0 && !config.whitelist.includes(userDisplayName)) {

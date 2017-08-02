@@ -58,7 +58,7 @@ function startPRJob(options, request) {
     const pipeline = options.pipeline;
     const scm = request.server.app.pipelineFactory.scm;
     const scmDisplayName = scm.getDisplayName({ scmContext });
-    const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
+    const userDisplayName = `${scmDisplayName}:${username}`;
 
     return pipeline.getConfiguration(prRef)
         // get permutations(s) for "main" job

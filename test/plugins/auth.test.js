@@ -199,18 +199,6 @@ describe('auth plugin test', () => {
             expect(profile.scope).to.contain('admin');
         });
 
-        it('adds admin scope for admins even if displayName is missing', () => {
-            scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('');
-
-            const profile = server.plugins.auth
-                                .generateProfile('batman', 'github:github.com', ['user'], {});
-
-            expect(profile.username).to.contain('batman');
-            expect(profile.scmContext).to.contain('github:github.com');
-            expect(profile.scope).to.contain('user');
-            expect(profile.scope).to.contain('admin');
-        });
-
         it('does not add admin scope for non-admins', () => {
             const profile = server.plugins.auth
                                 .generateProfile('robin', 'github:mygithub.com', ['user'], {});

@@ -58,7 +58,7 @@ exports.register = (server, options, next) => {
         }, metadata || {});
         const scm = server.root.app.userFactory.scm;
         const scmDisplayName = scm.getDisplayName({ scmContext });
-        const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
+        const userDisplayName = `${scmDisplayName}:${username}`;
 
         // Check admin
         if (pluginOptions.admins.length > 0
