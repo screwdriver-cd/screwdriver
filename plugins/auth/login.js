@@ -22,25 +22,30 @@ module.exports = config => ({
         handler: (request, reply) => {
             const pathNames = request.path.split('/');
             const scmContext = pathNames[pathNames.indexOf('login') + 1];
+            const scm = request.server.root.app.userFactory.scm;
 
             // Redirect to the default login path if request path doesn't have a context
             if (!scmContext || scmContext === 'web') {
-                const defaultContext = request.server.root.app.userFactory.scm.getScmContexts()[0];
-                const prefix = request.route.realm.modifiers.route.prefix;
-                let pathName = `${prefix}/auth/login/${defaultContext}`;
+                return scm.getScmContexts()
+                    .then((scmContexts) => {
+                        const defaultContext = scmContexts[0];
+                        const prefix = request.route.realm.modifiers.route.prefix;
+                        let pathName = `${prefix}/auth/login/${defaultContext}`;
 
-                if (request.params.web) {
-                    pathName += '/web';
-                }
+                        if (request.params.web) {
+                            pathName += '/web';
+                        }
 
-                const location = urlLib.format({
-                    host: request.headers.host,
-                    port: request.headers.port,
-                    protocol: request.server.info.protocol,
-                    pathname: pathName
-                });
+                        const location = urlLib.format({
+                            host: request.headers.host,
+                            port: request.headers.port,
+                            protocol: request.server.info.protocol,
+                            pathname: pathName
+                        });
 
-                return reply().header('Location', location).code(301);
+                        return reply().header('Location', location).code(301);
+                    })
+                    .catch(err => reply(boom.wrap(err)));
             }
 
             if (!request.auth.isAuthenticated) {
@@ -54,7 +59,7 @@ module.exports = config => ({
             const username = request.auth.credentials.profile.username;
             const profile = request.server.plugins.auth
                                 .generateProfile(username, scmContext, ['user'], {});
-            const scmDisplayName = factory.scm.getDisplayName({ scmContext });
+            const scmDisplayName = scm.getDisplayName({ scmContext });
             const userDisplayName = scmDisplayName ? `${scmDisplayName}:${username}` : username;
 
             // Check whitelist

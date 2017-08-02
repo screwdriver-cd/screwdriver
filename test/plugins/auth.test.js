@@ -47,7 +47,7 @@ describe('auth plugin test', () => {
 
     beforeEach((done) => {
         scm = {
-            getScmContexts: sinon.stub().returns(['github:github.com']),
+            getScmContexts: sinon.stub().resolves(['github:github.com']),
             getDisplayName: sinon.stub().returns('github'),
             getBellConfiguration: sinon.stub().resolves({
                 'github:github.com': {
@@ -755,7 +755,7 @@ describe('auth plugin test', () => {
 
     describe('GET /auth/contexts', () => {
         beforeEach(() => {
-            scm.getScmContexts.returns([
+            scm.getScmContexts.resolves([
                 'github:github.com',
                 'github:mygithub.com'
             ]);

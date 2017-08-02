@@ -1,5 +1,7 @@
 'use strict';
 
+const boom = require('boom');
+
 /**
  * Get all scm contexts
  * @method login
@@ -16,18 +18,22 @@ module.exports = () => ({
         tags: ['api', 'scmContext'],
         handler: (request, reply) => {
             const scm = request.server.app.userFactory.scm;
-            const scmContexts = scm.getScmContexts();
-            const contexts = [];
 
-            scmContexts.forEach((scmContext) => {
-                const context = {};
+            return scm.getScmContexts()
+                .then((scmContexts) => {
+                    const contexts = [];
 
-                context[scmContext] = scm.getDisplayName({ scmContext });
+                    scmContexts.forEach((scmContext) => {
+                        const context = {};
 
-                contexts.push(context);
-            });
+                        context[scmContext] = scm.getDisplayName({ scmContext });
 
-            return reply(contexts);
+                        contexts.push(context);
+                    });
+
+                    return reply(contexts);
+                })
+                .catch(err => reply(boom.wrap(err)));
         }
     }
 });
