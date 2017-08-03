@@ -41,28 +41,28 @@ function findBuilds(config) {
         method: 'GET',
         uri: `${instance}/v4/pipelines/${pipelineId}/jobs`
     })
-    .then((response) => {
-        const jobData = response.body;
-        let result = [];
+        .then((response) => {
+            const jobData = response.body;
+            let result = [];
 
-        if (pullRequestNumber) {
-            result = jobData.filter(job => job.name === `PR-${pullRequestNumber}`);
-        } else {
-            result = jobData.filter(job => job.name === 'main');
-        }
+            if (pullRequestNumber) {
+                result = jobData.filter(job => job.name === `PR-${pullRequestNumber}`);
+            } else {
+                result = jobData.filter(job => job.name === 'main');
+            }
 
-        if (result.length === 0) {
-            return Promise.resolve(result);
-        }
+            if (result.length === 0) {
+                return Promise.resolve(result);
+            }
 
-        const jobId = result[0].id;
+            const jobId = result[0].id;
 
-        return request({
-            json: true,
-            method: 'GET',
-            uri: `${instance}/v4/jobs/${jobId}/builds`
+            return request({
+                json: true,
+                method: 'GET',
+                uri: `${instance}/v4/jobs/${jobId}/builds`
+            });
         });
-    });
 }
 
 /**

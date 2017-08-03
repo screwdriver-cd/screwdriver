@@ -59,16 +59,16 @@ module.exports = () => ({
 
                 // If template exists, then create the tag
                 return templateTagFactory.create({ name, tag, version })
-                .then((newTag) => {
-                    const location = urlLib.format({
-                        host: request.headers.host,
-                        port: request.headers.port,
-                        protocol: request.server.info.protocol,
-                        pathname: `${request.path}/${newTag.id}`
-                    });
+                    .then((newTag) => {
+                        const location = urlLib.format({
+                            host: request.headers.host,
+                            port: request.headers.port,
+                            protocol: request.server.info.protocol,
+                            pathname: `${request.path}/${newTag.id}`
+                        });
 
-                    return reply(newTag.toJson()).header('Location', location).code(201);
-                });
+                        return reply(newTag.toJson()).header('Location', location).code(201);
+                    });
             }).catch(err => reply(boom.wrap(err)));
         },
         validate: {

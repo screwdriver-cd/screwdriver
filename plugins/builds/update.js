@@ -123,8 +123,8 @@ module.exports = () => ({
                                 return null;
                             });
                         }))
-                        .then(() => reply(build.toJson()).code(200))
-                    );
+                            .then(() => reply(build.toJson()).code(200))
+                        );
                 })
                 .catch(err => reply(boom.wrap(err)));
         },

@@ -38,60 +38,60 @@ module.exports = () => ({
                 jobFactory.get(payload.jobId),
                 userFactory.get({ username })
             ])
-            // scmUri is buried in the pipeline, so we get that from the job
-            .then(([job, user]) => job.pipeline.then(pipeline =>
-                user.getPermissions(pipeline.scmUri)
-                // check if user has push access
-                .then((permissions) => {
-                    if (!permissions.push) {
-                        throw boom.unauthorized(`User ${username} `
+                // scmUri is buried in the pipeline, so we get that from the job
+                .then(([job, user]) => job.pipeline.then(pipeline =>
+                    user.getPermissions(pipeline.scmUri)
+                        // check if user has push access
+                        .then((permissions) => {
+                            if (!permissions.push) {
+                                throw boom.unauthorized(`User ${username} `
                             + 'does not have push permission for this repo');
-                    }
-                })
-                // user has good permissions, sync and create a build
-                .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
-                .then(() => user.unsealToken())
-                .then(token => scm.getCommitSha({
-                    token,
-                    scmUri: pipeline.scmUri,
-                    prNum: job.prNum
-                }))
-                .then((sha) => {
-                    let type = 'pipeline';
-                    let workflow = pipeline.workflow;
+                            }
+                        })
+                        // user has good permissions, sync and create a build
+                        .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
+                        .then(() => user.unsealToken())
+                        .then(token => scm.getCommitSha({
+                            token,
+                            scmUri: pipeline.scmUri,
+                            prNum: job.prNum
+                        }))
+                        .then((sha) => {
+                            let type = 'pipeline';
+                            let workflow = pipeline.workflow;
 
-                    if (job.isPR()) {
-                        type = 'pr';
-                        workflow = [job.name];
-                        payload.sha = sha;  // pass sha to payload if it's a PR
-                    }
+                            if (job.isPR()) {
+                                type = 'pr';
+                                workflow = [job.name];
+                                payload.sha = sha; // pass sha to payload if it's a PR
+                            }
 
-                    return eventFactory.create({
-                        pipelineId: pipeline.id,
-                        type,
-                        workflow,
-                        username,
-                        sha
+                            return eventFactory.create({
+                                pipelineId: pipeline.id,
+                                type,
+                                workflow,
+                                username,
+                                sha
+                            });
+                        })
+                        .then((event) => {
+                            payload.eventId = event.id;
+
+                            return buildFactory.create(payload);
+                        })
+                )).then((build) => {
+                    // everything succeeded, inform the user
+                    const location = urlLib.format({
+                        host: request.headers.host,
+                        port: request.headers.port,
+                        protocol: request.server.info.protocol,
+                        pathname: `${request.path}/${build.id}`
                     });
-                })
-                .then((event) => {
-                    payload.eventId = event.id;
 
-                    return buildFactory.create(payload);
+                    return reply(build.toJson()).header('Location', location).code(201);
                 })
-            )).then((build) => {
-                // everything succeeded, inform the user
-                const location = urlLib.format({
-                    host: request.headers.host,
-                    port: request.headers.port,
-                    protocol: request.server.info.protocol,
-                    pathname: `${request.path}/${build.id}`
-                });
-
-                return reply(build.toJson()).header('Location', location).code(201);
-            })
-            // something was botched
-            .catch(err => reply(boom.wrap(err)));
+                // something was botched
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             payload: validationSchema.models.build.create
