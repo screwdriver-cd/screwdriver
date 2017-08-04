@@ -153,7 +153,7 @@ describe('template plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: '/templates/screwdriver%2Fbuild/1.7.3'
+                url: '/templates/screwdriver/1.7.3'
             };
         });
 
@@ -162,53 +162,27 @@ describe('template plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.deepEqual(reply.result, testtemplate);
-                assert.calledWith(templateFactoryMock.getTemplate, {
-                    name: 'screwdriver/build',
-                    version: '1.7.3'
-                });
+                assert.calledWith(templateFactoryMock.getTemplate, 'screwdriver@1.7.3');
                 assert.equal(reply.statusCode, 200);
             });
         });
 
         it('returns 200 and a template when given the template name and tag', () => {
-            const testTagTemplate = {
-                id: 1,
-                name: 'template_namespace/nodejs_main',
-                tag: 'stable',
-                version: '1.7.3'
-            };
-
             options = {
                 method: 'GET',
-                url: '/templates/screwdriver%2Fbuild/stable'
+                url: '/templates/screwdriver/stable'
             };
-            templateTagFactoryMock.get.resolves(testTagTemplate);
             templateFactoryMock.getTemplate.resolves(testtemplate);
 
             return server.inject(options).then((reply) => {
                 assert.deepEqual(reply.result, testtemplate);
-                assert.calledWith(templateFactoryMock.getTemplate, {
-                    name: 'screwdriver/build',
-                    version: '1.7.3'
-                });
+                assert.calledWith(templateFactoryMock.getTemplate, 'screwdriver@stable');
                 assert.equal(reply.statusCode, 200);
             });
         });
 
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.getTemplate.resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
-        });
-
-        it('returns 404 when template tag does not exist', () => {
-            options = {
-                method: 'GET',
-                url: '/templates/screwdriver%2Fbuild/stable'
-            };
-            templateTagFactoryMock.get.resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

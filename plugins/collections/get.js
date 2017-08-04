@@ -31,7 +31,7 @@ module.exports = () => ({
 
                     return Promise.all(collectionPipelines)
                         .then((pipelines) => {
-                            const result = collection.toJson();
+                            const result = Object.assign({}, collection.toJson());
 
                             // Iterate over all the fetched pipelines, skip if null
                             // else add it to the result object

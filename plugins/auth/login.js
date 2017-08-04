@@ -1,6 +1,6 @@
 'use strict';
 
-/* eslint no-param-reassign: ["error", { "props": false }] */
+
 const boom = require('boom');
 const urlLib = require('url');
 
