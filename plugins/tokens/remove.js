@@ -28,17 +28,17 @@ module.exports = () => ({
 
             // Get the token first
             return tokenFactory.get(request.params.id)
-            .then((token) => {
-                if (!token) {
-                    throw boom.notFound('Token does not exist.');
-                }
+                .then((token) => {
+                    if (!token) {
+                        throw boom.notFound('Token does not exist.');
+                    }
 
-                // Check that the user is deleting their own token
-                return canAccess(credentials, token)
-                    .then(() => token.remove());
-            })
-            .then(() => reply().code(204))
-            .catch(err => reply(boom.wrap(err)));
+                    // Check that the user is deleting their own token
+                    return canAccess(credentials, token)
+                        .then(() => token.remove());
+                })
+                .then(() => reply().code(204))
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {

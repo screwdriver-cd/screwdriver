@@ -63,48 +63,48 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 method: 'GET',
                 json: true
             })
-            .then((response) => {
-                Assert.equal(response.statusCode, 200);
+                .then((response) => {
+                    Assert.equal(response.statusCode, 200);
 
-                for (let i = 0; i < response.body.length; i += 1) {
-                    if (response.body[i].name === jobName) {
-                        this.jobId = response.body[i].id;
-                        this.image = response.body[i].permutations[0].image;
-                        this.commands = response.body[i].permutations[0].commands;
-                        break;
+                    for (let i = 0; i < response.body.length; i += 1) {
+                        if (response.body[i].name === jobName) {
+                            this.jobId = response.body[i].id;
+                            this.image = response.body[i].permutations[0].image;
+                            this.commands = response.body[i].permutations[0].commands;
+                            break;
+                        }
                     }
-                }
-                Assert.equal(this.image, this.expectedImage);
-            })
-            .then(() =>
-                request({
-                    uri: `${this.instance}/${this.namespace}/builds`,
-                    method: 'POST',
-                    body: {
-                        jobId: this.jobId
-                    },
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
-                }).then((resp) => {
-                    Assert.equal(resp.statusCode, 201);
-
-                    this.buildId = resp.body.id;
+                    Assert.equal(this.image, this.expectedImage);
                 })
-            );
+                .then(() =>
+                    request({
+                        uri: `${this.instance}/${this.namespace}/builds`,
+                        method: 'POST',
+                        body: {
+                            jobId: this.jobId
+                        },
+                        auth: {
+                            bearer: this.jwt
+                        },
+                        json: true
+                    }).then((resp) => {
+                        Assert.equal(resp.statusCode, 201);
+
+                        this.buildId = resp.body.id;
+                    })
+                );
         });
 
     When(/^sd-step command is executed to use (.*) package$/,
-    { timeout: TIMEOUT }, function step(pkg) {
-        this.commands.forEach((c) => {
-            if (c.name === 'sd_step') {
-                Assert.include(c.command, pkg);
-            } else if (c.name.match(/^sd_step_/)) {
-                Assert.include(c.command, '--pkg-version');
-            }
+        { timeout: TIMEOUT }, function step(pkg) {
+            this.commands.forEach((c) => {
+                if (c.name === 'sd_step') {
+                    Assert.include(c.command, pkg);
+                } else if (c.name.match(/^sd_step_/)) {
+                    Assert.include(c.command, '--pkg-version');
+                }
+            });
         });
-    });
 
     When(/^sd-step command is executed to use (.*) package with specified version (.*)$/, {
         timeout: TIMEOUT

@@ -40,7 +40,7 @@ module.exports = () => ({
                         .then((permissions) => {
                             if (!permissions.admin) {
                                 throw boom.unauthorized(
-                                  `User ${username} is not an admin of this repo`);
+                                    `User ${username} is not an admin of this repo`);
                             }
                         })
                         // see if there is already a pipeline

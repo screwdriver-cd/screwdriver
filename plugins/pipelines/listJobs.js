@@ -16,25 +16,25 @@ module.exports = () => ({
             const factory = request.server.app.pipelineFactory;
 
             return factory.get(request.params.id)
-              .then((pipeline) => {
-                  if (!pipeline) {
-                      throw boom.notFound('Pipeline does not exist');
-                  }
+                .then((pipeline) => {
+                    if (!pipeline) {
+                        throw boom.notFound('Pipeline does not exist');
+                    }
 
-                  const config = {
-                      params: {
-                          archived: request.query.archived
-                      },
-                      paginate: {
-                          page: request.query.page,
-                          count: request.query.count
-                      }
-                  };
+                    const config = {
+                        params: {
+                            archived: request.query.archived
+                        },
+                        paginate: {
+                            page: request.query.page,
+                            count: request.query.count
+                        }
+                    };
 
-                  return pipeline.getJobs(config);
-              })
-              .then(jobs => reply(jobs.map(j => j.toJson())))
-              .catch(err => reply(boom.wrap(err)));
+                    return pipeline.getJobs(config);
+                })
+                .then(jobs => reply(jobs.map(j => j.toJson())))
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema

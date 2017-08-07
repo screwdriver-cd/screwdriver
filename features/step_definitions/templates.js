@@ -22,33 +22,33 @@ defineSupportCode(({ Given, When, Then }) => {
         }
 
         return fs.readFile(targetFile, 'utf8')
-        .then((contents) => {
-            this.templateContents = contents;
-        });
+            .then((contents) => {
+                this.templateContents = contents;
+            });
     });
 
     When(/^they submit it to the API$/, function step() {
         return this.getJwt(this.apiToken)
-        .then((response) => {
-            const jwt = response.body.token;
+            .then((response) => {
+                const jwt = response.body.token;
 
-            return request({
-                uri: `${this.instance}/${this.namespace}/validator/template`,
-                method: 'POST',
-                auth: {
-                    bearer: jwt
-                },
-                body: {
-                    yaml: this.templateContents
-                },
-                json: true
+                return request({
+                    uri: `${this.instance}/${this.namespace}/validator/template`,
+                    method: 'POST',
+                    auth: {
+                        bearer: jwt
+                    },
+                    body: {
+                        yaml: this.templateContents
+                    },
+                    json: true
+                });
+            })
+            .then((response) => {
+                Assert.equal(response.statusCode, 200);
+
+                this.body = response.body;
             });
-        })
-        .then((response) => {
-            Assert.equal(response.statusCode, 200);
-
-            this.body = response.body;
-        });
     });
 
     Then(/^they are notified it has (no|some) errors$/, function step(quantity) {

@@ -92,7 +92,7 @@ module.exports = config => ({
 
                     return loadLines(baseUrl, req.query.from)
                         .then(([lines, morePages]) => reply(lines)
-                                .header('X-More-Data', (morePages || !isDone).toString()));
+                            .header('X-More-Data', (morePages || !isDone).toString()));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },

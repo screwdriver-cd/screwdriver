@@ -232,11 +232,11 @@ describe('collection plugin test', () => {
             pipelineFactoryMock.get = sinon.spy();
 
             return server.inject(options)
-            .then(() => {
+                .then(() => {
                 // This makes sure that the object that calls the get method of pipelineFactory
                 // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
-                assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
-            });
+                    assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
+                });
         });
 
         it('returns 404 when the user does not exist', () => {
@@ -420,11 +420,11 @@ describe('collection plugin test', () => {
             pipelineFactoryMock.get = sinon.spy();
 
             return server.inject(options)
-            .then(() => {
+                .then(() => {
                 // This makes sure that the object that calls the get method of pipelineFactory
                 // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
-                assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
-            });
+                    assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
+                });
         });
 
         it('returns 404 when the collection id is not found', () => {

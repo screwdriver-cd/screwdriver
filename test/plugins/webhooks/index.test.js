@@ -323,9 +323,9 @@ describe('github plugin test', () => {
                 userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
 
                 return server.inject(options)
-                .then((response) => {
-                    assert.equal(response.statusCode, 201);
-                });
+                    .then((response) => {
+                        assert.equal(response.statusCode, 201);
+                    });
             });
         });
 
@@ -471,9 +471,9 @@ describe('github plugin test', () => {
                     userFactoryMock.get.withArgs({ username: 'sd-buildbot' }).resolves(userMock);
 
                     return server.inject(options)
-                    .then((response) => {
-                        assert.equal(response.statusCode, 201);
-                    });
+                        .then((response) => {
+                            assert.equal(response.statusCode, 201);
+                        });
                 });
             });
 

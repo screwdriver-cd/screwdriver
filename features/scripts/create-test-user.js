@@ -71,11 +71,11 @@ return datastore.setup()
         }
 
         return model.sealToken(gitToken)
-          .then((token) => {
-              model.token = token;
+            .then((token) => {
+                model.token = token;
 
-              return model.update();
-          });
+                return model.update();
+            });
     })
     .then(testUser => tokenFactory.create({
         name: 'Functional test token',

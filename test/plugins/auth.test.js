@@ -114,8 +114,8 @@ describe('auth plugin test', () => {
                     https: false
                 }
             })
-            .then(() => Promise.reject(new Error('should not be here')))
-            .catch(err => assert.equal(err.message, 'Failure'));
+                .then(() => Promise.reject(new Error('should not be here')))
+                .catch(err => assert.equal(err.message, 'Failure'));
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
