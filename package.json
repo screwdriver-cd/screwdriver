@@ -8,7 +8,8 @@
     "test": "jenkins-mocha --recursive --timeout 3000",
     "start": "./bin/server",
     "functional": "cucumber-js --format=pretty --tags 'not @ignore'",
-    "create-test-user": "node ./features/scripts/create-test-user.js"
+    "create-test-user": "node ./features/scripts/create-test-user.js",
+    "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -114,6 +115,7 @@
     "mockery": "^2.0.0",
     "mz": "^2.6.0",
     "nock": "^9.0.0",
+    "node-plantuml": "^0.5.0",
     "npm-auto-version": "^1.0.0",
     "sinon": "^2.3.1"
   }
