@@ -104,7 +104,8 @@ function startPRJob(options, request) {
                 causeMessage: `${options.action} by ${userDisplayName}`
             })
                 .then(event =>
-                    buildFactory.create({ jobId, sha, username, scmContext, eventId: event.id, prRef })
+                    buildFactory.create(
+                        { jobId, sha, username, scmContext, eventId: event.id, prRef })
                 );
         })
         // create a build
@@ -362,7 +363,8 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                     })
                         // create a build
                         .then(event =>
-                            buildFactory.create({ jobId, sha, username, scmContext, eventId: event.id })
+                            buildFactory.create(
+                                { jobId, sha, username, scmContext, eventId: event.id })
                         )
                         // log build created
                         .then((build) => {

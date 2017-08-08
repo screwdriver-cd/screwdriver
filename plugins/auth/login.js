@@ -1,6 +1,5 @@
 'use strict';
 
-
 const boom = require('boom');
 const urlLib = require('url');
 
@@ -53,7 +52,7 @@ module.exports = config => ({
             const accessToken = request.auth.credentials.token;
             const username = request.auth.credentials.profile.username;
             const profile = request.server.plugins.auth
-                                .generateProfile(username, scmContext, ['user'], {});
+                .generateProfile(username, scmContext, ['user'], {});
             const scmDisplayName = factory.scm.getDisplayName({ scmContext });
             const userDisplayName = `${scmDisplayName}:${username}`;
 
