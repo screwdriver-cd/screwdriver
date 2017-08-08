@@ -8,6 +8,11 @@ This is an executor plugin for Screwdriver that makes use of [Resque][node-resqu
 
 ![](./diagrams/executor-queue-architecture.puml.png)
 
+## Sequence Diagrams
+
+### Starting a build
+![](./diagrams/executor-queue-start-sequence.puml.png)
+
 ## Design Decisions
 
 ### Router
