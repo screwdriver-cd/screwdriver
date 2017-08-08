@@ -333,9 +333,9 @@ describe('github plugin test', () => {
                 }).resolves(userMock);
 
                 return server.inject(options)
-                .then((response) => {
-                    assert.equal(response.statusCode, 201);
-                });
+                    .then((response) => {
+                        assert.equal(response.statusCode, 201);
+                    });
             });
         });
 
@@ -491,9 +491,9 @@ describe('github plugin test', () => {
                     }).resolves(userMock);
 
                     return server.inject(options)
-                    .then((response) => {
-                        assert.equal(response.statusCode, 201);
-                    });
+                        .then((response) => {
+                            assert.equal(response.statusCode, 201);
+                        });
                 });
             });
 

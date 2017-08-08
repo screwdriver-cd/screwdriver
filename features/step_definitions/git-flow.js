@@ -21,7 +21,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         this.pullRequestNumber = null;
         this.pipelineId = null;
 
-        return request({  // TODO : perform this in the before-hook for all func tests
+        return request({ // TODO : perform this in the before-hook for all func tests
             method: 'GET',
             url: `${this.instance}/${this.namespace}/auth/token?api_token=${this.apiToken}`,
             followAllRedirects: true,
@@ -102,39 +102,39 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^the pull request is closed$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(3)  // Wait for the build to be enabled before moving forward
-        .then(() =>
-            sdapi.searchForBuild({
-                instance: this.instance,
-                pipelineId: this.pipelineId,
-                pullRequestNumber: this.pullRequestNumber,
-                sha: this.sha,
-                desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE']
-            })
-        ).then((buildData) => {
-            this.previousBuildId = buildData.id;
-        }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
+        return this.promiseToWait(3) // Wait for the build to be enabled before moving forward
+            .then(() =>
+                sdapi.searchForBuild({
+                    instance: this.instance,
+                    pipelineId: this.pipelineId,
+                    pullRequestNumber: this.pullRequestNumber,
+                    sha: this.sha,
+                    desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE']
+                })
+            ).then((buildData) => {
+                this.previousBuildId = buildData.id;
+            }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
                 this.pullRequestNumber)
-        );
+            );
     });
 
     When(/^new changes are pushed to that pull request$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(3)  // Find & save the previous build
-        .then(() =>
-            sdapi.searchForBuild({
-                instance: this.instance,
-                pipelineId: this.pipelineId,
-                pullRequestNumber: this.pullRequestNumber,
-                sha: this.sha,
-                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE']
-            }).then((buildData) => {
-                this.previousBuildId = buildData.id;
-            })
-        )
-        .then(() => github.createFile(this.gitToken, this.branch, this.repoOrg,
-            this.repoName));
+        return this.promiseToWait(3) // Find & save the previous build
+            .then(() =>
+                sdapi.searchForBuild({
+                    instance: this.instance,
+                    pipelineId: this.pipelineId,
+                    pullRequestNumber: this.pullRequestNumber,
+                    sha: this.sha,
+                    desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE']
+                }).then((buildData) => {
+                    this.previousBuildId = buildData.id;
+                })
+            )
+            .then(() => github.createFile(this.gitToken, this.branch, this.repoOrg,
+                this.repoName));
     });
 
     When(/^a new commit is pushed$/, () => null);
@@ -149,17 +149,17 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         timeout: TIMEOUT
     }, function step() {
         return this.promiseToWait(8)
-        .then(() => sdapi.searchForBuild({
-            instance: this.instance,
-            pipelineId: this.pipelineId,
-            pullRequestNumber: this.pullRequestNumber
-        }))
-        .then((data) => {
-            const build = data;
+            .then(() => sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                pullRequestNumber: this.pullRequestNumber
+            }))
+            .then((data) => {
+                const build = data;
 
-            Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
-            this.jobId = build.jobId;
-        });
+                Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
+                this.jobId = build.jobId;
+            });
     });
 
     Then(/^the build should know they are in a pull request/, function step() {
@@ -168,10 +168,10 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             method: 'GET',
             uri: `${this.instance}/${this.namespace}/jobs/${this.jobId}`
         })
-        .then((response) => {
-            Assert.strictEqual(response.statusCode, 200);
-            Assert.match(response.body.name, /^PR-(.*)$/);
-        });
+            .then((response) => {
+                Assert.strictEqual(response.statusCode, 200);
+                Assert.match(response.body.name, /^PR-(.*)$/);
+            });
     });
 
     Then(/^any existing builds should be stopped$/, {
@@ -191,8 +191,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
     Then(/^the GitHub status should be updated to reflect the build's status$/, function step() {
         return github.getStatus(this.gitToken, this.repoOrg, this.repoName, this.sha)
-        .then((data) => {
-            Assert.oneOf(data.state, ['success', 'pending']);
-        });
+            .then((data) => {
+                Assert.oneOf(data.state, ['success', 'pending']);
+            });
     });
 });

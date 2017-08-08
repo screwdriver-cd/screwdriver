@@ -29,7 +29,7 @@ module.exports = () => ({
 
                 reply(templates.map(p => p.toJson()));
             })
-            .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema

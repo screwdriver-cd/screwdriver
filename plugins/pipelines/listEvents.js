@@ -16,15 +16,15 @@ module.exports = () => ({
             const factory = request.server.app.pipelineFactory;
 
             return factory.get(request.params.id)
-              .then((pipeline) => {
-                  if (!pipeline) {
-                      throw boom.notFound('Pipeline does not exist');
-                  }
+                .then((pipeline) => {
+                    if (!pipeline) {
+                        throw boom.notFound('Pipeline does not exist');
+                    }
 
-                  return pipeline.getEvents();
-              })
-              .then(events => reply(events.map(e => e.toJson())))
-              .catch(err => reply(boom.wrap(err)));
+                    return pipeline.getEvents();
+                })
+                .then(events => reply(events.map(e => e.toJson())))
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema

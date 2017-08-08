@@ -103,14 +103,14 @@ function startPRJob(options, request) {
                 sha,
                 causeMessage: `${options.action} by ${userDisplayName}`
             })
-            .then(event => buildFactory.create({
-                jobId, sha, username, scmContext, eventId: event.id, prRef
-            }));
+                .then(event =>
+                    buildFactory.create({ jobId, sha, username, scmContext, eventId: event.id, prRef })
+                );
         })
         // create a build
         .then(build =>
             request.log(['webhook', hookId, build.jobId, build.id],
-            `${name} started ${build.number}`));
+                `${name} started ${build.number}`));
 }
 
 /**
@@ -148,20 +148,20 @@ function pullRequestClosed(options, request, reply) {
     return jobFactory.get(jobId)
         .then(job =>
             stopJob(job)
-            .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
+                .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
             // disable and archive the job
-            .then(() => {
-                job.state = 'DISABLED';
-                job.archived = true;
+                .then(() => {
+                    job.state = 'DISABLED';
+                    job.archived = true;
 
-                return job.update();
-            })
+                    return job.update();
+                })
             // log some stuff
-            .then(() => {
-                request.log(['webhook', hookId, jobId], `${name} disabled and archived`);
+                .then(() => {
+                    request.log(['webhook', hookId, jobId], `${name} disabled and archived`);
 
-                return reply().code(200);
-            }))
+                    return reply().code(200);
+                }))
         // something went wrong
         .catch(err => reply(boom.wrap(err)));
 }
@@ -301,7 +301,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         return pullRequestClosed(options, request, reply);
                     }
                 }
-            ));
+                ));
         })
         .catch(err => reply(boom.wrap(err)));
 }
@@ -347,7 +347,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                 .then(p => p.jobs.then((jobs) => {
                     const pipelineId = p.id;
                     const name = 'main';
-                    const i = jobs.findIndex(j => j.name === name);   // get job's index
+                    const i = jobs.findIndex(j => j.name === name); // get job's index
                     const jobId = jobs[i].id;
 
                     // create an event
@@ -360,17 +360,17 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                         sha,
                         causeMessage: `Merged by ${username}`
                     })
-                    // create a build
-                    .then(event => buildFactory.create({
-                        jobId, sha, username, scmContext, eventId: event.id
-                    }))
-                    // log build created
-                    .then((build) => {
-                        request.log(['webhook', hookId, jobId, build.id],
-                            `${name} started ${build.number}`);
+                        // create a build
+                        .then(event =>
+                            buildFactory.create({ jobId, sha, username, scmContext, eventId: event.id })
+                        )
+                        // log build created
+                        .then((build) => {
+                            request.log(['webhook', hookId, jobId, build.id],
+                                `${name} started ${build.number}`);
 
-                        return reply().code(201);
-                    });
+                            return reply().code(201);
+                        });
                 }));
         })
         .catch(err => reply(boom.wrap(err)));
@@ -403,29 +403,29 @@ exports.register = (server, options, next) => {
             tags: ['api', 'webhook'],
             handler: (request, reply) =>
                 scm.parseHook(request.headers, request.payload)
-                .then((parsed) => {
-                    if (!parsed) { // for all non-matching events or actions
-                        return reply().code(204);
-                    }
+                    .then((parsed) => {
+                        if (!parsed) { // for all non-matching events or actions
+                            return reply().code(204);
+                        }
 
-                    const eventType = parsed.type;
-                    const hookId = parsed.hookId;
+                        const eventType = parsed.type;
+                        const hookId = parsed.hookId;
 
-                    request.log(['webhook', hookId], `Received event type ${eventType}`);
+                        request.log(['webhook', hookId], `Received event type ${eventType}`);
 
-                    if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
-                        request.log(['webhook', hookId], 'Skipping due to the commit message');
+                        if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
+                            request.log(['webhook', hookId], 'Skipping due to the commit message');
 
-                        return reply().code(204);
-                    }
+                            return reply().code(204);
+                        }
 
-                    if (eventType === 'pr') {
-                        return pullRequestEvent(pluginOptions, request, reply, parsed);
-                    }
+                        if (eventType === 'pr') {
+                            return pullRequestEvent(pluginOptions, request, reply, parsed);
+                        }
 
-                    return pushEvent(pluginOptions, request, reply, parsed);
-                })
-                .catch(err => reply(boom.wrap(err)))
+                        return pushEvent(pluginOptions, request, reply, parsed);
+                    })
+                    .catch(err => reply(boom.wrap(err)))
         }
     });
 

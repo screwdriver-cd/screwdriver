@@ -26,7 +26,7 @@ exports.register = (server, options, next) => {
                 const templateString = request.payload.yaml;
 
                 return validator(templateString)
-                .then(reply, err => reply(boom.badRequest(err.toString())));
+                    .then(reply, err => reply(boom.badRequest(err.toString())));
             },
             validate: {
                 payload: templateSchema.input

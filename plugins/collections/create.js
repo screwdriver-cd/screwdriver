@@ -38,13 +38,13 @@ module.exports = () => ({
 
                         return Promise.all(request.payload.pipelineIds.map(pipelineId =>
                             pipelineFactory.get(pipelineId)))
-                        .then((pipelines) => {
+                            .then((pipelines) => {
                             // If the pipeline exists, then add it to pipelineIds
-                            config.pipelineIds = pipelines.filter(pipeline =>
-                                pipeline).map(pipeline => pipeline.id);
+                                config.pipelineIds = pipelines.filter(pipeline =>
+                                    pipeline).map(pipeline => pipeline.id);
 
-                            return collectionFactory.create(config);
-                        });
+                                return collectionFactory.create(config);
+                            });
                     }
 
                     return collectionFactory.create(config);

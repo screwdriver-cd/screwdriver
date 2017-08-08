@@ -64,12 +64,12 @@ defineSupportCode(({ Before, Given, When, Then, After }) => {
     });
 
     Then(/^the "foo" secret should be available in the build$/,
-    { timeout: TIMEOUT }, function step() {
-        return this.waitForBuild(this.buildId).then((response) => {
-            Assert.equal(response.body.status, 'SUCCESS');
-            Assert.equal(response.statusCode, 200);
+        { timeout: TIMEOUT }, function step() {
+            return this.waitForBuild(this.buildId).then((response) => {
+                Assert.equal(response.body.status, 'SUCCESS');
+                Assert.equal(response.statusCode, 200);
+            });
         });
-    });
 
     When(/^the "second" job is started$/, { timeout: TIMEOUT }, function step() {
         return request({

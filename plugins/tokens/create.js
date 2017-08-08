@@ -27,39 +27,40 @@ module.exports = () => ({
             const scmContext = request.auth.credentials.scmContext;
 
             return userFactory.get({ username, scmContext })
-            .then((user) => {
-                if (!user) {
-                    throw boom.notFound(`User ${username} does not exist`);
-                }
+                .then((user) => {
+                    if (!user) {
+                        throw boom.notFound(`User ${username} does not exist`);
+                    }
 
-                return user.tokens
-                    .then((tokens) => {
-                        // Make sure the name is unique
-                        const match = tokens && tokens.find(t => t.name === request.payload.name);
+                    return user.tokens
+                        .then((tokens) => {
+                            // Make sure the name is unique
+                            const match = tokens &&
+                                tokens.find(t => t.name === request.payload.name);
 
-                        if (match) {
-                            throw boom.conflict(`Token with name ${match.name} already exists`);
-                        }
+                            if (match) {
+                                throw boom.conflict(`Token with name ${match.name} already exists`);
+                            }
 
-                        return tokenFactory.create({
-                            name: request.payload.name,
-                            description: request.payload.description,
-                            userId: user.id
+                            return tokenFactory.create({
+                                name: request.payload.name,
+                                description: request.payload.description,
+                                userId: user.id
+                            });
                         });
+                })
+                .then((token) => {
+                    const location = urlLib.format({
+                        host: request.headers.host,
+                        port: request.headers.port,
+                        protocol: request.server.info.protocol,
+                        pathname: `${request.path}/${token.id}`
                     });
-            })
-            .then((token) => {
-                const location = urlLib.format({
-                    host: request.headers.host,
-                    port: request.headers.port,
-                    protocol: request.server.info.protocol,
-                    pathname: `${request.path}/${token.id}`
-                });
 
-                return reply(token.toJson()).header('Location', location).code(201);
-            })
-            // something broke, respond with error
-            .catch(err => reply(boom.wrap(err)));
+                    return reply(token.toJson()).header('Location', location).code(201);
+                })
+                // something broke, respond with error
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             payload: schema.models.token.create

@@ -70,25 +70,25 @@ describe('versions plugin test', () => {
                     licenses: 'bark4'
                 }
             }))
-            .then(server => server.inject({
-                url: '/versions'
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(JSON.stringify(reply.result.versions), JSON.stringify([
-                    'screwdriver-foo@0.1.2'
-                ]));
-                assert.equal(JSON.stringify(reply.result.licenses), JSON.stringify([
-                    { name: 'screwdriver-foo', repository: 'bar', licenses: 'baz' },
-                    { name: 'fake1', repository: 'bark1', licenses: 'UNKNOWN' },
-                    { name: 'fake2', repository: 'UNKNOWN', licenses: 'bark2' },
-                    { name: 'fake3', repository: 'bark3', licenses: 'bark4' }
-                ]));
-            }))
+                .then(server => server.inject({
+                    url: '/versions'
+                }).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(JSON.stringify(reply.result.versions), JSON.stringify([
+                        'screwdriver-foo@0.1.2'
+                    ]));
+                    assert.equal(JSON.stringify(reply.result.licenses), JSON.stringify([
+                        { name: 'screwdriver-foo', repository: 'bar', licenses: 'baz' },
+                        { name: 'fake1', repository: 'bark1', licenses: 'UNKNOWN' },
+                        { name: 'fake2', repository: 'UNKNOWN', licenses: 'bark2' },
+                        { name: 'fake3', repository: 'bark3', licenses: 'bark4' }
+                    ]));
+                }))
         );
 
         it('returns 500 for being unable to parse the package.json', () =>
             registerServer(sinon.stub().yieldsAsync(new Error('foobar')))
-            .catch(error => assert.match(
+                .catch(error => assert.match(
                     error.toString(),
                     /Unable to load package dependencies: foobar/)
                 )

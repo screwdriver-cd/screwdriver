@@ -48,7 +48,7 @@ module.exports = () => ({
                     .then(() => pipeline.sync())
                     .then(() => reply().code(204));
             })
-            .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {

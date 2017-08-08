@@ -22,7 +22,7 @@ exports.register = (server, options, next) => {
             tags: ['api', 'validation', 'yaml'],
             handler: (request, reply) =>
                 parser(request.payload.yaml, request.server.app.templateFactory)
-                .then(pipeline => reply(pipeline)),
+                    .then(pipeline => reply(pipeline)),
             validate: {
                 payload: validatorSchema.input
             },

@@ -27,21 +27,21 @@ module.exports = () => ({
             const scmContext = request.auth.credentials.scmContext;
 
             return userFactory.get({ username, scmContext })
-            .then((user) => {
-                if (!user) {
-                    throw boom.notFound(`User ${username} does not exist`);
-                }
+                .then((user) => {
+                    if (!user) {
+                        throw boom.notFound(`User ${username} does not exist`);
+                    }
 
-                return user.tokens;
-            })
-            .then(tokens => reply(tokens.map((token) => {
-                const output = token.toJson();
+                    return user.tokens;
+                })
+                .then(tokens => reply(tokens.map((token) => {
+                    const output = token.toJson();
 
-                delete output.userId;
+                    delete output.userId;
 
-                return output;
-            })))
-            .catch(err => reply(boom.wrap(err)));
+                    return output;
+                })))
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: getSchema
