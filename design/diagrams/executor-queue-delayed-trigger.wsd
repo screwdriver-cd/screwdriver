@@ -1,0 +1,13 @@
+title Delayed Trigger Workflow
+
+participant Commits
+participant JobA as A
+participant JobB as B
+
+Commits->A: commit1
+A-->+A: commit1 Job start
+A-->-A: commit1 Job end
+A->B: commit1
+B-->B: Time Passes
+B-->+B: commit1 Job start
+B-->-B: commit1 Job end
