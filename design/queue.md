@@ -26,30 +26,25 @@ The rest of this document will describe the overall architecture of the executor
 * Allows for prioritization
 * Password-protected security
 
-### Why Resque?
+### Why Node-Resque?
 
-We evaluated numerous queueing mechanisms based on the acceptance criteria above. We eventually settled on [Node-resque](node-resque-URL) because it meets all the requirements above and fits in well with the rest of our codebase. In addition, the community around it is pretty active, and we should easily be able to implement a variety of plugins for the queue.
+We evaluated numerous queueing mechanisms based on the acceptance criteria above. We eventually settled on [resque](resque-URL), and specifically [Node-resque](node-resque-URL), because it meets all the requirements above and fits in well with the rest of our codebase. In addition, the community around it is pretty active, and we should easily be able to implement a variety of plugins for the queue.
 
-#### Resque Plugins
+#### Node-resque Plugins
 
-A plugin can have access to 4 unique hooks:
-* Before queue
-  * Event when a job is about to be placed into a queue
-* After queue
-  * Event when a job is about to leave a queue?
-* Before work
-  * Event when a job is about to be worked on by a worker
-* After work
-  * Event when a worker is done (e.g., failed or completed) with a job
+A plugin has access to four unique hooks:
+* `before_enqueue` - Called with the job args before a job is placed on the queue. If the hook returns `false`, the job will not be placed on the queue.
+* `after_enqueue` - Called with the job args after a job is placed on the queue. Any exception raised propagates up to the code which queued the job.
+* `before_perform` - Called with the job args before perform. If it raises
+  `Resque::Job::DontPerform`, the job is aborted. If other exceptions
+  are raised, they will be propagated up the the `Resque::Failure`
+  backend.
+* `after_perform` - Called with the job args after it performs. Uncaught
+  exceptions will propagate up to the `Resque::Failure` backend.
 
-A plugin has access to a variety of Resque environment resources:
-* Reference to the queues
-* Reference to the Redis backend
-* Reference to the worker
-* Reference to the main function (e.g., the worker function)
+More information about node-resque plugins can be found [here](node-resque-plugins-URL).
 
 #### Node-resque Executor
-
 
 | Screwdriver Executor Task | node_resque Equivalent(s) |
 | ------------------------- |---------------------------|
@@ -241,11 +236,13 @@ Matrix jobs will work very similar to join/parallel builds.
 If you make changes to the architecture, please be sure to update this document. To update any architecture diagrams rendered from `.puml` files, just run `npm run diagrams` (you will need to have [graphviz](http://graphviz.org/) installed locally). To update diagrams generated from `.wsd` files use [web sequence diagrams](https://www.websequencediagrams.com/).
 
 ## Resources
+* [Resque Workers Lock](https://github.com/bartolsthoorn/resque-workers-lock)
+* [Wikipedia: Readers-writer Lock](https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock)
 * [node-resque][node-resque-URL]
 * [resque-bus][resque-bus-URL]
-* [Wikipedia: Readers-writer Lock](https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock)
-* [Resque Workers Lock](https://github.com/bartolsthoorn/resque-workers-lock)
 
 [node-queue-bus-URL]: https://www.npmjs.com/package/node-queue-bus
 [node-resque-URL]: https://github.com/taskrabbit/node-resque
+[node-resque-plugins-URL]: https://github.com/taskrabbit/node-resque#plugins
+[resque-URL]: https://github.com/resque/resque
 [resque-bus-URL]: https://github.com/queue-bus/resque-bus
