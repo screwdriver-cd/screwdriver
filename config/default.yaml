@@ -120,14 +120,13 @@ executor:
         # Launcher container tag to use
         launchVersion: stable
     jenkins:
-      # Configuration of Jenkins
-      jenkins:
-          host: jenkins.default
-          port: 8080
-          username: screwdriver
-          password: screwdriver
-      docker:
-          command: docker
+      options:
+        # Configuration of Jenkins
+        jenkins:
+            host: jenkins.default
+            port: 8080
+            username: screwdriver
+            password: "WOW-AN-EVEN-MORE-INSECURE-PASSWORD!!!!"
 
 scm:
     plugin: github
