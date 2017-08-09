@@ -22,9 +22,9 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const { userFactory, collectionFactory } = request.server.app;
-            const { username } = request.auth.credentials;
+            const { username, scmContext } = request.auth.credentials;
 
-            return userFactory.get({ username })
+            return userFactory.get({ username, scmContext })
                 .then((user) => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);

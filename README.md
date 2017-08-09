@@ -71,9 +71,17 @@ executor:
                 token: this-is-a-real-token
             launchVersion: stable
 
-login:
-    oauthClientId: totally-real-client-id
-    oauthClientSecret: another-real-client-secret
+scms:
+    - plugin: github
+      config:
+          displayName: github
+          oauthClientId: totally-real-client-id
+          oauthClientSecret: another-real-client-secret
+          username: sd-buildbot
+          email: dev-null@screwdriver.cd
+          gheHost: github.com
+          secret: this-is-a-secret
+          privateRepo: false
 ```
 
 ### Environment

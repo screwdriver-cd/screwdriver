@@ -24,12 +24,12 @@ module.exports = () => ({
         handler: (request, reply) => {
             const { id } = request.params;
             const { collectionFactory, userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
+            const { username, scmContext } = request.auth.credentials;
 
             // get the collection and user
             return Promise.all([
                 collectionFactory.get({ id }),
-                userFactory.get({ username })
+                userFactory.get({ username, scmContext })
             ])
                 .then(([oldCollection, user]) => {
                     if (!oldCollection) {

@@ -20,6 +20,7 @@ exports.register = (server, options, next) => {
      * @method canAccess
      * @param {Object}  credentials              Credential object from Hapi
      * @param {String}  credentials.username     Username of the person logged in (or build ID)
+     * @param {String}  credentials.scmContext   Scm of the person logged in (or build ID)
      * @param {Array}   credentials.scope        Scope of the credential (user, build, admin)
      * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
      * @param {String}  [credentials.jobId]      If credential is a build, this is the job ID
@@ -32,6 +33,7 @@ exports.register = (server, options, next) => {
         const userFactory = server.root.app.userFactory;
         const pipelineFactory = server.root.app.pipelineFactory;
         const username = credentials.username;
+        const scmContext = credentials.scmContext;
         const scope = credentials.scope;
 
         return pipelineFactory.get(secret.pipelineId).then((pipeline) => {
@@ -40,7 +42,7 @@ exports.register = (server, options, next) => {
             }
 
             if (scope.includes('user')) {
-                return userFactory.get({ username }).then((user) => {
+                return userFactory.get({ username, scmContext }).then((user) => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
