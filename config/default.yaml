@@ -46,6 +46,7 @@ auth:
         # Pilots
         - github:aressem
         - github:bjorncs
+        - github: drewfish
         - github:gjoranv2
         - github:jpcollins
         - github:tonytamsf
