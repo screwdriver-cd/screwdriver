@@ -43,12 +43,12 @@ services:
                     "socketPath": "/var/run/docker.sock"
                 }
             SCM_SETTING: |
-                [
-                    {
+                {
+                    "${scm_plugin}": {
                         "plugin": "${scm_plugin}",
                         "config": ${scm_config}
                     }
-                ]
+                }
             SECRET_JWT_PRIVATE_KEY: |${private_key}
             SECRET_JWT_PUBLIC_KEY: |${public_key}
     ui:
@@ -183,7 +183,6 @@ def generate_scm_config(scm_plugin, ip):
         additional_process = ''
         client_id_name = 'Client ID'
         client_secret_name = 'Client Secret'
-        scm_config['displayName'] = 'github'
         scm_config['secret'] = 'SUPER-SECRET-SIGNING-THING'
     elif scm_plugin == 'bitbucket':
         service_name = 'Bitbucket.org'
@@ -193,7 +192,6 @@ def generate_scm_config(scm_plugin, ip):
         additional_process = "for 'Permissions' enable Read checkbox for Repositories, Account and Pull requests"
         client_id_name = 'Key'
         client_secret_name = 'Secret'
-        scm_config['displayName'] = 'bitbucket'
     elif scm_plugin == 'gitlab':
         service_name = 'Gitlab.com'
         start_url = 'https://gitlab.com/profile/applications'
@@ -202,7 +200,6 @@ def generate_scm_config(scm_plugin, ip):
         additional_process = ''
         client_id_name = 'Application Id'
         client_secret_name = 'Secret'
-        scm_config['displayName'] = 'gitlab'
 
     print('''
     Please create a new OAuth application on {service_name}
