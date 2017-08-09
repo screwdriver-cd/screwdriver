@@ -33,30 +33,30 @@ module.exports = () => ({
             const tag = request.params.tagName;
 
             return templateTagFactory.get({ name, tag })
-            .then((templateTag) => {
-                if (!templateTag) {
-                    throw boom.notFound('Template tag does not exist');
-                }
-
-                return Promise.all([
-                    pipelineFactory.get(pipelineId),
-                    templateFactory.get({
-                        name,
-                        version: templateTag.version
-                    })
-                ])
-                .then(([pipeline, template]) => {
-                    // Check for permission
-                    if (pipeline.id !== template.pipelineId) {
-                        throw boom.unauthorized('Not allowed to delete this template tag');
+                .then((templateTag) => {
+                    if (!templateTag) {
+                        throw boom.notFound('Template tag does not exist');
                     }
 
-                    // Remove the template tag, not the template
-                    return templateTag.remove();
-                });
-            })
-            .then(() => reply().code(204))
-            .catch(err => reply(boom.wrap(err)));
+                    return Promise.all([
+                        pipelineFactory.get(pipelineId),
+                        templateFactory.get({
+                            name,
+                            version: templateTag.version
+                        })
+                    ])
+                        .then(([pipeline, template]) => {
+                            // Check for permission
+                            if (pipeline.id !== template.pipelineId) {
+                                throw boom.unauthorized('Not allowed to delete this template tag');
+                            }
+
+                            // Remove the template tag, not the template
+                            return templateTag.remove();
+                        });
+                })
+                .then(() => reply().code(204))
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             params: {

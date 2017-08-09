@@ -73,7 +73,7 @@ module.exports = () => ({
                     });
             })
             // something broke, respond with error
-            .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             payload: schema.models.secret.create

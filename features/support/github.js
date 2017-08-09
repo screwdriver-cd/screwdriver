@@ -98,16 +98,16 @@ function createBranch(token, branch, repoOwner, repoName) {
         repo,
         ref: 'heads/master'
     })
-    .then((referenceData) => {
-        const sha = referenceData.object.sha;
+        .then((referenceData) => {
+            const sha = referenceData.object.sha;
 
-        return github.gitdata.createReference({
-            owner,
-            repo,
-            ref: `refs/heads/${branch}`,
-            sha
+            return github.gitdata.createReference({
+                owner,
+                repo,
+                ref: `refs/heads/${branch}`,
+                sha
+            });
         });
-    });
 }
 
 /**
@@ -134,7 +134,7 @@ function createFile(token, branch, repoOwner, repoName) {
         owner,
         repo,
         path: filename,
-        message: (new Date()).toString(),    // commit message is the current time
+        message: (new Date()).toString(), // commit message is the current time
         content: content.toString('base64'), // content needs to be transmitted in base64
         branch
     });

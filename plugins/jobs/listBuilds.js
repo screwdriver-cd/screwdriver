@@ -16,23 +16,23 @@ module.exports = () => ({
             const factory = request.server.app.jobFactory;
 
             return factory.get(request.params.id)
-              .then((job) => {
-                  if (!job) {
-                      throw boom.notFound('Job does not exist');
-                  }
+                .then((job) => {
+                    if (!job) {
+                        throw boom.notFound('Job does not exist');
+                    }
 
-                  const config = {
-                      paginate: {
-                          page: request.query.page,
-                          count: request.query.count
-                      },
-                      sort: request.query.sort
-                  };
+                    const config = {
+                        paginate: {
+                            page: request.query.page,
+                            count: request.query.count
+                        },
+                        sort: request.query.sort
+                    };
 
-                  return job.getBuilds(config);
-              })
-              .then(builds => reply(builds.map(b => b.toJson())))
-              .catch(err => reply(boom.wrap(err)));
+                    return job.getBuilds(config);
+                })
+                .then(builds => reply(builds.map(b => b.toJson())))
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema

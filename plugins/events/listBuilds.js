@@ -16,15 +16,15 @@ module.exports = () => ({
             const factory = request.server.app.eventFactory;
 
             return factory.get(request.params.id)
-              .then((event) => {
-                  if (!event) {
-                      throw boom.notFound('Event does not exist');
-                  }
+                .then((event) => {
+                    if (!event) {
+                        throw boom.notFound('Event does not exist');
+                    }
 
-                  return event.getBuilds();
-              })
-              .then(builds => reply(builds.map(b => b.toJson())))
-              .catch(err => reply(boom.wrap(err)));
+                    return event.getBuilds();
+                })
+                .then(builds => reply(builds.map(b => b.toJson())))
+                .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema
