@@ -28,40 +28,41 @@ auth:
     # @TODO Move this content to our configuration and change the default to []
     whitelist:
         # Primary Contributors
-        - FenrirUnbound
-        - cynthiax
-        - d2lam
-        - dvdizon
-        - ian-fox
-        - jer
-        - jithin1987
-        - joelseq
-        - minz1027
-        - petey
-        - r3rastogi
-        - stjohnjohnson
-        - tkyi
+        - github:FenrirUnbound
+        - github:cynthiax
+        - github:d2lam
+        - github:dvdizon
+        - github:ian-fox
+        - github:jer
+        - github:jithin1987
+        - github:joelseq
+        - github:minz1027
+        - github:petey
+        - github:r3rastogi
+        - github:stjohnjohnson
+        - github:tkyi
         # Automated Account
-        - sd-buildbot
+        - github:sd-buildbot
         # Pilots
-        - aressem
-        - bjorncs
-        - gjoranv2
-        - jpcollins
-        - tonytamsf
+        - github:aressem
+        - github:bjorncs
+        - github: drewfish
+        - github:gjoranv2
+        - github:jpcollins
+        - github:tonytamsf
     admins:
-        - FenrirUnbound
-        - cynthiax
-        - d2lam
-        - dvdizon
-        - ian-fox
-        - jer
-        - joelseq
-        - minz1027
-        - petey
-        - r3rastogi
-        - stjohnjohnson
-        - tkyi
+        - github:FenrirUnbound
+        - github:cynthiax
+        - github:d2lam
+        - github:dvdizon
+        - github:ian-fox
+        - github:jer
+        - github:joelseq
+        - github:minz1027
+        - github:petey
+        - github:r3rastogi
+        - github:stjohnjohnson
+        - github:tkyi
 
 httpd:
     # Port to listen on
@@ -120,40 +121,45 @@ executor:
         # Launcher container tag to use
         launchVersion: stable
 
-scm:
-    plugin: github
+scms:
     github:
-        # The client id used for OAuth with github. Look up GitHub OAuth for details
-        # https://developer.github.com/v3/oauth/
-        oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
-        # The client secret used for OAuth with github
-        oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
-        # You can also configure for use with GitHub enterprise
-        # gheHost: github.screwdriver.cd
-        # The username and email used for checkout with github
-        username: sd-buildbot
-        email: dev-null@screwdriver.cd
-        # Secret to add to GitHub webhooks so that we can validate them
-        secret: SUPER-SECRET-SIGNING-THING
-        # Whether it supports private repo: boolean value.
-        # If true, it will ask for read and write access to public and private repos
-        # https://developer.github.com/v3/oauth/#scopes
-        privateRepo: false
-    bitbucket:
-        oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
-        oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
-        # The username and email used for checkout with bitbucket
-        # username: sd-buildbot
-        # email: dev-null@screwdriver.cd
-    gitlab:
-        oauthClientId: YOUR-GITLAB-OAUTH-CLIENT-ID
-        oauthClientSecret: YOUR-GITLAB-OAUTH-CLIENT-SECRET
-        # If you have on-premise gitlab, you can specify that here
-        # gitlabHost: mygitlab.com
-        # gitlabProtocol: https
-        # The username and email used for checkout with gitlab
-        # username: sd-buildbot
-        # email: dev-null@screwdriver.cd
+        plugin: github
+        config:
+            # The client id used for OAuth with github. Look up GitHub OAuth for details
+            # https://developer.github.com/v3/oauth/
+            oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
+            # The client secret used for OAuth with github
+            oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
+            # You can also configure for use with GitHub enterprise
+            # gheHost: github.screwdriver.cd
+            # The username and email used for checkout with github
+            username: sd-buildbot
+            email: dev-null@screwdriver.cd
+            # Secret to add to GitHub webhooks so that we can validate them
+            secret: SUPER-SECRET-SIGNING-THING
+            # Whether it supports private repo: boolean value.
+            # If true, it will ask for read and write access to public and private repos
+            # https://developer.github.com/v3/oauth/#scopes
+            privateRepo: false
+#     bitbucket:
+#         plugin: bitbucket
+#         config:
+#             oauthClientId: YOUR-BITBUCKET-OAUTH-CLIENT-ID
+#             oauthClientSecret: YOUR-BITBUCKET-OAUTH-CLIENT-SECRET
+#             # The username and email used for checkout with bitbucket
+#             username: sd-buildbot
+#             email: dev-null@screwdriver.cd
+#     gitlab:
+#         plugin: gitlab
+#         config:
+#             oauthClientId: YOUR-GITLAB-OAUTH-CLIENT-ID
+#             oauthClientSecret: YOUR-GITLAB-OAUTH-CLIENT-SECRET
+#             # If you have on-premise gitlab, you can specify that here
+#             # gitlabHost: mygitlab.com
+#             # gitlabProtocol: https
+#             # The username and email used for checkout with gitlab
+#             # username: sd-buildbot
+#             # email: dev-null@screwdriver.cd
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
     username: sd-buildbot

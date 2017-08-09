@@ -97,46 +97,51 @@ executor:
         # Prefix to the container
         prefix: EXECUTOR_PREFIX
 
-scm:
-    plugin: SCM_PLUGIN
+scms:
     github:
-        # The client id used for OAuth with github. Look up GitHub OAuth for details
-        # https://developer.github.com/v3/oauth/
-        oauthClientId: SECRET_OAUTH_CLIENT_ID
-        # The client secret used for OAuth with github
-        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-        # You can also configure for use with GitHub enterprise
-        gheHost: SCM_GITHUB_GHE_HOST
-        # The username and email used for checkout with github
-        username: SCM_USERNAME
-        email: SCM_EMAIL
-        # Secret to add to GitHub webhooks so that we can validate them
-        secret: WEBHOOK_GITHUB_SECRET
-        # Whether it supports private repo: boolean value.
-        # If true, it will ask for read and write access to public and private repos
-        # https://developer.github.com/v3/oauth/#scopes
-        privateRepo: SCM_PRIVATE_REPO_SUPPORT
-    bitbucket:
-        # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
-        # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
-        oauthClientId: SECRET_OAUTH_CLIENT_ID
-        # The client secret used for OAuth with bitbucket
-        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-        # The username and email used for checkout with bitbucket
-        username: SCM_USERNAME
-        email: SCM_EMAIL
-    gitlab:
-        # The client id used for OAuth with gitlab. Look up Gitlab OAuth for details
-        # https://docs.gitlab.com/ee/integration/oauth_provider.html
-        oauthClientId: SECRET_OAUTH_CLIENT_ID
-        # The client secret used for OAuth with bitbucket
-        oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-        # The username and email used for checkout with gitlab
-        username: SCM_USERNAME
-        email: SCM_EMAIL
-        # if you have on-premise gitlab, you can specify that here
-        gitlabHost: SCM_GITLAB_HOST
-        gitlabProtocol: SCM_GITLAB_PROTOCOL
+        plugin: github
+        config:
+            # The client id used for OAuth with github. Look up GitHub OAuth for details
+            # https://developer.github.com/v3/oauth/
+            oauthClientId: SECRET_OAUTH_CLIENT_ID
+            # The client secret used for OAuth with github
+            oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+            # You can also configure for use with GitHub enterprise
+            gheHost: SCM_GITHUB_GHE_HOST
+            # The username and email used for checkout with github
+            username: SCM_USERNAME
+            email: SCM_EMAIL
+            # Secret to add to GitHub webhooks so that we can validate them
+            secret: WEBHOOK_GITHUB_SECRET
+            # Whether it supports private repo: boolean value.
+            # If true, it will ask for read and write access to public and private repos
+            # https://developer.github.com/v3/oauth/#scopes
+            privateRepo: SCM_PRIVATE_REPO_SUPPORT
+    # bitbucket:
+    #     plugin: bitbucket
+    #     config:
+    #         # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
+    #         # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
+    #         oauthClientId: SECRET_OAUTH_CLIENT_ID
+    #         # The client secret used for OAuth with bitbucket
+    #         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    #         # The username and email used for checkout with bitbucket
+    #         username: SCM_USERNAME
+    #         email: SCM_EMAIL
+    # gitlab:
+    #     plugin: gitlab
+    #     config:
+    #         # The client id used for OAuth with gitlab. Look up Gitlab OAuth for details
+    #         # https://docs.gitlab.com/ee/integration/oauth_provider.html
+    #         oauthClientId: SECRET_OAUTH_CLIENT_ID
+    #         # The client secret used for OAuth with bitbucket
+    #         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    #         # The username and email used for checkout with gitlab
+    #         username: SCM_USERNAME
+    #         email: SCM_EMAIL
+    #         # if you have on-premise gitlab, you can specify that here
+    #         gitlabHost: SCM_GITLAB_HOST
+    #         gitlabProtocol: SCM_GITLAB_PROTOCOL
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
     username: SCM_USERNAME

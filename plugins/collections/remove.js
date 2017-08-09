@@ -23,12 +23,12 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const { collectionFactory, userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
+            const { username, scmContext } = request.auth.credentials;
 
             // Fetch the collection and user models
             return Promise.all([
                 collectionFactory.get(request.params.id),
-                userFactory.get({ username })
+                userFactory.get({ username, scmContext })
             ]).then(([collection, user]) => {
                 if (!collection) {
                     throw boom.notFound('Collection does not exist');

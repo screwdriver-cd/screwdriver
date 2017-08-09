@@ -119,6 +119,7 @@ describe('secret plugin test', () => {
         const value = 'batman';
         const allowInPR = true;
         const username = 'd2lam';
+        const scmContext = 'github:github.com';
         let secretMock;
         let userMock;
         let pipelineMock;
@@ -135,13 +136,14 @@ describe('secret plugin test', () => {
                 },
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
             userMock = getUserMock({ username });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
@@ -185,7 +187,7 @@ describe('secret plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -225,6 +227,7 @@ describe('secret plugin test', () => {
         const secretId = 1234;
         const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
+        const scmContext = 'github:github.com';
         let secretMock;
         let userMock;
         let pipelineMock;
@@ -235,13 +238,14 @@ describe('secret plugin test', () => {
                 url: `/secrets/${secretId}`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
             userMock = getUserMock({ username });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
@@ -299,6 +303,7 @@ describe('secret plugin test', () => {
         const secretId = 1234;
         const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
+        const scmContext = 'github:github.com';
         let secretMock;
         let userMock;
         let pipelineMock;
@@ -309,6 +314,7 @@ describe('secret plugin test', () => {
                 url: `/secrets/${secretId}`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 },
                 payload: {
@@ -319,7 +325,7 @@ describe('secret plugin test', () => {
 
             userMock = getUserMock({ username });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
@@ -387,6 +393,7 @@ describe('secret plugin test', () => {
         const secretId = 1234;
         const scmUri = 'github.com:12345:branchName';
         const username = 'minz';
+        const scmContext = 'github:github.com';
         let secretMock;
         let userMock;
         let pipelineMock;
@@ -394,7 +401,7 @@ describe('secret plugin test', () => {
         beforeEach(() => {
             userMock = getUserMock({ username });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMock(testPipeline);
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
@@ -410,6 +417,7 @@ describe('secret plugin test', () => {
                     url: `/secrets/${secretId}`,
                     credentials: {
                         username,
+                        scmContext,
                         scope: ['user']
                     }
                 };
@@ -432,7 +440,7 @@ describe('secret plugin test', () => {
             });
 
             it('returns 404 when the user does not exist', () => {
-                userFactoryMock.get.withArgs({ username }).resolves(null);
+                userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 404);
@@ -470,6 +478,7 @@ describe('secret plugin test', () => {
                     url: `/secrets/${secretId}`,
                     credentials: {
                         username,
+                        scmContext,
                         pipelineId: 123,
                         scope: ['build']
                     }

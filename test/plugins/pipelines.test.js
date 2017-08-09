@@ -110,6 +110,7 @@ const getUserMock = (user) => {
     const mock = hoek.clone(user);
 
     mock.getPermissions = sinon.stub();
+    mock.getFullDisplayName = sinon.stub();
     mock.update = sinon.stub();
     mock.sealToken = sinon.stub();
     mock.unsealToken = sinon.stub();
@@ -125,6 +126,7 @@ describe('pipeline plugin test', () => {
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
+    const scmContext = 'github:github.com';
 
     before(() => {
         mockery.enable({
@@ -294,13 +296,14 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testPipeline);
             pipeline.remove.resolves(null);
@@ -351,7 +354,7 @@ describe('pipeline plugin test', () => {
                 message: 'User myself does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -514,6 +517,7 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${pipelineId}/secrets`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -521,9 +525,9 @@ describe('pipeline plugin test', () => {
             pipelineMock.secrets = getSecretsMocks(testSecrets);
             pipelineFactoryMock.get.resolves(pipelineMock);
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         });
 
         it('returns 404 for updating a pipeline that does not exist', () => {
@@ -627,13 +631,14 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}/sync`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.sync.resolves(null);
@@ -676,7 +681,7 @@ describe('pipeline plugin test', () => {
                 message: 'User d2lam does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -707,13 +712,14 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}/sync/webhooks`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.sync.resolves(null);
@@ -756,7 +762,7 @@ describe('pipeline plugin test', () => {
                 message: 'User d2lam does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -787,13 +793,14 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}/sync/pullrequests`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.syncPRs.resolves(null);
@@ -836,7 +843,7 @@ describe('pipeline plugin test', () => {
                 message: 'User batman does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -876,14 +883,15 @@ describe('pipeline plugin test', () => {
                 },
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.sync.resolves(pipelineMock);
@@ -912,7 +920,8 @@ describe('pipeline plugin test', () => {
                     admins: {
                         d2lam: true
                     },
-                    scmUri
+                    scmUri,
+                    scmContext
                 });
                 assert.equal(reply.statusCode, 201);
             });
@@ -923,6 +932,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(() => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token
                 });
@@ -1013,14 +1023,15 @@ describe('pipeline plugin test', () => {
                 },
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
 
-            userMock = getUserMock({ username });
+            userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
-            userFactoryMock.get.withArgs({ username }).resolves(userMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
             updatedPipelineMock = hoek.clone(pipelineMock);
@@ -1051,6 +1062,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(() => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token
                 });
@@ -1065,6 +1077,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(() => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token
                 });

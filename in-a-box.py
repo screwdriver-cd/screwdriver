@@ -5,6 +5,7 @@ Set up a local instance of screwdriver on the local system
 """
 from __future__ import print_function
 import getpass
+import json
 import os
 import socket
 import sys
@@ -32,7 +33,6 @@ services:
             URI: http://${ip}:9001
             ECOSYSTEM_UI: http://${ip}:9000
             ECOSYSTEM_STORE: http://${ip}:9002
-            SCM_PLUGIN: ${scm_plugin}
             DATASTORE_PLUGIN: sequelize
             DATASTORE_SEQUELIZE_DIALECT: sqlite
             DATASTORE_SEQUELIZE_STORAGE: /tmp/sd-data/storage.db
@@ -42,8 +42,13 @@ services:
                 {
                     "socketPath": "/var/run/docker.sock"
                 }
-            SECRET_OAUTH_CLIENT_ID: ${oauth_id}
-            SECRET_OAUTH_CLIENT_SECRET: ${oauth_secret}
+            SCM_SETTING: |
+                {
+                    "${scm_plugin}": {
+                        "plugin": "${scm_plugin}",
+                        "config": ${scm_config}
+                    }
+                }
             SECRET_JWT_PRIVATE_KEY: |${private_key}
             SECRET_JWT_PUBLIC_KEY: |${public_key}
     ui:
@@ -155,7 +160,7 @@ def select_scm_provider():
         'scm_plugin': scm_plugin
     }
 
-def generate_oauth(scm_plugin, ip):
+def generate_scm_config(scm_plugin, ip):
     """
     Generate OAuth credentials from SCM
 
@@ -166,6 +171,10 @@ def generate_oauth(scm_plugin, ip):
     ip: str
         The IP address
     """
+    scm_config = {
+        'username': 'sd-buildbot',
+        'email': 'dev-null@screwdriver.cd'
+    }
     if scm_plugin == 'github':
         service_name = 'GitHub.com'
         start_url = 'https://github.com/settings/applications/new'
@@ -174,6 +183,7 @@ def generate_oauth(scm_plugin, ip):
         additional_process = ''
         client_id_name = 'Client ID'
         client_secret_name = 'Client Secret'
+        scm_config['secret'] = 'SUPER-SECRET-SIGNING-THING'
     elif scm_plugin == 'bitbucket':
         service_name = 'Bitbucket.org'
         start_url = 'https://bitbucket.org/account/user/<your username>/oauth-consumers/new'
@@ -210,8 +220,11 @@ def generate_oauth(scm_plugin, ip):
     client_id = get_input('    %s: ' % client_id_name)
     secret = getpass.getpass('    %s: ' % client_secret_name)
 
+    scm_config['oauthClientId'] = client_id
+    scm_config['oauthClientSecret'] = secret
+
     print('')
-    return dict(oauth_id=client_id, oauth_secret=secret)
+    return dict(scm_config=json.dumps(scm_config))
 
 
 def check_component(component):
@@ -246,7 +259,7 @@ def main():
     fields = dict(fields, **select_scm_provider())
 
     print('📦   Generating OAuth credentials')
-    fields.update(generate_oauth(fields['scm_plugin'], fields['ip']))
+    fields.update(generate_scm_config(fields['scm_plugin'], fields['ip']))
 
     print('💾   Writing Docker Compose file')
     compose = Template(DOCKER_TEMPLATE).substitute(fields)

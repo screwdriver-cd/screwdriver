@@ -183,6 +183,7 @@ describe('build plugin test', () => {
         const id = 12345;
         const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
+        const scmContext = 'github:github.com';
         const scmRepo = {
             branch: 'master',
             name: 'screwdriver-cd/screwdriver',
@@ -532,6 +533,7 @@ describe('build plugin test', () => {
                         url: `/builds/${id}`,
                         credentials: {
                             username,
+                            scmContext,
                             scope: ['build']
                         },
                         payload: {
@@ -559,6 +561,7 @@ describe('build plugin test', () => {
                             sha: testBuild.sha,
                             parentBuildId: id,
                             username,
+                            scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
                         });
                     });
@@ -675,10 +678,12 @@ describe('build plugin test', () => {
         const pipelineId = 123;
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
+        const scmContext = 'github:github.com';
         const eventConfig = {
             type: 'pr',
             pipelineId,
             username,
+            scmContext,
             workflow: ['PR-15'],
             sha: testBuild.sha
         };
@@ -700,7 +705,8 @@ describe('build plugin test', () => {
                 },
                 credentials: {
                     scope: ['user'],
-                    username
+                    username,
+                    scmContext
                 }
             };
 
@@ -730,7 +736,8 @@ describe('build plugin test', () => {
                 jobId: 1234,
                 eventId: 12345,
                 apiUri: 'http://localhost:12345',
-                username
+                username,
+                scmContext
             };
 
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
@@ -767,6 +774,7 @@ describe('build plugin test', () => {
                 assert.notCalled(pipelineMock.sync);
                 assert.calledWith(buildFactoryMock.scm.getCommitSha, {
                     token: 'iamtoken',
+                    scmContext,
                     scmUri,
                     prNum: 15
                 });
@@ -803,6 +811,7 @@ describe('build plugin test', () => {
                 assert.calledWith(buildFactoryMock.scm.getCommitSha, {
                     token: 'iamtoken',
                     scmUri,
+                    scmContext,
                     prNum: null
                 });
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));

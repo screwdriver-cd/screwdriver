@@ -12,13 +12,14 @@
 
 // Make sure script is being called correctly
 if (process.argv.length !== 4) {
-    console.log('Usage: npm run create-test-user -- $username $git-token');
+    console.log('Usage: npm run create-test-user -- $username $scm-context $git-token');
 
     return 1;
 }
 
 const username = process.argv[2];
-const gitToken = process.argv[3];
+const scmContext = process.argv[3];
+const gitToken = process.argv[4];
 
 const config = require('config');
 const hoek = require('hoek');
@@ -61,11 +62,12 @@ const tokenFactory = Models.TokenFactory.getInstance({
 
 // Setup datastore and create test user
 return datastore.setup()
-    .then(() => userFactory.get({ username }))
+    .then(() => userFactory.get({ username, scmContext }))
     .then((model) => {
         if (!model) {
             return userFactory.create({
                 username,
+                scmContext,
                 token: gitToken
             });
         }

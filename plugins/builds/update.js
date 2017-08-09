@@ -22,6 +22,7 @@ module.exports = () => ({
             const desiredStatus = request.payload.status;
             const jobFactory = request.server.app.jobFactory;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
             const scope = request.auth.credentials.scope;
             const isBuild = scope.includes('build');
 
@@ -116,6 +117,7 @@ module.exports = () => ({
                                         sha: build.sha,
                                         parentBuildId: id,
                                         username,
+                                        scmContext,
                                         eventId: build.eventId
                                     });
                                 }
