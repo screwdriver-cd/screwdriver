@@ -57,6 +57,7 @@ const getUserMock = (user) => {
 
 describe('collection plugin test', () => {
     const username = 'jsequeira';
+    const scmContext = 'github:github.com';
     const userId = testCollection.userId;
     let collectionFactoryMock;
     let userFactoryMock;
@@ -93,9 +94,10 @@ describe('collection plugin test', () => {
 
         userMock = getUserMock({
             username,
+            scmContext,
             id: userId
         });
-        userFactoryMock.get.withArgs({ username }).resolves(userMock);
+        userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         pipelineFactoryMock.get.callsFake(getPipelineMockFromId);
 
         /* eslint-disable global-require */
@@ -152,6 +154,7 @@ describe('collection plugin test', () => {
                 },
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -240,7 +243,7 @@ describe('collection plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -267,6 +270,7 @@ describe('collection plugin test', () => {
                 url: '/collections',
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -287,7 +291,7 @@ describe('collection plugin test', () => {
         });
 
         it('returns 404 when the user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -379,6 +383,7 @@ describe('collection plugin test', () => {
                 },
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -442,7 +447,7 @@ describe('collection plugin test', () => {
                 userId: fakeUserId
             });
 
-            userFactoryMock.get.withArgs({ username }).resolves(fakeUserMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -480,6 +485,7 @@ describe('collection plugin test', () => {
                 url: `/collections/${id}`,
                 credentials: {
                     username,
+                    scmContext,
                     scope: ['user']
                 }
             };
@@ -501,7 +507,7 @@ describe('collection plugin test', () => {
                 userId: fakeUserId
             });
 
-            userFactoryMock.get.withArgs({ username }).resolves(fakeUserMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -517,7 +523,7 @@ describe('collection plugin test', () => {
         });
 
         it('returns 404 when user does not exist', () => {
-            userFactoryMock.get.withArgs({ username }).resolves(null);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

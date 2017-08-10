@@ -7,11 +7,13 @@ const authjwt = require('hapi-auth-jwt');
 const crumb = require('crumb');
 const jwt = require('jsonwebtoken');
 const joi = require('joi');
+const hoek = require('hoek');
 const logoutRoute = require('./logout');
 const loginRoute = require('./login');
 const tokenRoute = require('./token');
 const keyRoute = require('./key');
 const crumbRoute = require('./crumb');
+const contextsRoute = require('./contexts');
 
 const EXPIRES_IN = '12h';
 const ALGORITHM = 'RS256';
@@ -39,22 +41,28 @@ exports.register = (server, options, next) => {
         admins: joi.array().default([]),
         scm: joi.object().required()
     }), 'Invalid config for plugin-auth');
+    const scmContexts = server.root.app.userFactory.scm.getScmContexts();
 
     /**
      * Generates a profile for storage in cookie and jwt
      * @method generateProfile
-     * @param  {String}        username Username of the person
-     * @param  {Array}         scope    Scope for this profile (usually build or user)
-     * @param  {Object}        metadata Additonal information to tag along with the login
-     * @return {Object}                 The profile to be stored in jwt and/or cookie
+     * @param  {String}        username   Username of the person
+     * @param  {String}        scmContext Scm to which the person logged in belongs
+     * @param  {Array}         scope      Scope for this profile (usually build or user)
+     * @param  {Object}        metadata   Additonal information to tag along with the login
+     * @return {Object}                   The profile to be stored in jwt and/or cookie
      */
-    server.expose('generateProfile', (username, scope, metadata) => {
+    server.expose('generateProfile', (username, scmContext, scope, metadata) => {
         const profile = Object.assign({
-            username, scope
+            username, scmContext, scope
         }, metadata || {});
+        const scm = server.root.app.userFactory.scm;
+        const scmDisplayName = scm.getDisplayName({ scmContext });
+        const userDisplayName = `${scmDisplayName}:${username}`;
 
         // Check admin
-        if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(username)) {
+        if (pluginOptions.admins.length > 0
+                && pluginOptions.admins.includes(userDisplayName)) {
             profile.scope.push('admin');
         }
 
@@ -86,10 +94,17 @@ exports.register = (server, options, next) => {
 
     return server.register(modules)
         .then(() => pluginOptions.scm.getBellConfiguration())
-        .then((bellConfig) => {
-            bellConfig.password = pluginOptions.cookiePassword;
-            bellConfig.isSecure = pluginOptions.https;
-            bellConfig.forceHttps = pluginOptions.https;
+        .then((bellConfigs) => {
+            Object.keys(bellConfigs).forEach((scmContext) => {
+                const bellConfig = bellConfigs[scmContext];
+
+                bellConfig.password = pluginOptions.cookiePassword;
+                bellConfig.isSecure = pluginOptions.https;
+                bellConfig.forceHttps = pluginOptions.https;
+
+                // The oauth strategy differs between the scm modules
+                server.auth.strategy(`oauth_${scmContext}`, 'bell', bellConfig);
+            });
 
             server.auth.strategy('session', 'cookie', {
                 cookie: 'sid',
@@ -97,7 +112,6 @@ exports.register = (server, options, next) => {
                 password: pluginOptions.cookiePassword,
                 isSecure: pluginOptions.https
             });
-            server.auth.strategy('oauth', 'bell', bellConfig);
             server.auth.strategy('token', 'jwt', {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
@@ -123,19 +137,36 @@ exports.register = (server, options, next) => {
 
                             return cb(null, true, {
                                 username: user.username,
+                                scmContext: user.scmContext,
                                 scope: ['user']
                             });
                         });
                 }
             });
 
-            server.route([
-                loginRoute(pluginOptions),
+            const loginRoutes = [];
+
+            scmContexts.forEach((scmContext) => {
+                const auth = {
+                    strategy: `oauth_${scmContext}`,
+                    mode: 'try'
+                };
+                const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext, auth });
+
+                loginRoutes.push(loginRoute(loginOptions));
+            });
+            // This login route for which scmContext isn't passed just redirects to a default login route, so this login route doesn't need to have any auth strategy
+            loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
+                scmContext: '', auth: null
+            })));
+
+            server.route(loginRoutes.concat([
                 logoutRoute(),
                 tokenRoute(),
                 crumbRoute(),
-                keyRoute(pluginOptions)
-            ]);
+                keyRoute(pluginOptions),
+                contextsRoute()
+            ]));
 
             next();
         })

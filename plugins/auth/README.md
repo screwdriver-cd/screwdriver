@@ -29,7 +29,7 @@ server.register({
 
 #### Login
 
-`GET /auth/login` or `POST /auth/login`
+`GET /auth/login` (for backward compatibility) or `GET /auth/login/{scmContext}` or `POST /auth/login/{scmContext}`
 
 #### Get a token
 
@@ -42,3 +42,7 @@ server.register({
 #### Logout
 
 `POST /auth/logout`
+
+#### Get all scm contexts
+
+`GET /auth/contexts`

@@ -28,10 +28,11 @@ module.exports = () => ({
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
 
             return Promise.all([
                 pipelineFactory.get({ id }),
-                userFactory.get({ username })
+                userFactory.get({ username, scmContext })
             ])
                 // get the pipeline given its ID and the user
                 .then(([oldPipeline, user]) => {
@@ -45,6 +46,7 @@ module.exports = () => ({
                     return user.unsealToken()
                         // get the scm URI
                         .then(token => pipelineFactory.scm.parseUrl({
+                            scmContext,
                             checkoutUrl,
                             token
                         }))

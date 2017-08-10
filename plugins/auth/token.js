@@ -28,6 +28,9 @@ module.exports = () => ({
             let profile = request.auth.credentials;
             const username = profile.username;
             const scope = profile.scope;
+            const buildFactory = request.server.app.buildFactory;
+            const jobFactory = request.server.app.jobFactory;
+            const pipelineFactory = request.server.app.pipelineFactory;
 
             // Check Build ID impersonate
             if (request.params.buildId) {
@@ -36,10 +39,23 @@ module.exports = () => ({
                         `User ${username} is not an admin and cannot impersonate`
                     ));
                 }
-                profile = request.server.plugins.auth.generateProfile(
-                    request.params.buildId,
-                    ['build', 'impersonated']
-                );
+
+                return buildFactory.get(request.params.buildId)
+                    .then(build => jobFactory.get(build.jobId))
+                    .then(job => pipelineFactory.get(job.pipelineId))
+                    .then((pipeline) => {
+                        profile = request.server.plugins.auth.generateProfile(
+                            request.params.buildId,
+                            pipeline.scmContext,
+                            ['build', 'impersonated']
+                        );
+                        const token = request.server.plugins.auth.generateToken(profile);
+
+                        request.cookieAuth.set(profile);
+
+                        return reply({ token });
+                    })
+                    .catch(err => reply(boom.wrap(err)));
             }
 
             const token = request.server.plugins.auth.generateToken(profile);

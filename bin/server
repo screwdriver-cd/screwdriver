@@ -51,10 +51,9 @@ const executor = new ExecutorPlugin({
 });
 
 // Source Code Plugin
-const scmConfig = config.get('scm');
-const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
-const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
-    (scmConfig[scmConfig.plugin] || {})));
+const scmConfig = { scms: config.get('scms') };
+const ScmPlugin = require('screwdriver-scm-router');
+const scm = new ScmPlugin(scmConfig || {});
 
 authConfig.scm = scm;
 

@@ -23,6 +23,7 @@ function getUserMock(user) {
     const result = {
         update: sinon.stub(),
         sealToken: sinon.stub(),
+        getDisplayName: sinon.stub(),
         id: user.id,
         username: user.username,
         token: user.token
@@ -33,6 +34,9 @@ function getUserMock(user) {
 
 describe('auth plugin test', () => {
     let userFactoryMock;
+    let buildFactoryMock;
+    let jobFactoryMock;
+    let pipelineFactoryMock;
     let plugin;
     let server;
     let scm;
@@ -42,21 +46,38 @@ describe('auth plugin test', () => {
     const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
 
     beforeEach((done) => {
+        scm = {
+            getScmContexts: sinon.stub().returns(['github:github.com']),
+            getDisplayName: sinon.stub().returns('github'),
+            getBellConfiguration: sinon.stub().resolves({
+                'github:github.com': {
+                    clientId: 'abcdefg',
+                    clientSecret: 'hijklmno',
+                    provider: 'github',
+                    scope: [
+                        'admin:repo_hook',
+                        'read:org',
+                        'repo:status'
+                    ]
+                }
+            })
+        };
         userFactoryMock = {
             get: sinon.stub(),
-            create: sinon.stub()
+            create: sinon.stub(),
+            scm
         };
-        scm = {
-            getBellConfiguration: sinon.stub().resolves({
-                clientId: 'abcdefg',
-                clientSecret: 'hijklmno',
-                provider: 'github',
-                scope: [
-                    'admin:repo_hook',
-                    'read:org',
-                    'repo:status'
-                ]
-            })
+        buildFactoryMock = {
+            get: sinon.stub(),
+            scm
+        };
+        jobFactoryMock = {
+            get: sinon.stub(),
+            scm
+        };
+        pipelineFactoryMock = {
+            get: sinon.stub(),
+            scm
         };
 
         /* eslint-disable global-require */
@@ -99,6 +120,7 @@ describe('auth plugin test', () => {
 
             const badServer = new hapi.Server();
 
+            badServer.app.userFactory = userFactoryMock;
             badServer.connection({
                 port: 12345
             });
@@ -162,23 +184,27 @@ describe('auth plugin test', () => {
                     jwtPrivateKey,
                     jwtPublicKey,
                     https: false,
-                    admins: ['batman']
+                    admins: ['github:batman', 'batman']
                 }
             }, next);
         });
 
         it('adds admin scope for admins', () => {
-            const profile = server.plugins.auth.generateProfile('batman', ['user'], {});
+            const profile = server.plugins.auth
+                .generateProfile('batman', 'github:github.com', ['user'], {});
 
             expect(profile.username).to.contain('batman');
+            expect(profile.scmContext).to.contain('github:github.com');
             expect(profile.scope).to.contain('user');
             expect(profile.scope).to.contain('admin');
         });
 
         it('does not add admin scope for non-admins', () => {
-            const profile = server.plugins.auth.generateProfile('robin', ['user'], {});
+            const profile = server.plugins.auth
+                .generateProfile('robin', 'github:mygithub.com', ['user'], {});
 
             expect(profile.username).to.contain('robin');
+            expect(profile.scmContext).to.contain('github:mygithub.com');
             expect(profile.scope).to.contain('user');
             expect(profile.scope).to.not.contain('admin');
         });
@@ -244,19 +270,42 @@ describe('auth plugin test', () => {
     });
 
     describe('GET /auth/login', () => {
+        describe('GET', () => {
+            it('redirects to a default login route', () => (
+                server.inject('/auth/login').then((reply) => {
+                    assert.equal(reply.statusCode, 301, 'Login route should redirect');
+                    assert.isOk(reply.headers.location.match(/\/auth\/login\/github:github.com/),
+                        'The location to redirect is not correct');
+                })
+            ));
+            it('redirects even if web parameter is passed', () => (
+                server.inject('/auth/login/web').then((reply) => {
+                    assert.equal(reply.statusCode, 301, 'Login route should redirect');
+                    assert.isOk(
+                        reply.headers.location.match(/\/auth\/login\/github:github.com\/web/),
+                        'The location to redirect is not correct');
+                })
+            ));
+        });
+    });
+
+    describe('GET /auth/login/{scmContext}', () => {
         const id = '1234id5678';
         const username = 'batman';
+        const scmContext = 'github:github.com';
         const token = 'qpekaljx';
         const user = {
             id,
             username,
+            scmContext,
             token
         };
         const options = {
-            url: '/auth/login',
+            url: '/auth/login/github:github.com',
             credentials: {
                 profile: {
-                    username
+                    username,
+                    scmContext
                 },
                 token
             }
@@ -273,7 +322,7 @@ describe('auth plugin test', () => {
 
         describe('GET', () => {
             it('exists', () => (
-                server.inject('/auth/login').then((reply) => {
+                server.inject('/auth/login/github:github.com').then((reply) => {
                     assert.notEqual(reply.statusCode, 404, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/github.com/),
                         'Oauth does not point to github.com');
@@ -283,7 +332,7 @@ describe('auth plugin test', () => {
             it('will return errors', () => (
                 server.inject({
                     url: {
-                        pathname: '/auth/login',
+                        pathname: '/auth/login/github:github.com',
                         query: {
                             code: 'fasdasd',
                             state: 'asdasd',
@@ -301,9 +350,10 @@ describe('auth plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 302, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
-                    assert.calledWith(userFactoryMock.get, { username });
+                    assert.calledWith(userFactoryMock.get, { username, scmContext });
                     assert.calledWith(userFactoryMock.create, {
                         username,
+                        scmContext,
                         token
                     });
                 });
@@ -313,7 +363,7 @@ describe('auth plugin test', () => {
                 userFactoryMock.get.resolves(null);
                 const webOptions = hoek.clone(options);
 
-                webOptions.url = '/auth/login/web';
+                webOptions.url = '/auth/login/github:github.com/web';
 
                 return server.inject(webOptions).then((reply) => {
                     assert.equal(reply.statusCode, 200, 'Login/web route should be available');
@@ -322,9 +372,10 @@ describe('auth plugin test', () => {
                         '<script>window.close();</script>',
                         'add script to close window'
                     );
-                    assert.calledWith(userFactoryMock.get, { username });
+                    assert.calledWith(userFactoryMock.get, { username, scmContext });
                     assert.calledWith(userFactoryMock.create, {
                         username,
+                        scmContext,
                         token
                     });
                 });
@@ -381,7 +432,7 @@ describe('auth plugin test', () => {
                             jwtPrivateKey,
                             jwtPublicKey,
                             https: false,
-                            whitelist: ['batman']
+                            whitelist: ['github:batman']
                         }
                     });
                 });
@@ -392,7 +443,7 @@ describe('auth plugin test', () => {
 
                 it('returns forbidden for non-whitelisted user', () => (
                     server.inject({
-                        url: '/auth/login',
+                        url: '/auth/login/github:github.com',
                         credentials: {
                             profile: {
                                 username: 'dne'
@@ -411,9 +462,10 @@ describe('auth plugin test', () => {
                         assert.equal(reply.statusCode, 302, 'Login route should be available');
                         assert.isOk(reply.headers.location.match(/auth\/token/),
                             'Redirects to token');
-                        assert.calledWith(userFactoryMock.get, { username });
+                        assert.calledWith(userFactoryMock.get, { username, scmContext });
                         assert.calledWith(userFactoryMock.create, {
                             username,
+                            scmContext,
                             token
                         });
                     });
@@ -425,11 +477,13 @@ describe('auth plugin test', () => {
     describe('GET /auth/token', () => {
         const id = '1234id5678';
         const username = 'batman';
+        const scmContext = 'github:github.com';
         const token = 'qpekaljx';
         const apiKey = 'aUserApiToken';
         const user = {
             id,
             username,
+            scmContext,
             token
         };
         let userMock;
@@ -493,8 +547,19 @@ describe('auth plugin test', () => {
 
         describe('with admins', () => {
             beforeEach((next) => {
+                const pipelineMock = {
+                    scmContext
+                };
+
+                buildFactoryMock.get.resolves({});
+                jobFactoryMock.get.resolves({});
+                pipelineFactoryMock.get.resolves(pipelineMock);
+
                 server = new hapi.Server();
                 server.app.userFactory = userFactoryMock;
+                server.app.buildFactory = buildFactoryMock;
+                server.app.jobFactory = jobFactoryMock;
+                server.app.pipelineFactory = pipelineFactoryMock;
 
                 server.connection({
                     port: 1234
@@ -519,6 +584,7 @@ describe('auth plugin test', () => {
                     url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
                     credentials: {
                         username: 'batman',
+                        scmContext,
                         scope: ['user', 'admin']
                     }
                 }).then((reply) => {
@@ -671,6 +737,30 @@ describe('auth plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Logout route returns wrong status');
                 assert.deepEqual(reply.result, {}, 'Logout returns data');
+            })
+        ));
+    });
+
+    describe('GET /auth/contexts', () => {
+        beforeEach(() => {
+            scm.getScmContexts.returns([
+                'github:github.com',
+                'github:mygithub.com'
+            ]);
+            scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('github');
+            scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
+        });
+
+        it('returns 200', () => (
+            server.inject({
+                method: 'GET',
+                url: '/auth/contexts'
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200, 'Contexts should be available');
+                assert.deepEqual(reply.result, [
+                    { 'github:github.com': 'github' },
+                    { 'github:mygithub.com': 'mygithub' }
+                ], 'Contexts returns data');
             })
         ));
     });
