@@ -1,0 +1,12 @@
+title Freeze Window
+
+participant Commits
+participant FreezeWindow as A
+
+Commits->A: commit1
+Commits->A: commit2
+Commits->A: commit3
+
+A-->A: Time passes
+A-->+A: commit1+2+3 Job start
+A-->-A: commit1+2+3 Job end
