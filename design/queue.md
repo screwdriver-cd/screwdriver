@@ -219,12 +219,6 @@ Jobs will run on a user defined schedule.
 
 ![](./diagrams/executor-queue-build-periodically.png)
 
-### Delay
-
-Jobs will be queued normally and will remain in queue for a configurable amount of time, even if there are free executors. Current use case: load a bunch of information in the grid and need to wait for it to process
-
-![](./diagrams/executor-queue-delayed-trigger.png)
-
 ### Matrix Jobs
 
 Matrix jobs will work very similar to join/parallel builds.
