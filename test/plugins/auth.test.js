@@ -758,8 +758,8 @@ describe('auth plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Contexts should be available');
                 assert.deepEqual(reply.result, [
-                    { 'github:github.com': 'github' },
-                    { 'github:mygithub.com': 'mygithub' }
+                    { context: 'github:github.com', displayName: 'github' },
+                    { context: 'github:mygithub.com', displayName: 'mygithub' }
                 ], 'Contexts returns data');
             })
         ));
