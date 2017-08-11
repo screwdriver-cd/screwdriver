@@ -1,0 +1,37 @@
+title Basic Workflow
+
+Commits->JobA: commit1
+JobA->+JobA: commit1 Work Start
+
+Commits->JobA: commit2
+Commits->JobA: commit3
+
+JobA-->-JobA: commit1 Work Done
+JobA->JobB: commit1
+
+JobB->+JobB: commit1 Work Start
+
+JobA->+JobA: commit2+3 Work Start
+JobA-->-JobA: commit2+3 Work Done
+JobA->JobB: commit2+3
+
+Commits->JobA: commit4
+JobA->+JobA: commit4 Work Start
+
+JobB-->-JobB: commit1 Work Done
+JobB->JobC: commit1
+JobC->+JobC: commit1 Work Start
+
+JobB->+JobB: commit2+3 Work Start
+JobB-->-JobB: commit2+3 Work Done
+JobB->JobC: commit2+3
+
+JobA-->-JobA: commit4 Work Done
+JobA->JobB: commit4
+JobB->+JobB: commit4 Work Start
+JobB-->-JobB: commit4 Work Done
+JobB->JobC: commit4
+
+JobC-->-JobC: commit1 Work Done
+
+JobC->+JobC: commit2+3+4 Work Start

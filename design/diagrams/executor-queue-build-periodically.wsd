@@ -1,0 +1,15 @@
+title Build Periodically Workflow
+
+participant Commits
+participant BuildPeriodically as B
+
+Commits-->Commits: commit1
+B-->B: Time Passes
+B-->+B: commit1 Job start
+Commits-->Commits: commit2
+Commits-->Commits: commit3
+B-->-B: commit1 Job end
+
+B-->B: Time Passes
+B-->+B: commit2+3 Job start
+B-->-B: commit2+3 Job end

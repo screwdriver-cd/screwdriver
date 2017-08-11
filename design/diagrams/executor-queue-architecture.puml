@@ -1,0 +1,18 @@
+@startuml
+
+title Executor Queue Architecture Overview
+
+database "Redis"
+component "Screwdriver API" as SDAPI
+component "Executor-Queue" as executor
+component "Executor-Queue-Worker" as worker
+component "Resque-UI" as ui
+component "Executor-Router" as router
+
+SDAPI - router
+router - executor
+executor - Redis : node-resque\nresque-bus
+Redis - worker : node-resque
+Redis -up- ui
+
+@enduml

@@ -1,0 +1,29 @@
+title Matrix Workflow
+
+participant Commits
+participant JobA as A
+participant A.1 as A1
+participant A.2 as A2
+participant A.3 as A3
+participant JobB as B
+
+Commits->A: commit1
+parallel {
+A->A1: matrix fanout
+A->A2:
+A->A3:
+}
+parallel {
+A1-->+A1: commit1 Job start
+A2-->+A2:
+A3-->+A3:
+}
+
+A1-->-A1: commit1 Job end
+A1->B:
+A2-->-A2:
+A2->B:
+A3-->-A3:
+A3->B:
+
+B-->+B: commit1 Job start

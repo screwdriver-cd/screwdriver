@@ -1,0 +1,27 @@
+title Join Workflow
+
+participant Commits
+participant JobA as A
+participant JobB as B
+participant JobC as C
+participant JobD as D
+
+Commits->A: commit1
+A-->+A: commit1 Work Start
+A-->-A: commit1 Work Done
+
+parallel {
+A->B: commit1
+A->C:
+}
+
+parallel {
+B-->+B: commit1 Work Start
+C-->+C:
+}
+
+B-->-B: commit1 Work Done
+B->D: commit1
+C-->-C: commit1 Work Done
+C->D: commit1
+D-->+D: commit1 Work Start

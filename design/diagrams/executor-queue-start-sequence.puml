@@ -1,0 +1,8 @@
+@startuml
+title Start Build
+Screwdriver -> "Executor Queue": Start build
+"Executor Queue" -> Resque: Enqueue build with config
+Resque <- Worker: Poll
+Resque -> Worker: Take job from queue
+Worker -> Executor: Start build
+@enduml
