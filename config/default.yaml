@@ -120,6 +120,14 @@ executor:
 
         # Launcher container tag to use
         launchVersion: stable
+    queue:
+      options:
+        # Configuration of the redis instance containing resque
+        redisConnection:
+          host: "127.0.0.1"
+          port: 9999
+          password: "THIS-IS-A-PASSWORD"
+          database: 0
 
 scms:
     github:

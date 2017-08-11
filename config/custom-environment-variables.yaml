@@ -96,6 +96,14 @@ executor:
         launchVersion: LAUNCH_VERSION
         # Prefix to the container
         prefix: EXECUTOR_PREFIX
+    queue:
+        options:
+          # Configuration of the redis instance containing resque
+            redisConnection:
+                host: QUEUE_REDIS_HOST
+                port: QUEUE_REDIS_PORT
+                password: QUEUE_REDIS_PASSWORD
+                database: QUEUE_REDIS_DATABASE
 
 scms:
     github:
