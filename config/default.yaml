@@ -128,6 +128,14 @@ executor:
             port: 8080
             username: screwdriver
             password: "WOW-AN-EVEN-MORE-INSECURE-PASSWORD!!!!"
+    queue:
+      options:
+        # Configuration of the redis instance containing resque
+        redisConnection:
+          host: "127.0.0.1"
+          port: 9999
+          password: "THIS-IS-A-PASSWORD"
+          database: 0
 
 scms:
     github:

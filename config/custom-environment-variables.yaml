@@ -125,6 +125,14 @@ executor:
         cleanupTimeLimit: EXECUTOR_JENKINS_CLEANUP_TIME_LIMIT
         # Interval to detect the stopped job (seconds)
         cleanupWatchInterval: EXECUTOR_JENKINS_CLEANUP_WATCH_INTERVAL
+    queue:
+        options:
+          # Configuration of the redis instance containing resque
+            redisConnection:
+                host: QUEUE_REDIS_HOST
+                port: QUEUE_REDIS_PORT
+                password: QUEUE_REDIS_PASSWORD
+                database: QUEUE_REDIS_DATABASE
 
 scms:
     github:
