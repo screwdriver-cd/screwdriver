@@ -11,7 +11,7 @@
 /* eslint-disable no-console */
 
 // Make sure script is being called correctly
-if (process.argv.length !== 4) {
+if (process.argv.length !== 5) {
     console.log('Usage: npm run create-test-user -- $username $scm-context $git-token');
 
     return 1;
@@ -42,10 +42,9 @@ const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
     (datastoreConfig[datastoreConfig.plugin] || {})));
 
 // Source Code Plugin
-const scmConfig = config.get('scm');
-const ScmPlugin = require(`screwdriver-scm-${scmConfig.plugin}`);
-const scm = new ScmPlugin(hoek.applyToDefaults({ ecosystem },
-    (scmConfig[scmConfig.plugin] || {})));
+const scmConfig = { scms: config.get('scms') };
+const ScmPlugin = require('screwdriver-scm-router');
+const scm = new ScmPlugin(scmConfig || {});
 
 authConfig.scm = scm;
 
