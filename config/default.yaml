@@ -129,7 +129,7 @@ executor:
           password: "THIS-IS-A-PASSWORD"
           database: 0
 
-# scms:
+scms: {}
 #     github:
 #         plugin: github
 #         config:
