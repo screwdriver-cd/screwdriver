@@ -131,29 +131,32 @@ executor:
             redisConnection:
                 host: QUEUE_REDIS_HOST
                 port: QUEUE_REDIS_PORT
-                password: QUEUE_REDIS_PASSWORD
+                options:
+                    password: QUEUE_REDIS_PASSWORD
                 database: QUEUE_REDIS_DATABASE
 
 scms:
-    github:
-        plugin: github
-        config:
-            # The client id used for OAuth with github. Look up GitHub OAuth for details
-            # https://developer.github.com/v3/oauth/
-            oauthClientId: SECRET_OAUTH_CLIENT_ID
-            # The client secret used for OAuth with github
-            oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-            # You can also configure for use with GitHub enterprise
-            gheHost: SCM_GITHUB_GHE_HOST
-            # The username and email used for checkout with github
-            username: SCM_USERNAME
-            email: SCM_EMAIL
-            # Secret to add to GitHub webhooks so that we can validate them
-            secret: WEBHOOK_GITHUB_SECRET
-            # Whether it supports private repo: boolean value.
-            # If true, it will ask for read and write access to public and private repos
-            # https://developer.github.com/v3/oauth/#scopes
-            privateRepo: SCM_PRIVATE_REPO_SUPPORT
+    __name: SCM_SETTINGS
+    __format: json
+    # github:
+    #     plugin: github
+    #     config:
+    #         # The client id used for OAuth with github. Look up GitHub OAuth for details
+    #         # https://developer.github.com/v3/oauth/
+    #         oauthClientId: SECRET_OAUTH_CLIENT_ID
+    #         # The client secret used for OAuth with github
+    #         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    #         # You can also configure for use with GitHub enterprise
+    #         gheHost: SCM_GITHUB_GHE_HOST
+    #         # The username and email used for checkout with github
+    #         username: SCM_USERNAME
+    #         email: SCM_EMAIL
+    #         # Secret to add to GitHub webhooks so that we can validate them
+    #         secret: WEBHOOK_GITHUB_SECRET
+    #         # Whether it supports private repo: boolean value.
+    #         # If true, it will ask for read and write access to public and private repos
+    #         # https://developer.github.com/v3/oauth/#scopes
+    #         privateRepo: SCM_PRIVATE_REPO_SUPPORT
     # bitbucket:
     #     plugin: bitbucket
     #     config:
