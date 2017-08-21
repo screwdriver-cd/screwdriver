@@ -3,6 +3,7 @@
 /**
  * Make a user in the database and generate an access token for it
  * @param {String} username     Username for the new user
+ * @param {String} scmContext   SCM Context for the new user
  * @param {String} gitToken     Git access token for the user
  */
 
@@ -16,15 +17,15 @@
  */
 function createTestUser() {
     // Make sure script is being called correctly
-    if (process.argv.length !== 5) {
+    if (process.argv.length !== 4) {
         console.log('Usage: npm run create-test-user -- $username $scm-context $git-token');
 
         return 1;
     }
 
-    const username = process.argv[2];
-    const scmContext = process.argv[3];
-    const gitToken = process.argv[4];
+    const username = process.argv[1];
+    const scmContext = process.argv[2];
+    const gitToken = process.argv[3];
 
     const config = require('config');
     const hoek = require('hoek');
