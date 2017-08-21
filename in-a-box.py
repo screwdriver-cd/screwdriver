@@ -42,7 +42,7 @@ services:
                 {
                     "socketPath": "/var/run/docker.sock"
                 }
-            SCM_SETTING: |
+            SCM_SETTINGS: |
                 {
                     "${scm_plugin}": {
                         "plugin": "${scm_plugin}",
