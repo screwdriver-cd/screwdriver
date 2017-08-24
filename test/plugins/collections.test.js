@@ -10,15 +10,16 @@ const testCollection = require('./data/collection.json');
 const testCollectionResponse = require('./data/collection.response.json');
 const testCollections = require('./data/collections.json');
 const testPipelines = require('./data/pipelines.json');
+const testBuilds = require('./data/builds.json');
 const updatedCollection = require('./data/updatedCollection.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const getCollectionMock = (collection) => {
-    const mock = Object.assign({}, collection);
+const getMock = (obj) => {
+    const mock = Object.assign({}, obj);
 
     mock.update = sinon.stub();
-    mock.toJson = sinon.stub().returns(collection);
+    mock.toJson = sinon.stub().returns(obj);
     mock.remove = sinon.stub();
 
     return mock;
@@ -26,10 +27,10 @@ const getCollectionMock = (collection) => {
 
 const getCollectionsMock = (collections) => {
     if (Array.isArray(collections)) {
-        return collections.map(getCollectionMock);
+        return collections.map(getMock);
     }
 
-    return getCollectionMock(collections);
+    return getMock(collections);
 };
 
 // Get the mock pipeline in testPipelines using the input id
@@ -60,8 +61,9 @@ describe('collection plugin test', () => {
     const scmContext = 'github:github.com';
     const userId = testCollection.userId;
     let collectionFactoryMock;
-    let userFactoryMock;
+    let eventFactoryMock;
     let pipelineFactoryMock;
+    let userFactoryMock;
     let collectionMock;
     let userMock;
     let plugin;
@@ -80,14 +82,17 @@ describe('collection plugin test', () => {
             get: sinon.stub(),
             list: sinon.stub()
         };
-        userFactoryMock = {
-            get: sinon.stub()
+        eventFactoryMock = {
+            get: sinon.stub().resolves(null)
         };
         pipelineFactoryMock = {
             get: sinon.stub()
         };
+        userFactoryMock = {
+            get: sinon.stub()
+        };
 
-        collectionMock = getCollectionMock(testCollection);
+        collectionMock = getMock(testCollection);
         collectionMock.remove.resolves(null);
         collectionMock.update.resolves(collectionMock);
         collectionFactoryMock.create.resolves(collectionMock);
@@ -106,8 +111,9 @@ describe('collection plugin test', () => {
         server = new hapi.Server();
         server.app = {
             collectionFactory: collectionFactoryMock,
-            userFactory: userFactoryMock,
-            pipelineFactory: pipelineFactoryMock
+            eventFactory: eventFactoryMock,
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock
         };
         server.connection({
             port: 1234
@@ -185,7 +191,7 @@ describe('collection plugin test', () => {
             // collectionFactoryMock will resolve a collection model with the pipelineIds
             // field being an empty array
             resultCollection.pipelineIds = [];
-            collectionMock = getCollectionMock(resultCollection);
+            collectionMock = getMock(resultCollection);
             collectionMock.remove.resolves(null);
             collectionMock.update.resolves(collectionMock);
             collectionFactoryMock.create.resolves(collectionMock);
@@ -310,29 +316,38 @@ describe('collection plugin test', () => {
     describe('GET /collections/{id}', () => {
         const id = testCollectionResponse.id;
         let options;
+        let eventMock;
+        let buildsMock;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
                 url: `/collections/${id}`
             };
+            eventMock = {
+                getBuilds() {
+                    buildsMock = testBuilds.map(build => getMock(build));
+
+                    return Promise.resolve(buildsMock);
+                }
+            };
+            eventFactoryMock.get.withArgs(testPipelines[0].lastEventId).resolves(eventMock);
+            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
         });
 
-        it('exposes a route for getting a collection', () => {
-            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
-
-            return server.inject(options).then((reply) => {
+        it('exposes a route for getting a collection', () =>
+            server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollectionResponse);
-            });
-        });
+            })
+        );
 
         it('returns a collection only with pipelines that exist', () => {
             const newTestCollection = Object.assign({}, testCollection);
 
             // Add a pipelineId which doesn't exist in testPipelines
             newTestCollection.pipelineIds.push(126);
-            collectionMock = getCollectionMock(newTestCollection);
+            collectionMock = getMock(newTestCollection);
             collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
 
             // Since there is no pipeline with id 126, it should only return
@@ -340,6 +355,31 @@ describe('collection plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollectionResponse);
+            });
+        });
+
+        it('does not include lastBuilds in response if empty', () => {
+            eventMock.getBuilds = () => Promise.resolve([]);
+            const expected = Object.assign({}, testCollectionResponse);
+
+            delete expected.pipelines[0].lastBuilds;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
+
+        it('fails to get last event for a pipeline', () => {
+            eventFactoryMock.get.withArgs(
+                testPipelines[0].lastEventId).rejects(new Error('Failed'));
+            const expected = Object.assign({}, testCollectionResponse);
+
+            delete expected.pipelines[0].lastBuilds;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expected);
             });
         });
 
@@ -388,7 +428,7 @@ describe('collection plugin test', () => {
                 }
             };
 
-            updatedCollectionMock = getCollectionMock(updatedCollection);
+            updatedCollectionMock = getMock(updatedCollection);
             collectionFactoryMock.get.withArgs({ id }).resolves(collectionMock);
             collectionMock.update.resolves(updatedCollectionMock);
             updatedCollectionMock.toJson.returns(updatedCollection);
