@@ -9,12 +9,13 @@ const idSchema = joi.reach(schema.models.collection.base, 'id');
 /**
  * Helper function to get last builds of pipelines
  *
- * @param   {Array}    pipelines     - array of pipeline models to get last builds for
- * @param   {Factory}  eventFactory  - factory for getting last event model
+ * @param   {Array}    pipelines     Array of pipeline models to get last builds for
+ * @param   {Factory}  eventFactory  Factory for getting last event model
  * @returns {Array}
  */
 function getPipelinesHealth(pipelines, eventFactory) {
     return pipelines
+        // Filter out pipelines that don't exist
         .filter(pipeline => !!pipeline)
         .map((pipeline) => {
             const result = Object.assign({}, pipeline.toJson());
@@ -32,6 +33,8 @@ function getPipelinesHealth(pipelines, eventFactory) {
                     return event.getBuilds()
                         .then((builds) => {
                             if (builds.length) {
+                                // The events are sorted by most recent first. Need to reverse the order
+                                // to allow for matching with workflow job on the UI
                                 result.lastBuilds = builds.map(b => b.toJson()).reverse();
                             }
 
@@ -66,6 +69,7 @@ module.exports = () => ({
                     });
 
                     return Promise.all(collectionPipelines)
+                        // Populate pipelines with lastBuilds
                         .then(pipelines => Promise.all(getPipelinesHealth(pipelines, eventFactory)))
                         .then((pipelinesWithHealth) => {
                             const result = Object.assign({}, collection.toJson());
