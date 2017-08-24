@@ -9,8 +9,8 @@ const idSchema = joi.reach(schema.models.collection.base, 'id');
 /**
  * Helper function to get last builds of pipelines
  *
- * @param {Pipeline} pipelines     - pipeline models to get last builds for
- * @param {Factory}  eventFactory - factory for getting last event model
+ * @param   {Array}    pipelines     - array of pipeline models to get last builds for
+ * @param   {Factory}  eventFactory  - factory for getting last event model
  * @returns {Array}
  */
 function getPipelinesHealth(pipelines, eventFactory) {
