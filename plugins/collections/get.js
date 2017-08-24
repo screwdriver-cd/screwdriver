@@ -32,7 +32,7 @@ function getPipelinesHealth(pipelines, eventFactory) {
                     return event.getBuilds()
                         .then((builds) => {
                             if (builds.length) {
-                                result.lastBuilds = builds.map(b => b.toJson());
+                                result.lastBuilds = builds.map(b => b.toJson()).reverse();
                             }
 
                             return result;
