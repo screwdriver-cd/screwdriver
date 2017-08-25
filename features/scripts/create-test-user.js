@@ -62,7 +62,8 @@ function createTestUser() {
         password: authConfig.encryptionPassword
     });
     const tokenFactory = Models.TokenFactory.getInstance({
-        datastore
+        datastore,
+        password: authConfig.encryptionPassword
     });
 
     // Setup datastore and create test user
