@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1234,
+        "pipelineId": 123,
+        "name": "PR-1",
+        "state": "ENABLED"
+    },
+    {
+        "id": 1235,
+        "pipelineId": 123,
+        "name": "PR-2",
+        "state": "ENABLED"
+    }
+]
