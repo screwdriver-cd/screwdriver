@@ -12,6 +12,10 @@
             "admins": {
                 "stjohn": true
             },
+            "prs": {
+                "open": 2,
+                "failing": 1
+            },
             "lastEventId": 456,
             "lastBuilds": [{
                 "id": 12346,
@@ -86,7 +90,7 @@
                         "endTime": "2038-01-19T03:15:10.130Z"
                     }
                 ],
-                "status": "FAILURE"
+                "status": "SUCCESS"
             }]
         },
         {
@@ -97,7 +101,12 @@
             "admins": {
                 "tkyi": true
             },
-            "lastEventId": 789
+            "prs": {
+                "open": 0,
+                "failing": 0
+            },
+            "lastEventId": 789,
+            "lastBuilds": []
         },
         {
             "id": 125,
@@ -106,7 +115,12 @@
             "createTime": "2038-01-19T03:14:08.131Z",
             "admins": {
                 "d2lam": true
-            }
+            },
+            "prs": {
+                "open": 0,
+                "failing": 0
+            },
+            "lastBuilds": []
         }
     ]
 }
