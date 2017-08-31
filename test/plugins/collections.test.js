@@ -173,6 +173,7 @@ describe('collection plugin test', () => {
                     scope: ['user']
                 }
             };
+            collectionFactoryMock.get.resolves(null);
         });
 
         it('returns 201 and correct collection data', () =>
@@ -262,6 +263,15 @@ describe('collection plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 409 when the user tries to create a duplicate collection', () => {
+            collectionFactoryMock.get.resolves({ id: 1 });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 409);
+                assert.equal(reply.result.message, 'Collection already exists with the ID: 1');
             });
         });
 

@@ -30,24 +30,35 @@ module.exports = () => ({
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    const config = Object.assign({}, request.payload, { userId: user.id });
+                    // Check if user already owns a collection with that name
+                    return collectionFactory.get({ name: request.payload.name, userId: user.id })
+                        .then((collection) => {
+                            if (collection) {
+                                throw boom.conflict(
+                                    `Collection already exists with the ID: ${collection.id}`,
+                                    { existingId: collection.id }
+                                );
+                            }
 
-                    // Check that the pipelines exist for the pipelineIds specified.
-                    if (request.payload.pipelineIds) {
-                        const { pipelineFactory } = request.server.app;
+                            const config = Object.assign({}, request.payload, { userId: user.id });
 
-                        return Promise.all(request.payload.pipelineIds.map(pipelineId =>
-                            pipelineFactory.get(pipelineId)))
-                            .then((pipelines) => {
-                            // If the pipeline exists, then add it to pipelineIds
-                                config.pipelineIds = pipelines.filter(pipeline =>
-                                    pipeline).map(pipeline => pipeline.id);
+                            // Check that the pipelines exist for the pipelineIds specified.
+                            if (request.payload.pipelineIds) {
+                                const { pipelineFactory } = request.server.app;
 
-                                return collectionFactory.create(config);
-                            });
-                    }
+                                return Promise.all(request.payload.pipelineIds.map(pipelineId =>
+                                    pipelineFactory.get(pipelineId)))
+                                    .then((pipelines) => {
+                                    // If the pipeline exists, then add it to pipelineIds
+                                        config.pipelineIds = pipelines.filter(pipeline =>
+                                            pipeline).map(pipeline => pipeline.id);
 
-                    return collectionFactory.create(config);
+                                        return collectionFactory.create(config);
+                                    });
+                            }
+
+                            return collectionFactory.create(config);
+                        });
                 })
                 .then((collection) => {
                     const location = urlLib.format({
