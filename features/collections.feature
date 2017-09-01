@@ -18,14 +18,12 @@ Feature: User Collections
 #            | miss wormwood | no access   |
         And an existing pipeline with that repository
 
-    @ignore
     Scenario: Create New Collection
         And "calvin" is logged in
         When they create a new collection "myCollection" with that pipeline
         Then they can see that collection
         And the collection contains that pipeline
 
-    @ignore
     Scenario: Update Existing Collection
         And "calvin" is logged in
         When they create a new collection "myCollection"
@@ -35,7 +33,6 @@ Feature: User Collections
         Then they can see that collection
         And the collection contains that pipeline
 
-    @ignore
     Scenario: Listing A User's Collection
         And "calvin" is logged in
         And they have a collection "myCollection"
@@ -43,7 +40,6 @@ Feature: User Collections
         When they fetch all their collections
         Then they can see those collections
 
-    @ignore
     Scenario: Deleting A Collection
         And "calvin" is logged in
         And they have a collection "myCollection"
@@ -51,9 +47,8 @@ Feature: User Collections
         Then that collection no longer exists
         And that pipeline still exists
 
-    @ignore
     Scenario: Collections Are Unique
         And "calvin" is logged in
         And they have a collection "myCollection"
-        When they create a new collection "myCollection"
+        When they create another collection with the same name "myCollection"
         Then they receive an error regarding unique collections
