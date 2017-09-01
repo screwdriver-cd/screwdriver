@@ -262,7 +262,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
     Then(/^they receive an error regarding unique collections$/, function step() {
         Assert.strictEqual(this.lastResponse.statusCode, 409);
         Assert.strictEqual(this.lastResponse.body.message,
-            'User already owns collection with this name');
+            `Collection already exists with the ID: ${this.firstCollectionId}`);
     });
 
     After('@collections', function hook() {
