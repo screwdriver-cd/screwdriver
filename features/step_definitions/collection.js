@@ -137,7 +137,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
                 .then(() => {
                     const pipelineId = parseInt(this.pipelineId, 10);
 
-                    request({
+                    return request({
                         uri: `${this.instance}/${this.namespace}/collections/` +
                             `${this.firstCollectionId}`,
                         method: 'PUT',
