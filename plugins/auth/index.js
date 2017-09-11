@@ -3,7 +3,7 @@
 const authToken = require('hapi-auth-bearer-token');
 const bell = require('bell');
 const sugar = require('hapi-auth-cookie');
-const authjwt = require('hapi-auth-jwt');
+const authjwt = require('hapi-auth-jwt2');
 const crumb = require('crumb');
 const jwt = require('jsonwebtoken');
 const joi = require('joi');
@@ -117,6 +117,11 @@ exports.register = (server, options, next) => {
                 verifyOptions: {
                     algorithms: [ALGORITHM],
                     maxAge: EXPIRES_IN
+                },
+                // This function is run once the Token has been decoded with signature
+                validateFunc(decoded, request, cb) {
+                    // TODO: figure out what to do here
+                    cb(null, true);
                 }
             });
             server.auth.strategy('auth_token', 'bearer-access-token', {

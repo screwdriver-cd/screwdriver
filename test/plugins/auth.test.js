@@ -145,7 +145,7 @@ describe('auth plugin test', () => {
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
-            assert.isOk(server.registrations['hapi-auth-jwt']);
+            assert.isOk(server.registrations['hapi-auth-jwt2']);
         });
 
         it('registers the auth_token plugin', () => {
