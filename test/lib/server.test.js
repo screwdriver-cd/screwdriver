@@ -8,7 +8,8 @@ const sinon = require('sinon');
 describe('server case', () => {
     let hapiEngine;
     const ecosystem = {
-        ui: 'http://example.com'
+        ui: 'http://example.com',
+        allowCors: ['http://mycors.com']
     };
 
     before(() => {
