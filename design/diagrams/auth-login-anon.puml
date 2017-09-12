@@ -1,0 +1,11 @@
+@startuml
+
+title Login Flow (Anonymous)
+
+participant Auth
+actor User
+
+User -> Auth  : Login Anon
+Auth --> User : 24h Refresh Token
+
+@enduml

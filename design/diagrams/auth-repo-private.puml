@@ -1,0 +1,14 @@
+@startuml
+
+title Private Repository Flow
+
+actor User
+participant API
+participant Auth
+
+User -> API   : Request Pipeline (no token)
+API --> User  : 401 Unauthorized
+User -> Auth  : Request Pipeline (refresh OR no token)
+Auth --> User : 404 Not Found
+
+@enduml
