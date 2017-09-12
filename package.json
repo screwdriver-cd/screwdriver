@@ -71,7 +71,7 @@
     "hapi": "^16.4.3",
     "hapi-auth-bearer-token": "^4.3.0",
     "hapi-auth-cookie": "^6.1.1",
-    "hapi-auth-jwt": "^4.0.0",
+    "hapi-auth-jwt2": "^7.3.0",
     "hapi-swagger": "^7.0.0",
     "hoek": "^4.0.1",
     "inert": "^4.0.1",
