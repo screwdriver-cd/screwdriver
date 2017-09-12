@@ -103,7 +103,8 @@ const secretFactory = Models.SecretFactory.getInstance({
     password: authConfig.encryptionPassword
 });
 const tokenFactory = Models.TokenFactory.getInstance({
-    datastore
+    datastore,
+    password: authConfig.encryptionPassword
 });
 const eventFactory = Models.EventFactory.getInstance({
     datastore,

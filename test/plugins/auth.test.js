@@ -145,7 +145,7 @@ describe('auth plugin test', () => {
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
-            assert.isOk(server.registrations['hapi-auth-jwt']);
+            assert.isOk(server.registrations['hapi-auth-jwt2']);
         });
 
         it('registers the auth_token plugin', () => {
@@ -758,8 +758,8 @@ describe('auth plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Contexts should be available');
                 assert.deepEqual(reply.result, [
-                    { 'github:github.com': 'github' },
-                    { 'github:mygithub.com': 'mygithub' }
+                    { context: 'github:github.com', displayName: 'github' },
+                    { context: 'github:mygithub.com', displayName: 'mygithub' }
                 ], 'Contexts returns data');
             })
         ));

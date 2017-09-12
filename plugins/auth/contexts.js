@@ -20,9 +20,10 @@ module.exports = () => ({
             const contexts = [];
 
             scmContexts.forEach((scmContext) => {
-                const context = {};
-
-                context[scmContext] = scm.getDisplayName({ scmContext });
+                const context = {
+                    context: scmContext,
+                    displayName: scm.getDisplayName({ scmContext })
+                };
 
                 contexts.push(context);
             });

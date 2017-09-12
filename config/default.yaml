@@ -32,10 +32,8 @@ auth:
         - github:cynthiax
         - github:d2lam
         - github:dvdizon
-        - github:ian-fox
         - github:jer
         - github:jithin1987
-        - github:joelseq
         - github:minz1027
         - github:petey
         - github:r3rastogi
@@ -46,7 +44,7 @@ auth:
         # Pilots
         - github:aressem
         - github:bjorncs
-        - github: drewfish
+        - github:drewfish
         - github:gjoranv2
         - github:jpcollins
         - github:tonytamsf
@@ -55,9 +53,7 @@ auth:
         - github:cynthiax
         - github:d2lam
         - github:dvdizon
-        - github:ian-fox
         - github:jer
-        - github:joelseq
         - github:minz1027
         - github:petey
         - github:r3rastogi
@@ -120,6 +116,14 @@ executor:
 
         # Launcher container tag to use
         launchVersion: stable
+#     jenkins:
+#       options:
+#         # Configuration of Jenkins
+#         jenkins:
+#             host: jenkins.default
+#             port: 8080
+#             username: screwdriver
+#             password: "WOW-AN-EVEN-MORE-INSECURE-PASSWORD!!!!"
     queue:
       options:
         # Configuration of the redis instance containing resque
@@ -129,26 +133,26 @@ executor:
           password: "THIS-IS-A-PASSWORD"
           database: 0
 
-scms:
-    github:
-        plugin: github
-        config:
-            # The client id used for OAuth with github. Look up GitHub OAuth for details
-            # https://developer.github.com/v3/oauth/
-            oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
-            # The client secret used for OAuth with github
-            oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
-            # You can also configure for use with GitHub enterprise
-            # gheHost: github.screwdriver.cd
-            # The username and email used for checkout with github
-            username: sd-buildbot
-            email: dev-null@screwdriver.cd
-            # Secret to add to GitHub webhooks so that we can validate them
-            secret: SUPER-SECRET-SIGNING-THING
-            # Whether it supports private repo: boolean value.
-            # If true, it will ask for read and write access to public and private repos
-            # https://developer.github.com/v3/oauth/#scopes
-            privateRepo: false
+scms: {}
+#     github:
+#         plugin: github
+#         config:
+#             # The client id used for OAuth with github. Look up GitHub OAuth for details
+#             # https://developer.github.com/v3/oauth/
+#             oauthClientId: YOU-PROBABLY-WANT-SOMETHING-HERE
+#             # The client secret used for OAuth with github
+#             oauthClientSecret: AGAIN-SOMETHING-HERE-IS-USEFUL
+#             # You can also configure for use with GitHub enterprise
+#             # gheHost: github.screwdriver.cd
+#             # The username and email used for checkout with github
+#             username: sd-buildbot
+#             email: dev-null@screwdriver.cd
+#             # Secret to add to GitHub webhooks so that we can validate them
+#             secret: SUPER-SECRET-SIGNING-THING
+#             # Whether it supports private repo: boolean value.
+#             # If true, it will ask for read and write access to public and private repos
+#             # https://developer.github.com/v3/oauth/#scopes
+#             privateRepo: false
 #     bitbucket:
 #         plugin: bitbucket
 #         config:
