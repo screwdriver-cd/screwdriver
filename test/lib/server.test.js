@@ -68,6 +68,29 @@ describe('server case', () => {
             });
         });
 
+        it('populates access-control-allow-origin correctly', (done) => {
+            server.route({
+                method: 'GET',
+                path: '/v1/status',
+                handler: (request, reply) => reply('OK')
+            });
+
+            Assert.notOk(error);
+
+            return server.inject({
+                method: 'GET',
+                url: '/v1/status',
+                headers: {
+                    origin: ecosystem.allowCors[0]
+                }
+            }, (response) => {
+                Assert.equal(response.statusCode, 200);
+                Assert.equal(response.headers['access-control-allow-origin'], 'http://mycors.com');
+                Assert.include(response.request.info.host, '12347');
+                done();
+            });
+        });
+
         it('does it with a different port', () => {
             Assert.notOk(error);
 
