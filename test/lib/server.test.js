@@ -8,7 +8,8 @@ const sinon = require('sinon');
 describe('server case', () => {
     let hapiEngine;
     const ecosystem = {
-        ui: 'http://example.com'
+        ui: 'http://example.com',
+        allowCors: ['http://mycors.com']
     };
 
     before(() => {
@@ -64,6 +65,29 @@ describe('server case', () => {
                 };
             }).catch((e) => {
                 error = e;
+            });
+        });
+
+        it('populates access-control-allow-origin correctly', (done) => {
+            server.route({
+                method: 'GET',
+                path: '/v1/status',
+                handler: (request, reply) => reply('OK')
+            });
+
+            Assert.notOk(error);
+
+            return server.inject({
+                method: 'GET',
+                url: '/v1/status',
+                headers: {
+                    origin: ecosystem.allowCors[0]
+                }
+            }, (response) => {
+                Assert.equal(response.statusCode, 200);
+                Assert.equal(response.headers['access-control-allow-origin'], 'http://mycors.com');
+                Assert.include(response.request.info.host, '12347');
+                done();
             });
         });
 
