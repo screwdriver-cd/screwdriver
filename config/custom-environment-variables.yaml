@@ -61,6 +61,7 @@ executor:
     plugin: EXECUTOR_PLUGIN
     # The NPM module object(s) for the executor plugin(s)
     k8s:
+      enabled: EXECUTOR_K8S_ENABLED
       options:
         kubernetes:
             # The host or IP of the kubernetes cluster
@@ -73,6 +74,7 @@ executor:
         # Prefix to the pod
         prefix: EXECUTOR_PREFIX
     docker:
+      enabled: EXECUTOR_DOCKER_ENABLED
       options:
         # Configuration of Docker
         docker:
@@ -83,6 +85,7 @@ executor:
         # Prefix to the container
         prefix: EXECUTOR_PREFIX
     k8s-vm:
+      enabled: EXECUTOR_K8SVM_ENABLED
       options:
         # Configuration of Docker
         kubernetes:
@@ -97,6 +100,7 @@ executor:
         # Prefix to the container
         prefix: EXECUTOR_PREFIX
     jenkins:
+      enabled: EXECUTOR_JENKINS_ENABLED
       options:
         jenkins:
             host: EXECUTOR_JENKINS_HOST
@@ -126,6 +130,7 @@ executor:
         # Interval to detect the stopped job (seconds)
         cleanupWatchInterval: EXECUTOR_JENKINS_CLEANUP_WATCH_INTERVAL
     queue:
+        enabled: EXECUTOR_QUEUE_ENABLED
         options:
           # Configuration of the redis instance containing resque
             redisConnection:

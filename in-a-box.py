@@ -37,6 +37,7 @@ services:
             DATASTORE_SEQUELIZE_DIALECT: sqlite
             DATASTORE_SEQUELIZE_STORAGE: /tmp/sd-data/storage.db
             EXECUTOR_PLUGIN: docker
+            EXECUTOR_QUEUE_ENABLED: "false"
             SECRET_WHITELIST: "[]"
             EXECUTOR_DOCKER_DOCKER: |
                 {

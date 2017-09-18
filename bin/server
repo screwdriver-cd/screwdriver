@@ -36,7 +36,7 @@ const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
 const executorConfig = config.get('executor');
 const ExecutorPlugin = require('screwdriver-executor-router');
 const executorPlugins = Object.keys(executorConfig).reduce((aggregator, keyName) => {
-    if (keyName !== 'plugin') {
+    if (keyName !== 'plugin' && executorConfig[keyName].enabled !== 'false') {
         aggregator.push(Object.assign({
             name: keyName
         }, executorConfig[keyName]));
@@ -44,6 +44,7 @@ const executorPlugins = Object.keys(executorConfig).reduce((aggregator, keyName)
 
     return aggregator;
 }, []);
+
 const executor = new ExecutorPlugin({
     defaultPlugin: executorConfig.plugin,
     executor: executorPlugins,
@@ -65,9 +66,10 @@ const artifact = new ArtifactPlugin(ecosystem.store);
 const bookends = config.get('bookends');
 const bookend = new Bookend({
     scm,
-    'screwdriver-artifact-bookend': artifact },
-    bookends.setup || [],      // plugins required for the setup- steps
-    bookends.teardown || []    // plugins required for the teardown- steps
+    'screwdriver-artifact-bookend': artifact
+},
+bookends.setup || [], // plugins required for the setup- steps
+bookends.teardown || [] // plugins required for the teardown- steps
 );
 
 // Setup Model Factories
