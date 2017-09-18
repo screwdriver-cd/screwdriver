@@ -89,6 +89,7 @@ executor:
     # Default executor
     plugin: k8s
     k8s:
+      enabled: true
       options:
         kubernetes:
             # The host or IP of the kubernetes cluster
@@ -99,6 +100,7 @@ executor:
         # Container tags to use
         launchVersion: stable
     docker:
+      enabled: true
       options:
         # Dockerode configuration https://github.com/apocas/dockerode#getting-started
         docker: {}
@@ -106,6 +108,7 @@ executor:
         # Container tags to use
         launchVersion: stable
     k8s-vm:
+      enabled: true
       options:
         # Configuration of Docker
         kubernetes:
@@ -125,6 +128,7 @@ executor:
 #             username: screwdriver
 #             password: "WOW-AN-EVEN-MORE-INSECURE-PASSWORD!!!!"
     queue:
+      enabled: true
       options:
         # Configuration of the redis instance containing resque
         redisConnection:
