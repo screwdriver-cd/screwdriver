@@ -48,6 +48,7 @@ auth:
         - github:gjoranv2
         - github:jpcollins
         - github:tonytamsf
+        - github:pranavrc
     admins:
         - github:FenrirUnbound
         - github:cynthiax
