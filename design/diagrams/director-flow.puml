@@ -1,0 +1,47 @@
+@startuml
+
+title Director Orchestration Flow
+
+actor Worker
+participant Director
+participant Reporter
+collections Bookend
+participant Shell
+database "File System" as FS
+
+Worker -> Director: Start CLI inside Container
+
+group Initialization
+    Director -> Reporter: Start service
+end
+
+group Setup
+    Director -> Reporter: Report build start
+    loop for each bookend
+        Director -> Bookend: Execute setup bookend
+        Bookend -> FS: Write source file
+        Director -> Reporter: Report bookend status
+    end
+    Director -> Shell: Start new Shell
+    Shell -> FS: Source Bookend sources
+end
+
+group User Steps
+    loop for each user step
+        Director -> FS: Write User Step as file
+        Shell -> FS: Source file from disk
+        Director -> Shell: Wait for Completion Marker
+        Director -> Reporter: Report step status
+    end
+end
+
+group Teardown
+    Director -> Shell: Kill shell
+    loop for each bookend
+        Director -> Bookend: Execute teardown bookend
+        Director -> Reporter: Report bookend status
+    end
+    Director -> Reporter: Report build status
+end
+
+@enduml
