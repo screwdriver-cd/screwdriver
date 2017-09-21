@@ -35,6 +35,9 @@ module.exports = () => ({
             schema: listSchema
         },
         validate: {
+            params: {
+                name: nameSchema
+            },
             query: schema.api.pagination
         }
     }
