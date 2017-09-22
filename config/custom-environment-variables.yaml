@@ -190,6 +190,10 @@ scms:
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
     username: SCM_USERNAME
+    # Ignore commits made by these users
+    ignoreCommitsBy:
+        __name: IGNORE_COMMITS_BY
+        __format: json
 
 bookends:
     # List of module names, or objects { name, config } for instantiation to use in sd-setup

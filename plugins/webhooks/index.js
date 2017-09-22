@@ -385,15 +385,17 @@ function pushEvent(pluginOptions, request, reply, parsed) {
  *  - Syncing a PR should stop the existing PR job and start a new one
  *  - Closing a PR should stop the PR job and sync the pipeline (disabling the job)
  * @method register
- * @param  {Hapi}       server            Hapi Server
- * @param  {Object}     options           Configuration
- * @param  {String}     options.username  Generic scm username
+ * @param  {Hapi}       server                  Hapi Server
+ * @param  {Object}     options                 Configuration
+ * @param  {String}     options.username        Generic scm username
+ * @param  {Array}      options.ignoreCommitsBy Ignore commits made by these usernames
  * @param  {Function}   next              Function to call when done
  */
 exports.register = (server, options, next) => {
     const scm = server.root.app.pipelineFactory.scm;
     const pluginOptions = joi.attempt(options, joi.object().keys({
-        username: joi.string().required()
+        username: joi.string().required(),
+        ignoreCommitsBy: joi.array().items(joi.string()).optional()
     }), 'Invalid config for plugin-webhooks');
 
     server.route({
@@ -412,11 +414,20 @@ exports.register = (server, options, next) => {
 
                         const eventType = parsed.type;
                         const hookId = parsed.hookId;
+                        const username = parsed.username;
+                        const ignoreUser = pluginOptions.ignoreCommitsBy;
 
                         request.log(['webhook', hookId], `Received event type ${eventType}`);
 
                         if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
                             request.log(['webhook', hookId], 'Skipping due to the commit message');
+
+                            return reply().code(204);
+                        }
+
+                        if (ignoreUser.includes(username)) {
+                            request.log(['webhook', hookId],
+                                `Skipping because user ${username} is ignored`);
 
                             return reply().code(204);
                         }
