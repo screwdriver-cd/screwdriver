@@ -79,7 +79,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
                 });
         });
 
-    Then(/^they can see that collection$/, function step() {
+    Then(/^they can see that collection$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
             method: 'GET',
@@ -93,7 +93,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    Then(/^the collection contains that pipeline$/, function step() {
+    Then(/^the collection contains that pipeline$/, { timeout: TIMEOUT }, function step() {
         const pipelineId = parseInt(this.pipelineId, 10);
 
         return request({
@@ -109,7 +109,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    When(/^they create a new collection "myCollection"$/, function step() {
+    When(/^they create a new collection "myCollection"$/, { timeout: TIMEOUT }, function step() {
         return createCollection.call(this, { name: 'myCollection' })
             .then((response) => {
                 Assert.strictEqual(response.statusCode, 201);
@@ -117,7 +117,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
             });
     });
 
-    Then(/^the collection is empty$/, function step() {
+    Then(/^the collection is empty$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
             method: 'GET',
@@ -154,7 +154,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
                 });
         });
 
-    Given(/^they have a collection "myCollection"$/, function step() {
+    Given(/^they have a collection "myCollection"$/, { timeout: TIMEOUT }, function step() {
         return createCollection.call(this, { name: 'myCollection' })
             .then((response) => {
                 Assert.oneOf(response.statusCode, [409, 201]);
@@ -169,7 +169,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
             });
     });
 
-    Given(/^they have a collection "anotherCollection"$/, function step() {
+    Given(/^they have a collection "anotherCollection"$/, { timeout: TIMEOUT }, function step() {
         return createCollection.call(this, { name: 'anotherCollection' })
             .then((response) => {
                 Assert.oneOf(response.statusCode, [409, 201]);
@@ -184,7 +184,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
             });
     });
 
-    When(/^they fetch all their collections$/, function step() {
+    When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/collections`,
             method: 'GET',
@@ -223,7 +223,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
             });
     });
 
-    Then(/^that collection no longer exists$/, function step() {
+    Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
             method: 'GET',
@@ -237,7 +237,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    Then(/^that pipeline still exists$/, function step() {
+    Then(/^that pipeline still exists$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
             method: 'GET',
@@ -251,13 +251,14 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    When(/^they create another collection with the same name "myCollection"$/, function step() {
-        return createCollection.call(this, { name: 'myCollection' })
-            .then((response) => {
-                Assert.ok(response);
-                this.lastResponse = response;
-            });
-    });
+    When(/^they create another collection with the same name "myCollection"$/,
+        { timeout: TIMEOUT }, function step() {
+            return createCollection.call(this, { name: 'myCollection' })
+                .then((response) => {
+                    Assert.ok(response);
+                    this.lastResponse = response;
+                });
+        });
 
     Then(/^they receive an error regarding unique collections$/, function step() {
         Assert.strictEqual(this.lastResponse.statusCode, 409);
