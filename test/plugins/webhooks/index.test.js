@@ -76,7 +76,8 @@ describe('github plugin test', () => {
         server.register([{
             register: plugin,
             options: {
-                username: 'sd-buildbot'
+                username: 'sd-buildbot',
+                ignoreCommitsBy: ['batman', 'superman']
             }
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
@@ -317,6 +318,14 @@ describe('github plugin test', () => {
                 });
             });
 
+            it('returns 204 when commits made by ignoreCommitsBy user', () => {
+                parsed.username = 'batman';
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                });
+            });
+
             it('returns 500 when failed', () => {
                 buildFactoryMock.create.rejects(new Error('Failed to start'));
 
@@ -369,6 +378,15 @@ describe('github plugin test', () => {
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.get.resolves(null);
                 options.payload = testPayloadOpen;
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                });
+            });
+
+            it('returns 204 when commits made by ignoreCommitsBy user', () => {
+                parsed.username = 'batman';
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);

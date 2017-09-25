@@ -180,6 +180,8 @@ scms: {}
 webhooks:
     # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
     username: sd-buildbot
+    # Ignore commits made by these users
+    ignoreCommitsBy: []
 
 bookends:
     # Plugins for build setup
