@@ -95,12 +95,12 @@ function CustomWorld({ attach, parameters }) {
     this.parameters = parameters;
     env(path.join(__dirname, '../../.func_config'), { raise: false });
     this.gitToken = process.env.GIT_TOKEN;
-    this.apiToken = process.env.API_TOKEN;
-    this.protocol = process.env.PROTOCOL || 'https';
-    this.instance = `${this.protocol}://${process.env.SD_API}`;
+    this.apiToken = process.env.SD_API_TOKEN;
+    this.protocol = process.env.SD_API_PROTOCOL || 'https';
+    this.instance = `${this.protocol}://${process.env.SD_API_HOST}`;
     this.testOrg = process.env.TEST_ORG;
     this.username = process.env.TEST_USERNAME;
-    this.scmContext = process.env.TEST_SCM_CONTEXT;
+    this.scmContext = process.env.TEST_SCM_CONTEXT || 'github';
     this.namespace = 'v4';
     this.promiseToWait = time => promiseToWait(time);
     this.getJwt = apiToken =>

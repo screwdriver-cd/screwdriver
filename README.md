@@ -139,12 +139,12 @@ Fork `functional-*` repositories to your organization from [screwdriver-cd-test]
 Add `.func_config` to the root of the Screwdriver API folder with your username, github token, access key, host, and organization for test:
 ```
 GIT_TOKEN=YOUR-GITHUB-TOKEN
-API_TOKEN=YOUR-API-TOKEN
-SD_API=YOUR-LOCAL-API-HOST
-TEST_ORG=OUR-TEST-ORGANIZATION
+SD_API_TOKEN=YOUR-SD-API-TOKEN
+SD_API_HOST=YOUR-SD-API-HOST
+SD_API_PROTOCOL=PROTOCOL-FOR-SD-API // e.g.PROTOCOL=http; by default it is https
+TEST_ORG=YOUR-TEST-ORGANIZATION
 TEST_USERNAME=YOUR-GITHUB-USERNAME
-PROTOCOL=PROTOCOL-FOR-SD-API // e.g.PROTOCOL=http; by default it is https
-
+TEST_SCM_CONTEXT=YOUR-TEST-SCM-CONTEXT // e.g.TEST_SCM_CONTEXT=bitbucket; by default it is github
 ```
 
 #### With environment variables
@@ -152,10 +152,13 @@ PROTOCOL=PROTOCOL-FOR-SD-API // e.g.PROTOCOL=http; by default it is https
 Set the environment variables:
 
 ```bash
-$ export API_TOKEN=YOUR-API-TOKEN
-$ export SD_API=YOUR-LOCAL-API-HOST
+$ export GIT_TOKEN=YOUR-GITHUB-TOKEN
+$ export SD_API_TOKEN=YOUR-SD-API-TOKEN
+$ export SD_API_HOST=YOUR-SD-API-HOST
+$ export SD_API_PROTOCOL=PROTOCOL-FOR-SD-API
 $ export TEST_ORG=YOUR-TEST-ORGANIZATION
-$ export PROTOCOL=PROTOCAL-FOR-SD-API
+$ export TEST_USERNAME=YOUR-GITHUB-USERNAME
+$ export TEST_SCM_CONTEXT=YOUR-TEST-SCM-CONTEXT
 ```
 
 Then run the cucumber tests:
