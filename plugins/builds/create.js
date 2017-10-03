@@ -53,37 +53,48 @@ module.exports = () => ({
                         // user has good permissions, sync and create a build
                         .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
                         .then(() => user.unsealToken())
-                        .then(token => scm.getCommitSha({
-                            token,
-                            scmContext,
-                            scmUri: pipeline.scmUri,
-                            prNum: job.prNum
-                        }))
-                        .then((sha) => {
-                            let type = 'pipeline';
-                            let workflow = pipeline.workflow;
-
-                            if (job.isPR()) {
-                                type = 'pr';
-                                workflow = [job.name];
-                                payload.sha = sha; // pass sha to payload if it's a PR
-                            }
-
-                            return eventFactory.create({
-                                pipelineId: pipeline.id,
-                                type,
-                                workflow,
-                                username,
+                        .then((token) => {
+                            const scmConfig = {
+                                token,
                                 scmContext,
-                                sha
-                            });
-                        })
-                        .then((event) => {
-                            payload.eventId = event.id;
+                                scmUri: pipeline.scmUri,
+                                prNum: job.prNum
+                            };
 
-                            return buildFactory.create(payload);
-                        })
-                )).then((build) => {
+                            return scm.getCommitSha(scmConfig)
+                                .then((sha) => {
+                                    let type = 'pipeline';
+                                    let workflow = pipeline.workflow;
+
+                                    if (job.isPR()) {
+                                        type = 'pr';
+                                        workflow = [job.name];
+                                        payload.sha = sha; // pass sha to payload if it's a PR
+                                    }
+
+                                    return eventFactory.create({
+                                        pipelineId: pipeline.id,
+                                        type,
+                                        workflow,
+                                        username,
+                                        scmContext,
+                                        sha
+                                    });
+                                })
+                                .then((event) => {
+                                    payload.eventId = event.id;
+
+                                    return job.isPR() ? scm.getPrInfo(scmConfig) : null;
+                                })
+                                .then((prInfo) => {
+                                    if (prInfo) {
+                                        payload.prRef = prInfo.ref;
+                                    }
+
+                                    return buildFactory.create(payload);
+                                });
+                        })))
+                .then((build) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({
                         host: request.headers.host,

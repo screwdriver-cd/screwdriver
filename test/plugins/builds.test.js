@@ -65,7 +65,8 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
-                getCommitSha: sinon.stub()
+                getCommitSha: sinon.stub(),
+                getPrInfo: sinon.stub()
             }
         };
         jobFactoryMock = {
@@ -745,6 +746,10 @@ describe('build plugin test', () => {
             userMock.unsealToken.resolves('iamtoken');
             buildFactoryMock.create.resolves(buildMock);
             buildFactoryMock.scm.getCommitSha.resolves(testBuild.sha);
+            buildFactoryMock.scm.getPrInfo.resolves({
+                sha: testBuild.sha,
+                ref: 'prref'
+            });
             jobFactoryMock.get.resolves(jobMock);
             userFactoryMock.get.resolves(userMock);
             eventFactoryMock.create.resolves(eventMock);
@@ -757,6 +762,14 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(true);
             jobMock.prNum = 15;
             params.sha = '58393af682d61de87789fb4961645c42180cec5a';
+            params.prRef = 'prref';
+
+            const scmConfig = {
+                token: 'iamtoken',
+                scmContext,
+                scmUri,
+                prNum: 15
+            };
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -772,12 +785,8 @@ describe('build plugin test', () => {
                 });
                 assert.calledWith(pipelineMock.syncPR, 15);
                 assert.notCalled(pipelineMock.sync);
-                assert.calledWith(buildFactoryMock.scm.getCommitSha, {
-                    token: 'iamtoken',
-                    scmContext,
-                    scmUri,
-                    prNum: 15
-                });
+                assert.calledWith(buildFactoryMock.scm.getCommitSha, scmConfig);
+                assert.calledWith(buildFactoryMock.scm.getPrInfo, scmConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
@@ -814,6 +823,7 @@ describe('build plugin test', () => {
                     scmContext,
                     prNum: null
                 });
+                assert.notCalled(buildFactoryMock.scm.getPrInfo);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
