@@ -17,7 +17,7 @@ defineSupportCode(({ Before, Given, Then }) => {
 
     Given(/^an existing pipeline with that repository$/, () => null);
 
-    Given(/^"([^"]*)" is logged in$/, function step(user) {
+    Given(/^"([^"]*)" is logged in$/, { timeout: TIMEOUT }, function step(user) {
         if (!(this.apiToken)) {
             throw new Error('insufficient set up, missing access key');
         }
