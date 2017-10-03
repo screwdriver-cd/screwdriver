@@ -34,22 +34,11 @@ const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
 
 // Setup Executor
 const executorConfig = config.get('executor');
-const ExecutorPlugin = require('screwdriver-executor-router');
-const executorPlugins = Object.keys(executorConfig).reduce((aggregator, keyName) => {
-    if (keyName !== 'plugin' && executorConfig[keyName].enabled !== 'false') {
-        aggregator.push(Object.assign({
-            name: keyName
-        }, executorConfig[keyName]));
-    }
-
-    return aggregator;
-}, []);
-
-const executor = new ExecutorPlugin({
-    defaultPlugin: executorConfig.plugin,
-    executor: executorPlugins,
-    ecosystem
-});
+const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
+const executor = new ExecutorPlugin(Object.assign(
+    hoek.clone(ecosystem),
+    executorConfig[executorConfig.plugin].options
+));
 
 // Source Code Plugin
 const scmConfig = { scms: config.get('scms') };
