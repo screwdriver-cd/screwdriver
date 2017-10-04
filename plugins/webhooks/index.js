@@ -4,40 +4,29 @@ const boom = require('boom');
 const joi = require('joi');
 
 /**
- * Create a pipeline event amd start the job
+ * Start the job
  * @method startCommitJob
  * @param  {Object}       config            Configuration for starting a commit job
  * @param  {Object}       config.request    Request object
  * @param  {Object}       config.parsed     Parsed webhook payload
- * @param  {Object}       config.pipeline   Pipeline to be triggered
+ * @param  {Object}       config.event      Event the job belongs to
  * @param  {Object}       config.job        Job to be triggered
  * @return {Promise}                        Resolves to null if successfully start the build
  */
 function startCommitJob(config) {
-    const { request, parsed, pipeline, job } = config;
+    const { request, parsed, event, job } = config;
     const buildFactory = request.server.app.buildFactory;
-    const eventFactory = request.server.app.eventFactory;
     const hookId = parsed.hookId;
-    const sha = parsed.sha;
     const username = parsed.username;
     const scmContext = parsed.scmContext;
+    const sha = parsed.sha;
+    const jobId = job.id;
+    const eventId = event.id;
 
-    // create an event
-    return eventFactory.create({
-        pipelineId: pipeline.id,
-        type: 'pipeline',
-        workflow: pipeline.workflow, // Once stop support old workflow, we can remove this line
-        username,
-        scmContext,
-        sha,
-        causeMessage: `Merged by ${username}`
-    })
-        // create a build
-        .then(event => buildFactory.create(
-            { jobId: job.id, sha, username, scmContext, eventId: event.id }))
+    return buildFactory.create({ jobId, sha, username, scmContext, eventId })
         // log build created
         .then((build) => {
-            request.log(['webhook', hookId, job.id, build.id],
+            request.log(['webhook', hookId, jobId, build.id],
                 `${job.name} started ${build.number}`);
 
             return null;
@@ -358,6 +347,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  * @param  {Hapi.reply}         reply                  Reply to user
  */
 function pushEvent(pluginOptions, request, reply, parsed) {
+    const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const hookId = parsed.hookId;
@@ -365,6 +355,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
     const branch = parsed.branch;
     const username = parsed.username;
     const scmContext = parsed.scmContext;
+    const sha = parsed.sha;
     const checkoutUrl = `${repository}#${branch}`;
 
     request.log(['webhook', hookId], `Push for ${checkoutUrl}`);
@@ -384,7 +375,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
             return pipeline.sync()
                 // handle the PR action
                 .then(p => p.jobs.then((jobs) => {
-                    let commitJobs;
+                    let commitJobs = [];
 
                     // if it's using old workflow then find the main job
                     if (p.workflow) {
@@ -393,12 +384,22 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                         commitJobs = jobs.filter(j => j.requires && j.requires.includes('~commit'));
                     }
 
-                    return Promise.all(commitJobs.map(job => startCommitJob({
-                        request,
-                        parsed,
-                        pipeline: p,
-                        job
-                    })))
+                    // create an event
+                    return eventFactory.create({
+                        pipelineId: p.id,
+                        type: 'pipeline',
+                        workflow: p.workflow,
+                        username,
+                        scmContext,
+                        sha,
+                        causeMessage: `Merged by ${username}`
+                    })
+                        .then(event => Promise.all(commitJobs.map(job => startCommitJob({
+                            request,
+                            parsed,
+                            event,
+                            job
+                        }))))
                         .then(() => reply().code(201));
                 }));
         })

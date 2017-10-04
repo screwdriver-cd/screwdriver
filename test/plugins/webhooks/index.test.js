@@ -301,6 +301,46 @@ describe('github plugin test', () => {
                 })
             );
 
+            it('returns 201 on success for pipeline with requires', () => {
+                mainJobMock.requires = ['~commit'];
+                jobMock.requires = ['main'];
+                const newPipelineMock = {
+                    id: pipelineId,
+                    scmUri,
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflow: undefined,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock])
+                };
+
+                pipelineMock.sync.resolves(newPipelineMock);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineMock.sync);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        workflow: undefined,
+                        username,
+                        scmContext,
+                        sha,
+                        causeMessage: `Merged by ${username}`
+                    });
+                    assert.calledWith(buildFactoryMock.create, {
+                        jobId: 1,
+                        username,
+                        scmContext,
+                        sha,
+                        eventId: eventMock.id
+                    });
+                });
+            }
+            );
+
             it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
 
