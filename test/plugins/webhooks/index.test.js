@@ -15,7 +15,7 @@ const PARSED_CONFIG = require('../data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe('github plugin test', () => {
+describe.only('github plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
@@ -704,7 +704,6 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
                         assert.isTrue(jobMock.archived);
@@ -724,7 +723,6 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
                     });

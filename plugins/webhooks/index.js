@@ -172,35 +172,33 @@ function pullRequestOpened(options, request, reply) {
  * @param  {Object}       options
  * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
- * @param  {String}       options.jobId      Identifier for the Job
  * @param  {String}       options.name       Name of the job (PR-1)
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestClosed(options, request, reply) {
-    const jobFactory = request.server.app.jobFactory;
+    const pipelineFactory = request.server.app.pipelineFactory;
     const hookId = options.hookId;
     const jobId = options.jobId;
     const name = options.name;
+    const updatePRJobs = (job => stopJob(job)
+        .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
+        .then(() => {
+            job.state = 'DISABLED';
+            job.archived = true;
 
-    return jobFactory.get(jobId)
-        .then(job =>
-            stopJob(job)
-                .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
-            // disable and archive the job
-                .then(() => {
-                    job.state = 'DISABLED';
-                    job.archived = true;
+            return job.update();
+        })
+        .then(() => request.log(['webhook', hookId, jobId], `${name} disabled and archived`)));
 
-                    return job.update();
-                })
-            // log some stuff
-                .then(() => {
-                    request.log(['webhook', hookId, jobId], `${name} disabled and archived`);
+    return pipelineFactory.get(options.pipelineId)
+        .then(pipeline => pipeline.jobs)
+        .then((jobs) => {
+            const prJobs = jobs.filter(j => j.name.includes(options.name));
 
-                    return reply().code(200);
-                }))
-        // something went wrong
+            return Promise.all(prJobs.map(j => updatePRJobs(j)));
+        })
+        .then(() => reply().code(200))
         .catch(err => reply(boom.wrap(err)));
 }
 
@@ -210,7 +208,6 @@ function pullRequestClosed(options, request, reply) {
  * @param  {Object}       options
  * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.pipelineId    Identifier for the Pipeline
- * @param  {String}       options.jobId         Identifier for the Job
  * @param  {String}       options.name          Name of the job (PR-1)
  * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.username      User who created the PR
@@ -306,7 +303,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 
             return pipeline.sync()
                 // handle the PR action
-                .then(p => p.jobs.then((jobs) => {
+                .then((p) => {
                     const pipelineId = p.id;
                     const name = `PR-${prNumber}`;
                     const options = {
@@ -320,11 +317,6 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         pipeline: p,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
-                    const i = jobs.findIndex(j => j.name === name);
-
-                    if (i > -1) {
-                        options.jobId = jobs[i].id;
-                    }
 
                     switch (action) {
                     case 'opened':
@@ -338,8 +330,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                     default:
                         return pullRequestClosed(options, request, reply);
                     }
-                }
-                ));
+                });
         })
         .catch(err => reply(boom.wrap(err)));
 }
