@@ -84,10 +84,6 @@ function createOrUpdatePRJob(options, request, job, name, permutations) {
  * @return {Promise}
  */
 function stopJob(job) {
-    if (!job) {
-        throw boom.notFound('Job does not exist');
-    }
-
     const stopRunningBuild = (build) => {
         if (build.isDone()) {
             return Promise.resolve();
@@ -179,17 +175,17 @@ function pullRequestOpened(options, request, reply) {
 function pullRequestClosed(options, request, reply) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const hookId = options.hookId;
-    const jobId = options.jobId;
-    const name = options.name;
-    const updatePRJobs = (job => stopJob(job)
-        .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
-        .then(() => {
-            job.state = 'DISABLED';
-            job.archived = true;
+    const updatePRJobs = (job =>
+        stopJob(job)
+            .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
+            .then(() => {
+                job.state = 'DISABLED';
+                job.archived = true;
 
-            return job.update();
-        })
-        .then(() => request.log(['webhook', hookId, jobId], `${name} disabled and archived`)));
+                return job.update();
+            })
+            .then(() => request.log(
+                ['webhook', hookId, job.id], `${job.name} disabled and archived`)));
 
     return pipelineFactory.get(options.pipelineId)
         .then(pipeline => pipeline.jobs)
@@ -218,19 +214,25 @@ function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const jobFactory = request.server.app.jobFactory;
+    const pipelineFactory = request.server.app.pipelineFactory;
     const hookId = options.hookId;
     const name = options.name;
-    const jobId = options.jobId;
+    const pipelineId = options.pipelineId;
+    let prJobs;
 
-    return jobFactory.get(jobId)
-        .then(job => stopJob(job))
-        .then(() => request.log(['webhook', hookId, jobId], `${name} stopped`))
+    return pipelineFactory.get(pipelineId)
+        .then(pipeline => pipeline.jobs)
+        .then((jobs) => {
+            prJobs = jobs.filter(j => j.name.includes(name));
+
+            return Promise.all(prJobs.map(j => stopJob(j)));
+        })
+        .then(() => request.log(['webhook', hookId], `Job(s) for ${name} stopped`))
         .then(() => startPRJob(options, request))
         .then(() => {
-            request.log(['webhook', hookId, jobId], `${name} synced`);
+            request.log(['webhook', hookId], `Job(s) for ${name} synced`);
 
-            return reply().code(201);
+            return prJobs.length > 0 ? reply().code(201) : reply().code(200);
         })
         // oops. something went wrong
         .catch(err => reply(boom.wrap(err)));
@@ -276,27 +278,19 @@ function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
 function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const hookId = parsed.hookId;
-    const action = parsed.action;
-    const prNumber = parsed.prNum;
-    const repository = parsed.checkoutUrl;
-    const branch = parsed.branch;
-    const checkoutUrl = `${repository}#${branch}`;
-    const prRef = parsed.prRef;
-    const sha = parsed.sha;
-    const username = parsed.username;
-    const scmContext = parsed.scmContext;
+    const { hookId, action, prNum, checkoutUrl, branch, prRef, sha, username, scmContext } = parsed;
+    const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
 
-    request.log(['webhook', hookId], `PR #${prNumber} ${action} for ${checkoutUrl}`);
+    request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token, scmContext }))
+        .then(token => pipelineFactory.scm.parseUrl({ fullCheckoutUrl, token, scmContext }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
                 request.log(['webhook', hookId],
-                    `Skipping since Pipeline ${checkoutUrl} does not exist`);
+                    `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
 
                 return reply().code(204);
             }
@@ -305,7 +299,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                 // handle the PR action
                 .then((p) => {
                     const pipelineId = p.id;
-                    const name = `PR-${prNumber}`;
+                    const name = `PR-${prNum}`;
                     const options = {
                         hookId,
                         pipelineId,
@@ -349,24 +343,19 @@ function pushEvent(pluginOptions, request, reply, parsed) {
     const buildFactory = request.server.app.buildFactory;
     const userFactory = request.server.app.userFactory;
     const eventFactory = request.server.app.eventFactory;
-    const hookId = parsed.hookId;
-    const repository = parsed.checkoutUrl;
-    const branch = parsed.branch;
-    const sha = parsed.sha;
-    const username = parsed.username;
-    const scmContext = parsed.scmContext;
-    const checkoutUrl = `${repository}#${branch}`;
+    const { hookId, checkoutUrl, branch, sha, username, scmContext } = parsed;
+    const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
 
-    request.log(['webhook', hookId], `Push for ${checkoutUrl}`);
+    request.log(['webhook', hookId], `Push for ${fullCheckoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({ checkoutUrl, token, scmContext }))
+        .then(token => pipelineFactory.scm.parseUrl({ fullCheckoutUrl, token, scmContext }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
                 request.log(['webhook', hookId],
-                    `Skipping since Pipeline ${checkoutUrl} does not exist`);
+                    `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
 
                 return reply().code(204);
             }
@@ -440,12 +429,10 @@ exports.register = (server, options, next) => {
                             return reply().code(204);
                         }
 
-                        const eventType = parsed.type;
-                        const hookId = parsed.hookId;
-                        const username = parsed.username;
+                        const { type, hookId, username } = parsed;
                         const ignoreUser = pluginOptions.ignoreCommitsBy;
 
-                        request.log(['webhook', hookId], `Received event type ${eventType}`);
+                        request.log(['webhook', hookId], `Received event type ${type}`);
 
                         if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
                             request.log(['webhook', hookId], 'Skipping due to the commit message');
@@ -460,7 +447,7 @@ exports.register = (server, options, next) => {
                             return reply().code(204);
                         }
 
-                        if (eventType === 'pr') {
+                        if (type === 'pr') {
                             return pullRequestEvent(pluginOptions, request, reply, parsed);
                         }
 

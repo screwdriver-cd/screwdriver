@@ -15,7 +15,7 @@ const PARSED_CONFIG = require('../data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe.only('github plugin test', () => {
+describe('github plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
@@ -649,13 +649,14 @@ describe.only('github plugin test', () => {
                     });
                 });
 
-                it('returns 404 when job is missing', () => {
-                    jobFactoryMock.get.withArgs(jobId).resolves(null);
+                it('returns 200 when pipeline has no PR jobs to start/update', () => {
+                    pipelineMock.jobs = Promise.resolve([]);
+                    pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
 
                     return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 404);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
+                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
+                        assert.equal(reply.statusCode, 200);
                     });
                 });
 
@@ -702,11 +703,12 @@ describe.only('github plugin test', () => {
 
                 it('returns 200 on success', () =>
                     server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
                         assert.isTrue(jobMock.archived);
+                        assert.equal(reply.statusCode, 200);
                     })
                 );
 
@@ -721,20 +723,22 @@ describe.only('github plugin test', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
 
                     return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
+                        assert.equal(reply.statusCode, 500);
                     });
                 });
 
-                it('returns 404 when job is missing', () => {
-                    jobFactoryMock.get.withArgs(jobId).resolves(null);
+                it('returns 200 when pipeline has no jobs to update', () => {
+                    pipelineMock.jobs = Promise.resolve([]);
+                    pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
 
                     return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 404);
+                        assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
+                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
                     });
                 });
             });
