@@ -4,6 +4,79 @@ const boom = require('boom');
 const joi = require('joi');
 
 /**
+ * Create PR job if not exist, or update PR job if job already exists
+ * @method createOrUpdatePRJob
+ * @param  {Object}       options
+ * @param  {String}       options.hookId        Unique ID for this scm event
+ * @param  {String}       options.pipelineId    Identifier for the Pipeline
+ * @param  {String}       options.name          Name of the new job (PR-1)
+ * @param  {String}       options.sha           Specific SHA1 commit to start the build with
+ * @param  {String}       options.username      User who created the PR
+ * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
+ * @param  {String}       options.prRef         Reference to pull request
+ * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
+ * @param  {Hapi.request} request               Request from user
+ * @param  {Job}          job                   PR Job to update
+ * @param  {String}       name                  Job Name ('PR-1' or 'PR-1-component')
+ * @param  {Object}       permutations          Job permutations from parsed config
+ * @return {Promise}
+ */
+function createOrUpdatePRJob(options, request, job, name, permutations) {
+    const jobFactory = request.server.app.jobFactory;
+    const buildFactory = request.server.app.buildFactory;
+    const eventFactory = request.server.app.eventFactory;
+    const hookId = options.hookId;
+    const pipelineId = options.pipelineId;
+    const sha = options.sha;
+    const username = options.username;
+    const scmContext = options.scmContext;
+    const prRef = options.prRef;
+    const scm = request.server.app.pipelineFactory.scm;
+    const scmDisplayName = scm.getDisplayName({ scmContext });
+    const userDisplayName = `${scmDisplayName}:${username}`;
+    let eventId;
+
+    // Create a single event for these jobs
+    return eventFactory.create({
+        pipelineId,
+        type: 'pr',
+        workflow: [name], // remove this after switching to using new workflow
+        username,
+        scmContext,
+        sha,
+        causeMessage: `${options.action} by ${userDisplayName}`
+    }).then((event) => {
+        eventId = event.id;
+        // if PR job already exists, update the job
+        if (job) {
+            job.permutations = permutations;
+            job.archived = false;
+
+            return job.update();
+        }
+
+        // if the PR is new, create a PR job
+        return jobFactory.create({ pipelineId, name, permutations });
+    }).then((newJob) => {
+        const jobId = newJob.id;
+
+        request.log(['webhook', hookId, jobId], `${name} created`);
+        request.log(['webhook', hookId, jobId, pipelineId], `${userDisplayName} selected`);
+
+        // create an event
+        return buildFactory.create({
+            jobId,
+            sha,
+            username,
+            scmContext,
+            eventId,
+            prRef
+        });
+    }).then(build => request.log(
+        ['webhook', hookId, build.jobId, build.id], `${name} started ${build.number}`));
+}
+
+/**
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
  * @method stopJob
@@ -45,73 +118,37 @@ function stopJob(job) {
  * @return {Promise}
  */
 function startPRJob(options, request) {
-    const jobFactory = request.server.app.jobFactory;
-    const buildFactory = request.server.app.buildFactory;
-    const eventFactory = request.server.app.eventFactory;
-    const hookId = options.hookId;
-    const pipelineId = options.pipelineId;
-    const name = options.name;
-    const sha = options.sha;
-    const username = options.username;
-    const scmContext = options.scmContext;
     const prRef = options.prRef;
     const pipeline = options.pipeline;
-    const scm = request.server.app.pipelineFactory.scm;
-    const scmDisplayName = scm.getDisplayName({ scmContext });
-    const userDisplayName = `${scmDisplayName}:${username}`;
 
     return pipeline.getConfiguration(prRef)
-        // get permutations(s) for "main" job
-        .then(config => Promise.all([config.jobs.main, pipeline.jobs]))
-        // create a new job
-        .then(([permutations, jobs]) => {
+        // get configuration for all jobs
+        .then(config => Promise.all([config.jobs, pipeline.jobs]))
+        .then(([jobsConfig, jobs]) => {
+            const hasRequires = Object.keys(jobs).some(jobName => jobs[jobName].requires);
             const jobNamesArray = jobs.map(j => j.name);
-            const jobIndex = jobNamesArray.indexOf(name);
+            let jobName = options.name;
+            let jobIndex;
 
-            // if PR job already exists, update
-            if (jobIndex > -1) {
-                const job = jobs[jobIndex];
+            // OLD WORKFLOW DESIGN
+            if (!hasRequires) {
+                jobIndex = jobNamesArray.indexOf(jobName);
 
-                job.permutations = permutations;
-                job.archived = false;
-
-                return job.update();
+                return createOrUpdatePRJob(
+                    options, request, jobs[jobIndex], jobName, jobsConfig.main);
             }
 
-            // if the PR is new, create a job
-            return jobFactory.create({ pipelineId, name, permutations });
-        })
-        // log stuff
-        .then((job) => {
-            const jobId = job.id;
+            // NEW WORKFLOW DESIGN
+            const prJobs = jobs.filter(j => j.requires && j.requires.includes('~pr'));
 
-            request.log(['webhook', hookId, jobId], `${name} created`);
-            request.log([
-                'webhook',
-                hookId,
-                jobId,
-                pipelineId
-            ], `${userDisplayName} selected`);
+            return Promise.all(prJobs.map((j) => {
+                jobName = `${jobName}-${j.name}`;
+                jobIndex = jobNamesArray.indexOf(jobName);
 
-            // create an event
-            return eventFactory.create({
-                pipelineId,
-                type: 'pr',
-                workflow: [job.name],
-                username,
-                scmContext,
-                sha,
-                causeMessage: `${options.action} by ${userDisplayName}`
-            })
-                .then(event =>
-                    buildFactory.create(
-                        { jobId, sha, username, scmContext, eventId: event.id, prRef })
-                );
-        })
-        // create a build
-        .then(build =>
-            request.log(['webhook', hookId, build.jobId, build.id],
-                `${name} started ${build.number}`));
+                return createOrUpdatePRJob(
+                    options, request, jobs[jobIndex], jobName, jobsConfig[j.name]);
+            }));
+        });
 }
 
 /**

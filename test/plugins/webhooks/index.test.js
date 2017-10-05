@@ -451,6 +451,51 @@ describe('github plugin test', () => {
                     })
                 );
 
+                it('returns 201 on success for new workflow', () => {
+                    const newJobMock = Object.assign({}, mainJobMock);
+                    const newPipelineMock = Object.assign({}, pipelineMock);
+                    const prJobName = 'PR-2-main';
+
+                    newJobMock.requires = ['~pr'];
+                    newPipelineMock.jobs = Promise.resolve([newJobMock]);
+                    pipelineFactoryMock.get.resolves(newPipelineMock);
+                    pipelineMock.sync.resolves(newPipelineMock);
+                    jobFactoryMock.create.resolves({
+                        id: 3,
+                        name: prJobName,
+                        state: 'ENABLED'
+                    });
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(newPipelineMock.sync);
+                        assert.calledWith(newPipelineMock.getConfiguration,
+                            'pull/1/merge');
+                        assert.calledWith(jobFactoryMock.create, {
+                            name: prJobName,
+                            pipelineId: 'pipelineHash',
+                            permutations: PARSED_CONFIG.jobs.main
+                        });
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            workflow: [prJobName],
+                            username,
+                            scmContext,
+                            sha,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                        });
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId: 3,
+                            sha,
+                            username,
+                            scmContext,
+                            eventId: eventMock.id,
+                            prRef
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
                 it('returns 201 on success for reopened after closed', () => {
                     name = 'PR-1';
                     parsed.prNum = 1;
