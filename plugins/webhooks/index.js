@@ -4,36 +4,6 @@ const boom = require('boom');
 const joi = require('joi');
 
 /**
- * Start the job
- * @method startCommitJob
- * @param  {Object}       config            Configuration for starting a commit job
- * @param  {Object}       config.request    Request object
- * @param  {Object}       config.parsed     Parsed webhook payload
- * @param  {Object}       config.event      Event the job belongs to
- * @param  {Object}       config.job        Job to be triggered
- * @return {Promise}                        Resolves to null if successfully start the build
- */
-function startCommitJob(config) {
-    const { request, parsed, event, job } = config;
-    const buildFactory = request.server.app.buildFactory;
-    const hookId = parsed.hookId;
-    const username = parsed.username;
-    const scmContext = parsed.scmContext;
-    const sha = parsed.sha;
-    const jobId = job.id;
-    const eventId = event.id;
-
-    return buildFactory.create({ jobId, sha, username, scmContext, eventId })
-        // log build created
-        .then((build) => {
-            request.log(['webhook', hookId, jobId, build.id],
-                `${job.name} started ${build.number}`);
-
-            return null;
-        });
-}
-
-/**
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
  * @method stopJob
@@ -372,36 +342,24 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                 return reply().code(204);
             }
 
-            return pipeline.sync()
-                // handle the PR action
-                .then(p => p.jobs.then((jobs) => {
-                    let commitJobs = [];
+            const eventConfig = {
+                pipelineId: pipeline.id,
+                type: 'pipeline',
+                username,
+                scmContext,
+                startFrom: '~commit',
+                sha,
+                causeMessage: `Merged by ${username}`
+            };
 
-                    // if it's using old workflow then find the main job
-                    if (p.workflow) {
-                        commitJobs = jobs.filter(j => j.name === 'main');
-                    } else {
-                        commitJobs = jobs.filter(j => j.requires && j.requires.includes('~commit'));
-                    }
+            // create an event
+            return eventFactory.create(eventConfig)
+                .then((event) => {
+                    request.log(['webhook', hookId, event.id],
+                        `event ${event.id} started`);
 
-                    // create an event
-                    return eventFactory.create({
-                        pipelineId: p.id,
-                        type: 'pipeline',
-                        workflow: p.workflow,
-                        username,
-                        scmContext,
-                        sha,
-                        causeMessage: `Merged by ${username}`
-                    })
-                        .then(event => Promise.all(commitJobs.map(job => startCommitJob({
-                            request,
-                            parsed,
-                            event,
-                            job
-                        }))))
-                        .then(() => reply().code(201));
-                }));
+                    return reply().code(201);
+                });
         })
         .catch(err => reply(boom.wrap(err)));
 }

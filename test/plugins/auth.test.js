@@ -618,6 +618,22 @@ describe('auth plugin test', () => {
                     assert.notOk(reply.result.token, 'Token not returned');
                 })
             ));
+
+            it('catch err if buildFactory throws err', () => {
+                buildFactoryMock.get.rejects(new Error('build not found'));
+
+                server.inject({
+                    url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
+                    credentials: {
+                        username: 'batman',
+                        scmContext,
+                        scope: ['user', 'admin']
+                    }
+                }).then((reply) => {
+                    assert.equal(reply.statusCode, 500, 'build not found');
+                    assert.notOk(reply.result.token, 'Token not returned');
+                });
+            });
         });
     });
 
