@@ -423,13 +423,6 @@ describe('github plugin test', () => {
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.calledWith(jobFactoryMock.create, {
-                            name,
-                            pipelineId: 'pipelineHash',
-                            permutations: PARSED_CONFIG.jobs.main
-                        });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -437,77 +430,21 @@ describe('github plugin test', () => {
                             username,
                             scmContext,
                             sha,
+                            prNum: 2,
+                            prRef,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 3,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     })
                 );
 
-                it('returns 201 on success for new workflow', () => {
-                    const newJobMock = Object.assign({}, mainJobMock);
-                    const newPipelineMock = Object.assign({}, pipelineMock);
-                    const prJobName = 'PR-2-main';
-
-                    newJobMock.requires = ['~pr'];
-                    newPipelineMock.jobs = Promise.resolve([newJobMock]);
-                    pipelineFactoryMock.get.resolves(newPipelineMock);
-                    pipelineMock.sync.resolves(newPipelineMock);
-                    jobFactoryMock.create.resolves({
-                        id: 3,
-                        name: prJobName,
-                        state: 'ENABLED'
-                    });
-
-                    return server.inject(options).then((reply) => {
-                        assert.calledOnce(newPipelineMock.sync);
-                        assert.calledWith(newPipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.calledWith(jobFactoryMock.create, {
-                            name: prJobName,
-                            pipelineId: 'pipelineHash',
-                            permutations: PARSED_CONFIG.jobs.main
-                        });
-                        assert.calledWith(eventFactoryMock.create, {
-                            pipelineId,
-                            type: 'pr',
-                            workflow: [prJobName],
-                            username,
-                            scmContext,
-                            sha,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 3,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
-                        });
-                        assert.equal(reply.statusCode, 201);
-                    });
-                });
-
                 it('returns 201 on success for reopened after closed', () => {
                     name = 'PR-1';
                     parsed.prNum = 1;
                     parsed.action = 'reopened';
-                    jobMock.archived = true;
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.equal(jobMock.archived, false);
-                        assert.calledOnce(jobMock.update);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -515,34 +452,20 @@ describe('github plugin test', () => {
                             username,
                             scmContext,
                             sha,
+                            prNum: 1,
+                            prRef,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 2,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('returns 500 when failed', () => {
-                    buildFactoryMock.create.rejects(new Error('Failed to start'));
+                    eventFactoryMock.create.rejects(new Error('Failed to start'));
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledWith(pipelineMock.sync);
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 3,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
-                        });
                     });
                 });
 
@@ -586,7 +509,6 @@ describe('github plugin test', () => {
                         'content-length': '21241'
                     };
                     options.payload = testPayloadSync;
-                    jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
@@ -597,9 +519,6 @@ describe('github plugin test', () => {
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.calledOnce(jobMock.update);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -607,35 +526,43 @@ describe('github plugin test', () => {
                             username,
                             scmContext,
                             sha,
+                            prNum: 1,
+                            prRef,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId,
-                            username,
-                            scmContext,
-                            sha,
-                            eventId: eventMock.id,
-                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     })
                 );
 
+                it('returns 201 on success and passes in startFrom', () => {
+                    jobMock.requires = '~pr';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, sinon.match({
+                            startFrom: '~pr'
+                        }));
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
                 it('has the workflow for stopping builds before starting a new one', () =>
                     server.inject(options).then((reply) => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
-                        assert.calledOnce(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId,
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
                             username,
                             scmContext,
                             sha,
-                            eventId: eventMock.id,
-                            prRef
+                            prRef,
+                            prNum: 1,
+                            type: 'pr',
+                            workflow: [name],
+                            causeMessage: 'Synchronized by github:baxterthehacker'
                         });
-                        assert.isOk(model1.update.calledBefore(buildFactoryMock.create));
-                        assert.isOk(model2.update.calledBefore(buildFactoryMock.create));
+                        assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
+                        assert.isOk(model2.update.calledBefore(eventFactoryMock.create));
                         assert.equal(reply.statusCode, 201);
                     })
                 );
@@ -649,19 +576,8 @@ describe('github plugin test', () => {
                     });
                 });
 
-                it('returns 200 when pipeline has no PR jobs to start/update', () => {
-                    pipelineMock.jobs = Promise.resolve([]);
-                    pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
-
-                    return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
-                        assert.equal(reply.statusCode, 200);
-                    });
-                });
-
                 it('returns 500 when failed', () => {
-                    buildFactoryMock.create.rejects(new Error('Failed to start'));
+                    eventFactoryMock.create.rejects(new Error('Failed to create event'));
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
@@ -695,7 +611,6 @@ describe('github plugin test', () => {
                         'content-length': '21236'
                     };
                     options.payload = testPayloadClose;
-                    jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
@@ -703,12 +618,11 @@ describe('github plugin test', () => {
 
                 it('returns 200 on success', () =>
                     server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
                         assert.isTrue(jobMock.archived);
-                        assert.equal(reply.statusCode, 200);
                     })
                 );
 
@@ -723,22 +637,10 @@ describe('github plugin test', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
 
                     return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
-                        assert.equal(reply.statusCode, 500);
-                    });
-                });
-
-                it('returns 200 when pipeline has no jobs to update', () => {
-                    pipelineMock.jobs = Promise.resolve([]);
-                    pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
-
-                    return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineFactoryMock.get, pipelineId);
                     });
                 });
             });

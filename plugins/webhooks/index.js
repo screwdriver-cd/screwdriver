@@ -4,79 +4,6 @@ const boom = require('boom');
 const joi = require('joi');
 
 /**
- * Create PR job if not exist, or update PR job if job already exists
- * @method createOrUpdatePRJob
- * @param  {Object}       options
- * @param  {String}       options.hookId        Unique ID for this scm event
- * @param  {String}       options.pipelineId    Identifier for the Pipeline
- * @param  {String}       options.name          Name of the new job (PR-1)
- * @param  {String}       options.sha           Specific SHA1 commit to start the build with
- * @param  {String}       options.username      User who created the PR
- * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
- * @param  {String}       options.prRef         Reference to pull request
- * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
- * @param  {Hapi.request} request               Request from user
- * @param  {Job}          job                   PR Job to update
- * @param  {String}       name                  Job Name ('PR-1' or 'PR-1-component')
- * @param  {Object}       permutations          Job permutations from parsed config
- * @return {Promise}
- */
-function createOrUpdatePRJob(options, request, job, name, permutations) {
-    const jobFactory = request.server.app.jobFactory;
-    const buildFactory = request.server.app.buildFactory;
-    const eventFactory = request.server.app.eventFactory;
-    const hookId = options.hookId;
-    const pipelineId = options.pipelineId;
-    const sha = options.sha;
-    const username = options.username;
-    const scmContext = options.scmContext;
-    const prRef = options.prRef;
-    const scm = request.server.app.pipelineFactory.scm;
-    const scmDisplayName = scm.getDisplayName({ scmContext });
-    const userDisplayName = `${scmDisplayName}:${username}`;
-    let eventId;
-
-    // Create a single event for these jobs
-    return eventFactory.create({
-        pipelineId,
-        type: 'pr',
-        workflow: [name], // remove this after switching to using new workflow
-        username,
-        scmContext,
-        sha,
-        causeMessage: `${options.action} by ${userDisplayName}`
-    }).then((event) => {
-        eventId = event.id;
-        // if PR job already exists, update the job
-        if (job) {
-            job.permutations = permutations;
-            job.archived = false;
-
-            return job.update();
-        }
-
-        // if the PR is new, create a PR job
-        return jobFactory.create({ pipelineId, name, permutations });
-    }).then((newJob) => {
-        const jobId = newJob.id;
-
-        request.log(['webhook', hookId, jobId], `${name} created`);
-        request.log(['webhook', hookId, jobId, pipelineId], `${userDisplayName} selected`);
-
-        // create an event
-        return buildFactory.create({
-            jobId,
-            sha,
-            username,
-            scmContext,
-            eventId,
-            prRef
-        });
-    }).then(build => request.log(
-        ['webhook', hookId, build.jobId, build.id], `${name} started ${build.number}`));
-}
-
-/**
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
  * @method stopJob
@@ -102,48 +29,43 @@ function stopJob(job) {
  * Run pull request's main job
  * @method startPRJob
  * @param  {Object}       options
- * @param  {String}       options.hookId        Unique ID for this scm event
- * @param  {String}       options.pipelineId    Identifier for the Pipeline
- * @param  {String}       options.name          Name of the new job (PR-1)
- * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.username      User who created the PR
  * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
+ * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.prRef         Reference to pull request
+ * @param  {String}       options.prNum         Pull request number
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
 function startPRJob(options, request) {
-    const prRef = options.prRef;
-    const pipeline = options.pipeline;
+    const { name, username, scmContext, sha, prRef, prNum, pipeline } = options;
+    const scm = request.server.app.pipelineFactory.scm;
+    const eventFactory = request.server.app.eventFactory;
+    const scmDisplayName = scm.getDisplayName({ scmContext });
+    const userDisplayName = `${scmDisplayName}:${username}`;
 
-    return pipeline.getConfiguration(prRef)
-        // get configuration for all jobs
-        .then(config => Promise.all([config.jobs, pipeline.jobs]))
-        .then(([jobsConfig, jobs]) => {
+    return pipeline.jobs
+        .then((jobs) => {
+            const eventConfig = {
+                pipelineId: pipeline.id,
+                type: 'pr',
+                workflow: [name], // change this after switching to using new workflow,
+                username,
+                scmContext,
+                sha,
+                prRef,
+                prNum,
+                causeMessage: `${options.action} by ${userDisplayName}`
+            };
             const hasRequires = Object.keys(jobs).some(jobName => jobs[jobName].requires);
-            const jobNamesArray = jobs.map(j => j.name);
-            let jobName = options.name;
-            let jobIndex;
-
-            // OLD WORKFLOW DESIGN
-            if (!hasRequires) {
-                jobIndex = jobNamesArray.indexOf(jobName);
-
-                return createOrUpdatePRJob(
-                    options, request, jobs[jobIndex], jobName, jobsConfig.main);
-            }
 
             // NEW WORKFLOW DESIGN
-            const prJobs = jobs.filter(j => j.requires && j.requires.includes('~pr'));
+            if (hasRequires) {
+                eventConfig.startFrom = '~pr';
+            }
 
-            return Promise.all(prJobs.map((j) => {
-                jobName = `${jobName}-${j.name}`;
-                jobIndex = jobNamesArray.indexOf(jobName);
-
-                return createOrUpdatePRJob(
-                    options, request, jobs[jobIndex], jobName, jobsConfig[j.name]);
-            }));
+            return eventFactory.create(eventConfig);
         });
 }
 
@@ -168,29 +90,26 @@ function pullRequestOpened(options, request, reply) {
  * @param  {Object}       options
  * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
- * @param  {String}       options.name       Name of the job (PR-1)
+ * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
+ * @param  {String}       options.name       Name of the job (PR-1) or (PR-1-main)
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestClosed(options, request, reply) {
-    const pipelineFactory = request.server.app.pipelineFactory;
-    const hookId = options.hookId;
-    const updatePRJobs = (job =>
-        stopJob(job)
-            .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
-            .then(() => {
-                job.state = 'DISABLED';
-                job.archived = true;
+    const { pipeline, hookId, name } = options;
+    const updatePRJobs = (job => stopJob(job)
+        .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
+        .then(() => {
+            job.state = 'DISABLED';
+            job.archived = true;
 
-                return job.update();
-            })
-            .then(() => request.log(
-                ['webhook', hookId, job.id], `${job.name} disabled and archived`)));
+            return job.update();
+        })
+        .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
 
-    return pipelineFactory.get(options.pipelineId)
-        .then(pipeline => pipeline.jobs)
+    return pipeline.jobs
         .then((jobs) => {
-            const prJobs = jobs.filter(j => j.name.includes(options.name));
+            const prJobs = jobs.filter(j => j.name.includes(name));
 
             return Promise.all(prJobs.map(j => updatePRJobs(j)));
         })
@@ -214,14 +133,10 @@ function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const pipelineFactory = request.server.app.pipelineFactory;
-    const hookId = options.hookId;
-    const name = options.name;
-    const pipelineId = options.pipelineId;
+    const { pipeline, hookId, name } = options;
     let prJobs;
 
-    return pipelineFactory.get(pipelineId)
-        .then(pipeline => pipeline.jobs)
+    return pipeline.jobs
         .then((jobs) => {
             prJobs = jobs.filter(j => j.name.includes(name));
 
@@ -232,7 +147,7 @@ function pullRequestSync(options, request, reply) {
         .then(() => {
             request.log(['webhook', hookId], `Job(s) for ${name} synced`);
 
-            return prJobs.length > 0 ? reply().code(201) : reply().code(200);
+            return reply().code(201);
         })
         // oops. something went wrong
         .catch(err => reply(boom.wrap(err)));
@@ -298,16 +213,15 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             return pipeline.sync()
                 // handle the PR action
                 .then((p) => {
-                    const pipelineId = p.id;
-                    const name = `PR-${prNum}`;
                     const options = {
+                        pipelineId: p.id,
+                        name: `PR-${prNum}`,
                         hookId,
-                        pipelineId,
-                        name,
                         sha,
                         username,
                         scmContext,
                         prRef,
+                        prNum,
                         pipeline: p,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
