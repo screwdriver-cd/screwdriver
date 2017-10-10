@@ -49,6 +49,7 @@ auth:
         - github:jpcollins
         - github:tonytamsf
         - github:pranavrc
+        - github:awick
     admins:
         - github:FenrirUnbound
         - github:cynthiax
