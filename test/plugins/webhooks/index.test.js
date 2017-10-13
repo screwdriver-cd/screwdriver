@@ -188,6 +188,17 @@ describe('github plugin test', () => {
                     baxterthehacker: false
                 },
                 workflow: ['main'],
+                workflowGraph: {
+                    nodes: [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~pr', dest: 'main' },
+                        { src: '~commit', dest: 'main' }
+                    ]
+                },
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),
                 jobs: Promise.resolve([mainJobMock, jobMock])
@@ -286,6 +297,10 @@ describe('github plugin test', () => {
                         pipelineId,
                         type: 'pipeline',
                         workflow: [name],
+                        workflowGraph: {
+                            edges: [{ dest: name, src: '~pr' }, { dest: name, src: '~commit' }],
+                            nodes: [{ name: '~pr' }, { name: '~commit' }, { name }]
+                        },
                         username,
                         scmContext,
                         sha,
@@ -406,6 +421,18 @@ describe('github plugin test', () => {
             describe('open pull request', () => {
                 beforeEach(() => {
                     name = 'PR-2';
+                    pipelineMock.workflow = ['main'];
+                    pipelineMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'main' }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'main' },
+                            { src: '~commit', dest: 'main' }
+                        ]
+                    };
                     parsed.prNum = 2;
                     parsed.action = 'opened';
                     options.payload = testPayloadOpen;
@@ -418,6 +445,7 @@ describe('github plugin test', () => {
                         name,
                         state: 'ENABLED'
                     });
+                    jobMock.requires = '~pr';
                 });
 
                 it('returns 201 on success', () =>
@@ -426,10 +454,22 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
-                            workflow: [name],
+                            workflow: ['main'],
+                            workflowGraph: {
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'main' }
+                                ],
+                                edges: [
+                                    { src: '~pr', dest: 'main' },
+                                    { src: '~commit', dest: 'main' }
+                                ]
+                            },
                             username,
                             scmContext,
                             sha,
+                            startFrom: '~pr',
                             prNum: 2,
                             prRef,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
@@ -448,10 +488,22 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
-                            workflow: [name],
+                            workflow: ['main'],
+                            workflowGraph: {
+                                edges: [
+                                    { dest: 'main', src: '~pr' },
+                                    { dest: 'main', src: '~commit' }
+                                ],
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'main' }
+                                ]
+                            },
                             username,
                             scmContext,
                             sha,
+                            startFrom: '~pr',
                             prNum: 1,
                             prRef,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`
@@ -522,7 +574,18 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
-                            workflow: [name],
+                            workflow: ['main'],
+                            workflowGraph: {
+                                edges: [
+                                    { dest: 'main', src: '~pr' },
+                                    { dest: 'main', src: '~commit' }
+                                ],
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'main' }
+                                ]
+                            },
                             username,
                             scmContext,
                             sha,
@@ -558,7 +621,18 @@ describe('github plugin test', () => {
                             prRef,
                             prNum: 1,
                             type: 'pr',
-                            workflow: [name],
+                            workflow: ['main'],
+                            workflowGraph: {
+                                edges: [
+                                    { dest: 'main', src: '~pr' },
+                                    { dest: 'main', src: '~commit' }
+                                ],
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'main' }
+                                ]
+                            },
                             causeMessage: 'Synchronized by github:baxterthehacker'
                         });
                         assert.isOk(model1.update.calledBefore(eventFactoryMock.create));

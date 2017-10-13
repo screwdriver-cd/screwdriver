@@ -39,7 +39,7 @@ function stopJob(job) {
  * @return {Promise}
  */
 function startPRJob(options, request) {
-    const { name, username, scmContext, sha, prRef, prNum, pipeline } = options;
+    const { username, scmContext, sha, prRef, prNum, pipeline } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext });
@@ -50,7 +50,8 @@ function startPRJob(options, request) {
             const eventConfig = {
                 pipelineId: pipeline.id,
                 type: 'pr',
-                workflow: [name], // change this after switching to using new workflow,
+                workflow: pipeline.workflow, // change this after switching to using new workflow,
+                workflowGraph: pipeline.workflowGraph,
                 username,
                 scmContext,
                 sha,
@@ -58,7 +59,8 @@ function startPRJob(options, request) {
                 prNum,
                 causeMessage: `${options.action} by ${userDisplayName}`
             };
-            const hasRequires = Object.keys(jobs).some(jobName => jobs[jobName].requires);
+
+            const hasRequires = jobs.some(j => j.requires);
 
             // NEW WORKFLOW DESIGN
             if (hasRequires) {
@@ -91,7 +93,7 @@ function pullRequestOpened(options, request, reply) {
  * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
  * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
- * @param  {String}       options.name       Name of the job (PR-1) or (PR-1-main)
+ * @param  {String}       options.name       Name of the job should start with PR-prNum
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
@@ -189,6 +191,7 @@ function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
  * @param  {String}             pluginOptions.username Generic scm username
  * @param  {Hapi.request}       request                Request from user
  * @param  {Hapi.reply}         reply                  Reply to user
+ * @param  {Object}             parsed
  */
 function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
@@ -287,6 +290,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                         pipelineId,
                         type: 'pipeline',
                         workflow: pipeline.workflow,
+                        workflowGraph: pipeline.workflowGraph,
                         username,
                         scmContext,
                         sha,
