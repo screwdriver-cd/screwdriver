@@ -45,30 +45,19 @@ function startPRJob(options, request) {
     const scmDisplayName = scm.getDisplayName({ scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
 
-    return pipeline.jobs
-        .then((jobs) => {
-            const eventConfig = {
-                pipelineId: pipeline.id,
-                type: 'pr',
-                workflow: pipeline.workflow, // change this after switching to using new workflow,
-                workflowGraph: pipeline.workflowGraph,
-                username,
-                scmContext,
-                sha,
-                prRef,
-                prNum,
-                causeMessage: `${options.action} by ${userDisplayName}`
-            };
+    const eventConfig = {
+        pipelineId: pipeline.id,
+        type: 'pr',
+        username,
+        scmContext,
+        sha,
+        prRef,
+        prNum,
+        startFrom: '~pr',
+        causeMessage: `${options.action} by ${userDisplayName}`
+    };
 
-            const hasRequires = jobs.some(j => j.requires);
-
-            // NEW WORKFLOW DESIGN
-            if (hasRequires) {
-                eventConfig.startFrom = '~pr';
-            }
-
-            return eventFactory.create(eventConfig);
-        });
+    return eventFactory.create(eventConfig);
 }
 
 /**
@@ -93,7 +82,7 @@ function pullRequestOpened(options, request, reply) {
  * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {String}       options.pipelineId Identifier for the Pipeline
  * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
- * @param  {String}       options.name       Name of the job should start with PR-prNum
+ * @param  {String}       options.name       Name of the PR: PR-prNum
  * @param  {Hapi.request} request Request from user
  * @param  {Hapi.reply}   reply   Reply to user
  */
@@ -290,7 +279,6 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                         pipelineId,
                         type: 'pipeline',
                         workflow: pipeline.workflow,
-                        workflowGraph: pipeline.workflowGraph,
                         username,
                         scmContext,
                         sha,
