@@ -70,5 +70,18 @@
     "workflow": [
         "main",
         "publish"
-    ]
+    ],
+    "workflowGraph": {
+        "nodes": [
+            { "name": "~pr" },
+            { "name": "~commit" },
+            { "name": "main" },
+            { "name": "publish" }
+        ],
+        "edges": [
+            { "src": "~pr", "dest": "main" },
+            { "src": "~commit", "dest": "main" },
+            { "src": "main", "dest": "publish" }
+        ]
+    }
 }
