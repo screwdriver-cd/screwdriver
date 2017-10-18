@@ -98,6 +98,7 @@
     "screwdriver-scm-github": "^5.0.0",
     "screwdriver-scm-router": "^1.0.0",
     "screwdriver-template-validator": "^3.0.0",
+    "screwdriver-workflow-parser": "^1.1.1",
     "tinytim": "^0.1.1",
     "verror": "^1.6.1",
     "vision": "^4.1.0",

@@ -3,6 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const workflowParser = require('screwdriver-workflow-parser');
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
 module.exports = () => ({
@@ -86,28 +87,13 @@ module.exports = () => ({
                                 return null;
                             }
 
-                            const workflow = pipeline.workflow;
+                            const workflowGraph = pipeline.workflowGraph;
 
-                            // No workflow to follow
-                            if (!workflow) {
-                                return null;
-                            }
+                            const nextJobs = workflowParser.getNextJobs(workflowGraph, {
+                                trigger: job.name
+                            });
 
-                            const workflowIndex = workflow.indexOf(job.name);
-
-                            // Current build is the last job in the workflow
-                            if (workflowIndex === workflow.length - 1) {
-                                return null;
-                            }
-
-                            // Skip if not in the workflow (like PRs)
-                            if (workflowIndex === -1) {
-                                return null;
-                            }
-
-                            const nextJobName = workflow[workflowIndex + 1];
-
-                            return jobFactory.get({
+                            return Promise.all(nextJobs.map(nextJobName => jobFactory.get({
                                 name: nextJobName,
                                 pipelineId: pipeline.id
                             }).then((nextJobToTrigger) => {
@@ -123,7 +109,7 @@ module.exports = () => ({
                                 }
 
                                 return null;
-                            });
+                            })));
                         }))
                             .then(() => reply(build.toJson()).code(200))
                         );
