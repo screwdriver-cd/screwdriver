@@ -423,34 +423,22 @@ describe('github plugin test', () => {
                         name,
                         state: 'ENABLED'
                     });
+                    jobMock.requires = '~pr';
                 });
 
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.calledWith(jobFactoryMock.create, {
-                            name,
-                            pipelineId: 'pipelineHash',
-                            permutations: PARSED_CONFIG.jobs.main
-                        });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
-                            workflow: [name],
                             username,
                             scmContext,
                             sha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prRef,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 3,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -460,49 +448,30 @@ describe('github plugin test', () => {
                     name = 'PR-1';
                     parsed.prNum = 1;
                     parsed.action = 'reopened';
-                    jobMock.archived = true;
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.equal(jobMock.archived, false);
-                        assert.calledOnce(jobMock.update);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
-                            workflow: [name],
                             username,
                             scmContext,
                             sha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prRef,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 2,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('returns 500 when failed', () => {
-                    buildFactoryMock.create.rejects(new Error('Failed to start'));
+                    eventFactoryMock.create.rejects(new Error('Failed to start'));
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledWith(pipelineMock.sync);
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 3,
-                            sha,
-                            username,
-                            scmContext,
-                            eventId: eventMock.id,
-                            prRef
-                        });
                     });
                 });
 
@@ -546,7 +515,6 @@ describe('github plugin test', () => {
                         'content-length': '21241'
                     };
                     options.payload = testPayloadSync;
-                    jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
@@ -557,25 +525,16 @@ describe('github plugin test', () => {
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(pipelineMock.getConfiguration,
-                            'pull/1/merge');
-                        assert.calledOnce(jobMock.update);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
-                            workflow: [name],
                             username,
                             scmContext,
                             sha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prRef,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
-                        });
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId,
-                            username,
-                            scmContext,
-                            sha,
-                            eventId: eventMock.id,
-                            prRef
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -585,17 +544,19 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
-                        assert.calledOnce(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId,
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
                             username,
                             scmContext,
                             sha,
-                            eventId: eventMock.id,
-                            prRef
+                            startFrom: '~pr',
+                            prRef,
+                            prNum: 1,
+                            type: 'pr',
+                            causeMessage: 'Synchronized by github:baxterthehacker'
                         });
-                        assert.isOk(model1.update.calledBefore(buildFactoryMock.create));
-                        assert.isOk(model2.update.calledBefore(buildFactoryMock.create));
+                        assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
+                        assert.isOk(model2.update.calledBefore(eventFactoryMock.create));
                         assert.equal(reply.statusCode, 201);
                     })
                 );
@@ -609,18 +570,8 @@ describe('github plugin test', () => {
                     });
                 });
 
-                it('returns 404 when job is missing', () => {
-                    jobFactoryMock.get.withArgs(jobId).resolves(null);
-
-                    return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 404);
-                        assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
-                    });
-                });
-
                 it('returns 500 when failed', () => {
-                    buildFactoryMock.create.rejects(new Error('Failed to start'));
+                    eventFactoryMock.create.rejects(new Error('Failed to create event'));
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
@@ -654,7 +605,6 @@ describe('github plugin test', () => {
                         'content-length': '21236'
                     };
                     options.payload = testPayloadClose;
-                    jobFactoryMock.get.withArgs(jobId).resolves(jobMock);
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
@@ -664,7 +614,6 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
                         assert.isTrue(jobMock.archived);
@@ -684,19 +633,8 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'DISABLED');
-                    });
-                });
-
-                it('returns 404 when job is missing', () => {
-                    jobFactoryMock.get.withArgs(jobId).resolves(null);
-
-                    return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 404);
-                        assert.calledOnce(pipelineMock.sync);
-                        assert.calledWith(jobFactoryMock.get, jobId);
                     });
                 });
             });
