@@ -154,6 +154,7 @@ describe('github plugin test', () => {
         let payload;
         let parsed;
         let name;
+        let workflowGraph;
 
         beforeEach(() => {
             name = 'PR-1';
@@ -181,6 +182,17 @@ describe('github plugin test', () => {
                 update: sinon.stub(),
                 getRunningBuilds: sinon.stub()
             };
+            workflowGraph = {
+                nodes: [
+                    { name: '~pr' },
+                    { name: '~commit' },
+                    { name: 'main' }
+                ],
+                edges: [
+                    { src: '~pr', dest: 'main' },
+                    { src: '~commit', dest: 'main' }
+                ]
+            };
             pipelineMock = {
                 id: pipelineId,
                 scmUri,
@@ -188,6 +200,7 @@ describe('github plugin test', () => {
                     baxterthehacker: false
                 },
                 workflow: ['main'],
+                workflowGraph,
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),
                 jobs: Promise.resolve([mainJobMock, jobMock])
@@ -281,22 +294,14 @@ describe('github plugin test', () => {
             it('returns 201 on success', () =>
                 server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
-                    assert.calledOnce(pipelineMock.sync);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
                         type: 'pipeline',
-                        workflow: [name],
                         username,
                         scmContext,
                         sha,
+                        startFrom: '~commit',
                         causeMessage: `Merged by ${username}`
-                    });
-                    assert.calledWith(buildFactoryMock.create, {
-                        jobId: 1,
-                        username,
-                        scmContext,
-                        sha,
-                        eventId: eventMock.id
                     });
                 })
             );
@@ -327,7 +332,7 @@ describe('github plugin test', () => {
             });
 
             it('returns 500 when failed', () => {
-                buildFactoryMock.create.rejects(new Error('Failed to start'));
+                eventFactoryMock.create.rejects(new Error('Failed to start'));
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 500);

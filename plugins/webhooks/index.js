@@ -317,16 +317,15 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  * @param  {Hapi.reply}         reply                  Reply to user
  */
 function pushEvent(pluginOptions, request, reply, parsed) {
-    const pipelineFactory = request.server.app.pipelineFactory;
-    const buildFactory = request.server.app.buildFactory;
-    const userFactory = request.server.app.userFactory;
     const eventFactory = request.server.app.eventFactory;
+    const pipelineFactory = request.server.app.pipelineFactory;
+    const userFactory = request.server.app.userFactory;
     const hookId = parsed.hookId;
     const repository = parsed.checkoutUrl;
     const branch = parsed.branch;
-    const sha = parsed.sha;
     const username = parsed.username;
     const scmContext = parsed.scmContext;
+    const sha = parsed.sha;
     const checkoutUrl = `${repository}#${branch}`;
 
     request.log(['webhook', hookId], `Push for ${checkoutUrl}`);
@@ -343,37 +342,24 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                 return reply().code(204);
             }
 
-            return pipeline.sync()
-                // handle the PR action
-                .then(p => p.jobs.then((jobs) => {
-                    const pipelineId = p.id;
-                    const name = 'main';
-                    const i = jobs.findIndex(j => j.name === name); // get job's index
-                    const jobId = jobs[i].id;
+            const eventConfig = {
+                pipelineId: pipeline.id,
+                type: 'pipeline',
+                username,
+                scmContext,
+                startFrom: '~commit',
+                sha,
+                causeMessage: `Merged by ${username}`
+            };
 
-                    // create an event
-                    return eventFactory.create({
-                        pipelineId,
-                        type: 'pipeline',
-                        workflow: pipeline.workflow,
-                        username,
-                        scmContext,
-                        sha,
-                        causeMessage: `Merged by ${username}`
-                    })
-                        // create a build
-                        .then(event =>
-                            buildFactory.create(
-                                { jobId, sha, username, scmContext, eventId: event.id })
-                        )
-                        // log build created
-                        .then((build) => {
-                            request.log(['webhook', hookId, jobId, build.id],
-                                `${name} started ${build.number}`);
+            // create an event
+            return eventFactory.create(eventConfig)
+                .then((event) => {
+                    request.log(['webhook', hookId, event.id],
+                        `event ${event.id} started`);
 
-                            return reply().code(201);
-                        });
-                }));
+                    return reply().code(201);
+                });
         })
         .catch(err => reply(boom.wrap(err)));
 }
