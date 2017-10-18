@@ -192,7 +192,11 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({ fullCheckoutUrl, token, scmContext }))
+        .then(token => pipelineFactory.scm.parseUrl({
+            checkoutUrl: fullCheckoutUrl,
+            token,
+            scmContext
+        }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
@@ -256,7 +260,11 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({ fullCheckoutUrl, token, scmContext }))
+        .then(token => pipelineFactory.scm.parseUrl({
+            checkoutUrl: fullCheckoutUrl,
+            token,
+            scmContext
+        }))
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
