@@ -5,8 +5,10 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
+const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 const testEvent = require('./data/events.json')[0];
+const urlLib = require('url');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -37,6 +39,8 @@ const decorateEventMock = (event) => {
 
 describe('event plugin test', () => {
     let factoryMock;
+    let pipelineFactoryMock;
+    let userFactoryMock;
     let plugin;
     let server;
 
@@ -49,6 +53,20 @@ describe('event plugin test', () => {
 
     beforeEach((done) => {
         factoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            scm: {
+                getCommitSha: sinon.stub().resolves(testBuild.sha),
+                getPrInfo: sinon.stub().resolves({
+                    sha: testBuild.sha,
+                    ref: 'prref'
+                })
+            }
+        };
+        pipelineFactoryMock = {
+            get: sinon.stub()
+        };
+        userFactoryMock = {
             get: sinon.stub()
         };
 
@@ -58,6 +76,8 @@ describe('event plugin test', () => {
 
         server = new hapi.Server();
         server.app = {
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock,
             eventFactory: factoryMock
         };
         server.connection({
@@ -163,5 +183,112 @@ describe('event plugin test', () => {
                 assert.deepEqual(reply.result, testBuilds);
             })
         );
+    });
+
+    describe('POST /events', () => {
+        let options;
+        let eventConfig;
+        let expectedLocation;
+        let scmConfig;
+        let userMock;
+
+        beforeEach(() => {
+            const username = 'myself';
+            const pipelineId = 123;
+            const scmContext = 'github:github.com';
+            const scmUri = 'github.com:12345:branchName';
+            const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+            const pipelineMock = {
+                id: pipelineId,
+                checkoutUrl,
+                scmUri,
+                sync: sinon.stub().resolves(),
+                syncPR: sinon.stub().resolves()
+            };
+
+            userMock = {
+                username,
+                getPermissions: sinon.stub().resolves({ push: true }),
+                unsealToken: sinon.stub().resolves('iamtoken')
+            };
+            scmConfig = {
+                prNum: null,
+                scmContext,
+                scmUri,
+                token: 'iamtoken'
+            };
+            options = {
+                method: 'POST',
+                url: '/events',
+                payload: {
+                    pipelineId,
+                    startFrom: '~commit'
+                },
+                credentials: {
+                    scope: ['user'],
+                    username,
+                    scmContext
+                }
+            };
+            eventConfig = {
+                pipelineId,
+                scmContext,
+                startFrom: '~commit',
+                type: 'pipeline',
+                username
+            };
+
+            factoryMock.create.resolves(decorateEventMock(testEvent));
+            userFactoryMock.get.resolves(userMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 201 when it successfully creates an event', () =>
+            server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(factoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(factoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(factoryMock.scm.getPrInfo);
+            })
+        );
+
+        it('returns 201 when it successfully creates a PR event', () => {
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.prRef = 'prref';
+            eventConfig.sha = '58393af682d61de87789fb4961645c42180cec5a';
+            eventConfig.type = 'pr';
+            options.payload.startFrom = 'PR-1:main';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(factoryMock.create, eventConfig);
+            });
+        });
+
+        it('returns 500 when the model encounters an error', () => {
+            const testError = new Error('datastoreSaveError');
+
+            factoryMock.create.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns unauthorized error when user does not have push permission', () => {
+            userMock.getPermissions.resolves({ push: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
     });
 });
