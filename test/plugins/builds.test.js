@@ -85,6 +85,7 @@ describe('build plugin test', () => {
             list: sinon.stub()
         };
         eventFactoryMock = {
+            get: sinon.stub(),
             create: sinon.stub()
         };
         secretAccessMock = sinon.stub().resolves(false);
@@ -192,6 +193,7 @@ describe('build plugin test', () => {
         };
         let buildMock;
         let pipelineMock;
+        let eventMock;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
@@ -211,6 +213,24 @@ describe('build plugin test', () => {
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves()
             };
+
+            eventMock = {
+                id: 123,
+                pipelineId,
+                workflowGraph: {
+                    nodes: [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~pr', dest: 'main' },
+                        { src: '~commit', dest: 'main' }
+                    ]
+                }
+            };
+
+            eventFactoryMock.get.resolves(eventMock);
         });
 
         it('emits event buid_status', () => {
@@ -548,7 +568,15 @@ describe('build plugin test', () => {
                         state: 'ENABLED'
                     };
 
-                    pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: 'main' },
+                            { name: 'publish' }
+                        ],
+                        edges: [
+                            { src: 'main', dest: 'publish' }
+                        ]
+                    };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
                     buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
@@ -568,28 +596,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('skips triggering if the workflow is undefined', () => {
-                    const username = id;
-                    const status = 'SUCCESS';
-                    const options = {
-                        method: 'PUT',
-                        url: `/builds/${id}`,
-                        credentials: {
-                            username,
-                            scope: ['build']
-                        },
-                        payload: {
-                            status
-                        }
-                    };
-
-                    return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.notCalled(buildFactoryMock.create);
-                    });
-                });
-
-                it('skips triggering if the job is last in the workflow', () => {
+                it('skips triggering if there is no nextJobs ', () => {
                     const status = 'SUCCESS';
                     const options = {
                         method: 'PUT',
@@ -602,8 +609,6 @@ describe('build plugin test', () => {
                             status
                         }
                     };
-
-                    pipelineMock.workflow = ['main'];
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -626,8 +631,6 @@ describe('build plugin test', () => {
                     };
 
                     jobMock.name = 'PR-15';
-
-                    pipelineMock.workflow = ['main', 'publish'];
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -659,7 +662,15 @@ describe('build plugin test', () => {
                         state: 'DISABLED'
                     };
 
-                    pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: 'main' },
+                            { name: 'publish' }
+                        ],
+                        edges: [
+                            { src: 'main', dest: 'publish' }
+                        ]
+                    };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
 

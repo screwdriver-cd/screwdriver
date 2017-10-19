@@ -3,6 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const workflowParser = require('screwdriver-workflow-parser');
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
 module.exports = () => ({
@@ -20,6 +21,7 @@ module.exports = () => ({
             const buildFactory = request.server.app.buildFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
+            const eventFactory = request.server.app.eventFactory;
             const jobFactory = request.server.app.jobFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
@@ -86,44 +88,30 @@ module.exports = () => ({
                                 return null;
                             }
 
-                            const workflow = pipeline.workflow;
+                            return eventFactory.get({ id: build.eventId }).then((event) => {
+                                const workflowGraph = event.workflowGraph;
 
-                            // No workflow to follow
-                            if (!workflow) {
-                                return null;
-                            }
+                                return workflowParser.getNextJobs(workflowGraph, {
+                                    trigger: job.name
+                                });
+                            }).then(nextJobs => Promise.all(nextJobs.map(nextJobName =>
+                                jobFactory.get({
+                                    name: nextJobName,
+                                    pipelineId: pipeline.id
+                                }).then((nextJobToTrigger) => {
+                                    if (nextJobToTrigger.state === 'ENABLED') {
+                                        return buildFactory.create({
+                                            jobId: nextJobToTrigger.id,
+                                            sha: build.sha,
+                                            parentBuildId: id,
+                                            username,
+                                            scmContext,
+                                            eventId: build.eventId
+                                        });
+                                    }
 
-                            const workflowIndex = workflow.indexOf(job.name);
-
-                            // Current build is the last job in the workflow
-                            if (workflowIndex === workflow.length - 1) {
-                                return null;
-                            }
-
-                            // Skip if not in the workflow (like PRs)
-                            if (workflowIndex === -1) {
-                                return null;
-                            }
-
-                            const nextJobName = workflow[workflowIndex + 1];
-
-                            return jobFactory.get({
-                                name: nextJobName,
-                                pipelineId: pipeline.id
-                            }).then((nextJobToTrigger) => {
-                                if (nextJobToTrigger.state === 'ENABLED') {
-                                    return buildFactory.create({
-                                        jobId: nextJobToTrigger.id,
-                                        sha: build.sha,
-                                        parentBuildId: id,
-                                        username,
-                                        scmContext,
-                                        eventId: build.eventId
-                                    });
-                                }
-
-                                return null;
-                            });
+                                    return null;
+                                }))));
                         }))
                             .then(() => reply(build.toJson()).code(200))
                         );
