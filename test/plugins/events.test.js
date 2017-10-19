@@ -201,9 +201,7 @@ describe('event plugin test', () => {
             const pipelineMock = {
                 id: pipelineId,
                 checkoutUrl,
-                scmUri,
-                sync: sinon.stub().resolves(),
-                syncPR: sinon.stub().resolves()
+                scmUri
             };
 
             userMock = {

@@ -37,6 +37,7 @@ module.exports = () => ({
                 username
             };
             // Match PR-prNum, then extract prNum
+            // e.g. if startFrom is "PR-1:main", prNumFullName will be "PR-1"; prNum will be "1"
             const prNumFullName = startFrom.match(validationSchema.config.regex.PR_JOB_NAME);
             const prNum = prNumFullName ? prNumFullName[1].split('-')[1] : null;
 
