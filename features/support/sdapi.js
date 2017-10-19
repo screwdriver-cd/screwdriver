@@ -46,7 +46,7 @@ function findBuilds(config) {
             let result = [];
 
             if (pullRequestNumber) {
-                result = jobData.filter(job => job.name === `PR-${pullRequestNumber}`);
+                result = jobData.filter(job => job.name.startsWith(`PR-${pullRequestNumber}`));
             } else {
                 result = jobData.filter(job => job.name === 'main');
             }
