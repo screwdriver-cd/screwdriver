@@ -21,6 +21,7 @@ module.exports = () => ({
             const buildFactory = request.server.app.buildFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
+            const eventFactory = request.server.app.eventFactory;
             const jobFactory = request.server.app.jobFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
@@ -87,29 +88,30 @@ module.exports = () => ({
                                 return null;
                             }
 
-                            const workflowGraph = pipeline.workflowGraph;
+                            return eventFactory.get({ id: build.eventId }).then((event) => {
+                                const workflowGraph = event.workflowGraph;
 
-                            const nextJobs = workflowParser.getNextJobs(workflowGraph, {
-                                trigger: job.name
-                            });
+                                return workflowParser.getNextJobs(workflowGraph, {
+                                    trigger: job.name
+                                });
+                            }).then(nextJobs => Promise.all(nextJobs.map(nextJobName =>
+                                jobFactory.get({
+                                    name: nextJobName,
+                                    pipelineId: pipeline.id
+                                }).then((nextJobToTrigger) => {
+                                    if (nextJobToTrigger.state === 'ENABLED') {
+                                        return buildFactory.create({
+                                            jobId: nextJobToTrigger.id,
+                                            sha: build.sha,
+                                            parentBuildId: id,
+                                            username,
+                                            scmContext,
+                                            eventId: build.eventId
+                                        });
+                                    }
 
-                            return Promise.all(nextJobs.map(nextJobName => jobFactory.get({
-                                name: nextJobName,
-                                pipelineId: pipeline.id
-                            }).then((nextJobToTrigger) => {
-                                if (nextJobToTrigger.state === 'ENABLED') {
-                                    return buildFactory.create({
-                                        jobId: nextJobToTrigger.id,
-                                        sha: build.sha,
-                                        parentBuildId: id,
-                                        username,
-                                        scmContext,
-                                        eventId: build.eventId
-                                    });
-                                }
-
-                                return null;
-                            })));
+                                    return null;
+                                }))));
                         }))
                             .then(() => reply(build.toJson()).code(200))
                         );

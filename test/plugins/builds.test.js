@@ -85,6 +85,7 @@ describe('build plugin test', () => {
             list: sinon.stub()
         };
         eventFactoryMock = {
+            get: sinon.stub(),
             create: sinon.stub()
         };
         secretAccessMock = sinon.stub().resolves(false);
@@ -192,6 +193,7 @@ describe('build plugin test', () => {
         };
         let buildMock;
         let pipelineMock;
+        let eventMock;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
@@ -208,6 +210,13 @@ describe('build plugin test', () => {
                 id: pipelineId,
                 scmUri,
                 scmRepo,
+                sync: sinon.stub().resolves(),
+                syncPR: sinon.stub().resolves()
+            };
+
+            eventMock = {
+                id: 123,
+                pipelineId,
                 workflowGraph: {
                     nodes: [
                         { name: '~pr' },
@@ -218,10 +227,10 @@ describe('build plugin test', () => {
                         { src: '~pr', dest: 'main' },
                         { src: '~commit', dest: 'main' }
                     ]
-                },
-                sync: sinon.stub().resolves(),
-                syncPR: sinon.stub().resolves()
+                }
             };
+
+            eventFactoryMock.get.resolves(eventMock);
         });
 
         it('emits event buid_status', () => {
@@ -559,7 +568,7 @@ describe('build plugin test', () => {
                         state: 'ENABLED'
                     };
 
-                    pipelineMock.workflowGraph = {
+                    eventMock.workflowGraph = {
                         nodes: [
                             { name: 'main' },
                             { name: 'publish' }
@@ -653,7 +662,7 @@ describe('build plugin test', () => {
                         state: 'DISABLED'
                     };
 
-                    pipelineMock.workflowGraph = {
+                    eventMock.workflowGraph = {
                         nodes: [
                             { name: 'main' },
                             { name: 'publish' }
