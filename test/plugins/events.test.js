@@ -232,6 +232,7 @@ describe('event plugin test', () => {
                 pipelineId,
                 scmContext,
                 startFrom: '~commit',
+                sha: '58393af682d61de87789fb4961645c42180cec5a',
                 type: 'pipeline',
                 username
             };
@@ -261,7 +262,6 @@ describe('event plugin test', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
-            eventConfig.sha = '58393af682d61de87789fb4961645c42180cec5a';
             eventConfig.type = 'pr';
             options.payload.startFrom = 'PR-1:main';
 

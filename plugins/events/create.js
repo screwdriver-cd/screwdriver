@@ -69,10 +69,11 @@ module.exports = () => ({
                             // Get commit sha
                             return scm.getCommitSha(scmConfig)
                                 .then((sha) => {
+                                    payload.sha = sha;
+
                                     // For PRs
                                     if (prNum) {
                                         payload.prNum = prNum;
-                                        payload.sha = sha; // pass sha to payload if it's a PR
                                         payload.type = 'pr';
 
                                         return scm.getPrInfo(scmConfig);
