@@ -36,7 +36,7 @@ const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
 const executorConfig = config.get('executor');
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
 const executor = new ExecutorPlugin(Object.assign(
-    hoek.clone(ecosystem),
+    { ecosystem: hoek.clone(ecosystem) },
     executorConfig[executorConfig.plugin].options
 ));
 
