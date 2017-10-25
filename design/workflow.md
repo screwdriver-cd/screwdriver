@@ -1,8 +1,14 @@
 # Workflow
 
+## Context
 The current workflow definition has many shortcomings when looking at the future. There are numerous features that can't be addressed by the current design including: branch specific jobs, detached jobs/workflows, rollback, initial job definition, etc.
 
 This documentation covers a design proposal for a revised workflow/screwdriver.yaml configuration.
+
+## Status
+
+- 30 August 2017: Proposal submitted
+- 25 October 2017: Rebuild_on/triggers sections updated
 
 ## Syntax
 
@@ -13,22 +19,49 @@ This documentation covers a design proposal for a revised workflow/screwdriver.y
 | `requires: ~pr` |  Triggered by a pull request |
 | `requires: ~commit` | Triggered by a commit |
 | `requires: ~commit:staging` | Triggered by a commit on the `staging` SCM branch only |
-| `requires: [A]` __OR__ `requires: A` | Triggered if `A` is successful (_aka. sequential_); should be okay to drop the `[]` if it is a single job |
-| `requires: [A,B,C]` | Triggered after `A`, `B`, and `C` are successful. (_aka. join_) |
+| `requires: [A]` __OR__ `requires: A` | Triggered if `A` is successful (_aka. sequential_); should be okay to drop the `[]` if it is a single job in all cases |
+| `requires: [A,B,C]` | Triggered after `A`, `B`, and `C` are successful (_aka. join_) |
+| `requires: [~sd@123:staging]` |  Triggered after the `staging` job from pipeline `123` is successful |
+| `requires: [~pr, ~commit, ~sd@123:staging, A, B]` |  Triggered by a pull request OR commit OR after the `staging` job from pipeline `123` is successful OR after `A` AND `B` are successful |
 
-_Note: If no `requires` is designated, the job is ignored._
+__Rules:__
+- If no `requires` is designated, the job is ignored.
+- In a requires array, all elements prefixed by a tilde (`~`) are ORs, the rest of the elements are ANDs.
 
 ### Special features
 
 | Job annotation   | Description |
 | ---------- | ------------- |
-| `rebuild_on: [A, sd@123:staging]` |  Rebuild if `A` or `sd@123:staging` job is rerun successfully |
 | `blocked_by: [A, sd@123:staging]` | Blocked if `A` or `sd@123:staging` job is running |
 | `build_periodically: H 4 * * *` | Build periodically ([CRON FORMAT][cron-format]) |
 | `freeze_windows: [‘* * ? * MON,FRI’]` | Freeze Windows. Do not run the job during this time. ([CRON FORMAT][cron-format]) |
 
 
 ## Functionality
+
+### Pull request
+
+To specify a multiple jobs to run when a pull request is opened, use the `requires: ~pr` job attribute. In this example, both build A and B will start when a pull request is opened.
+
+```yaml
+jobs:
+  A:
+    requires: ~pr
+  B:
+    requires: ~pr
+```
+
+### SCM Branch-specific jobs
+
+Use a regex filter after `~commit:` to denote a job only run when code changes are made to branches matching that pattern (eg: `/^staging$/`, `/^user-.*$/`).
+
+```yaml
+jobs:
+  A:
+    requires: ~commit:staging
+  B:
+    requires: ~commit:user-.*
+```
 
 ### Sequential
 
@@ -64,32 +97,22 @@ jobs:
     requires: [B,C]
 ```
 
-_Note: `requires` will work like an AND; all jobs listed under the `requires` keyword need to finish building successfully before the job will run._
-
 ![](./diagrams/executor-queue-join-workflow.png)
 
-### Pull request
+### Remote requires
 
-To specify a chain of jobs to run when a pull request is opened, use the `requires: ~pr` job attribute. If no job is specified for the pull request build, the `requires: ~commit` job will be run.
+Specify a job to run when a job from a remote pipeline finishes by using the `~sd@<PIPELINE_ID>:<JOB_NAME>` syntax. To use it, put it under `requires`.
 
-```yaml
-jobs:
-  A:
-    requires: ~pr
-  B:
-    requires: A
-```
+![](./diagrams/executor-queue-remote-requires.png)
 
-### SCM Branch-specific jobs
-
-Use a regex filter after `~commit:` to denote a job only run when code changes are made to branches matching that pattern (eg: `/^staging$/`, `/^user-.*$/`).
+Build C starts when a pull request is opened OR a commit is merged OR after the `staging` job from pipeline `123` finishes successfully OR after `A` AND `B` finish successfully.
 
 ```yaml
 jobs:
-  A:
-    requires: ~commit:staging
-  B:
-    requires: ~commit:user-.*
+  A
+  B
+  C:
+    requires: [~pr, ~sd@123:staging, A, B]
 ```
 
 
@@ -113,20 +136,6 @@ If job A is blocked_by job C and job D:
 - If both are done, return
 
 _Note: `blocked_by` is an OR; if any of the jobs listed under `blocked_by` is running, then it is blocked._
-
-### Rebuild_on
-
-If job C or D finishes running successfully, rerun job A.
-
-```yaml
-jobs:
-  A:
-    requires: ~commit
-    annotations:
-      rebuild_on: [C, D]
-```
-
-_Note: Rebuild_on is an OR. If any of the jobs listed under `rebuild_on` finishes running successfully, then the job is rerun._
 
 ### Freeze Windows
 
