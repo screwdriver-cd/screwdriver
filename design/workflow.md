@@ -22,7 +22,7 @@ This documentation covers a design proposal for a revised workflow/screwdriver.y
 | `requires: [A]` __OR__ `requires: A` | Triggered if `A` is successful (_aka. sequential_); should be okay to drop the `[]` if it is a single job in all cases |
 | `requires: [A,B,C]` | Triggered after `A`, `B`, and `C` are successful (_aka. join_) |
 | `requires: [~sd@123:staging]` |  Triggered after the `staging` job from pipeline `123` is successful |
-| `requires: [~pr, ~commit, ~sd@123:staging, A, B]` |  Triggered by a pull request OR commit OR after the `staging` job from pipeline `123` is successful OR after `A` AND `B` are successful |
+| `requires: [~pr, ~commit, ~sd@123:staging, A, B]` |  Triggered by a pull request OR commit OR after the `staging` job from pipeline `123` is successful OR after (`A` AND `B`) are successful |
 
 __Rules:__
 - If no `requires` is designated, the job is ignored.
