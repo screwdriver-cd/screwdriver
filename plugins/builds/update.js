@@ -3,6 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const { EXTERNAL_TRIGGER } = schema.config.regex;
 const workflowParser = require('screwdriver-workflow-parser');
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
@@ -23,10 +24,12 @@ module.exports = () => ({
             const desiredStatus = request.payload.status;
             const eventFactory = request.server.app.eventFactory;
             const jobFactory = request.server.app.jobFactory;
+            const triggerFactory = request.server.app.triggerFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
             const scope = request.auth.credentials.scope;
             const isBuild = scope.includes('build');
+            const triggerEvent = request.server.plugins.events.triggerEvent;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -111,10 +114,22 @@ module.exports = () => ({
                                     }
 
                                     return null;
-                                }))));
-                        }))
-                            .then(() => reply(build.toJson()).code(200))
-                        );
+                                }))))
+                                .then(() => triggerFactory.list(
+                                    { src: `~sd@${pipeline.id}:${job.name}` }))
+                                .then(records => Promise.all(records.map((record) => {
+                                    const [, pipelineId, startFrom] =
+                                        record.dest.match(EXTERNAL_TRIGGER);
+
+                                    return triggerEvent({
+                                        pipelineId,
+                                        startFrom,
+                                        type: 'pipeline',
+                                        username
+                                    });
+                                })));
+                        })))
+                        .then(() => reply(build.toJson()).code(200));
                 })
                 .catch(err => reply(boom.wrap(err)));
         },
