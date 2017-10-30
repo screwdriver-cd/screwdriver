@@ -21,13 +21,13 @@ exports.register = (server, options, next) => {
      * Create event for downstream pipeline that need to be rebuilt
      * @method triggerEvent
      * @param {Object}  config              Configuration object
-     * @param {String}  config.username     Upstream build ID
      * @param {String}  config.pipelineId   Pipeline to be rebuilt
      * @param {String}  config.startFrom    Job to be rebuilt
+     * @param {String}  config.username     Upstream build ID
      * @return {Object} event
      */
     server.expose('triggerEvent', (config) => {
-        const { username, pipelineId, startFrom } = config;
+        const { pipelineId, startFrom, username } = config;
         const eventFactory = server.root.app.eventFactory;
         const pipelineFactory = server.root.app.pipelineFactory;
         const userFactory = server.root.app.userFactory;
@@ -43,7 +43,7 @@ exports.register = (server, options, next) => {
         return pipelineFactory.get(pipelineId)
             .then((pipeline) => {
                 const scmUri = pipeline.scmUri;
-                const admin = pipeline.admin[0];
+                const admin = Object.keys(pipeline.admins)[0];
                 const scmContext = pipeline.scmContext;
 
                 // get pipeline admin's token

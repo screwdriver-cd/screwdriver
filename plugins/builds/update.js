@@ -29,7 +29,7 @@ module.exports = () => ({
             const scmContext = request.auth.credentials.scmContext;
             const scope = request.auth.credentials.scope;
             const isBuild = scope.includes('build');
-            const triggerEvent = request.server.plugins.events.triggerEvent;
+            const triggerEvent = request.server.plugins.builds.triggerEvent;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -122,9 +122,8 @@ module.exports = () => ({
                                         record.dest.match(EXTERNAL_TRIGGER);
 
                                     return triggerEvent({
-                                        pipelineId,
+                                        pipelineId: parseInt(pipelineId, 10),
                                         startFrom,
-                                        type: 'pipeline',
                                         username
                                     });
                                 })));

@@ -46,6 +46,7 @@ describe('build plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
     let eventFactoryMock;
+    let triggerFactoryMock;
     let secretMock;
     let secretAccessMock;
     let plugin;
@@ -86,7 +87,14 @@ describe('build plugin test', () => {
         };
         eventFactoryMock = {
             get: sinon.stub(),
-            create: sinon.stub()
+            create: sinon.stub(),
+            scm: {
+                getCommitSha: sinon.stub()
+            }
+        };
+        triggerFactoryMock = {
+            get: sinon.stub(),
+            list: sinon.stub()
         };
         secretAccessMock = sinon.stub().resolves(false);
 
@@ -99,7 +107,8 @@ describe('build plugin test', () => {
             pipelineFactory: pipelineFactoryMock,
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
-            eventFactory: eventFactoryMock
+            eventFactory: eventFactoryMock,
+            triggerFactory: triggerFactoryMock
         };
         server.connection({
             port: 12345,
@@ -194,6 +203,7 @@ describe('build plugin test', () => {
         let buildMock;
         let pipelineMock;
         let eventMock;
+        let triggerMocks;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
@@ -210,6 +220,7 @@ describe('build plugin test', () => {
                 id: pipelineId,
                 scmUri,
                 scmRepo,
+                admins: { foo: true },
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves()
             };
@@ -231,6 +242,21 @@ describe('build plugin test', () => {
             };
 
             eventFactoryMock.get.resolves(eventMock);
+
+            triggerMocks = [
+                {
+                    id: 1,
+                    src: `~sd@${pipelineId}:main`,
+                    dest: '~sd@456:main'
+                },
+                {
+                    id: 2,
+                    src: `~sd@${pipelineId}:main`,
+                    dest: '~sd@789:main'
+                }
+            ];
+
+            triggerFactoryMock.list.resolves(triggerMocks);
         });
 
         it('emits event buid_status', () => {
@@ -402,6 +428,7 @@ describe('build plugin test', () => {
             const publishJobId = 1235;
 
             let jobMock;
+            let userMock;
 
             beforeEach(() => {
                 jobMock = {
@@ -413,10 +440,18 @@ describe('build plugin test', () => {
                     }]
                 };
 
+                userMock = {
+                    username: 'foo',
+                    unsealToken: sinon.stub().resolves('token')
+                };
+
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
 
                 buildFactoryMock.create.resolves(buildMock);
+                pipelineFactoryMock.get.resolves(pipelineMock);
+                userFactoryMock.get.resolves(userMock);
+                eventFactoryMock.scm.getCommitSha.resolves('sha');
             });
 
             it('saves status and meta updates', () => {
@@ -543,7 +578,7 @@ describe('build plugin test', () => {
             });
 
             describe('workflow', () => {
-                it('triggers the next job in the pipeline workflow', () => {
+                it('triggers next job in the pipeline workflow and external pipelines', () => {
                     const meta = {
                         darren: 'thebest'
                     };
@@ -592,6 +627,20 @@ describe('build plugin test', () => {
                             username,
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
+                        });
+                        assert.calledWith(eventFactoryMock.create.firstCall, {
+                            pipelineId: 456,
+                            startFrom: 'main',
+                            type: 'pipeline',
+                            username: 12345,
+                            sha: 'sha'
+                        });
+                        assert.calledWith(eventFactoryMock.create.secondCall, {
+                            pipelineId: 789,
+                            startFrom: 'main',
+                            type: 'pipeline',
+                            username: 12345,
+                            sha: 'sha'
                         });
                     });
                 });
