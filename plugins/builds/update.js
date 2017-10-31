@@ -124,7 +124,7 @@ module.exports = () => ({
                                     return triggerEvent({
                                         pipelineId: parseInt(pipelineId, 10),
                                         startFrom,
-                                        username
+                                        causeMessage: `Triggered by build ${username}`
                                     });
                                 })));
                         })))

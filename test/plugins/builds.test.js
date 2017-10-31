@@ -218,6 +218,7 @@ describe('build plugin test', () => {
 
             pipelineMock = {
                 id: pipelineId,
+                scmContext,
                 scmUri,
                 scmRepo,
                 admins: { foo: true },
@@ -629,17 +630,21 @@ describe('build plugin test', () => {
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
                         });
                         assert.calledWith(eventFactoryMock.create.firstCall, {
+                            causeMessage: 'Triggered by build 12345',
                             pipelineId: 456,
                             startFrom: 'main',
                             type: 'pipeline',
-                            username: 12345,
+                            username: 'foo',
+                            scmContext,
                             sha: 'sha'
                         });
                         assert.calledWith(eventFactoryMock.create.secondCall, {
+                            causeMessage: 'Triggered by build 12345',
                             pipelineId: 789,
                             startFrom: 'main',
                             type: 'pipeline',
-                            username: 12345,
+                            username: 'foo',
+                            scmContext,
                             sha: 'sha'
                         });
                     });
