@@ -4,7 +4,6 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
-const workflowParser = require('screwdriver-workflow-parser');
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
 module.exports = () => ({
@@ -22,14 +21,13 @@ module.exports = () => ({
             const buildFactory = request.server.app.buildFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
-            const eventFactory = request.server.app.eventFactory;
-            const jobFactory = request.server.app.jobFactory;
             const triggerFactory = request.server.app.triggerFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
             const scope = request.auth.credentials.scope;
             const isBuild = scope.includes('build');
             const triggerEvent = request.server.plugins.builds.triggerEvent;
+            const triggerNextJobs = request.server.plugins.builds.triggerNextJobs;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -93,33 +91,8 @@ module.exports = () => ({
 
                             const src = `~sd@${pipeline.id}:${job.name}`;
 
-                            return eventFactory.get({ id: build.eventId }).then((event) => {
-                                const workflowGraph = event.workflowGraph;
-
-                                return workflowParser.getNextJobs(workflowGraph, {
-                                    trigger: job.name
-                                });
-                            }).then(nextJobs => Promise.all(nextJobs.map(nextJobName =>
-                                jobFactory.get({
-                                    name: nextJobName,
-                                    pipelineId: pipeline.id
-                                }).then((nextJobToTrigger) => {
-                                    if (nextJobToTrigger.state === 'ENABLED') {
-                                        return buildFactory.create({
-                                            jobId: nextJobToTrigger.id,
-                                            sha: build.sha,
-                                            parentBuildId: id,
-                                            username,
-                                            scmContext,
-                                            eventId: build.eventId
-                                        });
-                                    }
-
-                                    return null;
-                                }))))
-                                .then(() => triggerFactory.list({
-                                    params: { src }
-                                }))
+                            return triggerNextJobs({ pipeline, job, build, username, scmContext })
+                                .then(() => triggerFactory.list({ params: { src } }))
                                 .then((records) => {
                                     // Use set to remove duplicate and keep only unique pipelineIds
                                     const triggeredPipelines = new Set();
