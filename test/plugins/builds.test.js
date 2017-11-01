@@ -251,6 +251,11 @@ describe('build plugin test', () => {
                     dest: '~sd@456:main'
                 },
                 {
+                    id: 3,
+                    src: `~sd@${pipelineId}:main`,
+                    dest: '~sd@456:second'
+                },
+                {
                     id: 2,
                     src: `~sd@${pipelineId}:main`,
                     dest: '~sd@789:main'
@@ -603,6 +608,7 @@ describe('build plugin test', () => {
                         pipelineId,
                         state: 'ENABLED'
                     };
+                    const src = `~sd@${pipelineId}:main`;
 
                     eventMock.workflowGraph = {
                         nodes: [
@@ -630,14 +636,15 @@ describe('build plugin test', () => {
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
                         });
                         assert.calledWith(triggerFactoryMock.list, {
-                            params: {
-                                src: `~sd@${pipelineId}:main`
-                            }
+                            params: { src }
                         });
+                        // Make sure it only creates two events
+                        // The first event should group 456:main and 456:second
+                        assert.calledTwice(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, {
                             causeMessage: 'Triggered by build 12345',
                             pipelineId: 456,
-                            startFrom: 'main',
+                            startFrom: src,
                             type: 'pipeline',
                             username: 'foo',
                             scmContext,
@@ -646,7 +653,7 @@ describe('build plugin test', () => {
                         assert.calledWith(eventFactoryMock.create.secondCall, {
                             causeMessage: 'Triggered by build 12345',
                             pipelineId: 789,
-                            startFrom: 'main',
+                            startFrom: src,
                             type: 'pipeline',
                             username: 'foo',
                             scmContext,
