@@ -115,8 +115,9 @@ module.exports = () => ({
 
                                     return null;
                                 }))))
-                                .then(() => triggerFactory.list(
-                                    { src: `~sd@${pipeline.id}:${job.name}` }))
+                                .then(() => triggerFactory.list({
+                                    params: { src: `~sd@${pipeline.id}:${job.name}` }
+                                }))
                                 .then(records => Promise.all(records.map((record) => {
                                     const [, pipelineId, startFrom] =
                                         record.dest.match(EXTERNAL_TRIGGER);

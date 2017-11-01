@@ -629,6 +629,11 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
                         });
+                        assert.calledWith(triggerFactoryMock.list, {
+                            params: {
+                                src: `~sd@${pipelineId}:main`
+                            }
+                        });
                         assert.calledWith(eventFactoryMock.create.firstCall, {
                             causeMessage: 'Triggered by build 12345',
                             pipelineId: 456,
