@@ -91,7 +91,6 @@ function pullRequestClosed(options, request, reply) {
     const updatePRJobs = (job => stopJob(job)
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
-            job.state = 'DISABLED';
             job.archived = true;
 
             return job.update();

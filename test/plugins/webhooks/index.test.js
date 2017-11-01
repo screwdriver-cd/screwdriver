@@ -615,7 +615,7 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledOnce(jobMock.update);
-                        assert.strictEqual(jobMock.state, 'DISABLED');
+                        assert.strictEqual(jobMock.state, 'ENABLED');
                         assert.isTrue(jobMock.archived);
                     })
                 );
@@ -634,7 +634,7 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledOnce(jobMock.update);
-                        assert.strictEqual(jobMock.state, 'DISABLED');
+                        assert.strictEqual(jobMock.state, 'ENABLED');
                     });
                 });
             });
