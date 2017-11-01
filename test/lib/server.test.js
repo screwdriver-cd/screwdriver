@@ -52,6 +52,7 @@ describe('server case', () => {
                     port: 12347
                 },
                 ecosystem,
+                triggerFactory: 'trigger',
                 pipelineFactory: 'pipeline',
                 jobFactory: 'job',
                 userFactory: 'user',
@@ -105,6 +106,7 @@ describe('server case', () => {
 
         it('populates server.app values', () => {
             Assert.isObject(server.app);
+            Assert.strictEqual(server.app.triggerFactory, 'trigger');
             Assert.strictEqual(server.app.pipelineFactory, 'pipeline');
             Assert.strictEqual(server.app.jobFactory, 'job');
             Assert.strictEqual(server.app.userFactory, 'user');
