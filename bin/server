@@ -104,6 +104,9 @@ const eventFactory = Models.EventFactory.getInstance({
 const collectionFactory = Models.CollectionFactory.getInstance({
     datastore
 });
+const triggerFactory = Models.TriggerFactory.getInstance({
+    datastore
+});
 
 // @TODO run setup for SCM and Executor
 datastore.setup()
@@ -123,6 +126,7 @@ datastore.setup()
         tokenFactory,
         eventFactory,
         collectionFactory,
+        triggerFactory,
         builds: {
             ecosystem
         },

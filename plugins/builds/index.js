@@ -17,6 +17,59 @@ const listSecretsRoute = require('./listSecrets');
  * @param  {Function} next                  Function to call when done
  */
 exports.register = (server, options, next) => {
+    /**
+     * Create event for downstream pipeline that need to be rebuilt
+     * @method triggerEvent
+     * @param {Object}  config              Configuration object
+     * @param {String}  config.pipelineId   Pipeline to be rebuilt
+     * @param {String}  config.startFrom    Job to be rebuilt
+     * @param {String}  config.causeMessage Caused message, e.g. triggered by 1234(buildId)
+     * @return {Object} event
+     */
+    server.expose('triggerEvent', (config) => {
+        const { pipelineId, startFrom, causeMessage } = config;
+        const eventFactory = server.root.app.eventFactory;
+        const pipelineFactory = server.root.app.pipelineFactory;
+        const userFactory = server.root.app.userFactory;
+        const scm = eventFactory.scm;
+
+        const payload = {
+            pipelineId,
+            startFrom,
+            type: 'pipeline',
+            causeMessage
+        };
+
+        return pipelineFactory.get(pipelineId)
+            .then((pipeline) => {
+                const scmUri = pipeline.scmUri;
+                const admin = Object.keys(pipeline.admins)[0];
+                const scmContext = pipeline.scmContext;
+
+                payload.scmContext = scmContext;
+                payload.username = admin;
+
+                // get pipeline admin's token
+                return userFactory.get({ username: admin, scmContext })
+                    .then(user => user.unsealToken())
+                    .then((token) => {
+                        const scmConfig = {
+                            scmContext,
+                            scmUri,
+                            token
+                        };
+
+                        // Get commit sha
+                        return scm.getCommitSha(scmConfig)
+                            .then((sha) => {
+                                payload.sha = sha;
+
+                                return eventFactory.create(payload);
+                            });
+                    });
+            });
+    });
+
     server.route([
         getRoute(),
         updateRoute(),
