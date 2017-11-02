@@ -91,6 +91,8 @@ module.exports = () => ({
                                 return null;
                             }
 
+                            const src = `~sd@${pipeline.id}:${job.name}`;
+
                             return eventFactory.get({ id: build.eventId }).then((event) => {
                                 const workflowGraph = event.workflowGraph;
 
@@ -116,18 +118,27 @@ module.exports = () => ({
                                     return null;
                                 }))))
                                 .then(() => triggerFactory.list({
-                                    params: { src: `~sd@${pipeline.id}:${job.name}` }
+                                    params: { src }
                                 }))
-                                .then(records => Promise.all(records.map((record) => {
-                                    const [, pipelineId, startFrom] =
-                                        record.dest.match(EXTERNAL_TRIGGER);
+                                .then((records) => {
+                                    // Use set to remove duplicate and keep only unique pipelineIds
+                                    const triggeredPipelines = new Set();
 
-                                    return triggerEvent({
-                                        pipelineId: parseInt(pipelineId, 10),
-                                        startFrom,
-                                        causeMessage: `Triggered by build ${username}`
+                                    records.forEach((record) => {
+                                        const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
+
+                                        triggeredPipelines.add(pipelineId);
                                     });
-                                })));
+
+                                    return Array.from(triggeredPipelines);
+                                })
+                                .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
+                                    triggerEvent({
+                                        pipelineId: parseInt(pipelineId, 10),
+                                        startFrom: src,
+                                        causeMessage: `Triggered by build ${username}`
+                                    })
+                                )));
                         })))
                         .then(() => reply(build.toJson()).code(200));
                 })
