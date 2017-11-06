@@ -44,7 +44,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 bearer: this.jwt
             },
             body: {
-                checkoutUrl: `git@github.com:${this.repoOrg}/${this.repoName}.git#master`
+                checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
             },
             json: true
         }).then((response) => {
