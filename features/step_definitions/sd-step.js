@@ -37,8 +37,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                         },
                         body: {
                             checkoutUrl:
-                                `git@${this.scmHostname}:${this.repoOrg}
-                                    /${this.repoName}.git#master`
+                                `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}`
+                                    + '.git#master'
                         },
                         json: true
                     });
