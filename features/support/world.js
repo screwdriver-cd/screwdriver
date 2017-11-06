@@ -50,7 +50,8 @@ function ensurePipelineExists(config) {
                     bearer: this.jwt
                 },
                 body: {
-                    checkoutUrl: `git@github.com:${this.testOrg}/${config.repoName}.git#master`
+                    checkoutUrl:
+                        `git@${this.scmHostname}:${this.testOrg}/${config.repoName}.git#master`
                 },
                 json: true
             });
@@ -100,6 +101,7 @@ function CustomWorld({ attach, parameters }) {
     this.instance = `${this.protocol}://${process.env.SD_API_HOST}`;
     this.testOrg = process.env.TEST_ORG;
     this.username = process.env.TEST_USERNAME;
+    this.scmHostname = process.env.TEST_SCM_HOSTNAME || 'github.com';
     this.scmContext = process.env.TEST_SCM_CONTEXT || 'github';
     this.namespace = 'v4';
     this.promiseToWait = time => promiseToWait(time);
