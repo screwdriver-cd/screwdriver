@@ -3,7 +3,8 @@
 const Github = require('github');
 const github = new Github({
     host: process.env.TEST_SCM_HOSTNAME || 'api.github.com',
-    pathPrefix: process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''
+    pathPrefix: process.env.TEST_SCM_HOSTNAME ? '/api/v3' : '',
+    protocol: 'https'
 });
 
 const MAX_CONTENT_LENGTH = 354;
