@@ -146,12 +146,16 @@ describe('Register Unit Test Case', () => {
         const newConfig = {
             notifications: {
                 email: {
-                    foo: 'abc',
-                    scope: 'module'
+                    config: {
+                        foo: 'abc'
+                    },
+                    module: '@module/screwdriver-notifications-email'
                 },
                 slack: {
-                    baz: 'def',
-                    scope: '@module'
+                    config: {
+                        baz: 'def'
+                    },
+                    module: '@module/screwdriver-notifications-slack'
                 }
             }
         };
