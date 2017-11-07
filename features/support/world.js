@@ -116,7 +116,7 @@ function CustomWorld({ attach, parameters }) {
         requestretry({
             uri: `${this.instance}/${this.namespace}/builds/${buildID}`,
             method: 'GET',
-            maxAttempts: 10,
+            maxAttempts: 15,
             retryDelay: 5000,
             retryStrategy: buildRetryStrategy,
             json: true
