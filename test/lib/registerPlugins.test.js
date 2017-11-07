@@ -149,13 +149,13 @@ describe('Register Unit Test Case', () => {
                     config: {
                         foo: 'abc'
                     },
-                    module: '@module/screwdriver-notifications-email'
+                    scopedPackage: '@module/screwdriver-notifications-email'
                 },
                 slack: {
                     config: {
                         baz: 'def'
                     },
-                    module: '@module/screwdriver-notifications-slack'
+                    scopedPackage: '@module/screwdriver-notifications-slack'
                 }
             }
         };
