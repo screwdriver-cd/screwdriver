@@ -18,13 +18,12 @@ Feature: Trigger
         (~commit) -> (build_foo) -> (deploy_foo) -> Foo (build_bar) -> (deploy_bar)
 
     Rules:
-        - Connected Workflows must be one-directional (no loops)
         - Configuration for trigger must reside in Workflow/Job being triggered
         - Triggered workflow/job should start with latest commit on configured SCM branch.
         - If multiple jobs in a pipeline requires the same external pipeline's Job as trigger, then
           builds for these jobs should be part of same pipeline event.
 
-    Scenario: Failure
+    Scenario: Reverse Trigger. Builds are not triggered if required build is not succesful.
         Given two pipelines PipelineA and PipelineB with following config
             | job           | requires      |
             | PipelineB:BAR | PipelineA:FOO |
@@ -32,7 +31,7 @@ Feature: Trigger
         And the build failed
         Then the "BAR" job in PipelineB is not started
 
-    Scenario: Success
+    Scenario: Reverse Trigger. Build is triggered after another build is successful.
         Given two pipelines PipelineA and PipelineB with following config
             | job           | requires      |
             | PipelineB:BAR | PipelineA:FOO |
@@ -41,14 +40,15 @@ Feature: Trigger
         Then the "BAR" job in PipelineB is started
         And that "BAR" build uses the same SHA as latest commit on the branch pipeline is configured
 
-    Scenario: Multiple
+    Scenario: Reverse Trigger Fan-out. Multiple builds are triggered in parallel as a result of a build's success.
         Given two pipelines PipelineA and PipelineB with following config
             | job             | requires      |
             | PipelineB:BAR   | PipelineA:FOO |
             | PipelineB:HELLO | PipelineA:FOO |
         When the "FOO" job in PiplelineA is started
         And the build succeeded
-        Then the "BAR" job in PipelineB is started
+        Then the build for "BAR" job in PipelineB is started
         And that "BAR" build uses the same SHA as latest commit on the branch pipeline is configured
-        And the "HELLO" job in PipelineB is started
+        And the build for "HELLO" job in PipelineB is started
         And that "HELLO" build uses the same SHA as latest commit on the branch pipeline is configured
+        And builds for "BAR" and "HELLO" jobs are part of one single event.
