@@ -1,5 +1,5 @@
 @ignore
-Feature: Trigger
+Feature: Reverse Trigger
 
     Users should be allowed to tie together workflows from different build pipelines so that they can
     express dependencies between otherwise unrelated projects.
@@ -23,7 +23,7 @@ Feature: Trigger
         - If multiple jobs in a pipeline requires the same external pipeline's Job as trigger, then
           builds for these jobs should be part of same pipeline event.
 
-    Scenario: Reverse Trigger. Builds are not triggered if required build is not succesful.
+    Scenario: Builds are not triggered if required build is not succesful.
         Given two pipelines PipelineA and PipelineB with following config
             | job           | requires      |
             | PipelineB:BAR | PipelineA:FOO |
@@ -31,7 +31,7 @@ Feature: Trigger
         And the build failed
         Then the "BAR" job in PipelineB is not started
 
-    Scenario: Reverse Trigger. Build is triggered after another build is successful.
+    Scenario: Build is triggered after another build is successful.
         Given two pipelines PipelineA and PipelineB with following config
             | job           | requires      |
             | PipelineB:BAR | PipelineA:FOO |
@@ -40,7 +40,7 @@ Feature: Trigger
         Then the "BAR" job in PipelineB is started
         And that "BAR" build uses the same SHA as latest commit on the branch pipeline is configured
 
-    Scenario: Reverse Trigger Fan-out. Multiple builds are triggered in parallel as a result of a build's success.
+    Scenario: Fan-out. Multiple builds are triggered in parallel as a result of a build's success.
         Given two pipelines PipelineA and PipelineB with following config
             | job             | requires      |
             | PipelineB:BAR   | PipelineA:FOO |
