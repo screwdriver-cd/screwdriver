@@ -136,7 +136,9 @@ executor:
         redisConnection:
           host: "127.0.0.1"
           port: 9999
-          password: "THIS-IS-A-PASSWORD"
+          options:
+            password: "THIS-IS-A-PASSWORD"
+            tls: false
           database: 0
 
 scms: {}

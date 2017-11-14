@@ -138,6 +138,7 @@ executor:
                 port: QUEUE_REDIS_PORT
                 options:
                     password: QUEUE_REDIS_PASSWORD
+                    tls: QUEUE_REDIS_TLS_ENABLED
                 database: QUEUE_REDIS_DATABASE
 
 scms:
