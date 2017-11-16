@@ -461,11 +461,12 @@ describe('build plugin test', () => {
                 eventFactoryMock.scm.getCommitSha.resolves('sha');
             });
 
-            it('saves status and meta updates', () => {
+            it('saves status, statusMessage and meta updates', () => {
                 const meta = {
                     foo: 'bar'
                 };
                 const status = 'SUCCESS';
+                const statusMessage = 'Oh the build passed';
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -475,7 +476,8 @@ describe('build plugin test', () => {
                     },
                     payload: {
                         meta,
-                        status
+                        status,
+                        statusMessage
                     }
                 };
 
@@ -485,6 +487,7 @@ describe('build plugin test', () => {
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
                     assert.deepEqual(buildMock.meta, meta);
+                    assert.deepEqual(buildMock.statusMessage, statusMessage);
                     assert.isDefined(buildMock.endTime);
                 });
             });

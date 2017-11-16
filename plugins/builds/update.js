@@ -21,6 +21,7 @@ module.exports = () => ({
             const buildFactory = request.server.app.buildFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
+            const statusMessage = request.payload.statusMessage;
             const triggerFactory = request.server.app.triggerFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
@@ -70,6 +71,9 @@ module.exports = () => ({
 
                     // Everyone is able to update the status
                     build.status = desiredStatus;
+                    if (statusMessage) {
+                        build.statusMessage = statusMessage;
+                    }
 
                     // Only trigger next build on success
                     return build.update()
