@@ -14,8 +14,7 @@ Feature: Commands
 
     Scenario Outline: Execute a command of habitat format
         Given command specifications as mode: <mode>, package: <package>, binary: <binary>
-        When the command package mode is <mode>
-        And execute the command with arguments: <arguments>
+        When execute the command with arguments: <arguments>
         Then the command finishes successfully
 
         Examples:
@@ -36,7 +35,7 @@ Feature: Commands
     Scenario: Publish a command
         Given command specification file
         When execute "publish"
-        Then the command to be successfully published
+        Then the command is published successfully
 
     Scenario: Promote a command
         Given promoting version is "1.0.1"
