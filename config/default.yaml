@@ -86,6 +86,7 @@ datastore:
         dialect: sqlite
         # More arguments here:
         # http://docs.sequelizejs.com/en/latest/api/sequelize/
+        ssl: false
 
 executor:
     # Default executor

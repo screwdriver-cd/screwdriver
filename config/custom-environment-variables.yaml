@@ -56,6 +56,10 @@ datastore:
         port: DATASTORE_SEQUELIZE_PORT
         # Prefix to the table names
         prefix: DATASTORE_SEQUELIZE_PREFIX
+        # Configure SSL/TLS connection settings
+        ssl:
+          __name: DATASTORE_SEQUELIZE_SSL
+          __format: json
 
 executor:
     plugin: EXECUTOR_PLUGIN
