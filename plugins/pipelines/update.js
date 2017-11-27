@@ -29,6 +29,7 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            let gitToken;
 
             return Promise.all([
                 pipelineFactory.get({ id }),
@@ -45,11 +46,15 @@ module.exports = () => ({
                     // get the user token
                     return user.unsealToken()
                         // get the scm URI
-                        .then(token => pipelineFactory.scm.parseUrl({
-                            scmContext,
-                            checkoutUrl,
-                            token
-                        }))
+                        .then((token) => {
+                            gitToken = token;
+
+                            return pipelineFactory.scm.parseUrl({
+                                scmContext,
+                                checkoutUrl,
+                                token
+                            });
+                        })
                         // get the user permissions for the repo
                         .then(scmUri => user.getPermissions(scmUri)
                             // if the user isn't an admin, reject
@@ -68,11 +73,20 @@ module.exports = () => ({
                                         `Pipeline already exists with the ID: ${newPipeline.id}`);
                                 }
 
+                                return pipelineFactory.scm.decorateUrl({
+                                    scmUri,
+                                    scmContext,
+                                    token: gitToken
+                                });
+                            })
+                            .then((scmRepo) => {
                                 // update keys
+                                oldPipeline.scmContext = scmContext;
                                 oldPipeline.scmUri = scmUri;
                                 oldPipeline.admins = {
                                     [username]: true
                                 };
+                                oldPipeline.scmRepo = scmRepo;
 
                                 // update pipeline with new scmRepo and branch
                                 return oldPipeline.update()

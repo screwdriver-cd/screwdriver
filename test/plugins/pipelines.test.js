@@ -7,7 +7,6 @@ const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
-const updatedPipeline = require('./data/updatedPipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
@@ -142,14 +141,12 @@ describe('pipeline plugin test', () => {
             update: sinon.stub(),
             list: sinon.stub(),
             scm: {
-                parseUrl: sinon.stub()
+                parseUrl: sinon.stub(),
+                decorateUrl: sinon.stub()
             }
         };
         userFactoryMock = {
             get: sinon.stub()
-        };
-        scmMock = {
-            decorateUrl: sinon.stub()
         };
 
         /* eslint-disable global-require */
@@ -865,9 +862,6 @@ describe('pipeline plugin test', () => {
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
-        const scmRepo = {
-            id: 'github.com:123456:master'
-        };
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
@@ -901,7 +895,6 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.create.resolves(pipelineMock);
 
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
-            scmMock.decorateUrl.resolves(scmRepo);
         });
 
         it('returns 201 and correct pipeline data', () => {
@@ -1004,12 +997,14 @@ describe('pipeline plugin test', () => {
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
-        const scmRepo = {
-            id: 'github.com:123456:master'
-        };
         const id = 123;
         const token = 'secrettoken';
         const username = 'd2lam';
+        const scmRepo = {
+            branch: 'master',
+            name: 'screwdriver-cd/screwdriver',
+            url: 'https://github.com/screwdriver-cd/data-model/tree/master'
+        };
         let pipelineMock;
         let updatedPipelineMock;
         let userMock;
@@ -1035,23 +1030,18 @@ describe('pipeline plugin test', () => {
 
             pipelineMock = getPipelineMocks(testPipeline);
             updatedPipelineMock = hoek.clone(pipelineMock);
-            updatedPipelineMock.scmUri = 'github.com:12345:master';
-            updatedPipelineMock.admins = {
-                d2lam: true
-            };
 
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
             pipelineMock.update.resolves(updatedPipelineMock);
             pipelineMock.sync.resolves(updatedPipelineMock);
-            pipelineMock.toJson.returns(updatedPipeline);
+            pipelineMock.toJson.returns({});
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
-            scmMock.decorateUrl.resolves(scmRepo);
+            pipelineFactoryMock.scm.decorateUrl.resolves(scmRepo);
         });
 
         it('returns 200 and correct pipeline data', () =>
             server.inject(options).then((reply) => {
-                assert.deepEqual(reply.result, updatedPipeline);
                 assert.calledOnce(pipelineMock.update);
                 assert.equal(reply.statusCode, 200);
             })
