@@ -70,14 +70,15 @@ exports.register = (server, options, next) => {
     /**
      * Create event for downstream pipeline that need to be rebuilt
      * @method triggerEvent
-     * @param {Object}  config              Configuration object
-     * @param {String}  config.pipelineId   Pipeline to be rebuilt
-     * @param {String}  config.startFrom    Job to be rebuilt
-     * @param {String}  config.causeMessage Caused message, e.g. triggered by 1234(buildId)
-     * @return {Promise}                    Resolves to the newly created event
+     * @param {Object}  config               Configuration object
+     * @param {String}  config.pipelineId    Pipeline to be rebuilt
+     * @param {String}  config.startFrom     Job to be rebuilt
+     * @param {String}  config.causeMessage  Caused message, e.g. triggered by 1234(buildId)
+     * @param {String}  config.parentBuildId ID of the build that triggers this event
+     * @return {Promise}                     Resolves to the newly created event
      */
     server.expose('triggerEvent', (config) => {
-        const { pipelineId, startFrom, causeMessage } = config;
+        const { pipelineId, startFrom, causeMessage, parentBuildId } = config;
         const eventFactory = server.root.app.eventFactory;
         const pipelineFactory = server.root.app.pipelineFactory;
         const userFactory = server.root.app.userFactory;
@@ -87,7 +88,8 @@ exports.register = (server, options, next) => {
             pipelineId,
             startFrom,
             type: 'pipeline',
-            causeMessage
+            causeMessage,
+            parentBuildId
         };
 
         return pipelineFactory.get(pipelineId)

@@ -113,7 +113,8 @@ module.exports = () => ({
                                     triggerEvent({
                                         pipelineId: parseInt(pipelineId, 10),
                                         startFrom: src,
-                                        causeMessage: `Triggered by build ${username}`
+                                        causeMessage: `Triggered by build ${username}`,
+                                        parentBuildId: build.id
                                     })
                                 )));
                         })))
