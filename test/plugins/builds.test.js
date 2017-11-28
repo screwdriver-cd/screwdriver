@@ -646,6 +646,7 @@ describe('build plugin test', () => {
                         // The first event should group 456:main and 456:second
                         assert.calledTwice(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, {
+                            parentBuildId: 12345,
                             causeMessage: 'Triggered by build 12345',
                             pipelineId: 456,
                             startFrom: src,
@@ -655,6 +656,7 @@ describe('build plugin test', () => {
                             sha: 'sha'
                         });
                         assert.calledWith(eventFactoryMock.create.secondCall, {
+                            parentBuildId: 12345,
                             causeMessage: 'Triggered by build 12345',
                             pipelineId: 789,
                             startFrom: src,
