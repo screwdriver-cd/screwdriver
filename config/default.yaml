@@ -50,6 +50,10 @@ auth:
         - github:tonytamsf
         - github:pranavrc
         - github:awick
+        - github:frodelu
+        - github:mortent
+        - github:bratseth
+        - github:jonmv
     admins:
         - github:FenrirUnbound
         - github:cynthiax
