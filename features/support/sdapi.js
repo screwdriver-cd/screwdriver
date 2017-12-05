@@ -35,6 +35,7 @@ function findBuilds(config) {
     const instance = config.instance;
     const pipelineId = config.pipelineId;
     const pullRequestNumber = config.pullRequestNumber;
+    const jobName = config.jobName;
 
     return request({
         json: true,
@@ -48,7 +49,7 @@ function findBuilds(config) {
             if (pullRequestNumber) {
                 result = jobData.filter(job => job.name.startsWith(`PR-${pullRequestNumber}`));
             } else {
-                result = jobData.filter(job => job.name === 'main');
+                result = jobData.filter(job => job.name === jobName);
             }
 
             if (result.length === 0) {
@@ -87,11 +88,13 @@ function searchForBuild(config) {
     const pullRequestNumber = config.pullRequestNumber;
     const desiredSha = config.desiredSha;
     const desiredStatus = config.desiredStatus;
+    const jobName = config.jobName || 'main';
 
     return findBuilds({
         instance,
         pipelineId,
-        pullRequestNumber
+        pullRequestNumber,
+        jobName
     }).then((buildData) => {
         let result = buildData.body || [];
 
