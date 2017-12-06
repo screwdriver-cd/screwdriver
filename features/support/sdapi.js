@@ -27,6 +27,7 @@ function promiseToWait(timeToWait) {
  * @param  {String}  config.instance            Screwdriver instance to test against
  * @param  {String}  config.pipelineId          Pipeline ID to find the build in
  * @param  {String}  [config.pullRequestNumber] The PR number associated with build we're looking for
+ * @param  {String}  [config.jobName]           The job name we're looking for
  * @return {Promise}                            A promise that resolves to an array of builds that
  *                                              fulfill the given criteria. If nothing is found, an
  *                                              empty array is returned
@@ -80,6 +81,7 @@ function findBuilds(config) {
  * @param  {String}  [config.pullRequestNumber] The PR number associated with build we're looking for
  * @param  {String}  [config.desiredSha]        The SHA that the build is running against
  * @param  {String}  [config.desiredStatus]     The build status that the build should have
+ * @param  {String}  [config.jobName]           The job name we're looking for
  * @return {Promise}                            A build that fulfills the given criteria
  */
 function searchForBuild(config) {
