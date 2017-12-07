@@ -27,6 +27,7 @@ function promiseToWait(timeToWait) {
  * @param  {String}  config.instance            Screwdriver instance to test against
  * @param  {String}  config.pipelineId          Pipeline ID to find the build in
  * @param  {String}  [config.pullRequestNumber] The PR number associated with build we're looking for
+ * @param  {String}  [config.jobName]           The job name we're looking for
  * @return {Promise}                            A promise that resolves to an array of builds that
  *                                              fulfill the given criteria. If nothing is found, an
  *                                              empty array is returned
@@ -35,6 +36,7 @@ function findBuilds(config) {
     const instance = config.instance;
     const pipelineId = config.pipelineId;
     const pullRequestNumber = config.pullRequestNumber;
+    const jobName = config.jobName;
 
     return request({
         json: true,
@@ -48,7 +50,7 @@ function findBuilds(config) {
             if (pullRequestNumber) {
                 result = jobData.filter(job => job.name.startsWith(`PR-${pullRequestNumber}`));
             } else {
-                result = jobData.filter(job => job.name === 'main');
+                result = jobData.filter(job => job.name === jobName);
             }
 
             if (result.length === 0) {
@@ -79,6 +81,7 @@ function findBuilds(config) {
  * @param  {String}  [config.pullRequestNumber] The PR number associated with build we're looking for
  * @param  {String}  [config.desiredSha]        The SHA that the build is running against
  * @param  {String}  [config.desiredStatus]     The build status that the build should have
+ * @param  {String}  [config.jobName]           The job name we're looking for
  * @return {Promise}                            A build that fulfills the given criteria
  */
 function searchForBuild(config) {
@@ -87,11 +90,13 @@ function searchForBuild(config) {
     const pullRequestNumber = config.pullRequestNumber;
     const desiredSha = config.desiredSha;
     const desiredStatus = config.desiredStatus;
+    const jobName = config.jobName || 'main';
 
     return findBuilds({
         instance,
         pipelineId,
-        pullRequestNumber
+        pullRequestNumber,
+        jobName
     }).then((buildData) => {
         let result = buildData.body || [];
 
