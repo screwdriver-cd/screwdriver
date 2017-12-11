@@ -15,7 +15,7 @@ function stopJob(job) {
         if (build.isDone()) {
             return Promise.resolve();
         }
-        build.state = 'ABORTED';
+        build.status = 'ABORTED';
 
         return build.update();
     };
