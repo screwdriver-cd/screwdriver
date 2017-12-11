@@ -107,7 +107,7 @@ executor:
             resources:
                 cpu:
                     # Number of cpu cores
-                    low: 1
+                    low: 2
                     high: 6
                 memory:
                     # Memory in GB
