@@ -103,7 +103,16 @@ executor:
             host: kubernetes.default
             # The jwt token used for authenticating kubernetes requests
             # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
-
+            # Resources for build pod
+            resources:
+                cpu:
+                    # Number of cpu cores
+                    low: 1
+                    high: 6
+                memory:
+                    # Memory in GB
+                    low: 2
+                    high: 12
         # Container tags to use
         launchVersion: stable
     docker:
@@ -123,7 +132,16 @@ executor:
             host: kubernetes.default
             # The jwt token used for authenticating kubernetes requests
             # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
-
+            # Resources for build pod
+            resources:
+                cpu:
+                    # Number of cpu cores
+                    low: 2
+                    high: 6
+                memory:
+                    # Memory in GB
+                    low: 2
+                    high: 12
         # Launcher container tag to use
         launchVersion: stable
 #     jenkins:

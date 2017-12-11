@@ -73,6 +73,16 @@ executor:
             # The jwt token used for authenticating kubernetes requests
             token: K8S_TOKEN
             jobsNamespace: K8S_JOBS_NAMESPACE
+            # Resources for build pod
+            resources:
+                # Number of cpu cores
+                cpu:
+                    low: K8S_CPU_LOW
+                    high: K8S_CPU_HIGH
+                # Memory in GB
+                memory:
+                    low: K8S_MEMORY_LOW
+                    high: K8S_MEMORY_HIGH
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the pod
@@ -99,6 +109,16 @@ executor:
             token: K8S_TOKEN
             jobsNamespace: K8S_JOBS_NAMESPACE
             baseImage: K8S_BASE_IMAGE
+            # Resources for build pod
+            resources:
+                # Number of cpu cores
+                cpu:
+                    low: K8S_CPU_LOW
+                    high: K8S_CPU_HIGH
+                # Memory in GB
+                memory:
+                    low: K8S_MEMORY_LOW
+                    high: K8S_MEMORY_HIGH
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the container
