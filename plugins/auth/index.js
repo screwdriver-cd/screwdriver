@@ -110,7 +110,7 @@ exports.register = (server, options, next) => {
 
             server.auth.strategy('session', 'cookie', {
                 cookie: 'sid',
-                ttl: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+                ttl: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
                 password: pluginOptions.cookiePassword,
                 isSecure: pluginOptions.https
             });
