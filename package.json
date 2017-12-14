@@ -60,6 +60,7 @@
     "Tiffany Kyi <tiffanykyi@gmail.com>"
   ],
   "dependencies": {
+    "aguid": "^2.0.0",
     "async": "^2.0.1",
     "bell": "^8.0.0",
     "boom": "^4.0.0",
