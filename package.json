@@ -60,7 +60,6 @@
     "Tiffany Kyi <tiffanykyi@gmail.com>"
   ],
   "dependencies": {
-    "aguid": "^2.0.0",
     "async": "^2.0.1",
     "bell": "^8.0.0",
     "boom": "^4.0.0",
@@ -101,6 +100,7 @@
     "screwdriver-template-validator": "^3.0.0",
     "screwdriver-workflow-parser": "^1.1.1",
     "tinytim": "^0.1.1",
+    "uuid": "^3.1.0",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
     "winston": "^2.2.0"

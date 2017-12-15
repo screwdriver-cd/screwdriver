@@ -6,7 +6,6 @@ const bell = require('bell');
 const contextsRoute = require('./contexts');
 const crumb = require('crumb');
 const crumbRoute = require('./crumb');
-const guid = require('aguid');
 const hoek = require('hoek');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
@@ -15,6 +14,7 @@ const loginRoute = require('./login');
 const logoutRoute = require('./logout');
 const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
+const uuid = require('uuid/v1');
 
 const EXPIRES_IN = '2h';
 const ALGORITHM = 'RS256';
@@ -79,7 +79,7 @@ exports.register = (server, options, next) => {
     server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
         algorithm: ALGORITHM,
         expiresIn: EXPIRES_IN,
-        jwtid: guid()
+        jwtid: uuid()
     }));
 
     const modules = [bell, sugar, authjwt, authToken, {
