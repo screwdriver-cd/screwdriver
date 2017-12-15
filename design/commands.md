@@ -45,12 +45,14 @@ habitat:
     # If local
     # mode: local
     # package: ./foobar.hart
-    binary:  git
+    command: git
 
 # Docker specific config
 # if format: docker
 docker:
-    image: node:1.2.3
+    image: chefdk:1.2.3
+    # Optional, default: ""
+    command: knife
 
 # Binary specific config
 # if format: binary
