@@ -1,0 +1,1 @@
+{"yaml":"{\"namespace\":\"foo\",\"name\":\"bar\",\"version\":\"1.1.2\",\"description\":\"Command for habitat git\\nExecutes git commands\\n\",\"maintainer\":\"foo@bar.com\",\"format\":\"habitat\",\"habitat\":{\"mode\":\"remote\",\"package\":\"core/git/2.14.1\",\"command\":\"git\"}}"}
