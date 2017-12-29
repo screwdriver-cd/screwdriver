@@ -142,8 +142,8 @@ executor:
                     # Memory in GB
                     low: 2
                     high: 12
-            # k8s tolerations for approprate pod scheduling
-            tolerations: []
+            # k8s node selectors for approprate pod scheduling
+            nodeSelectors: {}
         # Launcher container tag to use
         launchVersion: stable
 #     jenkins:
