@@ -83,10 +83,10 @@ executor:
                 memory:
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
-            # k8s tolerations for approprate pod scheduling.
-            # Value is Array of format { key: 'key', value: 'value', effect: 'NoSchedule'}
-            tolerations:
-              __name: K8S_POD_TOLERATIONS
+            # k8s node selectors for approprate build pod scheduling.
+            # Value is Object of format { label: 'value' }
+            nodeSelectors:
+              __name: K8S_NODE_SELECTORS
               __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
