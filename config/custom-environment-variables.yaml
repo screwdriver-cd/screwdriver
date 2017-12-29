@@ -84,7 +84,10 @@ executor:
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
             # k8s node selectors for approprate build pod scheduling.
-            # Value is Object of format { label: 'value' }
+            # Value is Object of format { label: 'value' } which should conform
+            # to the label-value assigned to k8s nodes.
+            # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
+            # label-value of dedicated=screwdriver
             nodeSelectors:
               __name: K8S_NODE_SELECTORS
               __format: json
