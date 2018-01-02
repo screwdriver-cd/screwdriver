@@ -3,7 +3,7 @@ shared:
 
 jobs:
     main:
-        requires: [~pr, ~commit, ~sd@235:publish]
+        requires: [~pr, ~commit]
         steps:
             - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
             - install: npm install
