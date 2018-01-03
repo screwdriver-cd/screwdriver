@@ -83,14 +83,6 @@ executor:
                 memory:
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
-            # k8s node selectors for approprate build pod scheduling.
-            # Value is Object of format { label: 'value' } See
-            # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
-            # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
-            # label-value of dedicated=screwdriver
-            nodeSelectors:
-              __name: K8S_NODE_SELECTORS
-              __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the pod
@@ -127,6 +119,14 @@ executor:
                 memory:
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
+            # k8s node selectors for approprate build pod scheduling.
+            # Value is Object of format { label: 'value' } See
+            # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+            # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
+            # label-value of dedicated=screwdriver
+            nodeSelectors:
+              __name: K8S_NODE_SELECTORS
+              __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the container
