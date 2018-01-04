@@ -60,7 +60,7 @@ datastore:
         ssl:
           __name: DATASTORE_SEQUELIZE_SSL
           __format: json
-        # Connection pool config
+        # Connection pool config. See http://docs.sequelizejs.com/class/lib/sequelize.js~Sequelize.html#instance-constructor-constructor
         pool:
           __name: DATASTORE_SEQUELIZE_POOL
           __format: json
