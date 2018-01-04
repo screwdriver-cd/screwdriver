@@ -91,6 +91,7 @@ datastore:
         # More arguments here:
         # http://docs.sequelizejs.com/en/latest/api/sequelize/
         ssl: false
+        pool: {}
 
 executor:
     # Default executor
