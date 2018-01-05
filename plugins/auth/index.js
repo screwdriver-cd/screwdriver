@@ -14,7 +14,7 @@ const loginRoute = require('./login');
 const logoutRoute = require('./logout');
 const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
-const uuid = require('uuid/v1');
+const uuid = require('uuid/v4');
 
 const EXPIRES_IN = '2h';
 const ALGORITHM = 'RS256';
