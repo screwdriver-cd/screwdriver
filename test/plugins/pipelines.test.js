@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
+const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
@@ -141,6 +142,7 @@ describe('pipeline plugin test', () => {
             update: sinon.stub(),
             list: sinon.stub(),
             scm: {
+                getScmContexts: sinon.stub(),
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub()
             }
@@ -208,21 +210,37 @@ describe('pipeline plugin test', () => {
                 method: 'GET',
                 url: '/pipelines?page=1&count=3'
             };
+            pipelineFactoryMock.scm.getScmContexts.returns([
+                'github:github.com',
+                'gitlab:mygitlab'
+            ]);
         });
 
         it('returns 200 and all pipelines', () => {
-            pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                paginate: {
+                    page: 1,
+                    count: 3
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                paginate: {
+                    page: 1,
+                    count: 3
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testPipelines);
-                assert.calledWith(pipelineFactoryMock.list, {
-                    paginate: {
-                        page: 1,
-                        count: 3
-                    },
-                    sort: 'descending'
-                });
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
             });
         });
 
