@@ -32,7 +32,6 @@ auth:
         - github:cynthiax
         - github:d2lam
         - github:dvdizon
-        - github:jer
         - github:jithin1987
         - github:minz1027
         - github:petey
@@ -46,8 +45,6 @@ auth:
         - github:bjorncs
         - github:drewfish
         - github:gjoranv2
-        - github:jpcollins
-        - github:tonytamsf
         - github:pranavrc
         - github:awick
         - github:frodelu
@@ -59,7 +56,7 @@ auth:
         - github:cynthiax
         - github:d2lam
         - github:dvdizon
-        - github:jer
+        - github:jithin1987
         - github:minz1027
         - github:petey
         - github:r3rastogi
