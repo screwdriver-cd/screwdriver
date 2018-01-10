@@ -1,21 +1,22 @@
 'use strict';
 
+const authjwt = require('hapi-auth-jwt2');
 const authToken = require('hapi-auth-bearer-token');
 const bell = require('bell');
-const sugar = require('hapi-auth-cookie');
-const authjwt = require('hapi-auth-jwt2');
-const crumb = require('crumb');
-const jwt = require('jsonwebtoken');
-const joi = require('joi');
-const hoek = require('hoek');
-const logoutRoute = require('./logout');
-const loginRoute = require('./login');
-const tokenRoute = require('./token');
-const keyRoute = require('./key');
-const crumbRoute = require('./crumb');
 const contextsRoute = require('./contexts');
+const crumb = require('crumb');
+const crumbRoute = require('./crumb');
+const hoek = require('hoek');
+const joi = require('joi');
+const jwt = require('jsonwebtoken');
+const keyRoute = require('./key');
+const loginRoute = require('./login');
+const logoutRoute = require('./logout');
+const sugar = require('hapi-auth-cookie');
+const tokenRoute = require('./token');
+const uuid = require('uuid/v4');
 
-const EXPIRES_IN = '12h';
+const EXPIRES_IN = '2h';
 const ALGORITHM = 'RS256';
 
 /**
@@ -70,14 +71,15 @@ exports.register = (server, options, next) => {
     });
 
     /**
-     * Generates a jwt that is signed and has a 12h lifespan
+     * Generates a jwt that is signed and has a 2h lifespan
      * @method generateToken
      * @param  {Object} profile Object from generateProfile
      * @return {String}         Signed jwt that includes that profile
      */
     server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
         algorithm: ALGORITHM,
-        expiresIn: EXPIRES_IN
+        expiresIn: EXPIRES_IN,
+        jwtid: uuid()
     }));
 
     const modules = [bell, sugar, authjwt, authToken, {
@@ -108,7 +110,7 @@ exports.register = (server, options, next) => {
 
             server.auth.strategy('session', 'cookie', {
                 cookie: 'sid',
-                ttl: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+                ttl: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
                 password: pluginOptions.cookiePassword,
                 isSecure: pluginOptions.https
             });

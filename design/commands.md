@@ -27,7 +27,7 @@ $ sd_cmd nodejs/vuln_check@2 ./package.json
 # Namespace for the command
 namespace: foo
 # Command name itself
-command: bar
+name: bar
 # Description of the command and what it does
 description: |
   Lorem ipsum dolor sit amet.
@@ -128,18 +128,18 @@ $ hab pkg exec foobar-habitat-package cmd -baz sample
 ### Execute
 
 ```bash
-$ sd_cmd [exec] namespace/command@version [arguments]
+$ sd_cmd [exec] namespace/name@version [arguments]
 ```
 
 **Input:**
 
- - `namespace/command` is the fully-qualified command name.
+ - `namespace/name` is the fully-qualified command name.
  - `version` is a semver compatible format or tag.
  - `arguments` are passed directly to the underlying format.
 
 **Output:**
 
-All debug logs about the command lookup and execution are stored in `$SD_ARTIFACTS_DIR/.sd/commands/namespace/command/version/timestamp.log`
+All debug logs about the command lookup and execution are stored in `$SD_ARTIFACTS_DIR/.sd/commands/namespace/name/version/timestamp.log`
 ### Publish
 
 ```bash
@@ -164,21 +164,21 @@ Version number that was published.
 ### Promote
 
 ```bash
-$ sd_cmd promote namespace/command version tag
+$ sd_cmd promote namespace/name version tag
 Removing 1.0.1 from tag
 Promoting version to tag
 ```
 
 **Input:**
 
- - `namespace/command` is the fully-qualified command name.
+ - `namespace/name` is the fully-qualified command name.
  - `version` is the exact version that you are promoting.
  - `tag` is the case-insensitive name that you are promoting to.
 
 ### List
 
 ```bash
-$ sd_cmd ls namespace/command[@version]
+$ sd_cmd ls namespace/name[@version]
 1.0.4 - latest
 1.0.3
 1.0.2 - blue,red
@@ -187,7 +187,7 @@ $ sd_cmd ls namespace/command[@version]
 
 **Input:**
 
- - `namespace/command` is the fully-qualified command name.
+ - `namespace/name` is the fully-qualified command name.
  - `version` is a semver compatible format or tag.
 
 **Output:**

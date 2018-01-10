@@ -1,0 +1,12 @@
+[
+    {
+        "id": 9999,
+        "scmUri": "mygitlab:12345:branchName",
+        "scmContext": "gitlab:mygitlab",
+        "createTime": "2038-01-19T03:14:08.131Z",
+        "admins": {
+            "stjohn": true
+        },
+        "lastEventId": 222
+    }
+]

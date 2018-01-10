@@ -91,6 +91,7 @@ datastore:
         # More arguments here:
         # http://docs.sequelizejs.com/en/latest/api/sequelize/
         ssl: false
+        pool: {}
 
 executor:
     # Default executor
@@ -142,6 +143,8 @@ executor:
                     # Memory in GB
                     low: 2
                     high: 12
+            # k8s node selectors for approprate pod scheduling
+            nodeSelectors: {}
         # Launcher container tag to use
         launchVersion: stable
 #     jenkins:

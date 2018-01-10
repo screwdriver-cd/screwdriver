@@ -14,15 +14,27 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
+            const scmContexts = factory.scm.getScmContexts();
+            let pipelineArray = [];
 
-            return factory.list({
-                paginate: {
-                    page: request.query.page,
-                    count: request.query.count
-                },
-                sort: request.query.sort
-            })
-                .then(pipelines => reply(pipelines.map(p => p.toJson())))
+            scmContexts.forEach((scmContext) => {
+                const pipelines = factory.list({
+                    params: {
+                        scmContext
+                    },
+                    paginate: {
+                        page: request.query.page,
+                        count: request.query.count
+                    },
+                    sort: request.query.sort
+                });
+
+                pipelineArray = pipelineArray.concat(pipelines);
+            });
+
+            return Promise.all(pipelineArray)
+                .then(pipelineArrays => [].concat(...pipelineArrays))
+                .then(allPipelines => reply(allPipelines.map(p => p.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
         response: {
