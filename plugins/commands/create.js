@@ -13,6 +13,11 @@ module.exports = () => ({
         description: 'Create a new command',
         notes: 'Create a specific command',
         tags: ['api', 'commands'],
+        // TODO: activate authorization in the phase 2 or later.
+        // auth: {
+        //     strategies: ['token', 'session'],
+        //     scope: ['build']
+        // },
         plugins: {
             'hapi-swagger': {
                 security: [{ token: [] }]
@@ -45,6 +50,10 @@ module.exports = () => ({
                     if (commands.length === 0) {
                         return commandFactory.create(commandConfig);
                     }
+
+                    // If command name exists, but this build's pipelineId is not the same as command's pipelineId
+                    // Then this build does not have permission to publish
+                    // TODO: check a bound pipeline id in the phase 2 or later.
 
                     // If command name exists and has good permission, then create
                     // Create would automatically bump the patch version
