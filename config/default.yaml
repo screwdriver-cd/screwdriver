@@ -32,11 +32,12 @@ auth:
         - github:cynthiax
         - github:d2lam
         - github:dvdizon
-        - github:jer
         - github:jithin1987
         - github:minz1027
         - github:petey
+        - github:pranavrc
         - github:r3rastogi
+        - github:scottyfillups
         - github:stjohnjohnson
         - github:tkyi
         # Automated Account
@@ -46,9 +47,6 @@ auth:
         - github:bjorncs
         - github:drewfish
         - github:gjoranv2
-        - github:jpcollins
-        - github:tonytamsf
-        - github:pranavrc
         - github:awick
         - github:frodelu
         - github:mortent
@@ -56,13 +54,10 @@ auth:
         - github:jonmv
     admins:
         - github:FenrirUnbound
-        - github:cynthiax
         - github:d2lam
-        - github:dvdizon
-        - github:jer
+        - github:jithin1987
         - github:minz1027
         - github:petey
-        - github:r3rastogi
         - github:stjohnjohnson
         - github:tkyi
 
