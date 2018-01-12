@@ -103,9 +103,9 @@ $ sd_cmd exec foo/bar@1 -baz sample
  - **binary** - A script or binary that can be downloaded and directly executed.
 
 ```bash
-$ curl -o /opt/sd/commands/foo/bar/1.0.1 https://store/v1/commands/foo/bar/1.0.1
-$ chmod +x /opt/sd/commands/foo/bar/1.0.1
-$ /opt/sd/commands/foo/bar/1.0.1 -baz sample
+$ curl -o /opt/sd/commands/foo/bar/1.0.1 https://store/v1/commands/foo/bar/1.0.1/foobar.sh
+$ chmod +x /opt/sd/commands/foo/bar/1.0.1/foobar.sh
+$ /opt/sd/commands/foo/bar/1.0.1/foobar.sh -baz sample
 ```
 
  - **docker** - A docker image that can be directly run.  All `SD_*` environment variables are passed and the workspace is mounted and current working directory is set as workdir.
