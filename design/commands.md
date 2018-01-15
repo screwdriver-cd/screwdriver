@@ -103,7 +103,7 @@ $ sd_cmd exec foo/bar@1 -baz sample
  - **binary** - A script or binary that can be downloaded and directly executed.
 
 ```bash
-$ curl -o /opt/sd/commands/foo/bar/1.0.1 https://store/v1/commands/foo/bar/1.0.1/foobar.sh
+$ curl -o /opt/sd/commands/foo/bar/1.0.1/foobar.sh https://store/v1/commands/foo/bar/1.0.1
 $ chmod +x /opt/sd/commands/foo/bar/1.0.1/foobar.sh
 $ /opt/sd/commands/foo/bar/1.0.1/foobar.sh -baz sample
 ```
