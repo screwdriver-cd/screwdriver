@@ -94,7 +94,7 @@
     "screwdriver-executor-k8s-vm": "^1.0.0",
     "screwdriver-executor-queue": "^1.1.0",
     "screwdriver-executor-router": "^1.0.0",
-    "screwdriver-models": "^26.6.0",
+    "screwdriver-models": "^26.6.1",
     "screwdriver-notifications-email": "^1.1.2",
     "screwdriver-scm-github": "^5.0.0",
     "screwdriver-scm-router": "^1.0.0",
