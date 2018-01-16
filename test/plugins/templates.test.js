@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
+const testtemplatetags = require('./data/templateTags.json');
 const testtemplateversions = require('./data/templateVersions.json');
 const testpipeline = require('./data/pipeline.json');
 const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
@@ -67,6 +68,7 @@ describe('template plugin test', () => {
         };
         templateTagFactoryMock = {
             create: sinon.stub(),
+            list: sinon.stub(),
             get: sinon.stub(),
             remove: sinon.stub()
         };
@@ -227,6 +229,38 @@ describe('template plugin test', () => {
 
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
+    describe('GET /templates/name/tags', () => {
+        const options = {
+            method: 'GET',
+            url: '/templates/screwdriver%2Fbuild/tags'
+        };
+
+        it('returns 200 and all template tags for a template name', () => {
+            templateTagFactoryMock.list.resolves(getTemplateMocks(testtemplatetags));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplatetags);
+                assert.calledWith(templateTagFactoryMock.list, {
+                    params: { name: 'screwdriver/build' },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateTagFactoryMock.list.resolves([]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

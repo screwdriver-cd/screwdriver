@@ -4,6 +4,7 @@ const createRoute = require('./create');
 const createTagRoute = require('./createTag');
 const getRoute = require('./get');
 const listRoute = require('./list');
+const listTagsRoute = require('./listTags');
 const listVersionsRoute = require('./listVersions');
 const removeTagRoute = require('./removeTag');
 
@@ -20,6 +21,7 @@ exports.register = (server, options, next) => {
         createTagRoute(),
         getRoute(),
         listRoute(),
+        listTagsRoute(),
         listVersionsRoute(),
         removeTagRoute()
     ]);
