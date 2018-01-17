@@ -7,12 +7,6 @@
 {
     "id": 7970,
     "name": "screwdriver/build",
-    "tag": "stable",
+    "tag": "latest",
     "version": "1.0.2"
-},
-{
-    "id": 7971,
-    "name": "screwdriver/build",
-    "tag": "stable",
-    "version": "3.2.1"
 }]
