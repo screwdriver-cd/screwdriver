@@ -25,7 +25,7 @@ module.exports = () => ({
                 sort: request.query.sort
             }).then((templates) => {
                 if (templates.length === 0) {
-                    throw boom.notFound('Template does not exist');
+                    throw boom.notFound('No tags found for template');
                 }
 
                 reply(templates.map(p => p.toJson()));
