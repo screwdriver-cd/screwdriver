@@ -10,7 +10,7 @@ module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/tags',
     config: {
-        description: 'Get all template tags for a given template name with pagination',
+        description: 'Get all template tags for a given template name',
         notes: 'Returns all template tags for a given template name',
         tags: ['api', 'templates', 'tags'],
         handler: (request, reply) => {
