@@ -148,7 +148,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     Then(/^a new build from `main` should be created to test that change$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(8)
+        return this.promiseToWait(10) // Wait to find the new build
             .then(() => sdapi.searchForBuild({
                 instance: this.instance,
                 pipelineId: this.pipelineId,
