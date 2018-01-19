@@ -121,7 +121,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^new changes are pushed to that pull request$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(3) // Find & save the previous build
+        return this.promiseToWait(10) // Find & save the previous build
             .then(() =>
                 sdapi.searchForBuild({
                     instance: this.instance,
