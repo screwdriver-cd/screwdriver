@@ -59,6 +59,7 @@ services:
         environment:
             ECOSYSTEM_API: http://${ip}:9001
             ECOSYSTEM_STORE: http://${ip}:9002
+            AVATAR_HOSTNAME: ${avatar}
 
     store:
         image: screwdrivercd/store:stable
@@ -185,6 +186,7 @@ def generate_scm_config(scm_plugin, ip):
         client_id_name = 'Client ID'
         client_secret_name = 'Client Secret'
         scm_config['secret'] = 'SUPER-SECRET-SIGNING-THING'
+        avatar = 'avatars*.githubusercontent.com'
     elif scm_plugin == 'bitbucket':
         service_name = 'Bitbucket.org'
         start_url = 'https://bitbucket.org/account/user/<your username>/oauth-consumers/new'
@@ -193,6 +195,7 @@ def generate_scm_config(scm_plugin, ip):
         additional_process = "for 'Permissions' enable Read checkbox for Repositories, Account and Pull requests"
         client_id_name = 'Key'
         client_secret_name = 'Secret'
+        avatar = 'bitbucket.org/account/*/avatar/*'
     elif scm_plugin == 'gitlab':
         service_name = 'Gitlab.com'
         start_url = 'https://gitlab.com/profile/applications'
@@ -201,6 +204,7 @@ def generate_scm_config(scm_plugin, ip):
         additional_process = ''
         client_id_name = 'Application Id'
         client_secret_name = 'Secret'
+        avatar = 'assets.gitlab-static.net/uploads/-/system/*/avatar/*'
 
     print('''
     Please create a new OAuth application on {service_name}
@@ -225,7 +229,7 @@ def generate_scm_config(scm_plugin, ip):
     scm_config['oauthClientSecret'] = secret
 
     print('')
-    return dict(scm_config=json.dumps(scm_config))
+    return dict(scm_config=json.dumps(scm_config), avatar=avatar)
 
 
 def check_component(component):
