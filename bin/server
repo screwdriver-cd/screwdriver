@@ -63,6 +63,12 @@ bookends.teardown || [] // plugins required for the teardown- steps
 
 // Setup Model Factories
 const Models = require('screwdriver-models');
+const commandFactory = Models.CommandFactory.getInstance({
+    datastore
+});
+const commandTagFactory = Models.CommandTagFactory.getInstance({
+    datastore
+});
 const templateFactory = Models.TemplateFactory.getInstance({
     datastore
 });
@@ -116,6 +122,8 @@ datastore.setup()
         webhooks: webhooksConfig,
         notifications: notificationConfig,
         ecosystem,
+        commandFactory,
+        commandTagFactory,
         templateFactory,
         templateTagFactory,
         pipelineFactory,
