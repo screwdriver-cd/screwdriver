@@ -10,5 +10,6 @@
     "mode": "remote",
     "package": "core/git/2.14.1",
     "command": "git"
-  }
+  },
+  "pipelineId": 123
 }

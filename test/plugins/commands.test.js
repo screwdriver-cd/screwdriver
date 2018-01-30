@@ -7,6 +7,7 @@ const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
 const testcommand = require('./data/command.json');
+const testpipeline = require('./data/pipeline.json');
 const COMMAND_INVALID = require('./data/command-validator.missing-version.json');
 const COMMAND_VALID = require('./data/command-validator.input.json');
 const COMMAND_VALID_NEW_VERSION = require('./data/command-create.input.json');
@@ -33,9 +34,18 @@ const getCommandMocks = (commands) => {
     return decorateObj(commands);
 };
 
+const getPipelineMocks = (pipelines) => {
+    if (Array.isArray(pipelines)) {
+        return pipelines.map(decorateObj);
+    }
+
+    return decorateObj(pipelines);
+};
+
 describe('command plugin test', () => {
     let commandFactoryMock;
     let commandTagFactoryMock;
+    let pipelineFactoryMock;
     let plugin;
     let server;
 
@@ -58,6 +68,9 @@ describe('command plugin test', () => {
             get: sinon.stub(),
             remove: sinon.stub()
         };
+        pipelineFactoryMock = {
+            get: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/commands');
@@ -65,7 +78,8 @@ describe('command plugin test', () => {
         server = new hapi.Server();
         server.app = {
             commandFactory: commandFactoryMock,
-            commandTagFactory: commandTagFactoryMock
+            commandTagFactory: commandTagFactoryMock,
+            pipelineFactory: pipelineFactoryMock
         };
         server.connection({
             port: 1234
@@ -150,6 +164,7 @@ describe('command plugin test', () => {
     describe('POST /commands', () => {
         let options;
         let commandMock;
+        let pipelineMock;
         const testId = 7969;
         let expected;
 
@@ -173,12 +188,24 @@ describe('command plugin test', () => {
                 maintainer: 'foo@bar.com',
                 namespace: 'foo',
                 name: 'bar',
-                version: '1.1.2'
+                version: '1.1.2',
+                pipelineId: 123
             };
 
             commandMock = getCommandMocks(testcommand);
             commandFactoryMock.create.resolves(commandMock);
             commandFactoryMock.list.resolves([commandMock]);
+
+            pipelineMock = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 401 when pipelineId does not match', () => {
+            commandMock.pipelineId = 8888;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
         });
 
         it('creates command if command does not exist yet', () => {
