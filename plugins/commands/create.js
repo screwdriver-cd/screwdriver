@@ -31,19 +31,20 @@ module.exports = () => ({
                 }
 
                 const commandFactory = request.server.app.commandFactory;
+                const pipelineFactory = request.server.app.pipelineFactory;
+                const pipelineId = request.auth.credentials.pipelineId;
 
                 return Promise.all([
+                    pipelineFactory.get(pipelineId),
                     commandFactory.list({
                         params: {
                             namespace: config.command.namespace,
                             name: config.command.name
                         }
                     })
-                ]).then(([commands]) => {
+                ]).then(([pipeline, commands]) => {
                     const commandConfig = hoek.applyToDefaults(config.command, {
-                        // TODO: implement in the phase 2 or later.
-                        // pipelineId: pipeline.id,
-                        // labels: config.command.labels || []
+                        pipelineId: pipeline.id
                     });
 
                     // If command name doesn't exist yet, just create a new entry
@@ -53,7 +54,9 @@ module.exports = () => ({
 
                     // If command name exists, but this build's pipelineId is not the same as command's pipelineId
                     // Then this build does not have permission to publish
-                    // TODO: check a bound pipeline id in the phase 2 or later.
+                    if (pipeline.id !== commands[0].pipelineId) {
+                        throw boom.unauthorized('Not allowed to publish this command');
+                    }
 
                     // If command name exists and has good permission, then create
                     // Create would automatically bump the patch version
