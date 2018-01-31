@@ -13,11 +13,10 @@ module.exports = () => ({
         description: 'Create a new command',
         notes: 'Create a specific command',
         tags: ['api', 'commands'],
-        // TODO: activate authorization in the phase 2 or later.
-        // auth: {
-        //     strategies: ['token', 'session'],
-        //     scope: ['build']
-        // },
+        auth: {
+            strategies: ['token', 'session'],
+            scope: ['build']
+        },
         plugins: {
             'hapi-swagger': {
                 security: [{ token: [] }]

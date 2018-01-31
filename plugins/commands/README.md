@@ -50,7 +50,7 @@ Creating a command will store the command data (`namespace`, `name`, `version`, 
 
 `version` will be auto-bumped. For example, if `foo/bar@1.0.0` already exists and the version passed in is `1.0`, the newly created command will be version `1.0.1`. 
 
-*Note: This endpoint will be only accessible in `build` scope and the permission is tied to the pipeline that first creates the command in the near future.*
+*Note: This endpoint only accessible in `build` scope and the permission is tied to the pipeline that first creates the command.*
 
 `POST /commands`
 
