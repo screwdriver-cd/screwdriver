@@ -259,7 +259,7 @@ describe('template plugin test', () => {
             });
         });
 
-        it('returns an empty array when there are no template tags', () => {
+        it('returns 200 and an empty array when there are no template tags', () => {
             const options = {
                 method: 'GET',
                 url: '/templates/template-with-no-tags/tags'
