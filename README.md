@@ -48,7 +48,7 @@ Requires:
  - [Docker Compose 1.8.1+][docker-compose]
 
 ```bash
-$ python <(curl https://raw.githubusercontent.com/screwdriver-cd/screwdriver/master/in-a-box.py)
+$ python <(curl -L https://git.io/screwdriver-box)
 ```
 
 ## Configuration
