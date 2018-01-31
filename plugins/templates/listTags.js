@@ -23,13 +23,8 @@ module.exports = () => ({
                     count: request.query.count
                 },
                 sort: request.query.sort
-            }).then((tags) => {
-                if (tags.length === 0) {
-                    throw boom.notFound('No tags found for template');
-                }
-
-                reply(tags.map(p => p.toJson()));
             })
+                .then(tags => reply(tags.map(p => p.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
         response: {
