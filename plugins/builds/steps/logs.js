@@ -67,7 +67,7 @@ module.exports = config => ({
         notes: 'Returns the logs for a step',
         tags: ['api', 'builds', 'steps', 'log'],
         auth: {
-            strategies: ['token', 'session'],
+            strategies: ['token'],
             scope: ['user']
         },
         plugins: {
