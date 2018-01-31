@@ -259,6 +259,20 @@ describe('template plugin test', () => {
             });
         });
 
+        it('returns 500 when fails to get template tags', () => {
+            const options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/tags'
+            };
+            const testError = new Error('getTemplateTagError');
+
+            templateTagFactoryMock.list.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
         it('returns 200 and an empty array when there are no template tags', () => {
             const options = {
                 method: 'GET',
