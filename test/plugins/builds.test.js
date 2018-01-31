@@ -1350,7 +1350,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, logs);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1368,7 +1373,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
-            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 102);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1396,7 +1406,12 @@ describe('build plugin test', () => {
                     .reply(200, lines.join('\n'));
             }
 
-            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 1000);
                 assert.propertyVal(reply.headers, 'x-more-data', 'true');
@@ -1425,7 +1440,12 @@ describe('build plugin test', () => {
                     .reply(200, lines.join('\n'));
             }
 
-            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 950);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1440,7 +1460,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
-            return server.inject(`/builds/${id}/steps/${step}/logs?from=100`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?from=100`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 2);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1455,7 +1480,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .reply(200, '');
 
-            return server.inject(`/builds/${id}/steps/${step}/logs?from=100`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?from=100`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 0);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1470,7 +1500,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server.inject(`/builds/${id}/steps/${step}/logs?from=2`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?from=2`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, logs.slice(2));
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1485,7 +1520,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server.inject(`/builds/${id}/steps/publish/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/publish/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
@@ -1500,7 +1540,12 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/test/log.0`)
                 .reply(200, '<invalid JSON>\n<more bad JSON>');
 
-            return server.inject(`/builds/${id}/steps/test/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/test/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
                 assert.propertyVal(reply.headers, 'x-more-data', 'true');
@@ -1510,7 +1555,12 @@ describe('build plugin test', () => {
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1520,7 +1570,12 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}/steps/fail/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/fail/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1528,7 +1583,12 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject(`/builds/${id}/steps/${step}/logs`).then((reply) => {
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
