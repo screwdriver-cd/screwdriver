@@ -12,16 +12,22 @@ const MAX_PAGES = 10;
  * @method loadLines
  * @param  {String}     baseUrl         URL to load from (without the .$PAGE)
  * @param  {Integer}    linesFrom       What line number are we starting from
+ * @param  {String}     authToken       Bearer Token to be passed to the store
  * @param  {Integer}    [pagesLoaded=0] How many pages have we loaded so far
  * @return {Promise}                    [Array of log lines, Are there more pages]
  */
-function loadLines(baseUrl, linesFrom, pagesLoaded = 0) {
+function loadLines(baseUrl, linesFrom, authToken, pagesLoaded = 0) {
     return new Promise((resolve) => {
         const page = Math.floor(linesFrom / MAX_LINES);
         const output = [];
 
         request
-            .get(`${baseUrl}.${page}`)
+            .get({
+                url: `${baseUrl}.${page}`,
+                headers: {
+                    Authorization: authToken
+                }
+            })
             // Parse the ndjson
             .pipe(ndjson.parse({
                 strict: false
@@ -42,7 +48,7 @@ function loadLines(baseUrl, linesFrom, pagesLoaded = 0) {
         if (linesCount > 0 && (linesCount + linesFrom) % MAX_LINES === 0) {
             // If we haven't loaded MAX_PAGES, load the next page
             if (currentPage < MAX_PAGES) {
-                return loadLines(baseUrl, linesCount + linesFrom, currentPage)
+                return loadLines(baseUrl, linesCount + linesFrom, authToken, currentPage)
                     .then(([nextLines, pageLimit]) => [lines.concat(nextLines), pageLimit]);
             }
             // Otherwise exit early and flag that there may be more pages
@@ -60,10 +66,20 @@ module.exports = config => ({
         description: 'Get the logs for a build step',
         notes: 'Returns the logs for a step',
         tags: ['api', 'builds', 'steps', 'log'],
+        auth: {
+            strategies: ['token', 'session'],
+            scope: ['user']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (req, reply) => {
             const factory = req.server.app.buildFactory;
             const buildId = req.params.id;
             const stepName = req.params.name;
+            const headers = req.headers;
 
             factory.get(buildId)
                 .then((model) => {
@@ -90,7 +106,7 @@ module.exports = config => ({
                     const baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/${stepName}/log`;
 
-                    return loadLines(baseUrl, req.query.from)
+                    return loadLines(baseUrl, req.query.from, headers.Authorization)
                         .then(([lines, morePages]) => reply(lines)
                             .header('X-More-Data', (morePages || !isDone).toString()));
                 })
