@@ -174,6 +174,7 @@ describe('command plugin test', () => {
                 url: '/commands',
                 payload: COMMAND_VALID,
                 credentials: {
+                    scope: ['build']
                 }
             };
 
