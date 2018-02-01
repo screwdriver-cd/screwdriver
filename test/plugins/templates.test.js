@@ -237,12 +237,12 @@ describe('template plugin test', () => {
     });
 
     describe('GET /templates/name/tags', () => {
-        const options = {
-            method: 'GET',
-            url: '/templates/screwdriver%2Fbuild/tags'
-        };
-
         it('returns 200 and all template tags for a template name', () => {
+            const options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/tags'
+            };
+
             templateTagFactoryMock.list.resolves(getTemplateMocks(testtemplatetags));
 
             return server.inject(options).then((reply) => {
@@ -259,11 +259,39 @@ describe('template plugin test', () => {
             });
         });
 
-        it('returns 404 when template does not exist', () => {
+        it('returns 500 when fails to get template tags', () => {
+            const options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/tags'
+            };
+            const testError = new Error('getTemplateTagError');
+
+            templateTagFactoryMock.list.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 200 and an empty array when there are no template tags', () => {
+            const options = {
+                method: 'GET',
+                url: '/templates/template-with-no-tags/tags'
+            };
+
             templateTagFactoryMock.list.resolves([]);
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+                assert.calledWith(templateTagFactoryMock.list, {
+                    params: { name: 'template-with-no-tags' },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
             });
         });
     });
