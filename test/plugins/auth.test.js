@@ -7,6 +7,7 @@ const hapi = require('hapi');
 const sinon = require('sinon');
 const fs = require('fs');
 const hoek = require('hoek');
+const jwt = require('jsonwebtoken');
 
 chai.use(require('chai-jwt'));
 chai.use(require('chai-as-promised'));
@@ -42,6 +43,11 @@ describe('auth plugin test', () => {
     let scm;
     const jwtPrivateKey = fs.readFileSync(`${__dirname}/data/jwt.private.key`).toString();
     const jwtPublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
+    const sampleToken = jwt.sign({}, jwtPrivateKey, {
+        algorithm: 'RS256',
+        expiresIn: '2h',
+        jwtid: 'abc'
+    });
     const cookiePassword = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
 
@@ -249,7 +255,8 @@ describe('auth plugin test', () => {
                 url: '/auth/token',
                 credentials: {
                     username: 'batman',
-                    scope: ['user']
+                    scope: ['user'],
+                    token: sampleToken
                 }
             }).then((reply) => {
                 const token = reply.result.token;
@@ -501,7 +508,15 @@ describe('auth plugin test', () => {
                 url: '/auth/token',
                 credentials: {
                     username: 'robin',
-                    scope: ['user']
+                    scope: ['user'],
+                    token: jwt.sign({
+                        username: 'robin',
+                        scope: ['user']
+                    }, jwtPrivateKey, {
+                        algorithm: 'RS256',
+                        expiresIn: '2h',
+                        jwtid: 'abc'
+                    })
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Login route should be available');

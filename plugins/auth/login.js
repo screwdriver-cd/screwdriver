@@ -63,6 +63,7 @@ module.exports = config => ({
                 ));
             }
 
+            profile.token = request.server.plugins.auth.generateToken(profile);
             request.cookieAuth.set(profile);
 
             return factory.get({ username, scmContext })

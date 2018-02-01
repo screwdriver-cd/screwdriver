@@ -28,6 +28,7 @@ module.exports = () => ({
             let profile = request.auth.credentials;
             const username = profile.username;
             const scope = profile.scope;
+            const token = profile.token;
             const buildFactory = request.server.app.buildFactory;
             const jobFactory = request.server.app.jobFactory;
             const pipelineFactory = request.server.app.pipelineFactory;
@@ -49,18 +50,14 @@ module.exports = () => ({
                             pipeline.scmContext,
                             ['build', 'impersonated']
                         );
-                        const token = request.server.plugins.auth.generateToken(profile);
+                        profile.token = request.server.plugins.auth.generateToken(profile);
 
                         request.cookieAuth.set(profile);
 
-                        return reply({ token });
+                        return reply({ token: profile.token });
                     })
                     .catch(err => reply(boom.wrap(err)));
             }
-
-            const token = request.server.plugins.auth.generateToken(profile);
-
-            request.cookieAuth.set(profile);
 
             return reply({ token });
         },
