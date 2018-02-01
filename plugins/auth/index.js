@@ -142,11 +142,15 @@ exports.register = (server, options, next) => {
                                 return cb(null, false, {});
                             }
 
-                            return cb(null, true, {
+                            const profile = {
                                 username: user.username,
                                 scmContext: user.scmContext,
                                 scope: ['user']
-                            });
+                            };
+
+                            profile.token = server.plugins.auth.generateToken(profile);
+
+                            return cb(null, true, profile);
                         });
                 }
             });
