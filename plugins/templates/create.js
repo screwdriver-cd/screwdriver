@@ -27,7 +27,8 @@ module.exports = () => ({
             .then((config) => {
                 if (config.errors.length > 0) {
                     throw boom.badRequest(
-                        'Template has invalid format: ', config.errors.toString());
+                        `Template has invalid format: ${config.errors.length} error(s).`,
+                        config.errors);
                 }
 
                 const pipelineFactory = request.server.app.pipelineFactory;

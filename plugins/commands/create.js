@@ -26,7 +26,8 @@ module.exports = () => ({
             .then((config) => {
                 if (config.errors.length > 0) {
                     throw boom.badRequest(
-                        'Command has invalid format: ', config.errors.toString());
+                        `Command has invalid format: ${config.errors.length} error(s).`,
+                        config.errors);
                 }
 
                 const commandFactory = request.server.app.commandFactory;
