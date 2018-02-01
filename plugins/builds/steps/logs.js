@@ -106,7 +106,7 @@ module.exports = config => ({
                     const baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/${stepName}/log`;
 
-                    return loadLines(baseUrl, req.query.from, headers.Authorization)
+                    return loadLines(baseUrl, req.query.from, headers.authorization)
                         .then(([lines, morePages]) => reply(lines)
                             .header('X-More-Data', (morePages || !isDone).toString()));
                 })
