@@ -28,8 +28,6 @@ module.exports = config => ({
             const artifact = request.params.name;
             const buildId = request.params.id;
 
-            console.log(config)
-
             const token = jwt.sign({
                 buildId, artifact, scope: ['user']
             }, config.authConfig.jwtPrivateKey, {
