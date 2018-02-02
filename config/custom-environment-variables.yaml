@@ -254,6 +254,8 @@ ecosystem:
     badges: ECOSYSTEM_BADGES
     # Default registry to pull build containers from
     dockerRegistry: ECOSYSTEM_DOCKER_REGISTRY
+    # Hostname for metrics service, or pushgateway
+    metric_host: ECOSYSTEM_METRIC_HOST
     # Array of extra origins allowed to do CORS to API
     allowCors:
         __name: ECOSYSTEM_ALLOW_CORS
