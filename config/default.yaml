@@ -232,7 +232,7 @@ ecosystem:
     badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg
     # Default registry to pull build containers from. Uses Docker Hub if nothing/empty string is provided
     dockerRegistry: ""
-    # Hostname for metrics service, or pushgateway
-    metricHost: http://pushgateway.example.org:9091
+    # Pushgateway URL for Prometheus
+    pushgatewayUrl: http://pushgateway.example.org:9091
     # Extra origins allowed to do CORS to API
     allowCors: []
