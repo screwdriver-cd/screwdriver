@@ -16,7 +16,7 @@ module.exports = config => ({
         notes: 'Redirects to store with proper token',
         tags: ['api', 'builds', 'artifacts'],
         auth: {
-            strategies: ['session'],
+            strategies: ['session', 'token'],
             scope: ['user']
         },
         plugins: {
