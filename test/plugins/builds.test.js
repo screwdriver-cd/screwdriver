@@ -1602,11 +1602,11 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('GET /builds/{id}/artifacts/{artifcat}', () => {
+    describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
 
-        it('rediects to store for a artifact request', () => {
+        it('redirects to store for an artifact request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
             return server.inject({
