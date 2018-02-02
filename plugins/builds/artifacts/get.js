@@ -6,10 +6,11 @@ const schema = require('screwdriver-data-schema');
 const uuid = require('uuid/v4');
 
 const idSchema = joi.reach(schema.models.build.base, 'id');
+const artifactSchema = joi.string().label('Artifact ID');
 
 module.exports = config => ({
     method: 'GET',
-    path: '/builds/{id}/artifacts/{name}',
+    path: '/builds/{id}/artifacts/{name*}',
     config: {
         description: 'Get a single build artifact',
         notes: 'Redirects to store with proper token',
@@ -42,7 +43,8 @@ module.exports = config => ({
         },
         validate: {
             params: {
-                id: idSchema
+                id: idSchema,
+                name: artifactSchema
             }
         }
     }
