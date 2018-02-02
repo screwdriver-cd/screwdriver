@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 const uuid = require('uuid/v4');
 
 const idSchema = joi.reach(schema.models.build.base, 'id');
-const artifactSchema = joi.string().label('Artifact ID');
+const artifactSchema = joi.string().label('Artifact Name');
 
 module.exports = config => ({
     method: 'GET',
@@ -28,9 +28,11 @@ module.exports = config => ({
             const artifact = request.params.name;
             const buildId = request.params.id;
 
+            console.log(config)
+
             const token = jwt.sign({
                 buildId, artifact, scope: ['user']
-            }, config.auth.jwtPrivateKey, {
+            }, config.authConfig.jwtPrivateKey, {
                 algorithm: 'RS256',
                 expiresIn: '5s',
                 jwtid: uuid()

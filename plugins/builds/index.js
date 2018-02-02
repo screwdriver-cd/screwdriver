@@ -4,6 +4,7 @@ const getRoute = require('./get');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
+const artifactGetRoute = require('./artifacts/get');
 const stepUpdateRoute = require('./steps/update');
 const stepLogsRoute = require('./steps/logs');
 const listSecretsRoute = require('./listSecrets');
@@ -190,7 +191,8 @@ exports.register = (server, options, next) => {
         stepUpdateRoute(),
         stepLogsRoute(options),
         // Secrets
-        listSecretsRoute()
+        listSecretsRoute(),
+        artifactGetRoute(options)
     ]);
 
     next();
