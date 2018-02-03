@@ -136,7 +136,8 @@ datastore.setup()
         collectionFactory,
         triggerFactory,
         builds: {
-            ecosystem
+            ecosystem,
+            authConfig
         },
         stats: {
             executor, scm

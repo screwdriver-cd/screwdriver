@@ -40,6 +40,10 @@ const getMockBuilds = (builds) => {
     return decorateBuildObject(builds);
 };
 
+const jwtMock = {
+    sign: () => 'sign'
+};
+
 describe('build plugin test', () => {
     let buildFactoryMock;
     let userFactoryMock;
@@ -98,6 +102,7 @@ describe('build plugin test', () => {
         };
         secretAccessMock = sinon.stub().resolves(false);
 
+        mockery.registerMock('jsonwebtoken', jwtMock);
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
         /* eslint-enable global-require */
@@ -139,6 +144,9 @@ describe('build plugin test', () => {
                 options: {
                     ecosystem: {
                         store: logBaseUrl
+                    },
+                    authConfig: {
+                        jwtPrivateKey: 'boo'
                     }
                 }
             }
@@ -1590,6 +1598,25 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/artifacts/{artifact}', () => {
+        const id = 12345;
+        const artifact = 'manifest';
+
+        it('redirects to store for an artifact request', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+
+            return server.inject({
+                url: `/builds/${id}/artifacts/${artifact}`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
             });
         });
     });
