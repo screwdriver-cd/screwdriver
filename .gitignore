@@ -1,5 +1,5 @@
 node_modules/
-artifacts/
+/artifacts/
 npm-debug.log
 .DS_STORE
 .*.swp
