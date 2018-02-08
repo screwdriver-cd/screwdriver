@@ -52,6 +52,7 @@ auth:
         - github:mortent
         - github:bratseth
         - github:jonmv
+        - github:manolama
     admins:
         - github:FenrirUnbound
         - github:d2lam
