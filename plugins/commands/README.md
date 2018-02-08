@@ -29,6 +29,10 @@ server.register({
 
 #### Command
 
+##### Get all commands
+
+`GET /commands`
+
 ##### Get a single command
 
 You can get a single command by providing the command namespace, name and the specific version or the tag.
