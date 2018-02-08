@@ -7,6 +7,7 @@ const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
 const testcommand = require('./data/command.json');
+const testcommands = require('./data/commands.json');
 const testpipeline = require('./data/pipeline.json');
 const COMMAND_INVALID = require('./data/command-validator.missing-version.json');
 const COMMAND_VALID = require('./data/command-validator.input.json');
@@ -108,6 +109,41 @@ describe('command plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.commands);
+    });
+
+    describe('GET /commands', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/commands'
+            };
+        });
+
+        it('returns 200 and all commands', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, '200');
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            commandFactoryMock.list.rejects(new Error('fittoburst'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /commands/namespace/name/versionOrTag', () => {

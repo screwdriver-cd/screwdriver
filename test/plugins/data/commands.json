@@ -1,0 +1,28 @@
+[{
+  "id": 7969,
+  "namespace": "foo",
+  "name": "bar",
+  "version": "1.0.0",
+  "description": "this is a habitat format command",
+  "maintainer": "foo@bar.com",
+  "format": "habitat",
+  "habitat": {
+    "mode": "remote",
+    "package": "core/git/2.14.1",
+    "command": "git"
+  },
+  "pipelineId": 123
+},
+{
+  "id": 7970,
+  "namespace": "foo",
+  "name": "foobar",
+  "version": "1.0.0",
+  "description": "this is a binary format command",
+  "maintainer": "foo@bar.com",
+  "format": "binary",
+  "binary": {
+    "file": "./foobar.sh"
+  },
+  "pipelineId": 456
+}]

@@ -2,6 +2,7 @@
 
 const createRoute = require('./create');
 const getRoute = require('./get');
+const listRoute = require('./list');
 
 /**
  * Command API Plugin
@@ -13,7 +14,8 @@ const getRoute = require('./get');
 exports.register = (server, options, next) => {
     server.route([
         createRoute(),
-        getRoute()
+        getRoute(),
+        listRoute()
     ]);
 
     next();
