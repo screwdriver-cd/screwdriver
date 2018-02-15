@@ -57,8 +57,13 @@ exports.register = (server, options, next) => {
      */
     server.expose('generateProfile', (username, scmContext, scope, metadata) => {
         const profile = Object.assign({
-            username, scmContext, scope, environment: pluginOptions.jwtEnvironment
+            username, scmContext, scope
         }, metadata || {});
+
+        if (pluginOptions.jwtEnvironment) {
+            profile.environment = pluginOptions.jwtEnvironment;
+        }
+
         const scm = server.root.app.userFactory.scm;
         const scmDisplayName = scm.getDisplayName({ scmContext });
         const userDisplayName = `${scmDisplayName}:${username}`;
