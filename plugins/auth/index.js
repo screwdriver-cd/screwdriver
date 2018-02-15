@@ -28,11 +28,13 @@ const ALGORITHM = 'RS256';
  * @param  {String}   options.encryptionPassword     Password used for iron encrypting
  * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
+ * @param  {String}  [options.jwtEnvironment]        Environment for the JWTs. Example: 'prod' or 'beta'
  * @param  {Object}   options.scm                    SCM class to setup Authentication
  * @param  {Function} next                           Function to call when done
  */
 exports.register = (server, options, next) => {
     const pluginOptions = joi.attempt(options, joi.object().keys({
+        jwtEnvironment: joi.string().default(''),
         https: joi.boolean().truthy('true').falsy('false').required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
@@ -55,7 +57,7 @@ exports.register = (server, options, next) => {
      */
     server.expose('generateProfile', (username, scmContext, scope, metadata) => {
         const profile = Object.assign({
-            username, scmContext, scope
+            username, scmContext, scope, environment: pluginOptions.jwtEnvironment
         }, metadata || {});
         const scm = server.root.app.userFactory.scm;
         const scmDisplayName = scm.getDisplayName({ scmContext });
