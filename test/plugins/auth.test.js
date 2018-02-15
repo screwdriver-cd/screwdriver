@@ -195,6 +195,33 @@ describe('auth plugin test', () => {
             }, next);
         });
 
+        it('adds environment', () => {
+            const newServer = new hapi.Server();
+
+            newServer.app.userFactory = userFactoryMock;
+            newServer.connection({
+                port: 1234
+            });
+
+            return newServer.register({
+                register: plugin,
+                options: {
+                    cookiePassword,
+                    encryptionPassword,
+                    scm,
+                    jwtPrivateKey,
+                    jwtPublicKey,
+                    jwtEnvironment: 'beta',
+                    https: false
+                }
+            }).then(() => {
+                const profile = newServer.plugins.auth
+                    .generateProfile('batman', 'github:github.com', ['user'], {});
+
+                expect(profile.environment).to.equal('beta');
+            });
+        });
+
         it('adds admin scope for admins', () => {
             const profile = server.plugins.auth
                 .generateProfile('batman', 'github:github.com', ['user'], {});
@@ -203,6 +230,7 @@ describe('auth plugin test', () => {
             expect(profile.scmContext).to.contain('github:github.com');
             expect(profile.scope).to.contain('user');
             expect(profile.scope).to.contain('admin');
+            expect(profile.environment).to.equal('');
         });
 
         it('does not add admin scope for non-admins', () => {
@@ -213,6 +241,7 @@ describe('auth plugin test', () => {
             expect(profile.scmContext).to.contain('github:mygithub.com');
             expect(profile.scope).to.contain('user');
             expect(profile.scope).to.not.contain('admin');
+            expect(profile.environment).to.equal('');
         });
     });
 
@@ -511,7 +540,8 @@ describe('auth plugin test', () => {
                     scope: ['user'],
                     token: jwt.sign({
                         username: 'robin',
-                        scope: ['user']
+                        scope: ['user'],
+                        environment: ''
                     }, jwtPrivateKey, {
                         algorithm: 'RS256',
                         expiresIn: '2h',
@@ -528,6 +558,39 @@ describe('auth plugin test', () => {
                     .with.lengthOf(1);
                 expect(reply.result.token).to.be.a.jwt
                     .and.deep.property('scope[0]', 'user');
+                expect(reply.result.token).to.be.a.jwt
+                    .and.deep.property('environment', '');
+            })
+        ));
+
+        it('returns user signed token', () => (
+            server.inject({
+                url: '/auth/token',
+                credentials: {
+                    username: 'robin',
+                    scope: ['user'],
+                    token: jwt.sign({
+                        username: 'robin',
+                        scope: ['user'],
+                        environment: 'beta'
+                    }, jwtPrivateKey, {
+                        algorithm: 'RS256',
+                        expiresIn: '2h',
+                        jwtid: 'abc'
+                    })
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200, 'Login route should be available');
+                assert.ok(reply.result.token, 'Token not returned');
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('username', 'robin');
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('scope')
+                    .with.lengthOf(1);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.deep.property('scope[0]', 'user');
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('environment', 'beta');
             })
         ));
 
