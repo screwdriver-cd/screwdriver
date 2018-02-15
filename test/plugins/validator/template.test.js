@@ -110,10 +110,11 @@ describe('template validator plugin test', () => {
                 assert.deepEqual(payload.errors, [
                     {
                         context: {
-                            key: 'version'
+                            key: 'version',
+                            label: 'version'
                         },
                         message: '"version" is required',
-                        path: 'version',
+                        path: ['version'],
                         type: 'any.required'
                     }
                 ]);
