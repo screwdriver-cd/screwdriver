@@ -230,7 +230,7 @@ describe('auth plugin test', () => {
             expect(profile.scmContext).to.contain('github:github.com');
             expect(profile.scope).to.contain('user');
             expect(profile.scope).to.contain('admin');
-            expect(profile.environment).to.equal('');
+            expect(profile.environment).to.equal(undefined);
         });
 
         it('does not add admin scope for non-admins', () => {
@@ -241,7 +241,7 @@ describe('auth plugin test', () => {
             expect(profile.scmContext).to.contain('github:mygithub.com');
             expect(profile.scope).to.contain('user');
             expect(profile.scope).to.not.contain('admin');
-            expect(profile.environment).to.equal('');
+            expect(profile.environment).to.equal(undefined);
         });
     });
 
@@ -540,8 +540,7 @@ describe('auth plugin test', () => {
                     scope: ['user'],
                     token: jwt.sign({
                         username: 'robin',
-                        scope: ['user'],
-                        environment: ''
+                        scope: ['user']
                     }, jwtPrivateKey, {
                         algorithm: 'RS256',
                         expiresIn: '2h',
@@ -558,8 +557,6 @@ describe('auth plugin test', () => {
                     .with.lengthOf(1);
                 expect(reply.result.token).to.be.a.jwt
                     .and.deep.property('scope[0]', 'user');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.deep.property('environment', '');
             })
         ));
 
