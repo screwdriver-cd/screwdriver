@@ -14,8 +14,6 @@ auth:
         -----BEGIN PUBLIC KEY-----
         YOUR-KEY-HERE
         -----END PUBLIC KEY-----
-    # Environment of JWTs
-    jwtEnvironment: ''
     # A password used for encrypting session data.
     # **Needs to be minimum 32 characters**
     cookiePassword: WOW-ANOTHER-INSECURE-PASSWORD!!!
