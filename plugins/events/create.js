@@ -29,6 +29,7 @@ module.exports = () => ({
             const scmContext = request.auth.credentials.scmContext;
             const startFrom = request.payload.startFrom;
             const username = request.auth.credentials.username;
+            const parentBuildId = request.payload.parentBuildId;
             const payload = {
                 pipelineId,
                 scmContext,
@@ -36,6 +37,11 @@ module.exports = () => ({
                 type: 'pipeline',
                 username
             };
+
+            if (parentBuildId) {
+                payload.parentBuildId = parentBuildId;
+            }
+
             // Match PR-prNum, then extract prNum
             // e.g. if startFrom is "PR-1:main", prNumFullName will be "PR-1"; prNum will be "1"
             const prNumFullName = startFrom.match(validationSchema.config.regex.PR_JOB_NAME);
