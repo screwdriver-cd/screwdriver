@@ -9,6 +9,7 @@ describe('server case', () => {
     let hapiEngine;
     const ecosystem = {
         ui: 'http://example.com',
+        store: 'http://store.example.com',
         allowCors: ['http://mycors.com']
     };
 
