@@ -27,7 +27,7 @@ auth:
     # if empty, it allows everyone
     # @TODO Move this content to our configuration and change the default to []
     whitelist:
-        # Primary Contributors
+        # Screwdriver Team Members
         - github:FenrirUnbound
         - github:cynthiax
         - github:d2lam
@@ -53,6 +53,7 @@ auth:
         - github:bratseth
         - github:jonmv
         - github:manolama
+        - github:31453
     admins:
         - github:FenrirUnbound
         - github:d2lam
