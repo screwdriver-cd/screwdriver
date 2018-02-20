@@ -8,7 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testcommand = require('./data/command.json');
 const testcommands = require('./data/commands.json');
-const testcommandversions = require('./data/commandVersions.json');
+const testcommandVersions = require('./data/commandVersions.json');
 const testpipeline = require('./data/pipeline.json');
 const COMMAND_INVALID = require('./data/command-validator.missing-version.json');
 const COMMAND_VALID = require('./data/command-validator.input.json');
@@ -209,11 +209,11 @@ describe('command plugin test', () => {
         });
 
         it('returns 200 and all command versions for a command namespace/name', () => {
-            commandFactoryMock.list.resolves(getCommandMocks(testcommandversions));
+            commandFactoryMock.list.resolves(getCommandMocks(testcommandVersions));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testcommandversions);
+                assert.deepEqual(reply.result, testcommandVersions);
                 assert.calledWith(commandFactoryMock.list, {
                     params: {
                         namespace: 'screwdriver',
