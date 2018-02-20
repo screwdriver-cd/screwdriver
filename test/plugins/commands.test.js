@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testcommand = require('./data/command.json');
 const testcommands = require('./data/commands.json');
+const testcommandversions = require('./data/commandVersions.json');
 const testpipeline = require('./data/pipeline.json');
 const COMMAND_INVALID = require('./data/command-validator.missing-version.json');
 const COMMAND_VALID = require('./data/command-validator.input.json');
@@ -193,6 +194,45 @@ describe('command plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /commands/namespace/name', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/commands/screwdriver/build'
+            };
+        });
+
+        it('returns 200 and all command versions for a command namespace/name', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommandversions));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommandversions);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: {
+                        namespace: 'screwdriver',
+                        name: 'build'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 404 when command does not exist', () => {
+            commandFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });
