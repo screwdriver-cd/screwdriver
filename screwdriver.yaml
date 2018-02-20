@@ -5,7 +5,7 @@ jobs:
     main:
         requires: [~pr, ~commit]
         steps:
-            - setup-ci: git clone https://gist.github.com/3d2388b2a7ba658cdcdaffa8cd874e50.git ci
+            - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install: npm install
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
             - test: npm test
