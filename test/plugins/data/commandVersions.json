@@ -1,0 +1,43 @@
+[{
+  "id": 7969,
+  "namespace": "screwdriver",
+  "name": "build",
+  "version": "0.0.0",
+  "description": "this is a habitat format command",
+  "maintainer": "foo@bar.com",
+  "format": "habitat",
+  "habitat": {
+    "mode": "remote",
+    "package": "core/git/2.14.1",
+    "command": "git"
+  },
+  "pipelineId": 123
+},
+{
+  "id": 7970,
+  "namespace": "screwdriver",
+  "name": "build",
+  "version": "1.0.2",
+  "description": "this is a binary format command",
+  "maintainer": "foo@bar.com",
+  "format": "binary",
+  "binary": {
+    "file": "./foobar.sh"
+  },
+  "pipelineId": 123
+},
+{
+  "id": 7974,
+  "namespace": "screwdriver",
+  "name": "build",
+  "version": "3.2.1",
+  "description": "this is a habitat format command",
+  "maintainer": "foo@bar.com",
+  "format": "habitat",
+  "habitat": {
+    "mode": "remote",
+    "package": "core/git/2.14.1",
+    "command": "git"
+  },
+  "pipelineId": 123
+}]

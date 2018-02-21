@@ -33,6 +33,12 @@ server.register({
 
 `GET /commands`
 
+##### Get all command versions
+
+You can get all versions of commands by providing the command namespace and name.
+
+`GET /commands/{namespace}/{name}`
+
 ##### Get a single command
 
 You can get a single command by providing the command namespace, name and the specific version or the tag.
