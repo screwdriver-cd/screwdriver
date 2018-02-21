@@ -143,13 +143,13 @@ All debug logs about the command lookup and execution are stored in `$SD_ARTIFAC
 ### Publish
 
 ```bash
-$ sd_cmd publish -f command_spec.yml
+$ sd_cmd publish -f sd-command.yaml
 1.0.4
 ```
 
 **Input:**
 
- - `command_spec.yml` is the command specification.
+ - `sd-command.yaml` is the command specification.
 
 **Output:**
 
