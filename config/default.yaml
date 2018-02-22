@@ -54,6 +54,7 @@ auth:
         - github:jonmv
         - github:manolama
         - github:31453
+        - github:catto
     admins:
         - github:FenrirUnbound
         - github:d2lam
