@@ -79,13 +79,13 @@ function dfs(workflowGraph, start, builds, visited) {
 }
 
 /**
- * Remove all downstream builds from startFrom
+ * Remove startFrom and all downstream builds from startFrom
  * @method removeDownstreamBuilds
  * @param  {Object} config
  * @param  {Array}  config.builds         An array of all builds from the parent event
  * @param  {String} config.startFrom      Job name to start the event from
  * @param  {Object} config.parentEvent    The parent event model
- * @return {Array}                        An array of upstream builds
+ * @return {Array}                        An array of upstream builds to be rerun
  */
 function removeDownstreamBuilds(config) {
     const { builds, startFrom, parentEvent } = config;
@@ -209,13 +209,15 @@ exports.register = (server, options, next) => {
                     return startBuild(buildConfig);
                 }
 
+                // If no parent event id, start if all jobs in the list are done
                 if (!event.parentEventId) {
                     return event.getBuilds()
                         .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
                         .then(done => (done ? startBuild(buildConfig) : null));
                 }
 
-                // If join, only start if all jobs in the list are done
+                // If parent event id, merge parent build status data and
+                // rerun all builds in the path of the startFrom
                 return eventFactory.get({ id: event.parentEventId })
                     .then(parentEvent => parentEvent.getBuilds()
                         .then(parentBuilds => removeDownstreamBuilds({

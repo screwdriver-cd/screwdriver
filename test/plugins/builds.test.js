@@ -912,21 +912,12 @@ describe('build plugin test', () => {
                         { src: 'a', dest: 'c', join: true },
                         { src: 'd', dest: 'c', join: true }
                     ];
-
-                    parentEventMock.workflowGraph.edges = [
-                        { src: '~pr', dest: 'a' },
-                        { src: '~commit', dest: 'a' },
-                        { src: 'a', dest: 'b' },
-                        { src: 'a', dest: 'c', join: true },
-                        { src: 'd', dest: 'c', join: true }
-                    ];
-
+                    parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
                     eventMock.getBuilds.resolves([{
                         id: 5,
                         jobId: 1,
                         status: 'SUCCESS'
                     }]);
-
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 1,
@@ -966,25 +957,15 @@ describe('build plugin test', () => {
                     jobMock.name = 'b';
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
-                    eventMock.workflowGraph = {
-                        edges: [
-                            { src: '~pr', dest: 'a' },
-                            { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'b' },
-                            { src: 'a', dest: 'c' },
-                            { src: 'b', dest: 'd', join: true },
-                            { src: 'c', dest: 'd', join: true }
-                        ],
-                        nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'd', id: 4 }
-                        ]
-                    };
-                    parentEventMock.workflowGraph = eventMock.workflowGraph;
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c' },
+                        { src: 'b', dest: 'd', join: true },
+                        { src: 'c', dest: 'd', join: true }
+                    ];
+                    parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
 
                     eventMock.getBuilds.resolves([
                         {
