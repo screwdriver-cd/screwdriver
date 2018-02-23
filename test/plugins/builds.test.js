@@ -789,8 +789,28 @@ describe('build plugin test', () => {
                 };
                 const jobC = Object.assign({}, jobB, { id: 3 });
                 const jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
+                let parentEventMock;
 
                 beforeEach(() => {
+                    parentEventMock = {
+                        id: 456,
+                        pipelineId,
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'd', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'main' },
+                                { src: '~commit', dest: 'main' }
+                            ]
+                        },
+                        getBuilds: sinon.stub()
+                    };
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -801,6 +821,7 @@ describe('build plugin test', () => {
                             { name: 'd', id: 4 }
                         ]
                     };
+                    eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
@@ -871,6 +892,138 @@ describe('build plugin test', () => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                    });
+                });
+
+                it('triggers if all jobs in join are done with parent event', () => {
+                    // For a pipeline like this:
+                    //   -> b
+                    // a
+                    //   ->
+                    //      c
+                    // d ->
+                    // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
+                    eventMock.parentEventId = 456;
+                    eventMock.startFrom = 'a';
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    parentEventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    eventMock.getBuilds.resolves([{
+                        id: 5,
+                        jobId: 1,
+                        status: 'SUCCESS'
+                    }]);
+
+                    parentEventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 2,
+                            jobId: 2,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 3,
+                            jobId: 3,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 4,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    return server.inject(options).then(() => {
+                        assert.calledTwice(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                    });
+                });
+
+                it('ignore parent event statuses if startFrom job is not on join path', () => {
+                    // For a pipeline like this:
+                    //     -> b
+                    //  a        -> d
+                    //     -> c
+                    // if user restarts from job `a`, it should ignore `c`'s parent event status when `b` finishes
+                    jobMock.name = 'b';
+                    eventMock.parentEventId = 456;
+                    eventMock.startFrom = 'a';
+                    eventMock.workflowGraph = {
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: 'a', dest: 'b' },
+                            { src: 'a', dest: 'c' },
+                            { src: 'b', dest: 'd', join: true },
+                            { src: 'c', dest: 'd', join: true }
+                        ],
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: 'b', id: 2 },
+                            { name: 'c', id: 3 },
+                            { name: 'd', id: 4 }
+                        ]
+                    };
+                    parentEventMock.workflowGraph = eventMock.workflowGraph;
+
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 5,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 6,
+                            jobId: 2,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    parentEventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 2,
+                            jobId: 2,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 3,
+                            jobId: 3,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 4,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    return server.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
                     });
                 });
 
