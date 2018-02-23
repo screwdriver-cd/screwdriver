@@ -30,6 +30,7 @@ module.exports = () => ({
             const startFrom = request.payload.startFrom;
             const username = request.auth.credentials.username;
             const parentBuildId = request.payload.parentBuildId;
+            const parentEventId = request.payload.parentEventId;
             const payload = {
                 pipelineId,
                 scmContext,
@@ -37,6 +38,10 @@ module.exports = () => ({
                 type: 'pipeline',
                 username
             };
+
+            if (parentEventId) {
+                payload.parentEventId = parentEventId;
+            }
 
             if (parentBuildId) {
                 payload.parentBuildId = parentBuildId;

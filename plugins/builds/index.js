@@ -60,6 +60,41 @@ function isJoinDone(joinList, finishedBuilds) {
 }
 
 /**
+ * DFS the workflowGraph from the start point
+ * @method dfs
+ * @param  {Object} workflowGraph   workflowGraph
+ * @param  {String} start           Start job name
+ * @param  {Array} builds           An array of builds
+ * @param  {Set} visited            A set to store visited build ids
+ * @return {Set}                    A set of build ids that are visited
+ */
+function dfs(workflowGraph, start, builds, visited) {
+    const jobId = workflowGraph.nodes.find(node => node.name === start).id;
+    const nextJobs = workflowParser.getNextJobs(workflowGraph, { trigger: start });
+
+    visited.add(builds.find(build => build.jobId === jobId).id);
+    nextJobs.forEach(job => dfs(workflowGraph, job, builds, visited));
+
+    return visited;
+}
+
+/**
+ * Remove startFrom and all downstream builds from startFrom
+ * @method removeDownstreamBuilds
+ * @param  {Object} config
+ * @param  {Array}  config.builds         An array of all builds from the parent event
+ * @param  {String} config.startFrom      Job name to start the event from
+ * @param  {Object} config.parentEvent    The parent event model
+ * @return {Array}                        An array of upstream builds to be rerun
+ */
+function removeDownstreamBuilds(config) {
+    const { builds, startFrom, parentEvent } = config;
+    const visitedBuilds = dfs(parentEvent.workflowGraph, startFrom, builds, new Set());
+
+    return builds.filter(build => !visitedBuilds.has(build.id));
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -174,8 +209,25 @@ exports.register = (server, options, next) => {
                     return startBuild(buildConfig);
                 }
 
-                // If join, only start if all jobs in the list are done
-                return event.getBuilds()
+                // If no parent event id, start if all jobs in the list are done
+                if (!event.parentEventId) {
+                    return event.getBuilds()
+                        .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
+                        .then(done => (done ? startBuild(buildConfig) : null));
+                }
+
+                // If parent event id, merge parent build status data and
+                // rerun all builds in the path of the startFrom
+                return eventFactory.get({ id: event.parentEventId })
+                    .then(parentEvent => parentEvent.getBuilds()
+                        .then(parentBuilds => removeDownstreamBuilds({
+                            builds: parentBuilds,
+                            startFrom: event.startFrom,
+                            parentEvent
+                        }))
+                    )
+                    .then(upstreamBuilds => event.getBuilds()
+                        .then(builds => builds.concat(upstreamBuilds)))
                     .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
                     .then(done => (done ? startBuild(buildConfig) : null));
             }));

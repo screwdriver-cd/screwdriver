@@ -195,6 +195,7 @@ describe('event plugin test', () => {
         beforeEach(() => {
             const username = 'myself';
             const parentBuildId = 12345;
+            const parentEventId = 12345;
             const pipelineId = 123;
             const scmContext = 'github:github.com';
             const scmUri = 'github.com:12345:branchName';
@@ -220,6 +221,7 @@ describe('event plugin test', () => {
                 method: 'POST',
                 url: '/events',
                 payload: {
+                    parentEventId,
                     parentBuildId,
                     pipelineId,
                     startFrom: '~commit'
@@ -231,6 +233,7 @@ describe('event plugin test', () => {
                 }
             };
             eventConfig = {
+                parentEventId,
                 parentBuildId,
                 pipelineId,
                 scmContext,
