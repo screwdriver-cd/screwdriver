@@ -209,6 +209,12 @@ exports.register = (server, options, next) => {
                     return startBuild(buildConfig);
                 }
 
+                if (!event.parentEventId) {
+                    return event.getBuilds()
+                        .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
+                        .then(done => (done ? startBuild(buildConfig) : null));
+                }
+
                 // If join, only start if all jobs in the list are done
                 return eventFactory.get({ id: event.parentEventId })
                     .then(parentEvent => parentEvent.getBuilds()
@@ -216,7 +222,8 @@ exports.register = (server, options, next) => {
                             builds: parentBuilds,
                             startFrom: event.startFrom,
                             parentEvent
-                        })))
+                        }))
+                    )
                     .then(upstreamBuilds => event.getBuilds()
                         .then(builds => builds.concat(upstreamBuilds)))
                     .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
