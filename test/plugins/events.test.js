@@ -186,6 +186,7 @@ describe('event plugin test', () => {
     });
 
     describe('POST /events', () => {
+        const parentEventId = 12345;
         let options;
         let eventConfig;
         let expectedLocation;
@@ -195,7 +196,6 @@ describe('event plugin test', () => {
         beforeEach(() => {
             const username = 'myself';
             const parentBuildId = 12345;
-            const parentEventId = 12345;
             const pipelineId = 123;
             const scmContext = 'github:github.com';
             const scmUri = 'github.com:12345:branchName';
@@ -221,7 +221,6 @@ describe('event plugin test', () => {
                 method: 'POST',
                 url: '/events',
                 payload: {
-                    parentEventId,
                     parentBuildId,
                     pipelineId,
                     startFrom: '~commit'
@@ -233,7 +232,6 @@ describe('event plugin test', () => {
                 }
             };
             eventConfig = {
-                parentEventId,
                 parentBuildId,
                 pipelineId,
                 scmContext,
@@ -243,6 +241,7 @@ describe('event plugin test', () => {
                 username
             };
 
+            factoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
             factoryMock.create.resolves(decorateEventMock(testEvent));
             userFactoryMock.get.resolves(userMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
@@ -263,6 +262,27 @@ describe('event plugin test', () => {
                 assert.notCalled(factoryMock.scm.getPrInfo);
             })
         );
+
+        it('returns 201 when it successfully creates an event with parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
+            eventConfig.sha = decorateEventMock(testEvent).sha;
+            options.payload.parentEventId = parentEventId;
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(factoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(factoryMock.scm.getCommitSha);
+                assert.notCalled(factoryMock.scm.getPrInfo);
+            });
+        });
 
         it('returns 201 when it successfully creates a PR event', () => {
             eventConfig.startFrom = 'PR-1:main';
