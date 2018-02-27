@@ -14,7 +14,21 @@
             "username": "imbatman"
         }
     },
-    "workflow": ["main", "publish", "beta"],
+    "workflow": [],
+    "workflowGraph": {
+        "nodes": [
+            { "name": "~pr" },
+            { "name": "~commit" },
+            { "name": "main" },
+            { "name": "publish" },
+            { "name": "beta" }
+        ],
+        "edges": [
+            { "src": "~commit", "dest": "main" },
+            { "src": "main", "dest": "publish" },
+            { "src": "publish", "dest": "beta" }
+        ]
+    },
     "causeMessage": "Merge pull request #26 from screwdriver-cd/models",
     "creator": {
         "avatar": "https://avatars.githubusercontent.com/u/2042?v=3",
