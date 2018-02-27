@@ -4,6 +4,26 @@ const boom = require('boom');
 const joi = require('joi');
 
 /**
+ * Check if the PR is being restricted or not
+ * @method isRestrictedPR
+ * @param  {String}       restriction Is the pipeline restricting PR based on origin
+ * @param  {String}       prSource    Origin of the PR
+ * @return {Boolean}                  Should the build be restricted
+ */
+function isRestrictedPR(restriction, prSource) {
+    switch (restriction) {
+    case 'all':
+        return true;
+    case 'branch':
+    case 'fork':
+        return prSource === restriction;
+    case 'none':
+    default:
+        return false;
+    }
+}
+
+/**
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
  * @method stopJob
@@ -66,10 +86,23 @@ function startPRJob(options, request) {
  * @param  {Object}       options
  * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.name          Name of the new job (PR-1)
+ * @param  {String}       options.restriction   If we are restricting PRs based on their origin
+ * @param  {String}       options.prSource      The origin of this PR
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestOpened(options, request, reply) {
+    const { hookId, restriction, prSource } = options;
+
+    // Check for restriction upfront
+    if (isRestrictedPR(restriction, prSource)) {
+        request.log(['webhook', hookId],
+            'Skipping build since pipeline is configured to restrict ' +
+            `${restriction} and PR is ${prSource}`);
+
+        return reply().code(204);
+    }
+
     return startPRJob(options, request)
         .then(() => reply().code(201))
         .catch(err => reply(boom.wrap(err)));
@@ -117,14 +150,25 @@ function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.username      User who created the PR
  * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
+ * @param  {String}       options.restriction   If we are restricting PRs based on their origin
+ * @param  {String}       options.prSource      The origin of this PR
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, name } = options;
+    const { pipeline, hookId, restriction, prSource, name } = options;
     let prJobs;
+
+    // Check for restriction upfront
+    if (isRestrictedPR(restriction, prSource)) {
+        request.log(['webhook', hookId],
+            'Skipping build since pipeline is configured to restrict ' +
+            `${restriction} and PR is ${prSource}`);
+
+        return reply().code(204);
+    }
 
     return pipeline.jobs
         .then((jobs) => {
@@ -184,7 +228,10 @@ function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
 function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, action, prNum, checkoutUrl, branch, prRef, sha, username, scmContext } = parsed;
+    const {
+        hookId, action, checkoutUrl, branch, sha,
+        prNum, prRef, prSource, username, scmContext
+    } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
@@ -208,6 +255,8 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             return pipeline.sync()
                 // handle the PR action
                 .then((p) => {
+                    // @TODO Check for cluster-level default
+                    const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
                     const options = {
                         pipelineId: p.id,
                         name: `PR-${prNum}`,
@@ -217,7 +266,9 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         scmContext,
                         prRef,
                         prNum,
+                        prSource,
                         pipeline: p,
+                        restriction,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
 
