@@ -8,7 +8,6 @@ const validator = require('screwdriver-command-validator');
 const hoek = require('hoek');
 const urlLib = require('url');
 const req = require('request');
-const Yaml = require('js-yaml');
 const VERSION_REGEX = schema.config.regex.VERSION;
 
 /**
@@ -86,7 +85,7 @@ module.exports = () => ({
             }
         },
         payload: {
-            output: 'stream',
+            parse: true,
             allow: ['multipart/form-data', 'application/json']
         },
         handler: (request, reply) => {
@@ -100,14 +99,14 @@ module.exports = () => ({
                     return reply(boom.badRequest('Posted invalid number of files.'));
                 }
                 data.file.forEach((file) => {
-                    if (file.hapi.filename === 'sd-command.yaml') {
-                        commandSpec = Buffer.from(file._data, 'utf-8').toString();
+                    if (typeof file === 'string') {
+                        commandSpec = file;
                     } else {
-                        commandBin = file._data;
+                        commandBin = file;
                     }
                 });
             } else {
-                commandSpec = Yaml.safeLoad(data._shot.payload).yaml;
+                commandSpec = data.yaml;
             }
 
             return validator(commandSpec)
