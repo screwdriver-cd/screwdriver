@@ -9,6 +9,7 @@ const hoek = require('hoek');
 const urlLib = require('url');
 const req = require('request');
 const VERSION_REGEX = schema.config.regex.VERSION;
+const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB
 
 /**
  * Publish binary command
@@ -86,6 +87,7 @@ module.exports = () => ({
         },
         payload: {
             parse: true,
+            maxBytes: DEFAULT_BYTES,
             allow: ['multipart/form-data', 'application/json']
         },
         handler: (request, reply) => {
