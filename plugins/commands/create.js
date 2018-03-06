@@ -13,11 +13,11 @@ const VERSION_REGEX = schema.config.regex.VERSION;
 /**
  * Publish binary command
  * @method binaryCommandPublish
- * @param  {commandFactory} commandFactory      commandFactory
- * @param  {config}         config              Command config
- * @param  {binary}         binary              Binary published to the store
- * @param  {string}         storeUrl            URL to the store
- * @param  {string}         authToken           Bearer Token to be passed to the store
+ * @param  {CommandFactory} commandFactory      commandFactory
+ * @param  {Object}         config              Command config
+ * @param  {Binary}         binary              Binary published to the store
+ * @param  {String}         storeUrl            URL to the store
+ * @param  {String}         authToken           Bearer Token to be passed to the store
  * @return {Promise}
  */
 function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToken) {
