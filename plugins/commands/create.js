@@ -97,16 +97,11 @@ module.exports = () => ({
 
             // if Content-type is multipart/form-data, both command binary and meta are posted
             if (request.headers['content-type'].startsWith('multipart/form-data')) {
-                if (data.file === undefined || data.file.length !== 2) {
+                if (data.binary === undefined || data.spec === undefined) {
                     return reply(boom.badRequest('Posted invalid number of files.'));
                 }
-                data.file.forEach((file) => {
-                    if (typeof file === 'string') {
-                        commandSpec = file;
-                    } else {
-                        commandBin = file;
-                    }
-                });
+                commandSpec = data.spec;
+                commandBin = data.binary;
             } else {
                 commandSpec = data.yaml;
             }
