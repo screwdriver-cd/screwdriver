@@ -93,3 +93,15 @@ Example payload:
 }
 ```
 
+#### Command Tag
+Command Tag allows fetching on command version by tag. For example, command `mynamespace/mycommand@1.2.0` as `stable`.
+
+##### Create/Update a tag
+
+If the command tag already exists, it will update the tag with the version. If the command tag doesn't exist yet, this endpoint will create the tag.
+
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the command.*
+
+`PUT /commands/{namespace}/{name}/tags/{tagName}` with the following payload
+
+* `version` - Exact version of the command (ex: `1.1.0`)
