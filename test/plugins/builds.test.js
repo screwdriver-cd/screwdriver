@@ -922,17 +922,7 @@ describe('build plugin test', () => {
                         {
                             id: 1,
                             jobId: 1,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            id: 2,
-                            jobId: 2,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            id: 3,
-                            jobId: 3,
-                            status: 'SUCCESS'
+                            status: 'FAILURE'
                         },
                         {
                             id: 4,
@@ -989,7 +979,7 @@ describe('build plugin test', () => {
                         {
                             id: 2,
                             jobId: 2,
-                            status: 'SUCCESS'
+                            status: 'FAILURE'
                         },
                         {
                             id: 3,

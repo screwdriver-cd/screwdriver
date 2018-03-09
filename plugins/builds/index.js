@@ -72,6 +72,11 @@ function dfs(workflowGraph, start, builds, visited) {
     const jobId = workflowGraph.nodes.find(node => node.name === start).id;
     const nextJobs = workflowParser.getNextJobs(workflowGraph, { trigger: start });
 
+    // If the start job has no build in parentEvent then just return
+    if (!builds.find(build => build.jobId === jobId)) {
+        return visited;
+    }
+
     visited.add(builds.find(build => build.jobId === jobId).id);
     nextJobs.forEach(job => dfs(workflowGraph, job, builds, visited));
 
