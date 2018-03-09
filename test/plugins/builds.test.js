@@ -202,7 +202,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('PUT /builds/{id}', () => {
+    describe.only('PUT /builds/{id}', () => {
         const id = 12345;
         const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
@@ -660,10 +660,11 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
-                            parentBuildId: id,
+                            parentBuildId: [id],
                             username,
                             scmContext,
-                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
+                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                            start: true
                         });
                         assert.calledWith(triggerFactoryMock.list, {
                             params: { src }
@@ -797,16 +798,9 @@ describe('build plugin test', () => {
                     pipelineId,
                     state: 'ENABLED'
                 };
-                const jobBconfig = {
-                    jobId: 2,
-                    sha: '58393af682d61de87789fb4961645c42180cec5a',
-                    parentBuildId: 12345,
-                    eventId: '8888',
-                    username: 12345,
-                    scmContext: 'github:github.com'
-                };
                 const jobC = Object.assign({}, jobB, { id: 3 });
-                const jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
+                let jobBconfig;
+                let jobCconfig;
                 let parentEventMock;
 
                 beforeEach(() => {
@@ -844,6 +838,16 @@ describe('build plugin test', () => {
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
                     buildMock.eventId = '8888';
+                    jobBconfig = {
+                        jobId: 2,
+                        sha: '58393af682d61de87789fb4961645c42180cec5a',
+                        parentBuildId: [12345],
+                        start: true,
+                        eventId: '8888',
+                        username: 12345,
+                        scmContext: 'github:github.com'
+                    };
+                    jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });
 
                 it('triggers if not a join', () => {
@@ -883,7 +887,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers if all jobs in join are done', () => {
+                it.only('triggers if all jobs in join are done', () => {
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
@@ -907,9 +911,14 @@ describe('build plugin test', () => {
                     }]);
 
                     return server.inject(options).then(() => {
+                        console.log('expect ', jobCconfig);
+
+                        // create the builds
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+
+                        // start the builds
                     });
                 });
 
@@ -1031,7 +1040,8 @@ describe('build plugin test', () => {
                     }]);
 
                     return server.inject(options).then(() => {
-                        assert.notCalled(buildFactoryMock.create);
+                        jobCconfig.start = false;
+                        assert.calledWith(buildFactoryMock.create, jobCconfig);
                     });
                 });
 

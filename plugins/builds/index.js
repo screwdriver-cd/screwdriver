@@ -11,8 +11,8 @@ const listSecretsRoute = require('./listSecrets');
 const workflowParser = require('screwdriver-workflow-parser');
 
 /**
- * Start the build
- * @method startBuild
+ * Create the build. If config.start is false then do not start the job
+ * @method createBuild
  * @param  {Object}   config                Configuration object
  * @param  {Factory}  config.jobFactory     Job Factory
  * @param  {Factory}  config.buildFactory   Build Factory
@@ -21,10 +21,13 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {String}   config.username       Username of build
  * @param  {String}   config.scmContext     SCM context
  * @param  {Build}    config.build          Build object
+ * @param  {Build}    config.start          Whether to start the build or not
  * @return {Promise}
  */
-function startBuild(config) {
-    const { jobFactory, buildFactory, pipelineId, jobName, username, scmContext, build } = config;
+function createBuild(config) {
+    const {
+        jobFactory, buildFactory, pipelineId, jobName, username, scmContext, build, start
+    } = config;
 
     return jobFactory.get({
         name: jobName,
@@ -34,10 +37,11 @@ function startBuild(config) {
             return buildFactory.create({
                 jobId: job.id,
                 sha: build.sha,
-                parentBuildId: build.id,
+                parentBuildId: [build.id],
                 eventId: build.eventId,
                 username,
-                scmContext
+                scmContext,
+                start: start !== false
             });
         }
 
@@ -211,14 +215,33 @@ exports.register = (server, options, next) => {
                 // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
                 //    joinList doesn't include C, so start A
                 if (joinList.length === 0 || !joinListNames.includes(currentJobName)) {
-                    return startBuild(buildConfig);
+                    return createBuild(buildConfig);
                 }
 
                 // If no parent event id, start if all jobs in the list are done
                 if (!event.parentEventId) {
+                    let finishedBuilds = [];
+
                     return event.getBuilds()
-                        .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
-                        .then(done => (done ? startBuild(buildConfig) : null));
+                        .then((builds) => {
+                            finishedBuilds = builds;
+                            const nextBuild = builds.filter(j => builds.includes(j.id))[0];
+
+                            // Next build hasn't been created. Create it and don't start yet
+                            if (!nextBuild) {
+                                buildConfig.start = false;
+
+                                return createBuild(buildConfig);
+                            }
+
+                            // If build is already created, update the parentBuildId
+                            build.parentBuildId = build.parentBuildId.push(build.id);
+
+                            return build.update();
+                        })
+                        .then(nextBuild => isJoinDone(joinList, finishedBuilds)
+                            // start the build if join is done
+                            .then(done => (done ? nextBuild.start() : null)));
                 }
 
                 // If parent event id, merge parent build status data and
@@ -234,7 +257,7 @@ exports.register = (server, options, next) => {
                     .then(upstreamBuilds => event.getBuilds()
                         .then(builds => builds.concat(upstreamBuilds)))
                     .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
-                    .then(done => (done ? startBuild(buildConfig) : null));
+                    .then(done => (done ? createBuild(buildConfig) : null));
             }));
         });
     });
