@@ -248,10 +248,12 @@ describe('build plugin test', () => {
                         { src: '~commit', dest: 'main' }
                     ]
                 },
-                getBuilds: sinon.stub()
+                getBuilds: sinon.stub(),
+                update: sinon.stub()
             };
 
             eventFactoryMock.get.resolves(eventMock);
+            eventMock.update.resolves(eventMock);
 
             triggerMocks = [
                 {
@@ -469,9 +471,10 @@ describe('build plugin test', () => {
                 eventFactoryMock.scm.getCommitSha.resolves('sha');
             });
 
-            it('saves status, statusMessage and meta updates', () => {
+            it('saves status, statusMessage, meta updates, and merge event meta', () => {
                 const meta = {
-                    foo: 'bar'
+                    foo: 'bar',
+                    hello: 'bye'
                 };
                 const status = 'SUCCESS';
                 const statusMessage = 'Oh the build passed';
@@ -489,6 +492,11 @@ describe('build plugin test', () => {
                     }
                 };
 
+                eventMock.meta = {
+                    foo: 'oldfoo',
+                    oldmeta: 'oldmetastuff'
+                };
+
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
@@ -497,6 +505,12 @@ describe('build plugin test', () => {
                     assert.deepEqual(buildMock.meta, meta);
                     assert.deepEqual(buildMock.statusMessage, statusMessage);
                     assert.isDefined(buildMock.endTime);
+                    assert.calledOnce(eventMock.update);
+                    assert.deepEqual(eventMock.meta, {
+                        foo: 'bar',
+                        hello: 'bye',
+                        oldmeta: 'oldmetastuff'
+                    });
                 });
             });
 

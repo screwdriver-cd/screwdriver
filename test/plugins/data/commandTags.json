@@ -1,0 +1,14 @@
+[{
+    "id": 7969,
+    "namespace": "screwdriver",
+    "name": "build",
+    "tag": "stable",
+    "version": "0.0.1"
+},
+{
+    "id": 7970,
+    "namespace": "screwdriver",
+    "name": "build",
+    "tag": "latest",
+    "version": "1.0.2"
+}]
