@@ -617,4 +617,116 @@ describe('command plugin test', () => {
             });
         });
     });
+
+    describe('PUT /commands/namespace/name/tags', () => {
+        let options;
+        let commandMock;
+        let pipelineMock;
+        const payload = {
+            version: '1.2.0'
+        };
+        const testCommandTag = decorateObj(hoek.merge({ id: 1 }, payload));
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: '/commands/screwdriver/test/tags/stable',
+                payload,
+                credentials: {
+                    scope: ['build']
+                }
+            };
+
+            commandMock = getCommandMocks(testcommand);
+            commandFactoryMock.get.resolves(commandMock);
+
+            commandTagFactoryMock.get.resolves(null);
+
+            pipelineMock = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 401 when pipelineId does not match', () => {
+            commandMock.pipelineId = 8888;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 404 when command does not exist', () => {
+            commandFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('creates commands tag if has good permission and tag does not exist', () => {
+            commandTagFactoryMock.create.resolves(testCommandTag);
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/1`
+                };
+
+                assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(commandFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    version: '1.2.0'
+                });
+                assert.calledWith(commandTagFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable'
+                });
+                assert.calledWith(commandTagFactoryMock.create, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable',
+                    version: '1.2.0'
+                });
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('update command tag if has good permission and tag exists', () => {
+            const command = hoek.merge({
+                update: sinon.stub().resolves(testCommandTag)
+            }, testCommandTag);
+
+            commandTagFactoryMock.get.resolves(command);
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(commandFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    version: '1.2.0'
+                });
+                assert.calledWith(commandTagFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable'
+                });
+                assert.calledOnce(command.update);
+                assert.notCalled(commandTagFactoryMock.create);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 500 when the command tag model fails to create', () => {
+            const testError = new Error('commandModelCreateError');
+
+            commandTagFactoryMock.create.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
 });

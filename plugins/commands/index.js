@@ -1,6 +1,7 @@
 'use strict';
 
 const createRoute = require('./create');
+const createTagRoute = require('./createTag');
 const getRoute = require('./get');
 const listRoute = require('./list');
 const listVersionsRoute = require('./listVersions');
@@ -15,6 +16,7 @@ const listVersionsRoute = require('./listVersions');
 exports.register = (server, options, next) => {
     server.route([
         createRoute(),
+        createTagRoute(),
         getRoute(),
         listRoute(),
         listVersionsRoute()
