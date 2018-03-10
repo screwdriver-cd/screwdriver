@@ -14,8 +14,13 @@ module.exports = () => ({
         notes: 'Update a specific build',
         tags: ['api', 'builds'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user', 'build']
+            strategies: ['token'],
+            scope: ['build', 'user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const buildFactory = request.server.app.buildFactory;

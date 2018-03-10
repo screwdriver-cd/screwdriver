@@ -101,7 +101,6 @@ describe('token plugin test', () => {
             authenticate: (request, reply) => reply.continue({})
         }));
         server.auth.strategy('token', 'custom');
-        server.auth.strategy('session', 'custom');
 
         return server.register([{
             register: plugin

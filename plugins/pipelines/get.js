@@ -13,6 +13,15 @@ module.exports = () => ({
         description: 'Get a single pipeline',
         notes: 'Returns a pipeline record',
         tags: ['api', 'pipelines'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
 

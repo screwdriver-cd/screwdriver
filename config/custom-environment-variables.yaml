@@ -21,6 +21,8 @@ auth:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: IS_HTTPS
+    # A flag to set if you want guests to browse your pipelines
+    allowGuestAccess: AUTH_GUEST_ACCESS
     whitelist:
         __name: SECRET_WHITELIST
         __format: json

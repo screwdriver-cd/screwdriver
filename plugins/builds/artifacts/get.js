@@ -17,11 +17,11 @@ module.exports = config => ({
         tags: ['api', 'builds', 'artifacts'],
         auth: {
             strategies: ['session', 'token'],
-            scope: ['user']
+            scope: ['user', 'build']
         },
         plugins: {
             'hapi-swagger': {
-                security: [{ session: [] }]
+                security: [{ token: [] }]
             }
         },
         handler: (request, reply) => {

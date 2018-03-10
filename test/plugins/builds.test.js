@@ -121,7 +121,11 @@ describe('build plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({})
+            authenticate: (request, reply) => reply.continue({
+                credentials: {
+                    scope: ['user']
+                }
+            })
         }));
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
@@ -1305,13 +1309,21 @@ describe('build plugin test', () => {
     describe('GET /builds/{id}/steps/{step}', () => {
         const id = 12345;
         const step = 'install';
+        const options = {
+            method: 'GET',
+            url: `/builds/${id}/steps/${step}`,
+            credentials: {
+                scope: ['user'],
+                username: 'batman'
+            }
+        };
 
         it('returns 200 for a step that exists', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild.steps[1]);
             });
@@ -1320,7 +1332,7 @@ describe('build plugin test', () => {
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1329,8 +1341,9 @@ describe('build plugin test', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            options.url = `/builds/${id}/steps/fail`;
 
-            return server.inject(`/builds/${id}/steps/fail`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1338,7 +1351,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });

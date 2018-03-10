@@ -14,8 +14,8 @@ module.exports = () => ({
         notes: 'Create a specific command',
         tags: ['api', 'commands'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['build']
+            strategies: ['token'],
+            scope: ['build', '!guest']
         },
         plugins: {
             'hapi-swagger': {

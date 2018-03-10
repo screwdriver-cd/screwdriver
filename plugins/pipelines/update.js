@@ -14,8 +14,8 @@ module.exports = () => ({
         notes: 'Update a specific pipeline',
         tags: ['api', 'pipelines'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {
