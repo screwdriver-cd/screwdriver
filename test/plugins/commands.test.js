@@ -6,9 +6,13 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
+const nock = require('nock');
+const streamToPromise = require('stream-to-promise');
+const FormData = require('form-data');
 const testcommand = require('./data/command.json');
 const testcommands = require('./data/commands.json');
 const testcommandVersions = require('./data/commandVersions.json');
+const testBinaryCommand = require('./data/binaryCommand.json');
 const testpipeline = require('./data/pipeline.json');
 const COMMAND_INVALID = require('./data/command-validator.missing-version.json');
 const COMMAND_VALID = require('./data/command-validator.input.json');
@@ -16,6 +20,13 @@ const COMMAND_VALID_NEW_VERSION = require('./data/command-create.input.json');
 const COMMAND_DESCRIPTION = [
     'Command for habitat git',
     'Executes git commands\n'
+].join('\n');
+const BINARY_COMMAND_VALID = require('./data/binary-command-validator.input.json').yaml;
+const BINARY_COMMAND_INVALID = require('./data/binary-command-validator.missing-version.json').yaml;
+const BINARY_COMMAND_VALID_NEW_VERSION = require('./data/binary-command-create.input.json').yaml;
+const COMMAND_BINARY = [
+    '#!/bin/sh',
+    'echo "FooBar!"\n'
 ].join('\n');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -81,7 +92,10 @@ describe('command plugin test', () => {
         server.app = {
             commandFactory: commandFactoryMock,
             commandTagFactory: commandTagFactoryMock,
-            pipelineFactory: pipelineFactoryMock
+            pipelineFactory: pipelineFactoryMock,
+            ecosystem: {
+                store: 'http://store.example.com'
+            }
         };
         server.connection({
             port: 1234
@@ -241,8 +255,9 @@ describe('command plugin test', () => {
         let options;
         let commandMock;
         let pipelineMock;
-        const testId = 7969;
+        let testId = 7969;
         let expected;
+        let formData;
 
         beforeEach(() => {
             options = {
@@ -313,6 +328,9 @@ describe('command plugin test', () => {
             options.payload = COMMAND_VALID_NEW_VERSION;
             expected.version = '1.2';
             commandFactoryMock.list.resolves([commandMock]);
+            nock('http://store.example.com')
+                .post('/v1/commands/bar/foo/1.0.1')
+                .reply(202, '');
 
             return server.inject(options).then((reply) => {
                 const expectedLocation = {
@@ -361,6 +379,241 @@ describe('command plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        describe('Binary format', () => {
+            beforeEach(() => {
+                formData = new FormData();
+                testId = 1234;
+                expected = {
+                    binary: { file: './foobar.sh' },
+                    description: 'Command for binary commands',
+                    format: 'binary',
+                    maintainer: 'foo@bar.com',
+                    name: 'foo',
+                    namespace: 'bar',
+                    pipelineId: 123,
+                    version: '1.1.2'
+                };
+                commandMock = getCommandMocks(testBinaryCommand);
+                commandFactoryMock.create.resolves(commandMock);
+                commandFactoryMock.list.resolves([commandMock]);
+
+                pipelineMock = getPipelineMocks(testpipeline);
+                pipelineFactoryMock.get.resolves(pipelineMock);
+            });
+
+            afterEach(() => {
+                nock.cleanAll();
+            });
+
+            it('returns 400 when only the binary is posted', () => {
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 400);
+                    });
+                });
+            });
+
+            it('returns 400 when only the meta is posted', () => {
+                options.payload = { yaml: BINARY_COMMAND_VALID };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 400);
+                });
+            });
+
+            it('returns 401 when pipelineId does not match', () => {
+                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authorization = 'AuthToken';
+                commandMock.pipelineId = 8888;
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 401);
+                    });
+                });
+            });
+
+            it('creates command if command does not exist yet', () => {
+                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.resolves(null);
+                commandFactoryMock.list.resolves([]);
+                nock('http://store.example.com')
+                    .post('/v1/commands/bar/foo/1.1.0')
+                    .reply(202, '');
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        const expectedLocation = {
+                            host: reply.request.headers.host,
+                            port: reply.request.headers.port,
+                            protocol: reply.request.server.info.protocol,
+                            pathname: `${options.url}/${testId}`
+                        };
+
+                        assert.deepEqual(reply.result, testBinaryCommand);
+                        assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                        assert.calledWith(commandFactoryMock.list, {
+                            params: {
+                                namespace: 'bar',
+                                name: 'foo'
+                            }
+                        });
+                        assert.calledWith(commandFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+            });
+
+            it('creates command if has good permission and it is a new version', () => {
+                expected.version = '1.2';
+                formData.append('spec', BINARY_COMMAND_VALID_NEW_VERSION, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.resolves(testBinaryCommand);
+                commandFactoryMock.list.resolves([commandMock]);
+                nock('http://store.example.com')
+                    .post('/v1/commands/bar/foo/1.0.1')
+                    .reply(202, '');
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        const expectedLocation = {
+                            host: reply.request.headers.host,
+                            port: reply.request.headers.port,
+                            protocol: reply.request.server.info.protocol,
+                            pathname: `${options.url}/${testId}`
+                        };
+
+                        assert.deepEqual(reply.result, testBinaryCommand);
+                        assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                        assert.calledWith(commandFactoryMock.list, {
+                            params: {
+                                namespace: 'bar',
+                                name: 'foo'
+                            }
+                        });
+                        assert.calledWith(commandFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+            });
+
+            it('returns 500 when the command model fails to get', () => {
+                const testError = new Error('commandModelGetError');
+
+                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.rejects(testError);
+                commandFactoryMock.list.resolves([]);
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 500);
+                    });
+                });
+            });
+
+            it('returns 500 when the command model fails to create', () => {
+                const testError = new Error('commandModelCreateError');
+
+                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.resolves([]);
+                commandFactoryMock.create.rejects(testError);
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 500);
+                    });
+                });
+            });
+
+            it('returns 400 when the command is invalid', () => {
+                formData.append('spec', BINARY_COMMAND_INVALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.resolves([]);
+                commandFactoryMock.list.resolves([]);
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 400);
+                    });
+                });
+            });
+
+            it('returns 500 when request to the store is failed', () => {
+                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.resolves(null);
+                commandFactoryMock.list.resolves([]);
+                nock.cleanAll();
+                nock('http://store.example.com')
+                    .post('/v1/commands/bar/foo/1.1.0')
+                    .replyWithError({ message: 'request to the store is error' });
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 500);
+                    });
+                });
+            });
+
+            it('returns 500 when the binary fails to store', () => {
+                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+                commandFactoryMock.getCommand.resolves(null);
+                commandFactoryMock.list.resolves([]);
+                nock.cleanAll();
+                nock('http://store.example.com')
+                    .post('/v1/commands/bar/foo/1.1.0')
+                    .reply(500, '');
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 500);
+                    });
+                });
             });
         });
     });
