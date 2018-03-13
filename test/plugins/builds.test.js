@@ -225,8 +225,8 @@ describe('build plugin test', () => {
 
             buildMock = getMockBuilds(testBuild);
 
-            buildFactoryMock.get.resolves(buildMock);
             buildMock.update.resolves(buildMock);
+            buildFactoryMock.get.resolves(buildMock);
 
             pipelineMock = {
                 id: pipelineId,
@@ -838,6 +838,7 @@ describe('build plugin test', () => {
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
                     buildMock.eventId = '8888';
+
                     jobBconfig = {
                         jobId: 2,
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
@@ -887,7 +888,9 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('triggers if all jobs in join are done', () => {
+                it('triggers if all jobs in join are done', () => {
+                    buildMock.start = sinon.stub().resolves(buildMock);
+                    buildFactoryMock.create.resolves(buildMock);
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
@@ -911,14 +914,17 @@ describe('build plugin test', () => {
                     }]);
 
                     return server.inject(options).then(() => {
-                        console.log('expect ', jobCconfig);
-
                         // create the builds
                         assert.calledTwice(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
-                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
 
-                        // start the builds
+                        // jobB is created because there is no join
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+
+                        // there is a finished join, jobC is created without starting, then start separately
+                        // (same action but different flow in the code)
+                        jobCconfig.start = false;
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                        assert.calledOnce(buildMock.start);
                     });
                 });
 
@@ -1046,6 +1052,7 @@ describe('build plugin test', () => {
                 });
 
                 it('does not trigger if jobs in join list fails', () => {
+                    buildMock.remove = sinon.stub().resolves(null);
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
@@ -1063,7 +1070,8 @@ describe('build plugin test', () => {
                     }]);
 
                     return server.inject(options).then(() => {
-                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledOnce(buildMock.remove);
                     });
                 });
             });

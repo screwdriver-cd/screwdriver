@@ -198,6 +198,7 @@ exports.register = (server, options, next) => {
             }, {});
 
             return Promise.all(Object.keys(joinObj).map((nextJobName) => {
+                console.log('---- NEXT JOB ', nextJobName);
                 const joinList = joinObj[nextJobName];
                 const joinListNames = joinList.map(j => j.name);
                 const buildConfig = {
@@ -215,17 +216,24 @@ exports.register = (server, options, next) => {
                 // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
                 //    joinList doesn't include C, so start A
                 if (joinList.length === 0 || !joinListNames.includes(currentJobName)) {
+                    console.log(' no join ', nextJobName);
+
                     return createBuild(buildConfig);
                 }
 
                 // If no parent event id, start if all jobs in the list are done
                 if (!event.parentEventId) {
+                    console.log(' yes join ', nextJobName);
+
                     let finishedBuilds = [];
 
                     return event.getBuilds()
                         .then((builds) => {
                             finishedBuilds = builds;
+
                             const nextBuild = builds.filter(j => builds.includes(j.id))[0];
+
+                            console.log('next Build ', nextBuild);
 
                             // Next build hasn't been created. Create it and don't start yet
                             if (!nextBuild) {
@@ -239,9 +247,19 @@ exports.register = (server, options, next) => {
 
                             return build.update();
                         })
-                        .then(nextBuild => isJoinDone(joinList, finishedBuilds)
-                            // start the build if join is done
-                            .then(done => (done ? nextBuild.start() : null)));
+                        .then((nextBuild) => {
+                            const done = isJoinDone(joinList, finishedBuilds);
+
+                            if (done) {
+                                return nextBuild.start();
+                            }
+                            const anyFailed = finishedBuilds.some(
+                                b => b.status === 'FAILURE' || b.status === 'ABORTED');
+
+                            // join is not done, remove build if some parent builds failed/aborted
+                            // return null if still waiting for the parent builds to finish
+                            return anyFailed ? nextBuild.remove() : null;
+                        });
                 }
 
                 // If parent event id, merge parent build status data and
