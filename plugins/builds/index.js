@@ -11,7 +11,7 @@ const listSecretsRoute = require('./listSecrets');
 const workflowParser = require('screwdriver-workflow-parser');
 
 /**
- * Create the build. If config.start is false then do not start the job
+ * Create the build. If config.start is false or not passed in then do not start the job
  * @method createBuild
  * @param  {Object}   config                Configuration object
  * @param  {Factory}  config.jobFactory     Job Factory
@@ -21,7 +21,7 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {String}   config.username       Username of build
  * @param  {String}   config.scmContext     SCM context
  * @param  {Build}    config.build          Build object
- * @param  {Build}    config.start          Whether to start the build or not
+ * @param  {Boolean}  [config.start]        Whether to start the build or not
  * @return {Promise}
  */
 function createBuild(config) {
@@ -61,6 +61,22 @@ function isJoinDone(joinList, finishedBuilds) {
     const successBuildsInJoin = joinList.filter(j => successBuilds.includes(j.id));
 
     return successBuildsInJoin.length === joinList.length;
+}
+
+/**
+ * Check if there is no failures so far in the finishedBuilds
+ * @method noFailureSoFar
+ * @param  {Array}      joinList       array of jobs(name,id) that are in join
+ * @param  {Array}      finishedBuilds array of finished builds belong to this event
+ * @return {Boolean}                   whether there is no failure so far
+ */
+function noFailureSoFar(joinList, finishedBuilds) {
+    const failedBuilds = finishedBuilds
+        .filter(b => b.status === 'FAILURE' || b.status === 'ABORTED')
+        .map(b => b.jobId);
+    const failedBuildsInJoin = joinList.filter(j => failedBuilds.includes(j.id));
+
+    return failedBuildsInJoin.length === 0;
 }
 
 /**
@@ -207,7 +223,7 @@ exports.register = (server, options, next) => {
                     jobName: nextJobName,
                     username,
                     scmContext,
-                    build
+                    build // this is the parentBuild for the next build
                 };
 
                 // Just start the build if falls in to these 2 scenarios
@@ -218,7 +234,6 @@ exports.register = (server, options, next) => {
                     return createBuild(buildConfig);
                 }
 
-                // If no parent event id, start if all jobs in the list are done
                 if (!event.parentEventId) {
                     let finishedBuilds = [];
 
@@ -226,43 +241,36 @@ exports.register = (server, options, next) => {
                         .then((builds) => {
                             finishedBuilds = builds;
 
-                            // const nextBuild = builds.filter(j => builds.includes(j.id))[0];
-
-                            console.log('next job to trigger ', nextJobName);
-                            console.log('finishedBuilds ', finishedBuilds);
+                            const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
                             const nextBuild = finishedBuilds.filter(
                                 b => b.jobName === nextJobName)[0];
 
-                            // Next build hasn't been created. Create it and don't start yet
+                            // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
+                            // [A B] -> C. A passed -> C created; B failed -> delete C
+                            // [A B] -> C. A failed -> C not created; B failed -> do nothing
+                            // [A B D] -> C. A passed -> C not created; B failed -> delete C; D passed -> do nothing
+                            if (!noFailedBuilds) {
+                                return nextBuild ? nextBuild.remove() : null;
+                            }
+
+                            // If everything successful so far, create or update
+                            // [A B] -> C. A passed -> create C
+                            // [A B] -> C. A passed -> C created; B passed -> update C
                             if (!nextBuild) {
                                 buildConfig.start = false;
 
                                 return createBuild(buildConfig);
                             }
 
-                            console.log('hereeee ', nextBuild.parentBuildId);
-
                             // If build is already created, update the parentBuildId
                             nextBuild.parentBuildId.push(build.id);
-
-                            console.log('hereeee222');
-
-                            console.log('parent ', nextBuild);
 
                             return nextBuild.update();
                         })
                         .then((nextBuild) => {
                             const done = isJoinDone(joinList, finishedBuilds);
 
-                            if (done) {
-                                return nextBuild.start();
-                            }
-                            const anyFailed = finishedBuilds.some(
-                                b => b.status === 'FAILURE' || b.status === 'ABORTED');
-
-                            // join is not done, remove build if some parent builds failed/aborted
-                            // return null if still waiting for the parent builds to finish
-                            return anyFailed ? nextBuild.remove() : null;
+                            return done ? nextBuild.start() : null;
                         });
                 }
 

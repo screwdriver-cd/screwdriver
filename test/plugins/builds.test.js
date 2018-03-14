@@ -928,6 +928,36 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('delete build if it was created before, and join has some failures', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    const buildC = {
+                        jobId: 3, // job c was previously created
+                        jobName: 'c',
+                        remove: sinon.stub().resolves(null)
+                    };
+
+                    eventMock.getBuilds.resolves([{
+                        jobId: 1,
+                        jobName: 'a',
+                        status: 'FAILURE'
+                    }, {
+                        jobId: 4,
+                        status: 'SUCCESS'
+                    }, buildC
+                    ]);
+
+                    return server.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildC.remove);
+                    });
+                });
+
                 it('triggers if all jobs in join are done with parent event', () => {
                     // For a pipeline like this:
                     //   -> b
@@ -1051,7 +1081,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('update parent build IDs', () => {
+                it('update parent build IDs', () => {
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
@@ -1096,15 +1126,16 @@ describe('build plugin test', () => {
                     // job B failed
                     eventMock.getBuilds.resolves([{
                         jobId: 1,
+                        jobName: 'a',
                         status: 'SUCCESS'
                     }, {
                         jobId: 2,
+                        jobName: 'b',
                         status: 'FAILURE'
                     }]);
 
                     return server.inject(options).then(() => {
-                        assert.calledOnce(buildFactoryMock.create);
-                        assert.calledOnce(buildMock.remove);
+                        assert.notCalled(buildFactoryMock.create);
                     });
                 });
             });
