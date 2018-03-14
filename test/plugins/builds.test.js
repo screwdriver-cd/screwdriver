@@ -202,7 +202,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe.only('PUT /builds/{id}', () => {
+    describe('PUT /builds/{id}', () => {
         const id = 12345;
         const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
@@ -838,6 +838,7 @@ describe('build plugin test', () => {
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
                     buildMock.eventId = '8888';
+                    buildMock.start = sinon.stub().resolves(buildMock);
 
                     jobBconfig = {
                         jobId: 2,
@@ -889,8 +890,6 @@ describe('build plugin test', () => {
                 });
 
                 it('triggers if all jobs in join are done', () => {
-                    buildMock.start = sinon.stub().resolves(buildMock);
-                    buildFactoryMock.create.resolves(buildMock);
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
@@ -925,6 +924,7 @@ describe('build plugin test', () => {
                         jobCconfig.start = false;
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                         assert.calledOnce(buildMock.start);
+                        buildMock.update = sinon.stub().resolves(buildMock);
                     });
                 });
 
@@ -1048,6 +1048,39 @@ describe('build plugin test', () => {
                     return server.inject(options).then(() => {
                         jobCconfig.start = false;
                         assert.calledWith(buildFactoryMock.create, jobCconfig);
+                    });
+                });
+
+                it.only('update parent build IDs', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'b', dest: 'c', join: true }
+                    ];
+
+                    // job B is not done
+                    eventMock.getBuilds.resolves([{
+                        jobId: 1,
+                        status: 'SUCCESS',
+                        jobName: 'a'
+                    }, {
+                        jobId: 2,
+                        status: 'SUCCESS', // build b not done
+                        jobName: 'b'
+                    }, {
+                        jobId: 3, // build is already created
+                        jobName: 'c',
+                        parentBuildId: [1]
+                    }]);
+
+                    buildMock.start = sinon.stub().resolves();
+                    buildMock.update = sinon.stub().resolves(buildMock);
+
+                    return server.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildMock.update);
+                        // assert.equal(buildMock.parentBuildId, '1');
                     });
                 });
 
