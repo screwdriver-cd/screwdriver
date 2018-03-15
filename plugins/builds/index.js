@@ -80,6 +80,19 @@ function noFailureSoFar(joinList, finishedBuilds) {
 }
 
 /**
+ * Return the successBuildsInJoinList
+ * @method successBuildsInJoinList
+ * @param  {Array}      joinList       array of jobs(name,id) that are in join
+ * @param  {Array}      finishedBuilds array of finished builds belong to this event
+ * @return {Array}                     success builds in join
+ */
+function successBuildsInJoinList(joinList, finishedBuilds) {
+    const successBuilds = finishedBuilds.filter(b => b.status === 'SUCCESS').map(b => b.jobId);
+
+    return joinList.filter(j => successBuilds.includes(j.id));
+}
+
+/**
  * Handle next build logic: create, update, start, or remove
  * @method handleNextBuild
  * @param  {Object}   config                    configuration object
@@ -113,7 +126,11 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName, paren
             }
 
             // If build is already created, update the parentBuildId
-            nextBuild.parentBuildId.push(parentBuildId);
+            const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
+                .map(b => b.id);
+
+            // Do a replace instead of push because of the restart join case
+            nextBuild.parentBuildId = successBuildsIds.concat(parentBuildId);
 
             return nextBuild.update();
         }).then((nextBuild) => {
