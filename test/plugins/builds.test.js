@@ -660,7 +660,7 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
-                            parentBuildId: [id],
+                            parentBuildId: id,
                             username,
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
@@ -843,7 +843,7 @@ describe('build plugin test', () => {
                     jobBconfig = {
                         jobId: 2,
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         start: true,
                         eventId: '8888',
                         username: 12345,
@@ -993,11 +993,13 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
+                    jobCconfig.start = false;
 
                     return server.inject(options).then(() => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                        assert.calledOnce(buildMock.start); // c reate is mocked to return buildMock
                     });
                 });
 

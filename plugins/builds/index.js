@@ -37,7 +37,7 @@ function createBuild(config) {
             return buildFactory.create({
                 jobId: job.id,
                 sha: build.sha,
-                parentBuildId: [build.id],
+                parentBuildId: build.id,
                 eventId: build.eventId,
                 username,
                 scmContext,
@@ -101,43 +101,43 @@ function successBuildsInJoinList(joinList, finishedBuilds) {
  * @param  {Array}    config.finishedBuilds     list of finished builds
  * @param  {String}   config.jobName            jobname for this build
  * @param  {Number}   config.parentBuildId      parent build Id of the new build
+ * @return {Promise}  the newly updated/created build
  */
 function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName, parentBuildId }) {
-    return new Promise(resolve => resolve())
-        .then(() => {
-            const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
-            const nextBuild = finishedBuilds.filter(b => b.jobName === jobName)[0];
+    return Promise.resolve().then(() => {
+        const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
+        const nextBuild = finishedBuilds.filter(b => b.jobName === jobName)[0];
 
-            // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
-            // [A B] -> C. A passed -> C created; B failed -> delete C
-            // [A B] -> C. A failed -> C not created; B failed -> do nothing
-            // [A B D] -> C. A passed -> C not created; B failed -> delete C; D passed -> do nothing
-            if (!noFailedBuilds) {
-                return nextBuild ? nextBuild.remove() : null;
-            }
+        // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
+        // [A B] -> C. A passed -> C created; B failed -> delete C
+        // [A B] -> C. A failed -> C not created; B failed -> do nothing
+        // [A B D] -> C. A passed -> C created; B failed -> delete C; D passed -> do nothing
+        if (!noFailedBuilds) {
+            return nextBuild ? nextBuild.remove() : null;
+        }
 
-            // If everything successful so far, create or update
-            // [A B] -> C. A passed -> create C
-            // [A B] -> C. A passed -> C created; B passed -> update C
-            if (!nextBuild) {
-                buildConfig.start = false;
+        // If everything successful so far, create or update
+        // [A B] -> C. A passed -> create C
+        // [A B] -> C. A passed -> C created; B passed -> update C
+        if (!nextBuild) {
+            buildConfig.start = false;
 
-                return createBuild(buildConfig);
-            }
+            return createBuild(buildConfig);
+        }
 
-            // If build is already created, update the parentBuildId
-            const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
-                .map(b => b.id);
+        // If build is already created, update the parentBuildId
+        const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
+            .map(b => b.id);
 
             // Do a replace instead of push because of the restart join case
-            nextBuild.parentBuildId = successBuildsIds.concat(parentBuildId);
+        nextBuild.parentBuildId = successBuildsIds.concat(parentBuildId);
 
-            return nextBuild.update();
-        }).then((nextBuild) => {
-            const done = isJoinDone(joinList, finishedBuilds);
+        return nextBuild.update();
+    }).then((nextBuild) => {
+        const done = isJoinDone(joinList, finishedBuilds);
 
-            return done ? nextBuild.start() : null;
-        });
+        return done ? nextBuild.start() : null;
+    });
 }
 
 /**
@@ -295,31 +295,30 @@ exports.register = (server, options, next) => {
                     return createBuild(buildConfig);
                 }
 
-                if (!event.parentEventId) {
-                    return event.getBuilds()
-                        .then(finishedBuilds => handleNextBuild({
-                            buildConfig,
-                            joinList,
-                            finishedBuilds,
-                            jobName: nextJobName,
-                            parentBuildId: build.id
-                        }));
-                }
+                return Promise.resolve().then(() => {
+                    if (!event.parentEventId) {
+                        return event.getBuilds();
+                    }
 
-                // If parent event id, merge parent build status data and
-                // rerun all builds in the path of the startFrom
-                return eventFactory.get({ id: event.parentEventId })
-                    .then(parentEvent => parentEvent.getBuilds()
-                        .then(parentBuilds => removeDownstreamBuilds({
-                            builds: parentBuilds,
-                            startFrom: event.startFrom,
-                            parentEvent
-                        }))
-                    )
-                    .then(upstreamBuilds => event.getBuilds()
-                        .then(builds => builds.concat(upstreamBuilds)))
-                    .then(finishedBuilds => isJoinDone(joinList, finishedBuilds))
-                    .then(done => (done ? createBuild(buildConfig) : null));
+                    // If parent event id, merge parent build status data and
+                    // rerun all builds in the path of the startFrom
+                    return eventFactory.get({ id: event.parentEventId })
+                        .then(parentEvent => parentEvent.getBuilds()
+                            .then(parentBuilds => removeDownstreamBuilds({
+                                builds: parentBuilds,
+                                startFrom: event.startFrom,
+                                parentEvent
+                            }))
+                        )
+                        .then(upstreamBuilds => event.getBuilds()
+                            .then(builds => builds.concat(upstreamBuilds)));
+                }).then(finishedBuilds => handleNextBuild({
+                    buildConfig,
+                    joinList,
+                    finishedBuilds,
+                    jobName: nextJobName,
+                    parentBuildId: build.id
+                }));
             }));
         });
     });
