@@ -12,6 +12,15 @@ module.exports = () => ({
         description: 'Get builds for a given event',
         notes: 'Returns builds for a given event',
         tags: ['api', 'events', 'builds'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.eventFactory;
 

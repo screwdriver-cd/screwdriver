@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Creates a collection',
         tags: ['api', 'collections'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

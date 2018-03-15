@@ -23,6 +23,8 @@ auth:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false
+    # A flag to set if you want guests to browse your pipelines
+    allowGuestAccess: false
     # Whitelist of users able to authenticate against the system
     # if empty, it allows everyone
     whitelist: []

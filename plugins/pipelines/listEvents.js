@@ -12,6 +12,15 @@ module.exports = () => ({
         description: 'Get pipeline type events for this pipeline',
         notes: 'Returns pipeline events for the given pipeline',
         tags: ['api', 'pipelines', 'events'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
 

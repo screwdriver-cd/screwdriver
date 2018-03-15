@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Create a specific secret',
         tags: ['api', 'secrets'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

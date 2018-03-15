@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Create and start a specific build',
         tags: ['api', 'builds'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

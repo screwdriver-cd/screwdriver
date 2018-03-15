@@ -13,8 +13,8 @@ module.exports = () => ({
         notes: 'Returns null if successful',
         tags: ['api', 'collections'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

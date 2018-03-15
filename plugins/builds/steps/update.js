@@ -14,6 +14,11 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build']
         },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.buildFactory;
             const buildId = request.params.id;

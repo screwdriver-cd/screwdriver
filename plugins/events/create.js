@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Create and start a specific event',
         tags: ['api', 'events'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

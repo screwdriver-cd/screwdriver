@@ -103,6 +103,7 @@ describe('auth plugin test', () => {
                 scm,
                 jwtPrivateKey,
                 jwtPublicKey,
+                allowGuestAccess: true,
                 https: false
             }
         }, done);
@@ -305,21 +306,67 @@ describe('auth plugin test', () => {
         });
     });
 
-    describe('GET /auth/login', () => {
-        describe('GET', () => {
-            it('redirects to a default login route', () => (
-                server.inject('/auth/login').then((reply) => {
-                    assert.equal(reply.statusCode, 301, 'Login route should redirect');
-                    assert.isOk(reply.headers.location.match(/\/auth\/login\/github:github.com/),
-                        'The location to redirect is not correct');
+    describe('GET /auth/login/guest', () => {
+        const options = {
+            url: '/auth/login/guest'
+        };
+
+        describe('with guest access', () => {
+            it('exists', () => (
+                server.inject('/auth/login/guest').then((reply) => {
+                    assert.equal(reply.statusCode, 302, 'Login route should be available');
+                    assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
                 })
             ));
-            it('redirects even if web parameter is passed', () => (
-                server.inject('/auth/login/web').then((reply) => {
-                    assert.equal(reply.statusCode, 301, 'Login route should redirect');
-                    assert.isOk(
-                        reply.headers.location.match(/\/auth\/login\/github:github.com\/web/),
-                        'The location to redirect is not correct');
+
+            it('creates a user tries to close a window', () => {
+                const webOptions = hoek.clone(options);
+
+                webOptions.url = '/auth/login/guest/web';
+
+                return server.inject(webOptions).then((reply) => {
+                    assert.equal(reply.statusCode, 200, 'Login/web route should be available');
+                    assert.equal(
+                        reply.result,
+                        '<script>window.close();</script>',
+                        'add script to close window'
+                    );
+                });
+            });
+        });
+
+        describe('without guest access', () => {
+            beforeEach(() => {
+                server = new hapi.Server();
+                server.app.userFactory = userFactoryMock;
+
+                server.connection({
+                    port: 1234
+                });
+
+                return server.register({
+                    register: plugin,
+                    options: {
+                        cookiePassword,
+                        encryptionPassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        https: false,
+                        allowGuestAccess: false
+                    }
+                });
+            });
+
+            afterEach(() => {
+                server = null;
+            });
+
+            it('returns forbidden for guest', () => (
+                server.inject({
+                    url: '/auth/login/guest'
+                }).then((reply) => {
+                    assert.equal(reply.statusCode, 403, 'Login route should be available');
                 })
             ));
         });
@@ -842,7 +889,7 @@ describe('auth plugin test', () => {
             scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
         });
 
-        it('returns 200', () => (
+        it('lists the contexts', () => (
             server.inject({
                 method: 'GET',
                 url: '/auth/contexts'
@@ -850,9 +897,44 @@ describe('auth plugin test', () => {
                 assert.equal(reply.statusCode, 200, 'Contexts should be available');
                 assert.deepEqual(reply.result, [
                     { context: 'github:github.com', displayName: 'github' },
-                    { context: 'github:mygithub.com', displayName: 'mygithub' }
+                    { context: 'github:mygithub.com', displayName: 'mygithub' },
+                    { context: 'guest', displayName: 'Guest Access' }
                 ], 'Contexts returns data');
             })
         ));
+
+        it('lists the contexts (without guest)', () => {
+            scm.getScmContexts.returns([
+                'github:github.com'
+            ]);
+            server = new hapi.Server();
+            server.app.userFactory = userFactoryMock;
+
+            server.connection({
+                port: 1234
+            });
+
+            return server.register({
+                register: plugin,
+                options: {
+                    cookiePassword,
+                    encryptionPassword,
+                    scm,
+                    jwtPrivateKey,
+                    jwtPublicKey,
+                    https: false
+                }
+            }).then(() => (
+                server.inject({
+                    method: 'GET',
+                    url: '/auth/contexts'
+                }).then((reply) => {
+                    assert.equal(reply.statusCode, 200, 'Contexts should be available');
+                    assert.deepEqual(reply.result, [
+                        { context: 'github:github.com', displayName: 'github' }
+                    ], 'Contexts returns data');
+                })
+            ));
+        });
     });
 });
