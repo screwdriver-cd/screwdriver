@@ -80,6 +80,56 @@ function noFailureSoFar(joinList, finishedBuilds) {
 }
 
 /**
+ * Handle next build logic: create, update, start, or remove
+ * @method handleNextBuild
+ * @param  {Object}   config                    configuration object
+ * @param  {String}   config.buildConfig        config to create the build with
+ * @param  {Factory}  config.event              event model. current event
+ * @param  {Factory}  config.joinList           list of job that join on this current job
+ * @param  {Number}   config.jobName            jobname for this build
+ * @param  {String}   config.parentBuildId      parent build Id of the new build
+ */
+function handleNextBuild({ event, buildConfig, joinList, jobName, parentBuildId }) {
+    let finishedBuilds = [];
+
+    return event.getBuilds()
+        .then((builds) => {
+            finishedBuilds = builds;
+
+            const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
+            const nextBuild = finishedBuilds.filter(
+                b => b.jobName === jobName)[0];
+
+            // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
+            // [A B] -> C. A passed -> C created; B failed -> delete C
+            // [A B] -> C. A failed -> C not created; B failed -> do nothing
+            // [A B D] -> C. A passed -> C not created; B failed -> delete C; D passed -> do nothing
+            if (!noFailedBuilds) {
+                return nextBuild ? nextBuild.remove() : null;
+            }
+
+            // If everything successful so far, create or update
+            // [A B] -> C. A passed -> create C
+            // [A B] -> C. A passed -> C created; B passed -> update C
+            if (!nextBuild) {
+                buildConfig.start = false;
+
+                return createBuild(buildConfig);
+            }
+
+            // If build is already created, update the parentBuildId
+            nextBuild.parentBuildId.push(parentBuildId);
+
+            return nextBuild.update();
+        })
+        .then((nextBuild) => {
+            const done = isJoinDone(joinList, finishedBuilds);
+
+            return done ? nextBuild.start() : null;
+        });
+}
+
+/**
  * DFS the workflowGraph from the start point
  * @method dfs
  * @param  {Object} workflowGraph   workflowGraph
@@ -235,43 +285,13 @@ exports.register = (server, options, next) => {
                 }
 
                 if (!event.parentEventId) {
-                    let finishedBuilds = [];
-
-                    return event.getBuilds()
-                        .then((builds) => {
-                            finishedBuilds = builds;
-
-                            const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
-                            const nextBuild = finishedBuilds.filter(
-                                b => b.jobName === nextJobName)[0];
-
-                            // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
-                            // [A B] -> C. A passed -> C created; B failed -> delete C
-                            // [A B] -> C. A failed -> C not created; B failed -> do nothing
-                            // [A B D] -> C. A passed -> C not created; B failed -> delete C; D passed -> do nothing
-                            if (!noFailedBuilds) {
-                                return nextBuild ? nextBuild.remove() : null;
-                            }
-
-                            // If everything successful so far, create or update
-                            // [A B] -> C. A passed -> create C
-                            // [A B] -> C. A passed -> C created; B passed -> update C
-                            if (!nextBuild) {
-                                buildConfig.start = false;
-
-                                return createBuild(buildConfig);
-                            }
-
-                            // If build is already created, update the parentBuildId
-                            nextBuild.parentBuildId.push(build.id);
-
-                            return nextBuild.update();
-                        })
-                        .then((nextBuild) => {
-                            const done = isJoinDone(joinList, finishedBuilds);
-
-                            return done ? nextBuild.start() : null;
-                        });
+                    return handleNextBuild({
+                        event,
+                        buildConfig,
+                        joinList,
+                        jobName: nextJobName,
+                        parentBuildId: build.id
+                    });
                 }
 
                 // If parent event id, merge parent build status data and
