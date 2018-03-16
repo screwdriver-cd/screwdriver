@@ -129,8 +129,11 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName, paren
         const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
             .map(b => b.id);
 
-            // Do a replace instead of push because of the restart join case
-        nextBuild.parentBuildId = successBuildsIds.concat(parentBuildId);
+        // Do a replace instead of push because of the restart join case
+        const parentBuildIds = successBuildsIds.concat(parentBuildId);
+
+        // For the no-restart case, successBuildsIds includes parentBuildId, so we need to remove duplicates
+        nextBuild.parentBuildId = Array.from(new Set(parentBuildIds));
 
         return nextBuild.update();
     }).then((nextBuild) => {
