@@ -99,10 +99,10 @@ function successBuildsInJoinList(joinList, finishedBuilds) {
  * @param  {String}   config.jobName            jobname for this build
  * @return {Promise}  the newly updated/created build
  */
-function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName }) {
+function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
     return Promise.resolve().then(() => {
         const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
-        const nextBuild = finishedBuilds.filter(b => b.jobName === jobName)[0];
+        const nextBuild = finishedBuilds.filter(b => b.jobId === jobId)[0];
 
         // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
         // [A B] -> C. A passed -> C created; B failed -> delete C
@@ -307,7 +307,7 @@ exports.register = (server, options, next) => {
                     buildConfig,
                     joinList,
                     finishedBuilds,
-                    jobName: nextJobName
+                    jobId: workflowGraph.nodes.find(node => node.name === nextJobName).id
                 }));
             }));
         });
