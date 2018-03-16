@@ -41,7 +41,10 @@ function findBuilds(config) {
     return request({
         json: true,
         method: 'GET',
-        uri: `${instance}/v4/pipelines/${pipelineId}/jobs`
+        uri: `${instance}/v4/pipelines/${pipelineId}/jobs`,
+        auth: {
+            bearer: config.jwt
+        }
     })
         .then((response) => {
             const jobData = response.body;
@@ -62,7 +65,10 @@ function findBuilds(config) {
             return request({
                 json: true,
                 method: 'GET',
-                uri: `${instance}/v4/jobs/${jobId}/builds`
+                uri: `${instance}/v4/jobs/${jobId}/builds`,
+                auth: {
+                    bearer: config.jwt
+                }
             });
         });
 }
@@ -90,13 +96,15 @@ function searchForBuild(config) {
     const pullRequestNumber = config.pullRequestNumber;
     const desiredSha = config.desiredSha;
     const desiredStatus = config.desiredStatus;
+    const jwt = config.jwt;
     const jobName = config.jobName || 'main';
 
     return findBuilds({
         instance,
         pipelineId,
         pullRequestNumber,
-        jobName
+        jobName,
+        jwt
     }).then((buildData) => {
         let result = buildData.body || [];
 
@@ -136,7 +144,10 @@ function waitForBuildStatus(config) {
     return request({
         json: true,
         method: 'GET',
-        uri: `${instance}/v4/builds/${buildId}`
+        uri: `${instance}/v4/builds/${buildId}`,
+        auth: {
+            bearer: config.jwt
+        }
     }).then((response) => {
         const buildData = response.body;
 

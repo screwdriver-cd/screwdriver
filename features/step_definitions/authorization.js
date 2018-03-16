@@ -73,7 +73,10 @@ defineSupportCode(({ Before, Given, Then }) => {
                 method: 'GET',
                 url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
                 followAllRedirects: true,
-                json: true
+                json: true,
+                auth: {
+                    bearer: this.jwt
+                }
             }))
             .then((response) => {
                 Assert.strictEqual(response.statusCode, 200);
@@ -84,7 +87,10 @@ defineSupportCode(({ Before, Given, Then }) => {
         return request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
             method: 'GET',
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         })
             .then((response) => {
                 Assert.equal(response.statusCode, 200);

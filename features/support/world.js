@@ -71,7 +71,10 @@ function ensurePipelineExists(config) {
             return request({
                 uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
                 method: 'GET',
-                json: true
+                json: true,
+                auth: {
+                    bearer: this.jwt
+                }
             });
         })
         .then((response) => {
@@ -119,7 +122,10 @@ function CustomWorld({ attach, parameters }) {
             maxAttempts: 15,
             retryDelay: 5000,
             retryStrategy: buildRetryStrategy,
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         });
     this.loginWithToken = apiToken =>
         request({
