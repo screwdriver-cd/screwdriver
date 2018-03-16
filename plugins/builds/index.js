@@ -24,11 +24,8 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {Boolean}  [config.start]        Whether to start the build or not
  * @return {Promise}
  */
-function createBuild(config) {
-    const {
-        jobFactory, buildFactory, pipelineId, jobName, username, scmContext, build, start
-    } = config;
-
+function createBuild({ jobFactory, buildFactory, pipelineId, jobName, username,
+    scmContext, build, start }) {
     return jobFactory.get({
         name: jobName,
         pipelineId
@@ -100,10 +97,9 @@ function successBuildsInJoinList(joinList, finishedBuilds) {
  * @param  {Array}    config.joinList           list of job that join on this current job
  * @param  {Array}    config.finishedBuilds     list of finished builds
  * @param  {String}   config.jobName            jobname for this build
- * @param  {Number}   config.parentBuildId      parent build Id of the new build
  * @return {Promise}  the newly updated/created build
  */
-function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName, parentBuildId }) {
+function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName }) {
     return Promise.resolve().then(() => {
         const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
         const nextBuild = finishedBuilds.filter(b => b.jobName === jobName)[0];
@@ -129,18 +125,10 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobName, paren
         const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
             .map(b => b.id);
 
-        // Do a replace instead of push because of the restart join case
-        const parentBuildIds = successBuildsIds.concat(parentBuildId);
-
-        // For the no-restart case, successBuildsIds includes parentBuildId, so we need to remove duplicates
-        nextBuild.parentBuildId = Array.from(new Set(parentBuildIds));
+        nextBuild.parentBuildId = successBuildsIds;
 
         return nextBuild.update();
-    }).then((nextBuild) => {
-        const done = isJoinDone(joinList, finishedBuilds);
-
-        return done ? nextBuild.start() : null;
-    });
+    }).then(nextBuild => (isJoinDone(joinList, finishedBuilds) ? nextBuild.start() : null));
 }
 
 /**
@@ -319,8 +307,7 @@ exports.register = (server, options, next) => {
                     buildConfig,
                     joinList,
                     finishedBuilds,
-                    jobName: nextJobName,
-                    parentBuildId: build.id
+                    jobName: nextJobName
                 }));
             }));
         });

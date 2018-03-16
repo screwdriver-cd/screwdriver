@@ -1114,7 +1114,7 @@ describe('build plugin test', () => {
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);
-                        assert.deepEqual(buildC.parentBuildId, [1, 2, 12345]);
+                        assert.deepEqual(buildC.parentBuildId, [1, 2]);
                     });
                 });
 
