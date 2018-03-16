@@ -938,13 +938,11 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3, // job c was previously created
-                        jobName: 'c',
                         remove: sinon.stub().resolves(null)
                     };
 
                     eventMock.getBuilds.resolves([{
                         jobId: 1,
-                        jobName: 'a',
                         status: 'FAILURE'
                     }, {
                         jobId: 4,
@@ -1086,7 +1084,6 @@ describe('build plugin test', () => {
                 it('update parent build IDs', () => {
                     const buildC = {
                         jobId: 3, // build is already created
-                        jobName: 'c',
                         parentBuildId: [1, 2],
                         update: sinon.stub().resolves(buildMock)
                     };
@@ -1100,12 +1097,10 @@ describe('build plugin test', () => {
 
                     eventMock.getBuilds.resolves([{
                         jobId: 1,
-                        status: 'SUCCESS',
-                        jobName: 'a'
+                        status: 'SUCCESS'
                     }, {
                         jobId: 2,
-                        status: 'SUCCESS',
-                        jobName: 'b'
+                        status: 'SUCCESS'
                     }, buildC]);
 
                     buildMock.start = sinon.stub().resolves();
@@ -1130,11 +1125,9 @@ describe('build plugin test', () => {
                     // job B failed
                     eventMock.getBuilds.resolves([{
                         jobId: 1,
-                        jobName: 'a',
                         status: 'SUCCESS'
                     }, {
                         jobId: 2,
-                        jobName: 'b',
                         status: 'FAILURE'
                     }]);
 
