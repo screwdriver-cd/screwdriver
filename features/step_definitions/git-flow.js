@@ -109,7 +109,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                     pipelineId: this.pipelineId,
                     pullRequestNumber: this.pullRequestNumber,
                     sha: this.sha,
-                    desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE']
+                    desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE'],
+                    jwt: this.jwt
                 })
             ).then((buildData) => {
                 this.previousBuildId = buildData.id;
@@ -128,7 +129,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                     pipelineId: this.pipelineId,
                     pullRequestNumber: this.pullRequestNumber,
                     sha: this.sha,
-                    desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE']
+                    desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                    jwt: this.jwt
                 }).then((buildData) => {
                     this.previousBuildId = buildData.id;
                 })
@@ -152,7 +154,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => sdapi.searchForBuild({
                 instance: this.instance,
                 pipelineId: this.pipelineId,
-                pullRequestNumber: this.pullRequestNumber
+                pullRequestNumber: this.pullRequestNumber,
+                jwt: this.jwt
             }))
             .then((data) => {
                 const build = data;
@@ -166,7 +169,10 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         return request({
             json: true,
             method: 'GET',
-            uri: `${this.instance}/${this.namespace}/jobs/${this.jobId}`
+            uri: `${this.instance}/${this.namespace}/jobs/${this.jobId}`,
+            auth: {
+                bearer: this.jwt
+            }
         })
             .then((response) => {
                 Assert.strictEqual(response.statusCode, 200);
@@ -182,7 +188,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         return sdapi.waitForBuildStatus({
             buildId: this.previousBuildId,
             instance: this.instance,
-            desiredStatus
+            desiredStatus,
+            jwt: this.jwt
         }).then((buildData) => {
             // TODO: save the status so the next step can verify the github status
             Assert.oneOf(buildData.status, desiredStatus);
