@@ -27,7 +27,10 @@ defineSupportCode(({ Before, Given, Then }) => {
         return request({
             uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
             method: 'GET',
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         }).then(response => Assert.equal(response.body[0].id, this.eventId));
     });
 
@@ -43,7 +46,10 @@ defineSupportCode(({ Before, Given, Then }) => {
             return request({
                 uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
                 method: 'GET',
-                json: true
+                json: true,
+                auth: {
+                    bearer: this.jwt
+                }
             }).then((response) => {
                 this.secondBuildId = response.body[0].id;
 

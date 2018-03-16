@@ -28,7 +28,7 @@ function addGuestRoute(server, config) {
 
                 const username = `guest/${uuid()}`;
                 const profile = request.server.plugins.auth.generateProfile(
-                    username, 'guest', ['user', 'guest'], {}
+                    username, null, ['user', 'guest'], {}
                 );
 
                 // Log that the user has authenticated
