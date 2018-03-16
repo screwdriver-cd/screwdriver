@@ -1,17 +1,20 @@
 'use strict';
 
-const assert = require('chai').assert;
+const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
+const assert = chai.assert;
 
-const testPayloadPush = require('../data/github.push.json');
-const testPayloadOpen = require('../data/github.pull_request.opened.json');
-const testPayloadSync = require('../data/github.pull_request.synchronize.json');
-const testPayloadClose = require('../data/github.pull_request.closed.json');
-const testPayloadOther = require('../data/github.pull_request.labeled.json');
+chai.use(require('chai-as-promised'));
 
-const PARSED_CONFIG = require('../data/github.parsedyaml.json');
+const testPayloadPush = require('./data/github.push.json');
+const testPayloadOpen = require('./data/github.pull_request.opened.json');
+const testPayloadSync = require('./data/github.pull_request.synchronize.json');
+const testPayloadClose = require('./data/github.pull_request.closed.json');
+const testPayloadOther = require('./data/github.pull_request.labeled.json');
+
+const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -56,7 +59,7 @@ describe('github plugin test', () => {
         };
 
         /* eslint-disable global-require */
-        plugin = require('../../../plugins/webhooks');
+        plugin = require('../../plugins/webhooks');
         /* eslint-enable global-require */
 
         server = new hapi.Server();
@@ -166,6 +169,7 @@ describe('github plugin test', () => {
                 branch: 'master',
                 sha,
                 prNum: 1,
+                prSource: 'branch',
                 prRef
             };
             mainJobMock = {
@@ -196,6 +200,7 @@ describe('github plugin test', () => {
             pipelineMock = {
                 id: pipelineId,
                 scmUri,
+                annotations: {},
                 admins: {
                     baxterthehacker: false
                 },
@@ -475,6 +480,80 @@ describe('github plugin test', () => {
                     });
                 });
 
+                it('skips creating if restricting all', () => {
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'all';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('skips creating if pr from fork and restricting forks', () => {
+                    parsed.prSource = 'fork';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('returns success if pr from branch and restricting forks', () => {
+                    parsed.prSource = 'branch';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prRef,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('skips creating if pr from branch and restricting branches', () => {
+                    parsed.prSource = 'branch';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('returns success if pr from fork and restricting branches', () => {
+                    parsed.prSource = 'fork';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prRef,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
                 it('handles checkout when given a non-listed user', () => {
                     userFactoryMock.get.resolves(null);
                     userFactoryMock.get.withArgs({
@@ -566,6 +645,80 @@ describe('github plugin test', () => {
 
                     return server.inject(options).then((reply) => {
                         assert.notCalled(model2.update);
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('skips creating if restricting all', () => {
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'all';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('skips creating if pr from fork and restricting forks', () => {
+                    parsed.prSource = 'fork';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('returns success if pr from branch and restricting forks', () => {
+                    parsed.prSource = 'branch';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prRef,
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('skips creating if pr from branch and restricting branches', () => {
+                    parsed.prSource = 'branch';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('returns success if pr from fork and restricting branches', () => {
+                    parsed.prSource = 'fork';
+                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prRef,
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                        });
                         assert.equal(reply.statusCode, 201);
                     });
                 });

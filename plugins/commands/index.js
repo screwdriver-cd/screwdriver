@@ -1,8 +1,10 @@
 'use strict';
 
 const createRoute = require('./create');
+const createTagRoute = require('./createTag');
 const getRoute = require('./get');
 const listRoute = require('./list');
+const listVersionsRoute = require('./listVersions');
 
 /**
  * Command API Plugin
@@ -14,8 +16,10 @@ const listRoute = require('./list');
 exports.register = (server, options, next) => {
     server.route([
         createRoute(),
+        createTagRoute(),
         getRoute(),
-        listRoute()
+        listRoute(),
+        listVersionsRoute()
     ]);
 
     next();

@@ -13,6 +13,15 @@ module.exports = () => ({
         description: 'Get a single event',
         notes: 'Returns a event record',
         tags: ['api', 'events'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.eventFactory;
 

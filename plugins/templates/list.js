@@ -12,6 +12,15 @@ module.exports = () => ({
         description: 'Get templates with pagination',
         notes: 'Returns all template records',
         tags: ['api', 'templates'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.templateFactory;
 

@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Create and start a specific event',
         tags: ['api', 'events'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {
@@ -30,6 +30,7 @@ module.exports = () => ({
             const startFrom = request.payload.startFrom;
             const username = request.auth.credentials.username;
             const parentBuildId = request.payload.parentBuildId;
+            const parentEventId = request.payload.parentEventId;
             const payload = {
                 pipelineId,
                 scmContext,
@@ -37,6 +38,10 @@ module.exports = () => ({
                 type: 'pipeline',
                 username
             };
+
+            if (parentEventId) {
+                payload.parentEventId = parentEventId;
+            }
 
             if (parentBuildId) {
                 payload.parentBuildId = parentBuildId;
@@ -65,6 +70,17 @@ module.exports = () => ({
                         // User has good permissions, create an event
                         .then(() => user.unsealToken())
                         .then((token) => {
+                            // If there is parentEvent, pass workflow, worklfowGraph and sha to payload
+                            if (payload.parentEventId) {
+                                return eventFactory.get(parentEventId)
+                                    .then((parentEvent) => {
+                                        payload.workflowGraph = parentEvent.workflowGraph;
+                                        payload.sha = parentEvent.sha;
+
+                                        return null;
+                                    });
+                            }
+
                             const scmConfig = {
                                 prNum,
                                 scmContext,
@@ -72,7 +88,6 @@ module.exports = () => ({
                                 token
                             };
 
-                            // Get commit sha
                             return scm.getCommitSha(scmConfig)
                                 .then((sha) => {
                                     payload.sha = sha;
@@ -86,14 +101,14 @@ module.exports = () => ({
                                     }
 
                                     return null;
-                                })
-                                .then((prInfo) => {
-                                    if (prInfo) {
-                                        payload.prRef = prInfo.ref;
-                                    }
-
-                                    return eventFactory.create(payload);
                                 });
+                        })
+                        .then((prInfo) => {
+                            if (prInfo) {
+                                payload.prRef = prInfo.ref;
+                            }
+
+                            return eventFactory.create(payload);
                         }))
                 .then((event) => {
                     // everything succeeded, inform the user

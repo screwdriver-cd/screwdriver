@@ -14,8 +14,8 @@ module.exports = () => ({
         notes: 'Returns a secret record',
         tags: ['api', 'secrets'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user', 'build']
+            strategies: ['token'],
+            scope: ['user', 'build', '!guest']
         },
         plugins: {
             'hapi-swagger': {

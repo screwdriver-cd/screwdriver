@@ -13,8 +13,13 @@ module.exports = () => ({
         notes: 'Update a specific job',
         tags: ['api', 'jobs'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const factory = request.server.app.jobFactory;

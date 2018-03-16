@@ -1,19 +1,19 @@
 'use strict';
 
 /**
- * Get all scm contexts
+ * Get all auth contexts
  * @method login
- * @param  {Object}      config           Configuration from the user
- * @param  {Array}       config.whitelist List of allowed users to the API
- * @return {Object}                       Hapi Plugin Route
+ * @param  {Object}      config                  Configuration from the user
+ * @param  {Boolean}     config.allowGuestAccess Letting users browse your system
+ * @return {Object}                              Hapi Plugin Route
  */
-module.exports = () => ({
+module.exports = config => ({
     method: ['GET'],
     path: '/auth/contexts',
     config: {
-        description: 'Get all scm contexts',
-        notes: 'Get all scm contexts',
-        tags: ['api', 'scmContext'],
+        description: 'Get all auth contexts',
+        notes: 'Get all auth contexts',
+        tags: ['api', 'auth', 'context'],
         handler: (request, reply) => {
             const scm = request.server.app.userFactory.scm;
             const scmContexts = scm.getScmContexts();
@@ -27,6 +27,13 @@ module.exports = () => ({
 
                 contexts.push(context);
             });
+
+            if (config.allowGuestAccess) {
+                contexts.push({
+                    context: 'guest',
+                    displayName: 'Guest Access'
+                });
+            }
 
             return reply(contexts);
         }

@@ -13,8 +13,8 @@ module.exports = () => ({
         notes: 'Update a specific collection',
         tags: ['api', 'collection'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

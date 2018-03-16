@@ -11,6 +11,15 @@ module.exports = () => ({
         description: 'Get a step for a build',
         notes: 'Returns a step record',
         tags: ['api', 'builds', 'steps'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.buildFactory;
 

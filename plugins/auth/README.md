@@ -27,9 +27,13 @@ server.register({
 
 ### Routes
 
-#### Login
+#### Login (and redirect to token)
 
-`GET /auth/login` (for backward compatibility) or `GET /auth/login/{scmContext}` or `POST /auth/login/{scmContext}`
+This will generate a cookie with the JWT in it.
+
+ - OAuth: `GET /auth/login/{scmContext}` or `POST /auth/login/{scmContext}`
+ - Token: `GET /auth/login/key?token=YOUR_API_TOKEN`
+ - Guest: `GET /auth/login/guest`
 
 #### Get a token
 

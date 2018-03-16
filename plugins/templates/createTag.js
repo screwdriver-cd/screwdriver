@@ -17,7 +17,7 @@ module.exports = () => ({
         notes: 'Add or update a specific template',
         tags: ['api', 'templates'],
         auth: {
-            strategies: ['token', 'session'],
+            strategies: ['token'],
             scope: ['build']
         },
         plugins: {

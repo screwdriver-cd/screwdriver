@@ -23,44 +23,12 @@ auth:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false
+    # A flag to set if you want guests to browse your pipelines
+    allowGuestAccess: false
     # Whitelist of users able to authenticate against the system
     # if empty, it allows everyone
-    # @TODO Move this content to our configuration and change the default to []
-    whitelist:
-        # Primary Contributors
-        - github:FenrirUnbound
-        - github:cynthiax
-        - github:d2lam
-        - github:dvdizon
-        - github:jithin1987
-        - github:minz1027
-        - github:petey
-        - github:pranavrc
-        - github:r3rastogi
-        - github:ScottyFillups
-        - github:stjohnjohnson
-        - github:tkyi
-        # Automated Account
-        - github:sd-buildbot
-        # Pilots
-        - github:aressem
-        - github:bjorncs
-        - github:drewfish
-        - github:gjoranv2
-        - github:awick
-        - github:frodelu
-        - github:mortent
-        - github:bratseth
-        - github:jonmv
-        - github:manolama
-    admins:
-        - github:FenrirUnbound
-        - github:d2lam
-        - github:jithin1987
-        - github:minz1027
-        - github:petey
-        - github:stjohnjohnson
-        - github:tkyi
+    whitelist: []
+    admins: []
 
 httpd:
     # Port to listen on

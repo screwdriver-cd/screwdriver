@@ -15,6 +15,15 @@ module.exports = () => ({
         description: 'Get a single template given template name and version or tag',
         notes: 'Returns a template record',
         tags: ['api', 'templates'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const templateFactory = request.server.app.templateFactory;
             const { name, versionOrTag } = request.params;

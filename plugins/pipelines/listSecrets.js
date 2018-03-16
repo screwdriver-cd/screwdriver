@@ -13,8 +13,13 @@ module.exports = () => ({
         notes: 'Returns all secrets for a given pipeline',
         tags: ['api', 'pipelines', 'secrets'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const pipelineFactory = request.server.app.pipelineFactory;

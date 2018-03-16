@@ -83,7 +83,14 @@ module.exports = () => ({
                             const buildsStatus = builds.reverse()
                                 .map(build => build.status.toLowerCase());
 
-                            for (let i = builds.length; i < lastEvent.workflow.length; i += 1) {
+                            let workflowLength = lastEvent.workflow.length;
+
+                            if (lastEvent.workflowGraph) {
+                                workflowLength = lastEvent.workflowGraph.nodes.filter(n =>
+                                    n.name !== '~commit' && n.name !== '~pr').length;
+                            }
+
+                            for (let i = builds.length; i < workflowLength; i += 1) {
                                 buildsStatus[i] = 'unknown';
                             }
 

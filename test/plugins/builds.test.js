@@ -121,7 +121,11 @@ describe('build plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({})
+            authenticate: (request, reply) => reply.continue({
+                credentials: {
+                    scope: ['user']
+                }
+            })
         }));
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
@@ -248,10 +252,12 @@ describe('build plugin test', () => {
                         { src: '~commit', dest: 'main' }
                     ]
                 },
-                getBuilds: sinon.stub()
+                getBuilds: sinon.stub(),
+                update: sinon.stub()
             };
 
             eventFactoryMock.get.resolves(eventMock);
+            eventMock.update.resolves(eventMock);
 
             triggerMocks = [
                 {
@@ -469,9 +475,10 @@ describe('build plugin test', () => {
                 eventFactoryMock.scm.getCommitSha.resolves('sha');
             });
 
-            it('saves status, statusMessage and meta updates', () => {
+            it('saves status, statusMessage, meta updates, and merge event meta', () => {
                 const meta = {
-                    foo: 'bar'
+                    foo: 'bar',
+                    hello: 'bye'
                 };
                 const status = 'SUCCESS';
                 const statusMessage = 'Oh the build passed';
@@ -489,6 +496,11 @@ describe('build plugin test', () => {
                     }
                 };
 
+                eventMock.meta = {
+                    foo: 'oldfoo',
+                    oldmeta: 'oldmetastuff'
+                };
+
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
@@ -497,6 +509,12 @@ describe('build plugin test', () => {
                     assert.deepEqual(buildMock.meta, meta);
                     assert.deepEqual(buildMock.statusMessage, statusMessage);
                     assert.isDefined(buildMock.endTime);
+                    assert.calledOnce(eventMock.update);
+                    assert.deepEqual(eventMock.meta, {
+                        foo: 'bar',
+                        hello: 'bye',
+                        oldmeta: 'oldmetastuff'
+                    });
                 });
             });
 
@@ -789,8 +807,28 @@ describe('build plugin test', () => {
                 };
                 const jobC = Object.assign({}, jobB, { id: 3 });
                 const jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
+                let parentEventMock;
 
                 beforeEach(() => {
+                    parentEventMock = {
+                        id: 456,
+                        pipelineId,
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'd', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'main' },
+                                { src: '~commit', dest: 'main' }
+                            ]
+                        },
+                        getBuilds: sinon.stub()
+                    };
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -801,6 +839,7 @@ describe('build plugin test', () => {
                             { name: 'd', id: 4 }
                         ]
                     };
+                    eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
@@ -871,6 +910,109 @@ describe('build plugin test', () => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                    });
+                });
+
+                it('triggers if all jobs in join are done with parent event', () => {
+                    // For a pipeline like this:
+                    //   -> b
+                    // a
+                    //   ->
+                    //      c
+                    // d ->
+                    // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
+                    eventMock.parentEventId = 456;
+                    eventMock.startFrom = 'a';
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+                    parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
+                    eventMock.getBuilds.resolves([{
+                        id: 5,
+                        jobId: 1,
+                        status: 'SUCCESS'
+                    }]);
+                    parentEventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 4,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    return server.inject(options).then(() => {
+                        assert.calledTwice(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                    });
+                });
+
+                it('ignore parent event statuses if startFrom job is not on join path', () => {
+                    // For a pipeline like this:
+                    //     -> b
+                    //  a        -> d
+                    //     -> c
+                    // if user restarts from job `a`, it should ignore `c`'s parent event status when `b` finishes
+                    jobMock.name = 'b';
+                    eventMock.parentEventId = 456;
+                    eventMock.startFrom = 'a';
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c' },
+                        { src: 'b', dest: 'd', join: true },
+                        { src: 'c', dest: 'd', join: true }
+                    ];
+                    parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
+
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 5,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 6,
+                            jobId: 2,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    parentEventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 2,
+                            jobId: 2,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 3,
+                            jobId: 3,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 4,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    return server.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
                     });
                 });
 
@@ -1167,13 +1309,21 @@ describe('build plugin test', () => {
     describe('GET /builds/{id}/steps/{step}', () => {
         const id = 12345;
         const step = 'install';
+        const options = {
+            method: 'GET',
+            url: `/builds/${id}/steps/${step}`,
+            credentials: {
+                scope: ['user'],
+                username: 'batman'
+            }
+        };
 
         it('returns 200 for a step that exists', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild.steps[1]);
             });
@@ -1182,7 +1332,7 @@ describe('build plugin test', () => {
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1191,8 +1341,9 @@ describe('build plugin test', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            options.url = `/builds/${id}/steps/fail`;
 
-            return server.inject(`/builds/${id}/steps/fail`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1200,7 +1351,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject(`/builds/${id}/steps/${step}`).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
