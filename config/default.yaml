@@ -80,6 +80,19 @@ executor:
                     high: 12
         # Container tags to use
         launchVersion: stable
+    nomad:
+      enabled: true
+      options:
+        nomad:
+            # The host or IP of the nomad cluster
+            host: http://10.75.130.53:4646/v1/jobs
+            resources:
+                cpu:
+                    high: 200
+                memory:
+                    high: 2000
+        # Container tags to use
+        launchVersion: stable
     docker:
       enabled: true
       options:
