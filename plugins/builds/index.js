@@ -84,9 +84,13 @@ function noFailureSoFar(joinList, finishedBuilds) {
  * @return {Array}                     success builds in join
  */
 function successBuildsInJoinList(joinList, finishedBuilds) {
-    const successBuilds = finishedBuilds.filter(b => b.status === 'SUCCESS').map(b => b.jobId);
+    const successBuilds = finishedBuilds
+        .filter(b => b.status === 'SUCCESS')
+        .map(b => ({ id: b.id, jobId: b.jobId }));
 
-    return joinList.filter(j => successBuilds.includes(j.id));
+    const joinListJobIds = joinList.map(j => j.id);
+
+    return successBuilds.filter(b => joinListJobIds.includes(b.jobId));
 }
 
 /**

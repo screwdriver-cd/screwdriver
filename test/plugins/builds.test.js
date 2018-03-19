@@ -1088,8 +1088,9 @@ describe('build plugin test', () => {
                     updatedBuildC.update = sinon.stub().resolves(updatedBuildC);
 
                     const buildC = {
+                        id: 333,
                         jobId: 3, // build is already created
-                        parentBuildId: [1, 2],
+                        parentBuildId: [111],
                         update: sinon.stub().resolves(updatedBuildC)
                     };
 
@@ -1101,9 +1102,11 @@ describe('build plugin test', () => {
                     ];
 
                     eventMock.getBuilds.resolves([{
+                        id: 111,
                         jobId: 1,
                         status: 'SUCCESS'
                     }, {
+                        id: 222,
                         jobId: 2,
                         status: 'SUCCESS'
                     }, buildC]);
@@ -1111,7 +1114,7 @@ describe('build plugin test', () => {
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildMock.update); // current build
-                        assert.deepEqual(buildC.parentBuildId, [1, 2]);
+                        assert.deepEqual(buildC.parentBuildId, [111, 222]);
                         assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.update);
                         assert.calledOnce(updatedBuildC.start);
