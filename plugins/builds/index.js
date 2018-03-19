@@ -128,7 +128,18 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
         nextBuild.parentBuildId = successBuildsIds;
 
         return nextBuild.update();
-    }).then(nextBuild => (isJoinDone(joinList, finishedBuilds) ? nextBuild.start() : null));
+    }).then((b) => {
+        const done = isJoinDone(joinList, finishedBuilds);
+
+        if (!done) {
+            return null;
+        }
+
+        b.status = 'QUEUED';
+
+        return b.update()
+            .then(newBuild => newBuild.start());
+    });
 }
 
 /**
