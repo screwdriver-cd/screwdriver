@@ -1082,10 +1082,15 @@ describe('build plugin test', () => {
                 });
 
                 it('update parent build IDs', () => {
+                    const updatedBuildC = Object.assign({}, buildMock);
+
+                    updatedBuildC.start = sinon.stub().resolves();
+                    updatedBuildC.update = sinon.stub().resolves(updatedBuildC);
+
                     const buildC = {
                         jobId: 3, // build is already created
                         parentBuildId: [1, 2],
-                        update: sinon.stub().resolves(buildMock)
+                        update: sinon.stub().resolves(updatedBuildC)
                     };
 
                     eventMock.workflowGraph.edges = [
@@ -1103,13 +1108,13 @@ describe('build plugin test', () => {
                         status: 'SUCCESS'
                     }, buildC]);
 
-                    buildMock.start = sinon.stub().resolves();
-                    buildMock.update = sinon.stub().resolves(buildMock);
-
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
-                        assert.calledOnce(buildC.update);
+                        assert.calledOnce(buildMock.update); // current build
                         assert.deepEqual(buildC.parentBuildId, [1, 2]);
+                        assert.calledOnce(buildC.update);
+                        assert.calledOnce(updatedBuildC.update);
+                        assert.calledOnce(updatedBuildC.start);
                     });
                 });
 
