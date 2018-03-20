@@ -38,9 +38,11 @@ const decorateEventMock = (event) => {
 };
 
 describe('event plugin test', () => {
-    let factoryMock;
+    let eventFactoryMock;
     let pipelineFactoryMock;
     let userFactoryMock;
+    let buildFactoryMock;
+    let jobFactoryMock;
     let plugin;
     let server;
 
@@ -52,7 +54,7 @@ describe('event plugin test', () => {
     });
 
     beforeEach((done) => {
-        factoryMock = {
+        eventFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
             scm: {
@@ -69,6 +71,13 @@ describe('event plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
+        buildFactoryMock = {
+            get: sinon.stub()
+        };
+
+        jobFactoryMock = {
+            get: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/events');
@@ -78,7 +87,9 @@ describe('event plugin test', () => {
         server.app = {
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
-            eventFactory: factoryMock
+            eventFactory: eventFactoryMock,
+            buildFactory: buildFactoryMock,
+            jobFactory: jobFactoryMock
         };
         server.connection({
             port: 1234
@@ -118,7 +129,7 @@ describe('event plugin test', () => {
         const id = 12345;
 
         it('exposes a route for getting a event', () => {
-            factoryMock.get.withArgs(id).resolves(decorateEventMock(testEvent));
+            eventFactoryMock.get.withArgs(id).resolves(decorateEventMock(testEvent));
 
             return server.inject('/events/12345')
                 .then((reply) => {
@@ -134,7 +145,7 @@ describe('event plugin test', () => {
                 message: 'Event does not exist'
             };
 
-            factoryMock.get.withArgs(id).resolves(null);
+            eventFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject('/events/12345')
                 .then((reply) => {
@@ -144,7 +155,7 @@ describe('event plugin test', () => {
         });
 
         it('returns errors when datastore returns an error', () => {
-            factoryMock.get.withArgs(id).rejects(new Error('blah'));
+            eventFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
             return server.inject('/events/12345')
                 .then((reply) => {
@@ -168,12 +179,12 @@ describe('event plugin test', () => {
             event = decorateEventMock(testEvent);
             builds = getBuildMocks(testBuilds);
 
-            factoryMock.get.withArgs(id).resolves(event);
+            eventFactoryMock.get.withArgs(id).resolves(event);
             event.getBuilds.resolves(builds);
         });
 
         it('returns 404 if event does not exist', () => {
-            factoryMock.get.withArgs(id).resolves(null);
+            eventFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -195,20 +206,19 @@ describe('event plugin test', () => {
         let expectedLocation;
         let scmConfig;
         let userMock;
+        const username = 'myself';
+        const parentBuildId = 12345;
+        const pipelineId = 123;
+        const scmContext = 'github:github.com';
+        const scmUri = 'github.com:12345:branchName';
+        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const pipelineMock = {
+            id: pipelineId,
+            checkoutUrl,
+            scmUri
+        };
 
         beforeEach(() => {
-            const username = 'myself';
-            const parentBuildId = 12345;
-            const pipelineId = 123;
-            const scmContext = 'github:github.com';
-            const scmUri = 'github.com:12345:branchName';
-            const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
-            const pipelineMock = {
-                id: pipelineId,
-                checkoutUrl,
-                scmUri
-            };
-
             userMock = {
                 username,
                 getPermissions: sinon.stub().resolves({ push: true }),
@@ -244,10 +254,42 @@ describe('event plugin test', () => {
                 username
             };
 
-            factoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
-            factoryMock.create.resolves(decorateEventMock(testEvent));
+            eventFactoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
+            eventFactoryMock.create.resolves(decorateEventMock(testEvent));
             userFactoryMock.get.resolves(userMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 201 when it successfully creates an event with buildId passed in', () => {
+            options.payload = {
+                buildId: 1234
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.startFrom = 'main';
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
         });
 
         it('returns 201 when it successfully creates an event', () =>
@@ -259,10 +301,10 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
-                assert.calledWith(factoryMock.create, eventConfig);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(factoryMock.scm.getCommitSha, scmConfig);
-                assert.notCalled(factoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
             })
         );
 
@@ -280,10 +322,10 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
-                assert.calledWith(factoryMock.create, eventConfig);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.notCalled(factoryMock.scm.getCommitSha);
-                assert.notCalled(factoryMock.scm.getPrInfo);
+                assert.notCalled(eventFactoryMock.scm.getCommitSha);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
             });
         });
 
@@ -296,14 +338,14 @@ describe('event plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 201);
-                assert.calledWith(factoryMock.create, eventConfig);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
             });
         });
 
         it('returns 500 when the model encounters an error', () => {
             const testError = new Error('datastoreSaveError');
 
-            factoryMock.create.rejects(testError);
+            eventFactoryMock.create.rejects(testError);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
