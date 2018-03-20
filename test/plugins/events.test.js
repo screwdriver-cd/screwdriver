@@ -267,13 +267,18 @@ describe('event plugin test', () => {
             buildFactoryMock.get.resolves({
                 id: 1234,
                 jobId: 222,
-                parentBuildId
+                parentBuildId,
+                eventId: 888
             });
             jobFactoryMock.get.resolves({
                 pipelineId,
                 name: 'main'
             });
             eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
+            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventFactoryMock.get.resolves(decorateEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -286,7 +291,6 @@ describe('event plugin test', () => {
                 assert.calledWith(jobFactoryMock.get, 222);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
                 assert.equal(reply.statusCode, 201);
             });

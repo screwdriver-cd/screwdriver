@@ -40,7 +40,7 @@ module.exports = () => ({
                                 pipelineId: j.pipelineId,
                                 startFrom: j.name,
                                 parentBuildId: b.parentBuildId,
-                                parentEventId: b.parentEventId
+                                parentEventId: b.eventId
                             })));
                 }
 
@@ -87,7 +87,7 @@ module.exports = () => ({
                     // User has good permissions, create an event
                     .then(() => user.unsealToken())
                     .then((token) => {
-                        // If there is parentEvent, pass workflow, worklfowGraph and sha to payload
+                        // If there is parentEvent, pass workflowGraph and sha to payload
                         if (payload.parentEventId) {
                             return eventFactory.get(parentEventId)
                                 .then((parentEvent) => {
