@@ -48,7 +48,8 @@ describe('github plugin test', () => {
             scm: {
                 parseHook: sinon.stub(),
                 parseUrl: sinon.stub(),
-                getDisplayName: sinon.stub()
+                getDisplayName: sinon.stub(),
+                getChangedFiles: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -171,8 +172,7 @@ describe('github plugin test', () => {
                 sha,
                 prNum: 1,
                 prSource: 'branch',
-                prRef,
-                changedFiles: ['README.md']
+                prRef
             };
             mainJobMock = {
                 id: 1,
@@ -237,6 +237,7 @@ describe('github plugin test', () => {
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.scm.parseUrl
                 .withArgs({ checkoutUrl, token, scmContext }).resolves(scmUri);
+            pipelineFactoryMock.scm.getChangedFiles.resolves(['README.md']);
 
             userFactoryMock.get.resolves(userMock);
             userMock.unsealToken.resolves(token);

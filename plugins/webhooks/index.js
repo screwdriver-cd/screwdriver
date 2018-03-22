@@ -376,39 +376,45 @@ exports.register = (server, options, next) => {
             description: 'Handle webhook events',
             notes: 'Acts on pull request, pushes, comments, etc.',
             tags: ['api', 'webhook'],
-            handler: (request, reply) =>
-                scm.parseHook(request.headers, request.payload)
-                    .then((parsed) => {
-                        if (!parsed) { // for all non-matching events or actions
-                            return reply().code(204);
-                        }
+            handler: (request, reply) => {
+                const userFactory = request.server.app.userFactory;
+                const ignoreUser = pluginOptions.ignoreCommitsBy;
 
-                        const { type, hookId, username } = parsed;
-                        const ignoreUser = pluginOptions.ignoreCommitsBy;
+                return scm.parseHook(request.headers, request.payload).then((parsed) => {
+                    if (!parsed) { // for all non-matching events or actions
+                        return reply().code(204);
+                    }
 
-                        request.log(['webhook', hookId], `Received event type ${type}`);
+                    const { type, hookId, username, scmContext } = parsed;
 
-                        if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
-                            request.log(['webhook', hookId], 'Skipping due to the commit message');
+                    request.log(['webhook', hookId], `Received event type ${type}`);
 
-                            return reply().code(204);
-                        }
+                    if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
+                        request.log(['webhook', hookId], 'Skipping due to the commit message');
 
-                        if (ignoreUser.includes(username)) {
-                            request.log(['webhook', hookId],
-                                `Skipping because user ${username} is ignored`);
+                        return reply().code(204);
+                    }
 
-                            return reply().code(204);
-                        }
+                    if (ignoreUser.includes(username)) {
+                        request.log(['webhook', hookId],
+                            `Skipping because user ${username} is ignored`);
 
-                        if (type === 'pr') {
-                            return pullRequestEvent(pluginOptions, request, reply, parsed);
-                        }
+                        return reply().code(204);
+                    }
 
-                        return pushEvent(pluginOptions, request, reply, parsed);
-                    })
-                    .catch(err => reply(boom.wrap(err)))
-        }
+                    return obtainScmToken(pluginOptions, userFactory, username, scmContext)
+                        .then(token => scm.getChangedFiles(request.payload, token))
+                        .then((changedFiles) => {
+                            parsed.changedFiles = changedFiles;
+                            if (type === 'pr') {
+                                return pullRequestEvent(pluginOptions, request, reply, parsed);
+                            }
+
+                            return pushEvent(pluginOptions, request, reply, parsed);
+                        });
+                })
+                    .catch(err => reply(boom.wrap(err)));
+            } }
     });
 
     next();
