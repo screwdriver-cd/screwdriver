@@ -146,6 +146,7 @@ describe('github plugin test', () => {
         const token = 'iamtoken';
         const prRef = 'pull/1/merge';
         const scmDisplayName = 'github';
+        const changedFiles = ['README.md'];
         let pipelineMock;
         let buildMock;
         let mainJobMock;
@@ -170,7 +171,8 @@ describe('github plugin test', () => {
                 sha,
                 prNum: 1,
                 prSource: 'branch',
-                prRef
+                prRef,
+                changedFiles: ['README.md']
             };
             mainJobMock = {
                 id: 1,
@@ -306,7 +308,8 @@ describe('github plugin test', () => {
                         scmContext,
                         sha,
                         startFrom: '~commit',
-                        causeMessage: `Merged by ${username}`
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles
                     });
                 })
             );
@@ -443,6 +446,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 2,
                             prRef,
+                            changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
@@ -465,6 +469,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 1,
                             prRef,
+                            changedFiles,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
@@ -516,6 +521,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 2,
                             prRef,
+                            changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
@@ -548,6 +554,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 2,
                             prRef,
+                            changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
@@ -613,6 +620,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 1,
                             prRef,
+                            changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
@@ -632,6 +640,7 @@ describe('github plugin test', () => {
                             prRef,
                             prNum: 1,
                             type: 'pr',
+                            changedFiles,
                             causeMessage: 'Synchronized by github:baxterthehacker'
                         });
                         assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
@@ -685,6 +694,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 1,
                             prRef,
+                            changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
@@ -717,6 +727,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 1,
                             prRef,
+                            changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);

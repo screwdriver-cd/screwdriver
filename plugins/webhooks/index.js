@@ -55,11 +55,12 @@ function stopJob(job) {
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {String}       options.prNum         Pull request number
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
+ * @param  {Array}        options.changedFiles  List of changed files
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
 function startPRJob(options, request) {
-    const { username, scmContext, sha, prRef, prNum, pipeline } = options;
+    const { username, scmContext, sha, prRef, prNum, pipeline, changedFiles } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext });
@@ -74,6 +75,7 @@ function startPRJob(options, request) {
         prRef,
         prNum,
         startFrom: '~pr',
+        changedFiles,
         causeMessage: `${options.action} by ${userDisplayName}`
     };
 
@@ -88,6 +90,7 @@ function startPRJob(options, request) {
  * @param  {String}       options.name          Name of the new job (PR-1)
  * @param  {String}       options.restriction   If we are restricting PRs based on their origin
  * @param  {String}       options.prSource      The origin of this PR
+ * @param  {Array}        options.changedFiles  List of files that were changed
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
@@ -154,6 +157,7 @@ function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
+ * @param  {Array}        options.changedFiles  List of files that were changed
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
@@ -228,10 +232,8 @@ function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
 function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const {
-        hookId, action, checkoutUrl, branch, sha,
-        prNum, prRef, prSource, username, scmContext
-    } = parsed;
+    const { hookId, action, checkoutUrl, branch, sha, prNum, prRef,
+        prSource, username, scmContext, changedFiles } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
@@ -269,6 +271,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         prSource,
                         pipeline: p,
                         restriction,
+                        changedFiles,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
 
@@ -302,7 +305,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, checkoutUrl, branch, sha, username, scmContext } = parsed;
+    const { hookId, checkoutUrl, branch, sha, username, scmContext, changedFiles } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
 
     request.log(['webhook', hookId], `Push for ${fullCheckoutUrl}`);
@@ -330,6 +333,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                 scmContext,
                 startFrom: '~commit',
                 sha,
+                changedFiles,
                 causeMessage: `Merged by ${username}`
             };
 
