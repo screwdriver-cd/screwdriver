@@ -16,7 +16,7 @@ module.exports = () => ({
         notes: 'Delete a specific template',
         tags: ['api', 'templates'],
         auth: {
-            strategies: ['token', 'session'],
+            strategies: ['token'],
             scope: ['build']
         },
         plugins: {

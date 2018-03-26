@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Create and start a specific event',
         tags: ['api', 'events'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {
@@ -24,93 +24,109 @@ module.exports = () => ({
             const eventFactory = request.server.app.eventFactory;
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
+            const buildFactory = request.server.app.buildFactory;
+            const jobFactory = request.server.app.jobFactory;
             const scm = eventFactory.scm;
-            const pipelineId = request.payload.pipelineId;
             const scmContext = request.auth.credentials.scmContext;
-            const startFrom = request.payload.startFrom;
             const username = request.auth.credentials.username;
-            const parentBuildId = request.payload.parentBuildId;
-            const parentEventId = request.payload.parentEventId;
-            const payload = {
-                pipelineId,
-                scmContext,
-                startFrom,
-                type: 'pipeline',
-                username
-            };
 
-            if (parentEventId) {
-                payload.parentEventId = parentEventId;
-            }
+            return Promise.resolve().then(() => {
+                const buildId = request.payload.buildId;
 
-            if (parentBuildId) {
-                payload.parentBuildId = parentBuildId;
-            }
+                if (buildId) { // restart case
+                    return buildFactory.get(buildId)
+                        .then(b => jobFactory.get(b.jobId)
+                            .then(j => ({
+                                pipelineId: j.pipelineId,
+                                startFrom: j.name,
+                                parentBuildId: b.parentBuildId,
+                                parentEventId: b.eventId
+                            })));
+                }
 
-            // Match PR-prNum, then extract prNum
-            // e.g. if startFrom is "PR-1:main", prNumFullName will be "PR-1"; prNum will be "1"
-            const prNumFullName = startFrom.match(validationSchema.config.regex.PR_JOB_NAME);
-            const prNum = prNumFullName ? prNumFullName[1].split('-')[1] : null;
+                return {
+                    pipelineId: request.payload.pipelineId,
+                    startFrom: request.payload.startFrom,
+                    parentBuildId: request.payload.parentBuildId,
+                    parentEventId: request.payload.parentEventId
+                };
+            }).then(({ pipelineId, startFrom, parentBuildId, parentEventId }) => {
+                const payload = {
+                    pipelineId,
+                    scmContext,
+                    startFrom,
+                    type: 'pipeline',
+                    username
+                };
 
-            // Fetch the job and user models
-            return Promise.all([
-                pipelineFactory.get(pipelineId),
-                userFactory.get({ username, scmContext })
-            ])
-                // Get scmUri
-                .then(([pipeline, user]) =>
-                    user.getPermissions(pipeline.scmUri)
-                        // Check if user has push access
-                        .then((permissions) => {
-                            if (!permissions.push) {
-                                throw boom.unauthorized(`User ${username} `
-                            + 'does not have push permission for this repo');
-                            }
-                        })
-                        // User has good permissions, create an event
-                        .then(() => user.unsealToken())
-                        .then((token) => {
-                            // If there is parentEvent, pass workflow, worklfowGraph and sha to payload
-                            if (payload.parentEventId) {
-                                return eventFactory.get(parentEventId)
-                                    .then((parentEvent) => {
-                                        payload.workflowGraph = parentEvent.workflowGraph;
-                                        payload.sha = parentEvent.sha;
+                if (parentEventId) {
+                    payload.parentEventId = parentEventId;
+                }
 
-                                        return null;
-                                    });
-                            }
+                if (parentBuildId) {
+                    payload.parentBuildId = parentBuildId;
+                }
 
-                            const scmConfig = {
-                                prNum,
-                                scmContext,
-                                scmUri: pipeline.scmUri,
-                                token
-                            };
+                // Match PR-prNum, then extract prNum
+                // e.g. if startFrom is "PR-1:main", prNumFullName will be "PR-1"; prNum will be "1"
+                const prNumFullName = startFrom.match(validationSchema.config.regex.PR_JOB_NAME);
+                const prNum = prNumFullName ? prNumFullName[1].split('-')[1] : null;
 
-                            return scm.getCommitSha(scmConfig)
-                                .then((sha) => {
-                                    payload.sha = sha;
-
-                                    // For PRs
-                                    if (prNum) {
-                                        payload.prNum = prNum;
-                                        payload.type = 'pr';
-
-                                        return scm.getPrInfo(scmConfig);
-                                    }
+                // Fetch the job and user models
+                return Promise.all([
+                    pipelineFactory.get(pipelineId),
+                    userFactory.get({ username, scmContext })
+                ]).then(([pipeline, user]) => user.getPermissions(pipeline.scmUri)
+                    // Check if user has push access
+                    .then((permissions) => {
+                        if (!permissions.push) {
+                            throw boom.unauthorized(`User ${username} `
+                              + 'does not have push permission for this repo');
+                        }
+                    })
+                    // User has good permissions, create an event
+                    .then(() => user.unsealToken())
+                    .then((token) => {
+                        // If there is parentEvent, pass workflowGraph and sha to payload
+                        if (payload.parentEventId) {
+                            return eventFactory.get(parentEventId)
+                                .then((parentEvent) => {
+                                    payload.workflowGraph = parentEvent.workflowGraph;
+                                    payload.sha = parentEvent.sha;
 
                                     return null;
                                 });
-                        })
-                        .then((prInfo) => {
-                            if (prInfo) {
-                                payload.prRef = prInfo.ref;
+                        }
+
+                        const scmConfig = {
+                            prNum,
+                            scmContext,
+                            scmUri: pipeline.scmUri,
+                            token
+                        };
+
+                        return scm.getCommitSha(scmConfig).then((sha) => {
+                            payload.sha = sha;
+
+                            // For PRs
+                            if (prNum) {
+                                payload.prNum = prNum;
+                                payload.type = 'pr';
+
+                                return scm.getPrInfo(scmConfig);
                             }
 
-                            return eventFactory.create(payload);
-                        }))
-                .then((event) => {
+                            return null;
+                        });
+                    })
+                    .then((prInfo) => {
+                        if (prInfo) {
+                            payload.prRef = prInfo.ref;
+                        }
+
+                        return eventFactory.create(payload);
+                    })
+                ).then((event) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({
                         host: request.headers.host,
@@ -120,9 +136,8 @@ module.exports = () => ({
                     });
 
                     return reply(event.toJson()).header('Location', location).code(201);
-                })
-                // something was botched
-                .catch(err => reply(boom.wrap(err)));
+                });
+            }).catch(err => reply(boom.wrap(err)));
         },
         validate: {
             payload: validationSchema.models.event.create

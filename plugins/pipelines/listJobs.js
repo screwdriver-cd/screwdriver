@@ -12,6 +12,15 @@ module.exports = () => ({
         description: 'Get all jobs for a given pipeline',
         notes: 'Returns all jobs for a given pipeline',
         tags: ['api', 'pipelines', 'jobs'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
 

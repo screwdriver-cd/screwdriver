@@ -13,8 +13,8 @@ module.exports = () => ({
         notes: 'Update the value of a token while preserving its other metadata',
         tags: ['api', 'secrets'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

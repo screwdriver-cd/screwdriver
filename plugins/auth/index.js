@@ -1,12 +1,11 @@
 'use strict';
 
-const authjwt = require('hapi-auth-jwt2');
+const authJWT = require('hapi-auth-jwt2');
 const authToken = require('hapi-auth-bearer-token');
 const bell = require('bell');
 const contextsRoute = require('./contexts');
 const crumb = require('crumb');
 const crumbRoute = require('./crumb');
-const hoek = require('hoek');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const keyRoute = require('./key');
@@ -27,6 +26,7 @@ const ALGORITHM = 'RS256';
  * @param  {String}   options.cookiePassword         Password used for temporary encryption of cookie secrets
  * @param  {String}   options.encryptionPassword     Password used for iron encrypting
  * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
+ * @param  {Boolean}  options.allowGuestAccess       Letting users browse your system
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
  * @param  {String}  [options.jwtEnvironment]        Environment for the JWTs. Example: 'prod' or 'beta'
  * @param  {Object}   options.scm                    SCM class to setup Authentication
@@ -38,13 +38,13 @@ exports.register = (server, options, next) => {
         https: joi.boolean().truthy('true').falsy('false').required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
+        allowGuestAccess: joi.boolean().truthy('true').falsy('false').default(false),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
         admins: joi.array().default([]),
         scm: joi.object().required()
     }), 'Invalid config for plugin-auth');
-    const scmContexts = server.root.app.userFactory.scm.getScmContexts();
 
     /**
      * Generates a profile for storage in cookie and jwt
@@ -64,14 +64,16 @@ exports.register = (server, options, next) => {
             profile.environment = pluginOptions.jwtEnvironment;
         }
 
-        const scm = server.root.app.userFactory.scm;
-        const scmDisplayName = scm.getDisplayName({ scmContext });
-        const userDisplayName = `${scmDisplayName}:${username}`;
+        if (scmContext) {
+            const scm = server.root.app.userFactory.scm;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
+            const userDisplayName = `${scmDisplayName}:${username}`;
 
-        // Check admin
-        if (pluginOptions.admins.length > 0
+            // Check admin
+            if (pluginOptions.admins.length > 0
                 && pluginOptions.admins.includes(userDisplayName)) {
-            profile.scope.push('admin');
+                profile.scope.push('admin');
+            }
         }
 
         return profile;
@@ -89,19 +91,18 @@ exports.register = (server, options, next) => {
         jwtid: uuid()
     }));
 
-    const modules = [bell, sugar, authjwt, authToken, {
-        register: crumb,
-        options: {
-            restful: true,
-            skip: request =>
-                // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
-                !!request.headers.authorization ||
-                !!request.route.path.includes('/webhooks') ||
-                !!request.route.path.includes('/auth/')
-        }
-    }];
-
-    return server.register(modules)
+    return server.register([
+        bell, sugar, authToken, authJWT, {
+            register: crumb,
+            options: {
+                restful: true,
+                skip: request =>
+                    // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                    !!request.headers.authorization ||
+                    !!request.route.path.includes('/webhooks') ||
+                    !!request.route.path.includes('/auth/')
+            }
+        }])
         .then(() => pluginOptions.scm.getBellConfiguration())
         .then((bellConfigs) => {
             Object.keys(bellConfigs).forEach((scmContext) => {
@@ -140,14 +141,16 @@ exports.register = (server, options, next) => {
                 validateFunc: function _validateFunc(token, cb) {
                     // Token is an API token
                     // using function syntax makes 'this' the request
-                    // TODO: Should log that we're authenticating a user with a token
-                    const factory = this.server.app.userFactory;
+                    const request = this;
+                    const factory = request.server.app.userFactory;
 
                     return factory.get({ accessToken: token })
                         .then((user) => {
                             if (!user) {
                                 return cb(null, false, {});
                             }
+
+                            request.log(['auth'], `${user.username} has logged in via API keys`);
 
                             const profile = {
                                 username: user.username,
@@ -161,29 +164,12 @@ exports.register = (server, options, next) => {
                         });
                 }
             });
-
-            const loginRoutes = [];
-
-            scmContexts.forEach((scmContext) => {
-                const auth = {
-                    strategy: `oauth_${scmContext}`,
-                    mode: 'try'
-                };
-                const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext, auth });
-
-                loginRoutes.push(loginRoute(loginOptions));
-            });
-            // This login route for which scmContext isn't passed just redirects to a default login route, so this login route doesn't need to have any auth strategy
-            loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
-                scmContext: '', auth: null
-            })));
-
-            server.route(loginRoutes.concat([
+            server.route(loginRoute(server, pluginOptions).concat([
                 logoutRoute(),
                 tokenRoute(),
                 crumbRoute(),
                 keyRoute(pluginOptions),
-                contextsRoute()
+                contextsRoute(pluginOptions)
             ]));
 
             next();

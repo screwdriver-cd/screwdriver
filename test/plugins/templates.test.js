@@ -90,10 +90,13 @@ describe('template plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({})
+            authenticate: (request, reply) => reply.continue({
+                credentials: {
+                    scope: ['user']
+                }
+            })
         }));
         server.auth.strategy('token', 'custom');
-        server.auth.strategy('session', 'custom');
 
         server.register([{
             register: plugin

@@ -12,7 +12,7 @@ module.exports = () => ({
         notes: 'Returns all collection records belonging to the requesting user',
         tags: ['api', 'collections'],
         auth: {
-            strategies: ['token', 'session'],
+            strategies: ['token'],
             scope: ['user']
         },
         plugins: {

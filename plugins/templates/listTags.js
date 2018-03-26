@@ -13,6 +13,15 @@ module.exports = () => ({
         description: 'Get all template tags for a given template name',
         notes: 'Returns all template tags for a given template name',
         tags: ['api', 'templates', 'tags'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.templateTagFactory;
 

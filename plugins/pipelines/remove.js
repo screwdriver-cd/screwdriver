@@ -13,8 +13,13 @@ module.exports = () => ({
         notes: 'Returns null if successful',
         tags: ['api', 'pipelines'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const pipelineFactory = request.server.app.pipelineFactory;

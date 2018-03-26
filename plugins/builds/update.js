@@ -14,11 +14,17 @@ module.exports = () => ({
         notes: 'Update a specific build',
         tags: ['api', 'builds'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user', 'build']
+            strategies: ['token'],
+            scope: ['build', 'user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const buildFactory = request.server.app.buildFactory;
+            const eventFactory = request.server.app.eventFactory;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
             const statusMessage = request.payload.statusMessage;
@@ -53,20 +59,23 @@ module.exports = () => ({
                         }
                         // Check permission against the pipeline
                         // @TODO implement this
-                    } else {
-                        switch (desiredStatus) {
-                        case 'SUCCESS':
-                        case 'FAILURE':
-                        case 'ABORTED':
-                            build.meta = request.payload.meta || {};
-                            build.endTime = (new Date()).toISOString();
-                            break;
-                        case 'RUNNING':
-                            build.startTime = (new Date()).toISOString();
-                            break;
-                        default:
-                            throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
-                        }
+                    }
+
+                    return eventFactory.get(build.eventId).then(event => ({ build, event }));
+                }).then(({ build, event }) => {
+                    switch (desiredStatus) {
+                    case 'SUCCESS':
+                    case 'FAILURE':
+                    case 'ABORTED':
+                        build.meta = request.payload.meta || {};
+                        event.meta = { ...event.meta, ...build.meta };
+                        build.endTime = (new Date()).toISOString();
+                        break;
+                    case 'RUNNING':
+                        build.startTime = (new Date()).toISOString();
+                        break;
+                    default:
+                        throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
                     }
 
                     // Everyone is able to update the status
@@ -76,50 +85,47 @@ module.exports = () => ({
                     }
 
                     // Only trigger next build on success
-                    return build.update()
-                        .then(() => build.job.then(job => job.pipeline.then((pipeline) => {
-                            request.server.emit('build_status', {
-                                settings: job.permutations[0].settings,
-                                status: build.status,
-                                pipelineName: pipeline.scmRepo.name,
-                                jobName: job.name,
-                                buildId: build.id,
-                                buildLink:
-                                    `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
+                    return Promise.all([build.update(), event.update()]);
+                }).then(([build]) => build.job.then(job => job.pipeline.then((pipeline) => {
+                    request.server.emit('build_status', {
+                        settings: job.permutations[0].settings,
+                        status: build.status,
+                        pipelineName: pipeline.scmRepo.name,
+                        jobName: job.name,
+                        buildId: build.id,
+                        buildLink:
+                            `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
+                    });
+                    // Guard against triggering non-successful builds
+                    if (desiredStatus !== 'SUCCESS') {
+                        return null;
+                    }
+
+                    const src = `~sd@${pipeline.id}:${job.name}`;
+
+                    return triggerNextJobs({ pipeline, job, build, username, scmContext })
+                        .then(() => triggerFactory.list({ params: { src } }))
+                        .then((records) => {
+                            // Use set to remove duplicate and keep only unique pipelineIds
+                            const triggeredPipelines = new Set();
+
+                            records.forEach((record) => {
+                                const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
+
+                                triggeredPipelines.add(pipelineId);
                             });
 
-                            // Guard against triggering non-successful builds
-                            if (desiredStatus !== 'SUCCESS') {
-                                return null;
-                            }
-
-                            const src = `~sd@${pipeline.id}:${job.name}`;
-
-                            return triggerNextJobs({ pipeline, job, build, username, scmContext })
-                                .then(() => triggerFactory.list({ params: { src } }))
-                                .then((records) => {
-                                    // Use set to remove duplicate and keep only unique pipelineIds
-                                    const triggeredPipelines = new Set();
-
-                                    records.forEach((record) => {
-                                        const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
-
-                                        triggeredPipelines.add(pipelineId);
-                                    });
-
-                                    return Array.from(triggeredPipelines);
-                                })
-                                .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
-                                    triggerEvent({
-                                        pipelineId: parseInt(pipelineId, 10),
-                                        startFrom: src,
-                                        causeMessage: `Triggered by build ${username}`,
-                                        parentBuildId: build.id
-                                    })
-                                )));
-                        })))
-                        .then(() => reply(build.toJson()).code(200));
-                })
+                            return Array.from(triggeredPipelines);
+                        })
+                        .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
+                            triggerEvent({
+                                pipelineId: parseInt(pipelineId, 10),
+                                startFrom: src,
+                                causeMessage: `Triggered by build ${username}`,
+                                parentBuildId: build.id
+                            })
+                        )));
+                }).then(() => reply(build.toJson()).code(200))))
                 .catch(err => reply(boom.wrap(err)));
         },
         validate: {

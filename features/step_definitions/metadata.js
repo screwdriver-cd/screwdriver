@@ -37,7 +37,10 @@ defineSupportCode(({ Before, Given, Then }) => {
         return request({
             uri: `${this.instance}/${this.namespace}/jobs/${jobId}/builds`,
             method: 'GET',
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         }).then((response) => {
             Assert.equal(response.statusCode, 200);
 
@@ -63,7 +66,10 @@ defineSupportCode(({ Before, Given, Then }) => {
         return request({
             uri: `${this.instance}/${this.namespace}/jobs/${this.lastJobId}/builds`,
             method: 'GET',
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         }).then((response) => {
             this.buildId = response.body[0].id;
             this.meta = response.body[0].meta;

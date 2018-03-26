@@ -12,6 +12,15 @@ module.exports = () => ({
         description: 'Get pipelines with pagination',
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const scmContexts = factory.scm.getScmContexts();
