@@ -64,14 +64,16 @@ exports.register = (server, options, next) => {
             profile.environment = pluginOptions.jwtEnvironment;
         }
 
-        const scm = server.root.app.userFactory.scm;
-        const scmDisplayName = scm.getDisplayName({ scmContext });
-        const userDisplayName = `${scmDisplayName}:${username}`;
+        if (scmContext) {
+            const scm = server.root.app.userFactory.scm;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
+            const userDisplayName = `${scmDisplayName}:${username}`;
 
-        // Check admin
-        if (pluginOptions.admins.length > 0
+            // Check admin
+            if (pluginOptions.admins.length > 0
                 && pluginOptions.admins.includes(userDisplayName)) {
-            profile.scope.push('admin');
+                profile.scope.push('admin');
+            }
         }
 
         return profile;
