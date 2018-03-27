@@ -403,9 +403,14 @@ exports.register = (server, options, next) => {
                     }
 
                     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-                        .then(token => scm.getChangedFiles(request.payload, token))
+                        .then(token => scm.getChangedFiles({
+                            payload: request.payload,
+                            type,
+                            token
+                        }))
                         .then((changedFiles) => {
                             parsed.changedFiles = changedFiles;
+
                             if (type === 'pr') {
                                 return pullRequestEvent(pluginOptions, request, reply, parsed);
                             }
