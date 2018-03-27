@@ -1843,12 +1843,28 @@ describe('build plugin test', () => {
     describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
+        const multiByteArtifact = 'まにふぇmanife漢字';
 
         it('redirects to store for an artifact request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
             return server.inject({
                 url: `/builds/${id}/artifacts/${artifact}`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('redirects to store for an multi-byte artifact request', () => {
+            const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
+
+            return server.inject({
+                url: `/builds/${id}/artifacts/${multiByteArtifact}`,
                 credentials: {
                     scope: ['user']
                 }
