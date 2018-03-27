@@ -7,7 +7,7 @@ const baseSchema = schema.models.template.base;
 
 module.exports = () => ({
     method: 'DELETE',
-    path: '/templates/{name}/',
+    path: '/templates/{name}',
     config: {
         description: 'Delete a template',
         notes: 'Returns null if successful',

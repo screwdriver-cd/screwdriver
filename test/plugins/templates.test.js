@@ -45,10 +45,20 @@ const getPipelineMocks = (pipelines) => {
     return decorateObj(pipelines);
 };
 
+const getUserMock = (user) => {
+    const mock = hoek.clone(user);
+
+    mock.getPermissions = sinon.stub();
+    mock.toJson = sinon.stub().returns(user);
+
+    return mock;
+};
+
 describe('template plugin test', () => {
     let templateFactoryMock;
     let templateTagFactoryMock;
     let pipelineFactoryMock;
+    let userFactoryMock;
     let plugin;
     let server;
 
@@ -75,6 +85,9 @@ describe('template plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub()
         };
+        userFactoryMock = {
+            get: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/templates');
@@ -83,7 +96,8 @@ describe('template plugin test', () => {
         server.app = {
             templateFactory: templateFactoryMock,
             templateTagFactory: templateTagFactoryMock,
-            pipelineFactory: pipelineFactoryMock
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock
         };
         server.connection({
             port: 1234
@@ -237,6 +251,95 @@ describe('template plugin test', () => {
                 assert.equal(reply.statusCode, 404);
             });
         });
+    });
+
+    describe('DELETE /templates/name', () => {
+        const id = 123;
+        const scmUri = 'github.com:12345:branchName';
+        const username = 'myself';
+        const scmContext = 'github@github.com';
+        let pipeline;
+        let options;
+        let userMock;
+        const testTemplate = decorateObj({
+            id: 1,
+            name: 'testtemplate',
+            tag: 'stable',
+            pipelineId: id,
+            remove: sinon.stub().resolves(null)
+        });
+        const testTemplateTag = decorateObj({
+            id: 1,
+            name: 'testtemplate',
+            tag: 'stable',
+            remove: sinon.stub().resolves(null)
+        });
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user', '!guest']
+                }
+            };
+
+            userMock = getUserMock({ username, scmContext });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+
+            pipeline = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
+
+            templateFactoryMock.list.resolves([testTemplate]);
+            templateTagFactoryMock.list.resolves([testTemplateTag]);
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 401 when user does not have admin permissions', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'User myself does not have admin permission for this repo'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User myself does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes template if it has good permissions and template exists', () =>
+            server.inject(options).then((reply) => {
+                assert.calledOnce(testTemplate.remove);
+                assert.equal(reply.statusCode, 204);
+            }));
     });
 
     describe('GET /templates/name/tags', () => {
