@@ -28,6 +28,8 @@ module.exports = config => ({
             const artifact = request.params.name;
             const buildId = request.params.id;
 
+            const encodedArtifact = encodeURIComponent(artifact);
+
             const token = jwt.sign({
                 buildId, artifact, scope: ['user']
             }, config.authConfig.jwtPrivateKey, {
@@ -37,7 +39,7 @@ module.exports = config => ({
             });
 
             const baseUrl = `${config.ecosystem.store}/v1/builds/`
-                + `${buildId}/ARTIFACTS/${artifact}?token=${token}`;
+                + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
 
             return reply().redirect().location(baseUrl);
         },
