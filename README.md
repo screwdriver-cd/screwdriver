@@ -16,7 +16,7 @@ Have a look at our guidelines, as well as pointers on where to start making chan
 ### Prerequisites
 
 - Node v6.0.0 or higher
-- [Kubernetes][kubectl] or [Docker][docker]
+- [Kubernetes][kubectl] or [Docker][docker] or [Nomad][nomad]
 
 ### From Source
 
@@ -114,9 +114,10 @@ This API comes preloaded with 9 (nine) resources:
 One (1) option for datastores:
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
-Two (2) options for executor:
+Three (3) options for executor:
  - Kubernetes (`k8s`)
  - Docker (`docker`)
+ - Nomad (`nomad`)
 
 Two (2) options for SCM:
  - Github (`github`)
@@ -191,5 +192,6 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [slack-image]: http://slack.screwdriver.cd/badge.svg
 [slack-url]: http://slack.screwdriver.cd/
 [docker-compose]: https://www.docker.com/products/docker-compose
+[nomad]: https://www.hashicorp.com/products/nomad
 [docker]: https://www.docker.com/products/docker
 [kubectl]: https://kubernetes.io/docs/user-guide/kubectl-overview/
