@@ -100,7 +100,7 @@
     "screwdriver-notifications-email": "^1.1.2",
     "screwdriver-notifications-slack": "^2.1.2",
     "screwdriver-scm-github": "^5.3.2",
-    "screwdriver-scm-router": "^1.0.0",
+    "screwdriver-scm-router": "^2.0.0",
     "screwdriver-template-validator": "^3.0.0",
     "screwdriver-workflow-parser": "^1.1.1",
     "tinytim": "^0.1.1",
