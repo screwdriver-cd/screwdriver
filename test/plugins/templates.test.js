@@ -96,7 +96,8 @@ describe('template plugin test', () => {
         server.app = {
             templateFactory: templateFactoryMock,
             templateTagFactory: templateTagFactoryMock,
-            pipelineFactory: pipelineFactoryMock
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock
         };
         server.connection({
             port: 1234
@@ -267,6 +268,12 @@ describe('template plugin test', () => {
             pipelineId: id,
             remove: sinon.stub().resolves(null)
         });
+        const testTemplateTag = decorateObj({
+            id: 1,
+            name: 'testtemplate',
+            tag: 'stable',
+            remove: sinon.stub().resolves(null)
+        });
 
         beforeEach(() => {
             options = {
@@ -275,7 +282,7 @@ describe('template plugin test', () => {
                 credentials: {
                     username,
                     scmContext,
-                    scope: ['user']
+                    scope: ['user', '!guest']
                 }
             };
 
@@ -286,11 +293,12 @@ describe('template plugin test', () => {
             pipeline = getPipelineMocks(testpipeline);
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
 
-            templateFactoryMock.getTemplate.resolves(testTemplate);
+            templateFactoryMock.list.resolves([testTemplate]);
+            templateTagFactoryMock.list.resolves([testTemplateTag]);
         });
 
         it('returns 404 when template does not exist', () => {
-            templateFactoryMock.getTemplate.resolves(null);
+            templateFactoryMock.list.resolves([]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
