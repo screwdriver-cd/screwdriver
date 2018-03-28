@@ -14,7 +14,7 @@ module.exports = () => ({
         tags: ['api', 'templates'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['build', 'user', '!guest']
         },
         plugins: {
             'hapi-swagger': {
@@ -55,8 +55,10 @@ module.exports = () => ({
                         }
                     })
                     .then(() => {
-                        templates.forEach(template => template.remove());
-                        tags.forEach(tag => tag.remove());
+                        const templatePromises = templates.map(template => template.remove());
+                        const tagPromises = tags.map(tag => tag.remove());
+
+                        return Promise.all(templatePromises.concat(tagPromises));
                     })
                     .then(() => reply().code(204));
             })
