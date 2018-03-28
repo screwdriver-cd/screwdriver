@@ -51,7 +51,7 @@ module.exports = () => ({
                     .then((permissions) => {
                         if (!permissions.admin) {
                             throw boom.unauthorized(`User ${username} `
-                                + 'does not have admin permission for this repo');
+                                + 'does not have admin permission for this template');
                         }
                     })
                     .then(() => {
