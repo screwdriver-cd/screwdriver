@@ -92,8 +92,6 @@ Deleting a template will delete a template and all of its associated tags and ve
 
 ###### Arguments
 
-'name'
-
 * `name` - Name of the template
 
 ##### Create/Update a tag
