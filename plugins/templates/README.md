@@ -82,9 +82,6 @@ Example payload:
 }
 ```
 
-#### Template Tag
-Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`.
-
 ##### Delete a template
 Deleting a template will delete a template and all of its associated tags and versions.
 
@@ -93,6 +90,9 @@ Deleting a template will delete a template and all of its associated tags and ve
 ###### Arguments
 
 * `name` - Name of the template
+
+#### Template Tag
+Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`.
 
 ##### Create/Update a tag
 
