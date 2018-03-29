@@ -49,7 +49,7 @@ You can get a single template by providing the template name and the specific ve
 ##### Create a template
 Creating a template will store the template data (`config`, `name`, `version`, `description`, `maintainer`) into the datastore.
 
-`version` will be auto-bumped. For example, if `mytemplate@1.0.0` already exists and the version passed in is `1.0.0`, the newly created template will be version `1.0.1`. 
+`version` will be auto-bumped. For example, if `mytemplate@1.0.0` already exists and the version passed in is `1.0.0`, the newly created template will be version `1.0.1`.
 
 *Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that first creates the template.*
 
@@ -82,8 +82,17 @@ Example payload:
 }
 ```
 
+##### Delete a template
+Deleting a template will delete a template and all of its associated tags and versions.
+
+`DELETE /templates/{name}`
+
+###### Arguments
+
+* `name` - Name of the template
+
 #### Template Tag
-Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`. 
+Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`.
 
 ##### Create/Update a tag
 
@@ -97,7 +106,7 @@ If the template tag already exists, it will update the tag with the new version.
 
 ##### Delete a tag
 
-Delete the template tag. This does not delete the template itself. 
+Delete the template tag. This does not delete the template itself.
 
 *Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the template.*
 
