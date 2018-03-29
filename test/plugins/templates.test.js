@@ -254,26 +254,15 @@ describe('template plugin test', () => {
     });
 
     describe('DELETE /templates/name', () => {
-        const id = 123;
+        const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
         const username = 'myself';
         const scmContext = 'github@github.com';
         let pipeline;
         let options;
         let userMock;
-        const testTemplate = decorateObj({
-            id: 1,
-            name: 'testtemplate',
-            tag: 'stable',
-            pipelineId: id,
-            remove: sinon.stub().resolves(null)
-        });
-        const testTemplateTag = decorateObj({
-            id: 1,
-            name: 'testtemplate',
-            tag: 'stable',
-            remove: sinon.stub().resolves(null)
-        });
+        let testTemplate;
+        let testTemplateTag;
 
         beforeEach(() => {
             options = {
@@ -285,37 +274,57 @@ describe('template plugin test', () => {
                     scope: ['user', '!guest']
                 }
             };
+            testTemplate = decorateObj({
+                id: 1,
+                name: 'testtemplate',
+                tag: 'stable',
+                pipelineId,
+                remove: sinon.stub().resolves(null)
+            });
+            testTemplateTag = decorateObj({
+                id: 1,
+                name: 'testtemplate',
+                tag: 'stable',
+                remove: sinon.stub().resolves(null)
+            });
 
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testpipeline);
-            pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipeline);
 
             templateFactoryMock.list.resolves([testTemplate]);
             templateTagFactoryMock.list.resolves([testTemplateTag]);
         });
 
         it('returns 404 when template does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Template testtemplate does not exist'
+            };
+
             templateFactoryMock.list.resolves([]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
             });
         });
 
-        it('returns 401 when user does not have admin permissions', () => {
+        it('returns 403 when user does not have admin permissions', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
-                message: 'User myself does not have admin permission for this repo'
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User myself does not have admin access for this template'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -335,11 +344,70 @@ describe('template plugin test', () => {
             });
         });
 
-        it('deletes template if it has good permissions and template exists', () =>
+        it('returns 404 when pipeline does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Pipeline ${pipelineId} does not exist`
+            };
+
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes template if admin user credentials provided and template exists', () =>
             server.inject(options).then((reply) => {
                 assert.calledOnce(testTemplate.remove);
+                assert.calledOnce(testTemplateTag.remove);
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User myself does not have admin access for this template'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    pipelineId: 1337,
+                    scope: ['build']
+                }
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes template if build credentials provided and pipelineIds match', () => {
+            options = {
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    pipelineId,
+                    scope: ['build']
+                }
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.calledOnce(testTemplate.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
     });
 
     describe('GET /templates/name/tags', () => {
@@ -543,6 +611,7 @@ describe('template plugin test', () => {
         let options;
         let templateMock;
         let pipelineMock;
+
         const testTemplateTag = decorateObj({
             id: 1,
             name: 'testtemplate',
