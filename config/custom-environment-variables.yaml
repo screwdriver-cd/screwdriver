@@ -94,6 +94,24 @@ executor:
         launchVersion: LAUNCH_VERSION
         # Prefix to the pod
         prefix: EXECUTOR_PREFIX
+    nomad:
+      enabled: EXECUTOR_NOMAD_ENABLED
+      options:
+        nomad:
+            # The host or IP of the nomad cluster
+            host: NOMAD_HOST
+            # Resources for build pod
+            resources:
+                # Number of cpu cores
+                cpu:
+                    high: NOMAD_CPU
+                # Memory in GB
+                memory:
+                    high: NOMAD_MEMORY
+        # Launcher container tag to use
+        launchVersion: LAUNCH_VERSION
+        # Prefix to the pod
+        prefix: EXECUTOR_PREFIX
     docker:
       enabled: EXECUTOR_DOCKER_ENABLED
       options:
