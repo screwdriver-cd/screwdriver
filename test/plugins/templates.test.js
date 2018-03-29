@@ -370,7 +370,7 @@ describe('template plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User myself does not have admin access for this template'
+                message: 'Pipeline 1337 is not allowed to access this template'
             };
 
             options = {

@@ -34,8 +34,6 @@ exports.register = (server, options, next) => {
     server.expose('canRemove', (credentials, template, permission) => {
         const { username, scmContext, scope } = credentials;
         const { userFactory, pipelineFactory } = server.root.app;
-        const forbiddenMsg = `User ${username} does not have ` +
-            `${permission} access for this template`;
 
         return pipelineFactory.get(template.pipelineId).then((pipeline) => {
             if (!pipeline) {
@@ -50,7 +48,8 @@ exports.register = (server, options, next) => {
 
                     return user.getPermissions(pipeline.scmUri).then((permissions) => {
                         if (!permissions[permission]) {
-                            throw boom.forbidden(forbiddenMsg);
+                            throw boom.forbidden(`User ${username} does not have ` +
+                                `${permission} access for this template`);
                         }
 
                         return true;
@@ -59,7 +58,8 @@ exports.register = (server, options, next) => {
             }
 
             if (template.pipelineId !== credentials.pipelineId) {
-                throw boom.forbidden(forbiddenMsg);
+                throw boom.forbidden(`Pipeline ${credentials.pipelineId} ` +
+                    'is not allowed to access this template');
             }
 
             return true;
