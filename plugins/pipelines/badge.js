@@ -83,7 +83,11 @@ module.exports = () => ({
                             const buildsStatus = builds.reverse()
                                 .map(build => build.status.toLowerCase());
 
-                            let workflowLength = lastEvent.workflow.length;
+                            let workflowLength = 0;
+
+                            if (lastEvent.workflow) {
+                                workflowLength = lastEvent.workflow.length;
+                            }
 
                             if (lastEvent.workflowGraph) {
                                 workflowLength = lastEvent.workflowGraph.nodes.filter(n =>
