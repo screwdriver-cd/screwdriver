@@ -406,7 +406,8 @@ exports.register = (server, options, next) => {
                         .then(token => scm.getChangedFiles({
                             payload: request.payload,
                             type,
-                            token
+                            token,
+                            scmContext
                         }))
                         .then((changedFiles) => {
                             parsed.changedFiles = changedFiles;

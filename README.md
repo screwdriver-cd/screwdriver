@@ -15,8 +15,9 @@ Have a look at our guidelines, as well as pointers on where to start making chan
 
 ### Prerequisites
 
-- Node v6.0.0 or higher
-- [Kubernetes][kubectl] or [Docker][docker] or [Nomad][nomad]
+- Node v8.0.0 or higher
+- [Kubernetes][kubectl] or [Docker][docker]
+
 
 ### From Source
 
