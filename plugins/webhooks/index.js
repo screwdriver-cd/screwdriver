@@ -412,6 +412,8 @@ exports.register = (server, options, next) => {
                         .then((changedFiles) => {
                             parsed.changedFiles = changedFiles;
 
+                            request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
+
                             if (type === 'pr') {
                                 return pullRequestEvent(pluginOptions, request, reply, parsed);
                             }
