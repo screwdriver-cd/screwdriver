@@ -22,16 +22,17 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
+            const { pipelineFactory, templateFactory,
+                templateTagFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
+            const pipelineId = request.params.id;
 
-            // Fetch the pipeline and user models
+            // Fetch the pipeline, user, and dependent template models
             return Promise.all([
-                pipelineFactory.get(request.params.id),
+                pipelineFactory.get(pipelineId),
+                templateFactory.list({ params: { pipelineId } }),
                 userFactory.get({ username, scmContext })
-            ]).then(([pipeline, user]) => {
+            ]).then(([pipeline, templates, user]) => {
                 if (!pipeline) {
                     throw boom.notFound('Pipeline does not exist');
                 }
@@ -48,8 +49,20 @@ module.exports = () => ({
                                 + 'does not have admin permission for this repo');
                         }
                     })
-                    // user has good permissions, remove the pipeline
-                    .then(() => pipeline.remove())
+                    // user has good permissions, remove the pipeline, dependent templates, and template tags
+                    .then(() => templates.map((template) => {
+                        const { name } = template.toJson();
+
+                        return templateTagFactory.list({ params: { name } });
+                    }))
+                    .then((templateTags) => {
+                        const promises = [pipeline.remove()].concat(
+                            templates.map(template => template.remove()),
+                            templateTags.map(tag => tag.remove())
+                        );
+
+                        return Promise.all(promises);
+                    })
                     .then(() => reply().code(204));
             })
                 .catch(err => reply(boom.wrap(err)));
