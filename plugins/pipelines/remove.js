@@ -1,5 +1,6 @@
 'use strict';
 
+const hoek = require('hoek');
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
@@ -50,15 +51,21 @@ module.exports = () => ({
                         }
                     })
                     // user has good permissions, remove the pipeline, dependent templates, and template tags
-                    .then(() => templates.map((template) => {
-                        const { name } = template.toJson();
+                    .then(() => {
+                        const tags = templates.map((template) => {
+                            const { name } = template.toJson();
 
-                        return templateTagFactory.list({ params: { name } });
-                    }))
-                    .then((templateTags) => {
+                            return templateTagFactory.list({ params: { name } });
+                        });
+
+                        return Promise.all(tags);
+                    })
+                    // Promise.all(tags) resolves to nested array, each element is an array containing all versions
+                    // for a given template, hence hoek.flatten()
+                    .then((...templateTags) => {
                         const promises = [pipeline.remove()].concat(
                             templates.map(template => template.remove()),
-                            templateTags.map(tag => tag.remove())
+                            hoek.flatten(templateTags).map(tag => tag.remove())
                         );
 
                         return Promise.all(promises);

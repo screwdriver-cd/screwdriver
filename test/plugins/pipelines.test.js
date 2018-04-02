@@ -119,8 +119,27 @@ const getUserMock = (user) => {
     return mock;
 };
 
+const getTemplateMock = (template) => {
+    const mock = hoek.clone(template);
+
+    mock.remove = sinon.stub();
+    mock.toJson = sinon.stub().returns(template);
+
+    return mock;
+};
+
+const getTemplateTagMock = (tag) => {
+    const mock = hoek.clone(tag);
+
+    mock.remove = sinon.stub();
+
+    return mock;
+};
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
+    let templateFactoryMock;
+    let templateTagFactoryMock;
     let userFactoryMock;
     let scmMock;
     let plugin;
@@ -147,6 +166,12 @@ describe('pipeline plugin test', () => {
                 decorateUrl: sinon.stub()
             }
         };
+        templateFactoryMock = {
+            list: sinon.stub()
+        };
+        templateTagFactoryMock = {
+            list: sinon.stub()
+        };
         userFactoryMock = {
             get: sinon.stub()
         };
@@ -157,6 +182,8 @@ describe('pipeline plugin test', () => {
         server = new hapi.Server();
         server.app = {
             pipelineFactory: pipelineFactoryMock,
+            templateFactory: templateFactoryMock,
+            templateTagFactory: templateTagFactoryMock,
             userFactory: userFactoryMock,
             ecosystem: {
                 badges: '{{status}}/{{color}}'
@@ -306,6 +333,8 @@ describe('pipeline plugin test', () => {
         const username = 'myself';
         let pipeline;
         let options;
+        let templateMocks;
+        let templateTagMocks;
         let userMock;
 
         beforeEach(() => {
@@ -318,6 +347,25 @@ describe('pipeline plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            templateMocks = [
+                getTemplateMock({ name: 'template1', pipelineId: id }),
+                getTemplateMock({ name: 'template2', pipelineId: id })
+            ];
+            templateFactoryMock.list.withArgs({ params: { pipelineId: id } })
+                .resolves(templateMocks);
+
+            templateTagMocks = [
+                getTemplateTagMock({ name: 'template1', tag: 'latest' }),
+                getTemplateTagMock({ name: 'template1', tag: 'stable' }),
+                getTemplateTagMock({ name: 'template2', tag: 'test' })
+            ];
+            templateTagFactoryMock.list.withArgs({ params: { name: 'template1' } }).resolves([
+                templateTagMocks[0],
+                templateTagMocks[1]
+            ]);
+            templateTagFactoryMock.list.withArgs({ params: { name: 'template2' } })
+                .resolves([templateTagMocks[2]]);
 
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
@@ -332,6 +380,8 @@ describe('pipeline plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(pipeline.remove);
+                templateMocks.map(template => assert.calledOnce(template.remove));
+                templateTagMocks.map(tag => assert.calledOnce(tag.remove));
             })
         );
 
