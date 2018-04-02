@@ -72,6 +72,7 @@ Example payload:
 ```
 
 #### Delete a pipeline
+* Deleting a pipeline will also delete all dependent templates and template tags
 
 `DELETE /pipelines/{id}`
 
