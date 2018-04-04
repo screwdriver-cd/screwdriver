@@ -305,6 +305,7 @@ describe('github plugin test', () => {
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
                         type: 'pipeline',
+                        webhooks: true,
                         username,
                         scmContext,
                         sha,
@@ -441,6 +442,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
@@ -464,6 +466,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
@@ -516,6 +519,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
@@ -549,6 +553,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
@@ -615,6 +620,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
@@ -641,6 +647,7 @@ describe('github plugin test', () => {
                             prRef,
                             prNum: 1,
                             type: 'pr',
+                            webhooks: true,
                             changedFiles,
                             causeMessage: 'Synchronized by github:baxterthehacker'
                         });
@@ -689,6 +696,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
@@ -722,6 +730,7 @@ describe('github plugin test', () => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
+                            webhooks: true,
                             username,
                             scmContext,
                             sha,
