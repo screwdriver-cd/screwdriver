@@ -73,16 +73,14 @@ executor:
             launchVersion: stable
 
 scms:
-    - plugin: github
-      config:
-          displayName: github
-          oauthClientId: totally-real-client-id
-          oauthClientSecret: another-real-client-secret
-          username: sd-buildbot
-          email: dev-null@screwdriver.cd
-          gheHost: github.com
-          secret: this-is-a-secret
-          privateRepo: false
+    github:
+        plugin: github
+        config:
+            oauthClientId: totally-real-client-id
+            oauthClientSecret: another-real-client-secret
+            secret: a-really-real-secret
+            username: sd-buildbot
+            email: dev-null@screwdriver.cd
 ```
 
 ### Environment
