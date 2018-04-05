@@ -98,6 +98,16 @@ executor:
             nodeSelectors:
               __name: K8S_NODE_SELECTORS
               __format: json
+            # k8s preferred node selectors for try to approprate build pod scheduling
+            # but if it’s not possible, then allow some to run elsewhere.
+            # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+            # Value is Object of format { label: 'value' } See
+            # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+            # Eg: { dedicated: 'screwdriver' } try to schedule pods on nodes having
+            # label-value of dedicated=screwdriver
+            preferredNodeSelectors:
+              __name: K8S_PREFERRED_NODE_SELECTORS
+              __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the pod
@@ -159,6 +169,16 @@ executor:
             # label-value of dedicated=screwdriver
             nodeSelectors:
               __name: K8S_NODE_SELECTORS
+              __format: json
+            # k8s preferred node selectors for try to approprate build pod scheduling
+            # but if it’s not possible, then allow some to run elsewhere.
+            # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+            # Value is Object of format { label: 'value' } See
+            # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+            # Eg: { dedicated: 'screwdriver' } try to schedule pods on nodes having
+            # label-value of dedicated=screwdriver
+            preferredNodeSelectors:
+              __name: K8S_PREFERRED_NODE_SELECTORS
               __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
