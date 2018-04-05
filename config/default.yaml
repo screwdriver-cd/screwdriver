@@ -78,6 +78,8 @@ executor:
                     # Memory in GB
                     low: 2
                     high: 12
+            # k8s node selectors for approprate pod scheduling
+            nodeSelectors: {}
         # Container tags to use
         launchVersion: stable
     # nomad:
