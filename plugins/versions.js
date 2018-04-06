@@ -16,10 +16,10 @@ const VError = require('verror');
 exports.register = (server, options, next) => {
     // Designed to match Screwdriver specific packages
     const SD_REGEX = /^screwdriver-/;
-    let start = process.cwd();
+    let start = path.resolve(process.cwd(), '../..');
 
-    if (!fs.existsSync(path.resolve(process.cwd(), './node_modules'))) {
-        start = path.resolve(process.cwd(), '../..');
+    if (!fs.existsSync(path.resolve(start, './node_modules'))) {
+        start = process.cwd();
     }
 
     // Load licenses
