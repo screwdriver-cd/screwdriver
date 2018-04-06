@@ -1,6 +1,8 @@
 'use strict';
 
 const checker = require('license-checker');
+const fs = require('fs');
+const path = require('path');
 const process = require('process');
 const VError = require('verror');
 
@@ -14,11 +16,16 @@ const VError = require('verror');
 exports.register = (server, options, next) => {
     // Designed to match Screwdriver specific packages
     const SD_REGEX = /^screwdriver-/;
+    let start = process.cwd();
+
+    if (!fs.existsSync(path.resolve(process.cwd(), './node_modules'))) {
+        start = path.resolve(process.cwd(), '../..');
+    }
 
     // Load licenses
     checker.init({
         production: true,
-        start: process.cwd()
+        start
     }, (err, json) => {
         if (err) {
             return next(new VError(err, 'Unable to load package dependencies'));
