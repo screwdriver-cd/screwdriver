@@ -43,38 +43,33 @@ function ensurePipelineExists(config) {
         .then((response) => {
             this.jwt = response.body.token;
 
-            return request({
-                uri: `${this.instance}/${this.namespace}/pipelines`,
-                method: 'POST',
-                auth: {
-                    bearer: this.jwt
-                },
-                body: {
-                    checkoutUrl:
-                        `git@${this.scmHostname}:${this.testOrg}/${config.repoName}.git#master`
-                },
-                json: true
-            });
+            return this.createPipeline(config.repoName);
         })
         .then((response) => {
             Assert.oneOf(response.statusCode, [409, 201]);
 
             if (response.statusCode === 201) {
                 this.pipelineId = response.body.id;
-            } else {
-                const str = response.body.message;
-                const id = str.split(': ')[1];
 
-                this.pipelineId = id;
+                return this.getPipeline(this.pipelineId);
             }
 
-            return request({
-                uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
-                method: 'GET',
-                json: true,
-                auth: {
-                    bearer: this.jwt
-                }
+            const str = response.body.message;
+            const id = str.split(': ')[1];
+
+            this.pipelineId = id;
+
+            // If pipeline already exists, deletes and re-creates
+            return this.deletePipeline(this.pipelineId).then((resDel) => {
+                Assert.equal(resDel.statusCode, 204);
+
+                return this.createPipeline(config.repoName).then((resCre) => {
+                    Assert.equal(resCre.statusCode, 201);
+
+                    this.pipelineId = resCre.body.id;
+
+                    return this.getPipeline(this.pipelineId);
+                });
             });
         })
         .then((response) => {
@@ -122,10 +117,7 @@ function CustomWorld({ attach, parameters }) {
             maxAttempts: 15,
             retryDelay: 5000,
             retryStrategy: buildRetryStrategy,
-            json: true,
-            auth: {
-                bearer: this.jwt
-            }
+            json: true
         });
     this.loginWithToken = apiToken =>
         request({
@@ -138,6 +130,33 @@ function CustomWorld({ attach, parameters }) {
         }).then(() => this.getJwt(apiToken).then((response) => {
             this.loginResponse = response;
         }));
+    this.getPipeline = pipelineId =>
+        request({
+            uri: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/jobs`,
+            method: 'GET',
+            json: true
+        });
+    this.createPipeline = repoName =>
+        request({
+            uri: `${this.instance}/${this.namespace}/pipelines`,
+            method: 'POST',
+            auth: {
+                bearer: this.jwt
+            },
+            body: {
+                checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#master`
+            },
+            json: true
+        });
+    this.deletePipeline = pipelineId =>
+        request({
+            uri: `${this.instance}/${this.namespace}/pipelines/${pipelineId}`,
+            method: 'DELETE',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        });
     this.ensurePipelineExists = ensurePipelineExists;
 }
 
