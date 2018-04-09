@@ -57,9 +57,6 @@ module.exports = () => ({
                 .then(build => reply(build.steps[stepIndex]).code(200))
                 .catch(err => reply(boom.wrap(err)));
         },
-        response: {
-            schema: schema.models.build.getStep
-        },
         validate: {
             params: schema.api.loglines.params,
             payload: schema.models.build.updateStep

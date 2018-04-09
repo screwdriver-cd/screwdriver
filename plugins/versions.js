@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const process = require('process');
 const VError = require('verror');
+const schema = require('screwdriver-data-schema');
 
 /**
  * Hapi interface for plugin to return package list
@@ -51,7 +52,10 @@ exports.register = (server, options, next) => {
             config: {
                 description: 'API Package Versions',
                 notes: 'Returns list of Screwdriver package versions and third-party dependencies',
-                tags: ['api']
+                tags: ['api'],
+                response: {
+                    schema: schema.api.versions
+                }
             }
         });
 
