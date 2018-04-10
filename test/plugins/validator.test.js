@@ -69,14 +69,14 @@ describe('validator plugin test', () => {
                 method: 'POST',
                 url: '/validator',
                 payload: {
-                    yaml: 'jobs: {}'
+                    yaml: 'jobs: [test]'
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
 
                 const payload = JSON.parse(reply.payload);
 
-                assert.match(payload.jobs.main[0].commands[0].command, /"main" is required/);
+                assert.match(payload.jobs.main[0].commands[0].command, /"jobs" must be an object/);
             })
         );
     });
