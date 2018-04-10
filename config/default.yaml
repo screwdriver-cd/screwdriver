@@ -80,6 +80,7 @@ executor:
                     high: 12
             # k8s node selectors for approprate pod scheduling
             nodeSelectors: {}
+            preferredNodeSelectors: {}
         # Container tags to use
         launchVersion: stable
     # nomad:
@@ -124,6 +125,7 @@ executor:
                     high: 12
             # k8s node selectors for approprate pod scheduling
             nodeSelectors: {}
+            preferredNodeSelectors: {}
         # Launcher container tag to use
         launchVersion: stable
 #     jenkins:

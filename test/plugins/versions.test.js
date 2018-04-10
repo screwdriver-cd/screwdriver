@@ -1,9 +1,9 @@
 'use strict';
 
 const assert = require('chai').assert;
-const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
+const sinon = require('sinon');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -18,7 +18,11 @@ describe('versions plugin test', () => {
         const mockChecker = {
             init: initFunction
         };
+        const mockFs = {
+            existsSync: sinon.stub()
+        };
 
+        mockery.registerMock('fs', mockFs);
         mockery.registerMock('license-checker', mockChecker);
 
         /* eslint-disable global-require */
@@ -30,6 +34,8 @@ describe('versions plugin test', () => {
         server.connection({
             port: 1234
         });
+
+        mockFs.existsSync.returns(false);
 
         return server.register([{
             register: plugin
