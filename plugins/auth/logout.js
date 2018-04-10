@@ -11,7 +11,7 @@ module.exports = () => ({
     config: {
         description: 'Logout of screwdriver',
         notes: 'Clears the cookie used for authentication',
-        tags: ['api', 'logout'],
+        tags: ['api', 'auth', 'logout'],
         auth: {
             strategies: ['token', 'session']
         },
