@@ -18,7 +18,7 @@ function addGuestRoute(server, config) {
         config: {
             description: 'Login as an guest user',
             notes: 'Authenticate an guest user',
-            tags: ['api', 'login'],
+            tags: ['api', 'auth', 'login'],
             auth: null,
             handler: (request, reply) => {
                 // Check if guest is allowed to login
@@ -64,7 +64,7 @@ function addOAuthRoutes(server, config) {
         config: {
             description: 'Login using oauth',
             notes: 'Authenticate user with oauth provider',
-            tags: ['api', 'login'],
+            tags: ['api', 'auth', 'login'],
             auth: {
                 strategy: `oauth_${scmContext}`,
                 mode: 'try'

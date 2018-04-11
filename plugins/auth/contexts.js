@@ -1,5 +1,7 @@
 'use strict';
 
+const schema = require('screwdriver-data-schema');
+
 /**
  * Get all auth contexts
  * @method login
@@ -36,6 +38,9 @@ module.exports = config => ({
             }
 
             return reply(contexts);
+        },
+        response: {
+            schema: schema.api.auth.contexts
         }
     }
 });

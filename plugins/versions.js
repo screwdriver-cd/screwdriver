@@ -1,8 +1,11 @@
 'use strict';
 
 const checker = require('license-checker');
+const fs = require('fs');
+const path = require('path');
 const process = require('process');
 const VError = require('verror');
+const schema = require('screwdriver-data-schema');
 
 /**
  * Hapi interface for plugin to return package list
@@ -14,11 +17,16 @@ const VError = require('verror');
 exports.register = (server, options, next) => {
     // Designed to match Screwdriver specific packages
     const SD_REGEX = /^screwdriver-/;
+    let start = process.cwd();
+
+    if (!fs.existsSync(path.resolve(process.cwd(), './node_modules'))) {
+        start = path.resolve(process.cwd(), '../..');
+    }
 
     // Load licenses
     checker.init({
         production: true,
-        start: process.cwd()
+        start
     }, (err, json) => {
         if (err) {
             return next(new VError(err, 'Unable to load package dependencies'));
@@ -44,7 +52,10 @@ exports.register = (server, options, next) => {
             config: {
                 description: 'API Package Versions',
                 notes: 'Returns list of Screwdriver package versions and third-party dependencies',
-                tags: ['api']
+                tags: ['api'],
+                response: {
+                    schema: schema.api.versions
+                }
             }
         });
 
