@@ -10,7 +10,8 @@ sinon.assert.expose(assert, { prefix: '' });
 describe('stats plugin test', () => {
     let plugin;
     let server;
-    let mockStats;
+    let mockExecutorStats;
+    let mockScmStats;
 
     before(() => {
         mockery.enable({
@@ -20,7 +21,10 @@ describe('stats plugin test', () => {
     });
 
     beforeEach((done) => {
-        mockStats = {
+        mockExecutorStats = {
+            stats: sinon.stub()
+        };
+        mockScmStats = {
             stats: sinon.stub()
         };
 
@@ -36,8 +40,8 @@ describe('stats plugin test', () => {
         server.register([{
             register: plugin,
             options: {
-                executor: mockStats,
-                scm: mockStats
+                executor: mockExecutorStats,
+                scm: mockScmStats
             }
         }], (err) => {
             done(err);
@@ -60,19 +64,31 @@ describe('stats plugin test', () => {
 
     describe('GET /stats', () => {
         it('returns 200 for a successful yaml', () => {
-            const mockReturn = {
-                foo: 'bar'
+            const mockExecutorReturn = {
+                requests: {
+                    total: 0,
+                    timeouts: 0,
+                    success: 0,
+                    failure: 0,
+                    concurrent: 0,
+                    averageTime: 0
+                },
+                breaker: {
+                    isClosed: false
+                }
             };
+            const mockScmReturn = { 'github:github.com': mockExecutorReturn };
 
-            mockStats.stats.returns(mockReturn);
+            mockExecutorStats.stats.returns(mockExecutorReturn);
+            mockScmStats.stats.returns(mockScmReturn);
 
             return server.inject({
                 url: '/stats'
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {
-                    executor: mockReturn,
-                    scm: mockReturn
+                    executor: mockExecutorReturn,
+                    scm: mockScmReturn
                 });
             });
         });
