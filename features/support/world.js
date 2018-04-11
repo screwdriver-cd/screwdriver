@@ -137,7 +137,10 @@ function CustomWorld({ attach, parameters }) {
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/jobs`,
             method: 'GET',
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         });
     this.createPipeline = repoName =>
         request({
