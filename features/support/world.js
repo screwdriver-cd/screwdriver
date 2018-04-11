@@ -117,7 +117,10 @@ function CustomWorld({ attach, parameters }) {
             maxAttempts: 15,
             retryDelay: 5000,
             retryStrategy: buildRetryStrategy,
-            json: true
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
         });
     this.loginWithToken = apiToken =>
         request({
