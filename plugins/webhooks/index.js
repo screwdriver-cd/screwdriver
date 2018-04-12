@@ -69,6 +69,7 @@ function startPRJob(options, request) {
     const eventConfig = {
         pipelineId: pipeline.id,
         type: 'pr',
+        webhooks: true,
         username,
         scmContext,
         sha,
@@ -329,6 +330,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
             const eventConfig = {
                 pipelineId: pipeline.id,
                 type: 'pipeline',
+                webhooks: true,
                 username,
                 scmContext,
                 startFrom: '~commit',

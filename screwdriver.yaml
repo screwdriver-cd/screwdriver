@@ -21,7 +21,10 @@ jobs:
             - install-ci: npm install npm-auto-version
             - publish-npm: ./ci/publish.sh
             - publish-docker: ./ci/docker.sh
-            - save-tag-to-meta: meta set docker_tag `git describe --tags`
+            - save-tag-to-meta: |
+                NPM_PKG_VERSION=`npm dist-tag ls | awk -F: '{ print $2 }' | tr -d '[:space:]'`
+                meta set docker_tag "v$NPM_PKG_VERSION"
+                meta get docker_tag
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
         secrets:
