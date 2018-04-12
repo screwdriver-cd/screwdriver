@@ -137,7 +137,7 @@ function createFile(token, branch, repoOwner, repoName) {
     return github.repos.createFile({
         owner,
         repo,
-        path: filename,
+        path: `testfiles/${filename}`,
         message: (new Date()).toString(), // commit message is the current time
         content: content.toString('base64'), // content needs to be transmitted in base64
         branch
