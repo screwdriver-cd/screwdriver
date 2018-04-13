@@ -295,6 +295,7 @@ describe('command plugin test', () => {
                 namespace: 'foo',
                 name: 'bar',
                 tag: 'stable',
+                version: '1.0.0',
                 pipelineId,
                 remove: sinon.stub().resolves(null)
             });
@@ -312,6 +313,14 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.resolves([testCommand]);
             commandTagFactoryMock.list.resolves([testCommandTag]);
+
+            /* nock('http://store.example.com')
+                .delete('/v1/commands/foo/bar/1.0.0')
+                .reply(200, ''); */
+        });
+
+        afterEach(() => {
+            nock.cleanAll();
         });
 
         it('returns 404 when command does not exist', () => {
@@ -374,12 +383,41 @@ describe('command plugin test', () => {
             });
         });
 
-        it('deletes command if admin user credentials provided and command exists', () =>
-            server.inject(options).then((reply) => {
+        it('deletes command if admin user credentials provided and command exists', () => {
+            nock('http://store.example.com')
+                .delete('/v1/commands/foo/bar/1.0.0')
+                .reply(200, '');
+
+            return server.inject(options).then((reply) => {
                 assert.calledOnce(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 204);
-            }));
+            });
+        });
+
+        it('returns 204 even when command binary is not found', () => {
+            nock('http://store.example.com')
+                .delete('/v1/commands/foo/bar/1.0.0')
+                .reply(404, '');
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(testCommand.remove);
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('throws error when store returns an error', () => {
+            nock('http://store.example.com')
+                .delete('/v1/commands/foo/bar/1.0.0')
+                .replyWithError({ message: 'request to the store is error' });
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(testCommand.remove);
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 500);
+            });
+        });
 
         it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
             const error = {
@@ -406,6 +444,10 @@ describe('command plugin test', () => {
         });
 
         it('deletes command if build credentials provided and pipelineIds match', () => {
+            nock('http://store.example.com')
+                .delete('/v1/commands/foo/bar/1.0.0')
+                .reply(200, '');
+
             options = {
                 method: 'DELETE',
                 url: '/commands/foo/bar',

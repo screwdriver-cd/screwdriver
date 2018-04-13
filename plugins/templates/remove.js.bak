@@ -1,0 +1,51 @@
+'use strict';
+
+const boom = require('boom');
+const joi = require('joi');
+const schema = require('screwdriver-data-schema');
+const nameSchema = joi.reach(schema.models.template.base, 'name');
+
+module.exports = () => ({
+    method: 'DELETE',
+    path: '/templates/{name}',
+    config: {
+        description: 'Remove a template given template name',
+        notes: 'Remove a specific template',
+        tags: ['api', 'templates'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
+        handler: (request, reply) => {
+            const templateFactory = request.server.app.templateFactory;
+            const pipelineFactory = request.server.app.pipelineFactory;
+            const userFactory = request.server.app.userFactory;
+            const name = request.params.name;
+            const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
+
+            return Promise.all([
+                templateFactory.getTemplate(name),
+                userFactory.get({ username, scmContext })
+            ]).then(([template, user]) => {
+                if (!template) {
+                    throw boom.notFound(`Template ${name} does not exist`);
+                }
+
+                return template.remove();
+            })
+            .then(() => reply().code(204))
+            .catch(err => reply(boom.wrap(err)));
+        },
+        validate: {
+            params: {
+                name: nameSchema
+            }
+        }
+    }
+});
