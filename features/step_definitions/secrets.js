@@ -68,7 +68,7 @@ defineSupportCode(({ Before, Given, When, Then, After }) => {
             json: true
         })).then((resp) => {
             Assert.equal(resp.statusCode, 201);
-            this.buildId = resp.body.id;
+            this.buildId = resp.body[0].id;
         });
     });
 
