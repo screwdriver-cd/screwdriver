@@ -18,6 +18,7 @@ jobs:
         requires: [main]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
+            - install-ci: npm install npm-auto-version
             - publish-npm-and-git-tag: ./ci/publish.sh
             - publish-docker: |
                 export DOCKER_TAG=`cat VERSION`
