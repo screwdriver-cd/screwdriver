@@ -19,7 +19,7 @@
     "url": "git@github.com:screwdriver-cd/screwdriver.git"
   },
   "engines": {
-    "node": ">=6.0.0"
+    "node": ">=8.9.0"
   },
   "greenkeeper": {
     "ignore": [
