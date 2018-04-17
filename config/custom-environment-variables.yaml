@@ -84,10 +84,12 @@ executor:
             resources:
                 # Number of cpu cores
                 cpu:
+                    micro: K8S_CPU_MICRO
                     low: K8S_CPU_LOW
                     high: K8S_CPU_HIGH
                 # Memory in GB
                 memory:
+                    micro: K8S_MEMORY_MICRO
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
             # k8s node selectors for approprate build pod scheduling.
@@ -151,10 +153,12 @@ executor:
             resources:
                 # Number of cpu cores
                 cpu:
+                    micro: K8S_CPU_MICRO
                     low: K8S_CPU_LOW
                     high: K8S_CPU_HIGH
                 # Memory in GB
                 memory:
+                    micro: K8S_MEMORY_MICRO
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
             # k8s node selectors for approprate build pod scheduling.
