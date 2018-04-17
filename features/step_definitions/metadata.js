@@ -64,7 +64,7 @@ defineSupportCode(({ Before, Given, Then }) => {
 
     Then(/^the event is done$/, { timeout: TIMEOUT }, function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/jobs/${this.lastJobId}/builds`,
+            uri: `${this.instance}/${this.namespace}/jobs/${this.thirdJobId}/builds`,
             method: 'GET',
             json: true,
             auth: {
