@@ -80,11 +80,21 @@ function ensurePipelineExists(config) {
         .then((response) => {
             Assert.equal(response.statusCode, 200);
 
-            this.jobId = response.body[0].id;
-            this.secondJobId = response.body[1].id;
-            this.thirdJobId = typeof response.body[2] === 'object' ? response.body[2].id : null;
-            this.lastJobId = response.body.reverse().find(b => typeof b === 'object').id
-                             || null;
+            for (let i = 0; i < response.body.length; i += 1) {
+                const job = response.body[i];
+
+                switch (job.name) {
+                case 'publish': // for event test
+                case 'second': // for metadata and secret tests
+                    this.secondJobId = job.id;
+                    break;
+                case 'third':
+                    this.thirdJobId = job.id;
+                    break;
+                default: // main job
+                    this.jobId = job.id;
+                }
+            }
         });
 }
 
