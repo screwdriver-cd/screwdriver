@@ -46,10 +46,11 @@ defineSupportCode(({ Before, Given, When, Then, After }) => {
 
     When(/^the "main" job is started$/, { timeout: TIMEOUT }, function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/builds`,
+            uri: `${this.instance}/${this.namespace}/events`,
             method: 'POST',
             body: {
-                jobId: this.jobId
+                pipelineId: this.pipelineId,
+                startFrom: 'main'
             },
             auth: {
                 bearer: this.jwt
@@ -57,9 +58,17 @@ defineSupportCode(({ Before, Given, When, Then, After }) => {
             json: true
         }).then((resp) => {
             Assert.equal(resp.statusCode, 201);
-
-            this.buildId = resp.body.id;
-            this.eventId = resp.body.eventId;
+            this.eventId = resp.body.id;
+        }).then(() => request({
+            uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        })).then((resp) => {
+            Assert.equal(resp.statusCode, 200);
+            this.buildId = resp.body[0].id;
         });
     });
 

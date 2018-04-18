@@ -19,7 +19,7 @@
     "url": "git@github.com:screwdriver-cd/screwdriver.git"
   },
   "engines": {
-    "node": ">=6.0.0"
+    "node": ">=8.9.0"
   },
   "greenkeeper": {
     "ignore": [
@@ -76,7 +76,7 @@
     "hapi-swagger": "^7.0.0",
     "hoek": "^5.0.3",
     "inert": "^4.0.1",
-    "joi": "^13.0.0",
+    "joi": "13.1.2",
     "js-yaml": "^3.11.0",
     "jsonwebtoken": "^7.1.6",
     "license-checker": "^17.0.0",
@@ -84,12 +84,12 @@
     "node-env-file": "^0.1.8",
     "request": "^2.85.0",
     "requestretry": "^1.12.0",
-    "screwdriver-artifact-bookend": "^1.1.7",
+    "screwdriver-artifact-bookend": "^1.1.8",
     "screwdriver-build-bookend": "^2.0.1",
     "screwdriver-command-validator": "^1.0.2",
-    "screwdriver-config-parser": "^3.14.3",
-    "screwdriver-data-schema": "^18.13.8",
-    "screwdriver-datastore-sequelize": "^5.0.1",
+    "screwdriver-config-parser": "^3.14.1",
+    "screwdriver-data-schema": "^18.13.5",
+    "screwdriver-datastore-sequelize": "^4.1.1",
     "screwdriver-executor-docker": "^2.3.2",
     "screwdriver-executor-k8s": "^10.9.1",
     "screwdriver-executor-k8s-vm": "^1.0.0",
