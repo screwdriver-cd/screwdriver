@@ -101,7 +101,7 @@ describe('command validator plugin test', () => {
             })
         );
 
-        it('returns BAD REQUEST for template that cannot be parsed', () =>
+        it('returns BAD REQUEST for command that cannot be parsed', () =>
             server.inject({
                 method: 'POST',
                 url: '/validator/command',
