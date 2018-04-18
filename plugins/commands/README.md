@@ -58,7 +58,7 @@ You can get a single command by providing the command namespace, name and the sp
 
 Creating a command will store the command data (`namespace`, `name`, `version`, `description`, `maintainer`, `format`, `commandFormat`) into the datastore.
 
-`version` will be auto-bumped. For example, if `foo/bar@1.0.0` already exists and the version passed in is `1.0`, the newly created command will be version `1.0.1`. 
+`version` will be auto-bumped. For example, if `foo/bar@1.0.0` already exists and the version passed in is `1.0`, the newly created command will be version `1.0.1`.
 
 *Note: This endpoint only accessible in `build` scope and the permission is tied to the pipeline that first creates the command.*
 
@@ -92,6 +92,15 @@ Example payload:
   }
 }
 ```
+
+##### Delete a command
+Deleting a command will delete a command and all of its associated tags and versions.
+
+`DELETE /commands/{name}`
+
+###### Arguments
+
+* `name` - Name of the command
 
 #### Command Tag
 Command Tag allows fetching on command version by tag. For example, command `mynamespace/mycommand@1.2.0` as `stable`.
