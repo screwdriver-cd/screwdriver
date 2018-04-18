@@ -76,7 +76,7 @@
     "hapi-swagger": "^7.0.0",
     "hoek": "^5.0.3",
     "inert": "^4.0.1",
-    "joi": "^13.0.0",
+    "joi": "13.1.2",
     "js-yaml": "^3.11.0",
     "jsonwebtoken": "^7.1.6",
     "license-checker": "^17.0.0",

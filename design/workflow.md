@@ -7,8 +7,9 @@ This documentation covers a design proposal for a revised workflow/screwdriver.y
 
 ## Status
 
-- 30 August 2017: Proposal submitted
-- 25 October 2017: Rebuild_on/triggers sections updated
+- August 30th, 2017: Proposal submitted
+- October 25th, 2017: Rebuild_on/triggers sections updated
+- April 20th, 2018: Old workflow deprecated
 
 ## Syntax
 
@@ -215,7 +216,7 @@ If you make changes to the architecture, please be sure to update this document.
 
 ## Resources
 
-- [Workflow issue](https://github.com/screwdriver-cd/screwdriver/issues/654)
+- [Workflow issue](https://github.com/screwdriver-cd/screwdriver/issues/723)
 - [Circleci workflows](http://circleci.com/docs/2.0/workflows)
 - [Concourse workflows](http://concourse.ci/pipelines.html)
 - [Queue design doc (to keep implementation in mind)](https://github.com/screwdriver-cd/screwdriver/blob/master/design/queue.md)
