@@ -1160,7 +1160,6 @@ describe('build plugin test', () => {
             pipelineId,
             username,
             scmContext,
-            workflow: ['PR-15'],
             sha: testBuild.sha
         };
 
@@ -1196,7 +1195,6 @@ describe('build plugin test', () => {
                 id: pipelineId,
                 checkoutUrl,
                 scmUri,
-                workflow: ['main'],
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves()
             };
@@ -1271,12 +1269,10 @@ describe('build plugin test', () => {
         it('returns 201 for a successful create for a pipeline build', () => {
             let expectedLocation;
 
-            pipelineMock.workflow = ['main', 'publish', 'nerf_fight'];
             jobMock.name = 'main';
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
-            eventConfig.workflow = ['main', 'publish', 'nerf_fight'];
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
