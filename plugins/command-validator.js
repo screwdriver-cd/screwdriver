@@ -12,7 +12,7 @@ const validator = require('screwdriver-command-validator');
  * @method register
  * @param  {Hapi.Server}    server
  * @param  {Object}         options
- * @param  {Function} next
+ * @param  {Function}       next
  */
 exports.register = (server, options, next) => {
     server.route({
