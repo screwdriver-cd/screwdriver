@@ -206,7 +206,6 @@ describe('github plugin test', () => {
                 admins: {
                     baxterthehacker: false
                 },
-                workflow: ['main'],
                 workflowGraph,
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),

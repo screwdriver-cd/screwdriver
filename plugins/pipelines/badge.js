@@ -85,10 +85,6 @@ module.exports = () => ({
 
                             let workflowLength = 0;
 
-                            if (lastEvent.workflow) {
-                                workflowLength = lastEvent.workflow.length;
-                            }
-
                             if (lastEvent.workflowGraph) {
                                 workflowLength = lastEvent.workflowGraph.nodes.filter(n =>
                                     n.name !== '~commit' && n.name !== '~pr').length;
