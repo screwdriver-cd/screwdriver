@@ -24,7 +24,11 @@
                     "NODE_VERSION": "4"
                 },
                 "secrets": [],
-                "settings": {}
+                "settings": {},
+                "requires": [
+                    "~pr",
+                    "~commit"
+                ]
             },
             {
                 "annotations": {},
@@ -48,7 +52,11 @@
                     "NODE_VERSION": "6"
                 },
                 "secrets": [],
-                "settings": {}
+                "settings": {},
+                "requires": [
+                    "~pr",
+                    "~commit"
+                ]
             }
         ],
         "publish": [
@@ -63,14 +71,13 @@
                 ],
                 "environment": {},
                 "secrets": [],
-                "settings": {}
+                "settings": {},
+                "requires": [
+                    "main"
+                ]
             }
         ]
     },
-    "workflow": [
-        "main",
-        "publish"
-    ],
     "workflowGraph": {
         "nodes": [
             { "name": "~pr" },
