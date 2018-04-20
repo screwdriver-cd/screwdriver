@@ -5,7 +5,6 @@ const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
 const MAX_LINES = 100;
-const MAX_PAGES = 10;
 
 /**
  * Load up to N pages that are available
@@ -14,9 +13,10 @@ const MAX_PAGES = 10;
  * @param  {Integer}    linesFrom       What line number are we starting from
  * @param  {String}     authToken       Bearer Token to be passed to the store
  * @param  {Integer}    [pagesLoaded=0] How many pages have we loaded so far
+ * @param  {Integer}    [maxPages=10]    Maximum number of pages to send in a response
  * @return {Promise}                    [Array of log lines, Are there more pages]
  */
-function loadLines(baseUrl, linesFrom, authToken, pagesLoaded = 0) {
+function loadLines(baseUrl, linesFrom, authToken, pagesLoaded = 0, maxPages = 10) {
     return new Promise((resolve) => {
         const page = Math.floor(linesFrom / MAX_LINES);
         const output = [];
@@ -46,9 +46,9 @@ function loadLines(baseUrl, linesFrom, authToken, pagesLoaded = 0) {
 
         // Load from next log if we got lines AND we reached the edge of a page
         if (linesCount > 0 && (linesCount + linesFrom) % MAX_LINES === 0) {
-            // If we haven't loaded MAX_PAGES, load the next page
-            if (currentPage < MAX_PAGES) {
-                return loadLines(baseUrl, linesCount + linesFrom, authToken, currentPage)
+            // If we haven't loaded maxPages, load the next page
+            if (currentPage < maxPages) {
+                return loadLines(baseUrl, linesCount + linesFrom, authToken, currentPage, maxPages)
                     .then(([nextLines, pageLimit]) => [lines.concat(nextLines), pageLimit]);
             }
             // Otherwise exit early and flag that there may be more pages
@@ -106,7 +106,7 @@ module.exports = config => ({
                     const baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/${stepName}/log`;
 
-                    return loadLines(baseUrl, req.query.from, headers.authorization)
+                    return loadLines(baseUrl, req.query.from, headers.authorization, req.query.pages)
                         .then(([lines, morePages]) => reply(lines)
                             .header('X-More-Data', (morePages || !isDone).toString()));
                 })

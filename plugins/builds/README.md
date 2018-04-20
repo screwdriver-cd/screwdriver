@@ -29,7 +29,7 @@ server.register({
 `GET /builds/{id}`
 
 #### Returns a Stream of logs
-`GET /builds/{id}/logs`
+`GET /builds/{id}/steps/{name}/logs`
 
 #### Creates a build
 `POST /builds`
