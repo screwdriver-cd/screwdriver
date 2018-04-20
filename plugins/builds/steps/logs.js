@@ -9,16 +9,13 @@ const MAX_LINES = 100;
 /**
  * Load up to N pages that are available
  * @method loadLines
- * @param  {String}     baseUrl         URL to load from (without the .$PAGE)
- * @param  {Integer}    linesFrom       What line number are we starting from
- * @param  {String}     authToken       Bearer Token to be passed to the store
- * @param  {Integer}    [maxPages=10]    Maximum number of pages to send in a response
- * @param  {Integer}    [pagesLoaded=0] How many pages have we loaded so far
- * @return {Promise}                    [Array of log lines, Are there more pages]
+ * @param  {String}     baseUrl          URL to load from (without the .$PAGE)
+ * @param  {Integer}    linesFrom        What line number are we starting from
+ * @param  {String}     authToken        Bearer Token to be passed to the store
+ * @param  {Integer}    [pagesToLoad=10] Number of pages left to load
+ * @return {Promise}                     [Array of log lines, Are there more pages]
  */
-function loadLines(baseUrl, linesFrom, authToken, maxPages = 10, pagesLoaded = 0) {
-    console.log(maxPages);
-
+function loadLines(baseUrl, linesFrom, authToken, pagesToLoad = 10) {
     return new Promise((resolve) => {
         const page = Math.floor(linesFrom / MAX_LINES);
         const output = [];
@@ -43,14 +40,13 @@ function loadLines(baseUrl, linesFrom, authToken, maxPages = 10, pagesLoaded = 0
             .on('end', () => resolve(output));
     }).then((lines) => {
         const linesCount = lines.length;
-        const currentPage = pagesLoaded + 1;
+        const pagesToLoadUpdated = pagesToLoad - 1;
         let morePages = false;
 
         // Load from next log if we got lines AND we reached the edge of a page
         if (linesCount > 0 && (linesCount + linesFrom) % MAX_LINES === 0) {
-            // If we haven't loaded maxPages, load the next page
-            if (currentPage < maxPages) {
-                return loadLines(baseUrl, linesCount + linesFrom, authToken, maxPages, currentPage)
+            if (pagesToLoadUpdated > 0) {
+                return loadLines(baseUrl, linesCount + linesFrom, authToken, pagesToLoadUpdated)
                     .then(([nextLines, pageLimit]) => [lines.concat(nextLines), pageLimit]);
             }
             // Otherwise exit early and flag that there may be more pages
@@ -82,8 +78,6 @@ module.exports = config => ({
             const buildId = req.params.id;
             const stepName = req.params.name;
             const headers = req.headers;
-
-            console.log(req.query.pages);
 
             factory.get(buildId)
                 .then((model) => {
