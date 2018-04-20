@@ -529,6 +529,14 @@ describe('template plugin test', () => {
             });
         });
 
+        it('returns 401 if it is a PR build', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
         it('creates template if template does not exist yet', () => {
             templateFactoryMock.list.resolves([]);
 
