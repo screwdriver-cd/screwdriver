@@ -90,7 +90,11 @@ executor:
                 memory:
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
-            # k8s node selectors for approprate build pod scheduling.
+            # Default build timeout for all builds in this cluster
+            buildTimeout: K8S_BUILD_TIMEOUT
+            # Default max build timeout
+            maxBuildTimeout: K8S_MAX_BUILD_TIMEOUT
+            # k8s node selectors for build pod scheduling.
             # Value is Object of format { label: 'value' } See
             # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
             # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
@@ -157,7 +161,11 @@ executor:
                 memory:
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
-            # k8s node selectors for approprate build pod scheduling.
+            # Default build timeout for all builds in this cluster
+            buildTimeout: K8S_VM_BUILD_TIMEOUT
+            # Default max build timeout
+            maxBuildTimeout: K8S_VM_MAX_BUILD_TIMEOUT
+            # k8s node selectors for build pod scheduling.
             # Value is Object of format { label: 'value' } See
             # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
             # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
