@@ -34,6 +34,7 @@ module.exports = () => ({
                 const pipelineFactory = request.server.app.pipelineFactory;
                 const templateFactory = request.server.app.templateFactory;
                 const pipelineId = request.auth.credentials.pipelineId;
+                const isPR = request.auth.credentials.isPR;
 
                 return Promise.all([
                     pipelineFactory.get(pipelineId),
@@ -51,7 +52,7 @@ module.exports = () => ({
 
                     // If template name exists, but this build's pipelineId is not the same as template's pipelineId
                     // Then this build does not have permission to publish
-                    if (pipeline.id !== templates[0].pipelineId) {
+                    if (pipeline.id !== templates[0].pipelineId || isPR) {
                         throw boom.unauthorized('Not allowed to publish this template');
                     }
 

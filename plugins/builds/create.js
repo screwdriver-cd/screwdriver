@@ -64,18 +64,15 @@ module.exports = () => ({
                             return scm.getCommitSha(scmConfig)
                                 .then((sha) => {
                                     let type = 'pipeline';
-                                    let workflow = pipeline.workflow;
 
                                     if (job.isPR()) {
                                         type = 'pr';
-                                        workflow = [job.name];
                                         payload.sha = sha; // pass sha to payload if it's a PR
                                     }
 
                                     return eventFactory.create({
                                         pipelineId: pipeline.id,
                                         type,
-                                        workflow,
                                         username,
                                         scmContext,
                                         sha

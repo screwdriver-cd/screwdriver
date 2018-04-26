@@ -45,7 +45,11 @@ const getJobMocks = (jobs) => {
 };
 
 describe('job plugin test', () => {
-    let factoryMock;
+    let jobFactoryMock;
+    let pipelineFactoryMock;
+    let pipelineMock;
+    let userFactoryMock;
+    let userMock;
     let plugin;
     let server;
 
@@ -57,9 +61,27 @@ describe('job plugin test', () => {
     });
 
     beforeEach((done) => {
-        factoryMock = {
+        pipelineMock = {
+            scmUri: 'fakeScmUri'
+        };
+
+        userMock = {
+            getPermissions: sinon.stub().resolves({
+                push: true
+            })
+        };
+
+        jobFactoryMock = {
             get: sinon.stub(),
             list: sinon.stub()
+        };
+
+        pipelineFactoryMock = {
+            get: sinon.stub().resolves(pipelineMock)
+        };
+
+        userFactoryMock = {
+            get: sinon.stub().resolves(userMock)
         };
 
         /* eslint-disable global-require */
@@ -68,7 +90,9 @@ describe('job plugin test', () => {
 
         server = new hapi.Server();
         server.app = {
-            jobFactory: factoryMock
+            jobFactory: jobFactoryMock,
+            pipelineFactory: pipelineFactoryMock,
+            userFactory: userFactoryMock
         };
         server.connection({
             port: 1234
@@ -108,7 +132,7 @@ describe('job plugin test', () => {
         const id = 1234;
 
         it('exposes a route for getting a job', () => {
-            factoryMock.get.withArgs(id).resolves(getJobMocks(testJob));
+            jobFactoryMock.get.withArgs(id).resolves(getJobMocks(testJob));
 
             return server.inject('/jobs/1234').then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -123,7 +147,7 @@ describe('job plugin test', () => {
                 message: 'Job does not exist'
             };
 
-            factoryMock.get.withArgs(id).resolves(null);
+            jobFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject('/jobs/1234').then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -132,7 +156,7 @@ describe('job plugin test', () => {
         });
 
         it('returns errors when datastore returns an error', () => {
-            factoryMock.get.withArgs(id).rejects(new Error('blah'));
+            jobFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
             return server.inject('/jobs/1234').then((reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -150,7 +174,7 @@ describe('job plugin test', () => {
 
             jobMock.update.resolves(jobMock);
 
-            factoryMock.get.resolves(jobMock);
+            jobFactoryMock.get.resolves(jobMock);
         });
 
         it('returns 200 for updating a job that exists', () => {
@@ -207,10 +231,50 @@ describe('job plugin test', () => {
                 }
             };
 
-            factoryMock.get.resolves(null);
+            jobFactoryMock.get.resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 if pipeline does not exist', () => {
+            const options = {
+                method: 'PUT',
+                url: '/jobs/1234',
+                payload: {
+                    state: 'DISABLED'
+                },
+                credentials: {
+                    scope: ['user']
+                }
+            };
+
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 401 if user has no push access to the repo', () => {
+            const options = {
+                method: 'PUT',
+                url: '/jobs/1234',
+                payload: {
+                    state: 'DISABLED'
+                },
+                credentials: {
+                    scope: ['user']
+                }
+            };
+
+            userMock.getPermissions.resolves({
+                push: false
+            });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
     });
@@ -230,12 +294,12 @@ describe('job plugin test', () => {
             job = getJobMocks(testJob);
             builds = getBuildMocks(testBuilds);
 
-            factoryMock.get.withArgs(id).resolves(job);
+            jobFactoryMock.get.withArgs(id).resolves(job);
             job.getBuilds.resolves(builds);
         });
 
         it('returns 404 if job does not exist', () => {
-            factoryMock.get.withArgs(id).resolves(null);
+            jobFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

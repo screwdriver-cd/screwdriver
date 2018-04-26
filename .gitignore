@@ -9,3 +9,4 @@ config/local.*
 .nyc_output
 data/*
 package-lock.json
+docker-compose.yml
