@@ -78,7 +78,7 @@ Example payload:
 #### Synchronize a pipeline
 * Synchronize the pipeline by looking up latest screwdriver.yaml
 * Create, update, or disable jobs if necessary.
-* Store/update the pipeline workflow
+* Store/update the pipeline workflowGraph
 
 `POST /pipelines/{id}/sync`
 

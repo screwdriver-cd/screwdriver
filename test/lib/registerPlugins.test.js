@@ -15,7 +15,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/logging',
         '../plugins/swagger',
         '../plugins/validator',
-        '../plugins/template-validator'
+        '../plugins/template-validator',
+        '../plugins/command-validator'
     ];
     const resourcePlugins = [
         '../plugins/auth',
