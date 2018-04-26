@@ -72,10 +72,12 @@ executor:
             resources:
                 cpu:
                     # Number of cpu cores
+                    micro: "0.5"
                     low: 2
                     high: 6
                 memory:
                     # Memory in GB
+                    micro: 1
                     low: 2
                     high: 12
             # k8s node selectors for approprate pod scheduling
@@ -117,10 +119,12 @@ executor:
             resources:
                 cpu:
                     # Number of cpu cores
+                    micro: 1
                     low: 2
                     high: 6
                 memory:
                     # Memory in GB
+                    micro: 1
                     low: 2
                     high: 12
             # k8s node selectors for approprate pod scheduling
