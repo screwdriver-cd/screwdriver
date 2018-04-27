@@ -1660,6 +1660,40 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns logs for a step that is split across extended max pages', () => {
+            const maxPages = 100;
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            for (let i = 0; i < 115; i += 1) {
+                const lines = [];
+
+                for (let j = 0; j < 100; j += 1) {
+                    lines.push(JSON.stringify({
+                        t: Date.now(),
+                        m: 'Random message here',
+                        n: (100 * i) + j
+                    }));
+                }
+
+                nock('https://store.screwdriver.cd')
+                    .get(`/v1/builds/${id}/${step}/log.${i}`)
+                    .reply(200, lines.join('\n'));
+            }
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 10000);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
+        });
+
         it('returns logs for a step that ends at max pages', () => {
             const buildMock = getMockBuilds(testBuild);
 
@@ -1690,6 +1724,41 @@ describe('build plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 950);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns logs for a step that ends at extended max pages', () => {
+            const maxPages = 100;
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            for (let i = 0; i < maxPages; i += 1) {
+                const lines = [];
+                const maxLines = (i === maxPages - 1) ? 50 : 100;
+
+                for (let j = 0; j < maxLines; j += 1) {
+                    lines.push(JSON.stringify({
+                        t: Date.now(),
+                        m: 'Random message here',
+                        n: (100 * i) + j
+                    }));
+                }
+
+                nock('https://store.screwdriver.cd')
+                    .get(`/v1/builds/${id}/${step}/log.${i}`)
+                    .reply(200, lines.join('\n'));
+            }
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, (100 * maxPages) - 50);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
