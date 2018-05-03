@@ -75,12 +75,14 @@ const templateFactory = Models.TemplateFactory.getInstance({
 const templateTagFactory = Models.TemplateTagFactory.getInstance({
     datastore
 });
+
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm
 });
 const jobFactory = Models.JobFactory.getInstance({
-    datastore
+    datastore,
+    executor
 });
 const userFactory = Models.UserFactory.getInstance({
     datastore,
