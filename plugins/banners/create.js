@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 
 module.exports = () => ({
     method: 'POST',
-    path: '/banner',
+    path: '/banners',
     config: {
         description: 'Create a new banner',
         notes: 'Create a specific banner',

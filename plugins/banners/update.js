@@ -3,15 +3,14 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const getSchema = schema.models.banner.get;
 const idSchema = joi.reach(schema.models.banner.base, 'id');
 
 module.exports = () => ({
-    method: 'GET',
-    path: '/banner/{id}',
+    method: 'PUT',
+    path: '/banners/{id}',
     config: {
-        description: 'Get a single banner',
-        notes: 'Return a banner record',
+        description: 'Update a banner',
+        notes: 'Update a banner',
         tags: ['api', 'banner'],
         auth: {
             strategies: ['token'],
@@ -24,26 +23,30 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const bannerFactory = request.server.app.bannerFactory;
+            const id = request.params.id; // id of banner to update
 
-            return bannerFactory.get(request.params.id)
-                .then((banner) => {
+            return Promise.all([
+                bannerFactory.get({ id })
+            ])
+                .then(([banner]) => {
                     if (!banner || banner === null) {
-                        throw boom.notFound('Banner does not exist');
+                        throw boom.notFound(`Banner ${id} does not exist`);
                     }
 
-                    // console.log('only here if banner exist');
+                    Object.assign(banner, request.payload);
 
-                    return reply(banner.map(c => c.toJson()));
+                    return banner.update()
+                        .then(updatedBanner =>
+                            reply(updatedBanner.toJson()).code(200)
+                        );
                 })
                 .catch(err => reply(boom.wrap(err)));
-        },
-        response: {
-            schema: getSchema
         },
         validate: {
             params: {
                 id: idSchema
-            }
+            },
+            payload: schema.models.banner.update
         }
     }
 });

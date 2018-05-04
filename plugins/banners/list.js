@@ -6,7 +6,7 @@ const listSchema = schema.models.banner.list;
 
 module.exports = () => ({
     method: 'GET',
-    path: '/banner',
+    path: '/banners',
     config: {
         description: 'Get banners',
         notes: 'Returns all banner records',

@@ -7,6 +7,7 @@ const mockery = require('mockery');
 // const hoek = require('hoek');
 const testBanner = require('./data/banner.json');
 const testBanners = require('./data/banners.json');
+const updatedBanner = require('./data/updatedBanner.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -51,10 +52,9 @@ describe.only('banner plugin test', () => {
         bannerMock = getMock(testBanner);
         bannerMock.remove.resolves(null);
         bannerMock.update.resolves(bannerMock);
-        bannerMock.update.resolves(bannerMock);
 
         /* eslint-disable global-require */
-        plugin = require('../../plugins/banner');
+        plugin = require('../../plugins/banners');
         /* eslint-enable global-require */
 
         server = new hapi.Server();
@@ -95,7 +95,7 @@ describe.only('banner plugin test', () => {
         assert.isOk(server.registrations.banners);
     });
 
-    describe('POST /banner', () => {
+    describe('POST /banners', () => {
         let options;
         const username = 'jimgrund';
         const scmContext = 'github:github.com';
@@ -106,7 +106,7 @@ describe.only('banner plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'POST',
-                url: '/banner',
+                url: '/banners',
                 payload: {
                     message,
                     isActive,
@@ -135,13 +135,13 @@ describe.only('banner plugin test', () => {
         });
     });
 
-    describe('GET /banner', () => {
+    describe('GET /banners', () => {
         let options;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: '/banner'
+                url: '/banners'
             };
         });
 
@@ -155,7 +155,7 @@ describe.only('banner plugin test', () => {
         });
     });
 
-    describe('GET /banner/{id}', () => {
+    describe('GET /banners/{id}', () => {
         let options;
         const bannerId = 123;
         const username = 'jimgrund';
@@ -164,7 +164,7 @@ describe.only('banner plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/banner/${bannerId}`,
+                url: `/banners/${bannerId}`,
                 credentials: {
                     username,
                     scmContext,
@@ -184,6 +184,51 @@ describe.only('banner plugin test', () => {
 
         it('returns 404 when banner does not exist', () => {
             bannerFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
+    describe('PUT /banners/{id}', () => {
+        let options;
+        let updatedBannerMock;
+        const id = 123;
+        const username = 'jimgrund';
+        const scmContext = 'github:github.com';
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/banners/${id}`,
+                payload: {
+                    message: 'This is a new banner',
+                    isActive: true,
+                    type: 'warn'
+                },
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            updatedBannerMock = getMock(updatedBanner);
+            bannerFactoryMock.get.withArgs({ id }).resolves(bannerMock);
+            bannerMock.update.resolves(updatedBannerMock);
+            updatedBannerMock.toJson.returns(updatedBanner);
+        });
+
+        it('returns 200 updating banner', () =>
+            server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, updatedBanner);
+                assert.calledOnce(bannerMock.update);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 404 when banner id does not exist', () => {
+            bannerFactoryMock.get.withArgs({ id }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
