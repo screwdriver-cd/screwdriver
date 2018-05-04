@@ -29,7 +29,7 @@ const getBannerMock = (banner) => {
     return getMock(banner);
 };
 
-describe.only('banner plugin test', () => {
+describe('banner plugin test', () => {
     let bannerMock;
     let bannerFactoryMock;
     let plugin;
@@ -224,6 +224,41 @@ describe.only('banner plugin test', () => {
                 assert.deepEqual(reply.result, updatedBanner);
                 assert.calledOnce(bannerMock.update);
                 assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 404 when banner id does not exist', () => {
+            bannerFactoryMock.get.withArgs({ id }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
+    describe('DELETE /banners/{id}', () => {
+        let options;
+        const id = 123;
+        const username = 'jimgrund';
+        const scmContext = 'github:github.com';
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/banners/${id}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            bannerFactoryMock.get.withArgs({ id }).resolves(bannerMock);
+        });
+
+        it('returns 204 when delete is success', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(bannerMock.remove);
             })
         );
 
