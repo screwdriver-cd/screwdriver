@@ -120,7 +120,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         });
     });
 
-    Then(/^(.*) package is available via sd-step$/, { timeout: 500 * 1000 }, function step(pkg) {
+    Then(/^(.*) package is available via sd-step$/, { timeout: 700 * 1000 }, function step(pkg) {
         return this.waitForBuild(this.buildId).then((response) => {
             Assert.equal(response.statusCode, 200);
             Assert.equal(response.body.status, 'SUCCESS');
