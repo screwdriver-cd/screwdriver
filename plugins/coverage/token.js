@@ -7,7 +7,7 @@ module.exports = config => ({
     path: '/coverage/token',
     config: {
         description: 'Get an access token to talk to coverage server',
-        notes: 'Returns a job record',
+        notes: 'Returns a token string',
         tags: ['api', 'coverage'],
         auth: {
             strategies: ['token'],

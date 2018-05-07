@@ -129,7 +129,7 @@ datastore.setup()
         auth: authConfig,
         webhooks: webhooksConfig,
         notifications: notificationConfig,
-        coverage: coverageConfig,
+        coverage,
         ecosystem,
         commandFactory,
         commandTagFactory,

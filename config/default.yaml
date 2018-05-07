@@ -208,8 +208,8 @@ webhooks:
 coverage: {}
     # plugin: sonar
     # sonar:
-    #     apiUrl: https://api.screwdriver.cd
-    #     sonarUrl: https://sonar.screwdriver.cd
+    #     sdApiUrl: https://api.screwdriver.cd
+    #     sonarHost: https://sonar.screwdriver.cd
     #     adminToken: your-sonar-admin-token
 
 bookends:
