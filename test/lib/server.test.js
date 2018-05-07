@@ -111,6 +111,7 @@ describe('server case', () => {
             Assert.strictEqual(server.app.userFactory, 'user');
             Assert.isObject(server.app.buildFactory);
             Assert.match(server.app.buildFactory.apiUri, /^http(s)?:\/\/[^:]+:12347$/);
+            Assert.match(server.app.jobFactory.apiUri, /^http(s)?:\/\/[^:]+:12347$/);
             Assert.isFunction(server.app.buildFactory.tokenGen);
             Assert.strictEqual(server.app.buildFactory.tokenGen('bar'), 'foo');
             Assert.isObject(server.app.jobFactory);
