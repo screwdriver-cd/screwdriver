@@ -1,8 +1,8 @@
 'use strict';
 
-// const boom = require('boom');
+const boom = require('boom');
 const schema = require('screwdriver-data-schema');
-// const urlLib = require('url');
+const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',
@@ -20,11 +20,23 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request) => {
+        handler: (request, reply) => {
             const { bannerFactory } = request.server.app;
             const config = Object.assign({}, request.payload, { createdBy: 'jimgrund' });
 
-            return bannerFactory.create(config);
+            return bannerFactory.create(config)
+
+                .then((banner) => {
+                    const location = urlLib.format({
+                        host: request.headers.host,
+                        port: request.headers.port,
+                        protocol: request.server.info.protocol,
+                        pathname: `${request.path}/${banner.id}`
+                    });
+
+                    return reply(banner.toJson()).header('Location', location).code(201);
+                })
+                .catch(err => reply(boom.wrap(err)));
         },
         validate: {
             payload: schema.models.banner.create
