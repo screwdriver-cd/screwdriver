@@ -32,7 +32,7 @@ module.exports = () => ({
                         throw boom.notFound(`Banner ${id} does not exist`);
                     }
 
-                    return reply(banner.map(c => c.toJson()));
+                    return reply(banner.toJson());
                 })
                 .catch(err => reply(boom.wrap(err)));
         },
