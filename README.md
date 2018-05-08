@@ -98,10 +98,11 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 9 (nine) resources:
+This API comes preloaded with 10 (ten) resources:
 
  - [auth](plugins/auth/README.md)
  - [builds](plugins/builds/README.md)
+ - [coverage](plugins/coverage/README.md) - optional
  - [collections](plugins/collections/README.md)
  - [events](plugins/events/README.md)
  - [jobs](plugins/jobs/README.md)

@@ -205,6 +205,13 @@ webhooks:
     # Ignore commits made by these users
     ignoreCommitsBy: []
 
+coverage: {}
+    # plugin: sonar
+    # sonar:
+    #     sdApiUrl: https://api.screwdriver.cd
+    #     sonarHost: https://sonar.screwdriver.cd
+    #     adminToken: your-sonar-admin-token
+
 bookends:
     # Plugins for build setup
     setup:
