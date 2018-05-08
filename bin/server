@@ -51,11 +51,17 @@ authConfig.scm = scm;
 const ArtifactPlugin = require('screwdriver-artifact-bookend');
 const artifact = new ArtifactPlugin(ecosystem.store);
 
+// Plugin to upload coverage
+const coverageConfig = config.get('coverage');
+const CoveragePlugin = require('screwdriver-coverage-bookend');
+const coverage = new CoveragePlugin(coverageConfig);
+
 // Plugins to run before/after a build
 const bookends = config.get('bookends');
 const bookend = new Bookend({
     scm,
-    'screwdriver-artifact-bookend': artifact
+    'screwdriver-artifact-bookend': artifact,
+    'screwdriver-coverage-bookend': coverage
 },
 bookends.setup || [], // plugins required for the setup- steps
 bookends.teardown || [] // plugins required for the teardown- steps
@@ -123,6 +129,7 @@ datastore.setup()
         auth: authConfig,
         webhooks: webhooksConfig,
         notifications: notificationConfig,
+        coverage,
         ecosystem,
         commandFactory,
         commandTagFactory,

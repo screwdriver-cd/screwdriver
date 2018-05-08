@@ -68,6 +68,7 @@ datastore:
         pool:
           __name: DATASTORE_SEQUELIZE_POOL
           __format: json
+
 executor:
     plugin: EXECUTOR_PLUGIN
     # The NPM module object(s) for the executor plugin(s)
@@ -296,6 +297,16 @@ bookends:
 notifications:
     __name: NOTIFICATIONS
     __format: json
+
+coverage:
+    plugin: COVERAGE_PLUGIN
+    sonar:
+        # Screwdriver API url
+        sdApiUrl: URI
+        # Sonar host url
+        sonarHost:  COVERAGE_SONAR_HOST
+        # Sonar admin token
+        adminToken: COVERAGE_SONAR_ADMIN_TOKEN
 
 ecosystem:
     # URL for the User Interface
