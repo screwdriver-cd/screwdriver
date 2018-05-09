@@ -5,6 +5,7 @@ const listRoute = require('./list');
 const getRoute = require('./get');
 const updateRoute = require('./update');
 const removeRoute = require('./remove');
+// const joi = require('joi');
 // const boom = require('boom');
 
 /**
@@ -15,6 +16,33 @@ const removeRoute = require('./remove');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
+    server.expose('screwdriverAdminDetails', (username, scmContext) => {
+        // construct object with defaults to store details
+        const adminDetails = {
+            userDisplayName: null,
+            isAdmin: false
+        };
+
+        if (scmContext) {
+            const scm = server.root.app.bannerFactory.scm;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
+            const adminsList = options.authConfig.admins;
+
+            // construct displayable username string
+            adminDetails.userDisplayName = `${scmDisplayName}:${username}`;
+
+            // Check system configuration for list of system admins
+            // set admin status true if current user is identified to be a system admin
+            if (adminsList.length > 0
+                && adminsList.includes(adminDetails.userDisplayName)) {
+                adminDetails.isAdmin = true;
+            }
+        }
+
+        // return details
+        return adminDetails;
+    });
+
     server.route([
         createRoute(),
         listRoute(),

@@ -14,7 +14,7 @@ module.exports = () => ({
         tags: ['api', 'banner'],
         auth: {
             strategies: ['token'],
-            scope: ['user']
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {
@@ -22,8 +22,22 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const bannerFactory = request.server.app.bannerFactory;
+            const { bannerFactory } = request.server.app;
             const id = request.params.id; // id of banner to update
+            const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
+
+            // lookup whether user is admin
+            const adminDetails = request.server.plugins.banners
+                .screwdriverAdminDetails(username, scmContext);
+
+            // verify user is authorized to create banners
+            // return unauthorized if not system admin
+            if (!adminDetails.isAdmin) {
+                return reply(boom.forbidden(
+                    `User ${adminDetails.userDisplayName} is not allowed access`
+                ));
+            }
 
             return Promise.all([
                 bannerFactory.get({ id })

@@ -141,7 +141,10 @@ datastore.setup()
         eventFactory,
         collectionFactory,
         triggerFactory,
-        banners: authConfig,
+        banners: {
+            authConfig,
+            scm
+        }
         builds: {
             ecosystem,
             authConfig
