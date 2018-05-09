@@ -110,7 +110,8 @@ const eventFactory = Models.EventFactory.getInstance({
     scm
 });
 const bannerFactory = Models.BannerFactory.getInstance({
-    datastore
+    datastore,
+    scm
 });
 const collectionFactory = Models.CollectionFactory.getInstance({
     datastore
