@@ -1,5 +1,6 @@
 'use strict';
 
+const linksRoute = require('./links');
 const tokenRoute = require('./token');
 
 /**
@@ -13,6 +14,7 @@ exports.register = (server, options, next) => {
     const coveragePlugin = options.coveragePlugin;
 
     server.route([
+        linksRoute({ coveragePlugin }),
         tokenRoute({ coveragePlugin })
     ]);
 

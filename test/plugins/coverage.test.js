@@ -11,6 +11,10 @@ describe('coverage plugin test', () => {
     let plugin;
     let server;
     let mockCoveragePlugin;
+    const links = {
+        badge: 'https://sonar.sd.cd/api/badges/measure?key=job%3A123&metric=coverage',
+        project: 'https://sonar.sd.cd/dashboard?id=job%3A123'
+    };
 
     before(() => {
         mockery.enable({
@@ -21,7 +25,8 @@ describe('coverage plugin test', () => {
 
     beforeEach((done) => {
         mockCoveragePlugin = {
-            getAccessToken: sinon.stub().resolves('faketoken')
+            getAccessToken: sinon.stub().resolves('faketoken'),
+            getLinks: sinon.stub().resolves(links)
         };
 
         /* eslint-disable global-require */
@@ -87,6 +92,25 @@ describe('coverage plugin test', () => {
                     jobId: 123,
                     scope: ['build']
                 }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /coverage/{id}/links', () => {
+        it('returns 200', () => server.inject({
+            url: '/coverage/123/links'
+        }).then((reply) => {
+            assert.equal(reply.statusCode, 200);
+            assert.deepEqual(reply.result, links);
+        }));
+
+        it('returns 500 if failed to get links', () => {
+            mockCoveragePlugin.getLinks.rejects(new Error('oops!'));
+
+            return server.inject({
+                url: '/coverage/123/links'
             }).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });

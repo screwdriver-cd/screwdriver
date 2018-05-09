@@ -28,3 +28,15 @@ server.register({
 
 #### Returns an access token to talk to coverage server
 `GET /coverage/token`
+
+#### Get an object with coverage links
+
+`GET /coverage/{jobId}/links`
+
+Should look something like
+```javascript
+{
+    badge: 'https://sonar.sd.cd/api/badges/measure?key=job%3A123&metric=coverage',
+    project: 'https://sonar.sd.cd/dashboard?id=job%3A123'
+}
+```
