@@ -23,12 +23,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const { bannerFactory } = request.server.app;
 
-            const config = {
-                params: {
-                    isActive: true
-                }
-            };
-            // let config;
+            const config = Object.assign({}, request.payload);
 
             return bannerFactory.list(config)
                 .then(banner => reply(banner.map(c => c.toJson())));
