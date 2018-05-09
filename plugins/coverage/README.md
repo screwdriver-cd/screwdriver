@@ -31,9 +31,9 @@ server.register({
 
 #### Get an object with coverage links
 
-`GET /coverage/{jobId}/links`
+`GET /coverage/links?buildId=1&jobId=123`
 
-Should look something like
+Should resolve with something like
 ```javascript
 {
     badge: 'https://sonar.sd.cd/api/badges/measure?key=job%3A123&metric=coverage',

@@ -26,7 +26,7 @@ describe('coverage plugin test', () => {
     beforeEach((done) => {
         mockCoveragePlugin = {
             getAccessToken: sinon.stub().resolves('faketoken'),
-            getLinks: sinon.stub().resolves(links)
+            getLinks: sinon.stub()
         };
 
         /* eslint-disable global-require */
@@ -98,19 +98,32 @@ describe('coverage plugin test', () => {
         });
     });
 
-    describe('GET /coverage/{id}/links', () => {
-        it('returns 200', () => server.inject({
-            url: '/coverage/123/links'
-        }).then((reply) => {
-            assert.equal(reply.statusCode, 200);
-            assert.deepEqual(reply.result, links);
-        }));
-
-        it('returns 500 if failed to get links', () => {
-            mockCoveragePlugin.getLinks.rejects(new Error('oops!'));
+    describe('GET /coverage/links', () => {
+        it('returns 200', () => {
+            mockCoveragePlugin.getLinks.withArgs({
+                buildId: '1',
+                jobId: '123'
+            }).resolves(links);
 
             return server.inject({
-                url: '/coverage/123/links'
+                url: '/coverage/links?buildId=1&jobId=123',
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, links);
+            });
+        });
+
+        it('returns 500 if failed to get links', () => {
+            mockCoveragePlugin.getLinks.withArgs({
+                buildId: '1',
+                jobId: '123'
+            }).rejects(new Error('oops!'));
+
+            return server.inject({
+                url: '/coverage/links?buildId=1&jobId=123'
             }).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
