@@ -225,6 +225,8 @@ notifications:
     #     host: email-host
     #     port: email-port
     #     from: email-address-to-send-from
+    #     username: optional-username
+    #     password: optional-password
     # Slack notification when build finishes
     # slack:
     #     token: your-slack-bot-token
