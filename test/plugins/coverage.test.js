@@ -11,10 +11,6 @@ describe('coverage plugin test', () => {
     let plugin;
     let server;
     let mockCoveragePlugin;
-    const links = {
-        badge: 'https://sonar.sd.cd/api/badges/measure?key=job%3A123&metric=coverage',
-        project: 'https://sonar.sd.cd/dashboard?id=job%3A123'
-    };
 
     before(() => {
         mockery.enable({
@@ -26,7 +22,7 @@ describe('coverage plugin test', () => {
     beforeEach((done) => {
         mockCoveragePlugin = {
             getAccessToken: sinon.stub().resolves('faketoken'),
-            getLinks: sinon.stub()
+            getInfo: sinon.stub()
         };
 
         /* eslint-disable global-require */
@@ -98,33 +94,40 @@ describe('coverage plugin test', () => {
         });
     });
 
-    describe('GET /coverage/links', () => {
-        it('returns 200', () => {
-            mockCoveragePlugin.getLinks.withArgs({
-                buildId: '1',
-                jobId: '123'
-            }).resolves(links);
+    describe('GET /coverage/info', () => {
+        const startTime = '2017-10-19T13%3A00%3A00%2B0200';
+        const endTime = '2017-10-19T15%3A00%3A00%2B0200';
+        const args = {
+            buildId: '1',
+            jobId: '123',
+            startTime: '2017-10-19T13:00:00+0200',
+            endTime: '2017-10-19T15:00:00+0200'
+        };
+        const options = {
+            // eslint-disable-next-line
+            url: `/coverage/info?buildId=1&jobId=123&startTime=${startTime}&endTime=${endTime}`,
+            credentials: {
+                scope: ['user']
+            }
+        };
+        const result = {
+            coverage: '98.8',
+            projectUrl: 'https://sonar.sd.cd/dashboard?id=job%3A123'
+        };
 
-            return server.inject({
-                url: '/coverage/links?buildId=1&jobId=123',
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
+        it('returns 200', () => {
+            mockCoveragePlugin.getInfo.withArgs(args).resolves(result);
+
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, links);
+                assert.deepEqual(reply.result, result);
             });
         });
 
-        it('returns 500 if failed to get links', () => {
-            mockCoveragePlugin.getLinks.withArgs({
-                buildId: '1',
-                jobId: '123'
-            }).rejects(new Error('oops!'));
+        it('returns 500 if failed to get info', () => {
+            mockCoveragePlugin.getInfo.withArgs(args).rejects(new Error('oops!'));
 
-            return server.inject({
-                url: '/coverage/links?buildId=1&jobId=123'
-            }).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });

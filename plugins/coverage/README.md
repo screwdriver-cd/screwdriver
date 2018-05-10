@@ -29,14 +29,14 @@ server.register({
 #### Returns an access token to talk to coverage server
 `GET /coverage/token`
 
-#### Get an object with coverage links
+#### Get an object with coverage info
 
-`GET /coverage/links?buildId=1&jobId=123`
+`GET /coverage/info?buildId=1&jobId=123&startTime=2017-10-19T13%3A00%3A00%2B0200&endTime=2017-10-19T15%3A00%3A00%2B0200`
 
 Should resolve with something like
 ```javascript
 {
-    badge: 'https://sonar.sd.cd/api/badges/measure?key=job%3A123&metric=coverage',
-    project: 'https://sonar.sd.cd/dashboard?id=job%3A123'
+    coverage: '98.8',
+    projectUrl: 'https://sonar.screwdriver.cd/dashboard?id=job%3A123'
 }
 ```

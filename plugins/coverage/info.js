@@ -4,10 +4,10 @@ const boom = require('boom');
 
 module.exports = config => ({
     method: 'GET',
-    path: '/coverage/links',
+    path: '/coverage/info',
     config: {
-        description: 'Get links for coverage',
-        notes: 'Returns object with links to coverage',
+        description: 'Get coverage metadata',
+        notes: 'Returns object with coverage info',
         tags: ['api', 'coverage', 'badge'],
         auth: {
             strategies: ['token'],
@@ -19,7 +19,7 @@ module.exports = config => ({
             }
         },
         handler: (request, reply) => {
-            config.coveragePlugin.getLinks(request.query)
+            config.coveragePlugin.getInfo(request.query)
                 .then(reply)
                 .catch(err => reply(boom.wrap(err)));
         }
