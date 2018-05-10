@@ -11,7 +11,7 @@ module.exports = () => ({
     config: {
         description: 'Update a banner',
         notes: 'Update a banner',
-        tags: ['api', 'banner'],
+        tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']
@@ -39,11 +39,9 @@ module.exports = () => ({
                 ));
             }
 
-            return Promise.all([
-                bannerFactory.get({ id })
-            ])
-                .then(([banner]) => {
-                    if (!banner || banner === null) {
+            return bannerFactory.get(id)
+                .then((banner) => {
+                    if (!banner) {
                         throw boom.notFound(`Banner ${id} does not exist`);
                     }
 

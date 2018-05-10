@@ -11,7 +11,7 @@ module.exports = () => ({
     config: {
         description: 'Delete a banner',
         notes: 'Delete a specific banner and return null if success',
-        tags: ['api', 'banner'],
+        tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']
@@ -40,19 +40,14 @@ module.exports = () => ({
                 ));
             }
 
-            return Promise.all([
-                bannerFactory.get({ id })
-            ])
-                .then(([banner]) => {
-                    if (!banner || banner === null) {
-                        throw boom.notFound(`Banner ${id} does not exist`);
-                    }
+            return bannerFactory.get(id).then((banner) => {
+                if (!banner) {
+                    throw boom.notFound(`Banner ${id} does not exist`);
+                }
 
-                    Object.assign(banner, request.payload);
-
-                    return banner.remove()
-                        .then(() => reply().code(204));
-                })
+                return banner.remove()
+                    .then(() => reply().code(204));
+            })
                 .catch(err => reply(boom.wrap(err)));
         },
         validate: {

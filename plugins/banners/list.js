@@ -1,6 +1,5 @@
 'use strict';
 
-// const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const listSchema = schema.models.banner.list;
 
@@ -10,7 +9,7 @@ module.exports = () => ({
     config: {
         description: 'Get banners',
         notes: 'Returns all banner records',
-        tags: ['api', 'banner'],
+        tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
             scope: ['user']
@@ -26,7 +25,7 @@ module.exports = () => ({
             const config = Object.assign({}, request.payload);
 
             return bannerFactory.list(config)
-                .then(banner => reply(banner.map(c => c.toJson())));
+                .then(banners => reply(banners.map(c => c.toJson())));
         },
         response: {
             schema: listSchema

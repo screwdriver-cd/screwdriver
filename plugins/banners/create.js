@@ -10,7 +10,7 @@ module.exports = () => ({
     config: {
         description: 'Create a new banner',
         notes: 'Create a specific banner',
-        tags: ['api', 'banner'],
+        tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']

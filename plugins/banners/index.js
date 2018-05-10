@@ -5,8 +5,6 @@ const listRoute = require('./list');
 const getRoute = require('./get');
 const updateRoute = require('./update');
 const removeRoute = require('./remove');
-// const joi = require('joi');
-// const boom = require('boom');
 
 /**
  * Banner API Plugin

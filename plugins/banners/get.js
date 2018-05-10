@@ -12,7 +12,7 @@ module.exports = () => ({
     config: {
         description: 'Get a single banner',
         notes: 'Return a banner record',
-        tags: ['api', 'banner'],
+        tags: ['api', 'banners'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']
@@ -26,24 +26,9 @@ module.exports = () => ({
             const bannerFactory = request.server.app.bannerFactory;
             const id = request.params.id;
 
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
-
-            // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners
-                .screwdriverAdminDetails(username, scmContext);
-
-            // verify user is authorized to create banners
-            // return unauthorized if not system admin
-            if (!adminDetails.isAdmin) {
-                return reply(boom.forbidden(
-                    `User ${adminDetails.userDisplayName} is not allowed access`
-                ));
-            }
-
-            return bannerFactory.get({ id })
+            return bannerFactory.get(id)
                 .then((banner) => {
-                    if (!banner || banner === null) {
+                    if (!banner) {
                         throw boom.notFound(`Banner ${id} does not exist`);
                     }
 
