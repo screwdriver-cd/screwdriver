@@ -29,7 +29,7 @@ const getBannerMock = (banner) => {
     return getMock(banner);
 };
 
-describe('banner plugin test', () => {
+describe.only('banner plugin test', () => {
     let bannerMock;
     let bannerFactoryMock;
     let plugin;
@@ -201,7 +201,7 @@ describe('banner plugin test', () => {
         });
 
         it('returns 200 for get banner', () => {
-            bannerFactoryMock.get.withArgs({ id }).resolves(bannerMock);
+            bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
             // bannerFactoryMock.get.resolves(getBannerMock(testBanners));
 
             return server.inject(options).then((reply) => {
@@ -216,7 +216,7 @@ describe('banner plugin test', () => {
         });
 
         it('returns 404 when banner does not exist', () => {
-            bannerFactoryMock.get.resolves(null);
+            bannerFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -247,7 +247,7 @@ describe('banner plugin test', () => {
                 }
             };
             updatedBannerMock = getMock(updatedBanner);
-            bannerFactoryMock.get.withArgs({ id }).resolves(bannerMock);
+            bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
             bannerMock.update.resolves(updatedBannerMock);
             updatedBannerMock.toJson.returns(updatedBanner);
         });
@@ -261,7 +261,7 @@ describe('banner plugin test', () => {
         );
 
         it('returns 404 when banner id does not exist', () => {
-            bannerFactoryMock.get.withArgs({ id }).resolves(null);
+            bannerFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -285,7 +285,7 @@ describe('banner plugin test', () => {
                     scope: ['user']
                 }
             };
-            bannerFactoryMock.get.withArgs({ id }).resolves(bannerMock);
+            bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
         });
 
         it('returns 204 when delete is success', () =>
@@ -296,7 +296,7 @@ describe('banner plugin test', () => {
         );
 
         it('returns 404 when banner id does not exist', () => {
-            bannerFactoryMock.get.withArgs({ id }).resolves(null);
+            bannerFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
