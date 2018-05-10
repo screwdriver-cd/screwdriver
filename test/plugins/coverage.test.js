@@ -21,7 +21,8 @@ describe('coverage plugin test', () => {
 
     beforeEach((done) => {
         mockCoveragePlugin = {
-            getAccessToken: sinon.stub().resolves('faketoken')
+            getAccessToken: sinon.stub().resolves('faketoken'),
+            getInfo: sinon.stub()
         };
 
         /* eslint-disable global-require */
@@ -88,6 +89,45 @@ describe('coverage plugin test', () => {
                     scope: ['build']
                 }
             }).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /coverage/info', () => {
+        const startTime = '2017-10-19T13%3A00%3A00%2B0200';
+        const endTime = '2017-10-19T15%3A00%3A00%2B0200';
+        const args = {
+            buildId: '1',
+            jobId: '123',
+            startTime: '2017-10-19T13:00:00+0200',
+            endTime: '2017-10-19T15:00:00+0200'
+        };
+        const options = {
+            // eslint-disable-next-line
+            url: `/coverage/info?buildId=1&jobId=123&startTime=${startTime}&endTime=${endTime}`,
+            credentials: {
+                scope: ['user']
+            }
+        };
+        const result = {
+            coverage: '98.8',
+            projectUrl: 'https://sonar.sd.cd/dashboard?id=job%3A123'
+        };
+
+        it('returns 200', () => {
+            mockCoveragePlugin.getInfo.withArgs(args).resolves(result);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, result);
+            });
+        });
+
+        it('returns 500 if failed to get info', () => {
+            mockCoveragePlugin.getInfo.withArgs(args).rejects(new Error('oops!'));
+
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
         });
