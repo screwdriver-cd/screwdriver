@@ -146,7 +146,40 @@ describe.only('banner plugin test', () => {
                 const expected = Object.assign({}, testBanner);
 
                 delete expected.id;
-                // delete expected.createdBy;
+                delete expected.createTime;
+                assert.calledWith(bannerFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.result, testBanner);
+            });
+        });
+
+        it('returns 201 and creates a banner using default type', () => {
+            delete options.payload.type;
+
+            server.inject(options).then((reply) => {
+                const expected = Object.assign({}, testBanner);
+
+                // set expected type to default of 'info'
+                expected.type = 'info';
+
+                delete expected.id;
+                delete expected.createTime;
+                assert.calledWith(bannerFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.result, testBanner);
+            });
+        });
+
+        it('returns 201 and creates a banner using default isActive', () => {
+            delete options.payload.isActive;
+
+            server.inject(options).then((reply) => {
+                const expected = Object.assign({}, testBanner);
+
+                // set expected isActive to default of true
+                expected.isActive = false;
+
+                delete expected.id;
                 delete expected.createTime;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
@@ -252,7 +285,7 @@ describe.only('banner plugin test', () => {
             updatedBannerMock.toJson.returns(updatedBanner);
         });
 
-        it('returns 200 updating banner', () =>
+        it('returns 200 updating banner by admin user', () =>
             server.inject(options).then((reply) => {
                 assert.deepEqual(reply.result, updatedBanner);
                 assert.calledOnce(bannerMock.update);
@@ -265,6 +298,14 @@ describe.only('banner plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 updating banner by non-admin user', () => {
+            options.credentials.username = 'batman123';
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
     });
@@ -294,6 +335,14 @@ describe.only('banner plugin test', () => {
                 assert.calledOnce(bannerMock.remove);
             })
         );
+
+        it('returns 403 deleting banner by non-admin user', () => {
+            options.credentials.username = 'batman123';
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
 
         it('returns 404 when banner id does not exist', () => {
             bannerFactoryMock.get.withArgs(id).resolves(null);
