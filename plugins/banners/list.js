@@ -22,7 +22,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const { bannerFactory } = request.server.app;
 
-            const config = Object.assign({}, request.payload);
+            const config = request.params ? { params: request.params } : {};
 
             return bannerFactory.list(config)
                 .then(banners => reply(banners.map(c => c.toJson())));
