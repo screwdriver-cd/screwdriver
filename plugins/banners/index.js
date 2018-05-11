@@ -15,7 +15,7 @@ const removeRoute = require('./remove');
  */
 exports.register = (server, options, next) => {
     /**
-     * Identifies userDisplalyName and screwdriver admin status of user
+     * Identifies userDisplayName and Screwdriver admin status of user
      * @method screwdriverAdminDetails
      * @param  {String}        username   Username of the person
      * @param  {String}        scmContext Scm to which the person logged in belongs
@@ -24,7 +24,6 @@ exports.register = (server, options, next) => {
     server.expose('screwdriverAdminDetails', (username, scmContext) => {
         // construct object with defaults to store details
         const adminDetails = {
-            userDisplayName: null,
             isAdmin: false
         };
 

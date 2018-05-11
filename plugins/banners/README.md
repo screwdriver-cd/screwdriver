@@ -34,7 +34,7 @@ server.register({
 **Arguments**
 
 * `message` - Text of the banner to create.
-* `type` - An optional banner type. Defaults to `info`
+* `type` - An optional banner type. Options are `info` and `warn`. Defaults to `info`
 * `isActive` - An optional status flag to indicate whether banner should display.  Defaults to `false`
 
 Example payload:
@@ -61,7 +61,7 @@ Example payload:
 **Arguments**
 
 * `message` - An optional new string of text for the banner.
-* `type` - An optional new banner type. 
+* `type` - An optional new banner type. Options are `info` and `warn`
 * `isActive` - An optional new status flag to indicate whether banner should display.
 
 Example payload:

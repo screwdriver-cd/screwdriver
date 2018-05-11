@@ -98,7 +98,7 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 9 (nine) resources:
+This API comes preloaded with 10 (ten) resources:
 
  - [auth](plugins/auth/README.md)
  - [banners](plugins/banners/README.md)
