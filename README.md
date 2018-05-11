@@ -101,6 +101,7 @@ All the possible environment variables are [defined here](config/custom-environm
 This API comes preloaded with 9 (nine) resources:
 
  - [auth](plugins/auth/README.md)
+ - [banners](plugins/banners/README.md)
  - [builds](plugins/builds/README.md)
  - [collections](plugins/collections/README.md)
  - [events](plugins/events/README.md)
