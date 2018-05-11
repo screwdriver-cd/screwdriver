@@ -193,6 +193,16 @@ describe('banner plugin test', () => {
                 assert.equal(reply.statusCode, 403);
             });
         });
+
+        it('returns 500 when banner fails to create', () => {
+            const testError = new Error('bannerModelError');
+
+            bannerFactoryMock.create.rejects(testError);
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /banners', () => {
