@@ -14,6 +14,13 @@ const removeRoute = require('./remove');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
+    /**
+     * Identifies userDisplalyName and screwdriver admin status of user
+     * @method screwdriverAdminDetails
+     * @param  {String}        username   Username of the person
+     * @param  {String}        scmContext Scm to which the person logged in belongs
+     * @return {Object}                   Details including the display name and admin status of user
+     */
     server.expose('screwdriverAdminDetails', (username, scmContext) => {
         // construct object with defaults to store details
         const adminDetails = {
@@ -24,7 +31,8 @@ exports.register = (server, options, next) => {
         if (scmContext) {
             const scm = server.root.app.bannerFactory.scm;
             const scmDisplayName = scm.getDisplayName({ scmContext });
-            const adminsList = options.authConfig.admins;
+            console.log(options);
+            const adminsList = options.admins;
 
             // construct displayable username string
             adminDetails.userDisplayName = `${scmDisplayName}:${username}`;
