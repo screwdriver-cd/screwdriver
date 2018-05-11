@@ -31,8 +31,7 @@ exports.register = (server, options, next) => {
         if (scmContext) {
             const scm = server.root.app.bannerFactory.scm;
             const scmDisplayName = scm.getDisplayName({ scmContext });
-            console.log(options);
-            const adminsList = options.admins;
+            const adminsList = options.authConfig.admins;
 
             // construct displayable username string
             adminDetails.userDisplayName = `${scmDisplayName}:${username}`;
