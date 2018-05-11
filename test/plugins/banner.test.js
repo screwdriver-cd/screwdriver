@@ -96,7 +96,7 @@ describe('banner plugin test', () => {
         server.register([{
             register: plugin,
             options: {
-                authConfig: { admins: ['github:jimgrund', 'github:batman'] }
+                admins: ['github:jimgrund', 'github:batman']
             }
         }], done);
     });
