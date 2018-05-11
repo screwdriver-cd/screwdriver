@@ -29,7 +29,7 @@ const getBannerMock = (banner) => {
     return getMock(banner);
 };
 
-describe.only('banner plugin test', () => {
+describe('banner plugin test', () => {
     let bannerMock;
     let bannerFactoryMock;
     let plugin;
