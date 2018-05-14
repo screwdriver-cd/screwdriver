@@ -221,33 +221,35 @@ exports.register = (server, options, next) => {
         };
 
         return pipelineFactory.get(pipelineId)
-            .then((pipeline) => {
-                const scmUri = pipeline.scmUri;
-                const admin = Object.keys(pipeline.admins)[0];
-                const scmContext = pipeline.scmContext;
+            .then(pipeline => pipeline.admin
+                .then(realAdmin => realAdmin.username)
+                .then((adminName) => {
+                    const scmUri = pipeline.scmUri;
+                    const admin = adminName;
+                    const scmContext = pipeline.scmContext;
 
-                payload.scmContext = scmContext;
-                payload.username = admin;
+                    payload.scmContext = scmContext;
+                    payload.username = admin;
 
-                // get pipeline admin's token
-                return userFactory.get({ username: admin, scmContext })
-                    .then(user => user.unsealToken())
-                    .then((token) => {
-                        const scmConfig = {
-                            scmContext,
-                            scmUri,
-                            token
-                        };
+                    // get pipeline admin's token
+                    return userFactory.get({ username: admin, scmContext })
+                        .then(user => user.unsealToken())
+                        .then((token) => {
+                            const scmConfig = {
+                                scmContext,
+                                scmUri,
+                                token
+                            };
 
-                        // Get commit sha
-                        return scm.getCommitSha(scmConfig)
-                            .then((sha) => {
-                                payload.sha = sha;
+                            // Get commit sha
+                            return scm.getCommitSha(scmConfig)
+                                .then((sha) => {
+                                    payload.sha = sha;
 
-                                return eventFactory.create(payload);
-                            });
-                    });
-            });
+                                    return eventFactory.create(payload);
+                                });
+                        });
+                }));
     });
 
     /**
