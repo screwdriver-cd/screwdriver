@@ -15,7 +15,9 @@ const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
-const EXPIRES_IN = '2h';
+const EXPIRES_IN = 7200; // 2h
+const MAX_EXPIRES_IN = 43200; // 12h
+const EXPIRES_BUFFER = 300; // 5m
 const ALGORITHM = 'RS256';
 
 /**
@@ -83,13 +85,20 @@ exports.register = (server, options, next) => {
      * Generates a jwt that is signed and has a 2h lifespan
      * @method generateToken
      * @param  {Object} profile Object from generateProfile
+     * @param  {Integer} expires_sec JWT Expires time (must be seconds)
      * @return {String}         Signed jwt that includes that profile
      */
-    server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
-        algorithm: ALGORITHM,
-        expiresIn: EXPIRES_IN,
-        jwtid: uuid()
-    }));
+    server.expose('generateToken', (profile, expiresSec = EXPIRES_IN) => {
+        const expiresIn = (expiresSec <= MAX_EXPIRES_IN)
+            ? expiresSec + EXPIRES_BUFFER
+            : MAX_EXPIRES_IN;
+
+        return jwt.sign(profile, pluginOptions.jwtPrivateKey, {
+            algorithm: ALGORITHM,
+            expiresIn,
+            jwtid: uuid()
+        });
+    });
 
     return server.register([
         bell, sugar, authToken, authJWT, {
