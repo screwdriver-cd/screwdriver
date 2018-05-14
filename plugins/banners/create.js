@@ -33,7 +33,7 @@ module.exports = () => ({
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
                 return reply(boom.forbidden(
-                    `User ${adminDetails.userDisplayName} is not allowed access`
+                    `User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges.`
                 ));
             }
 

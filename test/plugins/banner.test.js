@@ -4,7 +4,6 @@ const assert = require('chai').assert;
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
-// const hoek = require('hoek');
 const testBanner = require('./data/banner.json');
 const testBanners = require('./data/banners.json');
 const updatedBanner = require('./data/updatedBanner.json');
@@ -245,7 +244,6 @@ describe('banner plugin test', () => {
 
         it('returns 200 for get banner', () => {
             bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
-            // bannerFactoryMock.get.resolves(getBannerMock(testBanners));
 
             return server.inject(options).then((reply) => {
                 const expected = Object.assign({}, testBanner);

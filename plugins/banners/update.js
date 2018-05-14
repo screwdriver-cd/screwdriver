@@ -31,11 +31,11 @@ module.exports = () => ({
             const adminDetails = request.server.plugins.banners
                 .screwdriverAdminDetails(username, scmContext);
 
-            // verify user is authorized to create banners
+            // verify user is authorized to update banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
                 return reply(boom.forbidden(
-                    `User ${adminDetails.userDisplayName} is not allowed access`
+                    `User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges.`
                 ));
             }
 
