@@ -103,6 +103,7 @@ This API comes preloaded with 10 (ten) resources:
  - [auth](plugins/auth/README.md)
  - [banners](plugins/banners/README.md)
  - [builds](plugins/builds/README.md)
+ - [coverage](plugins/coverage/README.md) - optional
  - [collections](plugins/collections/README.md)
  - [events](plugins/events/README.md)
  - [jobs](plugins/jobs/README.md)

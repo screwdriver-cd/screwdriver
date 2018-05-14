@@ -182,6 +182,33 @@ describe('Register Unit Test Case', () => {
         });
     });
 
+    it('registered coverage as resource plugin if configured', () => {
+        const coveragePlugin = '../plugins/coverage';
+
+        mocks[coveragePlugin] = sinon.stub();
+        mockery.registerMock(coveragePlugin, mocks[coveragePlugin]);
+        serverMock.register.callsArgAsync(2);
+
+        return main(serverMock, {
+            coverage: {
+                coveragePlugin: {}
+            }
+        }).then(() => {
+            Assert.equal(serverMock.register.callCount, pluginLength + 1);
+
+            resourcePlugins.forEach((plugin) => {
+                Assert.calledWith(serverMock.register, {
+                    register: mocks[plugin],
+                    options: {}
+                }, {
+                    routes: {
+                        prefix: '/v4'
+                    }
+                });
+            });
+        });
+    });
+
     it('bubbles failures up', () => {
         serverMock.register.callsArgWithAsync(2, new Error('failure loading'));
 

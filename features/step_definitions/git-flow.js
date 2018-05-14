@@ -6,7 +6,7 @@ const sdapi = require('../support/sdapi');
 const github = require('../support/github');
 const { defineSupportCode } = require('cucumber');
 
-const TIMEOUT = 240 * 1000;
+const TIMEOUT = 500 * 1000;
 
 defineSupportCode(({ Before, Given, When, Then }) => {
     Before({
@@ -150,7 +150,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     Then(/^a new build from `main` should be created to test that change$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(10) // Wait to find the new build
+        return this.promiseToWait(20) // Wait to find the new build
             .then(() => sdapi.searchForBuild({
                 instance: this.instance,
                 pipelineId: this.pipelineId,
