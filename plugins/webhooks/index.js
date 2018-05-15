@@ -73,9 +73,7 @@ function startPRJob(options, request) {
         scmUri: pipeline.scmUri
     };
 
-    eventFactory.scm.getPrInfo(scmConfig).then(prInfo => {
-        console.log('-----------------------PR INFO--------------------');
-        console.log(prInfo);
+    return eventFactory.scm.getPrInfo(scmConfig).then(prInfo => {
 
         const eventConfig = {
             pipelineId: pipeline.id,
@@ -120,7 +118,6 @@ function pullRequestOpened(options, request, reply) {
         return reply().code(204);
     }
 
-    console.log('--------------start pr job called from pullrequestopened--------------');
     return startPRJob(options, request)
         .then(() => reply().code(201))
         .catch(err => reply(boom.wrap(err)));
@@ -188,7 +185,6 @@ function pullRequestSync(options, request, reply) {
 
         return reply().code(204);
     }
-    console.log('--------------start pr job called from pullrequestopened--------------');
 
     return pipeline.jobs
         .then((jobs) => {
@@ -252,7 +248,6 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
         prSource, username, scmContext, changedFiles } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     let scmToken = null;
-    console.log('-----------------pull request event-----------------');
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
