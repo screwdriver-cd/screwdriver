@@ -115,6 +115,10 @@ const eventFactory = Models.EventFactory.getInstance({
     datastore,
     scm
 });
+const bannerFactory = Models.BannerFactory.getInstance({
+    datastore,
+    scm
+});
 const collectionFactory = Models.CollectionFactory.getInstance({
     datastore
 });
@@ -139,11 +143,13 @@ datastore.setup()
         jobFactory,
         userFactory,
         buildFactory,
+        bannerFactory,
         secretFactory,
         tokenFactory,
         eventFactory,
         collectionFactory,
         triggerFactory,
+        banners: authConfig,
         builds: {
             ecosystem,
             authConfig
