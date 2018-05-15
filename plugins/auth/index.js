@@ -135,7 +135,7 @@ exports.register = (server, options, next) => {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
                     algorithms: [ALGORITHM],
-                    maxAge: EXPIRES_IN + EXPIRES_BUFFER
+                    maxAge: MAX_EXPIRES_IN + EXPIRES_BUFFER
                 },
                 // This function is run once the Token has been decoded with signature
                 validateFunc(decoded, request, cb) {
