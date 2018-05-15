@@ -74,7 +74,6 @@ function startPRJob(options, request) {
     };
 
     return eventFactory.scm.getPrInfo(scmConfig).then((prInfo) => {
-
         const eventConfig = {
             pipelineId: pipeline.id,
             type: 'pr',
