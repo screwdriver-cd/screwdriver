@@ -73,8 +73,7 @@ function startPRJob(options, request) {
         scmUri: pipeline.scmUri
     };
 
-    return eventFactory.scm.getPrInfo(scmConfig).then(prInfo => {
-
+    return eventFactory.scm.getPrInfo(scmConfig).then((prInfo) => {
         const eventConfig = {
             pipelineId: pipeline.id,
             type: 'pr',
@@ -253,12 +252,13 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => {
+        .then((token) => {
             scmToken = token;
+
             return pipelineFactory.scm.parseUrl({
-              checkoutUrl: fullCheckoutUrl,
-              token,
-              scmContext
+                checkoutUrl: fullCheckoutUrl,
+                token,
+                scmContext
             });
         })
         .then(scmUri => pipelineFactory.get({ scmUri }))
