@@ -82,16 +82,16 @@ exports.register = (server, options, next) => {
     });
 
     /**
-     * Generates a jwt that is signed and has a 2h lifespan
+     * Generates a jwt that is signed and has a lifespan (default:2h, max:12h)
      * @method generateToken
-     * @param  {Object} profile Object from generateProfile
-     * @param  {Integer} expires_sec JWT Expires time (must be seconds)
-     * @return {String}         Signed jwt that includes that profile
+     * @param  {Object}  profile     Object from generateProfile
+     * @param  {Integer} expiresSec  JWT Expires time (must be seconds)
+     * @return {String}              Signed jwt that includes that profile
      */
     server.expose('generateToken', (profile, expiresSec = EXPIRES_IN) => {
         const expiresIn = (expiresSec <= MAX_EXPIRES_IN)
             ? expiresSec + EXPIRES_BUFFER
-            : MAX_EXPIRES_IN;
+            : MAX_EXPIRES_IN + EXPIRES_BUFFER;
 
         return jwt.sign(profile, pluginOptions.jwtPrivateKey, {
             algorithm: ALGORITHM,
@@ -135,7 +135,7 @@ exports.register = (server, options, next) => {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
                     algorithms: [ALGORITHM],
-                    maxAge: EXPIRES_IN
+                    maxAge: EXPIRES_IN + EXPIRES_BUFFER
                 },
                 // This function is run once the Token has been decoded with signature
                 validateFunc(decoded, request, cb) {
