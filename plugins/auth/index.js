@@ -15,9 +15,9 @@ const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
-const EXPIRES_IN = 7200; // 2h
-const MAX_EXPIRES_IN = 43200; // 12h
-const EXPIRES_BUFFER = 300; // 5m
+const EXPIRES_IN = 2 * 60 * 60; // 2h in seconds
+const MAX_EXPIRES_IN = 12 * 60 * 60; // 12h in seconds
+const EXPIRES_BUFFER = 5 * 60; // 5m in seconds
 const ALGORITHM = 'RS256';
 
 /**
