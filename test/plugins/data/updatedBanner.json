@@ -1,0 +1,6 @@
+{
+    "id": 123,
+    "message": "This is a new banner",
+    "isActive": true,
+    "type": "warn"
+}
