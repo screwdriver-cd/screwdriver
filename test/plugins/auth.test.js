@@ -72,7 +72,7 @@ describe('auth plugin test', () => {
         executor = {
             kubernetes: {
                 buildTimeout: 180,
-                maxBuildTimeout : 240
+                maxBuildTimeout: 240
             }
         };
         userFactoryMock = {
