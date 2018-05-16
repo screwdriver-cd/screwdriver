@@ -41,6 +41,7 @@ describe('auth plugin test', () => {
     let plugin;
     let server;
     let scm;
+    let executor;
     const jwtPrivateKey = fs.readFileSync(`${__dirname}/data/jwt.private.key`).toString();
     const jwtPublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
     const sampleToken = jwt.sign({}, jwtPrivateKey, {
@@ -68,6 +69,12 @@ describe('auth plugin test', () => {
                 }
             })
         };
+        executor = {
+            kubernetes: {
+                buildTimeout: 180,
+                maxBuildTimeout : 240
+            }
+        };
         userFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -75,7 +82,8 @@ describe('auth plugin test', () => {
         };
         buildFactoryMock = {
             get: sinon.stub(),
-            scm
+            scm,
+            executor
         };
         jobFactoryMock = {
             get: sinon.stub(),
@@ -91,6 +99,7 @@ describe('auth plugin test', () => {
         /* eslint-enable global-require */
         server = new hapi.Server();
         server.app.userFactory = userFactoryMock;
+        server.app.buildFactory = buildFactoryMock;
         server.connection({
             port: 1234
         });
@@ -501,6 +510,7 @@ describe('auth plugin test', () => {
                 beforeEach(() => {
                     server = new hapi.Server();
                     server.app.userFactory = userFactoryMock;
+                    server.app.buildFactory = buildFactoryMock;
 
                     server.connection({
                         port: 1234

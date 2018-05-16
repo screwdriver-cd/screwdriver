@@ -15,8 +15,8 @@ const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
-const EXPIRES_IN = 2 * 60 * 60; // 2h in seconds
-const MAX_EXPIRES_IN = 12 * 60 * 60; // 12h in seconds
+const DEFAULT_EXPIRES_IN = 2 * 60 * 60; // 2h in seconds
+const DEFAULT_MAX_EXPIRES_IN = 12 * 60 * 60; // 12h in seconds
 const EXPIRES_BUFFER = 5 * 60; // 5m in seconds
 const ALGORITHM = 'RS256';
 
@@ -88,10 +88,17 @@ exports.register = (server, options, next) => {
      * @param  {Integer} expiresSec  JWT Expires time (must be seconds)
      * @return {String}              Signed jwt that includes that profile
      */
-    server.expose('generateToken', (profile, expiresSec = EXPIRES_IN) => {
-        const expiresIn = (expiresSec <= MAX_EXPIRES_IN)
+    server.expose('generateToken', (profile, expiresSec = DEFAULT_EXPIRES_IN) => {
+        const executor = server.root.app.buildFactory.executor;
+
+        // max build timeout is set only when executor is 'k8s' or 'k8s-vm'
+        const maxExpiresIn = (executor.kubernetes && executor.kubernetes.maxBuildTimeout)
+            ? executor.kubernetes.maxBuildTimeout * 60
+            : DEFAULT_MAX_EXPIRES_IN;
+
+        const expiresIn = (expiresSec <= maxExpiresIn)
             ? expiresSec + EXPIRES_BUFFER
-            : MAX_EXPIRES_IN + EXPIRES_BUFFER;
+            : maxExpiresIn + EXPIRES_BUFFER;
 
         return jwt.sign(profile, pluginOptions.jwtPrivateKey, {
             algorithm: ALGORITHM,
@@ -135,7 +142,7 @@ exports.register = (server, options, next) => {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
                     algorithms: [ALGORITHM],
-                    maxAge: MAX_EXPIRES_IN + EXPIRES_BUFFER
+                    maxAge: DEFAULT_MAX_EXPIRES_IN + EXPIRES_BUFFER
                 },
                 // This function is run once the Token has been decoded with signature
                 validateFunc(decoded, request, cb) {
