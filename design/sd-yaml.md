@@ -35,6 +35,7 @@ In order to make it easier or more clear, we should follow these rules when addi
 - The `settings` section should be deprecated; `notifications` should be moved to the root level of job configurations
 
 Example:
+
 | Attribute   | Section | Reasoning |
 | ----------- | ------------- | --------------- |
 | `blockedBy` |  job config | syntax will be something like `blockedBy: [~sd@123:main]` (similar to `requires`) so it should live in the same place |
