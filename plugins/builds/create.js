@@ -53,7 +53,10 @@ module.exports = () => ({
                             }
                         })
                         // user has good permissions, add the user as an admin
-                        .then(() => { pipeline.admins[username] = true; })
+                        .then(() => {
+                            pipeline.admins[username] = true;
+                            pipeline.update();
+                        })
                         // user has good permissions, sync and create a build
                         .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
                         .then(() => user.unsealToken())

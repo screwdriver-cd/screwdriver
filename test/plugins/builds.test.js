@@ -1200,7 +1200,8 @@ describe('build plugin test', () => {
                 scmUri,
                 admins: { foo: true, bar: true },
                 sync: sinon.stub().resolves(),
-                syncPR: sinon.stub().resolves()
+                syncPR: sinon.stub().resolves(),
+                update: sinon.stub().resolves()
             };
             userMock = {
                 username,
