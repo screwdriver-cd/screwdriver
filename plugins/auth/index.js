@@ -82,7 +82,7 @@ exports.register = (server, options, next) => {
     });
 
     /**
-     * Generates a jwt that is signed and has a lifespan (default:2h, max:12h)
+     * Generates a jwt that is signed and has a lifespan (default:2h)
      * @method generateToken
      * @param  {Object}  profile     Object from generateProfile
      * @param  {Integer} expiresIn   JWT Expires time (must be seconds)
