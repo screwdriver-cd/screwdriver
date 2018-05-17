@@ -121,6 +121,7 @@ module.exports = () => ({
                     })
                     .then((prInfo) => {
                         if (prInfo) {
+                            payload.prInfo = prInfo;
                             payload.prRef = prInfo.ref;
                         }
 
