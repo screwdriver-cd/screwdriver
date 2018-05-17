@@ -56,6 +56,9 @@ describe('github plugin test', () => {
             get: sinon.stub()
         };
         eventFactoryMock = {
+            scm: {
+                getPrInfo: sinon.stub()
+            },
             create: sinon.stub()
         };
 
@@ -158,10 +161,18 @@ describe('github plugin test', () => {
         let reqHeaders;
         let payload;
         let parsed;
+        let prInfo;
         let name;
+        let scmConfig;
         let workflowGraph;
 
         beforeEach(() => {
+            scmConfig = {
+                prNum: 1,
+                token,
+                scmContext,
+                scmUri
+            };
             name = 'PR-1';
             parsed = {
                 hookId: '81e6bd80-9a2c-11e6-939d-beaa5d9adaf3',
@@ -423,6 +434,9 @@ describe('github plugin test', () => {
                     parsed.prNum = 2;
                     parsed.action = 'opened';
                     options.payload = testPayloadOpen;
+                    scmConfig.prNum = 2;
+                    eventFactoryMock.scm.getPrInfo.withArgs(scmConfig)
+                        .resolves(prInfo);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
                     pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext })
@@ -439,6 +453,7 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             type: 'pr',
                             webhooks: true,
@@ -457,12 +472,13 @@ describe('github plugin test', () => {
 
                 it('returns 201 on success for reopened after closed', () => {
                     name = 'PR-1';
-                    parsed.prNum = 1;
+                    parsed.prNum = 2;
                     parsed.action = 'reopened';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             type: 'pr',
                             webhooks: true,
@@ -470,7 +486,7 @@ describe('github plugin test', () => {
                             scmContext,
                             sha,
                             startFrom: '~pr',
-                            prNum: 1,
+                            prNum: 2,
                             prRef,
                             changedFiles,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`
@@ -516,6 +532,7 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             type: 'pr',
                             webhooks: true,
@@ -550,6 +567,7 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             type: 'pr',
                             webhooks: true,
@@ -605,8 +623,11 @@ describe('github plugin test', () => {
                         'content-type': 'application/json',
                         'content-length': '21241'
                     };
+                    scmConfig.prNum = 1;
                     options.payload = testPayloadSync;
                     jobMock.getRunningBuilds.resolves([model1, model2]);
+                    eventFactoryMock.scm.getPrInfo.withArgs(scmConfig)
+                        .resolves(prInfo);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
                         .resolves(parsed);
                     pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext })
@@ -617,6 +638,7 @@ describe('github plugin test', () => {
                     server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             type: 'pr',
                             webhooks: true,
@@ -638,6 +660,7 @@ describe('github plugin test', () => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             username,
                             scmContext,
@@ -700,6 +723,7 @@ describe('github plugin test', () => {
                             scmContext,
                             sha,
                             startFrom: '~pr',
+                            prInfo,
                             prNum: 1,
                             prRef,
                             changedFiles,
@@ -727,6 +751,7 @@ describe('github plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
                             pipelineId,
                             type: 'pr',
                             webhooks: true,

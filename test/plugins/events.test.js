@@ -61,7 +61,8 @@ describe('event plugin test', () => {
                 getCommitSha: sinon.stub().resolves(testBuild.sha),
                 getPrInfo: sinon.stub().resolves({
                     sha: testBuild.sha,
-                    ref: 'prref'
+                    ref: 'prref',
+                    url: 'https://github.com/screwdriver-cd/ui/pull/292'
                 })
             }
         };
@@ -338,6 +339,13 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.prInfo = {};
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292'
+            };
+
             options.payload.startFrom = 'PR-1:main';
 
             return server.inject(options).then((reply) => {
@@ -358,6 +366,12 @@ describe('event plugin test', () => {
             eventConfig.type = 'pr';
             options.payload.startFrom = 'PR-1:main';
             options.payload.parentEventId = parentEventId;
+            eventConfig.prInfo = {};
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292'
+            };
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {

@@ -101,7 +101,7 @@
     "screwdriver-models": "^27.2.2",
     "screwdriver-notifications-email": "^1.1.4",
     "screwdriver-notifications-slack": "^2.1.2",
-    "screwdriver-scm-github": "^6.0.2",
+    "screwdriver-scm-github": "^7.0.0",
     "screwdriver-scm-router": "^3.0.0",
     "screwdriver-template-validator": "^3.0.5",
     "screwdriver-workflow-parser": "^1.4.1",
