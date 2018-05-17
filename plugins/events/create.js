@@ -87,17 +87,6 @@ module.exports = () => ({
                     // User has good permissions, create an event
                     .then(() => user.unsealToken())
                     .then((token) => {
-                        // If there is parentEvent, pass workflowGraph and sha to payload
-                        if (payload.parentEventId) {
-                            return eventFactory.get(parentEventId)
-                                .then((parentEvent) => {
-                                    payload.workflowGraph = parentEvent.workflowGraph;
-                                    payload.sha = parentEvent.sha;
-
-                                    return null;
-                                });
-                        }
-
                         const scmConfig = {
                             prNum,
                             scmContext,
@@ -105,14 +94,31 @@ module.exports = () => ({
                             token
                         };
 
+                        if (prNum) {
+                            payload.prNum = prNum;
+                            payload.type = 'pr';
+                        }
+
+                        // If there is parentEvent, pass workflowGraph and sha to payload
+                        if (payload.parentEventId) {
+                            return eventFactory.get(parentEventId)
+                                .then((parentEvent) => {
+                                    payload.workflowGraph = parentEvent.workflowGraph;
+                                    payload.sha = parentEvent.sha;
+
+                                    if (prNum) {
+                                        return scm.getPrInfo(scmConfig);
+                                    }
+
+                                    return null;
+                                });
+                        }
+
                         return scm.getCommitSha(scmConfig).then((sha) => {
                             payload.sha = sha;
 
                             // For PRs
                             if (prNum) {
-                                payload.prNum = prNum;
-                                payload.type = 'pr';
-
                                 return scm.getPrInfo(scmConfig);
                             }
 
