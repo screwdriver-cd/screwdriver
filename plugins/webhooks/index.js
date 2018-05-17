@@ -56,6 +56,7 @@ function stopJob(job) {
  * @param  {String}       options.prNum         Pull request number
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of changed files
+ * @param  {String}       options.token         User Auth Token
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
