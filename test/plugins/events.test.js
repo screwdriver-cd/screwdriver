@@ -340,9 +340,11 @@ describe('event plugin test', () => {
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
             eventConfig.prInfo = {};
-            eventConfig.prInfo.sha = testBuild.sha;
-            eventConfig.prInfo.ref = 'prref';
-            eventConfig.prInfo.url = 'https://github.com/screwdriver-cd/ui/pull/292';
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292'
+            };
 
             options.payload.startFrom = 'PR-1:main';
 
