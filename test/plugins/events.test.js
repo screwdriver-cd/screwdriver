@@ -366,6 +366,12 @@ describe('event plugin test', () => {
             eventConfig.type = 'pr';
             options.payload.startFrom = 'PR-1:main';
             options.payload.parentEventId = parentEventId;
+            eventConfig.prInfo = {};
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292'
+            };
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
