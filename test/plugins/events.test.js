@@ -349,6 +349,34 @@ describe('event plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event with parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
+            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.prRef = 'prref';
+            eventConfig.type = 'pr';
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.parentEventId = parentEventId;
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
             });
         });
 
