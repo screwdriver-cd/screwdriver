@@ -13,9 +13,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const { bannerFactory } = request.server.app;
 
-            const config = request.params ? { params: request.params } : {};
-
-            return bannerFactory.list(config)
+            return bannerFactory.list({ params: request.query })
                 .then(banners => reply(banners.map(c => c.toJson())));
         },
         response: {
