@@ -91,7 +91,7 @@ describe('github plugin test', () => {
             server.app.buildFactory.tokenGen = buildId =>
                 JSON.stringify({
                     username: buildId,
-                    scope: ['build']
+                    scope: ['temporal']
                 });
             done(err);
         });
@@ -110,7 +110,7 @@ describe('github plugin test', () => {
     it('registers the plugin', () => {
         assert.isOk(server.registrations.webhooks);
         assert.equal(server.app.buildFactory.tokenGen('12345'),
-            '{"username":"12345","scope":["build"]}');
+            '{"username":"12345","scope":["temporal"]}');
     });
 
     it('throws exception when config not passed', () => {

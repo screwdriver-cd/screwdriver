@@ -45,7 +45,7 @@ describe('auth plugin test', () => {
     const jwtPublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
     const sampleToken = jwt.sign({}, jwtPrivateKey, {
         algorithm: 'RS256',
-        expiresIn: '2h',
+        expiresIn: 2 * 60 * 60,
         jwtid: 'abc'
     });
     const cookiePassword = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
