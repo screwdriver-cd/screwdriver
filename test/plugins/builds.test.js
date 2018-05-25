@@ -53,6 +53,9 @@ describe('build plugin test', () => {
     let triggerFactoryMock;
     let secretMock;
     let secretAccessMock;
+    let authMock;
+    let generateTokenMock;
+    let generateProfileMock;
     let plugin;
     let server;
     const logBaseUrl = 'https://store.screwdriver.cd';
@@ -100,7 +103,11 @@ describe('build plugin test', () => {
             get: sinon.stub(),
             list: sinon.stub()
         };
+
         secretAccessMock = sinon.stub().resolves(false);
+
+        generateProfileMock = sinon.stub();
+        generateTokenMock = sinon.stub();
 
         mockery.registerMock('jsonwebtoken', jwtMock);
         /* eslint-disable global-require */
@@ -141,8 +148,19 @@ describe('build plugin test', () => {
             name: 'secrets'
         };
 
+        authMock = {
+            register: (s, o, next) => {
+                s.expose('generateToken', generateTokenMock);
+                s.expose('generateProfile', generateProfileMock);
+                next();
+            }
+        };
+        authMock.register.attributes = {
+            name: 'auth'
+        };
+
         server.register([
-            secretMock,
+            secretMock, authMock,
             {
                 register: plugin,
                 options: {
@@ -1936,6 +1954,106 @@ describe('build plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location, url);
+            });
+        });
+    });
+
+    describe('POST /builds/{id}/token', () => {
+        const id = '12345';
+        const scope = ['temporal'];
+        const buildTimeout = 50;
+        let options;
+
+        beforeEach(() => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            generateProfileMock.returns({
+                username: `${id}`,
+                scmContext: 'github:github.com',
+                scope: ['build'],
+                isPR: false,
+                jobId: 1234,
+                pipelineId: 1
+            });
+
+            generateTokenMock.withArgs(
+                generateProfileMock(),
+                `${buildTimeout}` * 60
+            ).returns('sometoken');
+
+            options = {
+                method: 'POST',
+                url: `/builds/${id}/token`,
+                payload: {
+                    buildTimeout: `${buildTimeout}`
+                },
+                credentials: {
+                    scope: `${scope}`,
+                    username: `${id}`,
+                    scmContext: 'github:github.com',
+                    isPR: false,
+                    jobId: 1234,
+                    pipelineId: 1
+                }
+            };
+        });
+
+        it('returns 200 for a build that exists and can get token', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(generateProfileMock,
+                    '12345',
+                    'github:github.com',
+                    ['build'],
+                    { isPR: false, jobId: 1234, pipelineId: 1 }
+                );
+                assert.calledWith(generateTokenMock, {
+                    username: '12345',
+                    scmContext: 'github:github.com',
+                    scope: ['build'],
+                    isPR: false,
+                    jobId: 1234,
+                    pipelineId: 1
+                }, 50 * 60);
+                assert.equal(reply.result.token, 'sometoken');
+            })
+        );
+
+        it('returns 404 if a parameter of buildId does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(false);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Build does not exist');
+            });
+        });
+
+        it('returns 404 if buildId between parameter and token is different', () => {
+            options.credentials.username = 9999;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Build Id parameter and token does not match');
+            });
+        });
+
+        it('returns 403 if invalid payloads', () => {
+            options.payload = 'aaa';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'Invalid request payload JSON format');
+            });
+        });
+
+        it('returns 403 if scope of token is insufficient', () => {
+            options.credentials.scope = ['build'];
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Insufficient scope');
             });
         });
     });
