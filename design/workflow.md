@@ -54,7 +54,7 @@ jobs:
 
 ### SCM Branch-specific jobs
 
-Use exact match of a string (eg: `staging`) or a slash-quoted regex filter (eg: `/user-.*/`) after `~commit:` to denote a job only run when code changes are made to branches matching that pattern.
+Use exact match of a string (eg: `staging`) or a slash-quoted regex filter (eg: `/user-.*/`) after `~commit:` to denote a job only run when code changes are made to branches matching that pattern　(eg: `staging`, `/^user-.*$/`).
 
 ```yaml
 jobs:
