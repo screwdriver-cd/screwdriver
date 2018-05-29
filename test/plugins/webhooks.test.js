@@ -45,11 +45,13 @@ describe('github plugin test', () => {
         };
         pipelineFactoryMock = {
             get: sinon.stub(),
+            list: sinon.stub(),
             scm: {
                 parseHook: sinon.stub(),
                 parseUrl: sinon.stub(),
                 getDisplayName: sinon.stub(),
-                getChangedFiles: sinon.stub()
+                getChangedFiles: sinon.stub(),
+                getBranchList: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -138,7 +140,8 @@ describe('github plugin test', () => {
     });
 
     describe('POST /webhooks', () => {
-        const checkoutUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
+        const checkoutUrl = 'git@github.com:baxterthehacker/public-repo.git';
+        const fullCheckoutUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
         const scmUri = 'github.com:123456:master';
         const pipelineId = 'pipelineHash';
         const jobId = 2;
@@ -220,7 +223,8 @@ describe('github plugin test', () => {
                 workflowGraph,
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),
-                jobs: Promise.resolve([mainJobMock, jobMock])
+                jobs: Promise.resolve([mainJobMock, jobMock]),
+                branch: Promise.resolve('master')
             };
             buildMock = {
                 id: buildId,
@@ -243,10 +247,11 @@ describe('github plugin test', () => {
             jobMock.update.resolves(jobMock);
 
             pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineFactoryMock.list.resolves([]);
             pipelineMock.sync.resolves(pipelineMock);
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.scm.parseUrl
-                .withArgs({ checkoutUrl, token, scmContext }).resolves(scmUri);
+                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext }).resolves(scmUri);
             pipelineFactoryMock.scm.getChangedFiles.resolves(['README.md']);
 
             userFactoryMock.get.resolves(userMock);
@@ -307,6 +312,8 @@ describe('github plugin test', () => {
                 };
                 name = 'main';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+                pipelineFactoryMock.list.resolves([]);
+                pipelineFactoryMock.scm.getBranchList.resolves([{ name: 'master' }]);
             });
 
             it('returns 201 on success', () =>
@@ -325,6 +332,134 @@ describe('github plugin test', () => {
                     });
                 })
             );
+
+            it('returns 201 on success with branch trigger', () => {
+                const wMock1 = {
+                    nodes: [
+                        { name: '~commit:master' },
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~commit:master', dest: 'main' },
+                        { src: '~commit', dest: 'main' }
+                    ]
+                };
+                const wMock2 = {
+                    nodes: [
+                        { name: '~commit:/^.*$/' },
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~commit:/^.*$/', dest: 'main' },
+                        { src: '~commit', dest: 'main' }
+                    ]
+                };
+                const pMock1 = {
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:branch1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph: wMock1,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('branch1')
+                };
+                const pMock2 = {
+                    id: 'pipelineHash2',
+                    scmUri: 'github.com:123456:branch2',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph: wMock2,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('branch2')
+                };
+                const pMock3 = {
+                    id: 'pipelineHash3',
+                    scmUri: 'github.com:123456:fix-1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('fix-1')
+                };
+
+                pipelineFactoryMock.scm.getBranchList.resolves([
+                    { name: 'master' }, { name: 'branch1' },
+                    { name: 'branch2' }, { name: 'fix-1' }]);
+                pipelineFactoryMock.list.resolves([pMock1, pMock2, pMock3]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pMock1.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        startFrom: '~commit:master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pMock2.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        startFrom: '~commit:master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        startFrom: '~commit',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles
+                    });
+                    assert.neverCalledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        startFrom: '~commit:master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles
+                    });
+                    assert.neverCalledWith(eventFactoryMock.create, {
+                        pipelineId: pMock3.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        startFrom: '~commit:master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles
+                    });
+                });
+            });
 
             it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
