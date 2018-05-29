@@ -54,14 +54,14 @@ jobs:
 
 ### SCM Branch-specific jobs
 
-Use a regex filter after `~commit:` to denote a job only run when code changes are made to branches matching that pattern (eg: `/^staging$/`, `/^user-.*$/`).
+To enclose branch name in slash, able to use a regex filter after `~commit:`. It denote a job only run when code changes are made to branches matching that pattern (eg: staging, /^user-.*$/).
 
 ```yaml
 jobs:
   A:
     requires: ~commit:staging
   B:
-    requires: ~commit:user-.*
+    requires: ~commit:/user-.*/
 ```
 
 ### Sequential
