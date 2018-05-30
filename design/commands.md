@@ -40,11 +40,11 @@ format: habitat
 # Habitat specific config
 # if format: habitat
 habitat:
-    mode: remote
     package: core/git/2.14.1
+    mode: remote
     # If local
     # mode: local
-    # package: ./foobar.hart
+    # file: ./foobar.hart
     command: git
 
 # Docker specific config
