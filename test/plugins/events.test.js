@@ -61,7 +61,8 @@ describe('event plugin test', () => {
                 getCommitSha: sinon.stub().resolves(testBuild.sha),
                 getPrInfo: sinon.stub().resolves({
                     sha: testBuild.sha,
-                    ref: 'prref'
+                    ref: 'prref',
+                    url: 'https://github.com/screwdriver-cd/ui/pull/292'
                 })
             }
         };
@@ -338,11 +339,52 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.prInfo = {};
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292'
+            };
+
             options.payload.startFrom = 'PR-1:main';
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event with parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
+            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.prRef = 'prref';
+            eventConfig.type = 'pr';
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.parentEventId = parentEventId;
+            eventConfig.prInfo = {};
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292'
+            };
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
             });
         });
 

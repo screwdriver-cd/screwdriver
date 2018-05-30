@@ -56,31 +56,42 @@ function stopJob(job) {
  * @param  {String}       options.prNum         Pull request number
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of changed files
+ * @param  {String}       options.token         User Auth Token
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
 function startPRJob(options, request) {
-    const { username, scmContext, sha, prRef, prNum, pipeline, changedFiles } = options;
+    const { username, scmContext, sha, prRef, prNum, pipeline, changedFiles, token } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
 
-    const eventConfig = {
-        pipelineId: pipeline.id,
-        type: 'pr',
-        webhooks: true,
-        username,
-        scmContext,
-        sha,
-        prRef,
+    const scmConfig = {
         prNum,
-        startFrom: '~pr',
-        changedFiles,
-        causeMessage: `${options.action} by ${userDisplayName}`
+        token,
+        scmContext,
+        scmUri: pipeline.scmUri
     };
 
-    return eventFactory.create(eventConfig);
+    return eventFactory.scm.getPrInfo(scmConfig).then((prInfo) => {
+        const eventConfig = {
+            pipelineId: pipeline.id,
+            type: 'pr',
+            webhooks: true,
+            username,
+            scmContext,
+            sha,
+            prInfo,
+            prRef,
+            prNum,
+            startFrom: '~pr',
+            changedFiles,
+            causeMessage: `${options.action} by ${userDisplayName}`
+        };
+
+        return eventFactory.create(eventConfig);
+    });
 }
 
 /**
@@ -236,16 +247,21 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const { hookId, action, checkoutUrl, branch, sha, prNum, prRef,
         prSource, username, scmContext, changedFiles } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
+    let scmToken = null;
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({
-            checkoutUrl: fullCheckoutUrl,
-            token,
-            scmContext
-        }))
+        .then((token) => {
+            scmToken = token;
+
+            return pipelineFactory.scm.parseUrl({
+                checkoutUrl: fullCheckoutUrl,
+                token,
+                scmContext
+            });
+        })
         .then(scmUri => pipelineFactory.get({ scmUri }))
         .then((pipeline) => {
             if (!pipeline) {
@@ -273,6 +289,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         pipeline: p,
                         restriction,
                         changedFiles,
+                        token: scmToken,
                         action: action.charAt(0).toUpperCase() + action.slice(1)
                     };
 
