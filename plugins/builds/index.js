@@ -209,7 +209,6 @@ exports.register = (server, options, next) => {
         const { pipelineId, startFrom, causeMessage, parentBuildId } = config;
         const eventFactory = server.root.app.eventFactory;
         const pipelineFactory = server.root.app.pipelineFactory;
-        const userFactory = server.root.app.userFactory;
         const scm = eventFactory.scm;
 
         const payload = {
@@ -222,18 +221,15 @@ exports.register = (server, options, next) => {
 
         return pipelineFactory.get(pipelineId)
             .then(pipeline => pipeline.admin
-                .then(realAdmin => realAdmin.username)
-                .then((adminName) => {
+                .then((realAdmin) => {
                     const scmUri = pipeline.scmUri;
-                    const admin = adminName;
                     const scmContext = pipeline.scmContext;
 
                     payload.scmContext = scmContext;
-                    payload.username = admin;
+                    payload.username = realAdmin.username;
 
                     // get pipeline admin's token
-                    return userFactory.get({ username: admin, scmContext })
-                        .then(user => user.unsealToken())
+                    return realAdmin.unsealToken()
                         .then((token) => {
                             const scmConfig = {
                                 scmContext,

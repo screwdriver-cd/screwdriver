@@ -237,7 +237,8 @@ describe('build plugin test', () => {
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
                 admin: Promise.resolve({
-                    username: 'foo'
+                    username: 'foo',
+                    unsealToken: sinon.stub().resolves('token')
                 })
             };
 
