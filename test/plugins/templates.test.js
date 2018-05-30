@@ -10,10 +10,12 @@ const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplatetags = require('./data/templateTags.json');
 const testtemplateversions = require('./data/templateVersions.json');
+const testTemplateWithNamespace = require('./data/templateWithNamespace.json');
 const testpipeline = require('./data/pipeline.json');
 const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
 const TEMPLATE_VALID = require('./data/template-validator.input.json');
 const TEMPLATE_VALID_NEW_VERSION = require('./data/template-create.input.json');
+const TEMPLATE_VALID_WITH_NAMESPACE = require('./data/template-create.with-namespace.input.json');
 const TEMPLATE_DESCRIPTION = [
     'Template for building a NodeJS module',
     'Installs dependencies and runs tests\n'
@@ -148,6 +150,27 @@ describe('template plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
+                    params: {},
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates with namespace query', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?namespace=chef';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
+                    params: {
+                        namespace: 'chef'
+                    },
                     paginate: {
                         page: 1,
                         count: 50
@@ -578,6 +601,37 @@ describe('template plugin test', () => {
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
                         name: 'template_namespace/nodejs_main'
+                    }
+                });
+                assert.calledWith(templateFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        // eslint-disable-next-line max-len
+        it('creates template if has good permission and it is a new version when namespace is passed in', () => {
+            options.payload = TEMPLATE_VALID_WITH_NAMESPACE;
+            expected.name = 'nodejs_main';
+            expected.namespace = 'template_namespace';
+            expected.version = '1.2';
+            templateMock = getTemplateMocks(testTemplateWithNamespace);
+            templateFactoryMock.list.resolves([templateMock]);
+            templateFactoryMock.create.resolves(templateMock);
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testId}`
+                };
+
+                assert.deepEqual(reply.result, testTemplateWithNamespace);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(templateFactoryMock.list, {
+                    params: {
+                        name: 'nodejs_main',
+                        namespace: 'template_namespace'
                     }
                 });
                 assert.calledWith(templateFactoryMock.create, expected);
