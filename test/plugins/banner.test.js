@@ -6,6 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const testBanner = require('./data/banner.json');
 const testBanners = require('./data/banners.json');
+const testBannersActive = require('./data/banners-active.json');
 const updatedBanner = require('./data/updatedBanner.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -220,6 +221,16 @@ describe('banner plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBanners);
+            });
+        });
+
+        it('returns 200 for listing banners with query params', () => {
+            options.url = '/banners?isActive=true';
+            bannerFactoryMock.list.resolves(getBannerMock(testBannersActive));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBannersActive);
             });
         });
     });

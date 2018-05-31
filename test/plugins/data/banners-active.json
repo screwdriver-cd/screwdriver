@@ -1,0 +1,10 @@
+[
+    {
+        "id": 123,
+        "message": "Test banner example",
+        "type": "info",
+        "isActive": true,
+        "createdBy": "batman123",
+        "createTime": "2017-01-06T01:49:50.384359267Z"
+    }
+]
