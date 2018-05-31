@@ -16,7 +16,6 @@ const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
 const DEFAULT_EXPIRES_IN = 2 * 60 * 60; // 2h in seconds
-const MAX_EXPIRES_IN = 12 * 60 * 60; // 12h in seconds
 const ALGORITHM = 'RS256';
 
 /**
@@ -129,8 +128,7 @@ exports.register = (server, options, next) => {
             server.auth.strategy('token', 'jwt', {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
-                    algorithms: [ALGORITHM],
-                    maxAge: MAX_EXPIRES_IN
+                    algorithms: [ALGORITHM]
                 },
                 // This function is run once the Token has been decoded with signature
                 validateFunc(decoded, request, cb) {
