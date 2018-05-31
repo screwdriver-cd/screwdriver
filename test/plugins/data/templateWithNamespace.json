@@ -1,0 +1,15 @@
+{
+  "id": 7969,
+  "name": "nodejs_main",
+  "namespace": "template_namespace",
+  "labels": ["stable"],
+  "version": "1.0.0",
+  "description": "this is a template",
+  "maintainer": "foo@bar.com",
+  "pipelineId": 123,
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  }
+}
