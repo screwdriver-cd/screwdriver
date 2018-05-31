@@ -1965,6 +1965,7 @@ describe('build plugin test', () => {
         let options;
 
         beforeEach(() => {
+            testBuild.status = 'QUEUED';
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
@@ -2054,6 +2055,18 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(reply.result.message, 'Insufficient scope');
+            });
+        });
+
+        it('returns 403 if build is already running or finished. (Not QUEUED)', () => {
+            testBuild.status = 'RUNNING';
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Build is already running or finished.');
             });
         });
     });

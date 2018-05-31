@@ -33,6 +33,10 @@ module.exports = () => ({
                     throw boom.notFound('Build Id parameter and token does not match');
                 }
 
+                if (build.status !== 'QUEUED') {
+                    throw boom.forbidden('Build is already running or finished.');
+                }
+
                 const token = request.server.plugins.auth.generateToken(
                     request.server.plugins.auth.generateProfile(
                         profile.username,
