@@ -23,20 +23,20 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
-            
+
             return factory.get(request.params.id)
                 .then((pipeline) => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
                     }
-                    
+
                     let eventType = 'pipeline';
 
                     if (request.query.type) {
                         eventType = request.query.type;
                     }
 
-                    return pipeline.getEvents({params: {type: eventType}});
+                    return pipeline.getEvents({ params: { type: eventType } });
                 })
                 .then(events => reply(events.map(e => e.toJson())))
                 .catch(err => reply(boom.wrap(err)));
