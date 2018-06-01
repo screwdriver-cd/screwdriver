@@ -313,6 +313,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 
 /**
  * Check the pipeline have triggered job or not
+ * @method  isTrigger
  * @param   {Pipeline}  pipeline    The pipeline to check
  * @param   {String}    startFrom   The trigger name
  * @returns {boolean}               If true the pipeline has triggered job
@@ -327,9 +328,11 @@ function isTrigger(pipeline, startFrom) {
 
 /**
  * Get all pipelines which has triggered job
- * @param   {Object}    scmConfig   has the token and scmUri to get branches
- * @param   {String}    branch      the branch which is committed
- * @returns {Promise}               Promise that resolves into triggered pipelines
+ * @method  triggerPipelines
+ * @param   {pipelineFactory}   pipelineFactory the pipeline factory to get branch list
+ * @param   {Object}            scmConfig       has the token and scmUri to get branches
+ * @param   {String}            branch          the branch which is committed
+ * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
 function triggerPipelines(pipelineFactory, scmConfig, branch) {
     return pipelineFactory.scm.getBranchList(scmConfig)
@@ -363,12 +366,13 @@ function triggerPipelines(pipelineFactory, scmConfig, branch) {
 
 /**
  * Create events for each pipeline
- * @param {Array} pipelines
- * @param {String} branch
- * @param {String} username
- * @returns {Promise}           Promise that resolves into events
+ * @async createEvents
+ * @param {EventFactory}    eventFactory    to create event
+ * @param {Array}           pipelines       the pipelines to start events
+ * @param {String}          parsed          it have a information to create event
+ * @returns {Promise}                       Promise that resolves into events
  */
-async function createEvents(pipelines, eventFactory, parsed) {
+async function createEvents(eventFactory, pipelines, parsed) {
     const { branch, sha, username, scmContext, changedFiles } = parsed;
     const events = [];
 
@@ -439,7 +443,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                 return [];
             }
 
-            return createEvents(pipelines, eventFactory, parsed);
+            return createEvents(eventFactory, pipelines, parsed);
         })
         .then((events) => {
             if (events.length <= 0) {
