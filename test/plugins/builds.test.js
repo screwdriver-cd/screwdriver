@@ -1958,7 +1958,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('POST /builds/{id}/token', () => {
+    describe.only('POST /builds/{id}/token', () => {
         const id = '12345';
         const scope = ['temporal'];
         const buildTimeout = 50;
@@ -1981,7 +1981,7 @@ describe('build plugin test', () => {
 
             generateTokenMock.withArgs(
                 generateProfileMock(),
-                `${buildTimeout}` * 60
+                buildTimeout
             ).returns('sometoken');
 
             options = {
@@ -2017,7 +2017,7 @@ describe('build plugin test', () => {
                     isPR: false,
                     jobId: 1234,
                     pipelineId: 1
-                }, 50 * 60);
+                }, 50);
                 assert.equal(reply.result.token, 'sometoken');
             })
         );
@@ -2040,12 +2040,23 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 403 if invalid payloads', () => {
+        it('returns 400 if invalid payloads', () => {
             options.payload = 'aaa';
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 400);
                 assert.equal(reply.result.message, 'Invalid request payload JSON format');
+            });
+        });
+
+        it('returns 400 if invalid buildTimeout', () => {
+            options.payload.buildTimeout = 'notnumber';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message,
+                    `Invalid buildTimeout value: ${options.payload.buildTimeout}`
+                );
             });
         });
 

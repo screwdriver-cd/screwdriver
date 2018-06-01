@@ -33,6 +33,10 @@ module.exports = () => ({
                     throw boom.notFound('Build Id parameter and token does not match');
                 }
 
+                if (isFinite(buildTimeout) === false && buildTimeout !== null) {
+                    throw boom.badRequest(`Invalid buildTimeout value: ${buildTimeout}`);
+                }
+
                 if (build.status !== 'QUEUED') {
                     throw boom.forbidden('Build is already running or finished.');
                 }
@@ -47,7 +51,7 @@ module.exports = () => ({
                             jobId: profile.jobId,
                             pipelineId: profile.pipelineId
                         }
-                    ), buildTimeout * 60 // in seconds
+                    ), parseInt(buildTimeout, 10)
                 );
 
                 return reply({ token });
