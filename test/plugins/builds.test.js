@@ -1958,7 +1958,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe.only('POST /builds/{id}/token', () => {
+    describe('POST /builds/{id}/token', () => {
         const id = '12345';
         const scope = ['temporal'];
         const buildTimeout = 50;
