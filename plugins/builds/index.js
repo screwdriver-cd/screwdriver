@@ -210,7 +210,6 @@ exports.register = (server, options, next) => {
         const { pipelineId, startFrom, causeMessage, parentBuildId } = config;
         const eventFactory = server.root.app.eventFactory;
         const pipelineFactory = server.root.app.pipelineFactory;
-        const userFactory = server.root.app.userFactory;
         const scm = eventFactory.scm;
 
         const payload = {
@@ -222,33 +221,32 @@ exports.register = (server, options, next) => {
         };
 
         return pipelineFactory.get(pipelineId)
-            .then((pipeline) => {
-                const scmUri = pipeline.scmUri;
-                const admin = Object.keys(pipeline.admins)[0];
-                const scmContext = pipeline.scmContext;
+            .then(pipeline => pipeline.admin
+                .then((realAdmin) => {
+                    const scmUri = pipeline.scmUri;
+                    const scmContext = pipeline.scmContext;
 
-                payload.scmContext = scmContext;
-                payload.username = admin;
+                    payload.scmContext = scmContext;
+                    payload.username = realAdmin.username;
 
-                // get pipeline admin's token
-                return userFactory.get({ username: admin, scmContext })
-                    .then(user => user.unsealToken())
-                    .then((token) => {
-                        const scmConfig = {
-                            scmContext,
-                            scmUri,
-                            token
-                        };
+                    // get pipeline admin's token
+                    return realAdmin.unsealToken()
+                        .then((token) => {
+                            const scmConfig = {
+                                scmContext,
+                                scmUri,
+                                token
+                            };
 
-                        // Get commit sha
-                        return scm.getCommitSha(scmConfig)
-                            .then((sha) => {
-                                payload.sha = sha;
+                            // Get commit sha
+                            return scm.getCommitSha(scmConfig)
+                                .then((sha) => {
+                                    payload.sha = sha;
 
-                                return eventFactory.create(payload);
-                            });
-                    });
-            });
+                                    return eventFactory.create(payload);
+                                });
+                        });
+                }));
     });
 
     /**

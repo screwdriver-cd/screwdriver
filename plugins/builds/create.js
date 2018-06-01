@@ -46,9 +46,16 @@ module.exports = () => ({
                         // check if user has push access
                         .then((permissions) => {
                             if (!permissions.push) {
+                                // the user who are not permitted is deleted from admins table
+                                delete pipeline.admins[username];
                                 throw boom.unauthorized(`User ${username} `
                             + 'does not have push permission for this repo');
                             }
+                        })
+                        // user has good permissions, add the user as an admin
+                        .then(() => {
+                            pipeline.admins[username] = true;
+                            pipeline.update();
                         })
                         // user has good permissions, sync and create a build
                         .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))

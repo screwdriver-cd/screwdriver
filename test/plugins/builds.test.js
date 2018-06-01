@@ -253,7 +253,11 @@ describe('build plugin test', () => {
                 scmRepo,
                 admins: { foo: true },
                 sync: sinon.stub().resolves(),
-                syncPR: sinon.stub().resolves()
+                syncPR: sinon.stub().resolves(),
+                admin: Promise.resolve({
+                    username: 'foo',
+                    unsealToken: sinon.stub().resolves('token')
+                })
             };
 
             eventMock = {
@@ -1213,8 +1217,10 @@ describe('build plugin test', () => {
                 id: pipelineId,
                 checkoutUrl,
                 scmUri,
+                admins: { foo: true, bar: true },
                 sync: sinon.stub().resolves(),
-                syncPR: sinon.stub().resolves()
+                syncPR: sinon.stub().resolves(),
+                update: sinon.stub().resolves()
             };
             userMock = {
                 username,
@@ -1281,6 +1287,7 @@ describe('build plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
+                assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
             });
         });
 
@@ -1316,6 +1323,7 @@ describe('build plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledWith(buildFactoryMock.create, params);
+                assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
             });
         });
 
@@ -1331,9 +1339,11 @@ describe('build plugin test', () => {
 
         it('returns unauthorized error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
+            options.credentials.username = 'bar';
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
+                assert.deepEqual(pipelineMock.admins, { foo: true });
             });
         });
     });

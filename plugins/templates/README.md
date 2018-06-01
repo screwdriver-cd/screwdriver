@@ -32,6 +32,9 @@ server.register({
 
 `GET /templates`
 
+Can filter by template namespace:
+`GET /templates?namespace=chef`
+
 ##### Get a single template
 
 You can get a single template by providing the template name and the specific version or the tag.
@@ -57,9 +60,10 @@ Creating a template will store the template data (`config`, `name`, `version`, `
 
 ###### Arguments
 
-'name', 'version', 'description', 'maintainer', labels
+'name', 'namespace', 'version', 'description', 'maintainer', 'labels'
 
 * `name` - Name of the template
+* `namespace` - (Optional) Namespace of the template
 * `version` - Version of the template
 * `description` - Description of the template
 * `maintainer` - Maintainer of the template
@@ -69,7 +73,8 @@ Creating a template will store the template data (`config`, `name`, `version`, `
 Example payload:
 ```json
 {
-  "name": "screwdriver/build",
+  "name": "build",
+  "namespace": "screwdriver",
   "labels": ["stable"],
   "version": "1.7.3",
   "description": "this is a template",
