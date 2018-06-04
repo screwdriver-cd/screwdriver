@@ -78,11 +78,29 @@ module.exports = () => ({
                     userFactory.get({ username, scmContext })
                 ]).then(([pipeline, user]) => user.getPermissions(pipeline.scmUri)
                     // Check if user has push access
+                    // eslint-disable-next-line consistent-return
                     .then((permissions) => {
                         if (!permissions.push) {
-                            throw boom.unauthorized(`User ${username} `
-                              + 'does not have push permission for this repo');
+                            const newAdmins = pipeline.admins;
+
+                            delete newAdmins[username];
+                            pipeline.admins = newAdmins;
+
+                            return pipeline.update()
+                                .then(() => {
+                                    throw boom.unauthorized(`User ${username} `
+                                    + 'does not have push permission for this repo');
+                                });
                         }
+                    })
+                    // user has good permissions, add the user as an admin
+                    .then(() => {
+                        const newAdmins = pipeline.admins;
+
+                        newAdmins[username] = true;
+                        pipeline.admins = newAdmins;
+
+                        return pipeline.update();
                     })
                     // User has good permissions, create an event
                     .then(() => user.unsealToken())

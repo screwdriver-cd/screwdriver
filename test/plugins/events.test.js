@@ -216,6 +216,12 @@ describe('event plugin test', () => {
         const pipelineMock = {
             id: pipelineId,
             checkoutUrl,
+            update: sinon.stub().resolves(),
+            admins: { foo: true, bar: true },
+            admin: Promise.resolve({
+                username: 'foo',
+                unsealToken: sinon.stub().resolves('token')
+            }),
             scmUri
         };
 

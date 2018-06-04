@@ -44,17 +44,30 @@ module.exports = () => ({
                 .then(([job, user]) => job.pipeline.then(pipeline =>
                     user.getPermissions(pipeline.scmUri)
                         // check if user has push access
+                        // eslint-disable-next-line consistent-return
                         .then((permissions) => {
                             if (!permissions.push) {
                                 // the user who are not permitted is deleted from admins table
-                                delete pipeline.admins[username];
-                                throw boom.unauthorized(`User ${username} `
-                            + 'does not have push permission for this repo');
+                                const newAdmins = pipeline.admins;
+
+                                delete newAdmins[username];
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update()
+                                    .then(() => {
+                                        throw boom.unauthorized(`User ${username} `
+                                            + 'does not have push permission for this repo');
+                                    });
                             }
                         })
                         // user has good permissions, add the user as an admin
                         .then(() => {
-                            pipeline.admins[username] = true;
+                            const newAdmins = pipeline.admins;
+
+                            newAdmins[username] = true;
+                            // This is needed to make admins dirty and update db
+                            pipeline.admins = newAdmins;
                             pipeline.update();
                         })
                         // user has good permissions, sync and create a build

@@ -254,6 +254,7 @@ describe('build plugin test', () => {
                 admins: { foo: true },
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
+                update: sinon.stub().resolves(),
                 admin: Promise.resolve({
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
@@ -1220,7 +1221,11 @@ describe('build plugin test', () => {
                 admins: { foo: true, bar: true },
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
-                update: sinon.stub().resolves()
+                update: sinon.stub().resolves(),
+                admin: Promise.resolve({
+                    username: 'foo',
+                    unsealToken: sinon.stub().resolves('token')
+                })
             };
             userMock = {
                 username,

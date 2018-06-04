@@ -61,6 +61,8 @@ const decoratePipelineMock = (pipeline) => {
     mock.getJobs = sinon.stub();
     mock.getEvents = sinon.stub();
     mock.remove = sinon.stub();
+    mock.admin = sinon.stub();
+    mock.update = sinon.stub();
 
     return mock;
 };
@@ -663,6 +665,8 @@ describe('pipeline plugin test', () => {
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.sync.resolves(null);
+            pipelineMock.admin.resolves(null);
+            pipelineMock.update.resolves(null);
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
         });
 
@@ -676,10 +680,10 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 401,
                 error: 'Unauthorized',
-                message: 'User d2lam does not have write permission for this repo'
+                message: 'User d2lam does not have push permission for this repo'
             };
 
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
