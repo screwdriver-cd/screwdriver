@@ -215,9 +215,9 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
             },
             json: true
         })
-        .then((response) => {
-            Assert.strictEqual(response.statusCode, 204);
-        });
+            .then((response) => {
+                Assert.strictEqual(response.statusCode, 204);
+            });
     });
 
     Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step() {
