@@ -207,17 +207,14 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
     });
 
     When(/^they delete that collection$/, function step() {
-        return this.ensurePipelineExists({ repoName: this.repoName })
-            .then(() =>
-                request({
-                    uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
-                    method: 'DELETE',
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
-                })
-            )
+        return request({
+            uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+            method: 'DELETE',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        })
             .then((response) => {
                 Assert.strictEqual(response.statusCode, 204);
             });
