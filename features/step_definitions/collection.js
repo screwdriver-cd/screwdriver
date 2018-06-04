@@ -234,20 +234,6 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    Then(/^that pipeline still exists$/, { timeout: TIMEOUT }, function step() {
-        return request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-            method: 'GET',
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
-        }).then((response) => {
-            Assert.strictEqual(response.statusCode, 200);
-            Assert.strictEqual(response.body.scmRepo.name, `${this.testOrg}/${this.repoName}`);
-        });
-    });
-
     When(/^they create another collection with the same name "myCollection"$/,
         { timeout: TIMEOUT }, function step() {
             return createCollection.call(this, { name: 'myCollection' })
