@@ -45,7 +45,6 @@ Feature: User Collections
         And they have a collection "myCollection"
         When they delete that collection
         Then that collection no longer exists
-        And that pipeline still exists
 
     Scenario: Collections Are Unique
         And "calvin" is logged in

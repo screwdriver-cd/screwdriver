@@ -609,12 +609,15 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 200 for getting events', () =>
+        it('returns 200 for getting events', () => {
+            options.url = `/pipelines/${id}/events?type=pr`;
             server.inject(options).then((reply) => {
                 assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, { params: { type: 'pr' } });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
-            })
+            });
+        }
         );
 
         it('returns 404 for pipeline that does not exist', () => {

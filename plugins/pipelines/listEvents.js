@@ -30,7 +30,13 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return pipeline.getEvents();
+                    let eventType = 'pipeline';
+
+                    if (request.query.type) {
+                        eventType = request.query.type;
+                    }
+
+                    return pipeline.getEvents({ params: { type: eventType } });
                 })
                 .then(events => reply(events.map(e => e.toJson())))
                 .catch(err => reply(boom.wrap(err)));
