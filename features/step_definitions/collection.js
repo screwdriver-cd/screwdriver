@@ -207,17 +207,14 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
     });
 
     When(/^they delete that collection$/, function step() {
-        return this.ensurePipelineExists({ repoName: this.repoName })
-            .then(() =>
-                request({
-                    uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
-                    method: 'DELETE',
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
-                })
-            )
+        return request({
+            uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+            method: 'DELETE',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        })
             .then((response) => {
                 Assert.strictEqual(response.statusCode, 204);
             });
@@ -234,20 +231,6 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         }).then((response) => {
             Assert.strictEqual(response.statusCode, 404);
             this.firstCollectionId = null;
-        });
-    });
-
-    Then(/^that pipeline still exists$/, { timeout: TIMEOUT }, function step() {
-        return request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-            method: 'GET',
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
-        }).then((response) => {
-            Assert.strictEqual(response.statusCode, 200);
-            Assert.strictEqual(response.body.scmRepo.name, `${this.testOrg}/${this.repoName}`);
         });
     });
 
