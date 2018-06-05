@@ -350,6 +350,14 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 401 when the pipeline is child piepline', () => {
+            pipeline.configPipelineId = 123;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
         it('returns 404 when pipeline does not exist', () => {
             const error = {
                 statusCode: 404,
@@ -1104,6 +1112,14 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 401 when the pipeline is child piepline', () => {
+            pipelineMock.configPipelineId = 123;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
 
