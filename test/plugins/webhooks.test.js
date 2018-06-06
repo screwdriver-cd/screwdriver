@@ -436,28 +436,18 @@ describe('github plugin test', () => {
                         causeMessage: `Merged by ${username}`,
                         changedFiles
                     });
-                    assert.neverCalledWith(eventFactoryMock.create, {
+                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                         pipelineId,
                         type: 'pipeline',
                         webhooks: true,
-                        username,
-                        scmContext,
-                        sha,
-                        startFrom: '~commit:master',
-                        causeMessage: `Merged by ${username}`,
-                        changedFiles
-                    });
-                    assert.neverCalledWith(eventFactoryMock.create, {
+                        startFrom: '~commit:master'
+                    }));
+                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                         pipelineId: pMock3.id,
                         type: 'pipeline',
                         webhooks: true,
-                        username,
-                        scmContext,
-                        sha,
-                        startFrom: '~commit:master',
-                        causeMessage: `Merged by ${username}`,
-                        changedFiles
-                    });
+                        startFrom: '~commit:master'
+                    }));
                 });
             });
 

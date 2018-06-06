@@ -313,12 +313,12 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 
 /**
  * Check the pipeline have triggered job or not
- * @method  isTrigger
+ * @method  hasTriggeredJob
  * @param   {Pipeline}  pipeline    The pipeline to check
  * @param   {String}    startFrom   The trigger name
  * @returns {boolean}               If true the pipeline has triggered job
  */
-function isTrigger(pipeline, startFrom) {
+function hasTriggeredJob(pipeline, startFrom) {
     const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
         trigger: startFrom
     });
@@ -337,23 +337,21 @@ function isTrigger(pipeline, startFrom) {
 function triggerPipelines(pipelineFactory, scmConfig, branch) {
     return pipelineFactory.scm.getBranchList(scmConfig)
         .then((branches) => {
-            const scmUris = [];
-            const splitUrl = scmConfig.scmUri.split(':');
+            const splitUri = scmConfig.scmUri.split(':');
 
-            branches.forEach((b) => {
-                if (b.name !== branch) {
-                    splitUrl[2] = b.name;
-                    scmUris.push(splitUrl.join(':'));
-                }
+            // only add non pushed branch, because there is possibility the branch is deleted at filter.
+            return branches.filter(b => b.name !== branch).map((b) => {
+                splitUri[2] = b.name;
+
+                return splitUri.join(':');
             });
-
-            return scmUris;
         })
         .then(scmUris => pipelineFactory.list({ scmUri: scmUris }))
-        .then(pipelines => pipelines.filter(p => isTrigger(p, `~commit:${branch}`)))
+        .then(pipelines => pipelines.filter(p => hasTriggeredJob(p, `~commit:${branch}`)))
         .then((pipelines) => {
             const scmUri = scmConfig.scmUri;
 
+            // add pushed branch
             return pipelineFactory.get({ scmUri }).then((p) => {
                 if (p) {
                     pipelines.push(p);
