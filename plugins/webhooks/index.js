@@ -444,7 +444,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
             return createEvents(eventFactory, pipelines, parsed);
         })
         .then((events) => {
-            if (events.length <= 0) {
+            if (events.length === 0) {
                 return reply().code(204);
             }
 
