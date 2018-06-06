@@ -126,6 +126,10 @@ module.exports = () => ({
                                     payload.workflowGraph = parentEvent.workflowGraph;
                                     payload.sha = parentEvent.sha;
 
+                                    if (parentEvent.configPipelineSha) {
+                                        payload.configPipelineSha = parentEvent.configPipelineSha;
+                                    }
+
                                     if (prNum) {
                                         return scm.getPrInfo(scmConfig);
                                     }

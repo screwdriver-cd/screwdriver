@@ -340,6 +340,31 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it creates an event with parent event for child pipeline', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
+            eventConfig.sha = decorateEventMock(testEvent).sha;
+            testEvent.configPipelineSha = 'configPipelineSha';
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            options.payload.parentEventId = parentEventId;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getCommitSha);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
         it('returns 201 when it successfully creates a PR event', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
