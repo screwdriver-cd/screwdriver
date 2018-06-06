@@ -434,7 +434,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 
             return triggerPipelines(pipelineFactory, scmConfig, branch);
         }).then((pipelines) => {
-            if (!pipelines || pipelines.length <= 0) {
+            if (!pipelines || pipelines.length === 0) {
                 request.log(['webhook', hookId],
                     `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
 
