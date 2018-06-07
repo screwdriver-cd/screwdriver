@@ -254,6 +254,37 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 and all pipelines with matched configPipelineId', () => {
+            options.url = '/pipelines?page=1&count=3&configPipelineId=123';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com',
+                    configPipelineId: 123
+                },
+                paginate: {
+                    page: 1,
+                    count: 3
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab',
+                    configPipelineId: 123
+                },
+                paginate: {
+                    page: 1,
+                    count: 3
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
         it('returns 500 when datastore fails', () => {
             pipelineFactoryMock.list.rejects(new Error('fittoburst'));
 
