@@ -414,7 +414,8 @@ function pushEvent(pluginOptions, request, reply, parsed) {
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
-        token: ''
+        token: '',
+        scmContext
     };
 
     request.log(['webhook', hookId], `Push for ${fullCheckoutUrl}`);
