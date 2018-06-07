@@ -68,7 +68,8 @@ module.exports = () => ({
                             newAdmins[username] = true;
                             // This is needed to make admins dirty and update db
                             pipeline.admins = newAdmins;
-                            pipeline.update();
+
+                            return pipeline.update();
                         })
                         // user has good permissions, sync and create a build
                         .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))

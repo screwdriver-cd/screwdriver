@@ -68,7 +68,7 @@ module.exports = () => ({
                         // This is needed to make admins dirty and update db
                         pipeline.admins = newAdmins;
 
-                        pipeline.update();
+                        return pipeline.update();
                     })
                     // user has good permissions, sync the pipeline
                     .then(() => pipeline.sync())
