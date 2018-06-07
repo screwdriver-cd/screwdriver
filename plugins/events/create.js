@@ -84,6 +84,7 @@ module.exports = () => ({
                             const newAdmins = pipeline.admins;
 
                             delete newAdmins[username];
+                            // This is needed to make admins dirty and update db
                             pipeline.admins = newAdmins;
 
                             return pipeline.update()
@@ -98,6 +99,7 @@ module.exports = () => ({
                         const newAdmins = pipeline.admins;
 
                         newAdmins[username] = true;
+                        // This is needed to make admins dirty and update db
                         pipeline.admins = newAdmins;
 
                         return pipeline.update();
