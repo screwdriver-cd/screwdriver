@@ -101,8 +101,6 @@ module.exports = () => ({
                         newAdmins[username] = true;
                         // This is needed to make admins dirty and update db
                         pipeline.admins = newAdmins;
-
-                        return pipeline.update();
                     })
                     // User has good permissions, create an event
                     .then(() => user.unsealToken())
