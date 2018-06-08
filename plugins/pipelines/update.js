@@ -44,8 +44,8 @@ module.exports = () => ({
                     }
 
                     if (oldPipeline.configPipelineId) {
-                        throw boom.unauthorized('Child pipeline can only be removed by modifying '
-                            + `scmUrls in config pipeline ${oldPipeline.configPipelineId}`);
+                        throw boom.unauthorized('Child pipeline checkoutUrl can only be modified by'
+                            + ` config pipeline ${oldPipeline.configPipelineId}`);
                     }
 
                     // get the user token
