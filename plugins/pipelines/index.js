@@ -13,6 +13,11 @@ const listJobsRoute = require('./listJobs');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
 const startAllRoute = require('./startAll');
+const createToken = require('./tokens/create');
+const updateToken = require('./tokens/update');
+const listTokens = require('./tokens/list');
+const removeToken = require('./tokens/remove');
+const removeAllTokens = require('./tokens/removeAll');
 
 /**
  * Pipeline API Plugin
@@ -22,6 +27,20 @@ const startAllRoute = require('./startAll');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
+    /**
+     * Returns false if the scope includes pipeline and it's pipelineId does not matches
+     * the id of the pipeline, otherwise returns true
+     * @method isValidToken
+     * @param  {String} id                     ID of pipeline
+     * @param  {Object} credentials            Credential object from Hapi
+     * @param  {String} credentials.pipelineId ID of pipeline which the token is allowed to access
+     * @param  {String} credentials.scope      Scope whose token is allowed
+     */
+    server.expose('isValidToken', (id, credentials) =>
+        credentials.scope.includes('pipeline') &&
+                parseInt(id, 10) !== parseInt(credentials.pipelineId, 10)
+    );
+
     server.route([
         createRoute(),
         removeRoute(),
@@ -35,7 +54,12 @@ exports.register = (server, options, next) => {
         listJobsRoute(),
         listSecretsRoute(),
         listEventsRoute(),
-        startAllRoute()
+        startAllRoute(),
+        updateToken(),
+        createToken(),
+        listTokens(),
+        removeToken(),
+        removeAllTokens()
     ]);
 
     next();

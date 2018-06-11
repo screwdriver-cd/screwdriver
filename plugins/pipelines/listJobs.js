@@ -14,7 +14,7 @@ module.exports = () => ({
         tags: ['api', 'pipelines', 'jobs'],
         auth: {
             strategies: ['token'],
-            scope: ['user']
+            scope: ['user', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -23,6 +23,12 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
+            const id = request.params.id;
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
+
+            if (isValidToken(id, request.auth.credentials)) {
+                return reply(boom.unauthorized('Token does not have permission to this pipeline'));
+            }
 
             return factory.get(request.params.id)
                 .then((pipeline) => {
