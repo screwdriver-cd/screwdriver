@@ -43,6 +43,11 @@ module.exports = () => ({
                             `Pipeline ${id} does not exist`);
                     }
 
+                    if (oldPipeline.configPipelineId) {
+                        throw boom.unauthorized('Child pipeline checkoutUrl can only be modified by'
+                            + ` config pipeline ${oldPipeline.configPipelineId}`);
+                    }
+
                     // get the user token
                     return user.unsealToken()
                         // get the scm URI

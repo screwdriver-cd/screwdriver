@@ -38,6 +38,7 @@ module.exports = () => ({
                     const output = token.toJson();
 
                     delete output.userId;
+                    delete output.pipelineId;
 
                     return output;
                 })))

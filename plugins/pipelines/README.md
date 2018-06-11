@@ -28,9 +28,9 @@ server.register({
 ### Routes
 
 #### Get all pipelines
-`page` and `count` optional
+`page`, `count` and `configPipelineId` optional
 
-`GET /pipelines?page={pageNumber}&count={countNumber}`
+`GET /pipelines?page={pageNumber}&count={countNumber}&configPipelineId={configPipelineId}`
 
 #### Get single pipeline
 
@@ -106,6 +106,11 @@ Example payload:
 #### Get all pipeline secrets
 
 `GET /pipelines/{id}/secrets`
+
+#### Start all child pipelines belong to this pipeline
+* Start all child pipelines belong to this config pipeline all at once
+
+`POST /pipelines/{id}/startall`
 
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:

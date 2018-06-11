@@ -15,7 +15,7 @@ const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
-const EXPIRES_IN = '2h';
+const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
 
 /**
@@ -80,16 +80,19 @@ exports.register = (server, options, next) => {
     });
 
     /**
-     * Generates a jwt that is signed and has a 2h lifespan
+     * Generates a jwt that is signed and has a lifespan (default:2h)
      * @method generateToken
-     * @param  {Object} profile Object from generateProfile
-     * @return {String}         Signed jwt that includes that profile
+     * @param  {Object}  profile        Object from generateProfile
+     * @param  {Integer} buildTimeout   JWT Expires time (must be minutes)
+     * @return {String}                 Signed jwt that includes that profile
      */
-    server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
-        algorithm: ALGORITHM,
-        expiresIn: EXPIRES_IN,
-        jwtid: uuid()
-    }));
+    server.expose('generateToken', (profile, buildTimeout = DEFAULT_TIMEOUT) =>
+        jwt.sign(profile, pluginOptions.jwtPrivateKey, {
+            algorithm: ALGORITHM,
+            expiresIn: buildTimeout * 60, // must be in second
+            jwtid: uuid()
+        })
+    );
 
     return server.register([
         bell, sugar, authToken, authJWT, {
@@ -125,8 +128,7 @@ exports.register = (server, options, next) => {
             server.auth.strategy('token', 'jwt', {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
-                    algorithms: [ALGORITHM],
-                    maxAge: EXPIRES_IN
+                    algorithms: [ALGORITHM]
                 },
                 // This function is run once the Token has been decoded with signature
                 validateFunc(decoded, request, cb) {

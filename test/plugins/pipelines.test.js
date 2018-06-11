@@ -61,6 +61,7 @@ const decoratePipelineMock = (pipeline) => {
     mock.getJobs = sinon.stub();
     mock.getEvents = sinon.stub();
     mock.remove = sinon.stub();
+    mock.token = Promise.resolve('faketoken');
 
     return mock;
 };
@@ -122,6 +123,7 @@ const getUserMock = (user) => {
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
+    let eventFactoryMock;
     let scmMock;
     let plugin;
     let server;
@@ -144,11 +146,15 @@ describe('pipeline plugin test', () => {
             scm: {
                 getScmContexts: sinon.stub(),
                 parseUrl: sinon.stub(),
-                decorateUrl: sinon.stub()
+                decorateUrl: sinon.stub(),
+                getCommitSha: sinon.stub().resolves('sha')
             }
         };
         userFactoryMock = {
             get: sinon.stub()
+        };
+        eventFactoryMock = {
+            create: sinon.stub().resolves(null)
         };
 
         /* eslint-disable global-require */
@@ -156,6 +162,7 @@ describe('pipeline plugin test', () => {
         /* eslint-enable global-require */
         server = new hapi.Server();
         server.app = {
+            eventFactory: eventFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
             ecosystem: {
@@ -233,6 +240,37 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.list.withArgs({
                 params: {
                     scmContext: 'gitlab:mygitlab'
+                },
+                paginate: {
+                    page: 1,
+                    count: 3
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and all pipelines with matched configPipelineId', () => {
+            options.url = '/pipelines?page=1&count=3&configPipelineId=123';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com',
+                    configPipelineId: 123
+                },
+                paginate: {
+                    page: 1,
+                    count: 3
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab',
+                    configPipelineId: 123
                 },
                 paginate: {
                     page: 1,
@@ -347,6 +385,14 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 401 when the pipeline is child piepline', () => {
+            pipeline.configPipelineId = 123;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
 
@@ -1107,6 +1153,14 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 401 when the pipeline is child piepline', () => {
+            pipelineMock.configPipelineId = 123;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
         it('returns 401 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
@@ -1149,6 +1203,80 @@ describe('pipeline plugin test', () => {
             const testError = new Error('pipelineModelSyncError');
 
             pipelineMock.sync.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('POST /pipelines/{id}/startall', () => {
+        const id = 123;
+        const username = 'd2lam';
+        const scmUri = 'github.com:12345:branchName';
+        let pipelineMock;
+        let userMock;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: `/pipelines/${id}/startall`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+
+            userMock = getUserMock({ username, scmContext });
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.sync.resolves(null);
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+            pipelineFactoryMock.list.resolves(getPipelineMocks(testPipelines));
+        });
+
+        it('returns 201 for starting all child pipelines', () =>
+            server.inject(options).then((reply) => {
+                assert.calledWith(pipelineFactoryMock.list, {
+                    params: {
+                        configPipelineId: pipelineMock.id
+                    }
+                });
+                assert.calledThrice(pipelineFactoryMock.scm.getCommitSha);
+                assert.calledThrice(eventFactoryMock.create);
+                assert.equal(reply.statusCode, 201);
+            })
+        );
+
+        it('returns 401 when user does not have admin permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'User d2lam does not have push permission for this repo'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 for updating a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', () => {
+            pipelineFactoryMock.list.rejects(new Error('icantdothatdave'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);

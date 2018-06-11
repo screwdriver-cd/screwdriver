@@ -143,13 +143,14 @@ All debug logs about the command lookup and execution are stored in `$SD_ARTIFAC
 ### Publish
 
 ```bash
-$ sd_cmd publish -f sd-command.yaml
+$ sd_cmd publish -f sd-command.yaml -t tag
 1.0.4
 ```
 
 **Input:**
 
  - `sd-command.yaml` is the command specification.
+ - `tag` is the case-insensitive name that you are publishing to. Default is `latest` if it's omitted.
 
 **Output:**
 
