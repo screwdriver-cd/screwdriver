@@ -62,12 +62,17 @@ module.exports = () => ({
                             }
                         })
                         // user has good permissions, add the user as an admin
+                        // eslint-disable-next-line consistent-return
                         .then(() => {
-                            const newAdmins = pipeline.admins;
+                            if (!pipeline.admins[username]) {
+                                const newAdmins = pipeline.admins;
 
-                            newAdmins[username] = true;
-                            // This is needed to make admins dirty and update db
-                            pipeline.admins = newAdmins;
+                                newAdmins[username] = true;
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update();
+                            }
                         })
                         // user has good permissions, sync and create a build
                         .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
