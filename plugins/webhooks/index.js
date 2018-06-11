@@ -346,7 +346,7 @@ function triggerPipelines(pipelineFactory, scmConfig, branch) {
                 return splitUri.join(':');
             });
         })
-        .then(scmUris => pipelineFactory.list({ scmUri: scmUris }))
+        .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
         .then(pipelines => pipelines.filter(p => hasTriggeredJob(p, `~commit:${branch}`)))
         .then((pipelines) => {
             const scmUri = scmConfig.scmUri;
