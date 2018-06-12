@@ -327,6 +327,7 @@ describe('github plugin test', () => {
                         scmContext,
                         sha,
                         startFrom: '~commit',
+                        commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles
                     });
@@ -411,6 +412,7 @@ describe('github plugin test', () => {
                         scmContext,
                         sha,
                         startFrom: '~commit:master',
+                        commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles
                     });
@@ -422,6 +424,7 @@ describe('github plugin test', () => {
                         scmContext,
                         sha,
                         startFrom: '~commit:master',
+                        commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles
                     });
@@ -433,6 +436,7 @@ describe('github plugin test', () => {
                         scmContext,
                         sha,
                         startFrom: '~commit',
+                        commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles
                     });

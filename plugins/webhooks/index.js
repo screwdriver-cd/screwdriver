@@ -388,6 +388,7 @@ async function createEvents(eventFactory, pipelines, parsed) {
             startFrom,
             sha,
             changedFiles,
+            commitBranch: branch,
             causeMessage: `Merged by ${username}`
         };
 
