@@ -348,18 +348,16 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch) {
         })
         .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
         .then(pipelines => pipelines.filter(p => hasTriggeredJob(p, `~commit:${branch}`)))
-        .then((pipelines) => {
-            const scmUri = scmConfig.scmUri;
-
+        .then(pipelines =>
             // add pushed branch
-            return pipelineFactory.get({ scmUri }).then((p) => {
+            pipelineFactory.get({ scmUri: scmConfig.scmUri }).then((p) => {
                 if (p) {
                     pipelines.push(p);
                 }
 
                 return pipelines;
-            });
-        });
+            })
+        );
 }
 
 /**
