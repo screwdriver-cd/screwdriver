@@ -312,7 +312,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 }
 
 /**
- * Check the pipeline have triggered job or not
+ * Check if the pipeline has a triggered job or not
  * @method  hasTriggeredJob
  * @param   {Pipeline}  pipeline    The pipeline to check
  * @param   {String}    startFrom   The trigger name
@@ -328,13 +328,13 @@ function hasTriggeredJob(pipeline, startFrom) {
 
 /**
  * Get all pipelines which has triggered job
- * @method  triggerPipelines
- * @param   {pipelineFactory}   pipelineFactory the pipeline factory to get branch list
- * @param   {Object}            scmConfig       has the token and scmUri to get branches
- * @param   {String}            branch          the branch which is committed
+ * @method  triggeredPipelines
+ * @param   {pipelineFactory}   pipelineFactory The pipeline factory to get branch list
+ * @param   {Object}            scmConfig       Has the token and scmUri to get branches
+ * @param   {String}            branch          The branch which is committed
  * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
-function triggerPipelines(pipelineFactory, scmConfig, branch) {
+function triggeredPipelines(pipelineFactory, scmConfig, branch) {
     return pipelineFactory.scm.getBranchList(scmConfig)
         .then((branches) => {
             const splitUri = scmConfig.scmUri.split(':');
@@ -365,9 +365,9 @@ function triggerPipelines(pipelineFactory, scmConfig, branch) {
 /**
  * Create events for each pipeline
  * @async createEvents
- * @param {EventFactory}    eventFactory    to create event
- * @param {Array}           pipelines       the pipelines to start events
- * @param {String}          parsed          it have a information to create event
+ * @param {EventFactory}    eventFactory    To create event
+ * @param {Array}           pipelines       The pipelines to start events
+ * @param {String}          parsed          It have a information to create event
  * @returns {Promise}                       Promise that resolves into events
  */
 async function createEvents(eventFactory, pipelines, parsed) {
@@ -434,7 +434,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
         }).then((scmUri) => {
             scmConfig.scmUri = scmUri;
 
-            return triggerPipelines(pipelineFactory, scmConfig, branch);
+            return triggeredPipelines(pipelineFactory, scmConfig, branch);
         }).then((pipelines) => {
             if (!pipelines || pipelines.length === 0) {
                 request.log(['webhook', hookId],
@@ -452,7 +452,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 
             events.forEach((e) => {
                 request.log(['webhook', hookId, e.id],
-                    `event ${e.id} started`);
+                    `Event ${e.id} started`);
             });
 
             return reply().code(201);
