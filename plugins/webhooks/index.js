@@ -316,7 +316,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  * @method  hasTriggeredJob
  * @param   {Pipeline}  pipeline    The pipeline to check
  * @param   {String}    startFrom   The trigger name
- * @returns {boolean}               If true the pipeline has triggered job
+ * @returns {Boolean}               True if the pipeline contains the triggered job
  */
 function hasTriggeredJob(pipeline, startFrom) {
     const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
@@ -329,7 +329,7 @@ function hasTriggeredJob(pipeline, startFrom) {
 /**
  * Get all pipelines which has triggered job
  * @method  triggeredPipelines
- * @param   {pipelineFactory}   pipelineFactory The pipeline factory to get branch list
+ * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
  * @param   {Object}            scmConfig       Has the token and scmUri to get branches
  * @param   {String}            branch          The branch which is committed
  * @returns {Promise}                           Promise that resolves into triggered pipelines
