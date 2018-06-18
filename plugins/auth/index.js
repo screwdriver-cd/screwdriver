@@ -148,7 +148,7 @@ exports.register = (server, options, next) => {
                     const userFactory = request.server.app.userFactory;
                     const pipelineFactory = request.server.app.pipelineFactory;
 
-                    tokenFactory.get({ value: tokenValue })
+                    return tokenFactory.get({ value: tokenValue })
                         .then((token) => {
                             if (!token) {
                                 return Promise.reject();
@@ -186,12 +186,16 @@ exports.register = (server, options, next) => {
                             return Promise.reject();
                         })
                         .then((profile) => {
-                            request.log(['auth'], `${profile.username} has logged in via API keys`);
+                            request.log(['auth'], `${profile.username} has logged in via `
+                                        + `${profile.scope[0]} API keys`);
                             profile.token = server.plugins.auth.generateToken(profile);
 
                             return cb(null, true, profile);
                         })
-                        .catch(() => cb(null, false, {}));
+                        .catch((err) => {
+                            request.log(['auth', 'error'], err);
+                            cb(null, false, {});
+                        });
                 }
             });
             server.route(loginRoute(server, pluginOptions).concat([

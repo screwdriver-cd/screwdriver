@@ -15,6 +15,7 @@ const listEventsRoute = require('./listEvents');
 const startAllRoute = require('./startAll');
 const createToken = require('./tokens/create');
 const updateToken = require('./tokens/update');
+const refreshToken = require('./tokens/refresh');
 const listTokens = require('./tokens/list');
 const removeToken = require('./tokens/remove');
 const removeAllTokens = require('./tokens/removeAll');
@@ -56,6 +57,7 @@ exports.register = (server, options, next) => {
         listEventsRoute(),
         startAllRoute(),
         updateToken(),
+        refreshToken(),
         createToken(),
         listTokens(),
         removeToken(),

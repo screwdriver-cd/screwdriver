@@ -39,6 +39,7 @@ const decorateTokenMock = (token) => {
     mock.toJson = sinon.stub().returns(token);
     mock.update = sinon.stub();
     mock.remove = sinon.stub();
+    mock.refresh = sinon.stub();
 
     return mock;
 };
@@ -1735,21 +1736,6 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 404 when pipeline does not exist', () => {
-            const error = {
-                statusCode: 404,
-                error: 'Not Found',
-                message: 'Pipeline does not exist'
-            };
-
-            pipelineFactoryMock.get.resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-                assert.deepEqual(reply.result, error);
-            });
-        });
-
         it('returns 403 when token is not ownd by the pipeline', () => {
             const error = {
                 statusCode: 403,
@@ -1761,6 +1747,21 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Pipeline does not exist'
+            };
+
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1806,6 +1807,134 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 409);
                 assert.strictEqual(reply.result.message,
                     `Token ${name} already exists`);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            tokenFactoryMock.get.rejects(new Error('Fail'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /pipelines/{pipelineId}/tokens/{tokenId}/refresh', () => {
+        const pipelineId = 123;
+        const tokenId = 12345;
+        const username = 'myself';
+        const scmUri = 'github.com:12345:branchName';
+        const name = 'updated token';
+        const description = 'updated';
+        let options;
+        let pipelineMock;
+        let userMock;
+        let tokenMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/pipelines/${pipelineId}/tokens/${tokenId}/refresh`,
+                payload: {
+                    name,
+                    description
+                },
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            userMock = getUserMock({ username, scmContext });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.tokens = Promise.resolve(getTokenMocks([testTokens]));
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            tokenMock = getTokenMocks(testTokens);
+            tokenMock.refresh.resolves(null);
+            tokenFactoryMock.get.resolves(tokenMock);
+        });
+
+        it('returns 200 and refreshed token', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 401 when user does not have admin permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: `User ${username} is not an admin of this repo`
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when token is not ownd by the pipeline', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Pipeline does not own token'
+            };
+
+            tokenMock.pipelineId = pipelineId + 1;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Pipeline does not exist'
+            };
+
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when token does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Token does not exist'
+            };
+
+            tokenFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
             });
         });
 

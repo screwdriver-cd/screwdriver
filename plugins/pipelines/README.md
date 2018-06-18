@@ -112,6 +112,30 @@ Example payload:
 
 `POST /pipelines/{id}/startall`
 
+#### Create a pipeline token
+
+`POST /pipelines/{id}/token`
+
+#### Get all pipeline tokens
+
+`GET /pipelines/{id}/tokens`
+
+#### Update a pipeline token
+
+`PUT /pipelines/{pipelineId}/tokens/{tokenId}`
+
+#### Refresh a pipeline token
+
+`PUT /pipelines/{pipelineId}/tokens/{tokenId}/refresh`
+
+#### Delete a pipeline token
+
+`DELETE /pipelines/{pipelineId}/tokens/{tokenId}`
+
+#### Delete all pipeline tokens belong to this pipeline
+
+`DELETE /pipelines/{pipelineId}/tokens`
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:
 
