@@ -25,9 +25,9 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const id = request.params.id;
-            const isValidToken = request.server.plugins.pipelines.isValidToken;
+            const isInvalidToken = request.server.plugins.pipelines.isInvalidToken;
 
-            if (isValidToken(id, request.auth.credentials)) {
+            if (isInvalidToken(id, request.auth.credentials)) {
                 return reply(boom.unauthorized('Token does not have permission to this pipeline'));
             }
 

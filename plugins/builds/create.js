@@ -34,7 +34,7 @@ module.exports = () => ({
                 username,
                 scmContext
             };
-            const isValidToken = request.server.plugins.pipelines.isValidToken;
+            const isInvalidToken = request.server.plugins.pipelines.isInvalidToken;
 
             // Fetch the job and user models
             return Promise.all([
@@ -44,7 +44,7 @@ module.exports = () => ({
                 // scmUri is buried in the pipeline, so we get that from the job
                 .then(([job, user]) => job.pipeline.then((pipeline) => {
                     // In pipeline scope, check if the token is allowed to the pipeline
-                    if (isValidToken(pipeline.id, request.auth.credentials)) {
+                    if (isInvalidToken(pipeline.id, request.auth.credentials)) {
                         throw boom.unauthorized('Token does not have permission to this pipeline');
                     }
 

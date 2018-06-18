@@ -29,15 +29,15 @@ const removeAllTokens = require('./tokens/removeAll');
  */
 exports.register = (server, options, next) => {
     /**
-     * Returns false if the scope includes pipeline and it's pipelineId does not matches
-     * the id of the pipeline, otherwise returns true
-     * @method isValidToken
+     * Returns true if the scope includes pipeline and it's pipelineId does not matches
+     * the id of the pipeline, otherwise returns false
+     * @method isInvalidToken
      * @param  {String} id                     ID of pipeline
      * @param  {Object} credentials            Credential object from Hapi
      * @param  {String} credentials.pipelineId ID of pipeline which the token is allowed to access
      * @param  {String} credentials.scope      Scope whose token is allowed
      */
-    server.expose('isValidToken', (id, credentials) =>
+    server.expose('isInvalidToken', (id, credentials) =>
         credentials.scope.includes('pipeline') &&
                 parseInt(id, 10) !== parseInt(credentials.pipelineId, 10)
     );

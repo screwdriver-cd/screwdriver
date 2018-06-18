@@ -29,7 +29,7 @@ module.exports = () => ({
             const scm = eventFactory.scm;
             const scmContext = request.auth.credentials.scmContext;
             const username = request.auth.credentials.username;
-            const isValidToken = request.server.plugins.pipelines.isValidToken;
+            const isInvalidToken = request.server.plugins.pipelines.isInvalidToken;
 
             return Promise.resolve().then(() => {
                 const buildId = request.payload.buildId;
@@ -79,7 +79,7 @@ module.exports = () => ({
                     userFactory.get({ username, scmContext })
                 ]).then(([pipeline, user]) => {
                     // In pipeline scope, check if the token is allowed to the pipeline
-                    if (isValidToken(pipeline.id, request.auth.credentials)) {
+                    if (isInvalidToken(pipeline.id, request.auth.credentials)) {
                         throw boom.unauthorized('Token does not have permission to this pipeline');
                     }
 

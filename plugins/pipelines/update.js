@@ -29,10 +29,10 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
-            const isValidToken = request.server.plugins.pipelines.isValidToken;
+            const isInvalidToken = request.server.plugins.pipelines.isInvalidToken;
             let gitToken;
 
-            if (isValidToken(id, request.auth.credentials)) {
+            if (isInvalidToken(id, request.auth.credentials)) {
                 return reply(boom.unauthorized('Token does not have permission to this pipeline'));
             }
 
