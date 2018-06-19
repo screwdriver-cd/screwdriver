@@ -498,6 +498,27 @@ describe('build plugin test', () => {
                 eventFactoryMock.scm.getCommitSha.resolves('sha');
             });
 
+            it('allows updating to BLOCKED', () => {
+                const status = 'BLOCKED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                });
+            });
+
             it('saves status, statusMessage, meta updates, and merge event meta', () => {
                 const meta = {
                     foo: 'bar',

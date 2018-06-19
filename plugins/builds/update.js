@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token'],
-            scope: ['build', 'user', '!guest']
+            scope: ['build', 'user', '!guest', 'temporal']
         },
         plugins: {
             'hapi-swagger': {
@@ -32,7 +32,7 @@ module.exports = () => ({
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
             const scope = request.auth.credentials.scope;
-            const isBuild = scope.includes('build');
+            const isBuild = scope.includes('build') || scope.includes('temporal');
             const triggerEvent = request.server.plugins.builds.triggerEvent;
             const triggerNextJobs = request.server.plugins.builds.triggerNextJobs;
 
@@ -47,8 +47,9 @@ module.exports = () => ({
                     }
 
                     // Check build status
-                    if (!['RUNNING', 'QUEUED'].includes(build.status)) {
-                        throw boom.forbidden('Can only update RUNNING or QUEUED builds');
+                    if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'].includes(build.status)) {
+                        throw boom.forbidden(
+                            'Can only update RUNNING or QUEUED or BLOCKED or UNSTABLE builds');
                     }
 
                     // Users can only mark a running or queued build as aborted
@@ -74,14 +75,19 @@ module.exports = () => ({
                     case 'RUNNING':
                         build.startTime = (new Date()).toISOString();
                         break;
+                    // do not update meta or endTime for these cases
+                    case 'UNSTABLE':
+                    case 'BLOCKED':
+                        break;
                     default:
                         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
                     }
 
-                    // Everyone is able to update the status
-                    build.status = desiredStatus;
-                    if (statusMessage) {
-                        build.statusMessage = statusMessage;
+                    if (build.status !== 'UNSTABLE') { // Unstable status cannot be updated
+                        build.status = desiredStatus;
+                        if (statusMessage) {
+                            build.statusMessage = statusMessage;
+                        }
                     }
 
                     // Only trigger next build on success
@@ -96,8 +102,8 @@ module.exports = () => ({
                         buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                     });
-                    // Guard against triggering non-successful builds
-                    if (desiredStatus !== 'SUCCESS') {
+                    // Guard against triggering non-successful or unstable builds
+                    if (desiredStatus !== 'SUCCESS' || build.status === 'UNSTABLE') {
                         return null;
                     }
 
