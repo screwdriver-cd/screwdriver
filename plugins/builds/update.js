@@ -49,7 +49,7 @@ module.exports = () => ({
                     // Check build status
                     if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'].includes(build.status)) {
                         throw boom.forbidden(
-                            'Can only update RUNNING or QUEUED or BLOCKED or UNSTABLE builds');
+                            'Can only update RUNNING, QUEUED, BLOCKED, or UNSTABLE builds');
                     }
 
                     // Users can only mark a running or queued build as aborted
@@ -83,11 +83,14 @@ module.exports = () => ({
                         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
                     }
 
-                    if (build.status !== 'UNSTABLE') { // Unstable status cannot be updated
+                    // UNSTABLE -> SUCCESS needs to update meta and endtime.
+                    // However, the status itself cannot be updated to SUCCESS
+                    if (build.status !== 'UNSTABLE') {
                         build.status = desiredStatus;
-                        if (statusMessage) {
-                            build.statusMessage = statusMessage;
-                        }
+                    }
+
+                    if (statusMessage) {
+                        build.statusMessage = statusMessage;
                     }
 
                     // Only trigger next build on success
@@ -102,8 +105,9 @@ module.exports = () => ({
                         buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                     });
+
                     // Guard against triggering non-successful or unstable builds
-                    if (desiredStatus !== 'SUCCESS' || build.status === 'UNSTABLE') {
+                    if (build.status !== 'SUCCESS') {
                         return null;
                     }
 
