@@ -11,7 +11,7 @@ module.exports = () => ({
     config: {
         description: 'Update a token',
         notes: 'Update a specific token',
-        tags: ['api', 'secrets'],
+        tags: ['api', 'tokens'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']

@@ -11,7 +11,7 @@ module.exports = () => ({
     config: {
         description: 'List tokens for pipeline',
         notes: 'List tokens for a specific pipeline',
-        tags: ['api', 'secrets'],
+        tags: ['api', 'tokens'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']
