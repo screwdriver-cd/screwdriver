@@ -506,6 +506,8 @@ describe('command plugin test', () => {
 
             pipelineMock = getPipelineMocks(testpipeline);
             pipelineFactoryMock.get.resolves(pipelineMock);
+
+            formData = new FormData();
         });
 
         it('returns 401 when pipelineId does not match', () => {
@@ -638,11 +640,35 @@ describe('command plugin test', () => {
                 });
             });
 
-            it('returns 400 when only the meta is posted', () => {
-                options.payload = { yaml: BINARY_COMMAND_VALID };
+            it('returns 400 when only the meta is posted in binary case', () => {
+                const spec = { format: 'binary' };
 
-                return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 400);
+                formData.append('spec', JSON.stringify(spec));
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 400);
+                    });
+                });
+            });
+
+            it('returns 400 when only the meta is posted in habitat local mode case', () => {
+                const spec = { format: 'habitat', habitat: { mode: 'local' } };
+
+                formData.append('spec', JSON.stringify(spec));
+                options.headers = formData.getHeaders();
+                options.headers.Authoriztion = 'AuthToken';
+
+                return streamToPromise(formData).then((payload) => {
+                    options.payload = payload;
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 400);
+                    });
                 });
             });
 
