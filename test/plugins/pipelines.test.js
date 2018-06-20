@@ -365,38 +365,6 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
-
-        it('returns 200 with pipeline token', () => {
-            pipelineFactoryMock.get.withArgs(id).resolves(getPipelineMocks(testPipeline));
-            options.credentials = {
-                pipelineId: id,
-                scope: ['pipeline']
-            };
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testPipeline);
-            });
-        });
-
-        it('returns 401 when pipeline token is not for the pipeline', () => {
-            const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
-                message: 'Token does not have permission to this pipeline'
-            };
-
-            options.credentials = {
-                pipelineId: 999,
-                scmContext: 'github:github.com',
-                scope: ['pipeline']
-            };
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
-                assert.deepEqual(reply.result, error);
-            });
-        });
     });
 
     describe('DELETE /pipelines/{id}', () => {
@@ -527,45 +495,12 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 200 for getting jobs with pipeline scope', () => {
-            options.credentials = {
-                pipelineId: id,
-                scope: ['pipeline']
-            };
-            server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledWith(pipelineMock.getJobs, {
-                    params: {
-                        archived: false
-                    },
-                    paginate: {
-                        count: 50,
-                        page: 1
-                    }
-                });
-                assert.deepEqual(reply.result, testJobs);
-            });
-        });
-
         it('returns 400 for wrong query format', () => {
             pipelineFactoryMock.get.resolves(null);
             options.url = `/pipelines/${id}/jobs?archived=blah`;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 400);
-            });
-        });
-
-        it('returns 401 for invalid pipeline token', () => {
-            options.url = `/pipelines/${id}/jobs`;
-
-            server.inject(hoek.applyToDefaults(options, {
-                credentials: {
-                    pipelineId: '999',
-                    scope: ['pipeline']
-                }
-            })).then((reply) => {
-                assert.equal(reply.statusCode, 401);
             });
         });
 
@@ -756,38 +691,6 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineMock.getEvents, { params: { type: 'pr' } });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
-            });
-        });
-
-        it('returns 200 with pipeline token', () => {
-            options.url = `/pipelines/${id}/events`;
-            options.credentials = {
-                pipelineId: id,
-                scope: ['pipeline']
-            };
-            server.inject(options).then((reply) => {
-                assert.calledOnce(pipelineMock.getEvents);
-                assert.calledWith(pipelineMock.getEvents, { params: { type: 'pipeline' } });
-                assert.deepEqual(reply.result, testEvents);
-                assert.equal(reply.statusCode, 200);
-            });
-        });
-
-        it('returns 401 with invalid pipeline token', () => {
-            const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
-                message: 'Token does not have permission to this pipeline'
-            };
-
-            options.url = `/pipelines/${id}/events`;
-            options.credentials = {
-                pipelineId: '999',
-                scope: ['pipeline']
-            };
-            server.inject(options).then((reply) => {
-                assert.deepEqual(reply.result, error);
-                assert.equal(reply.statusCode, 401);
             });
         });
 
