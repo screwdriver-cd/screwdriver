@@ -1711,7 +1711,7 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 102);
+                assert.equal(reply.result.length, 1002);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
@@ -1724,11 +1724,11 @@ describe('build plugin test', () => {
             for (let i = 0; i < 15; i += 1) {
                 const lines = [];
 
-                for (let j = 0; j < 100; j += 1) {
+                for (let j = 0; j < 1000; j += 1) {
                     lines.push(JSON.stringify({
                         t: Date.now(),
                         m: 'Random message here',
-                        n: (100 * i) + j
+                        n: (1000 * i) + j
                     }));
                 }
 
@@ -1744,25 +1744,25 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 1000);
+                assert.equal(reply.result.length, 10000);
                 assert.propertyVal(reply.headers, 'x-more-data', 'true');
             });
         });
 
         it('returns logs for a step that is split across extended max pages', () => {
-            const maxPages = 100;
+            const maxPages = 20;
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            for (let i = 0; i < 115; i += 1) {
+            for (let i = 0; i < 25; i += 1) {
                 const lines = [];
 
-                for (let j = 0; j < 100; j += 1) {
+                for (let j = 0; j < 1000; j += 1) {
                     lines.push(JSON.stringify({
                         t: Date.now(),
                         m: 'Random message here',
-                        n: (100 * i) + j
+                        n: (1000 * i) + j
                     }));
                 }
 
@@ -1778,7 +1778,7 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 10000);
+                assert.equal(reply.result.length, 20000);
                 assert.propertyVal(reply.headers, 'x-more-data', 'true');
             });
         });
@@ -1790,13 +1790,13 @@ describe('build plugin test', () => {
 
             for (let i = 0; i < 10; i += 1) {
                 const lines = [];
-                const maxLines = (i === 9) ? 50 : 100;
+                const maxLines = (i === 9) ? 50 : 1000;
 
                 for (let j = 0; j < maxLines; j += 1) {
                     lines.push(JSON.stringify({
                         t: Date.now(),
                         m: 'Random message here',
-                        n: (100 * i) + j
+                        n: (1000 * i) + j
                     }));
                 }
 
@@ -1812,26 +1812,26 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 950);
+                assert.equal(reply.result.length, 9050);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
 
         it('returns logs for a step that ends at extended max pages', () => {
-            const maxPages = 100;
+            const maxPages = 20;
             const buildMock = getMockBuilds(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             for (let i = 0; i < maxPages; i += 1) {
                 const lines = [];
-                const maxLines = (i === maxPages - 1) ? 50 : 100;
+                const maxLines = (i === maxPages - 1) ? 50 : 1000;
 
                 for (let j = 0; j < maxLines; j += 1) {
                     lines.push(JSON.stringify({
                         t: Date.now(),
                         m: 'Random message here',
-                        n: (100 * i) + j
+                        n: (1000 * i) + j
                     }));
                 }
 
@@ -1847,7 +1847,7 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, (100 * maxPages) - 50);
+                assert.equal(reply.result.length, 19050);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
@@ -1861,7 +1861,7 @@ describe('build plugin test', () => {
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
             return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?from=100`,
+                url: `/builds/${id}/steps/${step}/logs?from=1000`,
                 credentials: {
                     scope: ['user']
                 }
@@ -1881,7 +1881,7 @@ describe('build plugin test', () => {
                 .reply(200, '');
 
             return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?from=100`,
+                url: `/builds/${id}/steps/${step}/logs?from=1000`,
                 credentials: {
                     scope: ['user']
                 }
