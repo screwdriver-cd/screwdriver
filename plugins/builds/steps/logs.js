@@ -4,7 +4,7 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
-const MAX_LINES = 100;
+let maxLines = 100;
 
 /**
  * Load up to N pages that are available
@@ -17,7 +17,7 @@ const MAX_LINES = 100;
  */
 function loadLines(baseUrl, linesFrom, authToken, pagesToLoad = 10) {
     return new Promise((resolve) => {
-        const page = Math.floor(linesFrom / MAX_LINES);
+        const page = Math.floor(linesFrom / maxLines);
         const output = [];
 
         request
@@ -43,8 +43,13 @@ function loadLines(baseUrl, linesFrom, authToken, pagesToLoad = 10) {
         const pagesToLoadUpdated = pagesToLoad - 1;
         let morePages = false;
 
+        // This won't work if we support loading logs from the end
+        if (linesCount > 100) {
+            maxLines = 1000;
+        }
+
         // Load from next log if we got lines AND we reached the edge of a page
-        if (linesCount > 0 && (linesCount + linesFrom) % MAX_LINES === 0) {
+        if (linesCount > 0 && (linesCount + linesFrom) % maxLines === 0) {
             if (pagesToLoadUpdated > 0) {
                 return loadLines(baseUrl, linesCount + linesFrom, authToken, pagesToLoadUpdated)
                     .then(([nextLines, pageLimit]) => [lines.concat(nextLines), pageLimit]);
