@@ -4,7 +4,7 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
-const MAX_LINES = 100;
+const MAX_LINES = 1000;
 
 /**
  * Load up to N pages that are available
