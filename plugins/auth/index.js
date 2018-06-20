@@ -16,6 +16,7 @@ const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
+const EXPIRES_IN_BUFFER = 5; // in minutes
 const ALGORITHM = 'RS256';
 
 /**
@@ -89,7 +90,7 @@ exports.register = (server, options, next) => {
     server.expose('generateToken', (profile, buildTimeout = DEFAULT_TIMEOUT) =>
         jwt.sign(profile, pluginOptions.jwtPrivateKey, {
             algorithm: ALGORITHM,
-            expiresIn: buildTimeout * 60, // must be in second
+            expiresIn: (buildTimeout + EXPIRES_IN_BUFFER) * 60, // must be in second
             jwtid: uuid()
         })
     );
