@@ -30,6 +30,7 @@ module.exports = () => ({
             const scmContext = request.auth.credentials.scmContext;
             const username = request.auth.credentials.username;
             const isValidToken = request.server.plugins.pipelines.isValidToken;
+            const meta = request.payload.meta;
 
             return Promise.resolve().then(() => {
                 const buildId = request.payload.buildId;
@@ -66,6 +67,10 @@ module.exports = () => ({
 
                 if (parentBuildId) {
                     payload.parentBuildId = parentBuildId;
+                }
+
+                if (meta) {
+                    payload.meta = meta;
                 }
 
                 // Match PR-prNum, then extract prNum

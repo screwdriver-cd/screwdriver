@@ -1237,13 +1237,6 @@ describe('build plugin test', () => {
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
         const scmContext = 'github:github.com';
-        const eventConfig = {
-            type: 'pr',
-            pipelineId,
-            username,
-            scmContext,
-            sha: testBuild.sha
-        };
 
         let options;
         let buildMock;
@@ -1251,14 +1244,21 @@ describe('build plugin test', () => {
         let pipelineMock;
         let userMock;
         let eventMock;
+        let meta;
         let params;
+        let eventConfig;
 
         beforeEach(() => {
+            meta = {
+                foo: 'bar',
+                one: 1
+            };
             options = {
                 method: 'POST',
                 url: '/builds',
                 payload: {
-                    jobId
+                    jobId,
+                    meta
                 },
                 credentials: {
                     scope: ['user'],
@@ -1299,7 +1299,16 @@ describe('build plugin test', () => {
                 eventId: 12345,
                 apiUri: 'http://localhost:12345',
                 username,
-                scmContext
+                scmContext,
+                meta
+            };
+            eventConfig = {
+                type: 'pr',
+                pipelineId,
+                username,
+                scmContext,
+                sha: testBuild.sha,
+                meta
             };
 
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
@@ -1362,6 +1371,7 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            params.meta = meta;
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
