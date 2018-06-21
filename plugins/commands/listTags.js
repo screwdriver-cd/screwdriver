@@ -4,7 +4,7 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.commandTag.base).label('List of command tags');
-const nameSpaceSchema = joi.reach(schema.models.commandTag.base, 'namespace');
+const namespaceSchema = joi.reach(schema.models.commandTag.base, 'namespace');
 const nameSchema = joi.reach(schema.models.commandTag.base, 'name');
 
 module.exports = () => ({
@@ -45,7 +45,7 @@ module.exports = () => ({
         },
         validate: {
             params: {
-                namespace: nameSpaceSchema,
+                namespace: namespaceSchema,
                 name: nameSchema
             },
             query: schema.api.pagination
