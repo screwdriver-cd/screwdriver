@@ -13,7 +13,7 @@ module.exports = () => ({
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -34,6 +34,7 @@ module.exports = () => ({
                 username,
                 scmContext
             };
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
 
             // Fetch the job and user models
             return Promise.all([
@@ -41,8 +42,13 @@ module.exports = () => ({
                 userFactory.get({ username, scmContext })
             ])
                 // scmUri is buried in the pipeline, so we get that from the job
-                .then(([job, user]) => job.pipeline.then(pipeline =>
-                    user.getPermissions(pipeline.scmUri)
+                .then(([job, user]) => job.pipeline.then((pipeline) => {
+                    // In pipeline scope, check if the token is allowed to the pipeline
+                    if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                        throw boom.unauthorized('Token does not have permission to this pipeline');
+                    }
+
+                    return user.getPermissions(pipeline.scmUri)
                         // check if user has push access
                         // eslint-disable-next-line consistent-return
                         .then((permissions) => {
@@ -114,7 +120,8 @@ module.exports = () => ({
 
                                     return buildFactory.create(payload);
                                 });
-                        })))
+                        });
+                }))
                 .then((build) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({

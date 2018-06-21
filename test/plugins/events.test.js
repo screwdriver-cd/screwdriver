@@ -107,6 +107,9 @@ describe('event plugin test', () => {
 
         server.register([{
             register: plugin
+        }, {
+            // eslint-disable-next-line global-require
+            register: require('../../plugins/pipelines')
         }], (err) => {
             done(err);
         });
@@ -419,6 +422,28 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it successfully creates an event with pipeline token', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+            server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
         it('returns 500 when the model encounters an error', () => {
             const testError = new Error('datastoreSaveError');
 
@@ -431,6 +456,19 @@ describe('event plugin test', () => {
 
         it('returns unauthorized error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns unauthorized error when the token has no permission for pipeline', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);

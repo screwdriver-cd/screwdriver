@@ -1,0 +1,8 @@
+{
+    "id": 12345,
+    "name": "pipeline token",
+    "description": "a token for pipeline API",
+    "pipelineId": 123,
+    "hash": "abcd",
+    "lastUsed": "2018-06-13T05:58:04.296Z"
+}

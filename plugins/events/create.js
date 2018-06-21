@@ -13,7 +13,7 @@ module.exports = () => ({
         tags: ['api', 'events'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -29,6 +29,7 @@ module.exports = () => ({
             const scm = eventFactory.scm;
             const scmContext = request.auth.credentials.scmContext;
             const username = request.auth.credentials.username;
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
 
             return Promise.resolve().then(() => {
                 const buildId = request.payload.buildId;
@@ -76,91 +77,100 @@ module.exports = () => ({
                 return Promise.all([
                     pipelineFactory.get(pipelineId),
                     userFactory.get({ username, scmContext })
-                ]).then(([pipeline, user]) => user.getPermissions(pipeline.scmUri)
+                ]).then(([pipeline, user]) => {
+                    // In pipeline scope, check if the token is allowed to the pipeline
+                    if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                        throw boom.unauthorized('Token does not have permission to this pipeline');
+                    }
+
                     // Check if user has push access
                     // eslint-disable-next-line consistent-return
-                    .then((permissions) => {
-                        if (!permissions.push) {
-                            const newAdmins = pipeline.admins;
+                    return user.getPermissions(pipeline.scmUri)
+                        .then((permissions) => {
+                            if (!permissions.push) {
+                                const newAdmins = pipeline.admins;
 
-                            delete newAdmins[username];
-                            // This is needed to make admins dirty and update db
-                            pipeline.admins = newAdmins;
+                                delete newAdmins[username];
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
 
-                            return pipeline.update()
-                                .then(() => {
-                                    throw boom.unauthorized(`User ${username} `
-                                    + 'does not have push permission for this repo');
-                                });
-                        }
-                    })
-                    // user has good permissions, add the user as an admin
-                    // eslint-disable-next-line consistent-return
-                    .then(() => {
-                        if (!pipeline.admins[username]) {
-                            const newAdmins = pipeline.admins;
-
-                            newAdmins[username] = true;
-                            // This is needed to make admins dirty and update db
-                            pipeline.admins = newAdmins;
-
-                            return pipeline.update();
-                        }
-                    })
-                    // User has good permissions, create an event
-                    .then(() => user.unsealToken())
-                    .then((token) => {
-                        const scmConfig = {
-                            prNum,
-                            scmContext,
-                            scmUri: pipeline.scmUri,
-                            token
-                        };
-
-                        if (prNum) {
-                            payload.prNum = prNum;
-                            payload.type = 'pr';
-                        }
-
-                        // If there is parentEvent, pass workflowGraph and sha to payload
-                        if (payload.parentEventId) {
-                            return eventFactory.get(parentEventId)
-                                .then((parentEvent) => {
-                                    payload.workflowGraph = parentEvent.workflowGraph;
-                                    payload.sha = parentEvent.sha;
-
-                                    if (parentEvent.configPipelineSha) {
-                                        payload.configPipelineSha = parentEvent.configPipelineSha;
-                                    }
-
-                                    if (prNum) {
-                                        return scm.getPrInfo(scmConfig);
-                                    }
-
-                                    return null;
-                                });
-                        }
-
-                        return scm.getCommitSha(scmConfig).then((sha) => {
-                            payload.sha = sha;
-
-                            // For PRs
-                            if (prNum) {
-                                return scm.getPrInfo(scmConfig);
+                                return pipeline.update()
+                                    .then(() => {
+                                        throw boom.unauthorized(`User ${username} `
+                                        + 'does not have push permission for this repo');
+                                    });
                             }
 
-                            return null;
-                        });
-                    })
-                    .then((prInfo) => {
-                        if (prInfo) {
-                            payload.prInfo = prInfo;
-                            payload.prRef = prInfo.ref;
-                        }
+                            return Promise.resolve();
+                        })
+                        // user has good permissions, add the user as an admin
+                        // eslint-disable-next-line consistent-return
+                        .then(() => {
+                            if (!pipeline.admins[username]) {
+                                const newAdmins = pipeline.admins;
 
-                        return eventFactory.create(payload);
-                    })
-                ).then((event) => {
+                                newAdmins[username] = true;
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update();
+                            }
+                        })
+                        // User has good permissions, create an event
+                        .then(() => user.unsealToken())
+                        .then((token) => {
+                            const scmConfig = {
+                                prNum,
+                                scmContext,
+                                scmUri: pipeline.scmUri,
+                                token
+                            };
+
+                            if (prNum) {
+                                payload.prNum = prNum;
+                                payload.type = 'pr';
+                            }
+
+                            // If there is parentEvent, pass workflowGraph and sha to payload
+                            if (payload.parentEventId) {
+                                return eventFactory.get(parentEventId)
+                                    .then((parentEvent) => {
+                                        payload.workflowGraph = parentEvent.workflowGraph;
+                                        payload.sha = parentEvent.sha;
+
+                                        if (parentEvent.configPipelineSha) {
+                                            payload.configPipelineSha =
+                                                parentEvent.configPipelineSha;
+                                        }
+
+                                        if (prNum) {
+                                            return scm.getPrInfo(scmConfig);
+                                        }
+
+                                        return null;
+                                    });
+                            }
+
+                            return scm.getCommitSha(scmConfig).then((sha) => {
+                                payload.sha = sha;
+
+                                // For PRs
+                                if (prNum) {
+                                    return scm.getPrInfo(scmConfig);
+                                }
+
+                                return null;
+                            });
+                        })
+                        .then((prInfo) => {
+                            if (prInfo) {
+                                payload.prInfo = prInfo;
+                                payload.prRef = prInfo.ref;
+                            }
+
+                            return eventFactory.create(payload);
+                        });
+                }).then((event) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({
                         host: request.headers.host,

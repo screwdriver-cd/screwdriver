@@ -171,6 +171,9 @@ describe('build plugin test', () => {
                         jwtPrivateKey: 'boo'
                     }
                 }
+            }, {
+                // eslint-disable-next-line global-require
+                register: require('../../plugins/pipelines')
             }
         ], done);
     });
@@ -1388,6 +1391,49 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 201 for a successful create for a pipeline build with pipeline token', () => {
+            let expectedLocation;
+
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+
+            jobMock.name = 'main';
+            jobMock.isPR.returns(false);
+            jobMock.prNum = null;
+            eventConfig.type = 'pipeline';
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${buildId}`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, {
+                    id: buildId,
+                    other: 'dataToBeIncluded'
+                });
+                assert.notCalled(pipelineMock.syncPR);
+                assert.calledOnce(pipelineMock.sync);
+                assert.calledWith(buildFactoryMock.scm.getCommitSha, {
+                    token: 'iamtoken',
+                    scmUri,
+                    scmContext,
+                    prNum: null
+                });
+                assert.notCalled(buildFactoryMock.scm.getPrInfo);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledWith(buildFactoryMock.create, params);
+                assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
+            });
+        });
+
         it('returns 500 when the model encounters an error', () => {
             const testError = new Error('datastoreSaveError');
 
@@ -1405,6 +1451,24 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(pipelineMock.admins, { foo: true });
+            });
+        });
+
+        it('returns unauthorized error when pipeline token does not have permission', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
+
+            jobMock.name = 'main';
+            jobMock.isPR.returns(false);
+            jobMock.prNum = null;
+            eventConfig.type = 'pipeline';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
     });
