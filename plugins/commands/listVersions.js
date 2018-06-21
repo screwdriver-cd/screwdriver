@@ -14,6 +14,15 @@ module.exports = () => ({
         description: 'Get all command versions for a given command namespace/name with pagination',
         notes: 'Returns all command records for a given command namespace/name',
         tags: ['api', 'commands', 'versions'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.commandFactory;
 

@@ -3,7 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.commandTag.base).label('List of templates');
+const listSchema = joi.array().items(schema.models.commandTag.base).label('List of command tags');
 const nameSpaceSchema = joi.reach(schema.models.commandTag.base, 'namespace');
 const nameSchema = joi.reach(schema.models.commandTag.base, 'name');
 
@@ -14,6 +14,15 @@ module.exports = () => ({
         description: 'Get all command tags for a given command namespace and name',
         notes: 'Returns all command tags for a given command namespace and name',
         tags: ['api', 'commands', 'tags'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.commandTagFactory;
 

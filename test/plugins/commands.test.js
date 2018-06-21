@@ -866,7 +866,7 @@ describe('command plugin test', () => {
                 method: 'GET',
                 url: '/commands/some/error/tags'
             };
-            const testError = new Error('getTemplateTagError');
+            const testError = new Error('getCommandTagError');
 
             commandTagFactoryMock.list.rejects(testError);
 
