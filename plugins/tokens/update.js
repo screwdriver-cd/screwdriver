@@ -10,8 +10,8 @@ module.exports = () => ({
     path: '/tokens/{id}',
     config: {
         description: 'Update a token',
-        notes: 'Update a specific tooken',
-        tags: ['api', 'secrets'],
+        notes: 'Update a specific token',
+        tags: ['api', 'tokens'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']
