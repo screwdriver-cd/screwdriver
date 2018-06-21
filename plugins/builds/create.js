@@ -28,6 +28,7 @@ module.exports = () => ({
             const scm = buildFactory.scm;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const meta = request.payload.meta;
             const payload = {
                 jobId: request.payload.jobId,
                 apiUri: request.server.info.uri,
@@ -35,6 +36,10 @@ module.exports = () => ({
                 scmContext
             };
             const isValidToken = request.server.plugins.pipelines.isValidToken;
+
+            if (meta) {
+                payload.meta = meta;
+            }
 
             // Fetch the job and user models
             return Promise.all([
@@ -102,6 +107,7 @@ module.exports = () => ({
 
                                     return eventFactory.create({
                                         pipelineId: pipeline.id,
+                                        meta,
                                         type,
                                         username,
                                         scmContext,

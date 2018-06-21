@@ -210,6 +210,7 @@ describe('event plugin test', () => {
         let expectedLocation;
         let scmConfig;
         let userMock;
+        let meta;
         const username = 'myself';
         const parentBuildId = 12345;
         const pipelineId = 123;
@@ -240,13 +241,18 @@ describe('event plugin test', () => {
                 scmUri,
                 token: 'iamtoken'
             };
+            meta = {
+                foo: 'bar',
+                one: 1
+            };
             options = {
                 method: 'POST',
                 url: '/events',
                 payload: {
                     parentBuildId,
                     pipelineId,
-                    startFrom: '~commit'
+                    startFrom: '~commit',
+                    meta
                 },
                 credentials: {
                     scope: ['user'],
@@ -261,7 +267,8 @@ describe('event plugin test', () => {
                 startFrom: '~commit',
                 sha: '58393af682d61de87789fb4961645c42180cec5a',
                 type: 'pipeline',
-                username
+                username,
+                meta
             };
 
             eventFactoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
@@ -272,7 +279,8 @@ describe('event plugin test', () => {
 
         it('returns 201 when it successfully creates an event with buildId passed in', () => {
             options.payload = {
-                buildId: 1234
+                buildId: 1234,
+                meta
             };
             buildFactoryMock.get.resolves({
                 id: 1234,
