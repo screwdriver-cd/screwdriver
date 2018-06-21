@@ -2215,5 +2215,16 @@ describe('build plugin test', () => {
                 assert.equal(reply.result.message, 'Build is already running or finished.');
             });
         });
+
+        it('returns 200 for BLOCKED build', () => {
+            testBuild.status = 'BLOCKED';
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+            });
+        });
     });
 });
