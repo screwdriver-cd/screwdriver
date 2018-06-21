@@ -69,7 +69,7 @@ module.exports = () => ({
                     .then((token) => {
                         const location = urlLib.format({
                             host: request.headers.host,
-                            port: 100,
+                            port: request.headers.port,
                             protocol: request.server.info.protocol,
                             pathname: `${request.path}/${token.id}`
                         });
