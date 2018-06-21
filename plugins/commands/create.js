@@ -12,8 +12,8 @@ const VERSION_REGEX = schema.config.regex.VERSION;
 const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB
 
 /**
- * Publish binary command
- * @method binaryCommandPublish
+ * Publish file to the store
+ * @method publishFileToStore
  * @param  {CommandFactory} commandFactory      commandFactory
  * @param  {Object}         config              Command config
  * @param  {Binary}         binary              Binary published to the store
@@ -21,7 +21,7 @@ const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB
  * @param  {String}         authToken           Bearer Token to be passed to the store
  * @return {Promise}
  */
-function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToken) {
+function publishFileToStore(commandFactory, config, file, storeUrl, authToken) {
     const [, major, minor] = VERSION_REGEX.exec(config.version);
     const searchVersion = minor ? `${major}${minor}` : major;
     let publishVersion;
@@ -47,7 +47,7 @@ function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToke
                     Authorization: authToken,
                     'Content-Type': 'application/octet-stream'
                 },
-                body: binary
+                body: file
             };
 
             return new Promise((resolve, reject) => {
@@ -62,7 +62,7 @@ function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToke
         }).then((response) => {
             if (response.statusCode !== 202) {
                 throw new Error('An error occurred when '
-                    + `posting binary to the store:${response.body.message}`);
+                    + `posting file to the store:${response.body.message}`);
             }
 
             return commandFactory.create(config);
@@ -180,7 +180,7 @@ module.exports = () => ({
                         // If command format is binary or habitat local mode, binary file also has to be posted to the store
                         return !multipartCheckResult.valid
                             ? commandFactory.create(commandConfig)
-                            : binaryCommandPublish(commandFactory,
+                            : publishFileToStore(commandFactory,
                                 commandConfig,
                                 commandBin,
                                 request.server.app.ecosystem.store,
