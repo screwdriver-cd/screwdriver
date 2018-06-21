@@ -178,7 +178,7 @@ module.exports = () => ({
                         // If command name doesn't exist yet, or exists and has good permission, then create
                         // Create would automatically bump the patch version
                         // If command format is binary or habitat local mode, binary file also has to be posted to the store
-                        return multipartCheckResult.valid !== true
+                        return !multipartCheckResult.valid
                             ? commandFactory.create(commandConfig)
                             : binaryCommandPublish(commandFactory,
                                 commandConfig,
