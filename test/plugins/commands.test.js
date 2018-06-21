@@ -627,7 +627,7 @@ describe('command plugin test', () => {
             });
 
             it('returns 400 when only the binary is posted', () => {
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
 
@@ -674,7 +674,7 @@ describe('command plugin test', () => {
 
             it('returns 401 when pipelineId does not match', () => {
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authorization = 'AuthToken';
                 commandMock.pipelineId = 8888;
@@ -690,7 +690,7 @@ describe('command plugin test', () => {
 
             it('creates command if command does not exist yet', () => {
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(null);
@@ -727,7 +727,7 @@ describe('command plugin test', () => {
             it('creates command if has good permission and it is a new version', () => {
                 expected.version = '1.2';
                 formData.append('spec', BINARY_COMMAND_VALID_NEW_VERSION, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(testBinaryCommand);
@@ -765,7 +765,7 @@ describe('command plugin test', () => {
                 const testError = new Error('commandModelGetError');
 
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.rejects(testError);
@@ -784,7 +784,7 @@ describe('command plugin test', () => {
                 const testError = new Error('commandModelCreateError');
 
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves([]);
@@ -801,7 +801,7 @@ describe('command plugin test', () => {
 
             it('returns 400 when the command is invalid', () => {
                 formData.append('spec', BINARY_COMMAND_INVALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves([]);
@@ -818,7 +818,7 @@ describe('command plugin test', () => {
 
             it('returns 500 when request to the store is failed', () => {
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(null);
@@ -839,7 +839,7 @@ describe('command plugin test', () => {
 
             it('returns 500 when the binary fails to store', () => {
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
-                formData.append('binary', COMMAND_BINARY, 'foobar.sh');
+                formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(null);

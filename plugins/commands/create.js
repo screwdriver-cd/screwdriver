@@ -86,7 +86,7 @@ function checkValidMultipartPayload(data) {
     }
 
     const commandSpec = JSON.parse(data.spec);
-    const commandBin = data.binary;
+    const commandBin = data.file;
 
     if (commandBin === undefined) {
         result.valid = false;
@@ -136,7 +136,7 @@ module.exports = () => ({
 
                 if (multipartCheckResult.valid) {
                     commandSpec = data.spec;
-                    commandBin = data.binary;
+                    commandBin = data.file;
                 } else {
                     return reply(boom.badRequest(multipartCheckResult.message));
                 }
