@@ -725,7 +725,7 @@ describe('auth plugin test', () => {
             return server.inject({
                 url: `/auth/token?api_token=${apiKey}`
             }).then((reply) => {
-                assert.calledWith(userFactoryMock.get, id);
+                assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
                 assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                 assert.notOk(reply.result.token, 'Token should not be issued');
             });
