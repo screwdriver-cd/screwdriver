@@ -38,6 +38,7 @@ describe('auth plugin test', () => {
     let buildFactoryMock;
     let jobFactoryMock;
     let pipelineFactoryMock;
+    let tokenFactoryMock;
     let plugin;
     let server;
     let scm;
@@ -85,12 +86,17 @@ describe('auth plugin test', () => {
             get: sinon.stub(),
             scm
         };
+        tokenFactoryMock = {
+            get: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/auth');
         /* eslint-enable global-require */
         server = new hapi.Server();
         server.app.userFactory = userFactoryMock;
+        server.app.pipelineFactory = pipelineFactoryMock;
+        server.app.tokenFactory = tokenFactoryMock;
         server.connection({
             port: 1234
         });
@@ -562,6 +568,8 @@ describe('auth plugin test', () => {
         const username = 'batman';
         const scmContext = 'github:github.com';
         const token = 'qpekaljx';
+        const pipelineId = 12345;
+        const tokenId = 123;
         const apiKey = 'aUserApiToken';
         const user = {
             id,
@@ -570,13 +578,22 @@ describe('auth plugin test', () => {
             token
         };
         let userMock;
+        let pipelineMock;
+        let tokenMock;
 
         beforeEach(() => {
+            tokenMock = {
+                id: tokenId
+            };
+            pipelineMock = {
+                admin: Promise.resolve(user)
+            };
             userMock = getUserMock(user);
-            userMock.sealToken.resolves(token);
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
+            tokenFactoryMock.get.resolves(tokenMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
         it('returns user signed token', () => (
@@ -638,13 +655,15 @@ describe('auth plugin test', () => {
             })
         ));
 
-        it('returns user signed token given an API access token', () =>
+        it('returns user signed token given an API access token', () => {
+            tokenMock.userId = id;
             server.inject({
                 url: `/auth/token?api_token=${apiKey}`
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200, 'Login route should be available');
                 assert.ok(reply.result.token, 'Token not returned');
-                assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
+                assert.calledWith(tokenFactoryMock.get, { value: apiKey });
+                assert.calledWith(userFactoryMock.get, id);
                 expect(reply.result.token).to.be.a.jwt
                     .and.have.property('username', username);
                 expect(reply.result.token).to.be.a.jwt
@@ -652,16 +671,74 @@ describe('auth plugin test', () => {
                     .with.lengthOf(1);
                 expect(reply.result.token).to.be.a.jwt
                     .and.have.deep.property('scope[0]', 'user');
-            })
-        );
+            });
+        });
+
+        it('returns pipeline signed token given an API access token', () => {
+            tokenMock.pipelineId = pipelineId;
+
+            server.inject({
+                url: `/auth/token?api_token=${apiKey}`
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200, 'Login route should be available');
+                assert.ok(reply.result.token, 'Token not returned');
+                assert.calledWith(tokenFactoryMock.get, { value: apiKey });
+                assert.calledWith(pipelineFactoryMock.get, pipelineId);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('username', username);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('pipelineId', pipelineId);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.property('scope')
+                    .with.lengthOf(1);
+                expect(reply.result.token).to.be.a.jwt
+                    .and.have.deep.property('scope[0]', 'pipeline');
+            });
+        });
 
         it('fails to issue a jwt given an invalid application auth token', () => {
-            userFactoryMock.get.resolves(null);
+            tokenFactoryMock.get.resolves(null);
 
             return server.inject({
                 url: '/auth/token?api_token=openSaysMe'
             }).then((reply) => {
-                assert.calledWith(userFactoryMock.get, { accessToken: 'openSaysMe' });
+                assert.calledWith(tokenFactoryMock.get, { value: 'openSaysMe' });
+                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                assert.notOk(reply.result.token, 'Token should not be issued');
+            });
+        });
+
+        it('fails to issue a jwt given an token which have neither userId and pipelineId', () =>
+            server.inject({
+                url: `/auth/token?api_token=${apiKey}`
+            }).then((reply) => {
+                assert.calledWith(tokenFactoryMock.get, { value: apiKey });
+                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                assert.notOk(reply.result.token, 'Token should not be issued');
+            })
+        );
+
+        it('fails to issue a jwt when user does not found by userId in given token', () => {
+            tokenMock.userId = id;
+            userFactoryMock.get.resolves(null);
+
+            return server.inject({
+                url: `/auth/token?api_token=${apiKey}`
+            }).then((reply) => {
+                assert.calledWith(userFactoryMock.get, id);
+                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                assert.notOk(reply.result.token, 'Token should not be issued');
+            });
+        });
+
+        it('fails to issue a jwt when pipeline does not found by pipelineId in given token', () => {
+            tokenMock.pipelineId = pipelineId;
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject({
+                url: `/auth/token?api_token=${apiKey}`
+            }).then((reply) => {
+                assert.calledWith(pipelineFactoryMock.get, pipelineId);
                 assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                 assert.notOk(reply.result.token, 'Token should not be issued');
             });
@@ -669,7 +746,7 @@ describe('auth plugin test', () => {
 
         describe('with admins', () => {
             beforeEach((next) => {
-                const pipelineMock = {
+                pipelineMock = {
                     scmContext
                 };
 
