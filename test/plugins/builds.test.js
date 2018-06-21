@@ -501,6 +501,30 @@ describe('build plugin test', () => {
                 eventFactoryMock.scm.getCommitSha.resolves('sha');
             });
 
+            it('allows updating to BLOCKED', () => {
+                const status = 'BLOCKED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                });
+            });
+
             it('saves status, statusMessage, meta updates, and merge event meta', () => {
                 const meta = {
                     foo: 'bar',
@@ -636,6 +660,38 @@ describe('build plugin test', () => {
                     assert.equal(reply.statusCode, 403);
                     assert.notCalled(buildFactoryMock.get);
                     assert.notCalled(buildMock.update);
+                });
+            });
+
+            it('does not allow updating from UNSTABLE to SUCCESS and do not trigger', () => {
+                testBuild.status = 'UNSTABLE';
+                buildMock = getMockBuilds(testBuild);
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildMock.settings = {
+                    email: 'foo@bar.com'
+                };
+                buildFactoryMock.get.resolves(buildMock);
+                buildMock.update.resolves(buildMock);
+                buildFactoryMock.get.resolves(buildMock);
+
+                const status = 'SUCCESS';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.strictEqual(buildMock.status, 'UNSTABLE');
+                    assert.notCalled(buildFactoryMock.create);
                 });
             });
 
