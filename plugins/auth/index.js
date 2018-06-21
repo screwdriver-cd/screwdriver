@@ -154,7 +154,7 @@ exports.register = (server, options, next) => {
                                 return Promise.reject();
                             } else if (token.userId) {
                                 // if token has userId then the token is for user
-                                return userFactory.get(token.userId)
+                                return userFactory.get({ accessToken: tokenValue })
                                     .then((user) => {
                                         if (!user) {
                                             return Promise.reject();
