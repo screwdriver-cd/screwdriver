@@ -130,7 +130,7 @@ module.exports = () => ({
             let commandBin;
             let multipartCheckResult = { valid: false };
 
-            // if Content-type is multipart/form-data, both command binary and meta are posted
+            // if Content-type is multipart/form-data, both command file and meta are posted
             if (request.headers['content-type'].startsWith('multipart/form-data')) {
                 multipartCheckResult = checkValidMultipartPayload(data);
 
