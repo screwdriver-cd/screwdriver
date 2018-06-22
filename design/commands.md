@@ -156,11 +156,13 @@ Promoting 1.0.4 to tag
 
 **Output:**
 
-Version number that was published.
+Promoting log and version number that was published.
 
 *Example:*
 
 ```bash
+Removing 1.0.1 from tag
+Promoting 1.0.4 to tag
 1.0.4
 ```
 
