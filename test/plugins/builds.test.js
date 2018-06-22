@@ -663,8 +663,43 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('update status for non-UNSTABLE builds', () => {
+                testBuild.status = 'BLOCKED';
+                testBuild.statusMessage = 'blocked';
+                buildMock = getMockBuilds(testBuild);
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildMock.settings = {
+                    email: 'foo@bar.com'
+                };
+                buildFactoryMock.get.resolves(buildMock);
+                buildMock.update.resolves(buildMock);
+                buildFactoryMock.get.resolves(buildMock);
+
+                const status = 'RUNNING';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.strictEqual(buildMock.status, 'RUNNING');
+                    assert.strictEqual(buildMock.statusMessage, '');
+                    assert.notCalled(buildFactoryMock.create);
+                });
+            });
+
             it('does not allow updating from UNSTABLE to SUCCESS and do not trigger', () => {
                 testBuild.status = 'UNSTABLE';
+                testBuild.statusMessage = 'hello';
                 buildMock = getMockBuilds(testBuild);
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
@@ -691,6 +726,7 @@ describe('build plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.strictEqual(buildMock.status, 'UNSTABLE');
+                    assert.strictEqual(buildMock.statusMessage, 'hello');
                     assert.notCalled(buildFactoryMock.create);
                 });
             });
