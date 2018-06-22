@@ -87,10 +87,7 @@ module.exports = () => ({
                     // However, the status itself cannot be updated to SUCCESS
                     if (build.status !== 'UNSTABLE') {
                         build.status = desiredStatus;
-                    }
-
-                    if (statusMessage) {
-                        build.statusMessage = statusMessage;
+                        build.statusMessage = statusMessage || '';
                     }
 
                     // Only trigger next build on success
