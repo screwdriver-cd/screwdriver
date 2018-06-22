@@ -51,6 +51,8 @@ describe('build plugin test', () => {
     let pipelineFactoryMock;
     let eventFactoryMock;
     let triggerFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let secretMock;
     let secretAccessMock;
     let authMock;
@@ -105,6 +107,7 @@ describe('build plugin test', () => {
         };
 
         secretAccessMock = sinon.stub().resolves(false);
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
 
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
@@ -148,6 +151,16 @@ describe('build plugin test', () => {
             name: 'secrets'
         };
 
+        bannerMock = {
+            register: (s, o, next) => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                next();
+            }
+        };
+        bannerMock.register.attributes = {
+            name: 'banners'
+        };
+
         authMock = {
             register: (s, o, next) => {
                 s.expose('generateToken', generateTokenMock);
@@ -160,7 +173,7 @@ describe('build plugin test', () => {
         };
 
         server.register([
-            secretMock, authMock,
+            secretMock, bannerMock, authMock,
             {
                 register: plugin,
                 options: {
@@ -306,7 +319,7 @@ describe('build plugin test', () => {
             triggerFactoryMock.list.resolves(triggerMocks);
         });
 
-        it('emits event buid_status', () => {
+        it('emits event build_status', () => {
             const jobMock = {
                 id: 1234,
                 name: 'main',
@@ -317,16 +330,10 @@ describe('build plugin test', () => {
                     }
                 }]
             };
-
-            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
-            buildMock.job = sinon.stub().resolves(jobMock)();
-            buildMock.settings = {
-                email: 'foo@bar.com'
+            const userMock = {
+                username: id,
+                getPermissions: sinon.stub().resolves({ push: true })
             };
-
-            buildFactoryMock.get.resolves(buildMock);
-            buildFactoryMock.uiUri = 'http://foo.bar';
-
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -337,6 +344,16 @@ describe('build plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+            buildMock.job = sinon.stub().resolves(jobMock)();
+            buildMock.settings = {
+                email: 'foo@bar.com'
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+            jobFactoryMock.get.resolves(jobMock);
+            userFactoryMock.get.resolves(userMock);
 
             server.emit = sinon.stub().resolves(null);
 
@@ -405,12 +422,10 @@ describe('build plugin test', () => {
                         }
                     }]
                 };
-
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
-                buildMock.job = sinon.stub().resolves(jobMock)();
-
-                buildFactoryMock.get.resolves(buildMock);
-
+                const userMock = {
+                    username: id,
+                    getPermissions: sinon.stub().resolves({ push: true })
+                };
                 const expected = hoek.applyToDefaults(testBuild, { status: 'ABORTED' });
                 const options = {
                     method: 'PUT',
@@ -423,7 +438,12 @@ describe('build plugin test', () => {
                     }
                 };
 
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJson.returns(expected);
+                jobFactoryMock.get.resolves(jobMock);
+                userFactoryMock.get.resolves(userMock);
 
                 return server.inject(options).then((reply) => {
                     assert.deepEqual(reply.result, expected);
