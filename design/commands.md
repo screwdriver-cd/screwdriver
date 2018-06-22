@@ -128,7 +128,7 @@ $ hab pkg exec foobar-habitat-package cmd -baz sample
 ### Execute
 
 ```bash
-$ sd_cmd [exec] namespace/name@version [arguments]
+$ sd-cmd [exec] namespace/name@version [arguments]
 ```
 
 **Input:**
@@ -143,7 +143,7 @@ All debug logs about the command lookup and execution are stored in `$SD_ARTIFAC
 ### Publish
 
 ```bash
-$ sd_cmd publish -f sd-command.yaml -t tag
+$ sd-cmd publish -f sd-command.yaml -t tag
 Removing 1.0.1 from tag
 Promoting 1.0.4 to tag
 1.0.4
@@ -167,7 +167,7 @@ Version number that was published.
 ### Promote
 
 ```bash
-$ sd_cmd promote namespace/name version tag
+$ sd-cmd promote namespace/name version tag
 Removing 1.0.1 from tag
 Promoting version to tag
 ```
