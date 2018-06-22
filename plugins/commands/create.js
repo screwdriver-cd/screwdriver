@@ -16,7 +16,7 @@ const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB
  * @method publishFileToStore
  * @param  {CommandFactory} commandFactory      commandFactory
  * @param  {Object}         config              Command config
- * @param  {Binary}         binary              Binary published to the store
+ * @param  {Uint8Array}     file                File published to the store
  * @param  {String}         storeUrl            URL to the store
  * @param  {String}         authToken           Bearer Token to be passed to the store
  * @return {Promise}
