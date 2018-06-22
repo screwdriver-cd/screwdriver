@@ -171,6 +171,9 @@ describe('build plugin test', () => {
                         jwtPrivateKey: 'boo'
                     }
                 }
+            }, {
+                // eslint-disable-next-line global-require
+                register: require('../../plugins/pipelines')
             }
         ], done);
     });
@@ -1234,13 +1237,6 @@ describe('build plugin test', () => {
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
         const scmContext = 'github:github.com';
-        const eventConfig = {
-            type: 'pr',
-            pipelineId,
-            username,
-            scmContext,
-            sha: testBuild.sha
-        };
 
         let options;
         let buildMock;
@@ -1248,14 +1244,21 @@ describe('build plugin test', () => {
         let pipelineMock;
         let userMock;
         let eventMock;
+        let meta;
         let params;
+        let eventConfig;
 
         beforeEach(() => {
+            meta = {
+                foo: 'bar',
+                one: 1
+            };
             options = {
                 method: 'POST',
                 url: '/builds',
                 payload: {
-                    jobId
+                    jobId,
+                    meta
                 },
                 credentials: {
                     scope: ['user'],
@@ -1296,7 +1299,16 @@ describe('build plugin test', () => {
                 eventId: 12345,
                 apiUri: 'http://localhost:12345',
                 username,
-                scmContext
+                scmContext,
+                meta
+            };
+            eventConfig = {
+                type: 'pr',
+                pipelineId,
+                username,
+                scmContext,
+                sha: testBuild.sha,
+                meta
             };
 
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
@@ -1359,6 +1371,50 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            params.meta = meta;
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${buildId}`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, {
+                    id: buildId,
+                    other: 'dataToBeIncluded'
+                });
+                assert.notCalled(pipelineMock.syncPR);
+                assert.calledOnce(pipelineMock.sync);
+                assert.calledWith(buildFactoryMock.scm.getCommitSha, {
+                    token: 'iamtoken',
+                    scmUri,
+                    scmContext,
+                    prNum: null
+                });
+                assert.notCalled(buildFactoryMock.scm.getPrInfo);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledWith(buildFactoryMock.create, params);
+                assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
+            });
+        });
+
+        it('returns 201 for a successful create for a pipeline build with pipeline token', () => {
+            let expectedLocation;
+
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+
+            jobMock.name = 'main';
+            jobMock.isPR.returns(false);
+            jobMock.prNum = null;
+            eventConfig.type = 'pipeline';
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1405,6 +1461,24 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(pipelineMock.admins, { foo: true });
+            });
+        });
+
+        it('returns unauthorized error when pipeline token does not have permission', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
+
+            jobMock.name = 'main';
+            jobMock.isPR.returns(false);
+            jobMock.prNum = null;
+            eventConfig.type = 'pipeline';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
     });
@@ -1712,6 +1786,29 @@ describe('build plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 102);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns logs for a step that is split across pages with 1000 lines per file', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1002);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
@@ -2149,6 +2246,17 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(reply.result.message, 'Build is already running or finished.');
+            });
+        });
+
+        it('returns 200 for BLOCKED build', () => {
+            testBuild.status = 'BLOCKED';
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
             });
         });
     });

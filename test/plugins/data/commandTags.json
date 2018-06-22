@@ -1,14 +1,16 @@
 [{
     "id": 7969,
-    "namespace": "screwdriver",
-    "name": "build",
+    "createTime": "2038-01-19T03:14:08.131Z",
+    "namespace": "foo",
+    "name": "bar",
     "tag": "stable",
     "version": "0.0.1"
 },
 {
     "id": 7970,
-    "namespace": "screwdriver",
-    "name": "build",
+    "createTime": "2040-02-19T11:14:08.131Z",
+    "namespace": "foo",
+    "name": "bar",
     "tag": "latest",
     "version": "1.0.2"
 }]

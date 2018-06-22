@@ -12,6 +12,15 @@ module.exports = () => ({
         description: 'Get commands with pagination',
         notes: 'Returns all command records',
         tags: ['api', 'commands'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.commandFactory;
 

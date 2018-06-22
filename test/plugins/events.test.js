@@ -107,6 +107,9 @@ describe('event plugin test', () => {
 
         server.register([{
             register: plugin
+        }, {
+            // eslint-disable-next-line global-require
+            register: require('../../plugins/pipelines')
         }], (err) => {
             done(err);
         });
@@ -207,6 +210,7 @@ describe('event plugin test', () => {
         let expectedLocation;
         let scmConfig;
         let userMock;
+        let meta;
         const username = 'myself';
         const parentBuildId = 12345;
         const pipelineId = 123;
@@ -237,13 +241,18 @@ describe('event plugin test', () => {
                 scmUri,
                 token: 'iamtoken'
             };
+            meta = {
+                foo: 'bar',
+                one: 1
+            };
             options = {
                 method: 'POST',
                 url: '/events',
                 payload: {
                     parentBuildId,
                     pipelineId,
-                    startFrom: '~commit'
+                    startFrom: '~commit',
+                    meta
                 },
                 credentials: {
                     scope: ['user'],
@@ -258,7 +267,8 @@ describe('event plugin test', () => {
                 startFrom: '~commit',
                 sha: '58393af682d61de87789fb4961645c42180cec5a',
                 type: 'pipeline',
-                username
+                username,
+                meta
             };
 
             eventFactoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
@@ -269,7 +279,8 @@ describe('event plugin test', () => {
 
         it('returns 201 when it successfully creates an event with buildId passed in', () => {
             options.payload = {
-                buildId: 1234
+                buildId: 1234,
+                meta
             };
             buildFactoryMock.get.resolves({
                 id: 1234,
@@ -419,6 +430,28 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it successfully creates an event with pipeline token', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+            server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
         it('returns 500 when the model encounters an error', () => {
             const testError = new Error('datastoreSaveError');
 
@@ -431,6 +464,19 @@ describe('event plugin test', () => {
 
         it('returns unauthorized error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns unauthorized error when the token has no permission for pipeline', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);

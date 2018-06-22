@@ -16,6 +16,15 @@ module.exports = () => ({
         description: 'Get a single command given command namespace, name and version or tag',
         notes: 'Returns a command record',
         tags: ['api', 'commands'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const commandFactory = request.server.app.commandFactory;
             const { namespace, name, versionOrTag } = request.params;
