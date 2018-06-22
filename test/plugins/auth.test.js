@@ -663,7 +663,7 @@ describe('auth plugin test', () => {
                 assert.equal(reply.statusCode, 200, 'Login route should be available');
                 assert.ok(reply.result.token, 'Token not returned');
                 assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                assert.calledWith(userFactoryMock.get, id);
+                assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
                 expect(reply.result.token).to.be.a.jwt
                     .and.have.property('username', username);
                 expect(reply.result.token).to.be.a.jwt
@@ -683,7 +683,7 @@ describe('auth plugin test', () => {
                 assert.equal(reply.statusCode, 200, 'Login route should be available');
                 assert.ok(reply.result.token, 'Token not returned');
                 assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                assert.calledWith(pipelineFactoryMock.get, pipelineId);
+                assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
                 expect(reply.result.token).to.be.a.jwt
                     .and.have.property('username', username);
                 expect(reply.result.token).to.be.a.jwt
@@ -738,7 +738,7 @@ describe('auth plugin test', () => {
             return server.inject({
                 url: `/auth/token?api_token=${apiKey}`
             }).then((reply) => {
-                assert.calledWith(pipelineFactoryMock.get, pipelineId);
+                assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
                 assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                 assert.notOk(reply.result.token, 'Token should not be issued');
             });

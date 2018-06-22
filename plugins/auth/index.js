@@ -168,7 +168,7 @@ exports.register = (server, options, next) => {
                                     });
                             } else if (token.pipelineId) {
                                 // if token has pipelineId then the token is for pipeline
-                                return pipelineFactory.get(token.pipelineId)
+                                return pipelineFactory.get({ accessToken: tokenValue })
                                     .then((pipeline) => {
                                         if (!pipeline) {
                                             return Promise.reject();
