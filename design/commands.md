@@ -144,6 +144,8 @@ All debug logs about the command lookup and execution are stored in `$SD_ARTIFAC
 
 ```bash
 $ sd_cmd publish -f sd-command.yaml -t tag
+Removing 1.0.1 from tag
+Promoting 1.0.4 to tag
 1.0.4
 ```
 
