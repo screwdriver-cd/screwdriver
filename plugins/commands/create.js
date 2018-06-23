@@ -12,16 +12,16 @@ const VERSION_REGEX = schema.config.regex.VERSION;
 const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB
 
 /**
- * Publish binary command
- * @method binaryCommandPublish
+ * Publish file to the store
+ * @method publishFileToStore
  * @param  {CommandFactory} commandFactory      commandFactory
  * @param  {Object}         config              Command config
- * @param  {Binary}         binary              Binary published to the store
+ * @param  {Uint8Array}     file                File published to the store
  * @param  {String}         storeUrl            URL to the store
  * @param  {String}         authToken           Bearer Token to be passed to the store
  * @return {Promise}
  */
-function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToken) {
+function publishFileToStore(commandFactory, config, file, storeUrl, authToken) {
     const [, major, minor] = VERSION_REGEX.exec(config.version);
     const searchVersion = minor ? `${major}${minor}` : major;
     let publishVersion;
@@ -47,7 +47,7 @@ function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToke
                     Authorization: authToken,
                     'Content-Type': 'application/octet-stream'
                 },
-                body: binary
+                body: file
             };
 
             return new Promise((resolve, reject) => {
@@ -62,11 +62,45 @@ function binaryCommandPublish(commandFactory, config, binary, storeUrl, authToke
         }).then((response) => {
             if (response.statusCode !== 202) {
                 throw new Error('An error occurred when '
-                    + `posting binary to the store:${response.body.message}`);
+                    + `posting file to the store:${response.body.message}`);
             }
 
             return commandFactory.create(config);
         });
+}
+
+/**
+ * Check multipart payload
+ * @method checkValidMultipartPayload
+ * @param  {Object}         data                payload data
+ * @return {Object}
+ */
+function checkValidMultipartPayload(data) {
+    const result = { valid: true, message: '' };
+
+    if (data.spec === undefined) {
+        result.valid = false;
+        result.message = 'Posted with multipart that has no spec.';
+
+        return result;
+    }
+
+    const commandSpec = JSON.parse(data.spec);
+    const commandBin = data.file;
+
+    if (commandBin === undefined) {
+        result.valid = false;
+        result.message = 'Posted with multipart that has no binary.';
+        if (commandSpec.format === 'binary') {
+            result.message = 'Binary command should post with a binary file';
+        } else if (commandSpec.format === 'habitat' && commandSpec.habitat.mode === 'local') {
+            result.message = 'Habitat local mode should post with a binary file';
+        }
+
+        return result;
+    }
+
+    return result;
 }
 
 module.exports = () => ({
@@ -94,14 +128,18 @@ module.exports = () => ({
             const data = request.payload;
             let commandSpec;
             let commandBin;
+            let multipartCheckResult = { valid: false };
 
-            // if Content-type is multipart/form-data, both command binary and meta are posted
+            // if Content-type is multipart/form-data, both command file and meta are posted
             if (request.headers['content-type'].startsWith('multipart/form-data')) {
-                if (data.binary === undefined || data.spec === undefined) {
-                    return reply(boom.badRequest('Posted with invalid form.'));
+                multipartCheckResult = checkValidMultipartPayload(data);
+
+                if (multipartCheckResult.valid) {
+                    commandSpec = data.spec;
+                    commandBin = data.file;
+                } else {
+                    return reply(boom.badRequest(multipartCheckResult.message));
                 }
-                commandSpec = data.spec;
-                commandBin = data.binary;
             } else {
                 commandSpec = data.yaml;
             }
@@ -131,12 +169,6 @@ module.exports = () => ({
                             pipelineId: pipeline.id
                         });
 
-                        // If command format is binary and no binary file is posted, The request is invalid
-                        if (commandConfig.format === 'binary' && !commandBin) {
-                            throw boom.badRequest(
-                                'Binary command should post with the binary file');
-                        }
-
                         // If command name exists, but this build's pipelineId is not the same as command's pipelineId
                         // Then this build does not have permission to publish
                         if (commands.length !== 0 && pipeline.id !== commands[0].pipelineId) {
@@ -145,10 +177,10 @@ module.exports = () => ({
 
                         // If command name doesn't exist yet, or exists and has good permission, then create
                         // Create would automatically bump the patch version
-                        // If command format is binary, binary file also has to be posted to the store
-                        return commandConfig.format !== 'binary'
+                        // If command format is binary or habitat local mode, binary file also has to be posted to the store
+                        return !multipartCheckResult.valid
                             ? commandFactory.create(commandConfig)
-                            : binaryCommandPublish(commandFactory,
+                            : publishFileToStore(commandFactory,
                                 commandConfig,
                                 commandBin,
                                 request.server.app.ecosystem.store,
