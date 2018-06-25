@@ -23,18 +23,14 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const buildFactory = request.server.app.buildFactory;
-            const eventFactory = request.server.app.eventFactory;
+            // eslint-disable-next-line max-len
+            const { buildFactory, eventFactory, jobFactory, triggerFactory, userFactory } = request.server.app;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
             const statusMessage = request.payload.statusMessage;
-            const triggerFactory = request.server.app.triggerFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
-            const scope = request.auth.credentials.scope;
+            const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
-            const triggerEvent = request.server.plugins.builds.triggerEvent;
-            const triggerNextJobs = request.server.plugins.builds.triggerNextJobs;
+            const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -58,8 +54,33 @@ module.exports = () => ({
                         if (desiredStatus !== 'ABORTED') {
                             throw boom.badRequest('Can only update builds to ABORTED');
                         }
+
                         // Check permission against the pipeline
-                        // @TODO implement this
+                        // Fetch the job and user models
+                        return Promise.all([
+                            jobFactory.get(build.jobId),
+                            userFactory.get({ username, scmContext })
+                        ])
+                            // scmUri is buried in the pipeline, so we get that from the job
+                            .then(([job, user]) => job.pipeline.then((pipeline) => {
+                                // Check if Screwdriver admin
+                                const adminDetails = request.server.plugins.banners
+                                    .screwdriverAdminDetails(username, scmContext);
+
+                                return user.getPermissions(pipeline.scmUri)
+                                    // Check if user has push access or is a Screwdriver admin
+                                    .then((permissions) => {
+                                        if (!permissions.push && !adminDetails.isAdmin) {
+                                            throw boom.unauthorized(
+                                                `User ${user.getFullDisplayName()} does not ` +
+                                                'have permission to abort this build'
+                                            );
+                                        }
+
+                                        return eventFactory.get(build.eventId)
+                                            .then(event => ({ build, event }));
+                                    });
+                            }));
                     }
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
