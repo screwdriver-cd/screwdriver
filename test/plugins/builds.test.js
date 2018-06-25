@@ -712,7 +712,7 @@ describe('build plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.strictEqual(buildMock.status, 'RUNNING');
-                    assert.strictEqual(buildMock.statusMessage, '');
+                    assert.isNull(buildMock.statusMessage);
                     assert.notCalled(buildFactoryMock.create);
                 });
             });
