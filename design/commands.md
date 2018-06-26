@@ -40,11 +40,11 @@ format: habitat
 # Habitat specific config
 # if format: habitat
 habitat:
-    mode: remote
     package: core/git/2.14.1
+    mode: remote
     # If local
     # mode: local
-    # package: ./foobar.hart
+    # file: ./foobar.hart
     command: git
 
 # Docker specific config
@@ -128,7 +128,7 @@ $ hab pkg exec foobar-habitat-package cmd -baz sample
 ### Execute
 
 ```bash
-$ sd_cmd [exec] namespace/name@version [arguments]
+$ sd-cmd [exec] namespace/name@version [arguments]
 ```
 
 **Input:**
@@ -143,28 +143,33 @@ All debug logs about the command lookup and execution are stored in `$SD_ARTIFAC
 ### Publish
 
 ```bash
-$ sd_cmd publish -f command_spec.yml
+$ sd-cmd publish -f sd-command.yaml -t tag
+Removing 1.0.1 from tag
+Promoting 1.0.4 to tag
 1.0.4
 ```
 
 **Input:**
 
- - `command_spec.yml` is the command specification.
+ - `sd-command.yaml` is the command specification.
+ - `tag` is the case-insensitive name that you are publishing to. Default is `latest` if it's omitted.
 
 **Output:**
 
-Version number that was published.
+Promoting log and version number that was published.
 
 *Example:*
 
 ```bash
+Removing 1.0.1 from tag
+Promoting 1.0.4 to tag
 1.0.4
 ```
 
 ### Promote
 
 ```bash
-$ sd_cmd promote namespace/name version tag
+$ sd-cmd promote namespace/name version tag
 Removing 1.0.1 from tag
 Promoting version to tag
 ```

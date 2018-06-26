@@ -14,8 +14,8 @@ module.exports = () => ({
         notes: 'Update a specific pipeline',
         tags: ['api', 'pipelines'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -29,7 +29,12 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
             let gitToken;
+
+            if (!isValidToken(id, request.auth.credentials)) {
+                return reply(boom.unauthorized('Token does not have permission to this pipeline'));
+            }
 
             return Promise.all([
                 pipelineFactory.get({ id }),
@@ -41,6 +46,11 @@ module.exports = () => ({
                     if (!oldPipeline) {
                         throw boom.notFound(
                             `Pipeline ${id} does not exist`);
+                    }
+
+                    if (oldPipeline.configPipelineId) {
+                        throw boom.unauthorized('Child pipeline checkoutUrl can only be modified by'
+                            + ` config pipeline ${oldPipeline.configPipelineId}`);
                     }
 
                     // get the user token

@@ -15,7 +15,7 @@ module.exports = () => ({
         notes: 'Create a specific template',
         tags: ['api', 'templates'],
         auth: {
-            strategies: ['token', 'session'],
+            strategies: ['token'],
             scope: ['build']
         },
         plugins: {
@@ -34,10 +34,19 @@ module.exports = () => ({
                 const pipelineFactory = request.server.app.pipelineFactory;
                 const templateFactory = request.server.app.templateFactory;
                 const pipelineId = request.auth.credentials.pipelineId;
+                const isPR = request.auth.credentials.isPR;
+                // Search using namespace if it is passed in
+                const listOptions = config.template.namespace ?
+                    {
+                        params: {
+                            name: config.template.name,
+                            namespace: config.template.namespace
+                        }
+                    } : { params: { name: config.template.name } };
 
                 return Promise.all([
                     pipelineFactory.get(pipelineId),
-                    templateFactory.list({ params: { name: config.template.name } })
+                    templateFactory.list(listOptions)
                 ]).then(([pipeline, templates]) => {
                     const templateConfig = hoek.applyToDefaults(config.template, {
                         pipelineId: pipeline.id,
@@ -51,7 +60,7 @@ module.exports = () => ({
 
                     // If template name exists, but this build's pipelineId is not the same as template's pipelineId
                     // Then this build does not have permission to publish
-                    if (pipeline.id !== templates[0].pipelineId) {
+                    if (pipeline.id !== templates[0].pipelineId || isPR) {
                         throw boom.unauthorized('Not allowed to publish this template');
                     }
 

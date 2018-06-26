@@ -12,8 +12,8 @@ module.exports = () => ({
         notes: 'Create and start a specific build',
         tags: ['api', 'builds'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -28,12 +28,18 @@ module.exports = () => ({
             const scm = buildFactory.scm;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const meta = request.payload.meta;
             const payload = {
                 jobId: request.payload.jobId,
                 apiUri: request.server.info.uri,
                 username,
                 scmContext
             };
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
+
+            if (meta) {
+                payload.meta = meta;
+            }
 
             // Fetch the job and user models
             return Promise.all([
@@ -41,13 +47,42 @@ module.exports = () => ({
                 userFactory.get({ username, scmContext })
             ])
                 // scmUri is buried in the pipeline, so we get that from the job
-                .then(([job, user]) => job.pipeline.then(pipeline =>
-                    user.getPermissions(pipeline.scmUri)
+                .then(([job, user]) => job.pipeline.then((pipeline) => {
+                    // In pipeline scope, check if the token is allowed to the pipeline
+                    if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                        throw boom.unauthorized('Token does not have permission to this pipeline');
+                    }
+
+                    return user.getPermissions(pipeline.scmUri)
                         // check if user has push access
+                        // eslint-disable-next-line consistent-return
                         .then((permissions) => {
                             if (!permissions.push) {
-                                throw boom.unauthorized(`User ${username} `
-                            + 'does not have push permission for this repo');
+                                // the user who are not permitted is deleted from admins table
+                                const newAdmins = pipeline.admins;
+
+                                delete newAdmins[username];
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update()
+                                    .then(() => {
+                                        throw boom.unauthorized(`User ${username} `
+                                            + 'does not have push permission for this repo');
+                                    });
+                            }
+                        })
+                        // user has good permissions, add the user as an admin
+                        // eslint-disable-next-line consistent-return
+                        .then(() => {
+                            if (!pipeline.admins[username]) {
+                                const newAdmins = pipeline.admins;
+
+                                newAdmins[username] = true;
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update();
                             }
                         })
                         // user has good permissions, sync and create a build
@@ -64,18 +99,16 @@ module.exports = () => ({
                             return scm.getCommitSha(scmConfig)
                                 .then((sha) => {
                                     let type = 'pipeline';
-                                    let workflow = pipeline.workflow;
 
                                     if (job.isPR()) {
                                         type = 'pr';
-                                        workflow = [job.name];
                                         payload.sha = sha; // pass sha to payload if it's a PR
                                     }
 
                                     return eventFactory.create({
                                         pipelineId: pipeline.id,
+                                        meta,
                                         type,
-                                        workflow,
                                         username,
                                         scmContext,
                                         sha
@@ -93,7 +126,8 @@ module.exports = () => ({
 
                                     return buildFactory.create(payload);
                                 });
-                        })))
+                        });
+                }))
                 .then((build) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({

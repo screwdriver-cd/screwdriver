@@ -13,8 +13,8 @@ module.exports = () => ({
         notes: 'Returns all token records belonging to the current user',
         tags: ['api', 'tokens'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {
@@ -38,6 +38,7 @@ module.exports = () => ({
                     const output = token.toJson();
 
                     delete output.userId;
+                    delete output.pipelineId;
 
                     return output;
                 })))

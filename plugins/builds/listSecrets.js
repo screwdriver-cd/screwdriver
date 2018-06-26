@@ -13,8 +13,8 @@ module.exports = () => ({
         notes: 'Returns all secrets for a given build',
         tags: ['api', 'builds', 'secrets'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user', 'build']
+            strategies: ['token'],
+            scope: ['user', 'build', '!guest']
         },
         plugins: {
             'hapi-swagger': {

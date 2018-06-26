@@ -13,6 +13,15 @@ module.exports = () => ({
         description: 'Get a single build',
         notes: 'Returns a build record',
         tags: ['api', 'builds'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build', 'pipeline']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.buildFactory;
 

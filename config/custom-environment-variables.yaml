@@ -21,6 +21,8 @@ auth:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: IS_HTTPS
+    # A flag to set if you want guests to browse your pipelines
+    allowGuestAccess: AUTH_GUEST_ACCESS
     whitelist:
         __name: SECRET_WHITELIST
         __format: json
@@ -66,6 +68,7 @@ datastore:
         pool:
           __name: DATASTORE_SEQUELIZE_POOL
           __format: json
+
 executor:
     plugin: EXECUTOR_PLUGIN
     # The NPM module object(s) for the executor plugin(s)
@@ -82,12 +85,49 @@ executor:
             resources:
                 # Number of cpu cores
                 cpu:
+                    micro: K8S_CPU_MICRO
                     low: K8S_CPU_LOW
                     high: K8S_CPU_HIGH
                 # Memory in GB
                 memory:
+                    micro: K8S_MEMORY_MICRO
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
+            # Default build timeout for all builds in this cluster
+            buildTimeout: K8S_BUILD_TIMEOUT
+            # Default max build timeout
+            maxBuildTimeout: K8S_MAX_BUILD_TIMEOUT
+            # k8s node selectors for build pod scheduling.
+            # Value is Object of format { label: 'value' } See
+            # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+            # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
+            # label-value of dedicated=screwdriver
+            nodeSelectors:
+              __name: K8S_NODE_SELECTORS
+              __format: json
+            # k8s preferred node selectors for build pod scheduling
+            # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+            preferredNodeSelectors:
+              __name: K8S_PREFERRED_NODE_SELECTORS
+              __format: json
+        # Launcher container tag to use
+        launchVersion: LAUNCH_VERSION
+        # Prefix to the pod
+        prefix: EXECUTOR_PREFIX
+    nomad:
+      enabled: EXECUTOR_NOMAD_ENABLED
+      options:
+        nomad:
+            # The host or IP of the nomad cluster
+            host: NOMAD_HOST
+            # Resources for build pod
+            resources:
+                # Number of cpu cores
+                cpu:
+                    high: NOMAD_CPU
+                # Memory in GB
+                memory:
+                    high: NOMAD_MEMORY
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the pod
@@ -118,19 +158,30 @@ executor:
             resources:
                 # Number of cpu cores
                 cpu:
+                    micro: K8S_CPU_MICRO
                     low: K8S_CPU_LOW
                     high: K8S_CPU_HIGH
                 # Memory in GB
                 memory:
+                    micro: K8S_MEMORY_MICRO
                     low: K8S_MEMORY_LOW
                     high: K8S_MEMORY_HIGH
-            # k8s node selectors for approprate build pod scheduling.
+            # Default build timeout for all builds in this cluster
+            buildTimeout: K8S_VM_BUILD_TIMEOUT
+            # Default max build timeout
+            maxBuildTimeout: K8S_VM_MAX_BUILD_TIMEOUT
+            # k8s node selectors for build pod scheduling.
             # Value is Object of format { label: 'value' } See
             # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
             # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
             # label-value of dedicated=screwdriver
             nodeSelectors:
-              __name: K8S_NODE_SELECTORS
+              __name: K8S_VM_NODE_SELECTORS
+              __format: json
+            # k8s preferred node selectors for build pod scheduling
+            # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+            preferredNodeSelectors:
+              __name: K8S_VM_PREFERRED_NODE_SELECTORS
               __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
@@ -246,6 +297,16 @@ bookends:
 notifications:
     __name: NOTIFICATIONS
     __format: json
+
+coverage:
+    plugin: COVERAGE_PLUGIN
+    sonar:
+        # Screwdriver API url
+        sdApiUrl: URI
+        # Sonar host url
+        sonarHost:  COVERAGE_SONAR_HOST
+        # Sonar admin token
+        adminToken: COVERAGE_SONAR_ADMIN_TOKEN
 
 ecosystem:
     # URL for the User Interface

@@ -13,6 +13,15 @@ module.exports = () => ({
         description: 'Get a single job',
         notes: 'Returns a job record',
         tags: ['api', 'jobs'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'build', 'pipeline']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.jobFactory;
 

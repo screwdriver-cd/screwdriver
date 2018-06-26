@@ -11,10 +11,10 @@ module.exports = () => ({
     config: {
         description: 'Refresh a token',
         notes: 'Update the value of a token while preserving its other metadata',
-        tags: ['api', 'secrets'],
+        tags: ['api', 'tokens'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
         },
         plugins: {
             'hapi-swagger': {

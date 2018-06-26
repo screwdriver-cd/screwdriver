@@ -14,8 +14,6 @@ auth:
         -----BEGIN PUBLIC KEY-----
         YOUR-KEY-HERE
         -----END PUBLIC KEY-----
-    # Environment of JWTs
-    jwtEnvironment: ''
     # A password used for encrypting session data.
     # **Needs to be minimum 32 characters**
     cookiePassword: WOW-ANOTHER-INSECURE-PASSWORD!!!
@@ -25,44 +23,12 @@ auth:
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false
+    # A flag to set if you want guests to browse your pipelines
+    allowGuestAccess: false
     # Whitelist of users able to authenticate against the system
     # if empty, it allows everyone
-    # @TODO Move this content to our configuration and change the default to []
-    whitelist:
-        # Primary Contributors
-        - github:FenrirUnbound
-        - github:cynthiax
-        - github:d2lam
-        - github:dvdizon
-        - github:jithin1987
-        - github:minz1027
-        - github:petey
-        - github:pranavrc
-        - github:r3rastogi
-        - github:ScottyFillups
-        - github:stjohnjohnson
-        - github:tkyi
-        # Automated Account
-        - github:sd-buildbot
-        # Pilots
-        - github:aressem
-        - github:bjorncs
-        - github:drewfish
-        - github:gjoranv2
-        - github:awick
-        - github:frodelu
-        - github:mortent
-        - github:bratseth
-        - github:jonmv
-        - github:manolama
-    admins:
-        - github:FenrirUnbound
-        - github:d2lam
-        - github:jithin1987
-        - github:minz1027
-        - github:petey
-        - github:stjohnjohnson
-        - github:tkyi
+    whitelist: []
+    admins: []
 
 httpd:
     # Port to listen on
@@ -106,14 +72,36 @@ executor:
             resources:
                 cpu:
                     # Number of cpu cores
+                    micro: "0.5"
                     low: 2
                     high: 6
                 memory:
                     # Memory in GB
+                    micro: 1
                     low: 2
                     high: 12
+            # Default build timeout for all builds in this cluster (in minutes)
+            buildTimeout: 90
+            # Default max build timeout (in minutes)
+            maxBuildTimeout: 120
+            # k8s node selectors for approprate pod scheduling
+            nodeSelectors: {}
+            preferredNodeSelectors: {}
         # Container tags to use
         launchVersion: stable
+    # nomad:
+    #   enabled: true
+    #   options:
+    #     nomad:
+    #         # The host or IP of the nomad cluster
+    #         host: nomad.default/v1/jobs
+    #         resources:
+    #             cpu:
+    #                 high: 200
+    #             memory:
+    #                 high: 2000
+    #     # Container tags to use
+    #     launchVersion: stable
     docker:
       enabled: true
       options:
@@ -135,14 +123,21 @@ executor:
             resources:
                 cpu:
                     # Number of cpu cores
+                    micro: 1
                     low: 2
                     high: 6
                 memory:
                     # Memory in GB
+                    micro: 1
                     low: 2
                     high: 12
+            # Default build timeout for all builds in this cluster (in minutes)
+            buildTimeout: 90
+            # Default max build timeout (in minutes)
+            maxBuildTimeout: 120
             # k8s node selectors for approprate pod scheduling
             nodeSelectors: {}
+            preferredNodeSelectors: {}
         # Launcher container tag to use
         launchVersion: stable
 #     jenkins:
@@ -210,6 +205,13 @@ webhooks:
     # Ignore commits made by these users
     ignoreCommitsBy: []
 
+coverage: {}
+    # plugin: sonar
+    # sonar:
+    #     sdApiUrl: https://api.screwdriver.cd
+    #     sonarHost: https://sonar.screwdriver.cd
+    #     adminToken: your-sonar-admin-token
+
 bookends:
     # Plugins for build setup
     setup:
@@ -223,6 +225,8 @@ notifications:
     #     host: email-host
     #     port: email-port
     #     from: email-address-to-send-from
+    #     username: optional-username
+    #     password: optional-password
     # Slack notification when build finishes
     # slack:
     #     token: your-slack-bot-token

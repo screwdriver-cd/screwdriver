@@ -1,0 +1,13 @@
+{
+  "id": 1234,
+  "namespace": "bar",
+  "name": "foo",
+  "version": "1.0.0",
+  "description": "this is a binary command",
+  "maintainer": "foo@bar.com",
+  "format": "binary",
+  "binary": {
+    "file": "./foobar.sh"
+  },
+  "pipelineId": 123
+}

@@ -1,0 +1,374 @@
+'use strict';
+
+const assert = require('chai').assert;
+const sinon = require('sinon');
+const hapi = require('hapi');
+const mockery = require('mockery');
+const testBanner = require('./data/banner.json');
+const testBanners = require('./data/banners.json');
+const testBannersActive = require('./data/banners-active.json');
+const updatedBanner = require('./data/updatedBanner.json');
+
+sinon.assert.expose(assert, { prefix: '' });
+
+const getMock = (obj) => {
+    const mock = Object.assign({}, obj);
+
+    mock.update = sinon.stub();
+    mock.toJson = sinon.stub().returns(obj);
+    mock.remove = sinon.stub();
+
+    return mock;
+};
+
+const getBannerMock = (banner) => {
+    if (Array.isArray(banner)) {
+        return banner.map(getMock);
+    }
+
+    return getMock(banner);
+};
+
+describe('banner plugin test', () => {
+    let bannerMock;
+    let bannerFactoryMock;
+    let plugin;
+    let server;
+    let scm;
+
+    before(() => {
+        mockery.enable({
+            useCleanCache: true,
+            warnOnUnregistered: false
+        });
+    });
+
+    beforeEach((done) => {
+        scm = {
+            getScmContexts: sinon.stub().returns(['github:github.com']),
+            getDisplayName: sinon.stub().returns('github'),
+            getBellConfiguration: sinon.stub().resolves({
+                'github:github.com': {
+                    clientId: 'abcdefg',
+                    clientSecret: 'hijklmno',
+                    provider: 'github',
+                    scope: [
+                        'admin:repo_hook',
+                        'read:org',
+                        'repo:status'
+                    ]
+                }
+            })
+        };
+        bannerFactoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            list: sinon.stub(),
+            scm
+        };
+
+        bannerMock = getMock(testBanner);
+        bannerMock.remove.resolves(null);
+        bannerMock.update.resolves(bannerMock);
+        bannerFactoryMock.create.resolves(bannerMock);
+
+        /* eslint-disable global-require */
+        plugin = require('../../plugins/banners');
+        /* eslint-enable global-require */
+
+        server = new hapi.Server();
+        server.app = {
+            bannerFactory: bannerFactoryMock
+        };
+        server.connection({
+            port: 1234
+        });
+
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, reply) => reply.continue({
+                credentials: {
+                    scope: ['user']
+                }
+            })
+        }));
+        server.auth.strategy('token', 'custom');
+
+        server.register([{
+            register: plugin,
+            options: {
+                admins: ['github:jimgrund', 'github:batman']
+            }
+        }], done);
+    });
+
+    afterEach(() => {
+        server = null;
+        mockery.deregisterAll();
+        mockery.resetCache();
+    });
+
+    after(() => {
+        mockery.disable();
+    });
+
+    it('registers the plugin', () => {
+        assert.isOk(server.registrations.banners);
+    });
+
+    describe('POST /banners', () => {
+        let options;
+        const username = 'jimgrund';
+        const scmContext = 'github:github.com';
+        const message = 'Test banner example';
+        const isActive = true;
+        const type = 'info';
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: '/banners',
+                payload: {
+                    message,
+                    isActive,
+                    type
+                },
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            bannerFactoryMock.get.resolves(null);
+        });
+
+        it('returns 201 and creates a banner', () => {
+            server.inject(options).then((reply) => {
+                const expected = Object.assign({}, testBanner);
+
+                delete expected.id;
+                delete expected.createTime;
+                assert.calledWith(bannerFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.result, testBanner);
+            });
+        });
+
+        it('returns 201 and creates a banner using default type', () => {
+            delete options.payload.type;
+
+            server.inject(options).then((reply) => {
+                const expected = Object.assign({}, testBanner);
+
+                // set expected type to default of 'info'
+                expected.type = 'info';
+
+                delete expected.id;
+                delete expected.createTime;
+                assert.calledWith(bannerFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.result, testBanner);
+            });
+        });
+
+        it('returns 201 and creates a banner using default isActive', () => {
+            delete options.payload.isActive;
+
+            server.inject(options).then((reply) => {
+                const expected = Object.assign({}, testBanner);
+
+                // set expected isActive to default of true
+                expected.isActive = false;
+
+                delete expected.id;
+                delete expected.createTime;
+                assert.calledWith(bannerFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.equal(reply.result, testBanner);
+            });
+        });
+
+        it('returns 403 for non-admin user', () => {
+            options.credentials.username = 'batman123';
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 500 when banner fails to create', () => {
+            const testError = new Error('bannerModelError');
+
+            bannerFactoryMock.create.rejects(testError);
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /banners', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/banners'
+            };
+        });
+
+        it('returns 200 for listing banners', () => {
+            bannerFactoryMock.list.resolves(getBannerMock(testBanners));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBanners);
+            });
+        });
+
+        it('returns 200 for listing banners with query params', () => {
+            options.url = '/banners?isActive=true';
+            bannerFactoryMock.list.resolves(getBannerMock(testBannersActive));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBannersActive);
+            });
+        });
+    });
+
+    describe('GET /banners/{id}', () => {
+        let options;
+        const id = 123;
+        const username = 'jimgrund';
+        const scmContext = 'github:github.com';
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/banners/${id}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+        });
+
+        it('returns 200 for get banner', () => {
+            bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
+
+            return server.inject(options).then((reply) => {
+                const expected = Object.assign({}, testBanner);
+
+                delete expected.id;
+                delete expected.createdBy;
+                delete expected.createTime;
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBanner);
+            });
+        });
+
+        it('returns 404 when banner does not exist', () => {
+            bannerFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
+    describe('PUT /banners/{id}', () => {
+        let options;
+        let updatedBannerMock;
+        const id = 123;
+        const username = 'jimgrund';
+        const scmContext = 'github:github.com';
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/banners/${id}`,
+                payload: {
+                    message: 'This is a new banner',
+                    isActive: true,
+                    type: 'warn'
+                },
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            updatedBannerMock = getMock(updatedBanner);
+            bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
+            bannerMock.update.resolves(updatedBannerMock);
+            updatedBannerMock.toJson.returns(updatedBanner);
+        });
+
+        it('returns 200 updating banner by admin user', () =>
+            server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, updatedBanner);
+                assert.calledOnce(bannerMock.update);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 404 when banner id does not exist', () => {
+            bannerFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 updating banner by non-admin user', () => {
+            options.credentials.username = 'batman123';
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+    });
+
+    describe('DELETE /banners/{id}', () => {
+        let options;
+        const id = 123;
+        const username = 'jimgrund';
+        const scmContext = 'github:github.com';
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/banners/${id}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
+        });
+
+        it('returns 204 when delete is success', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(bannerMock.remove);
+            })
+        );
+
+        it('returns 403 deleting banner by non-admin user', () => {
+            options.credentials.username = 'batman123';
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 404 when banner id does not exist', () => {
+            bannerFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+});

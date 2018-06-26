@@ -51,11 +51,17 @@ authConfig.scm = scm;
 const ArtifactPlugin = require('screwdriver-artifact-bookend');
 const artifact = new ArtifactPlugin(ecosystem.store);
 
+// Plugin to upload coverage
+const coverageConfig = config.get('coverage');
+const CoveragePlugin = require('screwdriver-coverage-bookend');
+const coverage = new CoveragePlugin(coverageConfig);
+
 // Plugins to run before/after a build
 const bookends = config.get('bookends');
 const bookend = new Bookend({
     scm,
-    'screwdriver-artifact-bookend': artifact
+    'screwdriver-artifact-bookend': artifact,
+    'screwdriver-coverage-bookend': coverage
 },
 bookends.setup || [], // plugins required for the setup- steps
 bookends.teardown || [] // plugins required for the teardown- steps
@@ -75,12 +81,14 @@ const templateFactory = Models.TemplateFactory.getInstance({
 const templateTagFactory = Models.TemplateTagFactory.getInstance({
     datastore
 });
+
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm
 });
 const jobFactory = Models.JobFactory.getInstance({
-    datastore
+    datastore,
+    executor
 });
 const userFactory = Models.UserFactory.getInstance({
     datastore,
@@ -107,6 +115,10 @@ const eventFactory = Models.EventFactory.getInstance({
     datastore,
     scm
 });
+const bannerFactory = Models.BannerFactory.getInstance({
+    datastore,
+    scm
+});
 const collectionFactory = Models.CollectionFactory.getInstance({
     datastore
 });
@@ -121,6 +133,7 @@ datastore.setup()
         auth: authConfig,
         webhooks: webhooksConfig,
         notifications: notificationConfig,
+        coverage,
         ecosystem,
         commandFactory,
         commandTagFactory,
@@ -130,11 +143,13 @@ datastore.setup()
         jobFactory,
         userFactory,
         buildFactory,
+        bannerFactory,
         secretFactory,
         tokenFactory,
         eventFactory,
         collectionFactory,
         triggerFactory,
+        banners: authConfig,
         builds: {
             ecosystem,
             authConfig

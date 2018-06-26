@@ -1,12 +1,11 @@
 'use strict';
 
-const authjwt = require('hapi-auth-jwt2');
+const authJWT = require('hapi-auth-jwt2');
 const authToken = require('hapi-auth-bearer-token');
 const bell = require('bell');
 const contextsRoute = require('./contexts');
 const crumb = require('crumb');
 const crumbRoute = require('./crumb');
-const hoek = require('hoek');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const keyRoute = require('./key');
@@ -16,7 +15,7 @@ const sugar = require('hapi-auth-cookie');
 const tokenRoute = require('./token');
 const uuid = require('uuid/v4');
 
-const EXPIRES_IN = '2h';
+const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
 
 /**
@@ -27,6 +26,7 @@ const ALGORITHM = 'RS256';
  * @param  {String}   options.cookiePassword         Password used for temporary encryption of cookie secrets
  * @param  {String}   options.encryptionPassword     Password used for iron encrypting
  * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
+ * @param  {Boolean}  options.allowGuestAccess       Letting users browse your system
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
  * @param  {String}  [options.jwtEnvironment]        Environment for the JWTs. Example: 'prod' or 'beta'
  * @param  {Object}   options.scm                    SCM class to setup Authentication
@@ -38,13 +38,13 @@ exports.register = (server, options, next) => {
         https: joi.boolean().truthy('true').falsy('false').required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
+        allowGuestAccess: joi.boolean().truthy('true').falsy('false').default(false),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
         admins: joi.array().default([]),
         scm: joi.object().required()
     }), 'Invalid config for plugin-auth');
-    const scmContexts = server.root.app.userFactory.scm.getScmContexts();
 
     /**
      * Generates a profile for storage in cookie and jwt
@@ -57,46 +57,55 @@ exports.register = (server, options, next) => {
      */
     server.expose('generateProfile', (username, scmContext, scope, metadata) => {
         const profile = Object.assign({
-            username, scmContext, scope, environment: pluginOptions.jwtEnvironment
+            username, scmContext, scope
         }, metadata || {});
-        const scm = server.root.app.userFactory.scm;
-        const scmDisplayName = scm.getDisplayName({ scmContext });
-        const userDisplayName = `${scmDisplayName}:${username}`;
 
-        // Check admin
-        if (pluginOptions.admins.length > 0
+        if (pluginOptions.jwtEnvironment) {
+            profile.environment = pluginOptions.jwtEnvironment;
+        }
+
+        if (scmContext) {
+            const scm = server.root.app.userFactory.scm;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
+            const userDisplayName = `${scmDisplayName}:${username}`;
+
+            // Check admin
+            if (pluginOptions.admins.length > 0
                 && pluginOptions.admins.includes(userDisplayName)) {
-            profile.scope.push('admin');
+                profile.scope.push('admin');
+            }
         }
 
         return profile;
     });
 
     /**
-     * Generates a jwt that is signed and has a 2h lifespan
+     * Generates a jwt that is signed and has a lifespan (default:2h)
      * @method generateToken
-     * @param  {Object} profile Object from generateProfile
-     * @return {String}         Signed jwt that includes that profile
+     * @param  {Object}  profile        Object from generateProfile
+     * @param  {Integer} buildTimeout   JWT Expires time (must be minutes)
+     * @return {String}                 Signed jwt that includes that profile
      */
-    server.expose('generateToken', profile => jwt.sign(profile, pluginOptions.jwtPrivateKey, {
-        algorithm: ALGORITHM,
-        expiresIn: EXPIRES_IN,
-        jwtid: uuid()
-    }));
+    server.expose('generateToken', (profile, buildTimeout = DEFAULT_TIMEOUT) =>
+        jwt.sign(profile, pluginOptions.jwtPrivateKey, {
+            algorithm: ALGORITHM,
+            expiresIn: buildTimeout * 60, // must be in second
+            jwtid: uuid()
+        })
+    );
 
-    const modules = [bell, sugar, authjwt, authToken, {
-        register: crumb,
-        options: {
-            restful: true,
-            skip: request =>
-                // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
-                !!request.headers.authorization ||
-                !!request.route.path.includes('/webhooks') ||
-                !!request.route.path.includes('/auth/')
-        }
-    }];
-
-    return server.register(modules)
+    return server.register([
+        bell, sugar, authToken, authJWT, {
+            register: crumb,
+            options: {
+                restful: true,
+                skip: request =>
+                    // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                    !!request.headers.authorization ||
+                    !!request.route.path.includes('/webhooks') ||
+                    !!request.route.path.includes('/auth/')
+            }
+        }])
         .then(() => pluginOptions.scm.getBellConfiguration())
         .then((bellConfigs) => {
             Object.keys(bellConfigs).forEach((scmContext) => {
@@ -119,8 +128,7 @@ exports.register = (server, options, next) => {
             server.auth.strategy('token', 'jwt', {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
-                    algorithms: [ALGORITHM],
-                    maxAge: EXPIRES_IN
+                    algorithms: [ALGORITHM]
                 },
                 // This function is run once the Token has been decoded with signature
                 validateFunc(decoded, request, cb) {
@@ -132,53 +140,70 @@ exports.register = (server, options, next) => {
                 accessTokenName: 'api_token',
                 allowCookieToken: false,
                 allowQueryToken: true,
-                validateFunc: function _validateFunc(token, cb) {
+                validateFunc: function _validateFunc(tokenValue, cb) {
                     // Token is an API token
                     // using function syntax makes 'this' the request
-                    // TODO: Should log that we're authenticating a user with a token
-                    const factory = this.server.app.userFactory;
+                    const request = this;
+                    const tokenFactory = request.server.app.tokenFactory;
+                    const userFactory = request.server.app.userFactory;
+                    const pipelineFactory = request.server.app.pipelineFactory;
 
-                    return factory.get({ accessToken: token })
-                        .then((user) => {
-                            if (!user) {
-                                return cb(null, false, {});
+                    return tokenFactory.get({ value: tokenValue })
+                        .then((token) => {
+                            if (!token) {
+                                return Promise.reject();
+                            } else if (token.userId) {
+                                // if token has userId then the token is for user
+                                return userFactory.get({ accessToken: tokenValue })
+                                    .then((user) => {
+                                        if (!user) {
+                                            return Promise.reject();
+                                        }
+
+                                        return {
+                                            username: user.username,
+                                            scmContext: user.scmContext,
+                                            scope: ['user']
+                                        };
+                                    });
+                            } else if (token.pipelineId) {
+                                // if token has pipelineId then the token is for pipeline
+                                return pipelineFactory.get({ accessToken: tokenValue })
+                                    .then((pipeline) => {
+                                        if (!pipeline) {
+                                            return Promise.reject();
+                                        }
+
+                                        return pipeline.admin.then(admin => ({
+                                            username: admin.username,
+                                            scmContext: pipeline.scmContext,
+                                            pipelineId: token.pipelineId,
+                                            scope: ['pipeline']
+                                        }));
+                                    });
                             }
 
-                            const profile = {
-                                username: user.username,
-                                scmContext: user.scmContext,
-                                scope: ['user']
-                            };
-
+                            return Promise.reject();
+                        })
+                        .then((profile) => {
+                            request.log(['auth'], `${profile.username} has logged in via `
+                                        + `${profile.scope[0]} API keys`);
                             profile.token = server.plugins.auth.generateToken(profile);
 
                             return cb(null, true, profile);
+                        })
+                        .catch((err) => {
+                            request.log(['auth', 'error'], err);
+                            cb(null, false, {});
                         });
                 }
             });
-
-            const loginRoutes = [];
-
-            scmContexts.forEach((scmContext) => {
-                const auth = {
-                    strategy: `oauth_${scmContext}`,
-                    mode: 'try'
-                };
-                const loginOptions = hoek.applyToDefaults(pluginOptions, { scmContext, auth });
-
-                loginRoutes.push(loginRoute(loginOptions));
-            });
-            // This login route for which scmContext isn't passed just redirects to a default login route, so this login route doesn't need to have any auth strategy
-            loginRoutes.push(loginRoute(hoek.applyToDefaults(pluginOptions, {
-                scmContext: '', auth: null
-            })));
-
-            server.route(loginRoutes.concat([
+            server.route(loginRoute(server, pluginOptions).concat([
                 logoutRoute(),
                 tokenRoute(),
                 crumbRoute(),
                 keyRoute(pluginOptions),
-                contextsRoute()
+                contextsRoute(pluginOptions)
             ]));
 
             next();

@@ -13,8 +13,13 @@ module.exports = () => ({
         notes: 'Returns null if successful',
         tags: ['api', 'pipelines'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const pipelineFactory = request.server.app.pipelineFactory;
@@ -29,6 +34,10 @@ module.exports = () => ({
             ]).then(([pipeline, user]) => {
                 if (!pipeline) {
                     throw boom.notFound('Pipeline does not exist');
+                }
+                if (pipeline.configPipelineId) {
+                    throw boom.unauthorized('Child pipeline can only be removed'
+                        + `by modifying scmUrls in config pipeline ${pipeline.configPipelineId}`);
                 }
                 if (!user) {
                     throw boom.notFound(`User ${username} does not exist`);

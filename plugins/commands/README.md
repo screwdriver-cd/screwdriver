@@ -33,6 +33,12 @@ server.register({
 
 `GET /commands`
 
+##### Get all command versions
+
+You can get all versions of commands by providing the command namespace and name.
+
+`GET /commands/{namespace}/{name}`
+
 ##### Get a single command
 
 You can get a single command by providing the command namespace, name and the specific version or the tag.
@@ -52,7 +58,7 @@ You can get a single command by providing the command namespace, name and the sp
 
 Creating a command will store the command data (`namespace`, `name`, `version`, `description`, `maintainer`, `format`, `commandFormat`) into the datastore.
 
-`version` will be auto-bumped. For example, if `foo/bar@1.0.0` already exists and the version passed in is `1.0`, the newly created command will be version `1.0.1`. 
+`version` will be auto-bumped. For example, if `foo/bar@1.0.0` already exists and the version passed in is `1.0`, the newly created command will be version `1.0.1`.
 
 *Note: This endpoint only accessible in `build` scope and the permission is tied to the pipeline that first creates the command.*
 
@@ -87,3 +93,24 @@ Example payload:
 }
 ```
 
+##### Delete a command
+Deleting a command will delete a command and all of its associated tags and versions.
+
+`DELETE /commands/{name}`
+
+###### Arguments
+
+* `name` - Name of the command
+
+#### Command Tag
+Command Tag allows fetching on command version by tag. For example, command `mynamespace/mycommand@1.2.0` as `stable`.
+
+##### Create/Update a tag
+
+If the command tag already exists, it will update the tag with the version. If the command tag doesn't exist yet, this endpoint will create the tag.
+
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the command.*
+
+`PUT /commands/{namespace}/{name}/tags/{tagName}` with the following payload
+
+* `version` - Exact version of the command (ex: `1.1.0`)

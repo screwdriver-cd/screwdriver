@@ -73,7 +73,10 @@ defineSupportCode(({ Before, Given, Then }) => {
                 method: 'GET',
                 url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
                 followAllRedirects: true,
-                json: true
+                json: true,
+                auth: {
+                    bearer: this.jwt
+                }
             }))
             .then((response) => {
                 Assert.strictEqual(response.statusCode, 200);
@@ -82,32 +85,30 @@ defineSupportCode(({ Before, Given, Then }) => {
 
     Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
-            method: 'GET',
+            uri: `${this.instance}/${this.namespace}/events`,
+            method: 'POST',
+            body: {
+                pipelineId: this.pipelineId,
+                startFrom: 'main'
+            },
+            auth: {
+                bearer: this.jwt
+            },
             json: true
-        })
-            .then((response) => {
-                Assert.equal(response.statusCode, 200);
-
-                this.jobId = response.body[0].id;
-            })
-            .then(() =>
-                request({
-                    uri: `${this.instance}/${this.namespace}/builds`,
-                    method: 'POST',
-                    body: {
-                        jobId: this.jobId
-                    },
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
-                }).then((resp) => {
-                    Assert.equal(resp.statusCode, 201);
-
-                    this.buildId = resp.body.id;
-                })
-            );
+        }).then((resp) => {
+            Assert.equal(resp.statusCode, 201);
+            this.eventId = resp.body.id;
+        }).then(() => request({
+            uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        })).then((resp) => {
+            Assert.equal(resp.statusCode, 200);
+            this.buildId = resp.body[0].id;
+        });
     });
 
     Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, function step() {

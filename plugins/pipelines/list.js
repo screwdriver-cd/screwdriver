@@ -3,6 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
 
 module.exports = () => ({
@@ -12,16 +13,31 @@ module.exports = () => ({
         description: 'Get pipelines with pagination',
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', 'pipeline']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const scmContexts = factory.scm.getScmContexts();
             let pipelineArray = [];
 
             scmContexts.forEach((scmContext) => {
+                const params = {
+                    scmContext
+                };
+
+                if (request.query.configPipelineId) {
+                    params.configPipelineId = request.query.configPipelineId;
+                }
+
                 const pipelines = factory.list({
-                    params: {
-                        scmContext
-                    },
+                    params,
                     paginate: {
                         page: request.query.page,
                         count: request.query.count
@@ -41,7 +57,9 @@ module.exports = () => ({
             schema: listSchema
         },
         validate: {
-            query: schema.api.pagination
+            query: schema.api.pagination.concat(joi.object({
+                configPipelineId: idSchema
+            }))
         }
     }
 });

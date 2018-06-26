@@ -15,8 +15,9 @@ Have a look at our guidelines, as well as pointers on where to start making chan
 
 ### Prerequisites
 
-- Node v6.0.0 or higher
+- Node v8.0.0 or higher
 - [Kubernetes][kubectl] or [Docker][docker]
+
 
 ### From Source
 
@@ -72,16 +73,14 @@ executor:
             launchVersion: stable
 
 scms:
-    - plugin: github
-      config:
-          displayName: github
-          oauthClientId: totally-real-client-id
-          oauthClientSecret: another-real-client-secret
-          username: sd-buildbot
-          email: dev-null@screwdriver.cd
-          gheHost: github.com
-          secret: this-is-a-secret
-          privateRepo: false
+    github:
+        plugin: github
+        config:
+            oauthClientId: totally-real-client-id
+            oauthClientSecret: another-real-client-secret
+            secret: a-really-real-secret
+            username: sd-buildbot
+            email: dev-null@screwdriver.cd
 ```
 
 ### Environment
@@ -99,10 +98,12 @@ All the possible environment variables are [defined here](config/custom-environm
 
 ## Plugins
 
-This API comes preloaded with 9 (nine) resources:
+This API comes preloaded with 10 (ten) resources:
 
  - [auth](plugins/auth/README.md)
+ - [banners](plugins/banners/README.md)
  - [builds](plugins/builds/README.md)
+ - [coverage](plugins/coverage/README.md) - optional
  - [collections](plugins/collections/README.md)
  - [events](plugins/events/README.md)
  - [jobs](plugins/jobs/README.md)
@@ -114,9 +115,10 @@ This API comes preloaded with 9 (nine) resources:
 One (1) option for datastores:
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
-Two (2) options for executor:
+Three (3) options for executor:
  - Kubernetes (`k8s`)
  - Docker (`docker`)
+ - Nomad (`nomad`)
 
 Two (2) options for SCM:
  - Github (`github`)
@@ -191,5 +193,6 @@ Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
 [slack-image]: http://slack.screwdriver.cd/badge.svg
 [slack-url]: http://slack.screwdriver.cd/
 [docker-compose]: https://www.docker.com/products/docker-compose
+[nomad]: https://www.hashicorp.com/products/nomad
 [docker]: https://www.docker.com/products/docker
 [kubectl]: https://kubernetes.io/docs/user-guide/kubectl-overview/

@@ -15,10 +15,12 @@ describe('Register Unit Test Case', () => {
         '../plugins/logging',
         '../plugins/swagger',
         '../plugins/validator',
-        '../plugins/template-validator'
+        '../plugins/template-validator',
+        '../plugins/command-validator'
     ];
     const resourcePlugins = [
         '../plugins/auth',
+        '../plugins/banners',
         '../plugins/builds',
         '../plugins/collections',
         '../plugins/commands',
@@ -177,6 +179,33 @@ describe('Register Unit Test Case', () => {
             notificationPlugins.forEach(() =>
                 Assert.calledTwice(serverMock.on)
             );
+        });
+    });
+
+    it('registered coverage as resource plugin if configured', () => {
+        const coveragePlugin = '../plugins/coverage';
+
+        mocks[coveragePlugin] = sinon.stub();
+        mockery.registerMock(coveragePlugin, mocks[coveragePlugin]);
+        serverMock.register.callsArgAsync(2);
+
+        return main(serverMock, {
+            coverage: {
+                coveragePlugin: {}
+            }
+        }).then(() => {
+            Assert.equal(serverMock.register.callCount, pluginLength + 1);
+
+            resourcePlugins.forEach((plugin) => {
+                Assert.calledWith(serverMock.register, {
+                    register: mocks[plugin],
+                    options: {}
+                }, {
+                    routes: {
+                        prefix: '/v4'
+                    }
+                });
+            });
         });
     });
 

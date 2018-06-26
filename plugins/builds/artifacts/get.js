@@ -17,16 +17,18 @@ module.exports = config => ({
         tags: ['api', 'builds', 'artifacts'],
         auth: {
             strategies: ['session', 'token'],
-            scope: ['user']
+            scope: ['user', 'build', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
-                security: [{ session: [] }]
+                security: [{ token: [] }]
             }
         },
         handler: (request, reply) => {
             const artifact = request.params.name;
             const buildId = request.params.id;
+
+            const encodedArtifact = encodeURIComponent(artifact);
 
             const token = jwt.sign({
                 buildId, artifact, scope: ['user']
@@ -37,7 +39,7 @@ module.exports = config => ({
             });
 
             const baseUrl = `${config.ecosystem.store}/v1/builds/`
-                + `${buildId}/ARTIFACTS/${artifact}?token=${token}`;
+                + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
 
             return reply().redirect().location(baseUrl);
         },

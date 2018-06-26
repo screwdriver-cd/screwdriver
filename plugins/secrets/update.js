@@ -13,8 +13,13 @@ module.exports = () => ({
         notes: 'Update a specific secret',
         tags: ['api', 'secrets'],
         auth: {
-            strategies: ['token', 'session'],
-            scope: ['user']
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
         },
         handler: (request, reply) => {
             const factory = request.server.app.secretFactory;
