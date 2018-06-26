@@ -49,7 +49,8 @@ module.exports = () => ({
                         {
                             isPR: profile.isPR,
                             jobId: profile.jobId,
-                            pipelineId: profile.pipelineId
+                            pipelineId: profile.pipelineId,
+                            configPipelineId: profile.configPipelineId
                         }
                     ), parseInt(buildTimeout, 10)
                 );
