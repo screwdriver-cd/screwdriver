@@ -60,7 +60,9 @@ module.exports = () => ({
                         }
 
                         return token.refresh()
-                            .then(reply(token.toJson()).code(200));
+                            .then((refreshed) => {
+                                reply(refreshed.toJson()).code(200);
+                            });
                     });
                 })
                 .catch(err => reply(boom.wrap(err)));

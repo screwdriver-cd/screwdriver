@@ -1760,11 +1760,18 @@ describe('pipeline plugin test', () => {
             tokenFactoryMock.get.resolves(tokenMock);
         });
 
-        it('returns 200 and refreshed token', () =>
+        it('returns 200 and refreshed token', () => {
+            const refreshedToken = hoek.applyToDefaults(testTokens, {
+                value: 'refreshed'
+            });
+
+            tokenMock.refresh.resolves(getTokenMocks(refreshedToken));
+
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-            })
-        );
+                assert.equal(reply.result, refreshedToken);
+            });
+        });
 
         it('returns 401 when user does not have admin permission', () => {
             const error = {
