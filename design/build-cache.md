@@ -195,11 +195,11 @@ Points to consider:
 
 Not exposed as a user command. Used internally by director. Uses yaml data for cache details.
 
-| command | details |
+| Command | Fetails |
 | - | - |
-| `cache` | cache command |
-| `cache get` | gets all cache for this pipeline and extracts/merges them |
-| `cache put`| saves all caches for this pipeline |
+| `cache` | Cache command |
+| `cache get` | Gets all cache for this pipeline and extracts/merges them |
+| `cache put`| Saves all caches for this pipeline |
 
 
 
