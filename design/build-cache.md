@@ -172,7 +172,7 @@ The build cache service is essentially a specialized version of the store servic
 
 #### Execution flow
 
-![flow.svg](./diagrams/flow.svg)
+![flow.png](./diagrams/flow.png)
 
 #### Server
 
