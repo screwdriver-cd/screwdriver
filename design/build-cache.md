@@ -39,27 +39,25 @@ shared:
     # An event scoped cache
     event:
       target: ["target/deployment.jar"]
+    # A job scoped cache 
+    my-cache-1:
+      target: ["build/some-artifact.zip"]
 jobs:
-  validate:
-    # Caches defined here are automatically job scoped.
-    cache:
-      # The cache name
-      stuff:
-        # The target to be caching
-        target: ["./build/generated/*"]
-    requires: [~pr] # need to add logic so that caches only get updated in a pr when marked as trusted
-    image: node8:latest
-    steps:
-      - install: npm install -g yaml-lint
-      - lint: yamllint ./sd-command.yaml
-  test: 
+  test:
     requires: [~pr]
     image: rust:latest
     steps:
       - test: cargo test
+  build: 
+    requires: [~pr]
+    # Indicate which job scoped caches to use.
+    cache: ["my-cache-1"]
+    image: rust:latest
+    steps:
+      - test: cargo build
   publish-preview:
     # Indicate which job scoped caches to use.
-    cache: [stuff]
+    cache: ["my-cache-1"]
     requires: [~commit]
     image: rust:latest
     steps:
