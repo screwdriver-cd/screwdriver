@@ -2202,7 +2202,8 @@ describe('build plugin test', () => {
                 scope: ['build'],
                 isPR: false,
                 jobId: 1234,
-                pipelineId: 1
+                pipelineId: 1,
+                configPipelineId: 123
             });
 
             generateTokenMock.withArgs(
@@ -2222,7 +2223,8 @@ describe('build plugin test', () => {
                     scmContext: 'github:github.com',
                     isPR: false,
                     jobId: 1234,
-                    pipelineId: 1
+                    pipelineId: 1,
+                    configPipelineId: 123
                 }
             };
         });
@@ -2234,7 +2236,7 @@ describe('build plugin test', () => {
                     '12345',
                     'github:github.com',
                     ['build'],
-                    { isPR: false, jobId: 1234, pipelineId: 1 }
+                    { isPR: false, jobId: 1234, pipelineId: 1, configPipelineId: 123 }
                 );
                 assert.calledWith(generateTokenMock, {
                     username: '12345',
@@ -2242,7 +2244,8 @@ describe('build plugin test', () => {
                     scope: ['build'],
                     isPR: false,
                     jobId: 1234,
-                    pipelineId: 1
+                    pipelineId: 1,
+                    configPipelineId: 123
                 }, 50);
                 assert.equal(reply.result.token, 'sometoken');
             })

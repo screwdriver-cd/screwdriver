@@ -58,7 +58,8 @@ exports.register = (server, options, next) => {
                 });
             }
 
-            if (secret.pipelineId !== credentials.pipelineId) {
+            if (secret.pipelineId !== credentials.pipelineId &&
+                secret.pipelineId !== credentials.configPipelineId) {
                 throw boom.forbidden(`${username} is not allowed to access this secret`);
             }
 
