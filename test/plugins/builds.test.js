@@ -434,7 +434,8 @@ describe('build plugin test', () => {
                         status: 'ABORTED'
                     },
                     credentials: {
-                        scope: ['user']
+                        scope: ['user'],
+                        username: 'test-user'
                     }
                 };
 
@@ -448,6 +449,7 @@ describe('build plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
+                    assert.equal(buildMock.statusMessage, 'Aborted by test-user');
                     assert.equal(reply.statusCode, 200);
                 });
             });
