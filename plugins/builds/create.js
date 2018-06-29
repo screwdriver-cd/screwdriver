@@ -13,7 +13,7 @@ module.exports = () => ({
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -28,12 +28,18 @@ module.exports = () => ({
             const scm = buildFactory.scm;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const meta = request.payload.meta;
             const payload = {
                 jobId: request.payload.jobId,
                 apiUri: request.server.info.uri,
                 username,
                 scmContext
             };
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
+
+            if (meta) {
+                payload.meta = meta;
+            }
 
             // Fetch the job and user models
             return Promise.all([
@@ -41,21 +47,43 @@ module.exports = () => ({
                 userFactory.get({ username, scmContext })
             ])
                 // scmUri is buried in the pipeline, so we get that from the job
-                .then(([job, user]) => job.pipeline.then(pipeline =>
-                    user.getPermissions(pipeline.scmUri)
+                .then(([job, user]) => job.pipeline.then((pipeline) => {
+                    // In pipeline scope, check if the token is allowed to the pipeline
+                    if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                        throw boom.unauthorized('Token does not have permission to this pipeline');
+                    }
+
+                    return user.getPermissions(pipeline.scmUri)
                         // check if user has push access
+                        // eslint-disable-next-line consistent-return
                         .then((permissions) => {
                             if (!permissions.push) {
                                 // the user who are not permitted is deleted from admins table
-                                delete pipeline.admins[username];
-                                throw boom.unauthorized(`User ${username} `
-                            + 'does not have push permission for this repo');
+                                const newAdmins = pipeline.admins;
+
+                                delete newAdmins[username];
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update()
+                                    .then(() => {
+                                        throw boom.unauthorized(`User ${username} `
+                                            + 'does not have push permission for this repo');
+                                    });
                             }
                         })
                         // user has good permissions, add the user as an admin
+                        // eslint-disable-next-line consistent-return
                         .then(() => {
-                            pipeline.admins[username] = true;
-                            pipeline.update();
+                            if (!pipeline.admins[username]) {
+                                const newAdmins = pipeline.admins;
+
+                                newAdmins[username] = true;
+                                // This is needed to make admins dirty and update db
+                                pipeline.admins = newAdmins;
+
+                                return pipeline.update();
+                            }
                         })
                         // user has good permissions, sync and create a build
                         .then(() => (job.isPR() ? pipeline.syncPR(job.prNum) : pipeline.sync()))
@@ -79,6 +107,7 @@ module.exports = () => ({
 
                                     return eventFactory.create({
                                         pipelineId: pipeline.id,
+                                        meta,
                                         type,
                                         username,
                                         scmContext,
@@ -97,7 +126,8 @@ module.exports = () => ({
 
                                     return buildFactory.create(payload);
                                 });
-                        })))
+                        });
+                }))
                 .then((build) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({

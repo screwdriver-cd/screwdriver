@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token'],
-            scope: ['build', 'user', '!guest']
+            scope: ['build', 'user', '!guest', 'temporal']
         },
         plugins: {
             'hapi-swagger': {
@@ -23,18 +23,14 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const buildFactory = request.server.app.buildFactory;
-            const eventFactory = request.server.app.eventFactory;
+            // eslint-disable-next-line max-len
+            const { buildFactory, eventFactory, jobFactory, triggerFactory, userFactory } = request.server.app;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
             const statusMessage = request.payload.statusMessage;
-            const triggerFactory = request.server.app.triggerFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
-            const scope = request.auth.credentials.scope;
-            const isBuild = scope.includes('build');
-            const triggerEvent = request.server.plugins.builds.triggerEvent;
-            const triggerNextJobs = request.server.plugins.builds.triggerNextJobs;
+            const { username, scmContext, scope } = request.auth.credentials;
+            const isBuild = scope.includes('build') || scope.includes('temporal');
+            const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -47,8 +43,9 @@ module.exports = () => ({
                     }
 
                     // Check build status
-                    if (!['RUNNING', 'QUEUED'].includes(build.status)) {
-                        throw boom.forbidden('Can only update RUNNING or QUEUED builds');
+                    if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'].includes(build.status)) {
+                        throw boom.forbidden(
+                            'Can only update RUNNING, QUEUED, BLOCKED, or UNSTABLE builds');
                     }
 
                     // Users can only mark a running or queued build as aborted
@@ -57,8 +54,33 @@ module.exports = () => ({
                         if (desiredStatus !== 'ABORTED') {
                             throw boom.badRequest('Can only update builds to ABORTED');
                         }
+
                         // Check permission against the pipeline
-                        // @TODO implement this
+                        // Fetch the job and user models
+                        return Promise.all([
+                            jobFactory.get(build.jobId),
+                            userFactory.get({ username, scmContext })
+                        ])
+                            // scmUri is buried in the pipeline, so we get that from the job
+                            .then(([job, user]) => job.pipeline.then((pipeline) => {
+                                // Check if Screwdriver admin
+                                const adminDetails = request.server.plugins.banners
+                                    .screwdriverAdminDetails(username, scmContext);
+
+                                return user.getPermissions(pipeline.scmUri)
+                                    // Check if user has push access or is a Screwdriver admin
+                                    .then((permissions) => {
+                                        if (!permissions.push && !adminDetails.isAdmin) {
+                                            throw boom.unauthorized(
+                                                `User ${user.getFullDisplayName()} does not ` +
+                                                'have permission to abort this build'
+                                            );
+                                        }
+
+                                        return eventFactory.get(build.eventId)
+                                            .then(event => ({ build, event }));
+                                    });
+                            }));
                     }
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
@@ -74,14 +96,23 @@ module.exports = () => ({
                     case 'RUNNING':
                         build.startTime = (new Date()).toISOString();
                         break;
+                    // do not update meta or endTime for these cases
+                    case 'UNSTABLE':
+                    case 'BLOCKED':
+                        break;
                     default:
                         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
                     }
 
-                    // Everyone is able to update the status
-                    build.status = desiredStatus;
-                    if (statusMessage) {
-                        build.statusMessage = statusMessage;
+                    // UNSTABLE -> SUCCESS needs to update meta and endtime.
+                    // However, the status itself cannot be updated to SUCCESS
+                    if (build.status !== 'UNSTABLE') {
+                        build.status = desiredStatus;
+                        if (build.status === 'ABORTED') {
+                            build.statusMessage = `Aborted by ${username}`;
+                        } else {
+                            build.statusMessage = statusMessage || null;
+                        }
                     }
 
                     // Only trigger next build on success
@@ -96,8 +127,9 @@ module.exports = () => ({
                         buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                     });
-                    // Guard against triggering non-successful builds
-                    if (desiredStatus !== 'SUCCESS') {
+
+                    // Guard against triggering non-successful or unstable builds
+                    if (build.status !== 'SUCCESS') {
                         return null;
                     }
 

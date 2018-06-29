@@ -51,6 +51,8 @@ describe('build plugin test', () => {
     let pipelineFactoryMock;
     let eventFactoryMock;
     let triggerFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let secretMock;
     let secretAccessMock;
     let authMock;
@@ -105,6 +107,7 @@ describe('build plugin test', () => {
         };
 
         secretAccessMock = sinon.stub().resolves(false);
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
 
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
@@ -148,6 +151,16 @@ describe('build plugin test', () => {
             name: 'secrets'
         };
 
+        bannerMock = {
+            register: (s, o, next) => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                next();
+            }
+        };
+        bannerMock.register.attributes = {
+            name: 'banners'
+        };
+
         authMock = {
             register: (s, o, next) => {
                 s.expose('generateToken', generateTokenMock);
@@ -160,7 +173,7 @@ describe('build plugin test', () => {
         };
 
         server.register([
-            secretMock, authMock,
+            secretMock, bannerMock, authMock,
             {
                 register: plugin,
                 options: {
@@ -171,6 +184,9 @@ describe('build plugin test', () => {
                         jwtPrivateKey: 'boo'
                     }
                 }
+            }, {
+                // eslint-disable-next-line global-require
+                register: require('../../plugins/pipelines')
             }
         ], done);
     });
@@ -254,6 +270,7 @@ describe('build plugin test', () => {
                 admins: { foo: true },
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
+                update: sinon.stub().resolves(),
                 admin: Promise.resolve({
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
@@ -302,7 +319,7 @@ describe('build plugin test', () => {
             triggerFactoryMock.list.resolves(triggerMocks);
         });
 
-        it('emits event buid_status', () => {
+        it('emits event build_status', () => {
             const jobMock = {
                 id: 1234,
                 name: 'main',
@@ -313,16 +330,10 @@ describe('build plugin test', () => {
                     }
                 }]
             };
-
-            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
-            buildMock.job = sinon.stub().resolves(jobMock)();
-            buildMock.settings = {
-                email: 'foo@bar.com'
+            const userMock = {
+                username: id,
+                getPermissions: sinon.stub().resolves({ push: true })
             };
-
-            buildFactoryMock.get.resolves(buildMock);
-            buildFactoryMock.uiUri = 'http://foo.bar';
-
             const options = {
                 method: 'PUT',
                 url: `/builds/${id}`,
@@ -333,6 +344,16 @@ describe('build plugin test', () => {
                     scope: ['user']
                 }
             };
+
+            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+            buildMock.job = sinon.stub().resolves(jobMock)();
+            buildMock.settings = {
+                email: 'foo@bar.com'
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+            jobFactoryMock.get.resolves(jobMock);
+            userFactoryMock.get.resolves(userMock);
 
             server.emit = sinon.stub().resolves(null);
 
@@ -401,12 +422,10 @@ describe('build plugin test', () => {
                         }
                     }]
                 };
-
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
-                buildMock.job = sinon.stub().resolves(jobMock)();
-
-                buildFactoryMock.get.resolves(buildMock);
-
+                const userMock = {
+                    username: id,
+                    getPermissions: sinon.stub().resolves({ push: true })
+                };
                 const expected = hoek.applyToDefaults(testBuild, { status: 'ABORTED' });
                 const options = {
                     method: 'PUT',
@@ -415,15 +434,22 @@ describe('build plugin test', () => {
                         status: 'ABORTED'
                     },
                     credentials: {
-                        scope: ['user']
+                        scope: ['user'],
+                        username: 'test-user'
                     }
                 };
 
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJson.returns(expected);
+                jobFactoryMock.get.resolves(jobMock);
+                userFactoryMock.get.resolves(userMock);
 
                 return server.inject(options).then((reply) => {
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
+                    assert.equal(buildMock.statusMessage, 'Aborted by test-user');
                     assert.equal(reply.statusCode, 200);
                 });
             });
@@ -495,6 +521,30 @@ describe('build plugin test', () => {
                 pipelineFactoryMock.get.resolves(pipelineMock);
                 userFactoryMock.get.resolves(userMock);
                 eventFactoryMock.scm.getCommitSha.resolves('sha');
+            });
+
+            it('allows updating to BLOCKED', () => {
+                const status = 'BLOCKED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                });
             });
 
             it('saves status, statusMessage, meta updates, and merge event meta', () => {
@@ -632,6 +682,74 @@ describe('build plugin test', () => {
                     assert.equal(reply.statusCode, 403);
                     assert.notCalled(buildFactoryMock.get);
                     assert.notCalled(buildMock.update);
+                });
+            });
+
+            it('update status for non-UNSTABLE builds', () => {
+                testBuild.status = 'BLOCKED';
+                testBuild.statusMessage = 'blocked';
+                buildMock = getMockBuilds(testBuild);
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildMock.settings = {
+                    email: 'foo@bar.com'
+                };
+                buildFactoryMock.get.resolves(buildMock);
+                buildMock.update.resolves(buildMock);
+                buildFactoryMock.get.resolves(buildMock);
+
+                const status = 'RUNNING';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.strictEqual(buildMock.status, 'RUNNING');
+                    assert.isNull(buildMock.statusMessage);
+                    assert.notCalled(buildFactoryMock.create);
+                });
+            });
+
+            it('does not allow updating from UNSTABLE to SUCCESS and do not trigger', () => {
+                testBuild.status = 'UNSTABLE';
+                testBuild.statusMessage = 'hello';
+                buildMock = getMockBuilds(testBuild);
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildMock.settings = {
+                    email: 'foo@bar.com'
+                };
+                buildFactoryMock.get.resolves(buildMock);
+                buildMock.update.resolves(buildMock);
+                buildFactoryMock.get.resolves(buildMock);
+
+                const status = 'SUCCESS';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.strictEqual(buildMock.status, 'UNSTABLE');
+                    assert.strictEqual(buildMock.statusMessage, 'hello');
+                    assert.notCalled(buildFactoryMock.create);
                 });
             });
 
@@ -1177,13 +1295,6 @@ describe('build plugin test', () => {
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
         const scmContext = 'github:github.com';
-        const eventConfig = {
-            type: 'pr',
-            pipelineId,
-            username,
-            scmContext,
-            sha: testBuild.sha
-        };
 
         let options;
         let buildMock;
@@ -1191,14 +1302,21 @@ describe('build plugin test', () => {
         let pipelineMock;
         let userMock;
         let eventMock;
+        let meta;
         let params;
+        let eventConfig;
 
         beforeEach(() => {
+            meta = {
+                foo: 'bar',
+                one: 1
+            };
             options = {
                 method: 'POST',
                 url: '/builds',
                 payload: {
-                    jobId
+                    jobId,
+                    meta
                 },
                 credentials: {
                     scope: ['user'],
@@ -1220,7 +1338,11 @@ describe('build plugin test', () => {
                 admins: { foo: true, bar: true },
                 sync: sinon.stub().resolves(),
                 syncPR: sinon.stub().resolves(),
-                update: sinon.stub().resolves()
+                update: sinon.stub().resolves(),
+                admin: Promise.resolve({
+                    username: 'foo',
+                    unsealToken: sinon.stub().resolves('token')
+                })
             };
             userMock = {
                 username,
@@ -1235,7 +1357,16 @@ describe('build plugin test', () => {
                 eventId: 12345,
                 apiUri: 'http://localhost:12345',
                 username,
-                scmContext
+                scmContext,
+                meta
+            };
+            eventConfig = {
+                type: 'pr',
+                pipelineId,
+                username,
+                scmContext,
+                sha: testBuild.sha,
+                meta
             };
 
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
@@ -1298,6 +1429,50 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            params.meta = meta;
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${buildId}`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, {
+                    id: buildId,
+                    other: 'dataToBeIncluded'
+                });
+                assert.notCalled(pipelineMock.syncPR);
+                assert.calledOnce(pipelineMock.sync);
+                assert.calledWith(buildFactoryMock.scm.getCommitSha, {
+                    token: 'iamtoken',
+                    scmUri,
+                    scmContext,
+                    prNum: null
+                });
+                assert.notCalled(buildFactoryMock.scm.getPrInfo);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledWith(buildFactoryMock.create, params);
+                assert.deepEqual(pipelineMock.admins, { foo: true, bar: true, myself: true });
+            });
+        });
+
+        it('returns 201 for a successful create for a pipeline build with pipeline token', () => {
+            let expectedLocation;
+
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+
+            jobMock.name = 'main';
+            jobMock.isPR.returns(false);
+            jobMock.prNum = null;
+            eventConfig.type = 'pipeline';
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1344,6 +1519,24 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(pipelineMock.admins, { foo: true });
+            });
+        });
+
+        it('returns unauthorized error when pipeline token does not have permission', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
+
+            jobMock.name = 'main';
+            jobMock.isPR.returns(false);
+            jobMock.prNum = null;
+            eventConfig.type = 'pipeline';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
     });
@@ -1651,6 +1844,29 @@ describe('build plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 102);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns logs for a step that is split across pages with 1000 lines per file', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1002);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
@@ -1986,7 +2202,8 @@ describe('build plugin test', () => {
                 scope: ['build'],
                 isPR: false,
                 jobId: 1234,
-                pipelineId: 1
+                pipelineId: 1,
+                configPipelineId: 123
             });
 
             generateTokenMock.withArgs(
@@ -2006,7 +2223,8 @@ describe('build plugin test', () => {
                     scmContext: 'github:github.com',
                     isPR: false,
                     jobId: 1234,
-                    pipelineId: 1
+                    pipelineId: 1,
+                    configPipelineId: 123
                 }
             };
         });
@@ -2018,7 +2236,7 @@ describe('build plugin test', () => {
                     '12345',
                     'github:github.com',
                     ['build'],
-                    { isPR: false, jobId: 1234, pipelineId: 1 }
+                    { isPR: false, jobId: 1234, pipelineId: 1, configPipelineId: 123 }
                 );
                 assert.calledWith(generateTokenMock, {
                     username: '12345',
@@ -2026,7 +2244,8 @@ describe('build plugin test', () => {
                     scope: ['build'],
                     isPR: false,
                     jobId: 1234,
-                    pipelineId: 1
+                    pipelineId: 1,
+                    configPipelineId: 123
                 }, 50);
                 assert.equal(reply.result.token, 'sometoken');
             })
@@ -2088,6 +2307,17 @@ describe('build plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(reply.result.message, 'Build is already running or finished.');
+            });
+        });
+
+        it('returns 200 for BLOCKED build', () => {
+            testBuild.status = 'BLOCKED';
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
             });
         });
     });

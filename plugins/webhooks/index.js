@@ -2,6 +2,7 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const workflowParser = require('screwdriver-workflow-parser');
 
 /**
  * Check if the PR is being restricted or not
@@ -311,6 +312,91 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
 }
 
 /**
+ * Check if the pipeline has a triggered job or not
+ * @method  hasTriggeredJob
+ * @param   {Pipeline}  pipeline    The pipeline to check
+ * @param   {String}    startFrom   The trigger name
+ * @returns {Boolean}               True if the pipeline contains the triggered job
+ */
+function hasTriggeredJob(pipeline, startFrom) {
+    const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
+        trigger: startFrom
+    });
+
+    return nextJobs.length > 0;
+}
+
+/**
+ * Get all pipelines which has triggered job
+ * @method  triggeredPipelines
+ * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
+ * @param   {Object}            scmConfig       Has the token and scmUri to get branches
+ * @param   {String}            branch          The branch which is committed
+ * @returns {Promise}                           Promise that resolves into triggered pipelines
+ */
+function triggeredPipelines(pipelineFactory, scmConfig, branch) {
+    return pipelineFactory.scm.getBranchList(scmConfig)
+        .then((branches) => {
+            const splitUri = scmConfig.scmUri.split(':');
+
+            // only add non pushed branch, because there is possibility the branch is deleted at filter.
+            return branches.filter(b => b.name !== branch).map((b) => {
+                splitUri[2] = b.name;
+
+                return splitUri.join(':');
+            });
+        })
+        .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
+        .then(pipelines => pipelines.filter(p => hasTriggeredJob(p, `~commit:${branch}`)))
+        .then(pipelines =>
+            // add pushed branch
+            pipelineFactory.get({ scmUri: scmConfig.scmUri }).then((p) => {
+                if (p) {
+                    pipelines.push(p);
+                }
+
+                return pipelines;
+            })
+        );
+}
+
+/**
+ * Create events for each pipeline
+ * @async createEvents
+ * @param {EventFactory}    eventFactory    To create event
+ * @param {Array}           pipelines       The pipelines to start events
+ * @param {String}          parsed          It have a information to create event
+ * @returns {Promise}                       Promise that resolves into events
+ */
+async function createEvents(eventFactory, pipelines, parsed) {
+    const { branch, sha, username, scmContext, changedFiles } = parsed;
+    const events = [];
+
+    for (let i = 0; i < pipelines.length; i += 1) {
+        const p = pipelines[i];
+        // eslint-disable-next-line no-await-in-loop
+        const b = await p.branch;
+        const startFrom = (b === branch) ? '~commit' : `~commit:${branch}`;
+        const eventConfig = {
+            pipelineId: p.id,
+            type: 'pipeline',
+            webhooks: true,
+            username,
+            scmContext,
+            startFrom,
+            sha,
+            changedFiles,
+            commitBranch: branch,
+            causeMessage: `Merged by ${username}`
+        };
+
+        events.push(eventFactory.create(eventConfig));
+    }
+
+    return Promise.all(events);
+}
+
+/**
  * Act on a Push event
  *  - Should start a new main job
  * @method pushEvent
@@ -323,47 +409,51 @@ function pushEvent(pluginOptions, request, reply, parsed) {
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, checkoutUrl, branch, sha, username, scmContext, changedFiles } = parsed;
+    const { hookId, checkoutUrl, branch, username, scmContext } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
+    const scmConfig = {
+        scmUri: '',
+        token: '',
+        scmContext
+    };
 
     request.log(['webhook', hookId], `Push for ${fullCheckoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then(token => pipelineFactory.scm.parseUrl({
-            checkoutUrl: fullCheckoutUrl,
-            token,
-            scmContext
-        }))
-        .then(scmUri => pipelineFactory.get({ scmUri }))
-        .then((pipeline) => {
-            if (!pipeline) {
+        .then((token) => {
+            scmConfig.token = token;
+
+            return pipelineFactory.scm.parseUrl({
+                checkoutUrl: fullCheckoutUrl,
+                token,
+                scmContext
+            });
+        }).then((scmUri) => {
+            scmConfig.scmUri = scmUri;
+
+            return triggeredPipelines(pipelineFactory, scmConfig, branch);
+        }).then((pipelines) => {
+            if (!pipelines || pipelines.length === 0) {
                 request.log(['webhook', hookId],
                     `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
 
+                return [];
+            }
+
+            return createEvents(eventFactory, pipelines, parsed);
+        })
+        .then((events) => {
+            if (events.length === 0) {
                 return reply().code(204);
             }
 
-            const eventConfig = {
-                pipelineId: pipeline.id,
-                type: 'pipeline',
-                webhooks: true,
-                username,
-                scmContext,
-                startFrom: '~commit',
-                sha,
-                changedFiles,
-                causeMessage: `Merged by ${username}`
-            };
+            events.forEach((e) => {
+                request.log(['webhook', hookId, e.id],
+                    `Event ${e.id} started`);
+            });
 
-            // create an event
-            return eventFactory.create(eventConfig)
-                .then((event) => {
-                    request.log(['webhook', hookId, event.id],
-                        `event ${event.id} started`);
-
-                    return reply().code(201);
-                });
+            return reply().code(201);
         })
         .catch(err => reply(boom.wrap(err)));
 }
