@@ -162,6 +162,27 @@ describe('command plugin test', () => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
+                    params: {},
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates with namespace query', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?namespace=foo';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, '200');
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: {
+                        namespace: 'foo'
+                    },
                     paginate: {
                         page: 1,
                         count: 50
