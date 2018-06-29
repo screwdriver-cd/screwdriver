@@ -1,4 +1,4 @@
-# Build cache
+ss# Build cache
 
 ## Context
 
@@ -6,7 +6,7 @@ Users require a way to cache resources between jobs within a single pipeline or 
 
 ## Status
 
-- ?? June 2018: Proposal submitted
+- 29 June 2018: Proposal submitted
 
 ## Proposal
 
@@ -16,11 +16,11 @@ Provide a mechanism for transparent caching of resources between jobs within a s
 2. Caching is scoped. 
    1. Job level caching
    2. Event level caching
-   3. Pipeline level cachingi (static caching, in a sense)
+   3. Pipeline level caching (static caching, in a sense)
 3. Well used caching patterns can be offered as predefined options.
    1. Dependency caching for build systems such as npm, sbt and cargo.
 
-The build cache and cache usage is configureble via Yaml and backed by an internal sd-command and caching service.
+The build cache and cache usage is configurable via Yaml and backed by an internal sd-command and caching service.
 
 ## Details
 
@@ -31,9 +31,7 @@ shared:
   # Caches defined in the shared section can be pipeline or exection scoped.
   cache:
     # A pipeline scoped cache.
-    pipeline:
-      # Setting secure to true enabled addition security features.
-      secure: true    
+    pipeline:  
       # The caching targets
       target: ["build/**", "~/.sbt"]
     # An event scoped cache
@@ -68,7 +66,7 @@ jobs:
 ### Design considerations
 
 1. Resource usage
-   1. Copying to and from a remote server for every job in a pipeline can lead to unnescassary network bandwith usage and unnescassarily slow speeds.
+   1. Copying to and from a remote server for every job in a pipeline can lead to unnecessary network bandwidth usage and unnecessarily slow speeds.
 2. Integrity and consistency of cached data.
 3. User experience
    1. Is it easily adaptable to new use cases?
@@ -82,9 +80,9 @@ jobs:
 
 ### Security
 
-Injecting malicious code into a build via the caching mechanism a real concern. This can lead to theft of tokens or credentials from job, or in even lead to malicious code being deployed to a production environment. 
+Injecting malicious code into a build via the caching mechanism is a real concern. This can lead to theft of tokens or credentials from job, or in even lead to malicious code being deployed to a production environment. 
 
-Pull requests, as the main vector for injection of malicious code, require additional security considerations. Caches can be marked as secure by specifying `secure: true` in the cache declaration. Secure caches are only enabled for users with the correct repository authorization. A pull request by a user without write permissions to a repository will not make use of any caching features.
+Pull requests, as the main vector for injection of malicious code, require additional security considerations. Pull requests therefore treat caches as readonly. 
 
 Caching of potentially sensitive data also needs to be handled. Data provided via the secrets field should not be cached. 
 
@@ -110,7 +108,7 @@ Cache scoping levels can be expressed as `Job level < Event level < Pipeline lev
 
 #### [Tentative] Regarding commits, branches and scoping
 
-Caching needs to take into account commits an branches when performing scoping.
+Caching needs to take into account commits and branches when performing scoping.
 
 Scoping a cache to commit level and/or not considering branches will lead to issues with caching in the following instances:
 
@@ -121,7 +119,7 @@ Scoping should therefore take into account:
 
 1. Branch
 2. Commit
-3. Hash signature of content to be catechised
+3. Hash signature of content to be cached
 
 #### Job level
 
@@ -141,13 +139,13 @@ Use when:
 
 1. Generated resources are time dependant
 2. Generated resources are only valid for single execution
-3. Generated resources are meant for deployment (Please note that triggering deployment with a detached job will create a new event and, by extention, cache.)
+3. Generated resources are meant for deployment (Please note that triggering deployment with a detached job will create a new event and, by extension, cache.)
 
 #### Pipeline level
 
 Pipeline level scoping is scoped to a pipeline as a whole. Cached data is visible and accessible to all instances of the pipeline.
 
-Note: Concurrency for simultanous builds need proper attention.
+Note: Concurrency for simultaneous builds need proper attention.
 
 Use when:
 
@@ -193,7 +191,7 @@ Points to consider:
 
 Not exposed as a user command. Used internally by director. Uses yaml data for cache details.
 
-| Command | Fetails |
+| Command | Details |
 | - | - |
 | `cache` | Cache command |
 | `cache get` | Gets all cache for this pipeline and extracts/merges them |
