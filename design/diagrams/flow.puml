@@ -1,0 +1,47 @@
+@startuml
+actor Worker as worker
+participant Director as director
+participant "Cache Driver" as cd
+participant "Build Cache Server" as bcs
+
+worker -> director: Start
+
+group Setup Phase
+    note over director: After bookends
+    director -> cd: Start
+    activate cd
+    
+    group Loop 
+        cd -> bcs: Download cache(s)\nfor job
+        cd -> cd: Test for mountpoint
+        alt If mounpoint doesn't exists
+            cd -> cd: Create cache\ntarget mountpoint
+            cd -> cd: Extract
+        else 
+            cd -> cd: Merge recursively
+        end
+    end
+    cd -> director: Done
+    deactivate cd
+    note over director: Report start
+end
+note over director, bcs: User steps
+group Teardown phase
+    note over director: After bookends
+    director -> cd: Start
+    activate cd
+    
+    group Loop
+        cd -> cd: Test if cache content changed
+        alt If changed 
+            cd -> cd: Compress cache target(s).
+            cd -> bcs : Upload cache(s)\nfor job
+        end
+    end
+    cd -> director: Done
+    deactivate cd
+    note over director: Report status
+end
+
+
+@enduml
