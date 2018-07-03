@@ -51,7 +51,8 @@ describe('github plugin test', () => {
                 parseUrl: sinon.stub(),
                 getDisplayName: sinon.stub(),
                 getChangedFiles: sinon.stub(),
-                getBranchList: sinon.stub()
+                getBranchList: sinon.stub(),
+                getCommitSha: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -148,6 +149,7 @@ describe('github plugin test', () => {
         const buildId = 'buildHash';
         const buildNumber = '12345';
         const sha = '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c';
+        const latestSha = 'a402964c054c610757794d9066c96cee1772daed';
         const username = 'baxterthehacker';
         const scmContext = 'github:github.com';
         const token = 'iamtoken';
@@ -253,6 +255,7 @@ describe('github plugin test', () => {
             pipelineFactoryMock.scm.parseUrl
                 .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext }).resolves(scmUri);
             pipelineFactoryMock.scm.getChangedFiles.resolves(['README.md']);
+            pipelineFactoryMock.scm.getCommitSha.resolves(latestSha);
 
             userFactoryMock.get.resolves(userMock);
             userMock.unsealToken.resolves(token);
@@ -326,6 +329,7 @@ describe('github plugin test', () => {
                         username,
                         scmContext,
                         sha,
+                        configPipelineSha: latestSha,
                         startFrom: '~commit',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
@@ -411,6 +415,7 @@ describe('github plugin test', () => {
                         username,
                         scmContext,
                         sha,
+                        configPipelineSha: latestSha,
                         startFrom: '~commit:master',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
@@ -423,6 +428,7 @@ describe('github plugin test', () => {
                         username,
                         scmContext,
                         sha,
+                        configPipelineSha: latestSha,
                         startFrom: '~commit:master',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
@@ -435,6 +441,7 @@ describe('github plugin test', () => {
                         username,
                         scmContext,
                         sha,
+                        configPipelineSha: latestSha,
                         startFrom: '~commit',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
