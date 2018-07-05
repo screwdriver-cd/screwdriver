@@ -51,6 +51,7 @@ describe('auth plugin test', () => {
     });
     const cookiePassword = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
+    const hashingPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
 
     beforeEach((done) => {
         scm = {
@@ -106,6 +107,7 @@ describe('auth plugin test', () => {
             options: {
                 cookiePassword,
                 encryptionPassword,
+                hashingPassword,
                 scm,
                 jwtPrivateKey,
                 jwtPublicKey,
@@ -143,6 +145,7 @@ describe('auth plugin test', () => {
                 options: {
                     cookiePassword,
                     encryptionPassword,
+                    hashingPassword,
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
@@ -192,6 +195,7 @@ describe('auth plugin test', () => {
                 register: plugin,
                 options: {
                     encryptionPassword,
+                    hashingPassword,
                     cookiePassword,
                     scm,
                     jwtPrivateKey,
@@ -215,6 +219,7 @@ describe('auth plugin test', () => {
                 options: {
                     cookiePassword,
                     encryptionPassword,
+                    hashingPassword,
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
@@ -355,6 +360,7 @@ describe('auth plugin test', () => {
                     options: {
                         cookiePassword,
                         encryptionPassword,
+                        hashingPassword,
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
@@ -517,6 +523,7 @@ describe('auth plugin test', () => {
                         options: {
                             cookiePassword,
                             encryptionPassword,
+                            hashingPassword,
                             scm,
                             jwtPrivateKey,
                             jwtPublicKey,
@@ -769,6 +776,7 @@ describe('auth plugin test', () => {
                     options: {
                         cookiePassword,
                         encryptionPassword,
+                        hashingPassword,
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
@@ -996,6 +1004,7 @@ describe('auth plugin test', () => {
                 options: {
                     cookiePassword,
                     encryptionPassword,
+                    hashingPassword,
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
