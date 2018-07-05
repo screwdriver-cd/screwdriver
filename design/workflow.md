@@ -10,6 +10,7 @@ This documentation covers a design proposal for a revised workflow/screwdriver.y
 - August 30th, 2017: Proposal submitted
 - October 25th, 2017: Rebuild_on/triggers sections updated
 - April 20th, 2018: Old workflow deprecated
+- July 5th, 2018: Branch filtering (SCM Branch-specific jobs) sections updated
 
 ## Syntax
 
@@ -52,9 +53,9 @@ jobs:
     requires: ~pr
 ```
 
-### SCM Branch-specific jobs
+### Branch filtering (SCM Branch-specific jobs)
 
-Use exact match of a string (eg: `staging`) or a regex filter (eg: `/^user-.*$/`) after `~commit:` to denote a job only run when code changes are made to branches matching that pattern.
+Use exact match of a string (eg: `staging`) or a regex filter (eg: `/^user-.*$/`) after `~commit:` or `~pr:` to denote a job only run when code changes are made to branches matching that pattern. A workflow configuration is obtained from past sha of a pipeline repositroy if a pipeline restarts from past events which are triggered by branch filtering workflow.
 
 ```yaml
 jobs:
@@ -62,6 +63,8 @@ jobs:
     requires: ~commit:staging
   B:
     requires: ~commit:/^user-.*$/
+  C:
+    requires: ~pr:staging
 ```
 
 ### Sequential
