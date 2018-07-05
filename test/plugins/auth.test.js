@@ -145,6 +145,7 @@ describe('auth plugin test', () => {
                 options: {
                     cookiePassword,
                     encryptionPassword,
+                    hashingPassword,
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
@@ -194,6 +195,7 @@ describe('auth plugin test', () => {
                 register: plugin,
                 options: {
                     encryptionPassword,
+                    hashingPassword,
                     cookiePassword,
                     scm,
                     jwtPrivateKey,
@@ -217,6 +219,7 @@ describe('auth plugin test', () => {
                 options: {
                     cookiePassword,
                     encryptionPassword,
+                    hashingPassword,
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
@@ -357,6 +360,7 @@ describe('auth plugin test', () => {
                     options: {
                         cookiePassword,
                         encryptionPassword,
+                        hashingPassword,
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
@@ -519,6 +523,7 @@ describe('auth plugin test', () => {
                         options: {
                             cookiePassword,
                             encryptionPassword,
+                            hashingPassword,
                             scm,
                             jwtPrivateKey,
                             jwtPublicKey,
@@ -771,6 +776,7 @@ describe('auth plugin test', () => {
                     options: {
                         cookiePassword,
                         encryptionPassword,
+                        hashingPassword,
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
@@ -998,6 +1004,7 @@ describe('auth plugin test', () => {
                 options: {
                     cookiePassword,
                     encryptionPassword,
+                    hashingPassword,
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
