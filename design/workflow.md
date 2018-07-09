@@ -55,7 +55,7 @@ jobs:
 
 ### Branch filtering (SCM Branch-specific jobs)
 
-Use exact match of a string (eg: `staging`) or a regex filter (eg: `/^user-.*$/`) after `~commit:` or `~pr:` to denote a job only run when code changes are made to branches matching that pattern. A workflow configuration is obtained from past sha of a pipeline repositroy if a pipeline restarts from past events which are triggered by branch filtering workflow.
+Use exact match of a string (e.g.: `staging`) or a regex filter (e.g.: `/^user-.*$/`) after `~commit:` or `~pr:` to denote a job only run when code changes are made to branches matching that pattern. A workflow configuration is obtained from a past sha of a pipeline repository if an event which was triggered by a branch filtering workflow is restarted.
 
 ```yaml
 jobs:
