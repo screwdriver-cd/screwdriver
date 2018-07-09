@@ -25,6 +25,7 @@ const ALGORITHM = 'RS256';
  * @param  {Object}   options                        Configuration object
  * @param  {String}   options.cookiePassword         Password used for temporary encryption of cookie secrets
  * @param  {String}   options.encryptionPassword     Password used for iron encrypting
+ * @param  {String}   options.hashingPassword        Password used for hashing access token
  * @param  {Boolean}  options.https                  For setting the isSecure flag. Needs to be false for non-https
  * @param  {Boolean}  options.allowGuestAccess       Letting users browse your system
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
@@ -38,6 +39,7 @@ exports.register = (server, options, next) => {
         https: joi.boolean().truthy('true').falsy('false').required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
+        hashingPassword: joi.string().min(32).required(),
         allowGuestAccess: joi.boolean().truthy('true').falsy('false').default(false),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
