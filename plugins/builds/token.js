@@ -37,7 +37,7 @@ module.exports = () => ({
                     throw boom.badRequest(`Invalid buildTimeout value: ${buildTimeout}`);
                 }
 
-                if (build.status !== 'QUEUED') {
+                if (build.status !== 'QUEUED' && build.status !== 'BLOCKED') {
                     throw boom.forbidden('Build is already running or finished.');
                 }
 
@@ -49,7 +49,8 @@ module.exports = () => ({
                         {
                             isPR: profile.isPR,
                             jobId: profile.jobId,
-                            pipelineId: profile.pipelineId
+                            pipelineId: profile.pipelineId,
+                            configPipelineId: profile.configPipelineId
                         }
                     ), parseInt(buildTimeout, 10)
                 );

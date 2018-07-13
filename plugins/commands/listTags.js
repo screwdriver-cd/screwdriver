@@ -3,17 +3,17 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.command.get).label('List of commands');
-const nameSchema = joi.reach(schema.models.command.base, 'name');
-const namespaceSchema = joi.reach(schema.models.command.base, 'namespace');
+const listSchema = joi.array().items(schema.models.commandTag.base).label('List of command tags');
+const namespaceSchema = joi.reach(schema.models.commandTag.base, 'namespace');
+const nameSchema = joi.reach(schema.models.commandTag.base, 'name');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/commands/{namespace}/{name}',
+    path: '/commands/{namespace}/{name}/tags',
     config: {
-        description: 'Get all command versions for a given command namespace/name with pagination',
-        notes: 'Returns all command records for a given command namespace/name',
-        tags: ['api', 'commands', 'versions'],
+        description: 'Get all command tags for a given command namespace and name',
+        notes: 'Returns all command tags for a given command namespace and name',
+        tags: ['api', 'commands', 'tags'],
         auth: {
             strategies: ['token'],
             scope: ['user', 'build']
@@ -24,22 +24,20 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.commandFactory;
+            const factory = request.server.app.commandTagFactory;
 
             return factory.list({
-                params: { namespace: request.params.namespace, name: request.params.name },
+                params: {
+                    namespace: request.params.namespace,
+                    name: request.params.name
+                },
                 paginate: {
                     page: request.query.page,
                     count: request.query.count
                 },
                 sort: request.query.sort
-            }).then((commands) => {
-                if (commands.length === 0) {
-                    throw boom.notFound('Command does not exist');
-                }
-
-                reply(commands.map(p => p.toJson()));
             })
+                .then(tags => reply(tags.map(p => p.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
         response: {

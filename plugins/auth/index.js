@@ -140,29 +140,61 @@ exports.register = (server, options, next) => {
                 accessTokenName: 'api_token',
                 allowCookieToken: false,
                 allowQueryToken: true,
-                validateFunc: function _validateFunc(token, cb) {
+                validateFunc: function _validateFunc(tokenValue, cb) {
                     // Token is an API token
                     // using function syntax makes 'this' the request
                     const request = this;
-                    const factory = request.server.app.userFactory;
+                    const tokenFactory = request.server.app.tokenFactory;
+                    const userFactory = request.server.app.userFactory;
+                    const pipelineFactory = request.server.app.pipelineFactory;
 
-                    return factory.get({ accessToken: token })
-                        .then((user) => {
-                            if (!user) {
-                                return cb(null, false, {});
+                    return tokenFactory.get({ value: tokenValue })
+                        .then((token) => {
+                            if (!token) {
+                                return Promise.reject();
+                            } else if (token.userId) {
+                                // if token has userId then the token is for user
+                                return userFactory.get({ accessToken: tokenValue })
+                                    .then((user) => {
+                                        if (!user) {
+                                            return Promise.reject();
+                                        }
+
+                                        return {
+                                            username: user.username,
+                                            scmContext: user.scmContext,
+                                            scope: ['user']
+                                        };
+                                    });
+                            } else if (token.pipelineId) {
+                                // if token has pipelineId then the token is for pipeline
+                                return pipelineFactory.get({ accessToken: tokenValue })
+                                    .then((pipeline) => {
+                                        if (!pipeline) {
+                                            return Promise.reject();
+                                        }
+
+                                        return pipeline.admin.then(admin => ({
+                                            username: admin.username,
+                                            scmContext: pipeline.scmContext,
+                                            pipelineId: token.pipelineId,
+                                            scope: ['pipeline']
+                                        }));
+                                    });
                             }
 
-                            request.log(['auth'], `${user.username} has logged in via API keys`);
-
-                            const profile = {
-                                username: user.username,
-                                scmContext: user.scmContext,
-                                scope: ['user']
-                            };
-
+                            return Promise.reject();
+                        })
+                        .then((profile) => {
+                            request.log(['auth'], `${profile.username} has logged in via `
+                                        + `${profile.scope[0]} API keys`);
                             profile.token = server.plugins.auth.generateToken(profile);
 
                             return cb(null, true, profile);
+                        })
+                        .catch((err) => {
+                            request.log(['auth', 'error'], err);
+                            cb(null, false, {});
                         });
                 }
             });

@@ -7,10 +7,10 @@ const getSchema = joi.array().items(schema.models.token.get);
 
 module.exports = () => ({
     method: 'GET',
-    path: '/tokens',
+    path: '/pipelines/{id}/tokens',
     config: {
-        description: 'Get tokens with pagination',
-        notes: 'Returns all token records belonging to the current user',
+        description: 'List tokens for pipeline',
+        notes: 'List tokens for a specific pipeline',
         tags: ['api', 'tokens'],
         auth: {
             strategies: ['token'],
@@ -22,17 +22,32 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
+            const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
 
-            return userFactory.get({ username, scmContext })
-                .then((user) => {
-                    if (!user) {
-                        throw boom.notFound(`User ${username} does not exist`);
+            return Promise.all([
+                pipelineFactory.get(request.params.id),
+                userFactory.get({ username, scmContext })
+            ])
+                .then(([pipeline, user]) => {
+                    if (!pipeline) {
+                        throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return user.tokens;
+                    if (!user) {
+                        throw boom.notFound('User does not exist');
+                    }
+
+                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
+                        if (!permissions.admin) {
+                            throw boom.unauthorized(`User ${username} `
+                                + 'is not an admin of this repo');
+                        }
+
+                        return pipeline.tokens;
+                    });
                 })
                 .then(tokens => reply(tokens.map((token) => {
                     const output = token.toJson();

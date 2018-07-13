@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -29,7 +29,12 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
             let gitToken;
+
+            if (!isValidToken(id, request.auth.credentials)) {
+                return reply(boom.unauthorized('Token does not have permission to this pipeline'));
+            }
 
             return Promise.all([
                 pipelineFactory.get({ id }),
@@ -44,8 +49,8 @@ module.exports = () => ({
                     }
 
                     if (oldPipeline.configPipelineId) {
-                        throw boom.unauthorized('Child pipeline can only be removed by modifying '
-                            + `scmUrls in config pipeline ${oldPipeline.configPipelineId}`);
+                        throw boom.unauthorized('Child pipeline checkoutUrl can only be modified by'
+                            + ` config pipeline ${oldPipeline.configPipelineId}`);
                     }
 
                     // get the user token

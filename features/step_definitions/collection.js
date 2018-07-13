@@ -206,7 +206,7 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         Assert.ok(collectionNames.includes('anotherCollection'));
     });
 
-    When(/^they delete that collection$/, function step() {
+    When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
             method: 'DELETE',
