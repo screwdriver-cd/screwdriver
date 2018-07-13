@@ -31,15 +31,11 @@ shared:
   # Caches defined in the shared section can be pipeline or exection scoped.
   cache:
     # A pipeline scoped cache.
-    pipeline:  
-      # The caching targets
-      target: ["build/**", "~/.sbt"]
+    pipeline: ["node_modules/", "~/.sbt"]
     # An event scoped cache
-    event:
-      target: ["target/deployment.jar"]
+    event: ["target/generated-intermediate-resouce/*"]
     # A job scoped cache 
-    my-cache-1:
-      target: ["build/some-artifact.zip"]
+    my-cache-1:  ["target/some-artifact.zip"]
 jobs:
   test:
     requires: [~pr]
@@ -88,19 +84,25 @@ Caching of potentially sensitive data also needs to be handled. Data provided vi
 
 ### Cache invalidation
 
-- [Proposed] Changing environment variables or secrets should invalidate existing caches. Mass invalidation can be avoided by including a hash of variables and secrets with the cache metadata.
-- [Proposed] The user should also be able to invalidate caches via the UI.
+- The user should also be able to invalidate caches via the UI.
+- Caches get invalidated and updated when there has been a change in the checksum of the caching target.
 
 ### Conflicts
 
-Multiple caches trying to restore the same file/files will result in an error. Caches by default do not overwrite existing files or directories. This behaviour can be configured by setting selecting a merging strategy.
+### On the build node
 
-The following merging strategies are defined for dealing with file conflicts when extracting cached data on ta local build node.
+Multiple caches trying to restore the same content can result in unpredictable behaviour.  Caches are applied in the following order:
 
-1. merge: Compares creation time of files and directories. Recursively merges files and directories from multiple caches. Selects the *newest* version of a file.
-2. [Proposed] preserve: Compares creation time of files and directories. Recursively merges files and directories from multiple caches. Selects the *oldest* version of a file.
-3. reject: Fails the build if there are any file conflicts.
+1. Pipeline scope
+2. Event scope
+3. Job scope
+ 1. Ordered as they are ordered in the referencing job definition.
+ 
+ Cache extraction is a serial process.
 
+### On the server
+
+The build cache server implementation must be able to handle multiple concurrent write requests for the same cache. Only the last write must be persisted.
 
 ### Scoping
 
@@ -144,7 +146,7 @@ Use when:
 #### Pipeline level
 
 Pipeline level scoping is scoped to a pipeline as a whole. Cached data is visible and accessible to all instances of the pipeline.
-
+ 
 Note: Concurrency for simultaneous builds need proper attention.
 
 Use when:
@@ -174,22 +176,25 @@ The build cache service is essentially a specialized version of the store servic
 
 ##### API
 
-| Method | URL | Body | Reponse |
+| Method | URL | Body | Response |
 | - | - | - | - |
 | GET | /pipeline/:pipeline_id/cache/:cache_id | none | A single cache entity.<br><b>Body</b><br>```{ "scope": "", "event_id": "", "pipeline_id": "", "ttl": 100,"data": base64}``` <br><b>Codes</b><br> 200, 404 |
 | GET | /pipeline/:pipeline_id/cache | none | List of currently valid caches for the pipeline.<br><b>Body</b><br>```[{ "scope": "", "event_id": "", "pipeline_id": "", "ttl": 100,"data": base64}]``` <br><b>Codes</b><br> 200, 404 | 
 | PUT | /pipeline/:pipeline_id/cache | ```{ "scope": "", "event_id": "", "pipeline_id": "", "data": base64``` | <b>Codes</b><br>202, 403 |
 
-Points to consider:
+The server implementation should consider the following points:
 
-- Should maybe just use GraphQL?
-- The data field might better be implemented as a link to a location like s3. This will increase system component count, complexity and risk
+- The data field might better be implemented as a link to a location like s3. 
+- The server should use a simple LRU implementation for cache evictions.
+- The server has a maximum amount of storage space for use by the cache.
+- The server places a maximum limit on the amount of cache space available to each pipeline. This is a separate limit from the global maximum cache size limit.
+- The server might want to consider putting simple rate limitation and concurrency controls in place.
 
 #### Build node
 
 ##### Command
 
-Not exposed as a user command. Used internally by director. Uses yaml data for cache details.
+This is not exposed as a user command, but used internally by the director. It uses the pipeline definition data for cache details.
 
 | Command | Details |
 | - | - |
