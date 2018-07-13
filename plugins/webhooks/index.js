@@ -362,21 +362,31 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch) {
 
 /**
  * Create events for each pipeline
- * @async createEvents
- * @param {EventFactory}    eventFactory    To create event
- * @param {Array}           pipelines       The pipelines to start events
- * @param {String}          parsed          It have a information to create event
- * @returns {Promise}                       Promise that resolves into events
+ * @async   createEvents
+ * @param   {EventFactory}       eventFactory       To create event
+ * @param   {PipelineFactory}    pipelineFactory    To use scm module
+ * @param   {Array}              pipelines          The pipelines to start events
+ * @param   {Object}             parsed             It has information to create event
+ * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(eventFactory, pipelines, parsed) {
+async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
     const { branch, sha, username, scmContext, changedFiles } = parsed;
     const events = [];
 
     for (let i = 0; i < pipelines.length; i += 1) {
         const p = pipelines[i];
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         const b = await p.branch;
         const startFrom = (b === branch) ? '~commit' : `~commit:${branch}`;
+        const token = await p.token;
+        const scmConfig = {
+            scmUri: p.scmUri,
+            token,
+            scmContext
+        };
+        // obtain pipeline's latest commit sha for branch specific job
+        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        /* eslint-enable no-await-in-loop */
         const eventConfig = {
             pipelineId: p.id,
             type: 'pipeline',
@@ -385,6 +395,7 @@ async function createEvents(eventFactory, pipelines, parsed) {
             scmContext,
             startFrom,
             sha,
+            configPipelineSha,
             changedFiles,
             commitBranch: branch,
             causeMessage: `Merged by ${username}`
@@ -441,7 +452,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
                 return [];
             }
 
-            return createEvents(eventFactory, pipelines, parsed);
+            return createEvents(eventFactory, pipelineFactory, pipelines, parsed);
         })
         .then((events) => {
             if (events.length === 0) {
