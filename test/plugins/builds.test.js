@@ -246,6 +246,7 @@ describe('build plugin test', () => {
             name: 'screwdriver-cd/screwdriver',
             url: 'https://github.com/screwdriver-cd/screwdriver/tree/branchName'
         };
+        const configPipelineSha = 'abc123';
         let buildMock;
         let pipelineMock;
         let eventMock;
@@ -280,6 +281,7 @@ describe('build plugin test', () => {
             eventMock = {
                 id: 123,
                 pipelineId,
+                configPipelineSha,
                 workflowGraph: {
                     nodes: [
                         { name: '~pr' },
@@ -804,6 +806,7 @@ describe('build plugin test', () => {
                             username,
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                            configPipelineSha,
                             start: true
                         });
                         assert.calledWith(triggerFactoryMock.list, {
@@ -987,7 +990,8 @@ describe('build plugin test', () => {
                         start: true,
                         eventId: '8888',
                         username: 12345,
-                        scmContext: 'github:github.com'
+                        scmContext: 'github:github.com',
+                        configPipelineSha: 'abc123'
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });
