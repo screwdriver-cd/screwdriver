@@ -402,6 +402,15 @@ describe('pipeline plugin test', () => {
             })
         );
 
+        it('returns 204 when repository does not exist', () => {
+            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipeline.remove);
+            });
+        });
+
         it('returns 401 when user does not have admin permission', () => {
             const error = {
                 statusCode: 401,

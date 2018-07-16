@@ -52,6 +52,12 @@ module.exports = () => ({
                                 + 'does not have admin permission for this repo');
                         }
                     })
+                    .catch((error) => {
+                        // Allow pipeline to be removed if the repository does not exist
+                        if (error.code !== 404) {
+                            throw error;
+                        }
+                    })
                     // user has good permissions, remove the pipeline
                     .then(() => pipeline.remove())
                     .then(() => reply().code(204));
