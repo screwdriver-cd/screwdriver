@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const hoek = require('hoek');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
@@ -26,6 +27,8 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const scms = hoek.reach(pipelineFactory, 'scm.scms') || {};
+            const isPrivateRepo = hoek.reach(scms[scmContext], 'config.privateRepo') || false;
 
             // Fetch the pipeline and user models
             return Promise.all([
@@ -54,9 +57,11 @@ module.exports = () => ({
                     })
                     .catch((error) => {
                         // Allow pipeline to be removed if the repository does not exist
-                        if (error.code !== 404) {
-                            throw error;
+                        if (error.code === 404 && !isPrivateRepo) {
+                            return Promise.resolve(null);
                         }
+
+                        throw error;
                     })
                     // user has good permissions, remove the pipeline
                     .then(() => pipeline.remove())

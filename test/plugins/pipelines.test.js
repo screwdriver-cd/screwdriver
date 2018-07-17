@@ -471,6 +471,23 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+
+        it('returns 500 when repository does not exist and private repo is enabled', () => {
+            const scms = {
+                'github:github.com': {
+                    config: {
+                        privateRepo: true
+                    }
+                }
+            };
+
+            pipelineFactoryMock.scm.scms = scms;
+            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /pipelines/{id}/jobs', () => {
