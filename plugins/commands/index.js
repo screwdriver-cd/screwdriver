@@ -31,7 +31,7 @@ exports.register = (server, options, next) => {
      * @return {Promise}
      */
     server.expose('canRemove', (credentials, command, permission) => {
-        const { username, scmContext, scope } = credentials;
+        const { username, scmContext, scope, isPR } = credentials;
         const { userFactory, pipelineFactory } = server.root.app;
 
         return pipelineFactory.get(command.pipelineId).then((pipeline) => {
@@ -56,9 +56,8 @@ exports.register = (server, options, next) => {
                 });
             }
 
-            if (command.pipelineId !== credentials.pipelineId) {
-                throw boom.forbidden(`Pipeline ${credentials.pipelineId} ` +
-                    'is not allowed to access this command');
+            if (command.pipelineId !== credentials.pipelineId || isPR) {
+                throw boom.forbidden('Not allowed to remove this command');
             }
 
             return true;

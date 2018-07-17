@@ -57,9 +57,8 @@ exports.register = (server, options, next) => {
                 });
             }
 
-            if (template.pipelineId !== credentials.pipelineId) {
-                throw boom.forbidden(`Pipeline ${credentials.pipelineId} ` +
-                    'is not allowed to access this template');
+            if (template.pipelineId !== credentials.pipelineId || credentials.isPR) {
+                throw boom.forbidden('Not allowed to remove this template');
             }
 
             return true;
