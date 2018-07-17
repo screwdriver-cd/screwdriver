@@ -246,6 +246,7 @@ describe('build plugin test', () => {
             name: 'screwdriver-cd/screwdriver',
             url: 'https://github.com/screwdriver-cd/screwdriver/tree/branchName'
         };
+        const configPipelineSha = 'abc123';
         let buildMock;
         let pipelineMock;
         let eventMock;
@@ -280,6 +281,7 @@ describe('build plugin test', () => {
             eventMock = {
                 id: 123,
                 pipelineId,
+                configPipelineSha,
                 workflowGraph: {
                     nodes: [
                         { name: '~pr' },
@@ -434,7 +436,8 @@ describe('build plugin test', () => {
                         status: 'ABORTED'
                     },
                     credentials: {
-                        scope: ['user']
+                        scope: ['user'],
+                        username: 'test-user'
                     }
                 };
 
@@ -448,6 +451,7 @@ describe('build plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
+                    assert.equal(buildMock.statusMessage, 'Aborted by test-user');
                     assert.equal(reply.statusCode, 200);
                 });
             });
@@ -802,6 +806,7 @@ describe('build plugin test', () => {
                             username,
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                            configPipelineSha,
                             start: true
                         });
                         assert.calledWith(triggerFactoryMock.list, {
@@ -985,7 +990,8 @@ describe('build plugin test', () => {
                         start: true,
                         eventId: '8888',
                         username: 12345,
-                        scmContext: 'github:github.com'
+                        scmContext: 'github:github.com',
+                        configPipelineSha: 'abc123'
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });
@@ -2200,7 +2206,8 @@ describe('build plugin test', () => {
                 scope: ['build'],
                 isPR: false,
                 jobId: 1234,
-                pipelineId: 1
+                pipelineId: 1,
+                configPipelineId: 123
             });
 
             generateTokenMock.withArgs(
@@ -2220,7 +2227,8 @@ describe('build plugin test', () => {
                     scmContext: 'github:github.com',
                     isPR: false,
                     jobId: 1234,
-                    pipelineId: 1
+                    pipelineId: 1,
+                    configPipelineId: 123
                 }
             };
         });
@@ -2232,7 +2240,7 @@ describe('build plugin test', () => {
                     '12345',
                     'github:github.com',
                     ['build'],
-                    { isPR: false, jobId: 1234, pipelineId: 1 }
+                    { isPR: false, jobId: 1234, pipelineId: 1, configPipelineId: 123 }
                 );
                 assert.calledWith(generateTokenMock, {
                     username: '12345',
@@ -2240,7 +2248,8 @@ describe('build plugin test', () => {
                     scope: ['build'],
                     isPR: false,
                     jobId: 1234,
-                    pipelineId: 1
+                    pipelineId: 1,
+                    configPipelineId: 123
                 }, 50);
                 assert.equal(reply.result.token, 'sometoken');
             })
