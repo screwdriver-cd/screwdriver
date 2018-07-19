@@ -17,6 +17,7 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {Object}   config                Configuration object
  * @param  {Factory}  config.jobFactory     Job Factory
  * @param  {Factory}  config.buildFactory   Build Factory
+ * @param  {Factory}  config.eventFactory   Event Factory
  * @param  {Number}   config.pipelineId     Pipeline Id
  * @param  {String}   config.jobName        Job name
  * @param  {String}   config.username       Username of build
@@ -25,12 +26,15 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {Boolean}  [config.start]        Whether to start the build or not
  * @return {Promise}
  */
-function createBuild({ jobFactory, buildFactory, pipelineId, jobName, username,
+function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId, jobName, username,
     scmContext, build, start }) {
-    return jobFactory.get({
-        name: jobName,
-        pipelineId
-    }).then((job) => {
+    return Promise.all([
+        eventFactory.get(build.eventId),
+        jobFactory.get({
+            name: jobName,
+            pipelineId
+        })
+    ]).then(([event, job]) => {
         if (job.state === 'ENABLED') {
             return buildFactory.create({
                 jobId: job.id,
@@ -38,6 +42,7 @@ function createBuild({ jobFactory, buildFactory, pipelineId, jobName, username,
                 parentBuildId: build.id,
                 eventId: build.eventId,
                 username,
+                configPipelineSha: event.configPipelineSha,
                 scmContext,
                 start: start !== false
             });
@@ -285,6 +290,7 @@ exports.register = (server, options, next) => {
                 const buildConfig = {
                     jobFactory,
                     buildFactory,
+                    eventFactory,
                     pipelineId,
                     jobName: nextJobName,
                     username,

@@ -17,9 +17,12 @@ auth:
     # A password used for encrypting session data.
     # **Needs to be minimum 32 characters**
     cookiePassword: WOW-ANOTHER-INSECURE-PASSWORD!!!
-    # A password used for encrypting stored secrets.
+    # A password used for encrypting stored pipeline secrets and user Oauth token.
     # **Needs to be minimum 32 characters**
     encryptionPassword: WOW-ANOTHER-MORE-INSECURE-PASSWORD!!!
+    # A password used for hashing user/pipeline access tokens.
+    # **Needs to be minimum 32 characters**
+    hashingPassword: WOW-ANOTHER-MORE-INSECURE-PASSWORD!!!
     # A flag to set if the server is running over https.
     # Used as a flag for the OAuth flow
     https: false

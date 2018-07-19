@@ -102,41 +102,37 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^the pull request is closed$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(3) // Wait for the build to be enabled before moving forward
-            .then(() =>
-                sdapi.searchForBuild({
-                    instance: this.instance,
-                    pipelineId: this.pipelineId,
-                    pullRequestNumber: this.pullRequestNumber,
-                    sha: this.sha,
-                    desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE'],
-                    jwt: this.jwt
-                })
-            ).then((buildData) => {
-                this.previousBuildId = buildData.id;
-            }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
-                this.pullRequestNumber)
-            );
+        return sdapi.searchForBuild({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            pullRequestNumber: this.pullRequestNumber,
+            sha: this.sha,
+            desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE'],
+            jwt: this.jwt
+        }).then((buildData) => {
+            this.previousBuildId = buildData.id;
+        }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
+            this.pullRequestNumber)
+        );
     });
 
     When(/^new changes are pushed to that pull request$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(3) // Find & save the previous build
-            .then(() =>
-                sdapi.searchForBuild({
-                    instance: this.instance,
-                    pipelineId: this.pipelineId,
-                    pullRequestNumber: this.pullRequestNumber,
-                    sha: this.sha,
-                    desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-                    jwt: this.jwt
-                }).then((buildData) => {
-                    this.previousBuildId = buildData.id;
-                })
-            )
-            .then(() => github.createFile(this.gitToken, this.branch, this.repoOrg,
-                this.repoName));
+        return sdapi.searchForBuild({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            pullRequestNumber: this.pullRequestNumber,
+            sha: this.sha,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jwt: this.jwt
+        }).then((buildData) => {
+            this.previousBuildId = buildData.id;
+        }).then(() => github.createFile(this.gitToken, this.branch, this.repoOrg,
+            this.repoName))
+            .then((data) => {
+                this.sha = data.commit.sha;
+            });
     });
 
     When(/^a new commit is pushed$/, () => null);
@@ -144,19 +140,23 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
         this.testBranch = 'master';
 
-        return github.createFile(this.gitToken, this.testBranch, this.repoOrg, this.repoName);
+        return github.createFile(this.gitToken, this.testBranch, this.repoOrg, this.repoName)
+            .then((data) => {
+                this.sha = data.commit.sha;
+            });
     });
 
     Then(/^a new build from `main` should be created to test that change$/, {
         timeout: TIMEOUT
     }, function step() {
-        return this.promiseToWait(20) // Wait to find the new build
-            .then(() => sdapi.searchForBuild({
-                instance: this.instance,
-                pipelineId: this.pipelineId,
-                pullRequestNumber: this.pullRequestNumber,
-                jwt: this.jwt
-            }))
+        return sdapi.searchForBuild({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            pullRequestNumber: this.pullRequestNumber,
+            sha: this.sha,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS'],
+            jwt: this.jwt
+        })
             .then((data) => {
                 const build = data;
 
