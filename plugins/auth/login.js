@@ -34,7 +34,9 @@ function addGuestRoute(server, config) {
                 // Log that the user has authenticated
                 request.log(['auth'], `${username} has logged in`);
 
-                profile.token = request.server.plugins.auth.generateToken(profile);
+                profile.token = request.server.plugins.auth.generateToken(
+                    profile, config.sessionTimeout
+                );
                 request.cookieAuth.set(profile);
 
                 if (request.params.web === 'web') {
@@ -94,7 +96,9 @@ function addOAuthRoutes(server, config) {
                 // Log that the user has authenticated
                 request.log(['auth'], `${userDisplayName} has logged in via OAuth`);
 
-                profile.token = request.server.plugins.auth.generateToken(profile);
+                profile.token = request.server.plugins.auth.generateToken(
+                    profile, config.sessionTimeout
+                );
                 request.cookieAuth.set(profile);
 
                 return factory.get({ username, scmContext })
@@ -134,6 +138,7 @@ function addOAuthRoutes(server, config) {
  * @param  {Object}      config                      Configuration from the user
  * @param  {Array}       config.whitelist            List of allowed users to the system
  * @param  {Boolean}     config.allowGuestAccess     Letting users browse your system
+ * @param  {Integer}     config.sessionTimeout       session timeout
  * @return {Array}                                   Hapi Plugin Routes
  */
 module.exports = (server, config) => [].concat(

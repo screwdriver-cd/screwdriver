@@ -32,6 +32,8 @@ auth:
     # if empty, it allows everyone
     whitelist: []
     admins: []
+    # Default session timeout (in minutes)
+    sessionTimeout: 120
 
 httpd:
     # Port to listen on
