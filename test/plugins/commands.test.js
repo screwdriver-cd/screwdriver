@@ -445,7 +445,7 @@ describe('command plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'Pipeline 1337 is not allowed to access this command'
+                message: 'Not allowed to remove this command'
             };
 
             options = {
@@ -458,6 +458,32 @@ describe('command plugin test', () => {
                     scope: ['build']
                 }
             };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this command'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar',
+                credentials: {
+                    isPR: true,
+                    username,
+                    scmContext,
+                    pipelineId: 1337,
+                    scope: ['build']
+                }
+            };
+            options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
@@ -534,6 +560,14 @@ describe('command plugin test', () => {
 
         it('returns 401 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 401 if it is a PR build', () => {
+            options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);
@@ -978,6 +1012,14 @@ describe('command plugin test', () => {
 
         it('returns 401 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 401 if it is a PR build', () => {
+            options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 401);

@@ -25,10 +25,8 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const templateFactory = request.server.app.templateFactory;
-            const templateTagFactory = request.server.app.templateTagFactory;
-            const pipelineId = request.auth.credentials.pipelineId;
+            const { pipelineFactory, templateFactory, templateTagFactory } = request.server.app;
+            const { pipelineId, isPR } = request.auth.credentials;
             const name = request.params.templateName;
             const tag = request.params.tagName;
 
@@ -47,7 +45,7 @@ module.exports = () => ({
                     ])
                         .then(([pipeline, template]) => {
                             // Check for permission
-                            if (pipeline.id !== template.pipelineId) {
+                            if (pipeline.id !== template.pipelineId || isPR) {
                                 throw boom.unauthorized('Not allowed to delete this template tag');
                             }
 

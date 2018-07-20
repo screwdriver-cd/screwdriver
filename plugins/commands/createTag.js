@@ -26,10 +26,8 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const commandFactory = request.server.app.commandFactory;
-            const commandTagFactory = request.server.app.commandTagFactory;
-            const pipelineId = request.auth.credentials.pipelineId;
+            const { pipelineFactory, commandFactory, commandTagFactory } = request.server.app;
+            const { pipelineId, isPR } = request.auth.credentials;
             const namespace = request.params.namespace;
             const name = request.params.name;
             const tag = request.params.tagName;
@@ -47,7 +45,7 @@ module.exports = () => ({
 
                 // If command exists, but this build's pipelineId is not the same as command's pipelineId
                 // Then this build does not have permission to tag the command
-                if (pipeline.id !== command.pipelineId) {
+                if (pipeline.id !== command.pipelineId || isPR) {
                     throw boom.unauthorized('Not allowed to tag this command');
                 }
 
