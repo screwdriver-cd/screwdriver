@@ -56,8 +56,12 @@ module.exports = () => ({
                         }
                     })
                     .catch((error) => {
-                        // Allow pipeline to be removed if the repository does not exist
-                        if (error.code === 404 && !isPrivateRepo) {
+                        // Lookup whether user is admin
+                        const adminDetails = request.server.plugins.pipelines
+                            .screwdriverAdminDetails(username, scmContext);
+
+                        // Allow cluster admins to remove pipeline if the repository does not exist
+                        if (error.code === 404 && !isPrivateRepo && adminDetails.isAdmin) {
                             return Promise.resolve(null);
                         }
 

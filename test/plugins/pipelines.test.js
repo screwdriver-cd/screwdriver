@@ -169,6 +169,7 @@ describe('pipeline plugin test', () => {
             list: sinon.stub(),
             scm: {
                 getScmContexts: sinon.stub(),
+                getDisplayName: sinon.stub().returns('github'),
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha')
@@ -215,7 +216,8 @@ describe('pipeline plugin test', () => {
             register: plugin,
             options: {
                 password,
-                scm: scmMock
+                scm: scmMock,
+                admins: ['github:myself']
             }
         }, {
             // eslint-disable-next-line global-require
@@ -395,6 +397,10 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
         });
 
+        afterEach(() => {
+            pipelineFactoryMock.get.withArgs(id).reset();
+        });
+
         it('returns 204 when delete successfully', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
@@ -402,7 +408,7 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 204 when repository does not exist', () => {
+        it('returns 204 when repository does not exist and user is admin', () => {
             userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
 
             return server.inject(options).then((reply) => {
