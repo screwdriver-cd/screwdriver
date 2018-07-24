@@ -148,6 +148,8 @@ describe('pipeline plugin test', () => {
     let userFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let scmMock;
     let plugin;
     let server;
@@ -169,7 +171,6 @@ describe('pipeline plugin test', () => {
             list: sinon.stub(),
             scm: {
                 getScmContexts: sinon.stub(),
-                getDisplayName: sinon.stub().returns('github'),
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha')
@@ -185,6 +186,17 @@ describe('pipeline plugin test', () => {
             get: sinon.stub(),
             create: sinon.stub()
         };
+        bannerMock = {
+            register: (s, o, next) => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                next();
+            }
+        };
+        bannerMock.register.attributes = {
+            name: 'banners'
+        };
+
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -212,20 +224,24 @@ describe('pipeline plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                password,
-                scm: scmMock,
-                admins: ['github:myself']
+        server.register([
+            bannerMock,
+            {
+                register: plugin,
+                options: {
+                    password,
+                    scm: scmMock,
+                    admins: ['github:myself']
+                }
+            },
+            {
+                // eslint-disable-next-line global-require
+                register: require('../../plugins/secrets'),
+                options: {
+                    password
+                }
             }
-        }, {
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/secrets'),
-            options: {
-                password
-            }
-        }], done);
+        ], done);
     });
 
     afterEach(() => {

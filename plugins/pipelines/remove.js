@@ -57,7 +57,7 @@ module.exports = () => ({
                     })
                     .catch((error) => {
                         // Lookup whether user is admin
-                        const adminDetails = request.server.plugins.pipelines
+                        const adminDetails = request.server.plugins.banners
                             .screwdriverAdminDetails(username, scmContext);
 
                         // Allow cluster admins to remove pipeline if the repository does not exist
