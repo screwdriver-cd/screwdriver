@@ -46,6 +46,8 @@ module.exports = () => ({
                     if (request.payload.code !== undefined) {
                         steps[stepIndex].code = request.payload.code;
                         steps[stepIndex].endTime = request.payload.endTime || now;
+                    } else if (request.payload.lines !== undefined) {
+                        steps[stepIndex].lines = request.payload.lines;
                     } else {
                         steps[stepIndex].startTime = request.payload.startTime || now;
                     }
