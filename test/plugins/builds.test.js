@@ -1852,6 +1852,29 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns logs for a step that is split across pages in descending order', () => {
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=100`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 102);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
         it('returns logs for a step that is split across pages with 1000 lines per file', () => {
             const buildMock = getMockBuilds(testBuild);
 
