@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const hoek = require('hoek');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
@@ -26,6 +27,8 @@ module.exports = () => ({
             const userFactory = request.server.app.userFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const scms = hoek.reach(pipelineFactory, 'scm.scms') || {};
+            const isPrivateRepo = hoek.reach(scms[scmContext], 'config.privateRepo') || false;
 
             // Fetch the pipeline and user models
             return Promise.all([
@@ -51,6 +54,18 @@ module.exports = () => ({
                             throw boom.unauthorized(`User ${username} `
                                 + 'does not have admin permission for this repo');
                         }
+                    })
+                    .catch((error) => {
+                        // Lookup whether user is admin
+                        const adminDetails = request.server.plugins.banners
+                            .screwdriverAdminDetails(username, scmContext);
+
+                        // Allow cluster admins to remove pipeline if the repository does not exist
+                        if (error.code === 404 && !isPrivateRepo && adminDetails.isAdmin) {
+                            return Promise.resolve(null);
+                        }
+
+                        throw error;
                     })
                     // user has good permissions, remove the pipeline
                     .then(() => pipeline.remove())

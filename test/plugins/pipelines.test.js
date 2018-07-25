@@ -148,6 +148,8 @@ describe('pipeline plugin test', () => {
     let userFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let scmMock;
     let plugin;
     let server;
@@ -184,6 +186,17 @@ describe('pipeline plugin test', () => {
             get: sinon.stub(),
             create: sinon.stub()
         };
+        bannerMock = {
+            register: (s, o, next) => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                next();
+            }
+        };
+        bannerMock.register.attributes = {
+            name: 'banners'
+        };
+
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -211,19 +224,24 @@ describe('pipeline plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                password,
-                scm: scmMock
+        server.register([
+            bannerMock,
+            {
+                register: plugin,
+                options: {
+                    password,
+                    scm: scmMock,
+                    admins: ['github:myself']
+                }
+            },
+            {
+                // eslint-disable-next-line global-require
+                register: require('../../plugins/secrets'),
+                options: {
+                    password
+                }
             }
-        }, {
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/secrets'),
-            options: {
-                password
-            }
-        }], done);
+        ], done);
     });
 
     afterEach(() => {
@@ -395,12 +413,25 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
         });
 
+        afterEach(() => {
+            pipelineFactoryMock.get.withArgs(id).reset();
+        });
+
         it('returns 204 when delete successfully', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(pipeline.remove);
             })
         );
+
+        it('returns 204 when repository does not exist and user is admin', () => {
+            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipeline.remove);
+            });
+        });
 
         it('returns 401 when user does not have admin permission', () => {
             const error = {
@@ -457,6 +488,23 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when call returns error', () => {
             pipeline.remove.rejects('pipelineRemoveError');
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when repository does not exist and private repo is enabled', () => {
+            const scms = {
+                'github:github.com': {
+                    config: {
+                        privateRepo: true
+                    }
+                }
+            };
+
+            pipelineFactoryMock.scm.scms = scms;
+            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
