@@ -100,7 +100,7 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
 }
 
 /**
- * Run pull request's main job
+ * Create events for each pipeline
  * @async  createPREvents
  * @param  {Object}       options
  * @param  {String}       options.username      User who created the PR
