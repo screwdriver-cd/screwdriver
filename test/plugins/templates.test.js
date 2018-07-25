@@ -393,7 +393,7 @@ describe('template plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'Pipeline 1337 is not allowed to access this template'
+                message: 'Not allowed to remove this template'
             };
 
             options = {
@@ -403,6 +403,31 @@ describe('template plugin test', () => {
                     username,
                     scmContext,
                     pipelineId: 1337,
+                    scope: ['build']
+                }
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when build credential is from a PR', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this template'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    pipelineId: 1337,
+                    isPR: true,
                     scope: ['build']
                 }
             };
@@ -707,6 +732,14 @@ describe('template plugin test', () => {
             });
         });
 
+        it('returns 401 when pipelineId does not match', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
         it('returns 404 when template tag does not exist', () => {
             templateTagFactoryMock.get.resolves(null);
 
@@ -763,6 +796,14 @@ describe('template plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 401 if it is a PR build', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
             });
         });
 
