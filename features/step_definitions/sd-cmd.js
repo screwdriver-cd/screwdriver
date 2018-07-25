@@ -2,7 +2,6 @@
 
 const Assert = require('chai').assert;
 const request = require('../support/request');
-const sdapi = require('../support/sdapi');
 const { defineSupportCode } = require('cucumber');
 
 const TIMEOUT = 240 * 1000;
@@ -45,13 +44,13 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 Assert.equal(response.body.name, command);
                 Assert.equal(response.body.namespace, this.commandNamespace);
                 Assert.equal(response.body.format, format);
-                
+
                 this.command = command;
             });
         });
 
-    Given(/^a command whose name is "([^"]+)"$/,
-          { timeout: TIMEOUT }, function step(command) {
+    Given(/^(.+) command does not exists yet$/,
+        { timeout: TIMEOUT }, function step(command) {
             this.command = command;
 
             return request({
@@ -62,158 +61,110 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 auth: {
                     bearer: this.jwt
                 }
-            })
-                .then((response) => {
-                    if (response.statusCode === 404) {
-                        return;
-                    }
+            }).then((response) => {
+                if (response.statusCode === 404) {
+                    return;
+                }
 
-                    return request({
-                        uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
-                        + `/${this.command}`,
-                        method: 'DELETE',
-                        json: true,
-                        auth: {
-                            bearer: this.jwt
-                        }
-                    }).then((response) => {
-                        Assert.equal(response.statusCode, 204);
-                    });
+                request({
+                    uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
+                    + `/${this.command}`,
+                    method: 'DELETE',
+                    json: true,
+                    auth: {
+                        bearer: this.jwt
+                    }
+                }).then((resp) => {
+                    Assert.equal(resp.statusCode, 204);
                 });
+            });
         });
 
-    Given(/^(.+) command is not exists yet$/,
-          { timeout: TIMEOUT }, function step(command) {
-            this.command = command;
-
-            return request({
-                uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
-                + `/${this.command}`,
-                method: 'GET',
-                json: true,
-                auth: {
-                    bearer: this.jwt
-                }
-            })
-                .then((response) => {
-                    if (response.statusCode === 404) {
-                        return;
-                    }
-
-                    return request({
-                        uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
-                        + `/${this.command}`,
-                        method: 'DELETE',
-                        json: true,
-                        auth: {
-                            bearer: this.jwt
-                        }
-                    }).then((response) => {
-                        Assert.equal(response.statusCode, 204);
-                    });
-                });
-          });
-
-    Given(/^"([^"]+)" version of the command is uploaded in "([^"]+)" tag$/, {
+    Given(/^"([^"]+)" version of the command is uploaded with "([^"]+)" tag$/, {
         timeout: TIMEOUT
     }, function step(version, tag) {
         const jobName = `publish-${tag}`;
+
         return request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
-            method: 'GET',
+            uri: `${this.instance}/${this.namespace}/events`,
+            method: 'POST',
             json: true,
+            body: {
+                pipelineId: this.pipelineId,
+                startFrom: jobName
+            },
             auth: {
                 bearer: this.jwt
             }
-        })
-            .then((response) => {
-                Assert.equal(response.statusCode, 200);
+        }).then((response) => {
+            Assert.equal(response.statusCode, 201);
+            this.eventId = response.body.id;
+        }).then(() => request({
+            uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        })).then((response) => {
+            Assert.equal(response.statusCode, 200);
 
-                for (let i = 0; i < response.body.length; i += 1) {
-                    if (response.body[i].name === jobName) {
-                        this.jobId = response.body[i].id;
-                        return;
-                    }
-                }
-            })
-            .then(() =>
-                request({
-                    uri: `${this.instance}/${this.namespace}/builds`,
-                    method: 'POST',
-                    body: {
-                        jobId: this.jobId
-                    },
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
-                }).then((response) => {
-                    Assert.equal(response.statusCode, 201);
+            this.buildId = response.body[0].id;
 
-                    return this.waitForBuild(response.body.id).then((response) => {
-                        Assert.equal(response.statusCode, 200);
-                        Assert.equal(response.body.status, 'SUCCESS');
-                    });
-                })
-            );
-      });
+            return this.waitForBuild(this.buildId).then((resp) => {
+                Assert.equal(resp.statusCode, 200);
+                Assert.equal(resp.body.status, 'SUCCESS');
+            });
+        });
+    });
 
-    When(/^execute (.+) job$/, { 
+    When(/^execute (.+) job$/, {
         timeout: TIMEOUT
     }, function step(jobName) {
         return request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
+            uri: `${this.instance}/${this.namespace}/events`,
+            method: 'POST',
+            json: true,
+            body: {
+                pipelineId: this.pipelineId,
+                startFrom: jobName
+            },
+            auth: {
+                bearer: this.jwt
+            }
+        }).then((response) => {
+            Assert.equal(response.statusCode, 201);
+            this.eventId = response.body.id;
+        }).then(() => request({
+            uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        })).then((response) => {
+            Assert.equal(response.statusCode, 200);
+
+            this.buildId = response.body[0].id;
+        });
+    });
+
+    When(/^"([^"]+)" step executes the command with artguments: "([^"]+)"$/, {
+        timeout: TIMEOUT
+    }, function step(stepName, args) {
+        return request({
+            uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps/${stepName}`,
             method: 'GET',
             json: true,
             auth: {
                 bearer: this.jwt
             }
-        })
-            .then((response) => {
-                Assert.equal(response.statusCode, 200);
-
-                for (let i = 0; i < response.body.length; i += 1) {
-                    if (response.body[i].name === jobName) {
-                        this.jobId = response.body[i].id;
-                        return;
-                    }
-                }
-            })
-            .then(() =>
-                request({
-                    uri: `${this.instance}/${this.namespace}/builds`,
-                    method: 'POST',
-                    body: {
-                        jobId: this.jobId
-                    },
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
-                }).then((response) => {
-                    Assert.equal(response.statusCode, 201);
-
-                    this.buildId = response.body.id;
-                })
-            );
-     });
-
-    When(/^"([^"]+)" step execute the command with artguments: "([^"]+)"$/, {
-        timeout: TIMEOUT
-    }, function step(stepName, args) {
-             return request({
-                uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps/${stepName}`,
-                method: 'GET',
-                json: true,
-                auth: {
-                    bearer: this.jwt
-                }
-             }).then((response) => {
-                 Assert.equal(response.statusCode, 200);
-                 Assert.equal(response.body.command,
-                  `sd-cmd exec ${this.commandNamespace}/${this.command}@1 ${args}`);
-             });
-         });
+        }).then((response) => {
+            Assert.equal(response.statusCode, 200);
+            Assert.equal(response.body.command,
+                `sd-cmd exec ${this.commandNamespace}/${this.command}@1 ${args}`);
+        });
+    });
 
     Then(/^the job is completed successfully$/, { timeout: 700 * 1000 }, function step() {
         return this.waitForBuild(this.buildId).then((response) => {
@@ -240,7 +191,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         });
     });
 
-    Then(/^"([^"]+)" is tagged to "([^"]+)"$/, {
+    Then(/^"([^"]+)" is tagged with "([^"]+)"$/, {
         timeout: TIMEOUT
     }, function step(version, tag) {
         return request({
@@ -256,9 +207,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         });
     });
 
-    Then(/^"([^"]+)" is removed from "([^"]+)"$/, {
+    Then(/^"([^"]+)" tag is removed from "([^"]+)"$/, {
         timeout: TIMEOUT
-    }, function step(version, tag) {
+    }, function step(tag, version) {
         return request({
             uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
                 + `/${this.command}/${tag}`,
