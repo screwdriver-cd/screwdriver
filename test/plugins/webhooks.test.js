@@ -533,6 +533,8 @@ describe('github plugin test', () => {
                     payload
                 };
                 name = 'PR-1';
+                pipelineFactoryMock.list.resolves([]);
+                pipelineFactoryMock.scm.getBranchList.resolves([{ name: 'master' }]);
             });
 
             it('returns 204 when pipeline does not exist', () => {
@@ -605,6 +607,133 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                     })
                 );
+
+                it('returns 201 on success with pr branch trigger', () => {
+                    const wMock1 = {
+                        nodes: [
+                            { name: '~pr:master' },
+                            { name: '~pr' },
+                            { name: 'main' }
+                        ],
+                        edges: [
+                            { src: '~pr:master', dest: 'main' },
+                            { src: '~pr', dest: 'main' }
+                        ]
+                    };
+                    const wMock2 = {
+                        nodes: [
+                            { name: '~pr:/^.*$/' },
+                            { name: '~pr' },
+                            { name: 'main' }
+                        ],
+                        edges: [
+                            { src: '~pr:/^.*$/', dest: 'main' },
+                            { src: '~pr', dest: 'main' }
+                        ]
+                    };
+                    const pMock1 = {
+                        id: 'pipelineHash1',
+                        scmUri: 'github.com:123456:branch1',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph: wMock1,
+                        sync: sinon.stub(),
+                        getConfiguration: sinon.stub(),
+                        jobs: Promise.resolve([mainJobMock, jobMock]),
+                        branch: Promise.resolve('branch1')
+                    };
+                    const pMock2 = {
+                        id: 'pipelineHash2',
+                        scmUri: 'github.com:123456:branch2',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph: wMock2,
+                        sync: sinon.stub(),
+                        getConfiguration: sinon.stub(),
+                        jobs: Promise.resolve([mainJobMock, jobMock]),
+                        branch: Promise.resolve('branch2')
+                    };
+                    const pMock3 = {
+                        id: 'pipelineHash3',
+                        scmUri: 'github.com:123456:fix-1',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph,
+                        sync: sinon.stub(),
+                        getConfiguration: sinon.stub(),
+                        jobs: Promise.resolve([mainJobMock, jobMock]),
+                        branch: Promise.resolve('fix-1')
+                    };
+
+                    pipelineFactoryMock.scm.getBranchList.resolves([
+                        { name: 'master' }, { name: 'branch1' },
+                        { name: 'branch2' }, { name: 'fix-1' }]);
+                    pipelineFactoryMock.list.resolves([pMock1, pMock2, pMock3]);
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 201);
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId: pMock1.id,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr:master',
+                            prNum: 2,
+                            prRef,
+                            prInfo,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            changedFiles
+                        });
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId: pMock2.id,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr:master',
+                            prNum: 2,
+                            prRef,
+                            prInfo,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            changedFiles
+                        });
+                        assert.calledWith(eventFactoryMock.create, {
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prRef,
+                            prInfo,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            changedFiles
+                        });
+                        assert.neverCalledWith(eventFactoryMock.create, sinon.match({
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            startFrom: '~pr:master'
+                        }));
+                        assert.neverCalledWith(eventFactoryMock.create, sinon.match({
+                            pipelineId: pMock3.id,
+                            type: 'pr',
+                            webhooks: true,
+                            startFrom: '~pr:master'
+                        }));
+                    });
+                });
 
                 it('returns 201 on success for reopened after closed', () => {
                     name = 'PR-1';

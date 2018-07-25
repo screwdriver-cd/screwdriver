@@ -47,8 +47,61 @@ function stopJob(job) {
 }
 
 /**
+ * Check if the pipeline has a triggered job or not
+ * @method  hasTriggeredJob
+ * @param   {Pipeline}  pipeline    The pipeline to check
+ * @param   {String}    startFrom   The trigger name
+ * @returns {Boolean}               True if the pipeline contains the triggered job
+ */
+function hasTriggeredJob(pipeline, startFrom) {
+    const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
+        trigger: startFrom
+    });
+
+    return nextJobs.length > 0;
+}
+
+/**
+ * Get all pipelines which has triggered job
+ * @method  triggeredPipelines
+ * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
+ * @param   {Object}            scmConfig       Has the token and scmUri to get branches
+ * @param   {String}            branch          The branch which is committed
+ * @returns {Promise}                           Promise that resolves into triggered pipelines
+ */
+function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
+    return pipelineFactory.scm.getBranchList(scmConfig)
+        .then((branches) => {
+            const splitUri = scmConfig.scmUri.split(':');
+
+            // only add non pushed branch, because there is possibility the branch is deleted at filter.
+            return branches.filter(b => b.name !== branch).map((b) => {
+                splitUri[2] = b.name;
+
+                return splitUri.join(':');
+            });
+        })
+        .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
+        .then((pipelines) => {
+            const eventType = (type === 'pr') ? 'pr' : 'commit';
+
+            return pipelines.filter(p => hasTriggeredJob(p, `~${eventType}:${branch}`));
+        })
+        .then(pipelines =>
+            // add pushed branch
+            pipelineFactory.get({ scmUri: scmConfig.scmUri }).then((p) => {
+                if (p) {
+                    pipelines.push(p);
+                }
+
+                return pipelines;
+            })
+        );
+}
+
+/**
  * Run pull request's main job
- * @method startPRJob
+ * @async  createPREvents
  * @param  {Object}       options
  * @param  {String}       options.username      User who created the PR
  * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
@@ -58,15 +111,20 @@ function stopJob(job) {
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of changed files
  * @param  {String}       options.token         User Auth Token
+ * @param  {String}       options.branch        The branch against which pr is opened
+ * @param  {String}       options.type          Triggered event type
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
-function startPRJob(options, request) {
-    const { username, scmContext, sha, prRef, prNum, pipeline, changedFiles, token } = options;
+async function createPREvents(options, request) {
+    const { username, scmContext, sha, prRef, prNum, pipeline,
+        changedFiles, token, branch, type } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
+    const pipelineFactory = request.server.app.pipelineFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
+    const events = [];
 
     const scmConfig = {
         prNum,
@@ -74,10 +132,18 @@ function startPRJob(options, request) {
         scmContext,
         scmUri: pipeline.scmUri
     };
+    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, type);
 
-    return eventFactory.scm.getPrInfo(scmConfig).then((prInfo) => {
+    for (let i = 0; i < pipelines.length; i += 1) {
+        const p = pipelines[i];
+        // eslint-disable-next-line no-await-in-loop
+        const b = await p.branch;
+        const startFrom = (b === branch) ? '~pr' : `~pr:${branch}`;
+        // eslint-disable-next-line no-await-in-loop
+        const prInfo = await eventFactory.scm.getPrInfo(scmConfig);
+
         const eventConfig = {
-            pipelineId: pipeline.id,
+            pipelineId: p.id,
             type: 'pr',
             webhooks: true,
             username,
@@ -86,13 +152,15 @@ function startPRJob(options, request) {
             prInfo,
             prRef,
             prNum,
-            startFrom: '~pr',
+            startFrom,
             changedFiles,
             causeMessage: `${options.action} by ${userDisplayName}`
         };
 
-        return eventFactory.create(eventConfig);
-    });
+        events.push(eventFactory.create(eventConfig));
+    }
+
+    return Promise.all(events);
 }
 
 /**
@@ -119,8 +187,19 @@ function pullRequestOpened(options, request, reply) {
         return reply().code(204);
     }
 
-    return startPRJob(options, request)
-        .then(() => reply().code(201))
+    return createPREvents(options, request)
+        .then((events) => {
+            if (events.length === 0) {
+                return reply().code(204);
+            }
+
+            events.forEach((e) => {
+                request.log(['webhook', hookId, e.id],
+                    `Event ${e.id} started`);
+            });
+
+            return reply().code(201);
+        })
         .catch(err => reply(boom.wrap(err)));
 }
 
@@ -194,13 +273,19 @@ function pullRequestSync(options, request, reply) {
             return Promise.all(prJobs.map(j => stopJob(j)));
         })
         .then(() => request.log(['webhook', hookId], `Job(s) for ${name} stopped`))
-        .then(() => startPRJob(options, request))
-        .then(() => {
-            request.log(['webhook', hookId], `Job(s) for ${name} synced`);
+        .then(() => createPREvents(options, request))
+        .then((events) => {
+            if (events.length === 0) {
+                return reply().code(204);
+            }
+
+            events.forEach((e) => {
+                request.log(['webhook', hookId, e.id],
+                    `Event ${e.id} started`);
+            });
 
             return reply().code(201);
         })
-        // oops. something went wrong
         .catch(err => reply(boom.wrap(err)));
 }
 
@@ -246,7 +331,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const { hookId, action, checkoutUrl, branch, sha, prNum, prRef,
-        prSource, username, scmContext, changedFiles } = parsed;
+        prSource, username, scmContext, changedFiles, type } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     let scmToken = null;
 
@@ -291,7 +376,9 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         restriction,
                         changedFiles,
                         token: scmToken,
-                        action: action.charAt(0).toUpperCase() + action.slice(1)
+                        action: action.charAt(0).toUpperCase() + action.slice(1),
+                        branch,
+                        type
                     };
 
                     switch (action) {
@@ -309,55 +396,6 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                 });
         })
         .catch(err => reply(boom.wrap(err)));
-}
-
-/**
- * Check if the pipeline has a triggered job or not
- * @method  hasTriggeredJob
- * @param   {Pipeline}  pipeline    The pipeline to check
- * @param   {String}    startFrom   The trigger name
- * @returns {Boolean}               True if the pipeline contains the triggered job
- */
-function hasTriggeredJob(pipeline, startFrom) {
-    const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
-        trigger: startFrom
-    });
-
-    return nextJobs.length > 0;
-}
-
-/**
- * Get all pipelines which has triggered job
- * @method  triggeredPipelines
- * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
- * @param   {Object}            scmConfig       Has the token and scmUri to get branches
- * @param   {String}            branch          The branch which is committed
- * @returns {Promise}                           Promise that resolves into triggered pipelines
- */
-function triggeredPipelines(pipelineFactory, scmConfig, branch) {
-    return pipelineFactory.scm.getBranchList(scmConfig)
-        .then((branches) => {
-            const splitUri = scmConfig.scmUri.split(':');
-
-            // only add non pushed branch, because there is possibility the branch is deleted at filter.
-            return branches.filter(b => b.name !== branch).map((b) => {
-                splitUri[2] = b.name;
-
-                return splitUri.join(':');
-            });
-        })
-        .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
-        .then(pipelines => pipelines.filter(p => hasTriggeredJob(p, `~commit:${branch}`)))
-        .then(pipelines =>
-            // add pushed branch
-            pipelineFactory.get({ scmUri: scmConfig.scmUri }).then((p) => {
-                if (p) {
-                    pipelines.push(p);
-                }
-
-                return pipelines;
-            })
-        );
 }
 
 /**
@@ -420,7 +458,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, checkoutUrl, branch, username, scmContext } = parsed;
+    const { hookId, checkoutUrl, branch, username, scmContext, type } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -443,7 +481,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
         }).then((scmUri) => {
             scmConfig.scmUri = scmUri;
 
-            return triggeredPipelines(pipelineFactory, scmConfig, branch);
+            return triggeredPipelines(pipelineFactory, scmConfig, branch, type);
         }).then((pipelines) => {
             if (!pipelines || pipelines.length === 0) {
                 request.log(['webhook', hookId],
