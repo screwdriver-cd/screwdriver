@@ -33,9 +33,11 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
             .pipe(ndjson.parse({
                 strict: false
             }))
-            // Filter down to the lines we care about
+            // Only save lines that we care about
             .on('data', (line) => {
-                if (sort === 'descending' || line.n >= linesFrom) {
+                const isNextLine = sort === 'ascending' ? line.n >= linesFrom : line.n <= linesFrom;
+
+                if (isNextLine) {
                     output.push(line);
                 }
             })

@@ -1861,7 +1861,7 @@ describe('build plugin test', () => {
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
             return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=100`,
+                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=101`,
                 credentials: {
                     scope: ['user']
                 }
