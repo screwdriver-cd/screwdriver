@@ -1744,6 +1744,19 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 200 when updating the lines', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            delete options.payload.startTime;
+            delete options.payload.endTime;
+            delete options.payload.code;
+            options.payload.lines = 100;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'lines', options.payload.lines);
+            });
+        });
+
         it('returns 403 for a the wrong build permission', () => {
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
