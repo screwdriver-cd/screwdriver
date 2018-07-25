@@ -4,6 +4,7 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
+const winston = require('winston');
 let maxLines = 100;
 
 /**
@@ -19,7 +20,7 @@ let maxLines = 100;
 async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
     const output = [];
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         request
             .get({
                 url: `${baseUrl}.${page}`,
@@ -27,6 +28,7 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
                     Authorization: authToken
                 }
             })
+            .on('error', e => reject(e))
             // Parse the ndjson
             .pipe(ndjson.parse({
                 strict: false
@@ -60,6 +62,7 @@ async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort
     try {
         lines = await fetchLog({ baseUrl, linesFrom, authToken, page, sort });
     } catch (err) {
+        winston.error(err);
         throw err;
     }
 
