@@ -141,6 +141,9 @@ async function createPREvents(options, request) {
         const startFrom = (b === branch) ? '~pr' : `~pr:${branch}`;
         // eslint-disable-next-line no-await-in-loop
         const prInfo = await eventFactory.scm.getPrInfo(scmConfig);
+        // obtain pipeline's latest commit sha for branch specific job
+        // eslint-disable-next-line no-await-in-loop
+        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
 
         const eventConfig = {
             pipelineId: p.id,
@@ -149,6 +152,7 @@ async function createPREvents(options, request) {
             username,
             scmContext,
             sha,
+            configPipelineSha,
             prInfo,
             prRef,
             prNum,
