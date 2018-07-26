@@ -5,7 +5,8 @@ const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
 const winston = require('winston');
-let maxLines = 100;
+const MAX_LINES_SMALL = 100;
+const MAX_LINES_BIG = 1000;
 
 /**
  * Makes the request to the Store to get lines from a log
@@ -56,8 +57,16 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
  * @param  {String}     [config.sort='ascending']  Method for sorting log lines ('ascending' or 'descending')
  * @return {Promise}                               [Array of log lines, Are there more pages]
  */
-async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort = 'ascending' }) {
-    const page = Math.floor(linesFrom / maxLines);
+async function loadLines({
+    baseUrl,
+    linesFrom,
+    authToken,
+    pagesToLoad = 10,
+    sort = 'ascending',
+    maxLines = MAX_LINES_SMALL
+}) {
+    const page = sort === 'ascending' ?
+        Math.floor(linesFrom / maxLines) : Math.floor(linesFrom / MAX_LINES_BIG);
     let morePages = false;
     let lines;
 
@@ -70,14 +79,9 @@ async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort
 
     const linesCount = lines.length;
     const pagesToLoadUpdated = pagesToLoad - 1;
+    const maxLinesUpdated = linesCount > MAX_LINES_SMALL ? MAX_LINES_BIG : maxLines;
     const linesFromUpdated = sort === 'descending' ?
         linesFrom - linesCount : linesCount + linesFrom;
-
-    // This won't work if we support loading logs from the end
-    if (linesCount > 100) {
-        maxLines = 1000;
-    }
-
     // If we got lines AND there are more lines to load
     const descLoadNext = sort === 'descending' && linesCount > 0 && linesFrom - linesCount > 0;
     // If we got lines AND we reached the edge of a page
@@ -92,7 +96,8 @@ async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort
                 linesFrom: linesFromUpdated,
                 authToken,
                 pagesToLoad: pagesToLoadUpdated,
-                sort
+                sort,
+                maxLines: maxLinesUpdated
             };
 
             return loadLines(loadConfig)
