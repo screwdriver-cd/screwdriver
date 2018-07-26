@@ -1855,19 +1855,19 @@ describe('build plugin test', () => {
         it('returns logs for a step that is split across pages in descending order', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
-                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
-                .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
 
             return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=101`,
+                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`,
                 credentials: {
                     scope: ['user']
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 102);
+                assert.equal(reply.result.length, 1002);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
