@@ -4,22 +4,24 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
-let maxLines = 100;
+const winston = require('winston');
+const MAX_LINES_SMALL = 100;
+const MAX_LINES_BIG = 1000;
 
 /**
- * Load up to N pages that are available
- * @method loadLines
- * @param  {String}     baseUrl          URL to load from (without the .$PAGE)
- * @param  {Integer}    linesFrom        What line number are we starting from
- * @param  {String}     authToken        Bearer Token to be passed to the store
- * @param  {Integer}    [pagesToLoad=10] Number of pages left to load
- * @return {Promise}                     [Array of log lines, Are there more pages]
+ * Makes the request to the Store to get lines from a log
+ * @param  {Object}     config
+ * @param  {String}     config.baseUrl             URL to load from (without the .$PAGE)
+ * @param  {Integer}    config.linesFrom           Line number to start loading from
+ * @param  {String}     config.authToken           Bearer Token to be passed to the Store
+ * @param  {Integer}    config.page                Log page to load
+ * @param  {String}     config.sort                Method for sorting log lines ('ascending' or 'descending')
+ * @return {Promise}                               [Array of log lines]
  */
-function loadLines(baseUrl, linesFrom, authToken, pagesToLoad = 10) {
-    return new Promise((resolve) => {
-        const page = Math.floor(linesFrom / maxLines);
-        const output = [];
+async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
+    const output = [];
 
+    return new Promise((resolve, reject) => {
         request
             .get({
                 url: `${baseUrl}.${page}`,
@@ -27,39 +29,91 @@ function loadLines(baseUrl, linesFrom, authToken, pagesToLoad = 10) {
                     Authorization: authToken
                 }
             })
+            .on('error', e => reject(e))
             // Parse the ndjson
             .pipe(ndjson.parse({
                 strict: false
             }))
-            // Filter down to the lines we care about
+            // Only save lines that we care about
             .on('data', (line) => {
-                if (line.n >= linesFrom) {
+                const isNextLine = sort === 'ascending' ? line.n >= linesFrom : line.n <= linesFrom;
+
+                if (isNextLine) {
                     output.push(line);
                 }
             })
             .on('end', () => resolve(output));
-    }).then((lines) => {
-        const linesCount = lines.length;
-        const pagesToLoadUpdated = pagesToLoad - 1;
-        let morePages = false;
-
-        // This won't work if we support loading logs from the end
-        if (linesCount > 100) {
-            maxLines = 1000;
-        }
-
-        // Load from next log if we got lines AND we reached the edge of a page
-        if (linesCount > 0 && (linesCount + linesFrom) % maxLines === 0) {
-            if (pagesToLoadUpdated > 0) {
-                return loadLines(baseUrl, linesCount + linesFrom, authToken, pagesToLoadUpdated)
-                    .then(([nextLines, pageLimit]) => [lines.concat(nextLines), pageLimit]);
-            }
-            // Otherwise exit early and flag that there may be more pages
-            morePages = true;
-        }
-
-        return [lines, morePages];
     });
+}
+
+/**
+ * Load up to N pages that are available
+ * @method loadLines
+ * @param  {Object}     config
+ * @param  {String}     config.baseUrl             URL to load from (without the .$PAGE)
+ * @param  {Integer}    config.linesFrom           Line number to start loading from
+ * @param  {String}     config.authToken           Bearer Token to be passed to the Store
+ * @param  {Integer}    [config.pagesToLoad=10]    Number of pages left to load
+ * @param  {String}     [config.sort='ascending']  Method for sorting log lines ('ascending' or 'descending')
+ * @return {Promise}                               [Array of log lines, Are there more pages]
+ */
+async function loadLines({
+    baseUrl,
+    linesFrom,
+    authToken,
+    pagesToLoad = 10,
+    sort = 'ascending',
+    maxLines = MAX_LINES_SMALL
+}) {
+    const page = sort === 'ascending' ?
+        Math.floor(linesFrom / maxLines) : Math.floor(linesFrom / MAX_LINES_BIG);
+    let morePages = false;
+    let lines;
+
+    try {
+        lines = await fetchLog({ baseUrl, linesFrom, authToken, page, sort });
+    } catch (err) {
+        winston.error(err);
+        throw err;
+    }
+
+    const linesCount = lines.length;
+    const pagesToLoadUpdated = pagesToLoad - 1;
+    const maxLinesUpdated = linesCount > MAX_LINES_SMALL ? MAX_LINES_BIG : maxLines;
+    const linesFromUpdated = sort === 'descending' ?
+        linesFrom - linesCount : linesCount + linesFrom;
+    // If we got lines AND there are more lines to load
+    const descLoadNext = sort === 'descending' && linesCount > 0 && linesFrom - linesCount > 0;
+    // If we got lines AND we reached the edge of a page
+    const ascLoadNext = sort === 'ascending' && linesCount > 0
+        && (linesCount + linesFrom) % maxLines === 0;
+
+    // Load from next log if there's still lines left
+    if (ascLoadNext || descLoadNext) {
+        if (pagesToLoadUpdated > 0) {
+            const loadConfig = {
+                baseUrl,
+                linesFrom: linesFromUpdated,
+                authToken,
+                pagesToLoad: pagesToLoadUpdated,
+                sort,
+                maxLines: maxLinesUpdated
+            };
+
+            return loadLines(loadConfig)
+                .then(([nextLines, pageLimit]) => {
+                    if (sort === 'descending') {
+                        return [nextLines.concat(lines), pageLimit];
+                    }
+
+                    return [lines.concat(nextLines), pageLimit];
+                });
+        }
+        // Otherwise exit early and flag that there may be more pages
+        morePages = true;
+    }
+
+    return [lines, morePages];
 }
 
 module.exports = config => ({
@@ -108,9 +162,16 @@ module.exports = config => ({
                     const isDone = stepModel.code !== undefined;
                     const baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/${stepName}/log`;
+                    const loadConfig = {
+                        baseUrl,
+                        linesFrom: req.query.from,
+                        authToken: headers.authorization,
+                        pagesToLoad: req.query.pages || 10,
+                        sort: req.query.sort || 'ascending'
+                    };
 
                     // eslint-disable-next-line max-len
-                    return loadLines(baseUrl, req.query.from, headers.authorization, req.query.pages)
+                    return loadLines(loadConfig)
                         .then(([lines, morePages]) => reply(lines)
                             .header('X-More-Data', (morePages || !isDone).toString()));
                 })
