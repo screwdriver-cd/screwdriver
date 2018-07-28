@@ -47,6 +47,33 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
 }
 
 /**
+ * [getMaxLines description]
+ * @method getNumberPerFile
+ * @param  {[type]}         baseUrl           [description]
+ * @param  {[type]}         authToken         [description]
+ * @param  {String}         [sort='ascending' }]            [description]
+ * @return {Promise}                          [description]
+ */
+async function getMaxLines({ baseUrl, authToken }) {
+    let linesInFirstPage;
+
+    // check lines per file by looking at the first file
+    try {
+        linesInFirstPage = await fetchLog({
+            baseUrl,
+            authToken,
+            sort: 'ascending',
+            linesFrom: 0,
+            page: 0 });
+    } catch (err) {
+        winston.error(err);
+        throw new Error(err);
+    }
+
+    return linesInFirstPage.length > MAX_LINES_SMALL ? MAX_LINES_BIG : MAX_LINES_SMALL;
+}
+
+/**
  * Load up to N pages that are available
  * @method loadLines
  * @param  {Object}     config
@@ -63,10 +90,9 @@ async function loadLines({
     authToken,
     pagesToLoad = 10,
     sort = 'ascending',
-    maxLines = MAX_LINES_SMALL
+    maxLines
 }) {
-    const page = sort === 'ascending' ?
-        Math.floor(linesFrom / maxLines) : Math.floor(linesFrom / MAX_LINES_BIG);
+    const page = Math.floor(linesFrom / maxLines);
     let morePages = false;
     let lines;
 
@@ -74,12 +100,11 @@ async function loadLines({
         lines = await fetchLog({ baseUrl, linesFrom, authToken, page, sort });
     } catch (err) {
         winston.error(err);
-        throw err;
+        throw new Error(err);
     }
 
     const linesCount = lines.length;
     const pagesToLoadUpdated = pagesToLoad - 1;
-    const maxLinesUpdated = linesCount > MAX_LINES_SMALL ? MAX_LINES_BIG : maxLines;
     const linesFromUpdated = sort === 'descending' ?
         linesFrom - linesCount : linesCount + linesFrom;
     // If we got lines AND there are more lines to load
@@ -97,7 +122,7 @@ async function loadLines({
                 authToken,
                 pagesToLoad: pagesToLoadUpdated,
                 sort,
-                maxLines: maxLinesUpdated
+                maxLines
             };
 
             return loadLines(loadConfig)
@@ -162,16 +187,21 @@ module.exports = config => ({
                     const isDone = stepModel.code !== undefined;
                     const baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/${stepName}/log`;
-                    const loadConfig = {
-                        baseUrl,
-                        linesFrom: req.query.from,
-                        authToken: headers.authorization,
-                        pagesToLoad: req.query.pages || 10,
-                        sort: req.query.sort || 'ascending'
-                    };
+                    const authToken = headers.authorization;
+                    const sort = req.query.sort || 'ascending';
+                    const pagesToLoad = req.query.pages || 10;
+                    const linesFrom = req.query.from;
 
                     // eslint-disable-next-line max-len
-                    return loadLines(loadConfig)
+                    return getMaxLines({ baseUrl, authToken })
+                        .then(maxLines => loadLines({
+                            baseUrl,
+                            linesFrom,
+                            authToken,
+                            pagesToLoad,
+                            sort,
+                            maxLines
+                        }))
                         .then(([lines, morePages]) => reply(lines)
                             .header('X-More-Data', (morePages || !isDone).toString()));
                 })
