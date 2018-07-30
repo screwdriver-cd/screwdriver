@@ -1818,6 +1818,7 @@ describe('build plugin test', () => {
         it('returns 200 for a step that exists', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             return server.inject({
@@ -1835,6 +1836,7 @@ describe('build plugin test', () => {
         it('returns logs for a step that is split across pages', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
                 .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
@@ -1855,6 +1857,7 @@ describe('build plugin test', () => {
         it('returns logs for a step that is split across pages in descending order', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
@@ -1875,6 +1878,7 @@ describe('build plugin test', () => {
         it('returns logs for a step that is split across pages with 1000 lines per file', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
@@ -1904,9 +1908,16 @@ describe('build plugin test', () => {
                     }));
                 }
 
-                nock('https://store.screwdriver.cd')
-                    .get(`/v1/builds/${id}/${step}/log.${i}`)
-                    .reply(200, lines.join('\n'));
+                if (i === 0) {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .twice()
+                        .reply(200, lines.join('\n'));
+                } else {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .reply(200, lines.join('\n'));
+                }
             }
 
             return server.inject({
@@ -1935,9 +1946,16 @@ describe('build plugin test', () => {
                     }));
                 }
 
-                nock('https://store.screwdriver.cd')
-                    .get(`/v1/builds/${id}/${step}/log.${i}`)
-                    .reply(200, lines.join('\n'));
+                if (i === 0) {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .twice()
+                        .reply(200, lines.join('\n'));
+                } else {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .reply(200, lines.join('\n'));
+                }
             }
 
             return server.inject({
@@ -1948,6 +1966,44 @@ describe('build plugin test', () => {
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result.length, 10000);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
+        });
+
+        it('returns logs for a step that is split across max pages with 1000 maxLines', () => {
+            const maxPages = 20;
+
+            for (let i = 0; i < 25; i += 1) {
+                const lines = [];
+
+                for (let j = 0; j < 1000; j += 1) {
+                    lines.push(JSON.stringify({
+                        t: Date.now(),
+                        m: 'Random message here',
+                        n: (1000 * i) + j
+                    }));
+                }
+
+                if (i === 0) {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .twice()
+                        .reply(200, lines.join('\n'));
+                } else {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .reply(200, lines.join('\n'));
+                }
+            }
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 20000);
                 assert.propertyVal(reply.headers, 'x-more-data', 'true');
             });
         });
@@ -1965,9 +2021,16 @@ describe('build plugin test', () => {
                     }));
                 }
 
-                nock('https://store.screwdriver.cd')
-                    .get(`/v1/builds/${id}/${step}/log.${i}`)
-                    .reply(200, lines.join('\n'));
+                if (i === 0) {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .twice()
+                        .reply(200, lines.join('\n'));
+                } else {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .reply(200, lines.join('\n'));
+                }
             }
 
             return server.inject({
@@ -1997,9 +2060,16 @@ describe('build plugin test', () => {
                     }));
                 }
 
-                nock('https://store.screwdriver.cd')
-                    .get(`/v1/builds/${id}/${step}/log.${i}`)
-                    .reply(200, lines.join('\n'));
+                if (i === 0) {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .twice()
+                        .reply(200, lines.join('\n'));
+                } else {
+                    nock('https://store.screwdriver.cd')
+                        .get(`/v1/builds/${id}/${step}/log.${i}`)
+                        .reply(200, lines.join('\n'));
+                }
             }
 
             return server.inject({
@@ -2015,6 +2085,9 @@ describe('build plugin test', () => {
         });
 
         it('returns from second page', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
@@ -2032,6 +2105,9 @@ describe('build plugin test', () => {
         });
 
         it('returns from second empty page', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .reply(200, '');
@@ -2051,6 +2127,10 @@ describe('build plugin test', () => {
         it('returns correct lines after a given line', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             return server.inject({
@@ -2068,6 +2148,7 @@ describe('build plugin test', () => {
         it('returns false more-data for a step that is not started', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
             return server.inject({
@@ -2085,6 +2166,7 @@ describe('build plugin test', () => {
         it('returns empty array on invalid data', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/test/log.0`)
+                .twice()
                 .reply(200, '<invalid JSON>\n<more bad JSON>');
 
             return server.inject({
@@ -2136,9 +2218,28 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 500 when build logs returns an error', () => {
+        it('returns 500 when build logs returns an error for page 0', () => {
             nock('https://store.screwdriver.cd')
-                .get(`/v1/builds/${id}/test/log.0`)
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithError({ message: 'something awful happened', code: 404 });
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when build logs returns an error for page 1', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
 
             return server.inject({
