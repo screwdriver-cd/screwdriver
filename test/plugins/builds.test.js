@@ -1971,9 +1971,9 @@ describe('build plugin test', () => {
         });
 
         it('returns logs for a step that is split across max pages with 1000 maxLines', () => {
-            const maxPages = 100;
+            const maxPages = 20;
 
-            for (let i = 0; i < 115; i += 1) {
+            for (let i = 0; i < 25; i += 1) {
                 const lines = [];
 
                 for (let j = 0; j < 1000; j += 1) {
@@ -2003,7 +2003,7 @@ describe('build plugin test', () => {
                 }
             }).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 100000);
+                assert.equal(reply.result.length, 20000);
                 assert.propertyVal(reply.headers, 'x-more-data', 'true');
             });
         });

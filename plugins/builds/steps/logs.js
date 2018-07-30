@@ -47,11 +47,11 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
 }
 
 /**
- * [getMaxLines description]
- * @method getNumberPerFile
- * @param  {[type]}         baseUrl           [description]
- * @param  {[type]}         authToken         [description]
- * @param  {String}         [sort='ascending' }]            [description]
+ * Returns number of lines per file based on lines returned for page 0
+ * @method getMaxLines
+ * @param  {Object}     config
+ * @param  {String}     config.baseUrl             URL to load from (without the .$PAGE)
+ * @param  {String}     config.authToken           Bearer Token to be passed to the Store
  * @return {Promise}                          [description]
  */
 async function getMaxLines({ baseUrl, authToken }) {
