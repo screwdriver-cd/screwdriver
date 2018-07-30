@@ -1595,7 +1595,6 @@ describe('build plugin test', () => {
             const buildMock = getMockBuilds(testBuild);
 
             buildMock.secrets = Promise.resolve([]);
-
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             return server.inject(options).then((reply) => {
@@ -1625,13 +1624,14 @@ describe('build plugin test', () => {
                 username: 'batman'
             }
         };
+        const buildMock = getMockBuilds(testBuild);
+
+        beforeEach(() => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+        });
 
         it('returns 200 for a step that exists', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
-            return server.inject(options).then((reply) => {
+            server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild.steps[1]);
             });
@@ -1646,9 +1646,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 when step does not exist', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             options.url = `/builds/${id}/steps/fail`;
 
             return server.inject(options).then((reply) => {
@@ -1674,6 +1671,7 @@ describe('build plugin test', () => {
         beforeEach(() => {
             buildMock = getMockBuilds(testBuild);
             buildMock.update.resolves(buildMock);
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             options = {
                 method: 'PUT',
@@ -1691,9 +1689,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the code/endTime', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
-            return server.inject(options).then((reply) => {
+            server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
@@ -1703,7 +1699,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the code without endTime', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             delete options.payload.startTime;
             delete options.payload.endTime;
 
@@ -1717,7 +1712,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the startTime', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             delete options.payload.code;
 
             return server.inject(options).then((reply) => {
@@ -1730,7 +1724,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating without any fields', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             delete options.payload.startTime;
             delete options.payload.endTime;
             delete options.payload.code;
@@ -1758,7 +1751,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 403 for a the wrong build permission', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
 
             return server.inject(options).then((reply) => {
@@ -1775,7 +1767,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 when step does not exist', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             options.url = `/builds/${id}/steps/fail`;
 
             return server.inject(options).then((reply) => {
@@ -1812,8 +1803,10 @@ describe('build plugin test', () => {
                 t: 1472236248000
             }
         ];
+        const buildMock = getMockBuilds(testBuild);
 
         beforeEach(() => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock.disableNetConnect();
         });
 
@@ -1823,9 +1816,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 for a step that exists', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
@@ -1843,9 +1833,6 @@ describe('build plugin test', () => {
         });
 
         it('returns logs for a step that is split across pages', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
@@ -1865,10 +1852,27 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns logs for a step that is split across pages with 1000 lines per file', () => {
-            const buildMock = getMockBuilds(testBuild);
+        it('returns logs for a step that is split across pages in descending order', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
+                .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
 
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1002);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns logs for a step that is split across pages with 1000 lines per file', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines.log.ndjson`);
@@ -1889,10 +1893,6 @@ describe('build plugin test', () => {
         });
 
         it('returns logs for a step that is split across max pages', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
             for (let i = 0; i < 15; i += 1) {
                 const lines = [];
 
@@ -1923,9 +1923,6 @@ describe('build plugin test', () => {
 
         it('returns logs for a step that is split across extended max pages', () => {
             const maxPages = 100;
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             for (let i = 0; i < 115; i += 1) {
                 const lines = [];
@@ -1956,10 +1953,6 @@ describe('build plugin test', () => {
         });
 
         it('returns logs for a step that ends at max pages', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
             for (let i = 0; i < 10; i += 1) {
                 const lines = [];
                 const maxLines = (i === 9) ? 50 : 100;
@@ -1991,9 +1984,6 @@ describe('build plugin test', () => {
 
         it('returns logs for a step that ends at extended max pages', () => {
             const maxPages = 100;
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             for (let i = 0; i < maxPages; i += 1) {
                 const lines = [];
@@ -2025,9 +2015,6 @@ describe('build plugin test', () => {
         });
 
         it('returns from second page', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
@@ -2045,9 +2032,6 @@ describe('build plugin test', () => {
         });
 
         it('returns from second empty page', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .reply(200, '');
@@ -2065,9 +2049,6 @@ describe('build plugin test', () => {
         });
 
         it('returns correct lines after a given line', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
@@ -2085,9 +2066,6 @@ describe('build plugin test', () => {
         });
 
         it('returns false more-data for a step that is not started', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
@@ -2105,9 +2083,6 @@ describe('build plugin test', () => {
         });
 
         it('returns empty array on invalid data', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/test/log.0`)
                 .reply(200, '<invalid JSON>\n<more bad JSON>');
@@ -2138,11 +2113,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 when step does not exist', () => {
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
-            return server.inject({
+            server.inject({
                 url: `/builds/${id}/steps/fail/logs`,
                 credentials: {
                     scope: ['user']
@@ -2154,6 +2125,21 @@ describe('build plugin test', () => {
 
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when build logs returns an error', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/test/log.0`)
+                .replyWithError({ message: 'something awful happened', code: 404 });
 
             return server.inject({
                 url: `/builds/${id}/steps/${step}/logs`,
