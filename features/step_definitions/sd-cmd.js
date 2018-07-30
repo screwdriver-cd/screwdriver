@@ -49,7 +49,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
         });
 
-    Given(/^(.+) command does not exists yet$/,
+    Given(/^(.+) command does not exist yet$/,
         { timeout: TIMEOUT }, function step(command) {
             this.command = command;
 
@@ -149,7 +149,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         });
     });
 
-    When(/^"([^"]+)" step executes the command with artguments: "([^"]+)"$/, {
+    When(/^"([^"]+)" step executes the command with arguments: "([^"]+)"$/, {
         timeout: TIMEOUT
     }, function step(stepName, args) {
         return request({
