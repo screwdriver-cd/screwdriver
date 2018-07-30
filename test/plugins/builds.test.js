@@ -2218,9 +2218,28 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 500 when build logs returns an error', () => {
+        it('returns 500 when build logs returns an error for page 0', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
+                .replyWithError({ message: 'something awful happened', code: 404 });
+
+            return server.inject({
+                url: `/builds/${id}/steps/${step}/logs`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when build logs returns an error for page 1', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
 
             return server.inject({

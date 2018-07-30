@@ -52,7 +52,7 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
  * @param  {Object}     config
  * @param  {String}     config.baseUrl             URL to load from (without the .$PAGE)
  * @param  {String}     config.authToken           Bearer Token to be passed to the Store
- * @return {Promise}                          [description]
+ * @return {Promise}                               Resolves max lines per file
  */
 async function getMaxLines({ baseUrl, authToken }) {
     let linesInFirstPage;
@@ -82,6 +82,7 @@ async function getMaxLines({ baseUrl, authToken }) {
  * @param  {String}     config.authToken           Bearer Token to be passed to the Store
  * @param  {Integer}    [config.pagesToLoad=10]    Number of pages left to load
  * @param  {String}     [config.sort='ascending']  Method for sorting log lines ('ascending' or 'descending')
+ * @param  {Integer}    config.maxLines            Max lines per log file
  * @return {Promise}                               [Array of log lines, Are there more pages]
  */
 async function loadLines({
@@ -188,8 +189,8 @@ module.exports = config => ({
                     const baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/${stepName}/log`;
                     const authToken = headers.authorization;
-                    const sort = req.query.sort || 'ascending';
-                    const pagesToLoad = req.query.pages || 10;
+                    const sort = req.query.sort;
+                    const pagesToLoad = req.query.pages;
                     const linesFrom = req.query.from;
 
                     // eslint-disable-next-line max-len
