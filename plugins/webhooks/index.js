@@ -28,15 +28,18 @@ function isRestrictedPR(restriction, prSource) {
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
  * @method stopJob
- * @param  {Job}    job     Job to stop
+ * @param  {Object} config
+ * @param  {Job}    config.job     Job to stop
+ * @param  {String} config.prNum   Pull request number
  * @return {Promise}
  */
-function stopJob(job) {
+function stopJob({ job, prNum }) {
     const stopRunningBuild = (build) => {
         if (build.isDone()) {
             return Promise.resolve();
         }
         build.status = 'ABORTED';
+        build.statusMessage = `Aborted because PR#${prNum} is closed`;
 
         return build.update();
     };
@@ -136,8 +139,8 @@ function pullRequestOpened(options, request, reply) {
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestClosed(options, request, reply) {
-    const { pipeline, hookId, name } = options;
-    const updatePRJobs = (job => stopJob(job)
+    const { pipeline, hookId, name, prNum } = options;
+    const updatePRJobs = (job => stopJob({ job, prNum })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
             job.archived = true;
@@ -175,7 +178,7 @@ function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, restriction, prSource, name } = options;
+    const { pipeline, hookId, restriction, prSource, name, prNum } = options;
     let prJobs;
 
     // Check for restriction upfront
@@ -191,7 +194,7 @@ function pullRequestSync(options, request, reply) {
         .then((jobs) => {
             prJobs = jobs.filter(j => j.name.includes(name));
 
-            return Promise.all(prJobs.map(j => stopJob(j)));
+            return Promise.all(prJobs.map(j => stopJob({ job: j, prNum })));
         })
         .then(() => request.log(['webhook', hookId], `Job(s) for ${name} stopped`))
         .then(() => startPRJob(options, request))

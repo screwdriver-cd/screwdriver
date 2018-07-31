@@ -958,6 +958,10 @@ describe('github plugin test', () => {
                     server.inject(options).then(() => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
+                        assert.strictEqual(model1.status, 'ABORTED');
+                        assert.strictEqual(model1.statusMessage, 'Aborted because PR#1 is closed');
+                        assert.strictEqual(model2.status, 'ABORTED');
+                        assert.strictEqual(model2.statusMessage, 'Aborted because PR#1 is closed');
                     })
                 );
 
