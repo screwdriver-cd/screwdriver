@@ -190,10 +190,6 @@ async function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, 
 
     return createPREvents(pipelineFactory, pipelines, scmConfig, parsed, request)
         .then((events) => {
-            if (events.length === 0) {
-                return reply().code(204);
-            }
-
             events.forEach((e) => {
                 request.log(['webhook', hookId, e.id],
                     `Event ${e.id} started`);
@@ -212,15 +208,12 @@ async function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, 
  * @param   {Object}            parsed
  * @param   {String}            parsed.hookId       Unique ID for this scm event
  * @param   {String}            parsed.prNum        Pull request number
- * @param   {String}            parsed.checkoutUrl  The parsed checkoutUrl
- * @param   {String}            parsed.branch       The branch against which pr is opened
  * @param   {Hapi.request}      request Request from user
  * @param   {Hapi.reply}        reply   Reply to user
  */
 async function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
-    const { hookId, prNum, checkoutUrl, branch } = parsed;
+    const { hookId, prNum } = parsed;
     const jobName = `PR-${prNum}`;
-    const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const updatePRJobs = (job => stopJob(job)
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
@@ -229,16 +222,9 @@ async function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, re
             return job.update();
         })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
-    const pipeline = await pipelineFactory.get({ scmUri: scmConfig.scmUri });
 
-    if (!pipeline) {
-        request.log(['webhook', hookId],
-            `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
-
-        return reply().code(204);
-    }
-
-    return pipeline.sync()
+    return pipelineFactory.get({ scmUri: scmConfig.scmUri })
+        .then(pipeline => pipeline.sync())
         .then(p => p.jobs)
         .then((jobs) => {
             const prJobs = jobs.filter(j => j.name.includes(jobName));
@@ -290,10 +276,6 @@ async function pullRequestSync(pipelineFactory, pipelines, scmConfig, parsed, re
 
     return createPREvents(pipelineFactory, pipelines, scmConfig, parsed, request)
         .then((events) => {
-            if (events.length === 0) {
-                return reply().code(204);
-            }
-
             events.forEach((e) => {
                 request.log(['webhook', hookId, e.id],
                     `Event ${e.id} started`);

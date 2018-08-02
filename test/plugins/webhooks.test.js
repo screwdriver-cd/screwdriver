@@ -537,9 +537,10 @@ describe('github plugin test', () => {
                 pipelineFactoryMock.scm.getBranchList.resolves([{ name: 'master' }]);
             });
 
-            it('returns 204 when pipeline does not exist', () => {
+            it('returns 204 when triggered pipelines do not exist', () => {
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.get.resolves(null);
+                pipelineFactoryMock.list.resolves([]);
                 options.payload = testPayloadOpen;
 
                 return server.inject(options).then((reply) => {
