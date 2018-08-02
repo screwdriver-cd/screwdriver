@@ -159,48 +159,36 @@ async function createPREvents(pipelineFactory, pipelines, scmConfig, parsed, req
 
 /**
  * Create a new job and start the build for an opened pull-request
- * @method  pullRequestOpened
+ * @async  pullRequestOpened
  * @param   {PipelineFactory}   pipelineFactory     The pipeline factory to get the branch list from
  * @param   {Object}            pipelines           The pipelines which has triggered job
  * @param   {Object}            scmConfig           Has the token and scmUri to get branches
  * @param   {Object}            parsed
  * @param   {String}            parsed.hookId       Unique ID for this scm event
  * @param   {String}            parsed.prSource     The origin of this PR
- * @param   {String}            parsed.checkoutUrl  The parsed checkoutUrl
- * @param   {String}            parsed.branch       The branch against which pr is opened
  * @param   {Hapi.request}      request             Request from user
  * @param   {Hapi.reply}        reply               Reply to user
  */
-function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, request, reply) {
-    const { hookId, prSource, checkoutUrl, branch } = parsed;
-    const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
+async function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, request, reply) {
+    const { hookId, prSource } = parsed;
+    const pipeline = await pipelineFactory.get({ scmUri: scmConfig.scmUri })
+        .then(p => p.sync());
 
-    return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-        .then((pipeline) => {
-            if (!pipeline) {
-                request.log(['webhook', hookId],
-                    `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
+    if (pipeline) {
+        // @TODO Check for cluster-level default
+        const restriction = pipeline.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
 
-                return reply().code(204);
-            }
+        // Check for restriction upfront
+        if (isRestrictedPR(restriction, prSource)) {
+            request.log(['webhook', hookId],
+                'Skipping build since pipeline is configured to restrict ' +
+                `${restriction} and PR is ${prSource}`);
 
-            return pipeline.sync();
-        })
-        .then((p) => {
-            // @TODO Check for cluster-level default
-            const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+            return reply().code(204);
+        }
+    }
 
-            // Check for restriction upfront
-            if (isRestrictedPR(restriction, prSource)) {
-                request.log(['webhook', hookId],
-                    'Skipping build since pipeline is configured to restrict ' +
-                    `${restriction} and PR is ${prSource}`);
-
-                return [];
-            }
-
-            return createPREvents(pipelineFactory, pipelines, scmConfig, parsed, request);
-        })
+    return createPREvents(pipelineFactory, pipelines, scmConfig, parsed, request)
         .then((events) => {
             if (events.length === 0) {
                 return reply().code(204);
@@ -218,7 +206,7 @@ function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, reques
 
 /**
  * Stop any running builds and disable the job for closed pull-request
- * @method  pullRequestClosed
+ * @async  pullRequestClosed
  * @param   {PipelineFactory}   pipelineFactory     The pipeline factory to get the branch list from
  * @param   {Object}            scmConfig           Has the token and scmUri to get branches
  * @param   {Object}            parsed
@@ -229,7 +217,7 @@ function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, reques
  * @param   {Hapi.request}      request Request from user
  * @param   {Hapi.reply}        reply   Reply to user
  */
-function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
+async function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
     const { hookId, prNum, checkoutUrl, branch } = parsed;
     const jobName = `PR-${prNum}`;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
@@ -241,23 +229,21 @@ function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
             return job.update();
         })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
+    const pipeline = await pipelineFactory.get({ scmUri: scmConfig.scmUri });
 
-    return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-        .then((pipeline) => {
-            if (!pipeline) {
-                request.log(['webhook', hookId],
-                    `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
+    if (!pipeline) {
+        request.log(['webhook', hookId],
+            `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
 
-                return reply().code(204);
-            }
+        return reply().code(204);
+    }
 
-            return pipeline.sync()
-                .then(p => p.jobs)
-                .then((jobs) => {
-                    const prJobs = jobs.filter(j => j.name.includes(jobName));
+    return pipeline.sync()
+        .then(p => p.jobs)
+        .then((jobs) => {
+            const prJobs = jobs.filter(j => j.name.includes(jobName));
 
-                    return Promise.all(prJobs.map(j => updatePRJobs(j)));
-                });
+            return Promise.all(prJobs.map(j => updatePRJobs(j)));
         })
         .then(() => reply().code(200))
         .catch(err => reply(boom.wrap(err)));
@@ -265,7 +251,7 @@ function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
 
 /**
  * Stop any running builds and start the build for the synchronized pull-request
- * @method  pullRequestSync
+ * @async  pullRequestSync
  * @param   {PipelineFactory}   pipelineFactory     The pipeline factory to get the branch list from
  * @param   {Object}            pipelines           The pipelines which has triggered job
  * @param   {Object}            scmConfig           Has the token and scmUri to get branches
@@ -273,49 +259,36 @@ function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
  * @param   {String}            parsed.hookId       Unique ID for this scm event
  * @param   {String}            parsed.prSource     The origin of this PR
  * @param   {String}            parsed.prNum        Pull request number
- * @param   {String}            parsed.checkoutUrl  The parsed checkoutUrl
- * @param   {String}            parsed.branch       The branch against which pr is opened
  * @param   {Hapi.request}      request             Request from user
  * @param   {Hapi.reply}        reply               Reply to user
  */
-function pullRequestSync(pipelineFactory, pipelines, scmConfig, parsed, request, reply) {
-    const { hookId, prSource, prNum, checkoutUrl, branch } = parsed;
-    const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
+async function pullRequestSync(pipelineFactory, pipelines, scmConfig, parsed, request, reply) {
+    const { hookId, prSource, prNum } = parsed;
     const jobName = `PR-${prNum}`;
-    let restriction;
+    const pipeline = await pipelineFactory.get({ scmUri: scmConfig.scmUri })
+        .then(p => p.sync());
 
-    return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-        .then((pipeline) => {
-            if (!pipeline) {
-                return request.log(['webhook', hookId],
-                    `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
-            }
+    if (pipeline) {
+        // @TODO Check for cluster-level default
+        const restriction = pipeline.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
 
-            return pipeline.sync();
-        })
-        .then((p) => {
-            // @TODO Check for cluster-level default
-            restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+        // Check for restriction upfront
+        if (isRestrictedPR(restriction, prSource)) {
+            request.log(['webhook', hookId],
+                'Skipping build since pipeline is configured to restrict ' +
+                `${restriction} and PR is ${prSource}`);
 
-            return p.jobs;
-        })
-        .then((jobs) => {
-            const prJobs = jobs.filter(j => j.name.includes(jobName));
+            return reply().code(204);
+        }
 
-            // Check for restriction upfront
-            if (isRestrictedPR(restriction, prSource)) {
-                request.log(['webhook', hookId],
-                    'Skipping build since pipeline is configured to restrict ' +
-                    `${restriction} and PR is ${prSource}`);
+        pipeline.jobs.then(jobs => jobs.filter(j => j.name.includes(jobName)))
+            .then((prJobs) => {
+                Promise.all(prJobs.map(j => stopJob(j)));
+                request.log(['webhook', hookId], `Job(s) for ${jobName} stopped`);
+            });
+    }
 
-                return [];
-            }
-
-            Promise.all(prJobs.map(j => stopJob(j)));
-            request.log(['webhook', hookId], `Job(s) for ${jobName} stopped`);
-
-            return createPREvents(pipelineFactory, pipelines, scmConfig, parsed, request);
-        })
+    return createPREvents(pipelineFactory, pipelines, scmConfig, parsed, request)
         .then((events) => {
             if (events.length === 0) {
                 return reply().code(204);
