@@ -166,8 +166,8 @@ async function createPREvents(pipelineFactory, pipelines, scmConfig, parsed, req
  * @param   {Object}            parsed
  * @param   {String}            parsed.hookId       Unique ID for this scm event
  * @param   {String}            parsed.prSource     The origin of this PR
- * @param   {String}            parsed.checkoutUrl
- * @param   {String}            parsed.branch
+ * @param   {String}            parsed.checkoutUrl  The parsed checkoutUrl
+ * @param   {String}            parsed.branch       The branch against which pr is opened
  * @param   {Hapi.request}      request             Request from user
  * @param   {Hapi.reply}        reply               Reply to user
  */
@@ -224,8 +224,8 @@ function pullRequestOpened(pipelineFactory, pipelines, scmConfig, parsed, reques
  * @param   {Object}            parsed
  * @param   {String}            parsed.hookId       Unique ID for this scm event
  * @param   {String}            parsed.prNum        Pull request number
- * @param   {String}            parsed.checkoutUrl
- * @param   {String}            parsed.branch
+ * @param   {String}            parsed.checkoutUrl  The parsed checkoutUrl
+ * @param   {String}            parsed.branch       The branch against which pr is opened
  * @param   {Hapi.request}      request Request from user
  * @param   {Hapi.reply}        reply   Reply to user
  */
@@ -273,8 +273,8 @@ function pullRequestClosed(pipelineFactory, scmConfig, parsed, request, reply) {
  * @param   {String}            parsed.hookId       Unique ID for this scm event
  * @param   {String}            parsed.prSource     The origin of this PR
  * @param   {String}            parsed.prNum        Pull request number
- * @param   {String}            parsed.checkoutUrl
- * @param   {String}            parsed.branch
+ * @param   {String}            parsed.checkoutUrl  The parsed checkoutUrl
+ * @param   {String}            parsed.branch       The branch against which pr is opened
  * @param   {Hapi.request}      request             Request from user
  * @param   {Hapi.reply}        reply               Reply to user
  */
@@ -341,7 +341,7 @@ function pullRequestSync(pipelineFactory, pipelines, scmConfig, parsed, request,
  * @param   {String}        pluginOptions.username  Generic scm username
  * @param   {UserFactory}   userFactory             UserFactory object
  * @param   {String}        username                Name of the user that the SCM token is associated with
- * @param   {Object}        scmConfig               Has the token and scmUri to get branches
+ * @param   {String}        scmContext              Scm which pipeline's repository exists in
  * @return  {Promise}                               Promise that resolves into a SCM token
  */
 function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
@@ -388,7 +388,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
         .then((token) => {
-            scmConfig.scmToken = token;
+            scmConfig.token = token;
 
             return pipelineFactory.scm.parseUrl({
                 checkoutUrl: fullCheckoutUrl,
