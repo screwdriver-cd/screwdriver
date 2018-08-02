@@ -203,6 +203,10 @@ executor:
             password: EXECUTOR_JENKINS_PASSWORD
             # Node labels of Jenkins slaves
             nodeLabel: EXECUTOR_JENKINS_NODE_LABEL
+            # Default build timeout
+            buildTimeout: EXECUTOR_JENKINS_BUILD_TIMEOUT
+            # Default max build timeout
+            maxBuildTimeout: EXECUTOR_JENKINS_MAX_BUILD_TIMEOUT
         docker:
             # The path to the docker-compose command
             composeCommand: EXECUTOR_JENKINS_DOCKER_COMPOSE_COMMAND
