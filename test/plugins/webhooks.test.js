@@ -603,7 +603,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `opened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -691,7 +691,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             prInfo,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            causeMessage: `opened by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -706,7 +706,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             prInfo,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            causeMessage: `opened by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -721,7 +721,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             prInfo,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            causeMessage: `opened by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
@@ -759,7 +759,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             changedFiles,
-                            causeMessage: `Reopened by ${scmDisplayName}:${username}`
+                            causeMessage: `reopened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -814,7 +814,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `opened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -850,7 +850,7 @@ describe('github plugin test', () => {
                             prNum: 2,
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `opened by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -922,7 +922,7 @@ describe('github plugin test', () => {
                             prNum: 1,
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -1010,7 +1010,7 @@ describe('github plugin test', () => {
                             prNum: 1,
                             prRef,
                             prInfo,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            causeMessage: `synchronized by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -1025,7 +1025,7 @@ describe('github plugin test', () => {
                             prNum: 1,
                             prRef,
                             prInfo,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            causeMessage: `synchronized by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -1040,7 +1040,7 @@ describe('github plugin test', () => {
                             prNum: 1,
                             prRef,
                             prInfo,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            causeMessage: `synchronized by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
@@ -1075,7 +1075,7 @@ describe('github plugin test', () => {
                             type: 'pr',
                             webhooks: true,
                             changedFiles,
-                            causeMessage: 'Synchronized by github:baxterthehacker'
+                            causeMessage: 'synchronized by github:baxterthehacker'
                         });
                         assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(eventFactoryMock.create));
@@ -1132,7 +1132,7 @@ describe('github plugin test', () => {
                             prNum: 1,
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1168,7 +1168,7 @@ describe('github plugin test', () => {
                             prNum: 1,
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `synchronized by ${scmDisplayName}:${username}`
                         });
                         assert.equal(reply.statusCode, 201);
                     });
