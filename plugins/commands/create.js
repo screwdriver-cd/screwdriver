@@ -126,6 +126,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const data = request.payload;
+            const isPR = request.auth.credentials.isPR;
             let commandSpec;
             let commandBin;
             let multipartCheckResult = { valid: false };
@@ -171,7 +172,8 @@ module.exports = () => ({
 
                         // If command name exists, but this build's pipelineId is not the same as command's pipelineId
                         // Then this build does not have permission to publish
-                        if (commands.length !== 0 && pipeline.id !== commands[0].pipelineId) {
+                        if (isPR ||
+                                (commands.length !== 0 && pipeline.id !== commands[0].pipelineId)) {
                             throw boom.unauthorized('Not allowed to publish this command');
                         }
 

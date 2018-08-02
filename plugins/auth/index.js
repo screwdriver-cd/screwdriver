@@ -45,7 +45,8 @@ exports.register = (server, options, next) => {
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
         admins: joi.array().default([]),
-        scm: joi.object().required()
+        scm: joi.object().required(),
+        sessionTimeout: joi.number().integer().positive().default(120)
     }), 'Invalid config for plugin-auth');
 
     /**
@@ -123,7 +124,7 @@ exports.register = (server, options, next) => {
 
             server.auth.strategy('session', 'cookie', {
                 cookie: 'sid',
-                ttl: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
+                ttl: pluginOptions.sessionTimeout * 60 * 1000,
                 password: pluginOptions.cookiePassword,
                 isSecure: pluginOptions.https
             });
