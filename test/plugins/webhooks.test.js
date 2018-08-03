@@ -791,8 +791,10 @@ describe('github plugin test', () => {
                     })
                 );
 
-                it('has the workflow for stopping builds before starting a new one', () =>
-                    server.inject(options).then((reply) => {
+                it('has the workflow for stopping builds before starting a new one', () => {
+                    const abortMsg = 'Aborted because new commit was pushed to PR#1';
+
+                    return server.inject(options).then((reply) => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
                         assert.calledWith(eventFactoryMock.create, {
@@ -811,9 +813,13 @@ describe('github plugin test', () => {
                         });
                         assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(eventFactoryMock.create));
+                        assert.strictEqual(model1.status, 'ABORTED');
+                        assert.strictEqual(model1.statusMessage, abortMsg);
+                        assert.strictEqual(model2.status, 'ABORTED');
+                        assert.strictEqual(model2.statusMessage, abortMsg);
                         assert.equal(reply.statusCode, 201);
-                    })
-                );
+                    });
+                });
 
                 it('does not update if build finished running', () => {
                     model2.isDone.returns(true);
@@ -958,6 +964,10 @@ describe('github plugin test', () => {
                     server.inject(options).then(() => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
+                        assert.strictEqual(model1.status, 'ABORTED');
+                        assert.strictEqual(model1.statusMessage, 'Aborted because PR#1 was closed');
+                        assert.strictEqual(model2.status, 'ABORTED');
+                        assert.strictEqual(model2.statusMessage, 'Aborted because PR#1 was closed');
                     })
                 );
 
