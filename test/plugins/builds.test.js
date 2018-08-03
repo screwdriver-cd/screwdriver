@@ -40,12 +40,23 @@ const getMockBuilds = (builds) => {
     return decorateBuildObject(builds);
 };
 
+const getStepMock = (user) => {
+    const mock = hoek.clone(user);
+
+    mock.update = sinon.stub();
+    mock.get = sinon.stub();
+    mock.toJson = sinon.stub().returns(user);
+
+    return mock;
+};
+
 const jwtMock = {
     sign: () => 'sign'
 };
 
 describe('build plugin test', () => {
     let buildFactoryMock;
+    let stepFactoryMock;
     let userFactoryMock;
     let jobFactoryMock;
     let pipelineFactoryMock;
@@ -78,6 +89,11 @@ describe('build plugin test', () => {
                 getCommitSha: sinon.stub(),
                 getPrInfo: sinon.stub()
             }
+        };
+        stepFactoryMock = {
+            get: sinon.stub(),
+            create: sinon.stub(),
+            update: sinon.stub()
         };
         jobFactoryMock = {
             get: sinon.stub(),
@@ -119,6 +135,7 @@ describe('build plugin test', () => {
         server = new hapi.Server();
         server.app = {
             buildFactory: buildFactoryMock,
+            stepFactory: stepFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
@@ -1667,9 +1684,20 @@ describe('build plugin test', () => {
         const step = 'publish';
         let options;
         let buildMock;
+        let stepMock;
+        let testStep;
 
         beforeEach(() => {
+            testStep = {
+                name: 'install',
+                code: 1,
+                startTime: '2038-01-19T03:15:08.532Z',
+                endTime: '2038-01-19T03:15:09.114Z'
+            };
             buildMock = getMockBuilds(testBuild);
+            stepMock = getStepMock(testStep);
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
+            stepMock.update.resolves(testStep);
             buildMock.update.resolves(buildMock);
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
@@ -1689,6 +1717,18 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the code/endTime', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.deepProperty(reply.result, 'code', 0);
+                assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
+                assert.notDeepProperty(reply.result, 'startTime');
+            });
+        });
+
+        it('returns 200 when updating the code/endTime when the step model exists', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
@@ -1699,8 +1739,24 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the code without endTime', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
             delete options.payload.startTime;
             delete options.payload.endTime;
+            delete testStep.startTime;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.deepProperty(reply.result, 'code', 0);
+                assert.match(reply.result.endTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+                assert.notDeepProperty(reply.result, 'startTime');
+            });
+        });
+
+        it('returns 200 when updating the code without endTime when the step model exists', () => {
+            delete options.payload.startTime;
+            delete options.payload.endTime;
+            delete testStep.startTime;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -1712,7 +1768,24 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the startTime', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
             delete options.payload.code;
+            delete testStep.code;
+            delete testStep.endTime;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.notDeepProperty(reply.result, 'code');
+                assert.deepProperty(reply.result, 'startTime', options.payload.startTime);
+                assert.notDeepProperty(reply.result, 'endTime');
+            });
+        });
+
+        it('returns 200 when updating the startTime when the step model exists', () => {
+            delete options.payload.code;
+            delete testStep.code;
+            delete testStep.endTime;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -1724,9 +1797,28 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating without any fields', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
             delete options.payload.startTime;
             delete options.payload.endTime;
             delete options.payload.code;
+            delete testStep.code;
+            delete testStep.endTime;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.notDeepProperty(reply.result, 'code');
+                assert.match(reply.result.startTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+                assert.notDeepProperty(reply.result, 'endTime');
+            });
+        });
+
+        it('returns 200 when updating without any fields when the step model exists', () => {
+            delete options.payload.startTime;
+            delete options.payload.endTime;
+            delete options.payload.code;
+            delete testStep.code;
+            delete testStep.endTime;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -1738,11 +1830,27 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the lines', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             delete options.payload.startTime;
             delete options.payload.endTime;
             delete options.payload.code;
             options.payload.lines = 100;
+            testStep.lines = 100;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'lines', options.payload.lines);
+            });
+        });
+
+        it('returns 200 when updating the lines when the step model exists', () => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            delete options.payload.startTime;
+            delete options.payload.endTime;
+            delete options.payload.code;
+            options.payload.lines = 100;
+            testStep.lines = 100;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -1768,14 +1876,24 @@ describe('build plugin test', () => {
 
         it('returns 404 when step does not exist', () => {
             options.url = `/builds/${id}/steps/fail`;
+            stepFactoryMock.get.withArgs({ buildId: id, name: 'fail' }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
-        it('returns 500 when datastore returns an error', () => {
+        it('returns 500 when build get returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when build update returns an error', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
+            buildMock.update.rejects(new Error('blah'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);

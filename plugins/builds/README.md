@@ -37,6 +37,22 @@ Arguments:
 * `pages` - Number of pages to load; a page is 100 lines
 * `sort` - Order in which to fetch logs (`ascending` or `descending`), default `ascending`
 
+#### Gets a build step
+`GET /builds/{id}/steps/{name}`
+
+#### Updates a build step
+`PUT /builds/{id}/steps/{name}`
+
+Example payload:
+```json
+{
+    "code": 0,
+    "startTime": "2038-01-19T03:15:08.131Z",
+    "endTime": "2038-01-19T03:15:08.532Z",
+    "lines": 100
+}
+```
+
 #### Creates a build
 `POST /builds`
 

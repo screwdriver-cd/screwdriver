@@ -20,8 +20,10 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.buildFactory;
+            const buildFactory = request.server.app.buildFactory;
+            const stepFactory = request.server.app.stepFactory;
             const buildId = request.params.id;
+            const stepName = request.params.name;
             const buildIdCred = request.auth.credentials.username;
             let stepIndex = -1;
 
@@ -29,34 +31,55 @@ module.exports = () => ({
                 return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
             }
 
-            return factory.get(buildId)
+            // Make sure build exists
+            return buildFactory.get(buildId)
                 .then((build) => {
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }
-                    const steps = build.steps;
                     const now = (new Date()).toISOString();
 
-                    stepIndex = steps.findIndex(step => step.name === request.params.name);
+                    // Check if step model exists
+                    return stepFactory.get({ buildId, name: stepName })
+                        .then((step) => {
+                            if (!step) {
+                                // Update build steps if no step model
+                                const steps = build.steps;
 
-                    if (stepIndex === -1) {
-                        throw boom.notFound('Step does not exist');
-                    }
+                                stepIndex = steps.findIndex(s => s.name === stepName);
 
-                    if (request.payload.code !== undefined) {
-                        steps[stepIndex].code = request.payload.code;
-                        steps[stepIndex].endTime = request.payload.endTime || now;
-                    } else if (request.payload.lines !== undefined) {
-                        steps[stepIndex].lines = request.payload.lines;
-                    } else {
-                        steps[stepIndex].startTime = request.payload.startTime || now;
-                    }
+                                if (stepIndex === -1) {
+                                    throw boom.notFound('Step does not exist');
+                                }
 
-                    build.steps = steps;
+                                if (request.payload.code !== undefined) {
+                                    steps[stepIndex].code = request.payload.code;
+                                    steps[stepIndex].endTime = request.payload.endTime || now;
+                                } else if (request.payload.lines !== undefined) {
+                                    steps[stepIndex].lines = request.payload.lines;
+                                } else {
+                                    steps[stepIndex].startTime = request.payload.startTime || now;
+                                }
 
-                    return build.update();
+                                build.steps = steps;
+
+                                return build.update()
+                                    .then(b => b.steps[stepIndex]);
+                            }
+                            // Update step model directly if it exists
+                            if (request.payload.code !== undefined) {
+                                step.code = request.payload.code;
+                                step.endTime = request.payload.endTime || now;
+                            } else if (request.payload.lines !== undefined) {
+                                step.lines = request.payload.lines;
+                            } else {
+                                step.startTime = request.payload.startTime || now;
+                            }
+
+                            return step.update();
+                        });
                 })
-                .then(build => reply(build.steps[stepIndex]).code(200))
+                .then(updatedStep => reply(updatedStep).code(200))
                 .catch(err => reply(boom.wrap(err)));
         },
         response: {
