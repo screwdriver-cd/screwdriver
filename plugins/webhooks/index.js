@@ -29,17 +29,22 @@ function isRestrictedPR(restriction, prSource) {
  * If the build is running, set state to ABORTED
  * @method stopJob
  * @param  {Object} config
+ * @param  {String} config.action  Event action ('Closed' or 'Synchronized')
  * @param  {Job}    config.job     Job to stop
  * @param  {String} config.prNum   Pull request number
  * @return {Promise}
  */
-function stopJob({ job, prNum }) {
+function stopJob({ job, prNum, action }) {
     const stopRunningBuild = (build) => {
         if (build.isDone()) {
             return Promise.resolve();
         }
+
+        const statusMessage = action === 'Closed' ? `Aborted because PR#${prNum} was closed` :
+            `Aborted because new commit was pushed to PR#${prNum}`;
+
         build.status = 'ABORTED';
-        build.statusMessage = `Aborted because PR#${prNum} is closed`;
+        build.statusMessage = statusMessage;
 
         return build.update();
     };
@@ -139,8 +144,8 @@ function pullRequestOpened(options, request, reply) {
  * @param  {Hapi.reply}   reply   Reply to user
  */
 function pullRequestClosed(options, request, reply) {
-    const { pipeline, hookId, name, prNum } = options;
-    const updatePRJobs = (job => stopJob({ job, prNum })
+    const { pipeline, hookId, name, prNum, action } = options;
+    const updatePRJobs = (job => stopJob({ job, prNum, action })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
             job.archived = true;
@@ -178,7 +183,7 @@ function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, restriction, prSource, name, prNum } = options;
+    const { pipeline, hookId, restriction, prSource, name, prNum, action } = options;
     let prJobs;
 
     // Check for restriction upfront
@@ -194,7 +199,7 @@ function pullRequestSync(options, request, reply) {
         .then((jobs) => {
             prJobs = jobs.filter(j => j.name.includes(name));
 
-            return Promise.all(prJobs.map(j => stopJob({ job: j, prNum })));
+            return Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action })));
         })
         .then(() => request.log(['webhook', hookId], `Job(s) for ${name} stopped`))
         .then(() => startPRJob(options, request))
