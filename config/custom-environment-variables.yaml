@@ -73,6 +73,9 @@ datastore:
         pool:
           __name: DATASTORE_SEQUELIZE_POOL
           __format: json
+        retry:
+          __name: DATASTORE_SEQUELIZE_RETRY
+          __format: json
 
 executor:
     plugin: EXECUTOR_PLUGIN
