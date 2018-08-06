@@ -211,6 +211,7 @@ async function pullRequestOpened(options, request, reply) {
  * @param  {String}       options.hookId     Unique ID for this scm event
  * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
  * @param  {String}       options.name       Name of the PR: PR-prNum
+ * @param  {String}       options.prNum      Pull request number
  * @param  {Hapi.request} request            Request from user
  * @param  {Hapi.reply}   reply              Reply to user
  */
@@ -263,7 +264,7 @@ async function pullRequestSync(options, request, reply) {
 
         pipeline.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
             .then((prJobs) => {
-                Promise.all(prJobs.map(j => stopJob(j)));
+                Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action })));
                 request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
             });
     }
@@ -271,7 +272,7 @@ async function pullRequestSync(options, request, reply) {
     return createPREvents(options, request)
         .then((events) => {
             events.forEach((e) => {
-                request.log(['webhook', hookId], `Job(s) for ${name} synced`);
+                request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
             });
 
             return reply().code(201);
@@ -369,6 +370,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         username,
                         scmConfig,
                         prRef,
+                        prNum,
                         prSource,
                         pipeline: p,
                         pipelines,
