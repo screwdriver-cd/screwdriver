@@ -262,11 +262,10 @@ async function pullRequestSync(options, request, reply) {
             return reply().code(204);
         }
 
-        pipeline.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
-            .then((prJobs) => {
-                Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action })));
-                request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
-            });
+        await pipeline.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
+            .then(prJobs => Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action }))));
+
+        request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
     }
 
     return createPREvents(options, request)
