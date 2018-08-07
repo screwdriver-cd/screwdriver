@@ -1231,6 +1231,14 @@ describe('github plugin test', () => {
                     })
                 );
 
+                it('returns 204 when pipeline to be closed does not exist', () => {
+                    pipelineFactoryMock.get.resolves(null);
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
                 it('stops running builds', () =>
                     server.inject(options).then(() => {
                         assert.calledOnce(model1.update);

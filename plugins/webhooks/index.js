@@ -125,7 +125,7 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @return {Promise}
  */
 async function createPREvents(options, request) {
-    const { username, scmConfig, sha, prRef, changedFiles,
+    const { username, scmConfig, sha, prRef, prNum, changedFiles,
         branch, pipelines, action } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
@@ -154,7 +154,7 @@ async function createPREvents(options, request) {
             configPipelineSha,
             prInfo,
             prRef,
-            prNum: scmConfig.prNum,
+            prNum,
             startFrom,
             changedFiles,
             causeMessage: `${action} by ${userDisplayName}`
@@ -171,16 +171,19 @@ async function createPREvents(options, request) {
  * @async  pullRequestOpened
  * @param  {Object}       options
  * @param  {String}       options.hookId        Unique ID for this scm event
- * @param  {String}       options.restriction   If we are restricting PRs based on their
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestOpened(options, request, reply) {
-    const { hookId, restriction, prSource, pipeline } = options;
+    const { hookId, prSource, pipeline } = options;
 
     if (pipeline) {
+        const p = await pipeline.sync();
+        // @TODO Check for cluster-level default
+        const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
             request.log(['webhook', hookId],
@@ -225,7 +228,15 @@ async function pullRequestClosed(options, request, reply) {
         })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
 
-    return pipeline.jobs
+    if (!pipeline) {
+        request.log(['webhook', hookId],
+            'Skipping since Pipeline to be closed does not exist');
+
+        return reply().code(204);
+    }
+
+    return pipeline.sync()
+        .then(p => p.jobs)
         .then((jobs) => {
             const prJobs = jobs.filter(j => j.name.includes(name));
 
@@ -241,7 +252,6 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Object}       options
  * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.name          Name of the new job (PR-1)
- * @param  {String}       options.restriction   If we are restricting PRs based on their origin
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of files that were changed
@@ -249,9 +259,13 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, restriction, prSource, name, prNum, action } = options;
+    const { pipeline, hookId, prSource, name, prNum, action } = options;
 
     if (pipeline) {
+        const p = await pipeline.sync();
+        // @TODO Check for cluster-level default
+        const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
             request.log(['webhook', hookId],
@@ -261,7 +275,7 @@ async function pullRequestSync(options, request, reply) {
             return reply().code(204);
         }
 
-        await pipeline.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
+        await p.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
             .then(prJobs => Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action }))));
 
         request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
@@ -324,7 +338,6 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
         prSource, username, scmContext, changedFiles, type } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
-        prNum,
         scmUri: '',
         token: '',
         scmContext
@@ -358,10 +371,8 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             }
 
             return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-                .then(p => p.sync())
                 .then((p) => {
                     const options = {
-                        pipelineId: p.id,
                         name: `PR-${prNum}`,
                         hookId,
                         sha,
@@ -372,7 +383,6 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         prSource,
                         pipeline: p,
                         pipelines,
-                        restriction: p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none',
                         changedFiles,
                         action: action.charAt(0).toUpperCase() + action.slice(1),
                         branch
