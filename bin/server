@@ -103,6 +103,9 @@ const buildFactory = Models.BuildFactory.getInstance({
     bookend,
     uiUri: ecosystem.ui
 });
+const stepFactory = Models.StepFactory.getInstance({
+    datastore
+});
 const secretFactory = Models.SecretFactory.getInstance({
     datastore,
     password: authConfig.encryptionPassword
@@ -143,6 +146,7 @@ datastore.setup()
         jobFactory,
         userFactory,
         buildFactory,
+        stepFactory,
         bannerFactory,
         secretFactory,
         tokenFactory,
