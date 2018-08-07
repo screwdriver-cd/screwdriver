@@ -75,7 +75,7 @@ function hasTriggeredJob(pipeline, startFrom) {
  * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
  * @param   {Object}            scmConfig       Has the token and scmUri to get branches
  * @param   {String}            branch          The branch which is committed
- * @param   {String}            type            Triggered event type
+ * @param   {String}            type            Triggered event type ('pr' or 'commit')
  * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
 function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
@@ -136,14 +136,13 @@ async function createPREvents(options, request) {
 
     for (let i = 0; i < pipelines.length; i += 1) {
         const p = pipelines[i];
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-disable no-await-in-loop */
         const b = await p.branch;
         const startFrom = (b === branch) ? '~pr' : `~pr:${branch}`;
-        // eslint-disable-next-line no-await-in-loop
         const prInfo = await eventFactory.scm.getPrInfo(scmConfig);
         // obtain pipeline's latest commit sha for branch specific job
-        // eslint-disable-next-line no-await-in-loop
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        // eslint-disable-next-line no-await-in-loop
 
         const eventConfig = {
             pipelineId: p.id,
