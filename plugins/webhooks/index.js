@@ -125,14 +125,14 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @return {Promise}
  */
 async function createPREvents(options, request) {
-    const { username, scmConfig, sha, prRef, prNum, changedFiles,
-        branch, pipelines, action } = options;
+    const { username, scmConfig, sha, prRef, prNum, changedFiles, branch, action } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];
+    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr');
 
     scmConfig.prNum = prNum;
 
@@ -379,7 +379,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             }
 
             return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-                .then((p) => {
+                .then((pipeline) => {
                     const options = {
                         name: `PR-${prNum}`,
                         hookId,
@@ -389,8 +389,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         prRef,
                         prNum,
                         prSource,
-                        pipeline: p,
-                        pipelines,
+                        pipeline,
                         changedFiles,
                         action: action.charAt(0).toUpperCase() + action.slice(1),
                         branch
