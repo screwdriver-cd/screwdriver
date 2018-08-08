@@ -217,16 +217,17 @@ async function pullRequestOpened(options, request, reply) {
  * Stop any running builds and disable the job for closed pull-request
  * @async  pullRequestClosed
  * @param  {Object}       options
- * @param  {String}       options.hookId     Unique ID for this scm event
- * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
- * @param  {String}       options.name       Name of the PR: PR-prNum
- * @param  {String}       options.prNum      Pull request number
- * @param  {String}       options.action     Event action
- * @param  {Hapi.request} request            Request from user
- * @param  {Hapi.reply}   reply              Reply to user
+ * @param  {String}       options.hookId            Unique ID for this scm event
+ * @param  {Pipeline}     options.pipeline          Pipeline model for the pr
+ * @param  {String}       options.name              Name of the PR: PR-prNum
+ * @param  {String}       options.prNum             Pull request number
+ * @param  {String}       options.action            Event action
+ * @param  {String}       options.fullCheckoutUrl   CheckoutUrl with branch name
+ * @param  {Hapi.request} request                   Request from user
+ * @param  {Hapi.reply}   reply                     Reply to user
  */
 async function pullRequestClosed(options, request, reply) {
-    const { pipeline, hookId, name, prNum, action } = options;
+    const { pipeline, hookId, name, prNum, action, fullCheckoutUrl } = options;
     const updatePRJobs = (job => stopJob({ job, prNum, action })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
@@ -238,7 +239,7 @@ async function pullRequestClosed(options, request, reply) {
 
     if (!pipeline) {
         request.log(['webhook', hookId],
-            'Skipping since Pipeline to be closed does not exist');
+            `Skipping since PR job for ${fullCheckoutUrl} does not exist`);
 
         return reply().code(204);
     }
@@ -394,7 +395,8 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         pipeline,
                         changedFiles,
                         action: action.charAt(0).toUpperCase() + action.slice(1),
-                        branch
+                        branch,
+                        fullCheckoutUrl
                     };
 
                     switch (action) {
