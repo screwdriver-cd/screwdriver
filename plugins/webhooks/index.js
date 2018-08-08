@@ -140,12 +140,11 @@ async function createPREvents(options, request) {
         const p = pipelines[i];
         /* eslint-disable no-await-in-loop */
         const b = await p.branch;
-        const prInfo = await eventFactory.scm.getPrInfo(scmConfig);
         // obtain pipeline's latest commit sha for branch specific job
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         /* eslint-enable no-await-in-loop */
 
-        const eventConfig = {
+        let eventConfig = {
             pipelineId: p.id,
             type: 'pipeline',
             webhooks: true,
@@ -161,9 +160,12 @@ async function createPREvents(options, request) {
         if (b === branch) {
             eventConfig.type = 'pr';
             eventConfig.startFrom = '~pr';
-            eventConfig.prInfo = prInfo;
-            eventConfig.prRef = prRef;
-            eventConfig.prNum = prNum;
+            eventConfig = Object.assign({
+                prRef,
+                prNum,
+                // eslint-disable-next-line no-await-in-loop
+                prInfo: await eventFactory.scm.getPrInfo(scmConfig)
+            }, eventConfig);
         }
 
         events.push(eventFactory.create(eventConfig));
