@@ -1232,6 +1232,32 @@ describe('github plugin test', () => {
                 );
 
                 it('returns 204 when pipeline to be closed does not exist', () => {
+                    const wMock = {
+                        nodes: [
+                            { name: '~pr:/^.*$/' },
+                            { name: '~pr' },
+                            { name: 'main' }
+                        ],
+                        edges: [
+                            { src: '~pr:/^.*$/', dest: 'main' },
+                            { src: '~pr', dest: 'main' }
+                        ]
+                    };
+                    const pMock = {
+                        id: 'pipelineHash1',
+                        scmUri: 'github.com:123456:branch1',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph: wMock,
+                        sync: sinon.stub(),
+                        getConfiguration: sinon.stub(),
+                        jobs: Promise.resolve([mainJobMock, jobMock]),
+                        branch: Promise.resolve('branch1')
+                    };
+
+                    pipelineFactoryMock.list.resolves([pMock]);
                     pipelineFactoryMock.get.resolves(null);
 
                     return server.inject(options).then((reply) => {
