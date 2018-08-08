@@ -682,31 +682,25 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
-                            prNum: 2,
-                            prRef,
-                            prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock2.id,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
-                            prNum: 2,
-                            prRef,
-                            prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
@@ -727,13 +721,13 @@ describe('github plugin test', () => {
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                             pipelineId,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             startFrom: '~pr:master'
                         }));
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                             pipelineId: pMock3.id,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             startFrom: '~pr:master'
                         }));
@@ -1001,31 +995,25 @@ describe('github plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
-                            prNum: 1,
-                            prRef,
-                            prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock2.id,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
-                            prNum: 1,
-                            prRef,
-                            prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             changedFiles
                         });
@@ -1046,13 +1034,13 @@ describe('github plugin test', () => {
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                             pipelineId,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             startFrom: '~pr:master'
                         }));
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                             pipelineId: pMock3.id,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             startFrom: '~pr:master'
                         }));

@@ -134,31 +134,37 @@ async function createPREvents(options, request) {
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];
 
+    scmConfig.prNum = prNum;
+
     for (let i = 0; i < pipelines.length; i += 1) {
         const p = pipelines[i];
         /* eslint-disable no-await-in-loop */
         const b = await p.branch;
-        const startFrom = (b === branch) ? '~pr' : `~pr:${branch}`;
         const prInfo = await eventFactory.scm.getPrInfo(scmConfig);
         // obtain pipeline's latest commit sha for branch specific job
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-        // eslint-disable-next-line no-await-in-loop
+        /* eslint-enable no-await-in-loop */
 
         const eventConfig = {
             pipelineId: p.id,
-            type: 'pr',
+            type: 'pipeline',
             webhooks: true,
             username,
             scmContext: scmConfig.scmContext,
             sha,
             configPipelineSha,
-            prInfo,
-            prRef,
-            prNum,
-            startFrom,
+            startFrom: `~pr:${branch}`,
             changedFiles,
             causeMessage: `${action} by ${userDisplayName}`
         };
+
+        if (b === branch) {
+            eventConfig.type = 'pr';
+            eventConfig.startFrom = '~pr';
+            eventConfig.prInfo = prInfo;
+            eventConfig.prRef = prRef;
+            eventConfig.prNum = prNum;
+        }
 
         events.push(eventFactory.create(eventConfig));
     }
