@@ -113,14 +113,13 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @async  createPREvents
  * @param  {Object}       options
  * @param  {String}       options.username      User who created the PR
- * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
+ * @param  {String}       options.scmConfig     Has the token and scmUri to get branches
  * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {String}       options.prNum         Pull request number
- * @param  {Object}       options.pipelines     The pipelines which has triggered job
  * @param  {Array}        options.changedFiles  List of changed files
  * @param  {String}       options.branch        The branch against which pr is opened
- * @param  {String}       options.scmConfig     Has the token and scmUri to get branches
+ * @param  {String}       options.action        Event action
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
@@ -222,6 +221,7 @@ async function pullRequestOpened(options, request, reply) {
  * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
  * @param  {String}       options.name       Name of the PR: PR-prNum
  * @param  {String}       options.prNum      Pull request number
+ * @param  {String}       options.action     Event action
  * @param  {Hapi.request} request            Request from user
  * @param  {Hapi.reply}   reply              Reply to user
  */
@@ -263,6 +263,8 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of files that were changed
+ * @param  {String}       options.prNum         Pull request number
+ * @param  {String}       options.action        Event action
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
