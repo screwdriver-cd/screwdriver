@@ -2,140 +2,140 @@
 # from `default.yaml`
 ---
 auth:
-    # A private key uses for signing jwt tokens
-    # Easily generate one by running
-    # $ openssl genrsa -out jwt.pem 2048
-    jwtPrivateKey: SECRET_JWT_PRIVATE_KEY
-    # The public key used for verifying the signature
-    # Generate one by running
-    # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
-    jwtPublicKey: SECRET_JWT_PUBLIC_KEY
-    # Environment of the JWTs. For example: 'prod' or 'beta'
-    jwtEnvironment: JWT_ENVIRONMENT
-    # A password used for encrypting session data.
-    # **Needs to be minimum 32 characters**
-    cookiePassword: SECRET_COOKIE_PASSWORD
-    # A password used for encrypting stored pipeline secrets and user Oauth token.
-    # **Needs to be minimum 32 characters**
-    encryptionPassword: SECRET_PASSWORD
-    # A password used for hashing user/pipeline access tokens.
-    # **Needs to be minimum 32 characters**
-    hashingPassword: SECRET_HASHING_PASSWORD
-    # A flag to set if the server is running over https.
-    # Used as a flag for the OAuth flow
-    https: IS_HTTPS
-    # A flag to set if you want guests to browse your pipelines
-    allowGuestAccess: AUTH_GUEST_ACCESS
-    whitelist:
-        __name: SECRET_WHITELIST
-        __format: json
-    admins:
-        __name: SECRET_ADMINS
-        __format: json
-    # Default session timeout (in minutes)
-    sessionTimeout: SESSION_TIMEOUT
+  # A private key uses for signing jwt tokens
+  # Easily generate one by running
+  # $ openssl genrsa -out jwt.pem 2048
+  jwtPrivateKey: SECRET_JWT_PRIVATE_KEY
+  # The public key used for verifying the signature
+  # Generate one by running
+  # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
+  jwtPublicKey: SECRET_JWT_PUBLIC_KEY
+  # Environment of the JWTs. For example: 'prod' or 'beta'
+  jwtEnvironment: JWT_ENVIRONMENT
+  # A password used for encrypting session data.
+  # **Needs to be minimum 32 characters**
+  cookiePassword: SECRET_COOKIE_PASSWORD
+  # A password used for encrypting stored pipeline secrets and user Oauth token.
+  # **Needs to be minimum 32 characters**
+  encryptionPassword: SECRET_PASSWORD
+  # A password used for hashing user/pipeline access tokens.
+  # **Needs to be minimum 32 characters**
+  hashingPassword: SECRET_HASHING_PASSWORD
+  # A flag to set if the server is running over https.
+  # Used as a flag for the OAuth flow
+  https: IS_HTTPS
+  # A flag to set if you want guests to browse your pipelines
+  allowGuestAccess: AUTH_GUEST_ACCESS
+  whitelist:
+    __name: SECRET_WHITELIST
+    __format: json
+  admins:
+    __name: SECRET_ADMINS
+    __format: json
+  # Default session timeout (in minutes)
+  sessionTimeout: SESSION_TIMEOUT
 
 httpd:
-    # Port to listen on
-    port: PORT
-    # Host to listen on (set to 0.0.0.0 to accept all connections)
-    host: HOST
-    # Externally routable URI (usually your load balancer or CNAME)
-    uri: URI
-    # TLS configuration (key, cert, etc.)
-    # https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
-    tls:
-        __name: HTTPD_TLS
-        __format: json
+  # Port to listen on
+  port: PORT
+  # Host to listen on (set to 0.0.0.0 to accept all connections)
+  host: HOST
+  # Externally routable URI (usually your load balancer or CNAME)
+  uri: URI
+  # TLS configuration (key, cert, etc.)
+  # https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener
+  tls:
+    __name: HTTPD_TLS
+    __format: json
 
 datastore:
-    plugin: DATASTORE_PLUGIN
-    sequelize:
-        # Type of server to talk to
-        dialect: DATASTORE_SEQUELIZE_DIALECT
-        # Database name
-        database: DATASTORE_SEQUELIZE_DATABASE
-        # Username/Password
-        username: DATASTORE_SEQUELIZE_USERNAME
-        password: DATASTORE_SEQUELIZE_PASSWORD
-        # Storage location for sqlite
-        storage: DATASTORE_SEQUELIZE_STORAGE
-        # Network settings
-        host: DATASTORE_SEQUELIZE_HOST
-        port: DATASTORE_SEQUELIZE_PORT
-        # Prefix to the table names
-        prefix: DATASTORE_SEQUELIZE_PREFIX
-        # Configure SSL/TLS connection settings
-        ssl:
-          __name: DATASTORE_SEQUELIZE_SSL
-          __format: json
-        # Connection pool config. See http://docs.sequelizejs.com/class/lib/sequelize.js~Sequelize.html#instance-constructor-constructor
-        pool:
-          __name: DATASTORE_SEQUELIZE_POOL
-          __format: json
-        retry:
-          __name: DATASTORE_SEQUELIZE_RETRY
-          __format: json
+  plugin: DATASTORE_PLUGIN
+  sequelize:
+    # Type of server to talk to
+    dialect: DATASTORE_SEQUELIZE_DIALECT
+    # Database name
+    database: DATASTORE_SEQUELIZE_DATABASE
+    # Username/Password
+    username: DATASTORE_SEQUELIZE_USERNAME
+    password: DATASTORE_SEQUELIZE_PASSWORD
+    # Storage location for sqlite
+    storage: DATASTORE_SEQUELIZE_STORAGE
+    # Network settings
+    host: DATASTORE_SEQUELIZE_HOST
+    port: DATASTORE_SEQUELIZE_PORT
+    # Prefix to the table names
+    prefix: DATASTORE_SEQUELIZE_PREFIX
+    # Configure SSL/TLS connection settings
+    ssl:
+      __name: DATASTORE_SEQUELIZE_SSL
+      __format: json
+    # Connection pool config. See http://docs.sequelizejs.com/class/lib/sequelize.js~Sequelize.html#instance-constructor-constructor
+    pool:
+      __name: DATASTORE_SEQUELIZE_POOL
+      __format: json
+    retry:
+      __name: DATASTORE_SEQUELIZE_RETRY
+      __format: json
 
 executor:
-    plugin: EXECUTOR_PLUGIN
-    # The NPM module object(s) for the executor plugin(s)
-    k8s:
-      enabled: EXECUTOR_K8S_ENABLED
-      options:
-        kubernetes:
-            # The host or IP of the kubernetes cluster
-            host: K8S_HOST
-            # The jwt token used for authenticating kubernetes requests
-            token: K8S_TOKEN
-            jobsNamespace: K8S_JOBS_NAMESPACE
-            # Resources for build pod
-            resources:
-                # Number of cpu cores
-                cpu:
-                    micro: K8S_CPU_MICRO
-                    low: K8S_CPU_LOW
-                    high: K8S_CPU_HIGH
-                # Memory in GB
-                memory:
-                    micro: K8S_MEMORY_MICRO
-                    low: K8S_MEMORY_LOW
-                    high: K8S_MEMORY_HIGH
-            # Default build timeout for all builds in this cluster
-            buildTimeout: K8S_BUILD_TIMEOUT
-            # Default max build timeout
-            maxBuildTimeout: K8S_MAX_BUILD_TIMEOUT
-            # k8s node selectors for build pod scheduling.
-            # Value is Object of format { label: 'value' } See
-            # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
-            # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
-            # label-value of dedicated=screwdriver
-            nodeSelectors:
-              __name: K8S_NODE_SELECTORS
-              __format: json
-            # k8s preferred node selectors for build pod scheduling
-            # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
-            preferredNodeSelectors:
-              __name: K8S_PREFERRED_NODE_SELECTORS
-              __format: json
-        # Launcher container tag to use
-        launchVersion: LAUNCH_VERSION
-        # Prefix to the pod
-        prefix: EXECUTOR_PREFIX
+  plugin: EXECUTOR_PLUGIN
+  # The NPM module object(s) for the executor plugin(s)
+  k8s:
+    enabled: EXECUTOR_K8S_ENABLED
+    options:
+      kubernetes:
+        # The host or IP of the kubernetes cluster
+        host: K8S_HOST
+        # The jwt token used for authenticating kubernetes requests
+        token: K8S_TOKEN
+        jobsNamespace: K8S_JOBS_NAMESPACE
+        # Resources for build pod
+        resources:
+          # Number of cpu cores
+          cpu:
+            micro: K8S_CPU_MICRO
+            low: K8S_CPU_LOW
+            high: K8S_CPU_HIGH
+          # Memory in GB
+          memory:
+            micro: K8S_MEMORY_MICRO
+            low: K8S_MEMORY_LOW
+            high: K8S_MEMORY_HIGH
+        # Default build timeout for all builds in this cluster
+        buildTimeout: K8S_BUILD_TIMEOUT
+        # Default max build timeout
+        maxBuildTimeout: K8S_MAX_BUILD_TIMEOUT
+        # k8s node selectors for build pod scheduling.
+        # Value is Object of format { label: 'value' } See
+        # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+        # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
+        # label-value of dedicated=screwdriver
+        nodeSelectors:
+          __name: K8S_NODE_SELECTORS
+          __format: json
+        # k8s preferred node selectors for build pod scheduling
+        # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+        preferredNodeSelectors:
+          __name: K8S_PREFERRED_NODE_SELECTORS
+          __format: json
+      # Launcher container tag to use
+      launchVersion: LAUNCH_VERSION
+      # Prefix to the pod
+      prefix: EXECUTOR_PREFIX
     nomad:
       enabled: EXECUTOR_NOMAD_ENABLED
       options:
         nomad:
-            # The host or IP of the nomad cluster
-            host: NOMAD_HOST
-            # Resources for build pod
-            resources:
-                # Number of cpu cores
-                cpu:
-                    high: NOMAD_CPU
-                # Memory in GB
-                memory:
-                    high: NOMAD_MEMORY
+          # The host or IP of the nomad cluster
+          host: NOMAD_HOST
+          # Resources for build pod
+          resources:
+            # Number of cpu cores
+            cpu:
+              high: NOMAD_CPU
+            # Memory in GB
+            memory:
+              high: NOMAD_MEMORY
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the pod
@@ -145,8 +145,8 @@ executor:
       options:
         # Configuration of Docker
         docker:
-            __name: EXECUTOR_DOCKER_DOCKER
-            __format: json
+          __name: EXECUTOR_DOCKER_DOCKER
+          __format: json
         # Launcher container tag to use
         launchVersion: LAUNCH_VERSION
         # Prefix to the container
@@ -156,14 +156,14 @@ executor:
       options:
         # Configuration of Docker
         kubernetes:
-            # The host or IP of the kubernetes cluster
-            host: K8S_HOST
-            # The jwt token used for authenticating kubernetes requests
-            token: K8S_TOKEN
-            jobsNamespace: K8S_JOBS_NAMESPACE
-            baseImage: K8S_BASE_IMAGE
-            # Resources for build pod
-            resources:
+          # The host or IP of the kubernetes cluster
+          host: K8S_HOST
+          # The jwt token used for authenticating kubernetes requests
+          token: K8S_TOKEN
+          jobsNamespace: K8S_JOBS_NAMESPACE
+          baseImage: K8S_BASE_IMAGE
+          # Resources for build pod
+          resources:
                 # Number of cpu cores
                 cpu:
                     micro: K8S_CPU_MICRO
@@ -234,102 +234,102 @@ executor:
         options:
           # Configuration of the redis instance containing resque
             redisConnection:
-                host: QUEUE_REDIS_HOST
-                port: QUEUE_REDIS_PORT
-                options:
-                    password: QUEUE_REDIS_PASSWORD
-                    tls: QUEUE_REDIS_TLS_ENABLED
-                database: QUEUE_REDIS_DATABASE
+              host: QUEUE_REDIS_HOST
+              port: QUEUE_REDIS_PORT
+              options:
+                password: QUEUE_REDIS_PASSWORD
+                tls: QUEUE_REDIS_TLS_ENABLED
+              database: QUEUE_REDIS_DATABASE
 
 scms:
     __name: SCM_SETTINGS
     __format: json
     # github:
-    #     plugin: github
-    #     config:
-    #         # The client id used for OAuth with github. Look up GitHub OAuth for details
-    #         # https://developer.github.com/v3/oauth/
-    #         oauthClientId: SECRET_OAUTH_CLIENT_ID
-    #         # The client secret used for OAuth with github
-    #         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-    #         # You can also configure for use with GitHub enterprise
-    #         gheHost: SCM_GITHUB_GHE_HOST
-    #         # The username and email used for checkout with github
-    #         username: SCM_USERNAME
-    #         email: SCM_EMAIL
-    #         # Secret to add to GitHub webhooks so that we can validate them
-    #         secret: WEBHOOK_GITHUB_SECRET
-    #         # Whether it supports private repo: boolean value.
-    #         # If true, it will ask for read and write access to public and private repos
-    #         # https://developer.github.com/v3/oauth/#scopes
-    #         privateRepo: SCM_PRIVATE_REPO_SUPPORT
+    #   plugin: github
+    #   config:
+    #     # The client id used for OAuth with github. Look up GitHub OAuth for details
+    #     # https://developer.github.com/v3/oauth/
+    #     oauthClientId: SECRET_OAUTH_CLIENT_ID
+    #     # The client secret used for OAuth with github
+    #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    #     # You can also configure for use with GitHub enterprise
+    #     gheHost: SCM_GITHUB_GHE_HOST
+    #     # The username and email used for checkout with github
+    #     username: SCM_USERNAME
+    #     email: SCM_EMAIL
+    #     # Secret to add to GitHub webhooks so that we can validate them
+    #     secret: WEBHOOK_GITHUB_SECRET
+    #     # Whether it supports private repo: boolean value.
+    #     # If true, it will ask for read and write access to public and private repos
+    #     # https://developer.github.com/v3/oauth/#scopes
+    #     privateRepo: SCM_PRIVATE_REPO_SUPPORT
     # bitbucket:
-    #     plugin: bitbucket
-    #     config:
-    #         # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
-    #         # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
-    #         oauthClientId: SECRET_OAUTH_CLIENT_ID
-    #         # The client secret used for OAuth with bitbucket
-    #         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-    #         # The username and email used for checkout with bitbucket
-    #         username: SCM_USERNAME
-    #         email: SCM_EMAIL
+    #   plugin: bitbucket
+    #   config:
+    #     # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
+    #     # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
+    #     oauthClientId: SECRET_OAUTH_CLIENT_ID
+    #     # The client secret used for OAuth with bitbucket
+    #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    #     # The username and email used for checkout with bitbucket
+    #     username: SCM_USERNAME
+    #     email: SCM_EMAIL
     # gitlab:
-    #     plugin: gitlab
-    #     config:
-    #         # The client id used for OAuth with gitlab. Look up Gitlab OAuth for details
-    #         # https://docs.gitlab.com/ee/integration/oauth_provider.html
-    #         oauthClientId: SECRET_OAUTH_CLIENT_ID
-    #         # The client secret used for OAuth with bitbucket
-    #         oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-    #         # The username and email used for checkout with gitlab
-    #         username: SCM_USERNAME
-    #         email: SCM_EMAIL
-    #         # if you have on-premise gitlab, you can specify that here
-    #         gitlabHost: SCM_GITLAB_HOST
-    #         gitlabProtocol: SCM_GITLAB_PROTOCOL
+    #   plugin: gitlab
+    #   config:
+    #     # The client id used for OAuth with gitlab. Look up Gitlab OAuth for details
+    #     # https://docs.gitlab.com/ee/integration/oauth_provider.html
+    #     oauthClientId: SECRET_OAUTH_CLIENT_ID
+    #     # The client secret used for OAuth with bitbucket
+    #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+    #     # The username and email used for checkout with gitlab
+    #     username: SCM_USERNAME
+    #     email: SCM_EMAIL
+    #     # if you have on-premise gitlab, you can specify that here
+    #     gitlabHost: SCM_GITLAB_HOST
+    #     gitlabProtocol: SCM_GITLAB_PROTOCOL
 webhooks:
-    # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
-    username: SCM_USERNAME
-    # Ignore commits made by these users
-    ignoreCommitsBy:
-        __name: IGNORE_COMMITS_BY
-        __format: json
-
-bookends:
-    # List of module names, or objects { name, config } for instantiation to use in sd-setup
-    setup:
-        __name: BOOKENDS_SETUP
-        __format: json
-    # List of module names, or objects { name, config } for instantiation to use in sd-teardown
-    teardown:
-        __name: BOOKENDS_TEARDOWN
-        __format: json
-
-notifications:
-    __name: NOTIFICATIONS
+  # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
+  username: SCM_USERNAME
+  # Ignore commits made by these users
+  ignoreCommitsBy:
+    __name: IGNORE_COMMITS_BY
     __format: json
 
+bookends:
+  # List of module names, or objects { name, config } for instantiation to use in sd-setup
+  setup:
+    __name: BOOKENDS_SETUP
+    __format: json
+  # List of module names, or objects { name, config } for instantiation to use in sd-teardown
+  teardown:
+    __name: BOOKENDS_TEARDOWN
+    __format: json
+
+notifications:
+  __name: NOTIFICATIONS
+  __format: json
+
 coverage:
-    plugin: COVERAGE_PLUGIN
-    sonar:
-        # Screwdriver API url
-        sdApiUrl: URI
-        # Sonar host url
-        sonarHost:  COVERAGE_SONAR_HOST
-        # Sonar admin token
-        adminToken: COVERAGE_SONAR_ADMIN_TOKEN
+  plugin: COVERAGE_PLUGIN
+  sonar:
+    # Screwdriver API url
+    sdApiUrl: URI
+    # Sonar host url
+    sonarHost:  COVERAGE_SONAR_HOST
+    # Sonar admin token
+    adminToken: COVERAGE_SONAR_ADMIN_TOKEN
 
 ecosystem:
-    # URL for the User Interface
-    ui: ECOSYSTEM_UI
-    # Externally routable URL for the Artifact Store
-    store: ECOSYSTEM_STORE
-    # Badge service (needs to add a status and color)
-    badges: ECOSYSTEM_BADGES
-    # Default registry to pull build containers from
-    dockerRegistry: ECOSYSTEM_DOCKER_REGISTRY
-    # Array of extra origins allowed to do CORS to API
-    allowCors:
-        __name: ECOSYSTEM_ALLOW_CORS
-        __format: json
+  # URL for the User Interface
+  ui: ECOSYSTEM_UI
+  # Externally routable URL for the Artifact Store
+  store: ECOSYSTEM_STORE
+  # Badge service (needs to add a status and color)
+  badges: ECOSYSTEM_BADGES
+  # Default registry to pull build containers from
+  dockerRegistry: ECOSYSTEM_DOCKER_REGISTRY
+  # Array of extra origins allowed to do CORS to API
+  allowCors:
+    __name: ECOSYSTEM_ALLOW_CORS
+    __format: json
