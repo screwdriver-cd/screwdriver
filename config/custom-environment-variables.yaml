@@ -122,172 +122,172 @@ executor:
       launchVersion: LAUNCH_VERSION
       # Prefix to the pod
       prefix: EXECUTOR_PREFIX
-    nomad:
-      enabled: EXECUTOR_NOMAD_ENABLED
-      options:
-        nomad:
-          # The host or IP of the nomad cluster
-          host: NOMAD_HOST
-          # Resources for build pod
-          resources:
-            # Number of cpu cores
-            cpu:
-              high: NOMAD_CPU
-            # Memory in GB
-            memory:
-              high: NOMAD_MEMORY
-        # Launcher container tag to use
-        launchVersion: LAUNCH_VERSION
-        # Prefix to the pod
-        prefix: EXECUTOR_PREFIX
-    docker:
-      enabled: EXECUTOR_DOCKER_ENABLED
-      options:
-        # Configuration of Docker
-        docker:
-          __name: EXECUTOR_DOCKER_DOCKER
+  nomad:
+    enabled: EXECUTOR_NOMAD_ENABLED
+    options:
+      nomad:
+        # The host or IP of the nomad cluster
+        host: NOMAD_HOST
+        # Resources for build pod
+        resources:
+          # Number of cpu cores
+          cpu:
+            high: NOMAD_CPU
+          # Memory in GB
+          memory:
+            high: NOMAD_MEMORY
+      # Launcher container tag to use
+      launchVersion: LAUNCH_VERSION
+      # Prefix to the pod
+      prefix: EXECUTOR_PREFIX
+  docker:
+    enabled: EXECUTOR_DOCKER_ENABLED
+    options:
+      # Configuration of Docker
+      docker:
+        __name: EXECUTOR_DOCKER_DOCKER
+        __format: json
+      # Launcher container tag to use
+      launchVersion: LAUNCH_VERSION
+      # Prefix to the container
+      prefix: EXECUTOR_PREFIX
+  k8s-vm:
+    enabled: EXECUTOR_K8SVM_ENABLED
+    options:
+      # Configuration of Docker
+      kubernetes:
+        # The host or IP of the kubernetes cluster
+        host: K8S_HOST
+        # The jwt token used for authenticating kubernetes requests
+        token: K8S_TOKEN
+        jobsNamespace: K8S_JOBS_NAMESPACE
+        baseImage: K8S_BASE_IMAGE
+        # Resources for build pod
+        resources:
+          # Number of cpu cores
+          cpu:
+            micro: K8S_CPU_MICRO
+            low: K8S_CPU_LOW
+            high: K8S_CPU_HIGH
+          # Memory in GB
+          memory:
+            micro: K8S_MEMORY_MICRO
+            low: K8S_MEMORY_LOW
+            high: K8S_MEMORY_HIGH
+        # Default build timeout for all builds in this cluster
+        buildTimeout: K8S_VM_BUILD_TIMEOUT
+        # Default max build timeout
+        maxBuildTimeout: K8S_VM_MAX_BUILD_TIMEOUT
+        # k8s node selectors for build pod scheduling.
+        # Value is Object of format { label: 'value' } See
+        # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+        # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
+        # label-value of dedicated=screwdriver
+        nodeSelectors:
+          __name: K8S_VM_NODE_SELECTORS
           __format: json
-        # Launcher container tag to use
-        launchVersion: LAUNCH_VERSION
+        # k8s preferred node selectors for build pod scheduling
+        # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+        preferredNodeSelectors:
+          __name: K8S_VM_PREFERRED_NODE_SELECTORS
+          __format: json
+      # Launcher container tag to use
+      launchVersion: LAUNCH_VERSION
+      # Prefix to the container
+      prefix: EXECUTOR_PREFIX
+  jenkins:
+    enabled: EXECUTOR_JENKINS_ENABLED
+    options:
+      jenkins:
+        host: EXECUTOR_JENKINS_HOST
+        port: EXECUTOR_JENKINS_PORT
+        username: EXECUTOR_JENKINS_USERNAME
+        # Jenkins password/token used for authenticating jenkins requests
+        password: EXECUTOR_JENKINS_PASSWORD
+        # Node labels of Jenkins slaves
+        nodeLabel: EXECUTOR_JENKINS_NODE_LABEL
+        # Default build timeout
+        buildTimeout: EXECUTOR_JENKINS_BUILD_TIMEOUT
+        # Default max build timeout
+        maxBuildTimeout: EXECUTOR_JENKINS_MAX_BUILD_TIMEOUT
+      docker:
+        # The path to the docker-compose command
+        composeCommand: EXECUTOR_JENKINS_DOCKER_COMPOSE_COMMAND
         # Prefix to the container
-        prefix: EXECUTOR_PREFIX
-    k8s-vm:
-      enabled: EXECUTOR_K8SVM_ENABLED
-      options:
-        # Configuration of Docker
-        kubernetes:
-          # The host or IP of the kubernetes cluster
-          host: K8S_HOST
-          # The jwt token used for authenticating kubernetes requests
-          token: K8S_TOKEN
-          jobsNamespace: K8S_JOBS_NAMESPACE
-          baseImage: K8S_BASE_IMAGE
-          # Resources for build pod
-          resources:
-            # Number of cpu cores
-            cpu:
-              micro: K8S_CPU_MICRO
-              low: K8S_CPU_LOW
-              high: K8S_CPU_HIGH
-            # Memory in GB
-            memory:
-              micro: K8S_MEMORY_MICRO
-              low: K8S_MEMORY_LOW
-              high: K8S_MEMORY_HIGH
-          # Default build timeout for all builds in this cluster
-          buildTimeout: K8S_VM_BUILD_TIMEOUT
-          # Default max build timeout
-          maxBuildTimeout: K8S_VM_MAX_BUILD_TIMEOUT
-          # k8s node selectors for build pod scheduling.
-          # Value is Object of format { label: 'value' } See
-          # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
-          # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
-          # label-value of dedicated=screwdriver
-          nodeSelectors:
-            __name: K8S_VM_NODE_SELECTORS
-            __format: json
-          # k8s preferred node selectors for build pod scheduling
-          # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
-          preferredNodeSelectors:
-            __name: K8S_VM_PREFERRED_NODE_SELECTORS
-            __format: json
+        prefix: EXECUTOR_JENKINS_DOCKER_PREFIX
         # Launcher container tag to use
-        launchVersion: LAUNCH_VERSION
-        # Prefix to the container
-        prefix: EXECUTOR_PREFIX
-    jenkins:
-      enabled: EXECUTOR_JENKINS_ENABLED
-      options:
-        jenkins:
-            host: EXECUTOR_JENKINS_HOST
-            port: EXECUTOR_JENKINS_PORT
-            username: EXECUTOR_JENKINS_USERNAME
-            # Jenkins password/token used for authenticating jenkins requests
-            password: EXECUTOR_JENKINS_PASSWORD
-            # Node labels of Jenkins slaves
-            nodeLabel: EXECUTOR_JENKINS_NODE_LABEL
-            # Default build timeout
-            buildTimeout: EXECUTOR_JENKINS_BUILD_TIMEOUT
-            # Default max build timeout
-            maxBuildTimeout: EXECUTOR_JENKINS_MAX_BUILD_TIMEOUT
-        docker:
-            # The path to the docker-compose command
-            composeCommand: EXECUTOR_JENKINS_DOCKER_COMPOSE_COMMAND
-            # Prefix to the container
-            prefix: EXECUTOR_JENKINS_DOCKER_PREFIX
-            # Launcher container tag to use
-            launchVersion: EXECUTOR_JENKINS_LAUNCH_VERSION
-            # Memory limit (docker run `--memory` option)
-            memory: EXECUTOR_JENKINS_DOCKER_MEMORY
-            # Memory limit include swap (docker run `--memory-swap` option)
-            memoryLimit: EXECUTOR_JENKINS_DOCKER_MEMORY_LIMIT
-        # The command to start build
-        buildScript: EXECUTOR_JENKINS_BUILD_SCRIPT
-        # The command to clean up build system
-        cleanupScript: EXECUTOR_JENKINS_CLEANUP_SCRIPT
-        # Time (seconds) to destroy the job
-        cleanupTimeLimit: EXECUTOR_JENKINS_CLEANUP_TIME_LIMIT
-        # Interval to detect the stopped job (seconds)
-        cleanupWatchInterval: EXECUTOR_JENKINS_CLEANUP_WATCH_INTERVAL
-    queue:
-        enabled: EXECUTOR_QUEUE_ENABLED
+        launchVersion: EXECUTOR_JENKINS_LAUNCH_VERSION
+        # Memory limit (docker run `--memory` option)
+        memory: EXECUTOR_JENKINS_DOCKER_MEMORY
+        # Memory limit include swap (docker run `--memory-swap` option)
+        memoryLimit: EXECUTOR_JENKINS_DOCKER_MEMORY_LIMIT
+      # The command to start build
+      buildScript: EXECUTOR_JENKINS_BUILD_SCRIPT
+      # The command to clean up build system
+      cleanupScript: EXECUTOR_JENKINS_CLEANUP_SCRIPT
+      # Time (seconds) to destroy the job
+      cleanupTimeLimit: EXECUTOR_JENKINS_CLEANUP_TIME_LIMIT
+      # Interval to detect the stopped job (seconds)
+      cleanupWatchInterval: EXECUTOR_JENKINS_CLEANUP_WATCH_INTERVAL
+  queue:
+    enabled: EXECUTOR_QUEUE_ENABLED
+    options:
+    # Configuration of the redis instance containing resque
+      redisConnection:
+        host: QUEUE_REDIS_HOST
+        port: QUEUE_REDIS_PORT
         options:
-          # Configuration of the redis instance containing resque
-            redisConnection:
-              host: QUEUE_REDIS_HOST
-              port: QUEUE_REDIS_PORT
-              options:
-                password: QUEUE_REDIS_PASSWORD
-                tls: QUEUE_REDIS_TLS_ENABLED
-              database: QUEUE_REDIS_DATABASE
+          password: QUEUE_REDIS_PASSWORD
+          tls: QUEUE_REDIS_TLS_ENABLED
+        database: QUEUE_REDIS_DATABASE
 
 scms:
-    __name: SCM_SETTINGS
-    __format: json
-    # github:
-    #   plugin: github
-    #   config:
-    #     # The client id used for OAuth with github. Look up GitHub OAuth for details
-    #     # https://developer.github.com/v3/oauth/
-    #     oauthClientId: SECRET_OAUTH_CLIENT_ID
-    #     # The client secret used for OAuth with github
-    #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-    #     # You can also configure for use with GitHub enterprise
-    #     gheHost: SCM_GITHUB_GHE_HOST
-    #     # The username and email used for checkout with github
-    #     username: SCM_USERNAME
-    #     email: SCM_EMAIL
-    #     # Secret to add to GitHub webhooks so that we can validate them
-    #     secret: WEBHOOK_GITHUB_SECRET
-    #     # Whether it supports private repo: boolean value.
-    #     # If true, it will ask for read and write access to public and private repos
-    #     # https://developer.github.com/v3/oauth/#scopes
-    #     privateRepo: SCM_PRIVATE_REPO_SUPPORT
-    # bitbucket:
-    #   plugin: bitbucket
-    #   config:
-    #     # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
-    #     # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
-    #     oauthClientId: SECRET_OAUTH_CLIENT_ID
-    #     # The client secret used for OAuth with bitbucket
-    #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-    #     # The username and email used for checkout with bitbucket
-    #     username: SCM_USERNAME
-    #     email: SCM_EMAIL
-    # gitlab:
-    #   plugin: gitlab
-    #   config:
-    #     # The client id used for OAuth with gitlab. Look up Gitlab OAuth for details
-    #     # https://docs.gitlab.com/ee/integration/oauth_provider.html
-    #     oauthClientId: SECRET_OAUTH_CLIENT_ID
-    #     # The client secret used for OAuth with bitbucket
-    #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
-    #     # The username and email used for checkout with gitlab
-    #     username: SCM_USERNAME
-    #     email: SCM_EMAIL
-    #     # if you have on-premise gitlab, you can specify that here
-    #     gitlabHost: SCM_GITLAB_HOST
-    #     gitlabProtocol: SCM_GITLAB_PROTOCOL
+  __name: SCM_SETTINGS
+  __format: json
+  # github:
+  #   plugin: github
+  #   config:
+  #     # The client id used for OAuth with github. Look up GitHub OAuth for details
+  #     # https://developer.github.com/v3/oauth/
+  #     oauthClientId: SECRET_OAUTH_CLIENT_ID
+  #     # The client secret used for OAuth with github
+  #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+  #     # You can also configure for use with GitHub enterprise
+  #     gheHost: SCM_GITHUB_GHE_HOST
+  #     # The username and email used for checkout with github
+  #     username: SCM_USERNAME
+  #     email: SCM_EMAIL
+  #     # Secret to add to GitHub webhooks so that we can validate them
+  #     secret: WEBHOOK_GITHUB_SECRET
+  #     # Whether it supports private repo: boolean value.
+  #     # If true, it will ask for read and write access to public and private repos
+  #     # https://developer.github.com/v3/oauth/#scopes
+  #     privateRepo: SCM_PRIVATE_REPO_SUPPORT
+  # bitbucket:
+  #   plugin: bitbucket
+  #   config:
+  #     # The client id used for OAuth with bitbucket. Look up Bitbucket OAuth for details
+  #     # https://confluence.atlassian.com/bitbucket/oauth-on-bitbucket-cloud-238027431.html
+  #     oauthClientId: SECRET_OAUTH_CLIENT_ID
+  #     # The client secret used for OAuth with bitbucket
+  #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+  #     # The username and email used for checkout with bitbucket
+  #     username: SCM_USERNAME
+  #     email: SCM_EMAIL
+  # gitlab:
+  #   plugin: gitlab
+  #   config:
+  #     # The client id used for OAuth with gitlab. Look up Gitlab OAuth for details
+  #     # https://docs.gitlab.com/ee/integration/oauth_provider.html
+  #     oauthClientId: SECRET_OAUTH_CLIENT_ID
+  #     # The client secret used for OAuth with bitbucket
+  #     oauthClientSecret: SECRET_OAUTH_CLIENT_SECRET
+  #     # The username and email used for checkout with gitlab
+  #     username: SCM_USERNAME
+  #     email: SCM_EMAIL
+  #     # if you have on-premise gitlab, you can specify that here
+  #     gitlabHost: SCM_GITLAB_HOST
+  #     gitlabProtocol: SCM_GITLAB_PROTOCOL
 webhooks:
   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
   username: SCM_USERNAME
