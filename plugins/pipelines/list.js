@@ -28,22 +28,23 @@ module.exports = () => ({
             let pipelineArray = [];
 
             scmContexts.forEach((scmContext) => {
-                const params = {
-                    scmContext
+                const config = {
+                    params: { scmContext },
+                    sort: request.query.sort
                 };
 
                 if (request.query.configPipelineId) {
-                    params.configPipelineId = request.query.configPipelineId;
+                    config.params.configPipelineId = request.query.configPipelineId;
                 }
 
-                const pipelines = factory.list({
-                    params,
-                    paginate: {
+                if (request.query.page || request.query.count) {
+                    config.paginate = {
                         page: request.query.page,
                         count: request.query.count
-                    },
-                    sort: request.query.sort
-                });
+                    };
+                }
+
+                const pipelines = factory.list(config);
 
                 pipelineArray = pipelineArray.concat(pipelines);
             });

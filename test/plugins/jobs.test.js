@@ -318,10 +318,6 @@ describe('job plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
-                    paginate: {
-                        count: 50,
-                        page: 1
-                    },
                     sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testBuilds);
@@ -351,8 +347,8 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
-                        count: 30,
-                        page: 1
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });

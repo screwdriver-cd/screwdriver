@@ -31,12 +31,15 @@ module.exports = () => ({
                     }
 
                     const config = {
-                        paginate: {
-                            page: request.query.page,
-                            count: request.query.count
-                        },
                         sort: request.query.sort
                     };
+
+                    if (request.query.page || request.query.count) {
+                        config.paginate = {
+                            page: request.query.page,
+                            count: request.query.count
+                        };
+                    }
 
                     return job.getBuilds(config);
                 })
