@@ -535,8 +535,8 @@ describe('pipeline plugin test', () => {
                         archived: false
                     },
                     paginate: {
-                        count: 50,
-                        page: 1
+                        count: undefined,
+                        page: undefined
                     }
                 });
                 assert.deepEqual(reply.result, testJobs);

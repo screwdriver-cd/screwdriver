@@ -164,8 +164,8 @@ describe('command plugin test', () => {
                 assert.calledWith(commandFactoryMock.list, {
                     params: {},
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -184,8 +184,8 @@ describe('command plugin test', () => {
                         namespace: 'foo'
                     },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -274,8 +274,8 @@ describe('command plugin test', () => {
                         name: 'build'
                     },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -934,8 +934,8 @@ describe('command plugin test', () => {
                         name: 'bar'
                     },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -973,8 +973,8 @@ describe('command plugin test', () => {
                         name: 'with-no-tags'
                     },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });

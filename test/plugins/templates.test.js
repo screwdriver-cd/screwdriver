@@ -152,8 +152,8 @@ describe('template plugin test', () => {
                 assert.calledWith(templateFactoryMock.list, {
                     params: {},
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -172,8 +172,8 @@ describe('template plugin test', () => {
                         namespace: 'chef'
                     },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -259,8 +259,8 @@ describe('template plugin test', () => {
                 assert.calledWith(templateFactoryMock.list, {
                     params: { name: 'screwdriver/build' },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -473,8 +473,8 @@ describe('template plugin test', () => {
                 assert.calledWith(templateTagFactoryMock.list, {
                     params: { name: 'screwdriver/build' },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
@@ -509,8 +509,8 @@ describe('template plugin test', () => {
                 assert.calledWith(templateTagFactoryMock.list, {
                     params: { name: 'template-with-no-tags' },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: undefined
                     },
                     sort: 'descending'
                 });
