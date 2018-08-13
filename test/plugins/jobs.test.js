@@ -319,8 +319,8 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
-                        count: 50,
-                        page: 1
+                        count: undefined,
+                        page: undefined
                     },
                     sort: 'descending'
                 });
@@ -352,7 +352,7 @@ describe('job plugin test', () => {
                 assert.calledWith(job.getBuilds, {
                     paginate: {
                         count: 30,
-                        page: 1
+                        page: undefined
                     },
                     sort: 'descending'
                 });
