@@ -177,8 +177,8 @@ Promoting version to tag
 **Input:**
 
  - `namespace/name` is the fully-qualified command name.
- - `version` is the exact version that you are promoting.
- - `tag` is the case-insensitive name that you are promoting to.
+ - `version` is the exact version or tag (e.g. 1.0.1, latest) that you are promoting.
+ - `tag` is the case-insensitive name (e.g. stable) that you are promoting to.
 
 ### List
 
