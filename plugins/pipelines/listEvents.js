@@ -47,6 +47,11 @@ module.exports = () => ({
         },
         response: {
             schema: listSchema
+        },
+        validate: {
+            query: schema.api.pagination.concat(joi.object({
+                type: joi.string()
+            }))
         }
     }
 });
