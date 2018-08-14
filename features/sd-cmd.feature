@@ -29,6 +29,7 @@ Feature: Commands
         When execute promote job
         Then the job is completed successfully
         And "1.0.1" is tagged with "stable"
+        And "1.0.1" is tagged with "release"
         And "stable" tag is removed from "1.0.0"
 
     @ignore
