@@ -46,15 +46,16 @@ module.exports = () => ({
                     ]);
                 }
 
-                return commandTagFactory.get({ namespace, name, tag: version }).then( targetCommandTag => {
-                    version = targetCommandTag.version;
-                    return Promise.all([
-                        pipelineFactory.get(pipelineId),
-                        commandFactory.get({ namespace, name, version }),
-                        commandTagFactory.get({ namespace, name, tag })
-                    ]);
-                });
+                return commandTagFactory.get({ namespace, name, tag: version })
+                    .then((targetCommandTag) => {
+                        version = targetCommandTag.version;
 
+                        return Promise.all([
+                            pipelineFactory.get(pipelineId),
+                            commandFactory.get({ namespace, name, version }),
+                            commandTagFactory.get({ namespace, name, tag })
+                        ]);
+                    });
             }).then(([pipeline, command, commandTag]) => {
                 // If command doesn't exist, throw error
                 if (!command) {
