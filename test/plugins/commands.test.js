@@ -993,7 +993,6 @@ describe('command plugin test', () => {
             version: 'latest'
         };
         const testCommandTag = decorateObj(hoek.merge({ id: 1 }, payload));
-        const testCommandTagWithTag = decorateObj(hoek.merge({ id: 1 }, payloadTag));
 
         beforeEach(() => {
             options = {
@@ -1038,7 +1037,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('creates commands tag if has good permission and tag does not exist', () => {
+        it('creates a command tag if it has permission and tag does not exist', () => {
             commandTagFactoryMock.create.resolves(testCommandTag);
 
             return server.inject(options).then((reply) => {
@@ -1071,7 +1070,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('update command tag if has good permission and tag exists', () => {
+        it('updates a command tag if it has permission and tag exists', () => {
             const command = hoek.merge({
                 update: sinon.stub().resolves(testCommandTag)
             }, testCommandTag);
@@ -1095,8 +1094,8 @@ describe('command plugin test', () => {
             });
         });
 
-        it('creates commands tag if has good permission and tag does not exist with tag', () => {
-            commandTagFactoryMock.create.resolves(testCommandTagWithTag);
+        it('creates a command tag with tag if it has permission and tag does not exists', () => {
+            commandTagFactoryMock.create.resolves(testCommandTag);
             commandTagFactoryMock.get.onFirstCall().resolves(testCommandTag);
             commandTagFactoryMock.get.onSecondCall().resolves(null);
 
@@ -1110,7 +1109,7 @@ describe('command plugin test', () => {
                     pathname: `${options.url}/1`
                 };
 
-                assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payloadTag));
+                assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(commandFactoryMock.get, {
                     namespace: 'screwdriver',
@@ -1133,7 +1132,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('update command tag if has good permission and tag exists with tag', () => {
+        it('updates a command tag with tag if it has permission and tag exists', () => {
             const command = hoek.merge({
                 update: sinon.stub().resolves(testCommandTag)
             }, testCommandTag);
