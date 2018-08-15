@@ -989,6 +989,9 @@ describe('command plugin test', () => {
         const payload = {
             version: '1.2.0'
         };
+        const payloadTag = {
+            version: 'latest'
+        };
         const testCommandTag = decorateObj(hoek.merge({ id: 1 }, payload));
 
         beforeEach(() => {
@@ -1034,7 +1037,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('creates commands tag if has good permission and tag does not exist', () => {
+        it('creates a command tag if it has permission and tag does not exist', () => {
             commandTagFactoryMock.create.resolves(testCommandTag);
 
             return server.inject(options).then((reply) => {
@@ -1067,7 +1070,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('update command tag if has good permission and tag exists', () => {
+        it('updates a command tag if it has permission and tag exists', () => {
             const command = hoek.merge({
                 update: sinon.stub().resolves(testCommandTag)
             }, testCommandTag);
@@ -1085,6 +1088,70 @@ describe('command plugin test', () => {
                     name: 'test',
                     tag: 'stable'
                 });
+                assert.calledOnce(command.update);
+                assert.notCalled(commandTagFactoryMock.create);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('creates a command tag with tag if it has permission and tag does not exists', () => {
+            commandTagFactoryMock.create.resolves(testCommandTag);
+            commandTagFactoryMock.get.onFirstCall().resolves(testCommandTag);
+            commandTagFactoryMock.get.onSecondCall().resolves(null);
+
+            options.payload = payloadTag;
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/1`
+                };
+
+                assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(commandFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    version: '1.2.0'
+                });
+                assert.calledWith(commandTagFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable'
+                });
+                assert.calledWith(commandTagFactoryMock.create, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable',
+                    version: '1.2.0'
+                });
+                assert.calledTwice(commandTagFactoryMock.get);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('updates a command tag with tag if it has permission and tag exists', () => {
+            const command = hoek.merge({
+                update: sinon.stub().resolves(testCommandTag)
+            }, testCommandTag);
+
+            commandTagFactoryMock.get.resolves(command);
+            options.payload = payloadTag;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(commandFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    version: '1.2.0'
+                });
+                assert.calledWith(commandTagFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable'
+                });
+                assert.calledTwice(commandTagFactoryMock.get);
                 assert.calledOnce(command.update);
                 assert.notCalled(commandTagFactoryMock.create);
                 assert.equal(reply.statusCode, 200);
