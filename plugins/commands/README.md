@@ -107,7 +107,7 @@ Command Tag allows fetching on command version by tag. For example, command `myn
 
 ##### Create/Update a tag
 
-If the command tag already exists, it will update the tag with the version. If the command tag doesn't exist yet, this endpoint will create the tag. 
+If the command tag already exists, it will update the tag with the version. If the command tag doesn't exist yet, this endpoint will create the tag.
 
 You can also call this endpoint with tag instead of the exact version. In this case, same version will have two tags.  (e.g. version 1.0.0 tagged with both latest and stable)
 
