@@ -5,6 +5,9 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.commandTag.base;
 const urlLib = require('url');
+const VERSION_REGEX = schema.config.regex.VERSION;
+const exactVersionSchema = joi.reach(schema.models.commandTag.base, 'version');
+const tagSchema = joi.reach(schema.models.commandTag.base, 'tag');
 
 /* Currently, only build scope is allowed to tag command due to security reasons.
  * The same pipeline that publishes the command has the permission to tag it.
@@ -31,13 +34,29 @@ module.exports = () => ({
             const namespace = request.params.namespace;
             const name = request.params.name;
             const tag = request.params.tagName;
-            const version = request.payload.version;
+            let version = request.payload.version;
+            const isVersion = VERSION_REGEX.exec(version);
 
-            return Promise.all([
-                pipelineFactory.get(pipelineId),
-                commandFactory.get({ namespace, name, version }),
-                commandTagFactory.get({ namespace, name, tag })
-            ]).then(([pipeline, command, commandTag]) => {
+            return Promise.resolve().then(() => {
+                if (version && isVersion) {
+                    return Promise.all([
+                        pipelineFactory.get(pipelineId),
+                        commandFactory.get({ namespace, name, version }),
+                        commandTagFactory.get({ namespace, name, tag })
+                    ]);
+                }
+
+                return commandTagFactory.get({ namespace, name, tag: version })
+                    .then((targetCommandTag) => {
+                        version = targetCommandTag.version;
+
+                        return Promise.all([
+                            pipelineFactory.get(pipelineId),
+                            commandFactory.get({ namespace, name, version }),
+                            commandTagFactory.get({ namespace, name, tag })
+                        ]);
+                    });
+            }).then(([pipeline, command, commandTag]) => {
                 // If command doesn't exist, throw error
                 if (!command) {
                     throw boom.notFound(`Command ${namespace}/${name}@${version} not found`);
@@ -77,7 +96,10 @@ module.exports = () => ({
                 tagName: joi.reach(baseSchema, 'tag')
             },
             payload: {
-                version: joi.reach(baseSchema, 'version')
+                version: joi.alternatives().try(
+                    exactVersionSchema,
+                    tagSchema
+                )
             }
         }
     }
