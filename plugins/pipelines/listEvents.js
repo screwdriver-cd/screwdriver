@@ -30,19 +30,28 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    let eventType = 'pipeline';
+                    const eventType = request.query.type || 'pipeline';
+                    const config = { params: { type: eventType } };
 
-                    if (request.query.type) {
-                        eventType = request.query.type;
+                    if (request.query.page || request.query.count) {
+                        config.paginate = {
+                            page: request.query.page,
+                            count: request.query.count
+                        };
                     }
 
-                    return pipeline.getEvents({ params: { type: eventType } });
+                    return pipeline.getEvents(config);
                 })
                 .then(events => reply(events.map(e => e.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
         response: {
             schema: listSchema
+        },
+        validate: {
+            query: schema.api.pagination.concat(joi.object({
+                type: joi.string()
+            }))
         }
     }
 });

@@ -301,6 +301,27 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 and all pipelines with no pagination', () => {
+            options.url = '/pipelines';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
         it('returns 200 and all pipelines with matched configPipelineId', () => {
             options.url = '/pipelines?page=1&count=3&configPipelineId=123';
             pipelineFactoryMock.list.withArgs({
@@ -533,10 +554,6 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
                         archived: false
-                    },
-                    paginate: {
-                        count: undefined,
-                        page: undefined
                     }
                 });
                 assert.deepEqual(reply.result, testJobs);
@@ -737,6 +754,19 @@ describe('pipeline plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, { params: { type: 'pr' } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with pagination', () => {
+            options.url = `/pipelines/${id}/events?type=pr&count=30`;
+            server.inject(options).then((reply) => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pr' },
+                    paginate: { page: undefined, count: 30 }
+                });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
             });

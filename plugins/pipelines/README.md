@@ -95,11 +95,12 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
+`page`, `count`, and `sort` are optional
 
-`GET /pipelines/{id}/events`
+`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}`
 
 #### Get all jobs (including pull requests jobs)
-`archived` is optional and has a default value of `false`, which makes the endpoint do not return archived jobs, e.g. closed pull requests.
+`archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
 
 `GET /pipelines/{id}/jobs?archived={boolean}`
 

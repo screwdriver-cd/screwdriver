@@ -33,12 +33,15 @@ module.exports = () => ({
                     const config = {
                         params: {
                             archived: request.query.archived
-                        },
-                        paginate: {
-                            page: request.query.page,
-                            count: request.query.count
                         }
                     };
+
+                    if (request.query.page || request.query.count) {
+                        config.paginate = {
+                            page: request.query.page,
+                            count: request.query.count
+                        };
+                    }
 
                     return pipeline.getJobs(config);
                 })
@@ -49,11 +52,9 @@ module.exports = () => ({
             schema: listSchema
         },
         validate: {
-            query: joi.object().keys({
-                page: joi.reach(schema.api.pagination, 'page'),
-                count: joi.reach(schema.api.pagination, 'count'),
+            query: schema.api.pagination.concat(joi.object({
                 archived: joi.boolean().truthy('true').falsy('false').default(false)
-            })
+            }))
         }
     }
 });

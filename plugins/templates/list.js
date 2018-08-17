@@ -23,18 +23,22 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.templateFactory;
-            const listOptions = {
-                paginate: {
-                    page: request.query.page,
-                    count: request.query.count
-                },
+            const config = {
                 sort: request.query.sort
             };
 
-            listOptions.params = request.query.namespace ?
-                { namespace: request.query.namespace } : {};
+            if (request.query.namespace) {
+                config.params = { namespace: request.query.namespace };
+            }
 
-            return factory.list(listOptions)
+            if (request.query.page || request.query.count) {
+                config.paginate = {
+                    page: request.query.page,
+                    count: request.query.count
+                };
+            }
+
+            return factory.list(config)
                 .then(templates => reply(templates.map(p => p.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
@@ -42,12 +46,9 @@ module.exports = () => ({
             schema: listSchema
         },
         validate: {
-            query: joi.object().keys({
-                page: joi.reach(schema.api.pagination, 'page'),
-                count: joi.reach(schema.api.pagination, 'count'),
-                sort: joi.reach(schema.api.pagination, 'sort'),
+            query: schema.api.pagination.concat(joi.object({
                 namespace: joi.reach(schema.models.template.base, 'namespace')
-            })
+            }))
         }
     }
 });

@@ -150,11 +150,6 @@ describe('template plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
-                    params: {},
-                    paginate: {
-                        page: undefined,
-                        count: undefined
-                    },
                     sort: 'descending'
                 });
             });
@@ -171,9 +166,22 @@ describe('template plugin test', () => {
                     params: {
                         namespace: 'chef'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates with pagination', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?count=30';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
                     paginate: {
                         page: undefined,
-                        count: undefined
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -258,9 +266,23 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplateversions);
                 assert.calledWith(templateFactoryMock.list, {
                     params: { name: 'screwdriver/build' },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all template versions for a template name with pagination', () => {
+            options.url = '/templates/screwdriver%2Fbuild?count=30';
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplateversions));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplateversions);
+                assert.calledWith(templateFactoryMock.list, {
+                    params: { name: 'screwdriver/build' },
                     paginate: {
                         page: undefined,
-                        count: undefined
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -472,9 +494,27 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplatetags);
                 assert.calledWith(templateTagFactoryMock.list, {
                     params: { name: 'screwdriver/build' },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all template tags for a template name with pagination', () => {
+            const options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/tags?count=30'
+            };
+
+            templateTagFactoryMock.list.resolves(getTemplateMocks(testtemplatetags));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplatetags);
+                assert.calledWith(templateTagFactoryMock.list, {
+                    params: { name: 'screwdriver/build' },
                     paginate: {
                         page: undefined,
-                        count: undefined
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -508,10 +548,6 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, []);
                 assert.calledWith(templateTagFactoryMock.list, {
                     params: { name: 'template-with-no-tags' },
-                    paginate: {
-                        page: undefined,
-                        count: undefined
-                    },
                     sort: 'descending'
                 });
             });

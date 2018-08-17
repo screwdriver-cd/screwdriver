@@ -162,17 +162,12 @@ describe('command plugin test', () => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
-                    params: {},
-                    paginate: {
-                        page: undefined,
-                        count: undefined
-                    },
                     sort: 'descending'
                 });
             });
         });
 
-        it('returns 200 and all templates with namespace query', () => {
+        it('returns 200 and all commands with namespace query', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?namespace=foo';
 
@@ -183,9 +178,22 @@ describe('command plugin test', () => {
                     params: {
                         namespace: 'foo'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands with pagination', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?count=30';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, '200');
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
                     paginate: {
                         page: undefined,
-                        count: undefined
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -273,9 +281,26 @@ describe('command plugin test', () => {
                         namespace: 'screwdriver',
                         name: 'build'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all command versions with pagination', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommandVersions));
+            options.url = '/commands/screwdriver/build?count=30';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommandVersions);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: {
+                        namespace: 'screwdriver',
+                        name: 'build'
+                    },
                     paginate: {
                         page: undefined,
-                        count: undefined
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -933,9 +958,29 @@ describe('command plugin test', () => {
                         namespace: 'foo',
                         name: 'bar'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands tags with pagination', () => {
+            commandTagFactoryMock.list.resolves(getCommandMocks(testcommandTags));
+            const options = {
+                method: 'GET',
+                url: '/commands/foo/bar/tags?count=30'
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommandTags);
+                assert.calledWith(commandTagFactoryMock.list, {
+                    params: {
+                        namespace: 'foo',
+                        name: 'bar'
+                    },
                     paginate: {
                         page: undefined,
-                        count: undefined
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -971,10 +1016,6 @@ describe('command plugin test', () => {
                     params: {
                         namespace: 'cmd',
                         name: 'with-no-tags'
-                    },
-                    paginate: {
-                        page: undefined,
-                        count: undefined
                     },
                     sort: 'descending'
                 });

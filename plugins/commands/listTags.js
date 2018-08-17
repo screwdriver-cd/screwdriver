@@ -25,18 +25,22 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.commandTagFactory;
-
-            return factory.list({
+            const config = {
                 params: {
                     namespace: request.params.namespace,
                     name: request.params.name
                 },
-                paginate: {
+                sort: request.query.sort
+            };
+
+            if (request.query.page || request.query.count) {
+                config.paginate = {
                     page: request.query.page,
                     count: request.query.count
-                },
-                sort: request.query.sort
-            })
+                };
+            }
+
+            return factory.list(config)
                 .then(tags => reply(tags.map(p => p.toJson())))
                 .catch(err => reply(boom.wrap(err)));
         },
