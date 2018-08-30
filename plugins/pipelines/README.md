@@ -28,7 +28,7 @@ server.register({
 ### Routes
 
 #### Get all pipelines
-`page`, `count` and `configPipelineId` optional
+`page`, `count`, `sort`, `sortBy`, and `configPipelineId` optional
 
 `GET /pipelines?page={pageNumber}&count={countNumber}&configPipelineId={configPipelineId}`
 

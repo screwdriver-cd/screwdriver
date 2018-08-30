@@ -322,6 +322,50 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 and all pipelines when sort is set', () => {
+            options.url = '/pipelines?sort=ascending';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'ascending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'ascending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and all pipelines when sortBy is set', () => {
+            options.url = '/pipelines?sort=ascending&sortBy=scmRepo.name';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'ascending',
+                sortBy: 'scmRepo.name'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'ascending',
+                sortBy: 'scmRepo.name'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
         it('returns 200 and all pipelines with matched configPipelineId', () => {
             options.url = '/pipelines?page=1&count=3&configPipelineId=123';
             pipelineFactoryMock.list.withArgs({
