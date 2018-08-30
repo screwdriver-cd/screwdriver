@@ -37,6 +37,10 @@ module.exports = () => ({
                     config.params.configPipelineId = request.query.configPipelineId;
                 }
 
+                if (request.query.sortBy) {
+                    config.sortBy = request.query.sortBy;
+                }
+
                 if (request.query.page || request.query.count) {
                     config.paginate = {
                         page: request.query.page,
