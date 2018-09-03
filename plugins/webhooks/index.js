@@ -4,6 +4,23 @@ const boom = require('boom');
 const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 
+const WAIT_FOR_CHANGEDFILES = 1.8;
+
+/**
+ * Promise to wait a certain number of seconds
+ *
+ * Might make this centralized for other tests to leverage
+ *
+ * @method promiseToWait
+ * @param  {Number}      timeToWait  Number of seconds to wait before continuing the chain
+ * @return {Promise}
+ */
+function promiseToWait(timeToWait) {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(), timeToWait * 1000);
+    });
+}
+
 /**
  * Check if the PR is being restricted or not
  * @method isRestrictedPR
@@ -579,7 +596,11 @@ exports.register = (server, options, next) => {
                         return reply().code(204);
                     }
 
-                    return obtainScmToken(pluginOptions, userFactory, username, scmContext)
+                    return promiseToWait(WAIT_FOR_CHANGEDFILES)
+                        .then(() => obtainScmToken(pluginOptions,
+                            userFactory,
+                            username,
+                            scmContext))
                         .then(token => scm.getChangedFiles({
                             payload: request.payload,
                             type,
