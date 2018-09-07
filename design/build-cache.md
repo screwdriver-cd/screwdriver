@@ -106,7 +106,7 @@ The build cache server implementation must be able to handle multiple concurrent
 
 ### Scoping
 
-Cache scoping levels can be expressed as `Job level < Event level < Pipeline level`. Job level scoping limits the cache to particular jobs, within a single event, within a single pipeline. Event level scoping limits the cache to a certain event within a single pipeline. Pipeline level scoping represents a globally scoped cache for the single pipeline, with the cache being available for all instances of the pipeline.
+Job level scoping limits the cache to particular jobs, within a single pipeline. Event level scoping limits the cache to a single event within a pipeline. Pipeline level scoping represents a globally scoped cache for the single pipeline, with the cache being available for all jobs of the pipeline.
 
 #### [Tentative] Regarding commits, branches and scoping
 
@@ -129,7 +129,8 @@ This level of caching explicitly links a cache to certain jobs.
 
 Use when:
 
-1. Injecting the cached resources into every job is not desirable.
+1. Build dependencies take a long time to resolve
+1. Injecting the cached resources into every job is desirable. Example `node_modules` directory for a nodejs project
 
 #### Event level
 
