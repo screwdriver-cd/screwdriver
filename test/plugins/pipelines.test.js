@@ -375,7 +375,7 @@ describe('pipeline plugin test', () => {
                 sort: 'descending',
                 search: {
                     field: 'scmRepo',
-                    term: '%name%screwdriver-cd/screwdriver%'
+                    keyword: '%name%screwdriver-cd/screwdriver%'
                 }
             }).resolves(getPipelineMocks(testPipelines));
             pipelineFactoryMock.list.withArgs({
@@ -385,7 +385,7 @@ describe('pipeline plugin test', () => {
                 sort: 'descending',
                 search: {
                     field: 'scmRepo',
-                    term: '%name%screwdriver-cd/screwdriver%'
+                    keyword: '%name%screwdriver-cd/screwdriver%'
                 }
             }).resolves(getPipelineMocks(gitlabTestPipelines));
 

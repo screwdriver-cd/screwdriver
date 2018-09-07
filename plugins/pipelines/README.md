@@ -29,7 +29,7 @@ server.register({
 
 #### Get all pipelines
 `page`, `count`, `sort`, `sortBy`, `search`, and `configPipelineId` optional
-`search` will search for a pipeline with a name containing the search term
+`search` will search for a pipeline with a name containing the search keyword in the `scmRepo` field
 
 `GET /pipelines?page={pageNumber}&count={countNumber}&configPipelineId={configPipelineId}&search={search}`
 

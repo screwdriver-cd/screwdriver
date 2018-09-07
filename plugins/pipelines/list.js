@@ -44,7 +44,9 @@ module.exports = () => ({
                 if (request.query.search) {
                     config.search = {
                         field: 'scmRepo',
-                        term: `%name%${request.query.search}%` // Do a fuzzy search for name: screwdriver-cd/ui
+                        // Do a fuzzy search for name: screwdriver-cd/ui
+                        // See https://www.w3schools.com/sql/sql_like.asp for syntax
+                        keyword: `%name%${request.query.search}%`
                     };
                 }
 
@@ -71,7 +73,7 @@ module.exports = () => ({
         validate: {
             query: schema.api.pagination.concat(joi.object({
                 configPipelineId: idSchema,
-                search: joi.string().label('Valid search terms')
+                search: joi.string().label('Valid search keyword')
 
             }))
         }
