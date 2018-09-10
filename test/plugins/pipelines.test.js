@@ -366,6 +366,35 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 and all pipelines with matched search', () => {
+            options.url = '/pipelines?search=screwdriver-cd/screwdriver';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'descending',
+                search: {
+                    field: 'scmRepo',
+                    keyword: '%name%screwdriver-cd/screwdriver%'
+                }
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'descending',
+                search: {
+                    field: 'scmRepo',
+                    keyword: '%name%screwdriver-cd/screwdriver%'
+                }
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
         it('returns 200 and all pipelines with matched configPipelineId', () => {
             options.url = '/pipelines?page=1&count=3&configPipelineId=123';
             pipelineFactoryMock.list.withArgs({

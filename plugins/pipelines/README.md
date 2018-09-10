@@ -28,9 +28,10 @@ server.register({
 ### Routes
 
 #### Get all pipelines
-`page`, `count`, `sort`, `sortBy`, and `configPipelineId` optional
+`page`, `count`, `sort`, `sortBy`, `search`, and `configPipelineId` optional
+`search` will search for a pipeline with a name containing the search keyword in the `scmRepo` field
 
-`GET /pipelines?page={pageNumber}&count={countNumber}&configPipelineId={configPipelineId}`
+`GET /pipelines?page={pageNumber}&count={countNumber}&configPipelineId={configPipelineId}&search={search}`
 
 #### Get single pipeline
 
