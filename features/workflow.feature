@@ -18,16 +18,18 @@ Feature: Workflow
 
     Scenario: Failure
         Given an existing pipeline with the workflow:
-            | job | triggers |
-            | FOO | BAR      |
+            | job | requires |
+            | FOO | ~commit  |
+            | BAR | FOO      |
         When the "FOO" job is started
         And the build failed
         Then the "BAR" job is not started
 
     Scenario: Serially
         Given an existing pipeline with the workflow:
-            | job | triggers |
-            | FOO | BAR      |
+            | job | requires |
+            | FOO | ~commit  |
+            | BAR | FOO      |
         When the "FOO" job is started
         And the build succeeded
         Then the "BAR" job is started
@@ -35,8 +37,10 @@ Feature: Workflow
 
     Scenario: Parallel
         Given an existing pipeline with the workflow:
-            | job | triggers |
-            | FOO | BAR+BAZ  |
+            | job | requires |
+            | FOO | ~commit  |
+            | BAR | FOO      |
+            | BAZ | FOO      |
         When the "FOO" job is started
         And the build succeeded
         Then the "BAR" job is started
@@ -46,9 +50,11 @@ Feature: Workflow
 
     Scenario: Join
         Given an existing pipeline with the workflow:
-            | job     | triggers |
-            | FOO     | BAR+BAZ  |
-            | BAR+BAZ | XYZZY    |
+            | job   | requires |
+            | FOO   | ~commit  |
+            | BAR   | FOO      |
+            | BAZ   | FOO      |
+            | XYZZY | BAR, BAZ |
         When the "FOO" job is started
         And the "FOO" build succeeded
         And the "BAR" job is started
@@ -58,3 +64,55 @@ Feature: Workflow
         And the "BAZ" build succeeded
         Then the "XYZZY" job is started
         And that "XYZZY" build uses the same SHA as the "FOO" build
+
+    Scenario: Branch filtering (the pipeline's branch is committed)
+        Given an existing pipeline with the workflow:
+            | job   | requires        |
+            | FOO   | ~commit         |
+            | BAR   | ~commit:staging |
+            | BAZ   | ~commit:/^.*$/  |
+        When a new commit is pushed
+        And it is against the pipeline's branch
+        Then the "FOO" job is started
+        And the "BAR" job is not started
+        And the "BAZ" job is started
+
+    Scenario: Branch filtering (the staging branch is committed)
+        Given an existing pipeline with the workflow:
+            | job   | requires        |
+            | FOO   | ~commit         |
+            | BAR   | ~commit:staging |
+            | BAZ   | ~commit:/^.*$/  |
+        When a new commit is pushed
+        And it is against the staging branch
+        Then the "FOO" job is not started
+        And the "BAR" job is started
+        And the "BAZ" job is started
+
+    Scenario: Branch filtering (a pull request is opened to the pipeline's branch)
+        Given an existing pipeline with the workflow:
+            | job   | requires        |
+            | FOO   | ~pr             |
+            | BAR   | ~pr:staging     |
+            | BAZ   | ~pr:/^.*$/      |
+            | QUX   | ~pr:/master     |
+        When a pull request is opened
+        And it is targeting the pipeline's branch
+        Then the "FOO" job is started
+        And the "BAR" job is not started
+        And the "BAZ" job is started
+        And the "QUX" job is started
+
+    Scenario: Branch filtering (a pull request is opened to the staging branch)
+        Given an existing pipeline with the workflow:
+            | job   | requires        |
+            | FOO   | ~pr             |
+            | BAR   | ~pr:staging     |
+            | BAZ   | ~pr:/^.*$/      |
+            | QUX   | ~pr:/master     |
+        When a pull request is opened
+        And it is targeting the staging branch
+        Then the "FOO" job is not started
+        And the "BAR" job is started
+        And the "BAZ" job is started
+        And the "QUX" job is not started
