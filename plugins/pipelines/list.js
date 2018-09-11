@@ -41,6 +41,15 @@ module.exports = () => ({
                     config.sortBy = request.query.sortBy;
                 }
 
+                if (request.query.search) {
+                    config.search = {
+                        field: 'scmRepo',
+                        // Do a fuzzy search for name: screwdriver-cd/ui
+                        // See https://www.w3schools.com/sql/sql_like.asp for syntax
+                        keyword: `%name%${request.query.search}%`
+                    };
+                }
+
                 if (request.query.page || request.query.count) {
                     config.paginate = {
                         page: request.query.page,
@@ -63,7 +72,9 @@ module.exports = () => ({
         },
         validate: {
             query: schema.api.pagination.concat(joi.object({
-                configPipelineId: idSchema
+                configPipelineId: idSchema,
+                search: joi.string().label('Valid search keyword')
+
             }))
         }
     }
