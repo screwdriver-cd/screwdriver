@@ -49,6 +49,7 @@ module.exports = () => ({
                         {
                             isPR: profile.isPR,
                             jobId: profile.jobId,
+                            eventId: profile.eventId,
                             pipelineId: profile.pipelineId,
                             configPipelineId: profile.configPipelineId
                         }
