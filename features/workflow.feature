@@ -103,6 +103,22 @@ Feature: Workflow
         And the "BAZ" job is started
         And the "QUX" job is started
 
+    Scenario: Branch filtering (pr and filtered pr workflow)
+        Given an existing pipeline with the workflow:
+            | job   | requires        |
+            | FOO   | ~pr             |
+            | FOO2  | FOO             |
+            | QUX   | ~pr:/master     |
+            | QUX2  | QUX             |
+        When a pull request is opened
+        And it is targeting the pipeline's branch
+        Then the "FOO" job is started
+        And the "QUX" job is started
+        Then the "FOO" job is succeeded
+        And the "QUX" job is succeeded
+        Then the "FOO2" job is not started
+        And the "QUX2" job is started
+
     Scenario: Branch filtering (a pull request is opened to the staging branch)
         Given an existing pipeline with the workflow:
             | job   | requires        |
