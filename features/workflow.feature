@@ -95,7 +95,7 @@ Feature: Workflow
             | FOO   | ~pr             |
             | BAR   | ~pr:staging     |
             | BAZ   | ~pr:/^.*$/      |
-            | QUX   | ~pr:/master     |
+            | QUX   | ~pr:master      |
         When a pull request is opened
         And it is targeting the pipeline's branch
         Then the "FOO" job is started
@@ -108,7 +108,7 @@ Feature: Workflow
             | job   | requires        |
             | FOO   | ~pr             |
             | FOO2  | FOO             |
-            | QUX   | ~pr:/master     |
+            | QUX   | ~pr:master      |
             | QUX2  | QUX             |
         When a pull request is opened
         And it is targeting the pipeline's branch
@@ -125,7 +125,7 @@ Feature: Workflow
             | FOO   | ~pr             |
             | BAR   | ~pr:staging     |
             | BAZ   | ~pr:/^.*$/      |
-            | QUX   | ~pr:/master     |
+            | QUX   | ~pr:master      |
         When a pull request is opened
         And it is targeting the staging branch
         Then the "FOO" job is not started
