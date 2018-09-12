@@ -54,16 +54,16 @@ Feature: Workflow
             | FOO   | ~commit  |
             | BAR   | FOO      |
             | BAZ   | FOO      |
-            | XYZZY | BAR, BAZ |
+            | QUX   | BAR, BAZ |
         When the "FOO" job is started
         And the "FOO" build succeeded
         And the "BAR" job is started
         And the "BAZ" job is started
-        Then the "XYZZY" job is not started
+        Then the "QUX" job is not started
         And the "BAR" build succeeded
         And the "BAZ" build succeeded
-        Then the "XYZZY" job is started
-        And that "XYZZY" build uses the same SHA as the "FOO" build
+        Then the "QUX" job is started
+        And that "QUX" build uses the same SHA as the "FOO" build
 
     Scenario: Branch filtering (the pipeline's branch is committed)
         Given an existing pipeline with the workflow:
@@ -76,6 +76,7 @@ Feature: Workflow
         Then the "FOO" job is started
         And the "BAR" job is not started
         And the "BAZ" job is started
+        And that "BAZ" build uses the same SHA as the "FOO" build
 
     Scenario: Branch filtering (the staging branch is committed)
         Given an existing pipeline with the workflow:
@@ -88,6 +89,7 @@ Feature: Workflow
         Then the "FOO" job is not started
         And the "BAR" job is started
         And the "BAZ" job is started
+        And that "BAZ" build uses the same SHA as the "BAR" build
 
     Scenario: Branch filtering (a pull request is opened to the pipeline's branch)
         Given an existing pipeline with the workflow:
@@ -102,6 +104,7 @@ Feature: Workflow
         And the "BAR" job is not started
         And the "BAZ" job is started
         And the "QUX" job is started
+        And that "BAZ" and "QUX" build uses the same SHA as the "FOO" build
 
     Scenario: Branch filtering (pr and filtered pr workflow)
         Given an existing pipeline with the workflow:
@@ -114,10 +117,12 @@ Feature: Workflow
         And it is targeting the pipeline's branch
         Then the "FOO" job is started
         And the "QUX" job is started
+        And that "QUX" build uses the same SHA as the "FOO" build
         Then the "FOO" job is succeeded
         And the "QUX" job is succeeded
         Then the "FOO2" job is not started
         And the "QUX2" job is started
+        And that "QUX2" build uses the same SHA as the "FOO" build
 
     Scenario: Branch filtering (a pull request is opened to the staging branch)
         Given an existing pipeline with the workflow:
@@ -132,3 +137,4 @@ Feature: Workflow
         And the "BAR" job is started
         And the "BAZ" job is started
         And the "QUX" job is not started
+        And that "BAZ" build uses the same SHA as the "BAR" build
