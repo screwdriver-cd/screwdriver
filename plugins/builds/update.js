@@ -85,6 +85,13 @@ module.exports = () => ({
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
                 }).then(({ build, event }) => {
+                    // If payload only has statusMessage
+                    if (!desiredStatus && statusMessage) {
+                        build.statusMessage = statusMessage;
+
+                        return Promise.all([build.update(), event.update()]);
+                    }
+
                     switch (desiredStatus) {
                     case 'SUCCESS':
                     case 'FAILURE':

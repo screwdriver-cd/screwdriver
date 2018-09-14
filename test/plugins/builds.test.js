@@ -566,6 +566,30 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('allows updating statusMessage only', () => {
+                const statusMessage = 'hello';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        statusMessage
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.statusMessage, statusMessage);
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                });
+            });
+
             it('saves status, statusMessage, meta updates, and merge event meta', () => {
                 const meta = {
                     foo: 'bar',
