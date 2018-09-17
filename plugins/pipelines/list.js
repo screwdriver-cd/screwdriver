@@ -73,9 +73,7 @@ module.exports = () => ({
         },
         validate: {
             query: schema.api.pagination.concat(joi.object({
-                configPipelineId: idSchema,
-                search: joi.string().label('Valid search keyword')
-
+                configPipelineId: idSchema
             }))
         }
     }
