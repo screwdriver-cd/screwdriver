@@ -44,9 +44,10 @@ module.exports = () => ({
                 if (request.query.search) {
                     config.search = {
                         field: 'scmRepo',
-                        // Do a fuzzy search for name: screwdriver-cd/ui
+                        // Do a fuzzy search for name: screwdriver-cd/ui,
+                        // Need the comma to avoid searching in the url
                         // See https://www.w3schools.com/sql/sql_like.asp for syntax
-                        keyword: `%name%${request.query.search}%`
+                        keyword: `%name%${request.query.search}%,%`
                     };
                 }
 
@@ -72,9 +73,7 @@ module.exports = () => ({
         },
         validate: {
             query: schema.api.pagination.concat(joi.object({
-                configPipelineId: idSchema,
-                search: joi.string().label('Valid search keyword')
-
+                configPipelineId: idSchema
             }))
         }
     }
