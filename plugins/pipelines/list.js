@@ -43,11 +43,10 @@ module.exports = () => ({
 
                 if (request.query.search) {
                     config.search = {
-                        field: 'scmRepo',
-                        // Do a fuzzy search for name: screwdriver-cd/ui,
-                        // Need the comma to avoid searching in the url
+                        field: 'name',
+                        // Do a fuzzy search for name: screwdriver-cd/ui
                         // See https://www.w3schools.com/sql/sql_like.asp for syntax
-                        keyword: `%name%${request.query.search}%,%`
+                        keyword: `%${request.query.search}%`
                     };
                 }
 

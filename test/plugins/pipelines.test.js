@@ -344,20 +344,20 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and all pipelines when sortBy is set', () => {
-            options.url = '/pipelines?sort=ascending&sortBy=scmRepo.name';
+            options.url = '/pipelines?sort=ascending&sortBy=name';
             pipelineFactoryMock.list.withArgs({
                 params: {
                     scmContext: 'github:github.com'
                 },
                 sort: 'ascending',
-                sortBy: 'scmRepo.name'
+                sortBy: 'name'
             }).resolves(getPipelineMocks(testPipelines));
             pipelineFactoryMock.list.withArgs({
                 params: {
                     scmContext: 'gitlab:mygitlab'
                 },
                 sort: 'ascending',
-                sortBy: 'scmRepo.name'
+                sortBy: 'name'
             }).resolves(getPipelineMocks(gitlabTestPipelines));
 
             return server.inject(options).then((reply) => {
@@ -374,8 +374,8 @@ describe('pipeline plugin test', () => {
                 },
                 sort: 'descending',
                 search: {
-                    field: 'scmRepo',
-                    keyword: '%name%screwdriver-cd/screwdriver%,%'
+                    field: 'name',
+                    keyword: '%screwdriver-cd/screwdriver%'
                 }
             }).resolves(getPipelineMocks(testPipelines));
             pipelineFactoryMock.list.withArgs({
@@ -384,8 +384,8 @@ describe('pipeline plugin test', () => {
                 },
                 sort: 'descending',
                 search: {
-                    field: 'scmRepo',
-                    keyword: '%name%screwdriver-cd/screwdriver%,%'
+                    field: 'name',
+                    keyword: '%screwdriver-cd/screwdriver%'
                 }
             }).resolves(getPipelineMocks(gitlabTestPipelines));
 
