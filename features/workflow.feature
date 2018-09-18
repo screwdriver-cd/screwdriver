@@ -65,14 +65,14 @@ Feature: Workflow
         Then the "QUX" job is started
         And that "QUX" build uses the same SHA as the "FOO" build
 
-    Scenario: Branch filtering (the pipeline's branch is committed)
+    Scenario: Branch filtering (the master branch is committed)
         Given an existing pipeline with the workflow:
             | job   | requires        |
             | FOO   | ~commit         |
             | BAR   | ~commit:staging |
             | BAZ   | ~commit:/^.*$/  |
         When a new commit is pushed
-        And it is against the pipeline's branch
+        And it is on the "master" branch
         Then the "FOO" job is started
         And the "BAR" job is not started
         And the "BAZ" job is started
@@ -85,13 +85,13 @@ Feature: Workflow
             | BAR   | ~commit:staging |
             | BAZ   | ~commit:/^.*$/  |
         When a new commit is pushed
-        And it is against the staging branch
+        And it is on the "staging" branch
         Then the "FOO" job is not started
         And the "BAR" job is started
         And the "BAZ" job is started
         And that "BAZ" build uses the same SHA as the "BAR" build
 
-    Scenario: Branch filtering (a pull request is opened to the pipeline's branch)
+    Scenario: Branch filtering (a pull request is opened to the master branch)
         Given an existing pipeline with the workflow:
             | job   | requires        |
             | FOO   | ~pr             |
@@ -99,7 +99,7 @@ Feature: Workflow
             | BAZ   | ~pr:/^.*$/      |
             | QUX   | ~pr:master      |
         When a pull request is opened
-        And it is targeting the pipeline's branch
+        And it is on the "master" branch
         Then the "FOO" job is started
         And the "BAR" job is not started
         And the "BAZ" job is started
@@ -114,7 +114,7 @@ Feature: Workflow
             | QUX   | ~pr:master      |
             | QUX2  | QUX             |
         When a pull request is opened
-        And it is targeting the pipeline's branch
+        And it is on the "master" branch
         Then the "FOO" job is started
         And the "QUX" job is started
         And that "QUX" build uses the same SHA as the "FOO" build
@@ -132,7 +132,7 @@ Feature: Workflow
             | BAZ   | ~pr:/^.*$/      |
             | QUX   | ~pr:master      |
         When a pull request is opened
-        And it is targeting the staging branch
+        And it is on the "staging" branch
         Then the "FOO" job is not started
         And the "BAR" job is started
         And the "BAZ" job is started
