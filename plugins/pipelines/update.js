@@ -97,6 +97,7 @@ module.exports = () => ({
                                     [username]: true
                                 };
                                 oldPipeline.scmRepo = scmRepo;
+                                oldPipeline.name = scmRepo.name;
 
                                 // update pipeline with new scmRepo and branch
                                 return oldPipeline.update()
