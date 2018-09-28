@@ -1,4 +1,4 @@
-@ignore
+@workflow
 Feature: Workflow
 
     The primary part of the continuous delivery process is the ability to go from commit to
@@ -15,7 +15,7 @@ Feature: Workflow
     Rules:
         - Workflows must be one-directional (no loops)
         - All subsequent jobs must checkout from the same SHA as the previous job
-
+    @ignore
     Scenario: Failure
         Given an existing pipeline with the workflow:
             | job | requires |
@@ -25,6 +25,7 @@ Feature: Workflow
         And the build failed
         Then the "BAR" job is not started
 
+    @ignore
     Scenario: Serially
         Given an existing pipeline with the workflow:
             | job | requires |
@@ -35,6 +36,7 @@ Feature: Workflow
         Then the "BAR" job is started
         And that "BAR" build uses the same SHA as the "FOO" build
 
+    @ignore
     Scenario: Parallel
         Given an existing pipeline with the workflow:
             | job | requires |
@@ -48,6 +50,7 @@ Feature: Workflow
         And that "BAR" build uses the same SHA as the "FOO" build
         And that "BAZ" build uses the same SHA as the "FOO" build
 
+    @ignore
     Scenario: Join
         Given an existing pipeline with the workflow:
             | job   | requires |
