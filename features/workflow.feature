@@ -18,126 +18,126 @@ Feature: Workflow
     @ignore
     Scenario: Failure
         Given an existing pipeline with the workflow:
-            | job | requires |
-            | FOO | ~commit  |
-            | BAR | FOO      |
-        When the "FOO" job is started
+            | job           | requires  |
+            | FAIL          | ~commit   |
+            | AFTER-FAIL    | FAIL      |
+        When the "FAIL" job is started
         And the build failed
-        Then the "BAR" job is not started
+        Then the "AFTER-FAIL" job is not started
 
     @ignore
     Scenario: Serially
         Given an existing pipeline with the workflow:
-            | job | requires |
-            | FOO | ~commit  |
-            | BAR | FOO      |
-        When the "FOO" job is started
+            | job       | requires  |
+            | SIMPLE    | ~commit   |
+            | PARALLEL1 | SIMPLE    |
+        When the "SIMPLE" job is started
         And the build succeeded
-        Then the "BAR" job is started
-        And that "BAR" build uses the same SHA as the "FOO" build
+        Then the "PARALLEL1" job is started
+        And that "PARALLEL1" build uses the same SHA as the "SIMPLE" build
 
     @ignore
     Scenario: Parallel
         Given an existing pipeline with the workflow:
-            | job | requires |
-            | FOO | ~commit  |
-            | BAR | FOO      |
-            | BAZ | FOO      |
-        When the "FOO" job is started
+            | job       | requires  |
+            | SIMPLE    | ~commit   |
+            | PARALLEL1 | SIMPLE    |
+            | PARALLEL2 | SIMPLE    |
+        When the "SIMPLE" job is started
         And the build succeeded
-        Then the "BAR" job is started
-        And the "BAZ" job is started
-        And that "BAR" build uses the same SHA as the "FOO" build
-        And that "BAZ" build uses the same SHA as the "FOO" build
+        Then the "PARALLEL1" job is started
+        And the "PARALLEL2" job is started
+        And that "PARALLEL1" build uses the same SHA as the "SIMPLE" build
+        And that "PARALLEL2" build uses the same SHA as the "SIMPLE" build
 
     @ignore
     Scenario: Join
         Given an existing pipeline with the workflow:
-            | job   | requires |
-            | FOO   | ~commit  |
-            | BAR   | FOO      |
-            | BAZ   | FOO      |
-            | QUX   | BAR, BAZ |
-        When the "FOO" job is started
-        And the "FOO" build succeeded
-        And the "BAR" job is started
-        And the "BAZ" job is started
-        Then the "QUX" job is not started
-        And the "BAR" build succeeded
-        And the "BAZ" build succeeded
-        Then the "QUX" job is started
-        And that "QUX" build uses the same SHA as the "FOO" build
+            | job       | requires              |
+            | SIMPLE    | ~commit               |
+            | PARALLEL1 | SIMPLE                |
+            | PARALLEL2 | SIMPLE                |
+            | JOIN      | PARALLEL1, PARALLEL2  |
+        When the "SIMPLE" job is started
+        And the "SIMPLE" build succeeded
+        And the "PARALLEL1" job is started
+        And the "PARALLEL2" job is started
+        Then the "JOIN" job is not started
+        And the "PARALLEL1" build succeeded
+        And the "PARALLEL2" build succeeded
+        Then the "JOIN" job is started
+        And that "JOIN" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Branch filtering (the master branch is committed)
         Given an existing pipeline with the workflow:
-            | job   | requires        |
-            | FOO   | ~commit         |
-            | BAR   | ~commit:staging |
-            | BAZ   | ~commit:/^.*$/  |
+            | job       | requires          |
+            | SIMPLE    | ~commit           |
+            | STAGING   | ~commit:staging   |
+            | REGEX     | ~commit:/^.*$/    |
         When a new commit is pushed
         And it is on the "master" branch
-        Then the "FOO" job is started
-        And the "BAR" job is not started
-        And the "BAZ" job is started
-        And that "BAZ" build uses the same SHA as the "FOO" build
+        Then the "SIMPLE" job is started
+        And the "STAGING" job is not started
+        And the "REGEX" job is started
+        And that "REGEX" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Branch filtering (the staging branch is committed)
         Given an existing pipeline with the workflow:
-            | job   | requires        |
-            | FOO   | ~commit         |
-            | BAR   | ~commit:staging |
-            | BAZ   | ~commit:/^.*$/  |
+            | job       | requires          |
+            | SIMPLE    | ~commit           |
+            | STAGING   | ~commit:staging   |
+            | REGEX     | ~commit:/^.*$/    |
         When a new commit is pushed
         And it is on the "staging" branch
-        Then the "FOO" job is not started
-        And the "BAR" job is started
-        And the "BAZ" job is started
-        And that "BAZ" build uses the same SHA as the "BAR" build
+        Then the "SIMPLE" job is not started
+        And the "STAGING" job is started
+        And the "REGEX" job is started
+        And that "REGEX" build uses the same SHA as the "STAGING" build
 
     Scenario: Branch filtering (a pull request is opened to the master branch)
         Given an existing pipeline with the workflow:
-            | job   | requires        |
-            | FOO   | ~pr             |
-            | BAR   | ~pr:staging     |
-            | BAZ   | ~pr:/^.*$/      |
-            | QUX   | ~pr:master      |
+            | job       | requires      |
+            | SIMPLE    | ~pr           |
+            | STAGING   | ~pr:staging   |
+            | REGEX     | ~pr:/^.*$/    |
+            | MASTER-PR | ~pr:master    |
         When a pull request is opened
         And it is on the "master" branch
-        Then the "FOO" job is started
-        And the "BAR" job is not started
-        And the "BAZ" job is started
-        And the "QUX" job is started
-        And that "BAZ" and "QUX" build uses the same SHA as the "FOO" build
+        Then the "SIMPLE" job is started
+        And the "STAGINNG" job is not started
+        And the "REGEX" job is started
+        And the "MASTER-Pr" job is started
+        And that "REGEX" and "MASTER-PR" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Branch filtering (pr and filtered pr workflow)
         Given an existing pipeline with the workflow:
-            | job   | requires        |
-            | FOO   | ~pr             |
-            | FOO2  | FOO             |
-            | QUX   | ~pr:master      |
-            | QUX2  | QUX             |
+            | job               | requires      |
+            | SIMPLE            | ~pr           |
+            | PARALLEL1         | SIMPLE        |
+            | MASTER-PR         | ~pr:master    |
+            | AFTER-MASTER-PR   | MASTER-PR     |
         When a pull request is opened
         And it is on the "master" branch
-        Then the "FOO" job is started
-        And the "QUX" job is started
-        And that "QUX" build uses the same SHA as the "FOO" build
-        Then the "FOO" job is succeeded
-        And the "QUX" job is succeeded
-        Then the "FOO2" job is not started
-        And the "QUX2" job is started
-        And that "QUX2" build uses the same SHA as the "FOO" build
+        Then the "SIMPLE" job is started
+        And the "MASTER-PR" job is started
+        And that "MASTER-PR" build uses the same SHA as the "SIMPLE" build
+        Then the "SIMPLE" job is succeeded
+        And the "MASTER-PR" job is succeeded
+        Then the "PARALLEL1" job is not started
+        And the "AFTER-MASTER-PR" job is started
+        And that "AFTER-MASTER-PR" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Branch filtering (a pull request is opened to the staging branch)
         Given an existing pipeline with the workflow:
-            | job   | requires        |
-            | FOO   | ~pr             |
-            | BAR   | ~pr:staging     |
-            | BAZ   | ~pr:/^.*$/      |
-            | QUX   | ~pr:master      |
+            | job       | requires      |
+            | SIMPLE    | ~pr           |
+            | STAGING   | ~pr:staging   |
+            | REGEX     | ~pr:/^.*$/    |
+            | MASTER-PR | ~pr:master    |
         When a pull request is opened
         And it is on the "staging" branch
-        Then the "FOO" job is not started
-        And the "BAR" job is started
-        And the "BAZ" job is started
-        And the "QUX" job is not started
-        And that "BAZ" build uses the same SHA as the "BAR" build
+        Then the "SIMPLE" job is not started
+        And the "STAGING" job is started
+        And the "REGEX" job is started
+        And the "MASTER-PR" job is not started
+        And that "REGEX" build uses the same SHA as the "STAGING" build
