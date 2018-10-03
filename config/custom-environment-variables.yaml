@@ -120,6 +120,8 @@ executor:
           __format: json
       # Launcher container tag to use
       launchVersion: LAUNCH_VERSION
+      # Launcher image to use
+      launchImage: LAUNCH_IMAGE
       # Prefix to the pod
       prefix: EXECUTOR_PREFIX
   nomad:
@@ -191,6 +193,8 @@ executor:
         preferredNodeSelectors:
           __name: K8S_VM_PREFERRED_NODE_SELECTORS
           __format: json
+      # Launcher image to use
+      launchImage: LAUNCH_IMAGE
       # Launcher container tag to use
       launchVersion: LAUNCH_VERSION
       # Prefix to the container
