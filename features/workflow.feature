@@ -15,44 +15,45 @@ Feature: Workflow
     Rules:
         - Workflows must be one-directional (no loops)
         - All subsequent jobs must checkout from the same SHA as the previous job
+
     @ignore
     Scenario: Failure
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job           | requires  |
             | FAIL          | ~commit   |
             | AFTER-FAIL    | FAIL      |
         When the "FAIL" job is started
-        And the build failed
-        Then the "AFTER-FAIL" job is not started
+        And the "FAIL" build failed
+        Then the "AFTER-FAIL" job is not triggered
 
     @ignore
     Scenario: Serially
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires  |
             | SIMPLE    | ~commit   |
             | PARALLEL1 | SIMPLE    |
         When the "SIMPLE" job is started
-        And the build succeeded
-        Then the "PARALLEL1" job is started
+        And the "SIMPLE" build succeeded
+        Then the "PARALLEL1" job is triggered from "SIMPLE"
         And that "PARALLEL1" build uses the same SHA as the "SIMPLE" build
 
     @ignore
     Scenario: Parallel
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires  |
             | SIMPLE    | ~commit   |
             | PARALLEL1 | SIMPLE    |
             | PARALLEL2 | SIMPLE    |
         When the "SIMPLE" job is started
-        And the build succeeded
-        Then the "PARALLEL1" job is started
-        And the "PARALLEL2" job is started
+        And the "SIMPLE" build succeeded
+        Then the "PARALLEL1" job is triggered from "SIMPLE"
+        And the "PARALLEL2" job is triggered from "SIMPLE"
         And that "PARALLEL1" build uses the same SHA as the "SIMPLE" build
         And that "PARALLEL2" build uses the same SHA as the "SIMPLE" build
 
     @ignore
     Scenario: Join
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires              |
             | SIMPLE    | ~commit               |
             | PARALLEL1 | SIMPLE                |
@@ -60,84 +61,85 @@ Feature: Workflow
             | JOIN      | PARALLEL1, PARALLEL2  |
         When the "SIMPLE" job is started
         And the "SIMPLE" build succeeded
-        And the "PARALLEL1" job is started
-        And the "PARALLEL2" job is started
-        Then the "JOIN" job is not started
+        And the "PARALLEL1" job is triggered from "SIMPLE"
+        And the "PARALLEL2" job is triggered from "SIMPLE"
+        Then the "JOIN" job is not triggered
         And the "PARALLEL1" build succeeded
         And the "PARALLEL2" build succeeded
-        Then the "JOIN" job is started
+        Then the "JOIN" job is triggered from "PARALLEL1" and "PARALLEL2"
         And that "JOIN" build uses the same SHA as the "SIMPLE" build
 
+    @github
     Scenario: Branch filtering (the master branch is committed)
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires          |
             | SIMPLE    | ~commit           |
             | STAGING   | ~commit:staging   |
             | REGEX     | ~commit:/^.*$/    |
-        When a new commit is pushed
-        And it is on the "master" branch
-        Then the "SIMPLE" job is started
-        And the "STAGING" job is not started
-        And the "REGEX" job is started
+        When a new commit is pushed to master branch
+        Then the "SIMPLE" job is triggered
+        And the "REGEX" job is triggered
+        And the "STAGING" job is not triggered
         And that "REGEX" build uses the same SHA as the "SIMPLE" build
 
+    @github
     Scenario: Branch filtering (the staging branch is committed)
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires          |
             | SIMPLE    | ~commit           |
             | STAGING   | ~commit:staging   |
             | REGEX     | ~commit:/^.*$/    |
-        When a new commit is pushed
-        And it is on the "staging" branch
-        Then the "SIMPLE" job is not started
-        And the "STAGING" job is started
-        And the "REGEX" job is started
+        When a new commit is pushed to staging branch
+        Then the "STAGING" job is triggered
+        And the "REGEX" job is triggered
+        And the "SIMPLE" job is not triggered
         And that "REGEX" build uses the same SHA as the "STAGING" build
 
+    @ignore
     Scenario: Branch filtering (a pull request is opened to the master branch)
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires      |
             | SIMPLE    | ~pr           |
             | STAGING   | ~pr:staging   |
             | REGEX     | ~pr:/^.*$/    |
             | MASTER-PR | ~pr:master    |
-        When a pull request is opened
-        And it is on the "master" branch
-        Then the "SIMPLE" job is started
-        And the "STAGINNG" job is not started
-        And the "REGEX" job is started
-        And the "MASTER-Pr" job is started
-        And that "REGEX" and "MASTER-PR" build uses the same SHA as the "SIMPLE" build
+        When a pull request is opened to master branch
+        Then the "SIMPLE" job is triggered
+        And the "REGEX" job is triggered
+        And the "MASTER-PR" job is triggered
+        And the "STAGINNG" job is not triggered
+        And that "REGEX" build uses the same SHA as the "SIMPLE" build
+        And that "MASTER-PR" build uses the same SHA as the "SIMPLE" build
 
+    @ignore
     Scenario: Branch filtering (pr and filtered pr workflow)
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job               | requires      |
             | SIMPLE            | ~pr           |
             | PARALLEL1         | SIMPLE        |
             | MASTER-PR         | ~pr:master    |
             | AFTER-MASTER-PR   | MASTER-PR     |
-        When a pull request is opened
-        And it is on the "master" branch
-        Then the "SIMPLE" job is started
-        And the "MASTER-PR" job is started
+        When a pull request is opened to master branch
+        Then the "SIMPLE" job is triggered
+        And the "MASTER-PR" job is triggered
         And that "MASTER-PR" build uses the same SHA as the "SIMPLE" build
         Then the "SIMPLE" job is succeeded
         And the "MASTER-PR" job is succeeded
-        Then the "PARALLEL1" job is not started
-        And the "AFTER-MASTER-PR" job is started
+        Then the "PARALLEL1" job is not triggered
+        And the "AFTER-MASTER-PR" job is triggered from "MASTER-PR"
         And that "AFTER-MASTER-PR" build uses the same SHA as the "SIMPLE" build
 
+    @ignore
     Scenario: Branch filtering (a pull request is opened to the staging branch)
-        Given an existing pipeline with the workflow:
+        Given an existing pipeline with the workflow jobs:
             | job       | requires      |
             | SIMPLE    | ~pr           |
             | STAGING   | ~pr:staging   |
             | REGEX     | ~pr:/^.*$/    |
             | MASTER-PR | ~pr:master    |
-        When a pull request is opened
-        And it is on the "staging" branch
-        Then the "SIMPLE" job is not started
-        And the "STAGING" job is started
-        And the "REGEX" job is started
-        And the "MASTER-PR" job is not started
+        When a pull request is opened to staging branch
+        Then the "STAGING" job is triggered
+        And the "REGEX" job is triggered
+        And the "SIMPLE" job is not triggered
+        And the "MASTER-PR" job is not triggered
         And that "REGEX" build uses the same SHA as the "STAGING" build
