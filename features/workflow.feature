@@ -69,7 +69,6 @@ Feature: Workflow
         Then the "JOIN" job is triggered from "PARALLEL1" and "PARALLEL2"
         And that "JOIN" build uses the same SHA as the "SIMPLE" build
 
-    @github
     Scenario: Branch filtering (the master branch is committed)
         Given an existing pipeline with the workflow jobs:
             | job       | requires          |
@@ -82,7 +81,6 @@ Feature: Workflow
         And the "STAGING" job is not triggered
         And that "REGEX" build uses the same SHA as the "SIMPLE" build
 
-    @github
     Scenario: Branch filtering (the staging branch is committed)
         Given an existing pipeline with the workflow jobs:
             | job       | requires          |
@@ -123,8 +121,8 @@ Feature: Workflow
         Then the "SIMPLE" job is triggered
         And the "MASTER-PR" job is triggered
         And that "MASTER-PR" build uses the same SHA as the "SIMPLE" build
-        Then the "SIMPLE" job is succeeded
-        And the "MASTER-PR" job is succeeded
+        Then the "SIMPLE" build succeeded
+        And the "MASTER-PR" build succeeded
         Then the "PARALLEL1" job is not triggered
         And the "AFTER-MASTER-PR" job is triggered from "MASTER-PR"
         And that "AFTER-MASTER-PR" build uses the same SHA as the "SIMPLE" build

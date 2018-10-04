@@ -75,7 +75,9 @@ function ensurePipelineExists(config) {
         .then((response) => {
             Assert.equal(response.statusCode, 200);
 
-            for (let i = 0; i < response.body.length; i += 1) {
+            this.jobs = response.body;
+
+            for (let i = 0; i < this.jobs.length; i += 1) {
                 const job = response.body[i];
 
                 switch (job.name) {
