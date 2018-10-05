@@ -42,7 +42,35 @@ Multiple build cluster onboarding process doc
 ### Authorization
 Initial phase, we will go with JWT + private and public key authorization. Token expiry will be passed as part of signOption. Periodically cycle private+public key and signOption which has the expiry interval, and this will be a manual step which needs to be co-ordinated between Build cluster admin and Screwdriver team.
 
-#### New table for build cluster details
+### Yaml 
+
+`
+shared:
+    environment:
+    NODE_ENV: test
+    settings:
+        email:
+    addresses: [test@email.com, test2@email.com]
+    statuses: [SUCCESS, FAILURE]
+    annotations:
+    *buildCluster: iOS*
+jobs:
+	main:
+        requires: [~pr, ~commit]
+        sourcePaths: ["src/app/", "screwdriver.yaml"]
+        image: node:6
+        steps:
+    - init: npm install
+    - test: npm test
+    publish:
+    requires: main
+    image: node:6
+    steps:
+        - publish: npm publish
+    ...
+`   
+ 
+### New table for build cluster details
 Table: `buildClusters`
 
 Columns:
