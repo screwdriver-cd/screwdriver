@@ -44,7 +44,7 @@ Initial phase, we will go with JWT + private and public key authorization. Token
 
 ### Yaml 
 
-`
+```yml
 shared:
     environment:
     NODE_ENV: test
@@ -68,7 +68,7 @@ jobs:
     steps:
         - publish: npm publish
     ...
-`   
+```   
  
 ### New table for build cluster details
 Table: `buildClusters`
