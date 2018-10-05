@@ -42,12 +42,12 @@ Multiple build cluster onboarding process doc
 ### Authorization
 Initial phase, we will go with JWT + private and public key authorization. Token expiry will be passed as part of signOption. Periodically cycle private+public key and signOption which has the expiry interval, and this will be a manual step which needs to be co-ordinated between Build cluster admin and Screwdriver team.
 
-### New table for build cluster details
+#### New table for build cluster details
 Table: `buildClusters`
 
 Columns:
 | Name | Type | Nullable | Primary Key | Unique | Description
-| - | - | - | - | - | - |
+| --- | --- | --- | --- | --- | --- |
 | `id` | integer | no | yes | yes | |
 | `name` | text (100) | no | no | yes | |
 | `scmOrganization` | text(200) | no | no | no | |
@@ -65,8 +65,8 @@ Columns:
 		HGET <cluster_name> authKeyName
 		HGET <cluster_name> signOption
 
-### Below listed apis need to be built to manage the cluster details
-| - | - |
+#### Below listed apis need to be built to manage the cluster details
+| --- | --- |
 | `PUT` | ` /v4/buildClusters { } ` |
 | `PUT` | `	/v4/buildClusters {name} ` |
 | `GET` | `	/v4/buildClusters ` |
