@@ -55,7 +55,7 @@ shared:
     annotations:
     *buildCluster: iOS*
 jobs:
-	main:
+    main:
         requires: [~pr, ~commit]
         sourcePaths: ["src/app/", "screwdriver.yaml"]
         image: node:6
