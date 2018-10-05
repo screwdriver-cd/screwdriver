@@ -4,7 +4,9 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi.array().items(schema.models.template.get).label('List of templates');
-const distinctSchema = joi.string().label('Field to return unique results by');
+const distinctSchema = joi.string()
+    .valid(Object.keys(schema.models.template.base.describe().children))
+    .label('Field to return unique results by');
 const namespaceSchema = joi.reach(schema.models.template.base, 'namespace');
 const namespacesSchema = joi.array().items(namespaceSchema);
 
