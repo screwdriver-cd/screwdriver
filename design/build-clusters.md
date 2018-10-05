@@ -43,20 +43,20 @@ Multiple build cluster onboarding process doc
 Initial phase, we will go with JWT + private and public key authorization. Token expiry will be passed as part of signOption. Periodically cycle private+public key and signOption which has the expiry interval, and this will be a manual step which needs to be co-ordinated between Build cluster admin and Screwdriver team.
 
 ### New table for build cluster details
-| Table | `buildClusters`
+Table: `buildClusters`
 
-| Columns |
+Columns:
 | Name | Type | Nullable | Primary Key | Unique | Description
-| :--- | :--- | :--- | :--- | :--- | :---
-| `id` | integer | no | yes | yes
-| `name` | text (100) | no | no | yes |
-| `scmOrganization` | text(200) | no | no | no | 
-| `scmContext` | text(200) | no | no | no | 
-| `isActive` | boolean | no | no | no | *0-false or 1-true*
-| `authKeyFileName` | text(100) | no | no | yes | *hash and store the public key filename*
-| `signOptionFileName` | text(100) | no | no | yes | *hash and store signOption filename { issuer: , subject: , audience: , expires: , algorithm: }* 
-| `queue` | text(100) | no | no | no |
-| `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external*
+| - | - | - | - | - | - |
+| `id` | integer | no | yes | yes | |
+| `name` | text (100) | no | no | yes | |
+| `scmOrganization` | text(200) | no | no | no | |
+| `scmContext` | text(200) | no | no | no | |
+| `isActive` | boolean | no | no | no | *0-false or 1-true* |
+| `authKeyFileName` | text(100) | no | no | yes | *hash and store the public key filename* |
+| `signOptionFileName` | text(100) | no | no | yes | *hash and store signOption filename { issuer: , subject: , audience: , expires: , algorithm: }* |
+| `queue` | text(100) | no | no | no | |
+| `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external* |
 
 
 ### Cache 
@@ -66,12 +66,12 @@ Initial phase, we will go with JWT + private and public key authorization. Token
 		HGET <cluster_name> signOption
 
 ### Below listed apis need to be built to manage the cluster details
-| :--- | :--- 
-| `PUT` | ` /v4/buildClusters { } `
-| `PUT` | `	/v4/buildClusters {name} `
-| `GET` | `	/v4/buildClusters `
-| `GET` | `	/v4/buildClusters {name} `
-| `DELETE` | ` /v4/buildClusters {name} `
+| - | - |
+| `PUT` | ` /v4/buildClusters { } ` |
+| `PUT` | `	/v4/buildClusters {name} ` |
+| `GET` | `	/v4/buildClusters ` |
+| `GET` | `	/v4/buildClusters {name} ` |
+| `DELETE` | ` /v4/buildClusters {name} ` |
 
 
 ## Flow
