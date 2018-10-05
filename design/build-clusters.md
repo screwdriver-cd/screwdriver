@@ -53,7 +53,7 @@ shared:
     addresses: [test@email.com, test2@email.com]
     statuses: [SUCCESS, FAILURE]
     annotations:
-    *buildCluster: iOS*
+        buildCluster: iOS
 jobs:
     main:
         requires: [~pr, ~commit]
