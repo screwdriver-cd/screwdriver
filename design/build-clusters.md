@@ -88,3 +88,7 @@ Columns:
 	6. repeat step #4
 
 ### Queue worker to Scheduler service [ TBD ] 
+
+1. Redis queue implementation need to be changed if we go with Poller service mechanism to support authentication and authorization
+2. Watermark implementation
+3. FIFO query implementation
