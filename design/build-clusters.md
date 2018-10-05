@@ -46,6 +46,7 @@ Initial phase, we will go with JWT + private and public key authorization. Token
 Table: `buildClusters`
 
 Columns:
+
 | Name | Type | Nullable | Primary Key | Unique | Description
 | --- | --- | --- | --- | --- | --- |
 | `id` | integer | no | yes | yes | |
@@ -66,6 +67,8 @@ Columns:
 		HGET <cluster_name> signOption
 
 #### Below listed apis need to be built to manage the cluster details
+
+| Method | url |
 | --- | --- |
 | `PUT` | ` /v4/buildClusters { } ` |
 | `PUT` | `	/v4/buildClusters {name} ` |
