@@ -35,7 +35,8 @@
       "screwdriver-executor-router",
       "screwdriver-models",
       "screwdriver-scm-github",
-      "screwdriver-scm-bitbucket"
+      "screwdriver-scm-bitbucket",
+      "screwdriver-scm-gitlab"
     ]
   },
   "homepage": "http://screwdriver.cd",
