@@ -35,7 +35,8 @@
       "screwdriver-executor-router",
       "screwdriver-models",
       "screwdriver-scm-github",
-      "screwdriver-scm-bitbucket"
+      "screwdriver-scm-bitbucket",
+      "screwdriver-scm-gitlab"
     ]
   },
   "homepage": "http://screwdriver.cd",
@@ -102,6 +103,7 @@
     "screwdriver-notifications-email": "^1.1.7",
     "screwdriver-notifications-slack": "^2.1.6",
     "screwdriver-scm-github": "^8.0.9",
+    "screwdriver-scm-gitlab": "^1.0.1",
     "screwdriver-scm-router": "^3.1.1",
     "screwdriver-template-validator": "^3.0.5",
     "screwdriver-workflow-parser": "^1.6.1",
