@@ -73,7 +73,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then((data) => {
                 this.sha = data.commit.sha;
             })
-            .then(() => new Promise(resolve => setTimeout(resolve, 5000)))
+            .then(() => this.promiseToWait(5))
             .then(() => request({
                 json: true,
                 method: 'GET',
