@@ -27,6 +27,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
                 return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName);
             })
+            // wait not to trigger builds when create a pipeline
+            .then(() => this.promiseToWait(3))
             .then(() => this.createPipeline(this.repoName, branch))
             .then((response) => {
                 Assert.oneOf(response.statusCode, [409, 201]);
