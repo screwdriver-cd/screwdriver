@@ -39,11 +39,13 @@ function promiseToWait(timeToWait) {
  * @return {Promise}
  */
 function ensurePipelineExists(config) {
+    const branch = config.branch || 'master';
+
     return this.getJwt(this.apiToken)
         .then((response) => {
             this.jwt = response.body.token;
 
-            return this.createPipeline(config.repoName);
+            return this.createPipeline(config.repoName, branch);
         })
         .then((response) => {
             Assert.oneOf(response.statusCode, [409, 201]);
@@ -63,7 +65,7 @@ function ensurePipelineExists(config) {
             return this.deletePipeline(this.pipelineId).then((resDel) => {
                 Assert.equal(resDel.statusCode, 204);
 
-                return this.createPipeline(config.repoName).then((resCre) => {
+                return this.createPipeline(config.repoName, branch).then((resCre) => {
                     Assert.equal(resCre.statusCode, 201);
 
                     this.pipelineId = resCre.body.id;
@@ -154,7 +156,7 @@ function CustomWorld({ attach, parameters }) {
                 bearer: this.jwt
             }
         });
-    this.createPipeline = repoName =>
+    this.createPipeline = (repoName, branch) =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
@@ -162,7 +164,7 @@ function CustomWorld({ attach, parameters }) {
                 bearer: this.jwt
             },
             body: {
-                checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#master`
+                checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#${branch}`
             },
             json: true
         });

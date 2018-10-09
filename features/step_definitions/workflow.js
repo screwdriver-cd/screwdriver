@@ -18,12 +18,40 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
         this.builds = null;
     });
 
-    Given('an existing pipeline with the workflow jobs:', {
+    //After({
+    //    tags: '@workflow'
+    //}, function hook() {
+    //    github.cleanUpRepository(this.gitToken, this.branch, this.repoOrg, this.repoName);
+    //});
+
+    Given(/^an existing pipeline on "(.*)" branch with the workflow jobs:$/, {
         timeout: TIMEOUT
-    }, function step(table) {
-        return this.ensurePipelineExists({ repoName: this.repoName })
+    }, function step(branch, table) {
+        return this.getJwt(this.apiToken)
+            .then((response) => {
+                this.jwt = response.body.token;
+
+                return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName);
+            })
             .then(() => {
+                return this.createPipeline(this.repoName, branch);
+            })
+            .then((response) => {
+                Assert.oneOf(response.statusCode, [409, 201]);
+
+                if (response.statusCode === 201) {
+                    this.pipelineId = response.body.id;
+                } else {
+                    const str = response.body.message;
+                    const id = str.split(': ')[1];
+                    this.pipelineId = id;
+                }
+
+                return this.getPipeline(this.pipelineId);
+            })
+            .then((response) => {
                 const expectedJobs = table.hashes();
+                this.jobs = response.body;
 
                 for (let i =0; i < expectedJobs.length; i += 1){
                     let job = this.jobs.filter(j => j.name === expectedJobs[i].job)
@@ -40,25 +68,13 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
             });
     });
 
-    Then(/^the "(.*)" job is started$/, function (jobName, callback) {
-          // Write code here that turns the phrase above into concrete actions
-          callback(null, 'pending');
-    });
-
-    Then(/^the "(.*)" build succeeded$/, function (jobName, callback) {
-          // Write code here that turns the phrase above into concrete actions
-          callback(null, 'pending');
-    });
-
-    Then(/^the "(.*)" build failed$/, function (jobName, callback) {
-          // Write code here that turns the phrase above into concrete actions
-          callback(null, 'pending');
-    });
-
-    When(/^a new commit is pushed to (.*) branch$/, {
+    When(/^a new commit is pushed to "(.*)" branch$/, {
         timeout: TIMEOUT
     }, function step(branch) {
-        return github.createFile(this.gitToken, branch, this.repoOrg, this.repoName)
+        this.branch = branch;
+
+        return github.createBranch(this.gitToken, this.branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(this.gitToken, this.branch, this.repoOrg, this.repoName))
             .then((data) => {
                 this.sha = data.commit.sha;
             })
@@ -80,11 +96,11 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
                 })
             })
             .then((response) => {
-                this.lastEventId = response.body.lastEventId;
+                this.eventId = response.body.lastEventId;
             });
     });
 
-    Then(/^a pull request is opened to (.*) branch$/, function (branch, callback) {
+    When(/^a pull request is opened to "(.*)" branch$/, function (branch, callback) {
           // Write code here that turns the phrase above into concrete actions
           callback(null, 'pending');
     });
@@ -95,7 +111,7 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
         return sdapi.findEventBuilds({
             instance: this.instance,
             pipelineId: this.pipelineId,
-            eventId: this.lastEventId,
+            eventId: this.eventId,
             jwt: this.jwt
         })
         .then((response) => {
@@ -106,13 +122,56 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
             let build = this.builds.filter(b => b.jobId === job[0].id);
 
             Assert(build.length > 0, 'Expected job was not triggered.');
+
+            this.buildId = build[0].id;
         });
     });
 
-    Then(/^the "(.*)" job is triggered from "(.*)"$/, {
+    Then(/^the "(.*)" job is triggered from "([^"]*)"$/, {
         timeout: TIMEOUT
-    }, function step(jobName, src, callback) {
-        callback(null, 'pending');
+    }, function step(triggeredJobName, parentJobName) {
+        return sdapi.findEventBuilds({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            eventId: this.eventId,
+            jwt: this.jwt
+        })
+        .then((response) => {
+            this.builds = response.body;
+        })
+        .then(() => {
+            let parentJob = this.jobs.filter(j => j.name === parentJobName);
+            let parentBuild = this.builds.filter(b => b.jobId === parentJob[0].id);
+            let triggeredJob = this.jobs.filter(j => j.name === triggeredJobName);
+            let triggeredBuild = this.builds.filter(b => b.jobId === triggeredJob[0].id);
+
+            Assert.equal(parentBuild[0].id, triggeredBuild[0].parentBuildId);
+
+            this.buildId = triggeredBuild[0].id;
+        });
+    });
+
+    Then(/^the "(.*)" job is triggered from "([^"]*)" and "([^"]*)"$/, {
+        timeout: TIMEOUT
+    }, function step(joinJobName, parentJobName1, parentJobName2) {
+        return sdapi.findEventBuilds({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            eventId: this.eventId,
+            jwt: this.jwt
+        })
+        .then((response) => {
+            this.builds = response.body;
+            let joinJob = this.jobs.filter(j => j.name === joinJobName);
+            let joinBuild = this.builds.filter(b => b.jobId === joinJob[0].id);
+
+            [parentJobName1, parentJobName2].forEach((jobName) => {
+                let parentJob = this.jobs.filter(j => j.name === jobName);
+                let parentBuild = this.builds.filter(b => b.jobId === parentJob[0].id);
+
+                Assert.oneOf(parentBuild[0].id, joinBuild[0].parentBuildId);
+            });
+        });
     });
 
     Then(/^the "(.*)" job is not triggered$/, {
@@ -121,7 +180,7 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
         return sdapi.findEventBuilds({
             instance: this.instance,
             pipelineId: this.pipelineId,
-            eventId: this.lastEventId,
+            eventId: this.eventId,
             jwt: this.jwt
         })
         .then((response) => {
@@ -144,5 +203,23 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
         let build2 = this.builds.filter(b => b.jobId === job2[0].id);
 
         Assert.equal(build1[0].sha, build2[0].sha);
+    });
+
+    Then(/^the "(.*)" build succeeded$/, {
+        timeout: TIMEOUT
+    }, function step(jobName) {
+        return this.waitForBuild(this.buildId).then((resp) => {
+            Assert.equal(resp.statusCode, 200);
+            Assert.equal(resp.body.status, 'SUCCESS');
+        });
+    });
+
+    Then(/^the "(.*)" build failed$/, {
+        timeout: TIMEOUT
+    }, function (jobName) {
+        return this.waitForBuild(this.buildId).then((resp) => {
+            Assert.equal(resp.statusCode, 200);
+            Assert.equal(resp.body.status, 'FAILURE');
+        });
     });
 });
