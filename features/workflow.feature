@@ -21,6 +21,11 @@ Feature: Workflow
             | job       | requires  |
             | SIMPLE    | ~commit   |
             | PARALLEL1 | SIMPLE    |
+        When a new commit is pushed to "serially" branch
+        Then the "SIMPLE" job is triggered
+        And the "SIMPLE" build succeeded
+        Then the "PARALLEL1" job is triggered from "SIMPLE"
+        And that "PARALLEL1" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Failure
         Given an existing pipeline on "failure" branch with the workflow jobs:
@@ -28,7 +33,7 @@ Feature: Workflow
             | FAIL          | ~commit   |
             | AFTER-FAIL    | FAIL      |
         When a new commit is pushed to "failure" branch
-        When the "FAIL" job is triggered
+        Then the "FAIL" job is triggered
         And the "FAIL" build failed
         Then the "AFTER-FAIL" job is not triggered
 

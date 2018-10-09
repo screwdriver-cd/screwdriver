@@ -190,19 +190,19 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
     Then(/^the "(.*)" build succeeded$/, {
         timeout: TIMEOUT
-    }, function step() {
+    }, function step(jobName) {
         return this.waitForBuild(this.buildId).then((resp) => {
             Assert.equal(resp.statusCode, 200);
-            Assert.equal(resp.body.status, 'SUCCESS');
+            Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${jobName}`);
         });
     });
 
     Then(/^the "(.*)" build failed$/, {
         timeout: TIMEOUT
-    }, function step() {
+    }, function step(jobName) {
         return this.waitForBuild(this.buildId).then((resp) => {
             Assert.equal(resp.statusCode, 200);
-            Assert.equal(resp.body.status, 'FAILURE');
+            Assert.equal(resp.body.status, 'FAILURE', `Unexpected build status: ${jobName}`);
         });
     });
 });
