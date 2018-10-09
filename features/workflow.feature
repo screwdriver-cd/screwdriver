@@ -50,8 +50,6 @@ Feature: Workflow
         And the "PARALLEL2" job is triggered from "SIMPLE"
         And that "PARALLEL1" build uses the same SHA as the "SIMPLE" build
         And that "PARALLEL2" build uses the same SHA as the "SIMPLE" build
-        And the "STAGING" job is not triggered
-        And that "REGEX" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Join
         Given an existing pipeline on "join" branch with the workflow jobs:
@@ -79,6 +77,8 @@ Feature: Workflow
         When a new commit is pushed to "master" branch
         Then the "SIMPLE" job is triggered
         And the "REGEX" job is triggered
+        And the "STAGING" job is not triggered
+        And that "REGEX" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Branch filtering (the staging branch is committed)
         Given an existing pipeline on "master" branch with the workflow jobs:

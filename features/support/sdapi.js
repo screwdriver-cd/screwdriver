@@ -76,13 +76,14 @@ function findBuilds(config) {
 /**
  * Finds a build created by latest event in a given pipeline.
  *
- * @method findLatestEventBuilds
- * @param  {Object}  config                     Configuration object
- * @param  {String}  config.instance            Screwdriver instance to test against
- * @param  {String}  config.eventId             Event ID to find the build in
- * @return {Promise}                            A promise that resolves to an array of builds that
- *                                              fulfill the given criteria. If nothing is found, an
- *                                              empty array is returned
+ * @method findEventBuilds
+ * @param  {Object}  config             Configuration object
+ * @param  {String}  config.instance    Screwdriver instance to test against
+ * @param  {String}  config.eventId     Event ID to find the build in
+ * @param  {String}  config.jwt         JWT for authenticating
+ * @return {Promise}                    A promise that resolves to an array of builds that
+ *                                      fulfill the given criteria. If nothing is found, an
+ *                                      empty array is returned
  */
 function findEventBuilds(config) {
     const instance = config.instance;
