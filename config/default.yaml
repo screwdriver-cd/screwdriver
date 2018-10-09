@@ -93,6 +93,8 @@ executor:
         # k8s node selectors for approprate pod scheduling
         nodeSelectors: {}
         preferredNodeSelectors: {}
+    # Launcher image to use
+    launchImage: screwdrivercd/launcher
     # Container tags to use
     launchVersion: stable
   # nomad:
@@ -143,6 +145,8 @@ executor:
         # k8s node selectors for approprate pod scheduling
         nodeSelectors: {}
         preferredNodeSelectors: {}
+      # Launcher image to use
+      launchImage: screwdrivercd/launcher
       # Launcher container tag to use
       launchVersion: stable
 #   jenkins:
