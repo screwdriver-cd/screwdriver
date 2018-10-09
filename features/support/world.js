@@ -36,6 +36,7 @@ function promiseToWait(timeToWait) {
  * @method ensurePipelineExists
  * @param   {Object}    config
  * @param   {String}    config.repoName     Name of the pipeline
+ * @param   {String}    [config.branch]     Name of the pipeline branch
  * @return {Promise}
  */
 function ensurePipelineExists(config) {

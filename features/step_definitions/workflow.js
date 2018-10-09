@@ -48,12 +48,12 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 this.jobs = response.body;
 
                 for (let i = 0; i < expectedJobs.length; i += 1) {
-                    const job = this.jobs.filter(j => j.name === expectedJobs[i].job);
+                    const job = this.jobs.find(j => j.name === expectedJobs[i].job);
 
-                    Assert.ok(job.length > 0, 'Given job does not exist on pipeline');
+                    Assert.ok(job, 'Given job does not exist on pipeline');
 
                     const requiresList = expectedJobs[i].requires.split(', ');
-                    const requires = job[0].permutations[0].requires;
+                    const requires = job.permutations[0].requires;
 
                     for (let j = 0; j < requiresList.length; j += 1) {
                         Assert.ok(requires.includes(requiresList[j]),
