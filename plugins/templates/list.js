@@ -8,7 +8,7 @@ const distinctSchema = joi.string()
     .valid(Object.keys(schema.models.template.base.describe().children))
     .label('Field to return unique results by');
 const namespaceSchema = joi.reach(schema.models.template.base, 'namespace');
-const namespacesSchema = joi.array().items(namespaceSchema);
+const namespacesSchema = joi.array().items(joi.object().keys({ namespace: namespaceSchema }));
 
 module.exports = () => ({
     method: 'GET',
