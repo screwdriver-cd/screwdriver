@@ -34,10 +34,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 if (response.statusCode === 201) {
                     this.pipelineId = response.body.id;
                 } else {
-                    const str = response.body.message;
-                    const id = str.split(': ')[1];
-
-                    this.pipelineId = id;
+                    this.pipelineId = response.body.message.split(/\s*:\s*/)[1];
                 }
 
                 return this.getPipeline(this.pipelineId);
@@ -52,7 +49,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
                     Assert.ok(job, 'Given job does not exist on pipeline');
 
-                    const requiresList = expectedJobs[i].requires.split(', ');
+                    const requiresList = expectedJobs[i].requires.split(/\s*,\s*/);
                     const requires = job.permutations[0].requires;
 
                     for (let j = 0; j < requiresList.length; j += 1) {
@@ -66,13 +63,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^a new commit is pushed to "(.*)" branch$/, {
         timeout: TIMEOUT
     }, function step(branch) {
-        this.branch = branch;
-
-        return github.createBranch(this.gitToken, this.branch, this.repoOrg, this.repoName)
-            .then(() => github.createFile(this.gitToken, this.branch, this.repoOrg, this.repoName))
-            .then((data) => {
-                this.sha = data.commit.sha;
-            })
+        return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(this.gitToken, branch, this.repoOrg, this.repoName))
             .then(() => this.promiseToWait(5))
             .then(() => request({
                 json: true,
@@ -104,12 +96,12 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 this.builds = response.body;
             })
             .then(() => {
-                const job = this.jobs.filter(j => j.name === jobName);
-                const build = this.builds.filter(b => b.jobId === job[0].id);
+                const job = this.jobs.find(j => j.name === jobName);
+                const build = this.builds.find(b => b.jobId === job.id);
 
-                Assert.ok(build.length > 0, 'Expected job was not triggered.');
+                Assert.ok(build, 'Expected job was not triggered.');
 
-                this.buildId = build[0].id;
+                this.buildId = build.id;
             });
     });
 
@@ -125,14 +117,14 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 this.builds = response.body;
             })
             .then(() => {
-                const parentJob = this.jobs.filter(j => j.name === parentJobName);
-                const parentBuild = this.builds.filter(b => b.jobId === parentJob[0].id);
-                const triggeredJob = this.jobs.filter(j => j.name === triggeredJobName);
-                const triggeredBuild = this.builds.filter(b => b.jobId === triggeredJob[0].id);
+                const parentJob = this.jobs.find(j => j.name === parentJobName);
+                const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
+                const triggeredJob = this.jobs.find(j => j.name === triggeredJobName);
+                const triggeredBuild = this.builds.find(b => b.jobId === triggeredJob.id);
 
-                Assert.equal(parentBuild[0].id, triggeredBuild[0].parentBuildId);
+                Assert.equal(parentBuild.id, triggeredBuild.parentBuildId);
 
-                this.buildId = triggeredBuild[0].id;
+                this.buildId = triggeredBuild.id;
             });
     });
 
@@ -146,14 +138,14 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         })
             .then((response) => {
                 this.builds = response.body;
-                const joinJob = this.jobs.filter(j => j.name === joinJobName);
-                const joinBuild = this.builds.filter(b => b.jobId === joinJob[0].id);
+                const joinJob = this.jobs.find(j => j.name === joinJobName);
+                const joinBuild = this.builds.find(b => b.jobId === joinJob.id);
 
                 [parentJobName1, parentJobName2].forEach((jobName) => {
-                    const parentJob = this.jobs.filter(j => j.name === jobName);
-                    const parentBuild = this.builds.filter(b => b.jobId === parentJob[0].id);
+                    const parentJob = this.jobs.find(j => j.name === jobName);
+                    const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
 
-                    Assert.oneOf(parentBuild[0].id, joinBuild[0].parentBuildId);
+                    Assert.oneOf(parentBuild.id, joinBuild.parentBuildId);
                 });
             });
     });
@@ -170,22 +162,22 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 this.builds = response.body;
             })
             .then(() => {
-                const job = this.jobs.filter(j => j.name === jobName);
-                const build = this.builds.filter(b => b.jobId === job[0].id);
+                const job = this.jobs.find(j => j.name === jobName);
+                const build = this.builds.find(b => b.jobId === job.id);
 
-                Assert.ok(build.length === 0, 'Unexpected job was triggered.');
+                Assert.ok(!build, 'Unexpected job was triggered.');
             });
     });
 
     Then(/^that "(.*)" build uses the same SHA as the "(.*)" build$/, {
         timeout: TIMEOUT
     }, function step(jobName1, jobName2) {
-        const job1 = this.jobs.filter(j => j.name === jobName1);
-        const job2 = this.jobs.filter(j => j.name === jobName2);
-        const build1 = this.builds.filter(b => b.jobId === job1[0].id);
-        const build2 = this.builds.filter(b => b.jobId === job2[0].id);
+        const job1 = this.jobs.find(j => j.name === jobName1);
+        const job2 = this.jobs.find(j => j.name === jobName2);
+        const build1 = this.builds.find(b => b.jobId === job1.id);
+        const build2 = this.builds.find(b => b.jobId === job2.id);
 
-        Assert.equal(build1[0].sha, build2[0].sha);
+        Assert.equal(build1.sha, build2.sha);
     });
 
     Then(/^the "(.*)" build succeeded$/, {
