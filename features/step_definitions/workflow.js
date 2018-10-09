@@ -8,7 +8,7 @@ const { defineSupportCode } = require('cucumber');
 
 const TIMEOUT = 240 * 1000;
 
-defineSupportCode(({ After, Before, Given, When, Then }) => {
+defineSupportCode(({ Before, Given, When, Then }) => {
     Before({
         tags: '@workflow'
     }, function hook() {
@@ -17,12 +17,6 @@ defineSupportCode(({ After, Before, Given, When, Then }) => {
         this.pipelineId = null;
         this.builds = null;
     });
-
-    //After({
-    //    tags: '@workflow'
-    //}, function hook() {
-    //    github.cleanUpRepository(this.gitToken, this.branch, this.repoOrg, this.repoName);
-    //});
 
     Given(/^an existing pipeline on "(.*)" branch with the workflow jobs:$/, {
         timeout: TIMEOUT
