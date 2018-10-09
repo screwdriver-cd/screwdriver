@@ -173,11 +173,11 @@ describe('template plugin test', () => {
 
         it('returns 200 and all namespaces using distinct query', () => {
             const namespaces = [
-                'chef',
-                'docker',
-                'nodejs',
-                'screwdriver',
-                'tools'
+                { namespace: 'chef' },
+                { namespace: 'docker' },
+                { namespace: 'nodejs' },
+                { namespace: 'screwdriver' },
+                { namespace: 'tools' }
             ];
 
             templateFactoryMock.list.resolves(namespaces);
