@@ -35,6 +35,15 @@ server.register({
 Can filter by template namespace:
 `GET /templates?namespace=chef`
 
+Can search by keyword in template name, namespace, and description:
+`GET /templates?search=screwdriver`
+
+Can list all distinct template namespaces:
+`GET /templates?distinct=namespace`
+
+Can use additional options for sorting and pagination:
+`GET /templates?sort=ascending&sortBy=name&page=1&count=50`
+
 ##### Get a single template
 
 You can get a single template by providing the template name and the specific version or the tag.
