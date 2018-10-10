@@ -32,14 +32,6 @@ const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}
 const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
     (datastoreConfig[datastoreConfig.plugin] || {})));
 
-// Setup Executor
-const executorConfig = config.get('executor');
-const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
-const executor = new ExecutorPlugin(Object.assign(
-    { ecosystem: hoek.clone(ecosystem) },
-    executorConfig[executorConfig.plugin].options
-));
-
 // Source Code Plugin
 const scmConfig = { scms: config.get('scms') };
 const ScmPlugin = require('screwdriver-scm-router');
@@ -67,8 +59,23 @@ bookends.setup || [], // plugins required for the setup- steps
 bookends.teardown || [] // plugins required for the teardown- steps
 );
 
-// Setup Model Factories
+// Setup Pipeline Factory for Executor
 const Models = require('screwdriver-models');
+const pipelineFactory = Models.PipelineFactory.getInstance({
+    datastore,
+    scm
+});
+
+// Setup Executor
+const executorConfig = config.get('executor');
+executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
+const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
+const executor = new ExecutorPlugin(Object.assign(
+    { ecosystem: hoek.clone(ecosystem) },
+    executorConfig[executorConfig.plugin].options
+));
+
+// Setup Model Factories
 const commandFactory = Models.CommandFactory.getInstance({
     datastore
 });
@@ -80,11 +87,6 @@ const templateFactory = Models.TemplateFactory.getInstance({
 });
 const templateTagFactory = Models.TemplateTagFactory.getInstance({
     datastore
-});
-
-const pipelineFactory = Models.PipelineFactory.getInstance({
-    datastore,
-    scm
 });
 const jobFactory = Models.JobFactory.getInstance({
     datastore,
