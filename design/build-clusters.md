@@ -85,8 +85,8 @@ Columns:
 | `scmOrganization` | text(200) | no | no | no | |
 | `scmContext` | text(200) | no | no | no | |
 | `isActive` | boolean | no | no | no | *0-false or 1-true* |
-| `authKeyFileName` | text(100) | no | no | yes | *hash and store the public key filename* |
-| `signOptionFileName` | text(100) | no | no | yes | *hash and store signOption filename { issuer: , subject: , audience: , expires: , algorithm: }* |
+| `authKeyFileName` | text(100) | no | no | yes | *encrypt and store the public key filename* |
+| `signOptionFileName` | text(100) | no | no | yes | *encrypt and store signOption filename { issuer: , subject: , audience: , expires: , algorithm: }* |
 | `queue` | text(100) | no | no | no | |
 | `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external* |
 
@@ -113,18 +113,20 @@ Columns:
 
 	1. Screwdriver UI / PR commit / Merge triggers new build via Screwdriver API
 	2. Screwdriver API inturn calls Scheduler service with appropriate build details to schedule a job
-	3. Scheduler service queries `buildClusters` table for active records with cluster name from build info and validate if job can be scheduled in apropriate buildCluster queue
-	4. one (or) more record exist, then assign job to the queue ( pick the queue identified by generating a random number within given boundaries, which is the returned list size of records)
-	5. no records, then query `clusters` table for active records with managedBy=screwdriver
-	6. repeat step #4
-	7. Update build job with cluster details
+	3. Authentication via JWT token (refer Authorization section)
+	4. Scheduler service queries `buildClusters` table for active records with cluster name from build info and validate if job can be scheduled in apropriate buildCluster queue
+	5. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
+	6. no records, then query `clusters` table for active records with managedBy=screwdriver
+	7. repeat step #4
+	8. Update build job with cluster details
 
 ### Queue worker to Scheduler service  
     
-    1. Queue worker will poll Scheduler service periodically to get new build jobs from Redis queue (master)  
-    2. Scheduler service will push build jobs from Redis queue (master) which are not blocked by other jobs  
-    3. Queue worker will push build jobs to Redis queue (internal to build cluster)
-    4. For any failures till #3, build jobs will not be removed from Redis queue (master)
-    5. On success of #3, build jobs will be removed from Redis queue (master)
-    6. Queue worker will poll Redis queue (internal to build cluster) and push to Kubernetes
-    7. Failures will be handled     
+    1. Queue worker will poll Scheduler service periodically to get new build jobs from Redis queue (master)
+    2. Authentication via JWT token (refer Authorization section) 
+    3. Scheduler service will push build jobs from Redis queue (master) which are not blocked by other jobs  
+    4. Queue worker will push build jobs to Redis queue (internal to build cluster)
+    5. For any failures till #3, build jobs will not be removed from Redis queue (master)
+    6. On success of #3, build jobs will be removed from Redis queue (master)
+    7. Queue worker will poll Redis queue (internal to build cluster) and push to Kubernetes
+    8. Failures will be handled as its handled now     
