@@ -92,12 +92,20 @@ Columns:
 
 
 ### Cache 
+
 	Use Redis HMSET to cache all active records from `buildClusters` table. Redis should be updated for any changes in `buildClusters` table.
 		HMSET <cluster_name> authKeyName "filename" signOption "{value}" queue "value" managedBy "screwdriver"
 		HGET <cluster_name> authKeyName
 		HGET <cluster_name> signOption
 
-#### Below listed apis need to be built to manage the cluster details
+### Queue
+
+Redis queue (Master) - It will hold queues for all build clusters. 
+
+Redis queue (Build Cluster) - It will hold queue wrto the build cluster.
+
+
+### Below listed apis need to be built to manage the cluster details
 
 | Method | url |
 | --- | --- |
