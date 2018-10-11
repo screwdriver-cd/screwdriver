@@ -32,7 +32,10 @@ Multiple build cluster onboarding process doc
 
 ## Design
 
-![build-clusters.png](./diagrams/build-clusters-design.png)
+Redis queue in buildClusters
+
+![build-clusters-design.png](diagrams/build-clusters-design.png)
+
 
 ### Scheduler service will be responsible 
 	1. identify build cluster and queue information for a build and queue jobs in respective queues.
@@ -110,13 +113,18 @@ Columns:
 
 	1. Screwdriver UI / PR commit / Merge triggers new build via Screwdriver API
 	2. Screwdriver API inturn calls Scheduler service with appropriate build details to schedule a job
-	3. Scheduler service queries `buildClusters` table for active records with cluster name from build info
+	3. Scheduler service queries `buildClusters` table for active records with cluster name from build info and validate if job can be scheduled in apropriate buildCluster queue
 	4. one (or) more record exist, then assign job to the queue ( pick the queue identified by generating a random number within given boundaries, which is the returned list size of records)
 	5. no records, then query `clusters` table for active records with managedBy=screwdriver
 	6. repeat step #4
+	7. Update build job with cluster details
 
-### Queue worker to Scheduler service [ TBD ] 
-
-1. Redis queue implementation need to be changed if we go with Poller service mechanism to support authentication and authorization
-2. Watermark implementation
-3. FIFO query implementation
+### Queue worker to Scheduler service  
+    
+    1. Queue worker will poll Scheduler service periodically to get new build jobs from Redis queue (master)  
+    2. Scheduler service will push build jobs from Redis queue (master) which are not blocked by other jobs  
+    3. Queue worker will push build jobs to Redis queue (internal to build cluster)
+    4. For any failures till #3, build jobs will not be removed from Redis queue (master)
+    5. On success of #3, build jobs will be removed from Redis queue (master)
+    6. Queue worker will poll Redis queue (internal to build cluster) and push to Kubernetes
+    7. Failures will be handled     
