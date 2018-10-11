@@ -35,7 +35,9 @@ shared:
     # An event scoped cache
     event: ["target/generated-intermediate-resouce/*"]
     # A job scoped cache 
-    my-cache-1:  ["target/some-artifact.zip"]
+    job:
+        - build: ["target/some-artifact.zip"]
+        - publish-preview: ["target/some-artifact.zip"]
 jobs:
   test:
     requires: [~pr]
@@ -44,14 +46,10 @@ jobs:
       - test: cargo test
   build: 
     requires: [~pr]
-    # Indicate which job scoped caches to use.
-    cache: ["my-cache-1"]
     image: rust:latest
     steps:
       - test: cargo build
   publish-preview:
-    # Indicate which job scoped caches to use.
-    cache: ["my-cache-1"]
     requires: [~commit]
     image: rust:latest
     steps:
