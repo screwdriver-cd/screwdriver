@@ -3,6 +3,8 @@ shared:
 
 jobs:
     main:
+        environment:
+            SD_SONAR_OPTS: "-Dsonar.sources=lib,plugins -Dsonar.javascript.lcov.reportPath=coverage/lcov.info"
         requires:
             - ~pr
             - ~commit
