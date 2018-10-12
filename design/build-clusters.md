@@ -19,6 +19,7 @@ Build a scalable Screwdriver build infrastructure.
 	Users can bring in their own build cluster infrastructure. 
 
 As part of cluster onboarding process for above both options cluster admin should register their build cluster information with Screwdriver. Below details are required to register a build cluster.
+
 	1. Cluster name - Cluster name provided by the client
 	2. isActive - Cluster status whether its active or inactive. This will be used to route / pause. Initially this will be a manual update of cluster health.
 	3. Queue name - Queue name with respect to cluster. Typically one cluster can have many queues. Queue will be randomly picked if more than one queue is available for a cluster.
