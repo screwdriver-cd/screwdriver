@@ -74,6 +74,32 @@ function findBuilds(config) {
 }
 
 /**
+ * Finds a build created by latest event in a given pipeline.
+ *
+ * @method findEventBuilds
+ * @param  {Object}  config             Configuration object
+ * @param  {String}  config.instance    Screwdriver instance to test against
+ * @param  {String}  config.eventId     Event ID to find the build in
+ * @param  {String}  config.jwt         JWT for authenticating
+ * @return {Promise}                    A promise that resolves to an array of builds that
+ *                                      fulfill the given criteria. If nothing is found, an
+ *                                      empty array is returned
+ */
+function findEventBuilds(config) {
+    const instance = config.instance;
+    const eventId = config.eventId;
+
+    return request({
+        json: true,
+        method: 'GET',
+        uri: `${instance}/v4/events/${eventId}/builds`,
+        auth: {
+            bearer: config.jwt
+        }
+    });
+}
+
+/**
  * Searches for a job's build in a Pipeline. It is assumed that the job is the main job, unless
  * pull request information is provided.
  *
@@ -199,6 +225,7 @@ function cleanupToken(config) {
 
 module.exports = {
     cleanupToken,
+    findEventBuilds,
     searchForBuild,
     waitForBuildStatus
 };

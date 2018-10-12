@@ -1,5 +1,6 @@
 'use strict';
 
+const Assert = require('chai').assert;
 const Github = require('github');
 const github = new Github({
     host: process.env.TEST_SCM_HOSTNAME || 'api.github.com',
@@ -111,6 +112,10 @@ function createBranch(token, branch, repoOwner, repoName) {
                 ref: `refs/heads/${branch}`,
                 sha
             });
+        })
+        .catch((err) => {
+            // throws an error if a branch already exists, so this is fine
+            Assert.strictEqual(err.code, 422);
         });
 }
 
