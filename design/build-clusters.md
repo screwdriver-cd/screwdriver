@@ -117,14 +117,14 @@ Unique constraint: `name + isActive`
 #### Sample record
 
 | id | name | scmContext | scmOrganizations | isActive | authKey |  signOption | managedBy 
-| --- | --- | --- | --- | --- | --- | --- | --- | ---
+| --- | --- | --- | --- | --- | --- | --- | --- | 
 | 1 | gq1 | github:git.ouroath.com | null | 0 | *gq1_sdpublickey* | *gq1_sign* | screwdriver
 | 2 | bf1 | github:git.ouroath.com | null | 1 | *bf1_sdpublickey* | *bf1_sign* | screwdriver
 | 3 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 1 | *identity_publickey* | *identity_sign* | external
 | 4 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 0 | *identity_publickey* | *identity_sign* | external
 | 5 | iOS | github:git.ouroath.com | iOS_org1, iOS_org2 | 1 | *iOS_publickey* | *iOS_sign* | external
 
-### Cache active `buildClusters` in Redis 
+### Cache active *buildClusters* in Redis 
     Scheduler service will be using this cache to get active buildClusters and respective queues.
     
     API should update Redis cache for any change in `buildClusters` table   
