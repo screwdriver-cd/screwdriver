@@ -29,37 +29,32 @@ currently being used by Screwdriver.
 Reference [Issue 1079][issue1079]
 
 ## Proposal
-Any user intending to use Screwdriver with private repositories must perform the following prerequisites:
-- create a Personal Access Token within the Developer Settings of their Github user profile
-and include that token into their Screwdriver user profile.
-	- Github Personal Access Token is created at: https://github.com/settings/tokens/new
-	- Screwdriver user profile is edited at:  /user-settings
-- create/obtain an ssh keypair 
-	- store the public key within the Deploy Keys section of the private repository settings 
-	- associate the private key with the Screwdriver pipeline associated with this private repository
+User performs the following ONCE for all private repositories:
 
-Private Repository Pipeline Creation:
-1 A GitHub Personal Access Token that allows control of private repositories must be associated to the user profile within Screwdriver.
-1 User indicates on the Create form that the repository is a private repository which expands the web form to ask for additional information.
-1 User adds the private ssh key associated with the private repository to the Pipeline Create webform.
+- Create a personal access token (https://github.com/settings/tokens/new)
+- Add the token to their Screwdriver user profile (under "User Settings")
 
-The private ssh key will be stored as a Secret on the pipeline at pipeline creation time.  This Secret will be named [TBD]. 
-The existence of the secret with name [TBD] will essentially be a flag that indicates that this is a
+User performs the following for EACH private repository:
+
+- Create an ssh key pair 
+- Store the public key in Github (Settings > Deploy keys > Add deploy key)
+- Create a Screwdriver pipeline for the private repository
+- Within the pipeline, define a Secret named GH_DEPLOY_KEY with the value of the private key
+
+The existence of the Secret named GH_DEPLOY_KEY will essentially be a flag that indicates that this is a
 private repository requiring special handling.
-- When Screwdriver attempts to perform API calls for a private repository pipeline, it will use this flag to know to use the 
-GitHub Personal Access Token associated with the user logged in.
-- When Screwdriver attempts to clone the repository for a private repository pipeline, it will use this flag to know to use the
-private ssh key that was associated to the pipeline.
+
+When Screwdriver attempts to perform API calls for a private repository pipeline, it will use this flag to know to use the 
+GitHub Personal Access Token associated with the logged in user.
+
+Similarly, when Screwdriver attempts to clone the repository for a build, it will use this flag to know to use the
+private ssh key that was associated with the pipeline.
 
 Screwdriver features that are affected by these changes are:
 - Creating/updating the pipeline (API calls)
 - Creating/updating the webhook (API calls)
 - Managing secrets (API calls)
 - Executing a build job (API calls and Cloning repo)
-
-Anticipated problem not resolved by this implementation:
-- A Pipeline leveraging Repo and multiple private repositories would not work with the above design.
-GitHub requires a unique public SSH key per repository and the above design only supports defining one private key per Pipeline.
 
 ## Contributing
 
