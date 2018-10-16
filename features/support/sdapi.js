@@ -103,9 +103,7 @@ function findEventBuilds(config) {
             return result;
         }
 
-        return promiseToWait(3).then(() => {
-            return findEventBuilds(config)
-        });
+        return promiseToWait(3).then(() => findEventBuilds(config));
     });
 }
 
