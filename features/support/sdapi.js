@@ -96,6 +96,16 @@ function findEventBuilds(config) {
         auth: {
             bearer: config.jwt
         }
+    }).then((buildData) => {
+        const result = buildData.body || [];
+
+        if (result.length > 0) {
+            return result;
+        }
+
+        return promiseToWait(3).then(() => {
+            return findEventBuilds(config)
+        });
     });
 }
 
