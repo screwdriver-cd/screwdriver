@@ -229,8 +229,10 @@ bookends:
   # Plugins for build setup
   setup:
     - scm
+    - screwdriver-cache-bookend
   teardown:
     - screwdriver-artifact-bookend
+    - screwdriver-cache-bookend
 
 notifications:
   # Email notification when a build finishes
