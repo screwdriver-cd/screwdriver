@@ -27,7 +27,6 @@ The build cache and cache usage is configurable via Yaml and backed by an intern
 ### Yaml specification
 
 ```yml
-# Caches defined in the shared section can be pipeline or exection scoped.
 cache:
   # A pipeline scoped cache.
   pipeline: ["node_modules/", "~/.sbt"]
