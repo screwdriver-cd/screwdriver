@@ -183,6 +183,80 @@ describe('command plugin test', () => {
             });
         });
 
+        it('returns 200 and all namespaces using distinct query', () => {
+            const namespaces = [
+                { namespace: 'chef' },
+                { namespace: 'docker' },
+                { namespace: 'nodejs' },
+                { namespace: 'screwdriver' },
+                { namespace: 'tools' }
+            ];
+
+            commandFactoryMock.list.resolves(namespaces);
+            options.url = '/commands?distinct=namespace';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, namespaces);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: {
+                        distinct: 'namespace'
+                    },
+                    sort: 'descending',
+                    raw: true
+                });
+            });
+        });
+
+        it('returns 200 and all commands with sortBy query', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?sortBy=name';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    sortBy: 'name',
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands with search query', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?search=nodejs';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    search: {
+                        field: ['name', 'namespace', 'description'],
+                        keyword: '%nodejs%'
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands with search query without namespace field', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?search=nodejs&namespace=nodejs';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: { namespace: 'nodejs' },
+                    search: {
+                        field: ['name', 'description'],
+                        keyword: '%nodejs%'
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 200 and all commands with pagination', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?count=30';

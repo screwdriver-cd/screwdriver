@@ -94,10 +94,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
-            })
-            .then(() => {
+            .then((builds) => {
+                this.builds = builds;
                 const job = this.jobs.find(j => j.name === jobName);
                 const build = this.builds.find(b => b.jobId === job.id);
 
@@ -115,10 +113,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
-            })
-            .then(() => {
+            .then((builds) => {
+                this.builds = builds;
                 const parentJob = this.jobs.find(j => j.name === parentJobName);
                 const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
                 const triggeredJob = this.jobs.find(j => j.name === triggeredJobName);
@@ -138,8 +134,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
+            .then((builds) => {
+                this.builds = builds;
                 const joinJob = this.jobs.find(j => j.name === joinJobName);
                 const joinBuild = this.builds.find(b => b.jobId === joinJob.id);
 
@@ -160,10 +156,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
-            })
-            .then(() => {
+            .then((builds) => {
+                this.builds = builds;
                 const job = this.jobs.find(j => j.name === jobName);
                 const build = this.builds.find(b => b.jobId === job.id);
 
