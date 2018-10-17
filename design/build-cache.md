@@ -27,31 +27,28 @@ The build cache and cache usage is configurable via Yaml and backed by an intern
 ### Yaml specification
 
 ```yml
+cache:
+  # A pipeline scoped cache.
+  pipeline: ["node_modules/", "~/.sbt"]
+  # An event scoped cache
+  event: ["target/generated-intermediate-resouce/*"]
+  # A job scoped cache 
+  job:
+    build: ["target/some-artifact.zip"]
+    publish-preview: ["target/some-artifact.zip"]
 shared:
-  # Caches defined in the shared section can be pipeline or exection scoped.
-  cache:
-    # A pipeline scoped cache.
-    pipeline: ["node_modules/", "~/.sbt"]
-    # An event scoped cache
-    event: ["target/generated-intermediate-resouce/*"]
-    # A job scoped cache 
-    job:
-        - build: ["target/some-artifact.zip"]
-        - publish-preview: ["target/some-artifact.zip"]
+  image: rust:latest
 jobs:
   test:
     requires: [~pr]
-    image: rust:latest
     steps:
       - test: cargo test
   build: 
     requires: [~pr]
-    image: rust:latest
     steps:
       - test: cargo build
   publish-preview:
     requires: [~commit]
-    image: rust:latest
     steps:
       - add_musl: rustup target install x86_64-unknown-linux-musl
       - build: cargo build --release --target=x86_64-unknown-linux-musl
