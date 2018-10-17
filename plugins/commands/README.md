@@ -33,6 +33,18 @@ server.register({
 
 `GET /commands`
 
+Can filter by command namespace:
+`GET /commands?namespace=chef`
+
+Can search by keyword in command name, namespace, and description:
+`GET /commands?search=screwdriver`
+
+Can list all distinct command namespaces:
+`GET /commands?distinct=namespace`
+
+Can use additional options for sorting and pagination:
+`GET /commands?sort=ascending&sortBy=name&page=1&count=50`
+
 ##### Get all command versions
 
 You can get all versions of commands by providing the command namespace and name.
