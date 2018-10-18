@@ -2,7 +2,6 @@
 
 const Assert = require('chai').assert;
 const github = require('../support/github');
-const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 const { defineSupportCode } = require('cucumber');
 
@@ -67,7 +66,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     }, function step(branch) {
         return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(this.gitToken, branch, this.repoOrg, this.repoName))
-            .then((data) => this.sha = data.commit.sha);
+            .then((data) => {
+                this.sha = data.commit.sha;
+            });
     });
 
     When(/^a pull request is opened to "(.*)" branch$/, (branch, callback) => {
@@ -159,8 +160,6 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     Then(/^that "(.*)" build uses the same SHA as the "(.*)" build$/, {
         timeout: TIMEOUT
     }, function step(jobName1, jobName2) {
-        const job1 = this.jobs.find(j => j.name === jobName1);
-        const job2 = this.jobs.find(j => j.name === jobName2);
         return Promise.all([
             sdapi.searchForBuild({
                 instance: this.instance,
