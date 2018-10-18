@@ -46,7 +46,8 @@ exports.register = (server, options, next) => {
         whitelist: joi.array().default([]),
         admins: joi.array().default([]),
         scm: joi.object().required(),
-        sessionTimeout: joi.number().integer().positive().default(120)
+        sessionTimeout: joi.number().integer().positive().default(120),
+        oauthRedirectUri: joi.string().optional()
     }), 'Invalid config for plugin-auth');
 
     /**
@@ -117,6 +118,10 @@ exports.register = (server, options, next) => {
                 bellConfig.password = pluginOptions.cookiePassword;
                 bellConfig.isSecure = pluginOptions.https;
                 bellConfig.forceHttps = pluginOptions.https;
+
+                if (pluginOptions.oauthRedirectUri) {
+                    bellConfig.location = pluginOptions.oauthRedirectUri;
+                }
 
                 // The oauth strategy differs between the scm modules
                 server.auth.strategy(`oauth_${scmContext}`, 'bell', bellConfig);
