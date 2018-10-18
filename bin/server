@@ -43,10 +43,6 @@ authConfig.scm = scm;
 const ArtifactPlugin = require('screwdriver-artifact-bookend');
 const artifact = new ArtifactPlugin(ecosystem.store);
 
-// Build cache plugin
-const CachePlugin = require('screwdriver-cache-bookend');
-const cache = new CachePlugin(ecosystem.api);
-
 // Plugin to upload coverage
 const coverageConfig = config.get('coverage');
 const CoveragePlugin = require('screwdriver-coverage-bookend');
@@ -57,8 +53,7 @@ const bookends = config.get('bookends');
 const bookend = new Bookend({
     scm,
     'screwdriver-artifact-bookend': artifact,
-    'screwdriver-coverage-bookend': coverage,
-    'screwdriver-cache-bookend': cache
+    'screwdriver-coverage-bookend': coverage
 },
 bookends.setup || [], // plugins required for the setup- steps
 bookends.teardown || [] // plugins required for the teardown- steps

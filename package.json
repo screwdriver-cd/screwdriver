@@ -86,7 +86,6 @@
     "request": "^2.88.0",
     "requestretry": "^1.12.0",
     "screwdriver-artifact-bookend": "^1.1.23",
-    "screwdriver-cache-bookend": "^1.0.0",
     "screwdriver-build-bookend": "^2.3.1",
     "screwdriver-command-validator": "^1.0.5",
     "screwdriver-config-parser": "^4.5.4",
