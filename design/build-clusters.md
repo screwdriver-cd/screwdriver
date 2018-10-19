@@ -25,50 +25,34 @@ As part of cluster onboarding process for above both options cluster admin shoul
 
 	1. Cluster name - Cluster name provided by the client
 	2. isActive - Cluster status whether its active or inactive. This will be used to route / pause. Initially this will be a manual update of cluster health.
-	3. Authorization (initial phase will support JWT with key and sign options) - Cluster is registered with the publickey and signOptions provided by team managing the cluster.
+	3. Authorization - Authorize using user credentials and queue details.
 	4. SCM Context - git url (github.com or git.ouroath.com). Applicable to only explicit build clusters which are non SD managed.
 	5. SCM Organization - git organizations. Will be used to validate if job has permission to run on build cluster which is requesting. Applicable to only explicit build clusters which are non SD managed.
 	6. Managed by (Screwdriver / External) - Cluster is managed by screwdriver team or external team.  
 
-Multiple build cluster onboarding process doc 
-	TBD
 
 ## Design
 
-Redis queue in buildClusters
-
-![build-clusters-design.png](diagrams/build-clusters-design.png)
+![build-clusters-design-queue.png](diagrams/build-clusters-design-queue.png)
 
 
-### Scheduler service will be responsible 
-	1. identify build cluster and queue information for a build and queue jobs in respective queues.
+### Responsibilities  
+	1. Scheduler service will identify build cluster and queue information for the build.
+	2. Scheduler service will push build job to queue from redis, after successfully validating blockedBy and other checks.
+	3. Build cluster queue worker will consume/poll from its respective queue.
+	4. Queue authorization (acls) will authorize the build cluster queue worker request.
 
-	2. authorize queue worker from build cluster and allow only authorized jobs from queues for respective build cluster.
 
 ### Authentication & Authorization
-Initial phase, we will go with JWT + private and public key authorization. Token expiry will be passed as part of signOption. Periodically cycle private+public key and signOption which has the expiry interval, and this will be a manual step which needs to be co-ordinated between Build cluster admin and Screwdriver team.
+UI, API to Scheduler service - will follow the existing JWT authentication and authorization mechanism. 
 
-UI, API to Scheduler service  - will follow the existing JWT authentication and authorization mechanism.
+Scheduler service to queue - Scheduler service will be authorized with admin privileges to access all queues.  
 
-Queue worker to Scheduler service - Build cluster will pass JWT token encrypted with private key and sign option. Queue worker from build cluster need to identify itself with cluster detail. 
+Build cluster queue worker to queue - build cluster will be registered and authorized to a queue or set of queues. Queue worker from build cluster will connect to queue using authorized user credentials and consume jobs from the queue on successful authorization.   
 
-#### Example: 
 
-1. Queue worker invokes `jobs/:buildCluster` api 
-
-2. Create JWT token with below information and pass it alongwith `jobs/:buildCluster` api header.
-
-    1. Payload: { buildCluster: colo1 }
-    2. Secret: privatekey
-    3. SignOption: algorithm, expiry, etc.
-
-3. Scheduler service 
-    1. gets buildCluster name from the jobs api parameter
-    2. gets respective buildCluster public key based on the buildCluster name from #1 
-    3. Verifies JWT sent by queue worker
-    4. if legit, then decodes the JWT content 
-    5. pulls message from the respective queue
-    6. responds back build info to be processed to queue worker.   
+### Queue setup
+TBD
 
 ### Yaml 
 
@@ -96,10 +80,11 @@ jobs:
     steps:
         - publish: npm publish
     ...
-```   
- 
+```
+
+
 ### New table for build cluster details
-Table: `buildClusters`
+Table: `buildCluster`
 
 Columns:
 
@@ -110,8 +95,6 @@ Columns:
 | `scmOrganizations` | text(500) | yes | no | no | |
 | `scmContext` | text(200) | no | yes | no | |
 | `isActive` | boolean | no | no | no | *0-false or 1-true* |
-| `authKey` | text(100) | no | no | yes | *environment variable name of buildCluster publicKey. Note: every buildCluster publicKey will have unique environment variable name* |
-| `signOption` | text(100) | no | no | yes | *environment variable name of buildCluster signOption. Note: every buildCluster publicKey will have unique environment variable name* |
 | `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external* |
 | `managedByEmail` | text(100) | yes | no | no | cluster admin email for communications |
 
@@ -119,52 +102,59 @@ Unique constraint: `name + isActive`
 
 #### Sample record
 
-| id | name | scmContext | scmOrganizations | isActive | authKey |  signOption | managedBy 
-| --- | --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:git.ouroath.com | null | 0 | *gq1_sdpublickey* | *gq1_sign* | screwdriver
-| 2 | bf1 | github:git.ouroath.com | null | 1 | *bf1_sdpublickey* | *bf1_sign* | screwdriver
-| 3 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 1 | *identity_publickey* | *identity_sign* | external
-| 4 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 0 | *identity_publickey* | *identity_sign* | external
-| 5 | iOS | github:git.ouroath.com | iOS_org1, iOS_org2 | 1 | *iOS_publickey* | *iOS_sign* | external
+| id | name | scmContext | scmOrganizations | isActive | managedBy | managedByEmail 
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | 
+| 1 | gq1 | github:git.ouroath.com | null | 0 | screwdriver | sd@oath.com
+| 2 | bf1 | github:git.ouroath.com | null | 1 | screwdriver | sd@oath.com
+| 3 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 1 | external | identity@oath.com
+| 4 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 0 | external | identity@oath.com
+| 5 | iOS | github:git.ouroath.com | iOS_org1, iOS_org2 | 1 | external | ios@oath.com
 
 ### Cache server to store active *buildClusters* in memory when the service boot up. 
-
-### Queue
-
-Redis queue (Master) - It will hold queues for all build clusters. 
-
-Redis queue (Build Cluster) - It will hold queue for that particular build cluster.
-
 
 ### Below listed apis need to be built to manage the cluster details
 
 | Method | url | Description
 | --- | --- | ---
-| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:git.ouroath.com", "scmOrganizations": "iOS_org1", "isActive":1, "authKey": "iOS_publickey", "signOption": "iOS_sign", "managedBy": "screwdriver" } `
+| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:git.ouroath.com", "scmOrganizations": "iOS_org1", "isActive":1, "managedBy": "screwdriver" } `
 | `GET` | `	/buildClusters ` | ` get list of buildClusters info `
 | `GET` | `	/buildClusters/:name ` | ` get a particular buildCluster info `
 | `DELETE` | ` /buildClusters/:name ` | ` delete buildCluster `
 
 
+### Cluster on-board
+
+1. Build cluster admin requesting access with cluster info and user credentials
+2. buildCluster table populated with cluster info
+3. SD admin to create queue based on #1
+4. SD admin authorize build cluster user and queue 
+
+
 ## Flow
+### SD Validator
+
+	1. SD validator should validate if the annotated buildCluster in yaml is onboarded and active. 
+	
 ### Screwdriver API to Scheduler service
 
 	1. Screwdriver UI / PR commit / Merge triggers new build via Screwdriver API
 	2. Screwdriver API inturn calls Scheduler service with appropriate build details to schedule a job
 	3. Authentication via JWT token (refer Authorization section)
-	4. Scheduler service queries `buildClusters` table for active records with cluster name from build info and validate if job can be scheduled in apropriate buildCluster queue
+	4. Scheduler service queries `buildClusters` cache for active records with cluster name from build info and validate if job can be scheduled in appropriate buildCluster queue
 	5. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
 	6. no records, then query `clusters` table for active records with managedBy=screwdriver
 	7. repeat step #4
-	8. Update build info with cluster details
+	8. Update build info with cluster and queue details
 
 ### Queue worker to Scheduler service  
     
-    1. Queue worker will poll from Scheduler service periodically to get new build jobs from Redis queue (master)
-    2. Authentication via JWT token (refer Authorization section) 
-    3. Scheduler service will push build jobs from Redis queue (master) which are not blocked by other jobs  
-    4. Queue worker will push build jobs to Redis queue (internal to build cluster)
-    5. For any failures till #3, build jobs will not be removed from Redis queue (master)
-    6. On success of #3, build jobs will be removed from Redis queue (master)
-    7. Queue worker will poll Redis queue (internal to build cluster) and push to Kubernetes
-    8. Failures will be handled as its handled now     
+	1. Build cluster queue worker will consume/poll jobs from queue. 
+	2(a). On successful authorization, job will be consumed. 
+	2(b). On authorization failures, queue will reject consume/poll request.
+	3. Jobs will be processed in build cluster.
+	3(a). On successful acknowledgement in build cluster, offset will be committed and step #1 will be repeated.
+	3(b). On acknowledgement failures in build cluster, process will be retried for specific # of times before giving up and Offset will be committed and step #1 will be repeated.
+
+	note: in future, 3(b) will be changed to implement failure queues and process messages from failure queues
+
+	
