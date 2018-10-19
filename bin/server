@@ -45,7 +45,7 @@ const artifact = new ArtifactPlugin(ecosystem.store);
 
 // Build cache plugin
 const CachePlugin = require('screwdriver-cache-bookend');
-const cache = new CachePlugin(ecosystem.api);
+const cache = new CachePlugin();
 
 // Plugin to upload coverage
 const coverageConfig = config.get('coverage');
