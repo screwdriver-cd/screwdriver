@@ -52,6 +52,7 @@ describe('auth plugin test', () => {
     const cookiePassword = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
     const hashingPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
+    const oauthRedirectUri = 'https://myhost.com/api';
 
     beforeEach((done) => {
         scm = {
@@ -112,7 +113,8 @@ describe('auth plugin test', () => {
                 jwtPrivateKey,
                 jwtPublicKey,
                 allowGuestAccess: true,
-                https: false
+                https: false,
+                oauthRedirectUri
             }
         }, done);
     });

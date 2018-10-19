@@ -2,7 +2,6 @@
 
 const Assert = require('chai').assert;
 const github = require('../support/github');
-const request = require('../support/request');
 const sdapi = require('../support/sdapi');
 const { defineSupportCode } = require('cucumber');
 
@@ -67,17 +66,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     }, function step(branch) {
         return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(this.gitToken, branch, this.repoOrg, this.repoName))
-            .then(() => this.promiseToWait(5))
-            .then(() => request({
-                json: true,
-                method: 'GET',
-                uri: `${this.instance}/v4/pipelines/${this.pipelineId}`,
-                auth: {
-                    bearer: this.jwt
-                }
-            }))
-            .then((response) => {
-                this.eventId = response.body.lastEventId;
+            .then((data) => {
+                this.sha = data.commit.sha;
             });
     });
 
@@ -89,19 +79,19 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     Then(/^the "(.*)" job is triggered$/, {
         timeout: TIMEOUT
     }, function step(jobName) {
-        return sdapi.findEventBuilds({
+        return sdapi.searchForBuild({
             instance: this.instance,
-            eventId: this.eventId,
+            pipelineId: this.pipelineId,
+            desiredSha: this.sha,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
-            })
-            .then(() => {
+            .then((build) => {
+                this.eventId = build.eventId;
                 const job = this.jobs.find(j => j.name === jobName);
-                const build = this.builds.find(b => b.jobId === job.id);
 
-                Assert.ok(build, 'Expected job was not triggered.');
+                Assert.equal(build.jobId, job.id);
 
                 this.buildId = build.id;
             });
@@ -115,10 +105,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
-            })
-            .then(() => {
+            .then((builds) => {
+                this.builds = builds;
                 const parentJob = this.jobs.find(j => j.name === parentJobName);
                 const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
                 const triggeredJob = this.jobs.find(j => j.name === triggeredJobName);
@@ -138,8 +126,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
+            .then((builds) => {
+                this.builds = builds;
                 const joinJob = this.jobs.find(j => j.name === joinJobName);
                 const joinBuild = this.builds.find(b => b.jobId === joinJob.id);
 
@@ -160,10 +148,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             eventId: this.eventId,
             jwt: this.jwt
         })
-            .then((response) => {
-                this.builds = response.body;
-            })
-            .then(() => {
+            .then((builds) => {
+                this.builds = builds;
                 const job = this.jobs.find(j => j.name === jobName);
                 const build = this.builds.find(b => b.jobId === job.id);
 
@@ -174,12 +160,25 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     Then(/^that "(.*)" build uses the same SHA as the "(.*)" build$/, {
         timeout: TIMEOUT
     }, function step(jobName1, jobName2) {
-        const job1 = this.jobs.find(j => j.name === jobName1);
-        const job2 = this.jobs.find(j => j.name === jobName2);
-        const build1 = this.builds.find(b => b.jobId === job1.id);
-        const build2 = this.builds.find(b => b.jobId === job2.id);
-
-        Assert.equal(build1.sha, build2.sha);
+        return Promise.all([
+            sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: jobName1,
+                jwt: this.jwt
+            }),
+            sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: jobName2,
+                jwt: this.jwt
+            })
+        ])
+            .then(([build1, build2]) => Assert.equal(build1.sha, build2.sha));
     });
 
     Then(/^the "(.*)" build succeeded$/, {
