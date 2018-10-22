@@ -103,12 +103,12 @@ Unique constraint: `name + isActive`
 #### Sample record
 
 | id | name | scmContext | scmOrganizations | isActive | managedBy | managedByEmail 
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:git.ouroath.com | null | 0 | screwdriver | sd@oath.com
-| 2 | bf1 | github:git.ouroath.com | null | 1 | screwdriver | sd@oath.com
-| 3 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 1 | external | identity@oath.com
-| 4 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 0 | external | identity@oath.com
-| 5 | iOS | github:git.ouroath.com | iOS_org1, iOS_org2 | 1 | external | ios@oath.com
+| --- | --- | --- | --- | --- | --- | --- | 
+| 1 | gq1 | github:git.ouroath.com | null | 0 | screwdriver | sd@oath.com |
+| 2 | bf1 | github:git.ouroath.com | null | 1 | screwdriver | sd@oath.com |
+| 3 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 1 | external | identity@oath.com |
+| 4 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 0 | external | identity@oath.com |
+| 5 | iOS | github:git.ouroath.com | iOS_org1, iOS_org2 | 1 | external | ios@oath.com |
 
 ### Cache server to store active *buildClusters* in memory when the service boot up. 
 
