@@ -36,17 +36,16 @@ As part of cluster onboarding process for above both options cluster admin shoul
 ![build-clusters-design-queue.png](diagrams/build-clusters-design-queue.png)
 
 
-### Responsibilities  
-	1. Scheduler service will identify build cluster and queue information for the build.
-	2. Scheduler service will push build job to queue from redis, after successfully validating blockedBy and other checks.
+### Responsibilities
+	1. No change in current API to Redis implemention  
+	2. Master queue worker will push build job to queue from redis, after successfully validating blockedBy and other checks.
 	3. Build cluster queue worker will consume/poll from its respective queue.
 	4. Queue authorization (acls) will authorize the build cluster queue worker request.
 
 
 ### Authentication & Authorization
-UI, API to Scheduler service - will follow the existing JWT authentication and authorization mechanism. 
 
-Scheduler service to queue - Scheduler service will be authorized with admin privileges to access all queues.  
+Master queue worker to queue - Master queue worker will be authorized with admin privileges to access all queues.  
 
 Build cluster queue worker to queue - build cluster will be registered and authorized to a queue or set of queues. Queue worker from build cluster will connect to queue using authorized user credentials and consume jobs from the queue on successful authorization.   
 
@@ -84,6 +83,7 @@ jobs:
 
 
 ### New table for build cluster details
+
 Table: `buildCluster`
 
 Columns:
@@ -135,18 +135,20 @@ Unique constraint: `name + isActive`
 
 	1. SD validator should validate if the annotated buildCluster in yaml is onboarded and active. 
 	
-### Screwdriver API to Scheduler service
+### API to Redis
 
-	1. Screwdriver UI / PR commit / Merge triggers new build via Screwdriver API
-	2. Screwdriver API inturn calls Scheduler service with appropriate build details to schedule a job
-	3. Authentication via JWT token (refer Authorization section)
-	4. Scheduler service queries `buildClusters` cache for active records with cluster name from build info and validate if job can be scheduled in appropriate buildCluster queue
-	5. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
-	6. no records, then query `clusters` table for active records with managedBy=screwdriver
-	7. repeat step #4
-	8. Update build info with cluster and queue details
+	1. No change in existing implementation.
 
-### Queue worker to Scheduler service  
+### Master queue worker to Queue 
+
+	1. Master queue worker queries `buildClusters` cache for active records with cluster name from build info 
+	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access and validate if blockedBy and other checks are success. 
+	3. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
+	4. no records, then query `clusters` table for active records with managedBy=screwdriver
+	5. repeat step #3
+	6. Update build info with cluster and queue details
+
+### Build cluster Queue worker   
     
 	1. Build cluster queue worker will consume/poll jobs from queue. 
 	2(a). On successful authorization, job will be consumed. 
@@ -156,5 +158,6 @@ Unique constraint: `name + isActive`
 	3(b). On acknowledgement failures in build cluster, process will be retried for specific # of times before giving up and Offset will be committed and step #1 will be repeated.
 
 	note: in future, 3(b) will be changed to implement failure queues and process messages from failure queues
+
 
 	
