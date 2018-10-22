@@ -94,7 +94,7 @@ Columns:
 | `name` | text (100) | no | no | yes | |
 | `scmOrganizations` | text(500) | yes | no | no | |
 | `scmContext` | text(200) | no | yes | no | |
-| `isActive` | boolean | no | no | no | *0-false or 1-true* |
+| `isActive` | boolean | no | no | no | *false or true* |
 | `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external* |
 | `managedByEmail` | text(100) | yes | no | no | cluster admin email for communications |
 
@@ -104,11 +104,11 @@ Unique constraint: `name + isActive`
 
 | id | name | scmContext | scmOrganizations | isActive | managedBy | managedByEmail 
 | --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:git.ouroath.com | null | 0 | screwdriver | sd@oath.com |
-| 2 | bf1 | github:git.ouroath.com | null | 1 | screwdriver | sd@oath.com |
-| 3 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 1 | external | identity@oath.com |
-| 4 | identity | github:git.ouroath.com | identity_org1, identity_org2 | 0 | external | identity@oath.com |
-| 5 | iOS | github:git.ouroath.com | iOS_org1, iOS_org2 | 1 | external | ios@oath.com |
+| 1 | gq1 | github:git.ouroath.com | null | true | screwdriver | sd@oath.com |
+| 2 | bf1 | github:git.ouroath.com | null | false | screwdriver | sd@oath.com |
+| 3 | identity | github:git.ouroath.com | [identity_org1, identity_org2] | false | external | identity@oath.com |
+| 4 | identity | github:git.ouroath.com | [identity_org1, identity_org2] | true | external | identity@oath.com |
+| 5 | iOS | github:git.ouroath.com | [iOS_org1, iOS_org2] | true | external | ios@oath.com |
 
 ### Cache server to store active *buildClusters* in memory when the service boot up. 
 
@@ -139,14 +139,18 @@ Unique constraint: `name + isActive`
 
 	1. No change in existing implementation.
 
-### Master queue worker to Queue 
+### Model
 
-	1. Master queue worker queries `buildClusters` cache for active records with cluster name from build info 
-	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access and validate if blockedBy and other checks are success. 
+	1. Query `buildClusters` cache for active records with cluster name from build info 
+	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access. 
 	3. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
 	4. no records, then query `clusters` table for active records with managedBy=screwdriver
 	5. repeat step #3
 	6. Update build info with cluster and queue details
+
+### Master queue worker to Queue 
+
+	1. Poll build job from Redis, Validate blockedBy and other checks are successful and push the build to appropriate queue as specified in build message.
 
 ### Build cluster Queue worker   
     
