@@ -116,7 +116,7 @@ Unique constraint: `name + isActive`
 
 | Method | url | Description
 | --- | --- | ---
-| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:git.ouroath.com", "scmOrganizations": "iOS_org1", "isActive":1, "managedBy": "screwdriver" } `
+| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:git.ouroath.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "managedBy": "screwdriver" } `
 | `GET` | `	/buildClusters ` | ` get list of buildClusters info `
 | `GET` | `	/buildClusters/:name ` | ` get a particular buildCluster info `
 | `DELETE` | ` /buildClusters/:name ` | ` delete buildCluster `
