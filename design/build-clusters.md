@@ -104,11 +104,9 @@ Unique constraint: `name`
 
 | id | name | scmContext | scmOrganizations | isActive | managedBy | managedByEmail 
 | --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:github.com | null | true | screwdriver | sd@oath.com |
-| 2 | bf1 | github:github.com | null | false | screwdriver | sd@oath.com |
-| 3 | identity | github:github.com | [identity_org1, identity_org2] | false | external | identity@oath.com |
-| 4 | identity | github:github.com | [identity_org1, identity_org2] | true | external | identity@oath.com |
-| 5 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | external | ios@oath.com |
+| 1 | gq1 | github:github.com | null | true | screwdriver | sd@foo.com |
+| 2 | bf1 | github:github.com | null | false | screwdriver | sd@foo.com |
+| 3 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | external | ios@foo.com |
 
 ### Below listed apis need to be built to manage the cluster details
 
