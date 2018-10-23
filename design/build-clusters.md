@@ -26,7 +26,7 @@ As part of cluster onboarding process for above both options cluster admin shoul
 	1. Cluster name - Cluster name provided by the client
 	2. isActive - Cluster status whether its active or inactive. This will be used to route / pause. Initially this will be a manual update of cluster health.
 	3. Authorization - Authorize using user credentials and queue details.
-	4. SCM Context - git url (github.com or git.ouroath.com). Applicable to only explicit build clusters which are non SD managed.
+	4. SCM Context - git url (github.com). Applicable to only explicit build clusters which are non SD managed.
 	5. SCM Organization - git organizations. Will be used to validate if job has permission to run on build cluster which is requesting. Applicable to only explicit build clusters which are non SD managed.
 	6. Managed by (Screwdriver / External) - Cluster is managed by screwdriver team or external team.  
 
@@ -114,7 +114,7 @@ Unique constraint: `name`
 
 | Method | url | Description
 | --- | --- | ---
-| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:git.ouroath.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "managedBy": "screwdriver" } `
+| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:github.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "managedBy": "screwdriver" } `
 | `GET` | `	/buildClusters ` | ` get list of buildClusters info `
 | `GET` | `	/buildClusters/:name ` | ` get a particular buildCluster info `
 | `DELETE` | ` /buildClusters/:name ` | ` delete buildCluster `
