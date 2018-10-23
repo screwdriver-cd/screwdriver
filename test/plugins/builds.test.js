@@ -381,6 +381,7 @@ describe('build plugin test', () => {
                     buildId: 12345,
                     buildLink: 'http://foo.bar/pipelines/123/builds/12345',
                     jobName: 'main',
+                    event: eventMock,
                     pipelineName: 'screwdriver-cd/screwdriver',
                     settings: {
                         email: 'foo@bar.com'

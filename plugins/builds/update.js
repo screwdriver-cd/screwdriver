@@ -124,10 +124,11 @@ module.exports = () => ({
 
                     // Only trigger next build on success
                     return Promise.all([build.update(), event.update()]);
-                }).then(([build]) => build.job.then(job => job.pipeline.then((pipeline) => {
+                }).then(([build, event]) => build.job.then(job => job.pipeline.then((pipeline) => {
                     request.server.emit('build_status', {
                         settings: job.permutations[0].settings,
                         status: build.status,
+                        event,
                         pipelineName: pipeline.scmRepo.name,
                         jobName: job.name,
                         buildId: build.id,
