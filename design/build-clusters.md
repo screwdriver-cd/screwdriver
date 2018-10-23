@@ -98,19 +98,17 @@ Columns:
 | `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external* |
 | `managedByEmail` | text(100) | yes | no | no | cluster admin email for communications |
 
-Unique constraint: `name + isActive` 
+Unique constraint: `name` 
 
 #### Sample record
 
 | id | name | scmContext | scmOrganizations | isActive | managedBy | managedByEmail 
 | --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:git.ouroath.com | null | true | screwdriver | sd@oath.com |
-| 2 | bf1 | github:git.ouroath.com | null | false | screwdriver | sd@oath.com |
-| 3 | identity | github:git.ouroath.com | [identity_org1, identity_org2] | false | external | identity@oath.com |
-| 4 | identity | github:git.ouroath.com | [identity_org1, identity_org2] | true | external | identity@oath.com |
-| 5 | iOS | github:git.ouroath.com | [iOS_org1, iOS_org2] | true | external | ios@oath.com |
-
-### Cache server to store active *buildClusters* in memory when the service boot up. 
+| 1 | gq1 | github:github.com | null | true | screwdriver | sd@oath.com |
+| 2 | bf1 | github:github.com | null | false | screwdriver | sd@oath.com |
+| 3 | identity | github:github.com | [identity_org1, identity_org2] | false | external | identity@oath.com |
+| 4 | identity | github:github.com | [identity_org1, identity_org2] | true | external | identity@oath.com |
+| 5 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | external | ios@oath.com |
 
 ### Below listed apis need to be built to manage the cluster details
 
@@ -125,7 +123,7 @@ Unique constraint: `name + isActive`
 ### Cluster on-board
 
 1. Build cluster admin requesting access with cluster info and user credentials
-2. buildCluster table populated with cluster info
+2. SD admin to populate buildCluster table with cluster info 
 3. SD admin to create queue based on #1
 4. SD admin authorize build cluster user and queue 
 
@@ -141,7 +139,7 @@ Unique constraint: `name + isActive`
 
 ### Model
 
-	1. Query `buildClusters` cache for active records with cluster name from build info 
+	1. Query `buildClusters` table for active records with cluster name from build info 
 	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access. 
 	3. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
 	4. no records, then query `clusters` table for active records with managedBy=screwdriver
