@@ -26,9 +26,9 @@ As part of cluster onboarding process for above both options cluster admin shoul
 	1. Cluster name - Cluster name provided by the client
 	2. isActive - Cluster status whether its active or inactive. This will be used to route / pause. Initially this will be a manual update of cluster health.
 	3. Authorization - Authorize using user credentials and queue details.
-	4. SCM Context - git url (github.com). Applicable to only explicit build clusters which are non SD managed.
-	5. SCM Organization - git organizations. Will be used to validate if job has permission to run on build cluster which is requesting. Applicable to only explicit build clusters which are non SD managed.
-	6. Managed by (Screwdriver / External) - Cluster is managed by screwdriver team or external team.  
+	4. SCM Context - git url (github.com). Applicable to only explicit build clusters which are non SD maintained.
+	5. SCM Organization - git organizations. Will be used to validate if job has permission to run on build cluster which is requesting. Applicable to only explicit build clusters which are non SD maintained.
+	6. defaultCluster (true / false) - if true Cluster is maintained by screwdriver team, false cluster is maintained by external team.  
 
 
 ## Design
@@ -95,24 +95,24 @@ Columns:
 | `scmOrganizations` | text(500) | yes | no | no | |
 | `scmContext` | text(200) | no | yes | no | |
 | `isActive` | boolean | no | no | no | *false or true* |
-| `managedBy` | text(50) | no | no | no | cluster managed by *screwdriver or external* |
-| `managedByEmail` | text(100) | yes | no | no | cluster admin email for communications |
+| `defaultCluster` | boolean | no | no | no | *true - cluster maintained by screwdriver team, false - cluster maintained by  external team * |
+| `maintainer` | text(100) | yes | no | no | cluster admin email for communications |
 
 Unique constraint: `name` 
 
 #### Sample record
 
-| id | name | scmContext | scmOrganizations | isActive | managedBy | managedByEmail 
+| id | name | scmContext | scmOrganizations | isActive | defaultCluster | maintainer 
 | --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:github.com | null | true | screwdriver | sd@foo.com |
-| 2 | bf1 | github:github.com | null | false | screwdriver | sd@foo.com |
-| 3 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | external | ios@foo.com |
+| 1 | gq1 | github:github.com | null | true | true | sd@foo.com |
+| 2 | bf1 | github:github.com | null | false | true | sd@foo.com |
+| 3 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | false | ios@foo.com |
 
 ### Below listed apis need to be built to manage the cluster details
 
 | Method | url | Description
 | --- | --- | ---
-| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:github.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "managedBy": "screwdriver" } `
+| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:github.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "defaultCluster": true } `
 | `GET` | `	/buildClusters ` | ` get list of buildClusters info `
 | `GET` | `	/buildClusters/:name ` | ` get a particular buildCluster info `
 | `DELETE` | ` /buildClusters/:name ` | ` delete buildCluster `
@@ -140,7 +140,7 @@ Unique constraint: `name`
 	1. Query `buildClusters` table for active records with cluster name from build info 
 	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access. 
 	3. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
-	4. no records, then query `clusters` table for active records with managedBy=screwdriver
+	4. no records, then query `clusters` table for active records with defaultCluster=true
 	5. repeat step #3
 	6. Update build info with cluster and queue details
 
