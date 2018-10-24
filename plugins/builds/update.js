@@ -129,9 +129,9 @@ module.exports = () => ({
                         settings: job.permutations[0].settings,
                         status: build.status,
                         event,
-                        pipelineName: pipeline.scmRepo.name,
+                        pipeline,
                         jobName: job.name,
-                        buildId: build.id,
+                        build,
                         buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                     });

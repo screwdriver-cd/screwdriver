@@ -378,11 +378,11 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.calledWith(server.emit, 'build_status', {
-                    buildId: 12345,
+                    build: buildMock,
                     buildLink: 'http://foo.bar/pipelines/123/builds/12345',
                     jobName: 'main',
                     event: eventMock,
-                    pipelineName: 'screwdriver-cd/screwdriver',
+                    pipeline: pipelineMock,
                     settings: {
                         email: 'foo@bar.com'
                     },
