@@ -103,7 +103,7 @@ function findEventBuilds(config) {
             return result;
         }
 
-        return promiseToWait(3).then(() => findEventBuilds(config));
+        return promiseToWait(5).then(() => findEventBuilds(config));
     });
 }
 
@@ -154,7 +154,7 @@ function searchForBuild(config) {
             return result[0];
         }
 
-        return promiseToWait(3).then(() => searchForBuild(config));
+        return promiseToWait(5).then(() => searchForBuild(config));
     });
 }
 
@@ -189,7 +189,7 @@ function waitForBuildStatus(config) {
             return buildData;
         }
 
-        return promiseToWait(3).then(() => waitForBuildStatus(config));
+        return promiseToWait(5).then(() => waitForBuildStatus(config));
     });
 }
 
