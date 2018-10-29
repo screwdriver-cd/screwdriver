@@ -97,16 +97,18 @@ Columns:
 | `isActive` | boolean | no | no | no | *false or true* |
 | `defaultCluster` | boolean | no | no | no | *true - cluster maintained by screwdriver team, false - cluster maintained by  external team * |
 | `maintainer` | text(100) | yes | no | no | cluster admin email for communications |
+| `weightage`| smallint | yes | no | no | weighted percentage to route jobs; applicable only to screwdriver cluster; default 100
+
 
 Unique constraint: `name` 
 
 #### Sample record
 
-| id | name | scmContext | scmOrganizations | isActive | defaultCluster | maintainer 
-| --- | --- | --- | --- | --- | --- | --- | 
-| 1 | gq1 | github:github.com | null | true | true | sd@foo.com |
-| 2 | bf1 | github:github.com | null | false | true | sd@foo.com |
-| 3 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | false | ios@foo.com |
+| id | name | scmContext | scmOrganizations | isActive | defaultCluster | maintainer | weightage
+| --- | --- | --- | --- | --- | --- | --- | ---
+| 1 | gq1 | github:github.com | null | true | true | sd@foo.com | 70
+| 2 | bf1 | github:github.com | null | false | true | sd@foo.com | 30
+| 3 | iOS | github:github.com | [iOS_org1, iOS_org2] | true | false | ios@foo.com | 100
 
 ### Below listed apis need to be built to manage the cluster details
 
@@ -139,7 +141,7 @@ Unique constraint: `name`
 
 	1. Query `buildClusters` table for active records with cluster name from build info 
 	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access. 
-	3. one (or) more record exist, then assign job to the queue identified by generating a random number within given boundaries, which is the returned list size of records
+	3. one (or) more record exist, then assign job to the queue based on the weighted percentage of cluster
 	4. no records, then query `clusters` table for active records with defaultCluster=true
 	5. repeat step #3
 	6. Update build info with cluster and queue details
