@@ -227,7 +227,7 @@ async function pullRequestOpened(options, request, reply) {
 
             return reply().code(201);
         })
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -269,7 +269,7 @@ async function pullRequestClosed(options, request, reply) {
             return Promise.all(prJobs.map(j => updatePRJobs(j)));
         })
         .then(() => reply().code(200))
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -317,7 +317,7 @@ async function pullRequestSync(options, request, reply) {
 
             return reply().code(201);
         })
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -430,7 +430,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                     }
                 });
         })
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -540,7 +540,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 
             return reply().code(201);
         })
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -620,7 +620,7 @@ exports.register = (server, options, next) => {
                             return pushEvent(pluginOptions, request, reply, parsed);
                         });
                 })
-                    .catch(err => reply(boom.wrap(err)));
+                    .catch(err => reply(boom.boomify(err)));
             } }
     });
 

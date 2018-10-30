@@ -65,7 +65,7 @@ module.exports = () => ({
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
                 .then(allPipelines => reply(allPipelines.map(p => p.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

@@ -36,7 +36,7 @@ module.exports = () => ({
                         .then(() => token.refresh())
                         .then(() => reply(token.toJson()).code(200));
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

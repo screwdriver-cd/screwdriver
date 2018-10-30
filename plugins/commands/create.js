@@ -197,7 +197,7 @@ module.exports = () => ({
                     });
 
                     return reply(command.toJson()).header('Location', location).code(201);
-                }).catch(err => reply(boom.wrap(err)));
+                }).catch(err => reply(boom.boomify(err)));
         }
     }
 });

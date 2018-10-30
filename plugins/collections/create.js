@@ -71,7 +71,7 @@ module.exports = () => ({
                     return reply(collection.toJson()).header('Location', location).code(201);
                 })
                 // something broke, respond with error
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: schema.models.collection.create

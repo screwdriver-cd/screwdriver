@@ -71,7 +71,7 @@ module.exports = () => ({
                     .then(() => pipeline.remove())
                     .then(() => reply().code(204));
             })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

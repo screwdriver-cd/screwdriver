@@ -57,7 +57,7 @@ module.exports = () => ({
                 );
 
                 return reply({ token });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: schema.api.auth.token

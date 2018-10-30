@@ -70,7 +70,7 @@ module.exports = () => ({
 
                         return reply(newTag.toJson()).header('Location', location).code(201);
                     });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

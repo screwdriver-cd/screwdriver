@@ -53,7 +53,7 @@ module.exports = () => ({
                     .then(() => pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`))
                     .then(() => reply().code(204));
             })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
