@@ -7,13 +7,14 @@ const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
 const testBuildCluster = require('./data/buildCluster.json');
+const testBuildClusters = require('./data/buildClusters.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
 const decorateBuildClusterObject = (buildCluster) => {
     const decorated = hoek.clone(buildCluster);
 
-    decorated.update = sinon.stub();
+    decorated.remove = sinon.stub().resolves({});
     decorated.toJson = sinon.stub().returns(buildCluster);
 
     return decorated;
@@ -27,7 +28,20 @@ const getMockBuildClusters = (buildClusters) => {
     return decorateBuildClusterObject(buildClusters);
 };
 
+const getUserMock = (user) => {
+    const mock = hoek.clone(user);
+
+    mock.getPermissions = sinon.stub();
+    mock.toJson = sinon.stub().returns(user);
+
+    return mock;
+};
+
 describe.only('buildCluster plugin test', () => {
+    const username = 'myself';
+    const scmContext = 'github:github.com';
+    const buildClusterId = 12345;
+
     let buildClusterFactoryMock;
     let userFactoryMock;
     let bannerMock;
@@ -45,7 +59,7 @@ describe.only('buildCluster plugin test', () => {
 
     beforeEach((done) => {
         buildClusterFactoryMock = {
-            get: sinon.stub(),
+            remove: sinon.stub(),
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
@@ -132,13 +146,46 @@ describe.only('buildCluster plugin test', () => {
         assert.isOk(server.registrations.buildClusters);
     });
 
+    describe('GET /buildclusters', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/buildclusters',
+                credentials: {
+                    scope: ['user'],
+                    username,
+                    scmContext
+                }
+            };
+        });
+
+        it('returns 200 and all build clusters', () => {
+            buildClusterFactoryMock.list.resolves(getMockBuildClusters(testBuildClusters));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuildClusters);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            buildClusterFactoryMock.list.rejects(new Error('fail'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('GET /buildclusters/{name}', () => {
         const name = 'iOS';
 
         it('returns 200 for a build cluster that exists', () => {
             const buildClusterMock = getMockBuildClusters(testBuildCluster);
 
-            buildClusterFactoryMock.get.withArgs({ name }).resolves(buildClusterMock);
+            buildClusterFactoryMock.list.withArgs({ params: { name } }).resolves(buildClusterMock);
 
             return server.inject(`/buildclusters/${name}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -147,7 +194,7 @@ describe.only('buildCluster plugin test', () => {
         });
 
         it('returns 404 when build does not exist', () => {
-            buildClusterFactoryMock.get.withArgs({ name }).resolves(null);
+            buildClusterFactoryMock.list.withArgs({ params: { name } }).resolves(null);
 
             return server.inject(`/buildclusters/${name}`).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -155,7 +202,7 @@ describe.only('buildCluster plugin test', () => {
         });
 
         it('returns 500 when datastore returns an error', () => {
-            buildClusterFactoryMock.get.withArgs({ name }).rejects(new Error('blah'));
+            buildClusterFactoryMock.list.withArgs({ params: { name } }).rejects(new Error('blah'));
 
             return server.inject(`/buildclusters/${name}`).then((reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -164,9 +211,6 @@ describe.only('buildCluster plugin test', () => {
     });
 
     describe('POST /buildclusters', () => {
-        const username = 'myself';
-        const scmContext = 'github:github.com';
-        const buildClusterId = 12345;
         const internalPayload = {
             name: 'k8s',
             description: 'Screwdriver build cluster using k8s',
@@ -342,6 +386,79 @@ describe.only('buildCluster plugin test', () => {
             options.payload = internalPayload;
             params = internalParams;
             buildClusterFactoryMock.create.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe.only('DELETE /buildclusters/{name}', () => {
+        const name = 'iOS';
+        let options;
+        let buildClusterMock;
+        let userMock;
+
+        beforeEach(() => {
+            buildClusterMock = getMockBuildClusters(testBuildCluster);
+
+            options = {
+                method: 'DELETE',
+                url: `/buildclusters/${name}`,
+                credentials: {
+                    scope: ['user'],
+                    username,
+                    scmContext
+                }
+            };
+            userMock = {
+                username,
+                unsealToken: sinon.stub()
+            };
+            userFactoryMock.get.resolves(userMock);
+            buildClusterFactoryMock.list.resolves(buildClusterMock);
+            buildClusterMock.remove.resolves({});
+        });
+
+        it('returns 204 when delete is successful', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(buildClusterMock.remove);
+            })
+        );
+
+        it('returns 401 when user does not have permission', () => {
+            const fakeUserId = 12;
+            const fakeUserMock = getUserMock({
+                username,
+                userId: fakeUserId
+            });
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+            });
+        });
+
+        it('returns 404 when collection does not exist', () => {
+            buildClusterFactoryMock.list.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when call returns error', () => {
+            buildClusterFactoryMock.remove.rejects('collectionRemoveError');
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
