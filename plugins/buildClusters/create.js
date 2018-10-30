@@ -69,9 +69,9 @@ module.exports = () => ({
             }
             // Must have admin permission on org if adding org-specific build cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return reply(boom.badData(
+                return reply(boom.wrap(boom.badData(
                     `No scmOrganizations provided for build cluster ${payload.name}.`
-                ));
+                )));
             }
 
             return userFactory.get({ username, scmContext })
