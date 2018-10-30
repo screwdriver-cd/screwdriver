@@ -25,7 +25,7 @@ module.exports = () => ({
 
                     return reply(banner.toJson());
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: getSchema

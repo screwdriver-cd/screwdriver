@@ -186,7 +186,7 @@ module.exports = () => ({
 
                     return reply(event.toJson()).header('Location', location).code(201);
                 });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: validationSchema.models.event.create

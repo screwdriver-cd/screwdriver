@@ -80,7 +80,7 @@ module.exports = () => ({
                         });
                 })
                 .then(updatedStep => reply(updatedStep).code(200))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: schema.models.build.getStep

@@ -65,7 +65,7 @@ module.exports = () => ({
                             causeMessage: `Started by ${username}`
                         }))))
                 .then(() => reply().code(201))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

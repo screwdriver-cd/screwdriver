@@ -77,7 +77,7 @@ module.exports = () => ({
 
                     return reply(templates.map(p => p.toJson()));
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: joi.alternatives().try(listSchema, namespacesSchema)

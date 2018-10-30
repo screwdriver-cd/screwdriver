@@ -126,7 +126,7 @@ function addOAuthRoutes(server, config) {
 
                         return reply().redirect('/v4/auth/token');
                     })
-                    .catch(err => reply(boom.wrap(err)));
+                    .catch(err => reply(boom.boomify(err)));
             }
         }
     }));

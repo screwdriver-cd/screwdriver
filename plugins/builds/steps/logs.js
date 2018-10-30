@@ -206,7 +206,7 @@ module.exports = config => ({
                         .then(([lines, morePages]) => reply(lines)
                             .header('X-More-Data', (morePages || !isDone).toString()));
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: schema.api.loglines.output

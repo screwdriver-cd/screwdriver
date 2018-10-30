@@ -42,7 +42,7 @@ module.exports = () => ({
 
             return factory.list(config)
                 .then(tags => reply(tags.map(p => p.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

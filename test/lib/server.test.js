@@ -157,7 +157,7 @@ describe('server case', () => {
                     method: 'GET',
                     path: '/noStack',
                     handler: (request, reply) => {
-                        const response = boom.wrap(new Error('whatStackTrace'));
+                        const response = boom.boomify(new Error('whatStackTrace'));
 
                         delete response.stack;
 
@@ -169,7 +169,7 @@ describe('server case', () => {
                     method: 'GET',
                     path: '/noWithResponse',
                     handler: (request, reply) => {
-                        const response = boom.wrap(boom.conflict('conflict', { conflictOn: 1 }));
+                        const response = boom.boomify(boom.conflict('conflict', { conflictOn: 1 }));
 
                         return reply(response);
                     }

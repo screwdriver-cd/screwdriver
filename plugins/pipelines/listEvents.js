@@ -43,7 +43,7 @@ module.exports = () => ({
                     return pipeline.getEvents(config);
                 })
                 .then(events => reply(events.map(e => e.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema
