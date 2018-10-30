@@ -6,6 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
+const testBuildCluster = require('./data/buildCluster.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -129,6 +130,37 @@ describe.only('buildCluster plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.buildClusters);
+    });
+
+    describe('GET /buildclusters/{name}', () => {
+        const name = 'iOS';
+
+        it('returns 200 for a build cluster that exists', () => {
+            const buildClusterMock = getMockBuildClusters(testBuildCluster);
+
+            buildClusterFactoryMock.get.withArgs({ name }).resolves(buildClusterMock);
+
+            return server.inject(`/buildclusters/${name}`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuildCluster);
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildClusterFactoryMock.get.withArgs({ name }).resolves(null);
+
+            return server.inject(`/buildclusters/${name}`).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildClusterFactoryMock.get.withArgs({ name }).rejects(new Error('blah'));
+
+            return server.inject(`/buildclusters/${name}`).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('POST /buildclusters', () => {
