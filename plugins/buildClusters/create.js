@@ -1,0 +1,116 @@
+'use strict';
+
+const boom = require('boom');
+const urlLib = require('url');
+const validationSchema = require('screwdriver-data-schema');
+
+module.exports = () => ({
+    method: 'POST',
+    path: '/buildclusters',
+    config: {
+        description: 'Create a build cluster',
+        notes: 'Create a specific build cluster',
+        tags: ['api', 'buildclusters'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
+        handler: (request, reply) => {
+            const buildClusterFactory = request.server.app.buildClusterFactory;
+            const userFactory = request.server.app.userFactory;
+            const scm = buildClusterFactory.scm;
+            const username = request.auth.credentials.username;
+            const scmContext = request.auth.credentials.scmContext;
+            const scmOrganizations = request.payload.scmOrganizations;
+            const payload = {
+                name: request.payload.name,
+                scmOrganizations,
+                managedByScrewdriver: request.payload.managedByScrewdriver,
+                maintainer: request.payload.maintainer,
+                description: request.payload.description,
+                isActive: request.payload.isActive,
+                weightage: request.payload.weightage,
+                scmContext
+            };
+
+            // Check permissions
+            // Must be Screwdriver admin to add Screwdriver build cluster
+            if (payload.managedByScrewdriver) {
+                const adminDetails = request.server.plugins.banners
+                    .screwdriverAdminDetails(username, scmContext);
+
+                if (!adminDetails.isAdmin) {
+                    return reply(boom.forbidden(
+                        `User ${adminDetails.userDisplayName}
+                        does not have Screwdriver administrative privileges.`
+                    ));
+                }
+
+                return buildClusterFactory.create(payload)
+                    .then((buildCluster) => {
+                        // everything succeeded, inform the user
+                        const location = urlLib.format({
+                            host: request.headers.host,
+                            port: request.headers.port,
+                            protocol: request.server.info.protocol,
+                            pathname: `${request.path}/${buildCluster.id}`
+                        });
+
+                        return reply(buildCluster.toJson())
+                            .header('Location', location).code(201);
+                    })
+                    // something was botched
+                    .catch(err => reply(boom.wrap(err)));
+            }
+            // Must have admin permission on org if adding org-specific build cluster
+            if (scmOrganizations && scmOrganizations.length === 0) {
+                return reply(boom.badData(
+                    `No scmOrganizations provided for build cluster ${payload.name}.`
+                ));
+            }
+
+            return userFactory.get({ username, scmContext })
+                .then(user => user.unsealToken())
+                .then(token => scmOrganizations.forEach(organization =>
+                    scm.getOrgPermissions({
+                        organization,
+                        username,
+                        token,
+                        scmContext
+                    })
+                        .then((permissions) => {
+                            if (!permissions.admin) {
+                                throw boom.forbidden(
+                                    `User ${username} does not have
+                                    administrative privileges on build
+                                    cluster ${payload.name}.`
+                                );
+                            }
+                        })
+                ))
+                .then(() => buildClusterFactory.create(payload))
+                .then((buildCluster) => {
+                    // everything succeeded, inform the user
+                    const location = urlLib.format({
+                        host: request.headers.host,
+                        port: request.headers.port,
+                        protocol: request.server.info.protocol,
+                        pathname: `${request.path}/${buildCluster.id}`
+                    });
+
+                    return reply(buildCluster.toJson())
+                        .header('Location', location).code(201);
+                })
+                // something was botched
+                .catch(err => reply(boom.wrap(err)));
+        },
+        validate: {
+            payload: validationSchema.models.buildCluster.create
+        }
+    }
+});
