@@ -24,13 +24,16 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.buildClusterFactory;
+            const config = {
+                params: {
+                    name: request.params.name
+                }
+            };
 
-            return factory.get({
-                name: request.params.name
-            })
+            return factory.list(config)
                 .then((model) => {
                     if (!model) {
-                        throw boom.notFound('Build cluster does not exist');
+                        return reply(boom.notFound('Build cluster does not exist'));
                     }
 
                     return reply(model.toJson());
