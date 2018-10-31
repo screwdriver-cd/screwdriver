@@ -292,7 +292,8 @@ describe('build plugin test', () => {
                 admin: Promise.resolve({
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
-                })
+                }),
+                toJson: sinon.stub().returns({ id: pipelineId })
             };
 
             eventMock = {
@@ -311,7 +312,8 @@ describe('build plugin test', () => {
                     ]
                 },
                 getBuilds: sinon.stub(),
-                update: sinon.stub()
+                update: sinon.stub(),
+                toJson: sinon.stub().returns({ id: 123 })
             };
 
             eventFactoryMock.get.resolves(eventMock);
@@ -378,11 +380,11 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.calledWith(server.emit, 'build_status', {
-                    build: buildMock,
+                    build: buildMock.toJson(),
                     buildLink: 'http://foo.bar/pipelines/123/builds/12345',
                     jobName: 'main',
-                    event: eventMock,
-                    pipeline: pipelineMock,
+                    event: { id: 123 },
+                    pipeline: { id: 123 },
                     settings: {
                         email: 'foo@bar.com'
                     },
