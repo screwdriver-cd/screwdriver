@@ -8,12 +8,14 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testBuildCluster = require('./data/buildCluster.json');
 const testBuildClusters = require('./data/buildClusters.json');
+const updatedBuildCluster = require('./data/updatedBuildCluster.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
 const decorateBuildClusterObject = (buildCluster) => {
     const decorated = hoek.clone(buildCluster);
 
+    decorated.update = sinon.stub().resolves(buildCluster);
     decorated.remove = sinon.stub().resolves({});
     decorated.toJson = sinon.stub().returns(buildCluster);
 
@@ -32,6 +34,12 @@ describe('buildCluster plugin test', () => {
     const username = 'myself';
     const scmContext = 'github:github.com';
     const buildClusterId = 12345;
+    const name = 'iOS';
+    const credentials = {
+        scope: ['user'],
+        username,
+        scmContext
+    };
 
     let buildClusterFactoryMock;
     let userFactoryMock;
@@ -50,7 +58,6 @@ describe('buildCluster plugin test', () => {
 
     beforeEach((done) => {
         buildClusterFactoryMock = {
-            remove: sinon.stub(),
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
@@ -145,11 +152,7 @@ describe('buildCluster plugin test', () => {
             options = {
                 method: 'GET',
                 url: '/buildclusters',
-                credentials: {
-                    scope: ['user'],
-                    username,
-                    scmContext
-                }
+                credentials
             };
         });
 
@@ -172,8 +175,6 @@ describe('buildCluster plugin test', () => {
     });
 
     describe('GET /buildclusters/{name}', () => {
-        const name = 'iOS';
-
         it('returns 200 for a build cluster that exists', () => {
             const buildClusterMock = getMockBuildClusters(testBuildCluster);
 
@@ -257,11 +258,7 @@ describe('buildCluster plugin test', () => {
                     maintainer: 'foo@bar.com',
                     weightage: 50
                 },
-                credentials: {
-                    scope: ['user'],
-                    username,
-                    scmContext
-                }
+                credentials
             };
 
             buildClusterMock = getMockBuildClusters({
@@ -385,8 +382,75 @@ describe('buildCluster plugin test', () => {
         });
     });
 
+    describe('PUT /buildclusters/{name}', () => {
+        let options;
+        let updatedBuildClusterMock;
+        let buildClusterMock;
+
+        beforeEach(() => {
+            buildClusterMock = getMockBuildClusters(testBuildCluster);
+            options = {
+                method: 'PUT',
+                url: `/buildclusters/${name}`,
+                payload: {
+                    isActive: false,
+                    description: 'updated description'
+                },
+                credentials
+            };
+
+            updatedBuildClusterMock = getMockBuildClusters(updatedBuildCluster);
+            buildClusterFactoryMock.list.resolves(buildClusterMock);
+            buildClusterMock.update.resolves(updatedBuildClusterMock);
+            updatedBuildClusterMock.toJson.returns(updatedBuildCluster);
+        });
+
+        it('returns 200 and correct build cluster data', () =>
+            server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, updatedBuildCluster);
+                assert.calledOnce(buildClusterMock.update);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 404 when the build cluster name is not found', () => {
+            buildClusterFactoryMock.list.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 when the user does not have Screwdriver permissions', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 500 when the builClusterFactory fails to list', () => {
+            const testError = new Error('builClusterFactoryGetError');
+
+            buildClusterFactoryMock.list.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the build cluster model fails to update', () => {
+            const testError = new Error('collectionModelUpdateError');
+
+            buildClusterMock.update.rejects(testError);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('DELETE /buildclusters/{name}', () => {
-        const name = 'iOS';
         let options;
         let buildClusterMock;
         let userMock;
@@ -397,11 +461,7 @@ describe('buildCluster plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/buildclusters/${name}`,
-                credentials: {
-                    scope: ['user'],
-                    username,
-                    scmContext
-                }
+                credentials
             };
             userMock = {
                 username,
@@ -444,7 +504,7 @@ describe('buildCluster plugin test', () => {
         });
 
         it('returns 500 when call returns error', () => {
-            buildClusterFactoryMock.remove.rejects('collectionRemoveError');
+            buildClusterMock.remove.rejects(new Error('collectionRemoveError'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
