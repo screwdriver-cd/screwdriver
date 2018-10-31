@@ -28,15 +28,6 @@ const getMockBuildClusters = (buildClusters) => {
     return decorateBuildClusterObject(buildClusters);
 };
 
-const getUserMock = (user) => {
-    const mock = hoek.clone(user);
-
-    mock.getPermissions = sinon.stub();
-    mock.toJson = sinon.stub().returns(user);
-
-    return mock;
-};
-
 describe.only('buildCluster plugin test', () => {
     const username = 'myself';
     const scmContext = 'github:github.com';
@@ -133,6 +124,7 @@ describe.only('buildCluster plugin test', () => {
     });
 
     afterEach(() => {
+        server.stop();
         server = null;
         mockery.deregisterAll();
         mockery.resetCache();
@@ -427,21 +419,15 @@ describe.only('buildCluster plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have permission', () => {
-            const fakeUserId = 12;
-            const fakeUserMock = getUserMock({
-                username,
-                userId: fakeUserId
-            });
-
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
+        it('returns 403 when user does not have permission', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 404 when collection does not exist', () => {
+        it('returns 404 when build cluster does not exist', () => {
             buildClusterFactoryMock.list.resolves(null);
 
             return server.inject(options).then((reply) => {
