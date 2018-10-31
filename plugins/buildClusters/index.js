@@ -1,9 +1,10 @@
 'use strict';
 
+const createRoute = require('./create');
 const getRoute = require('./get');
 const listRoute = require('./list');
-const createRoute = require('./create');
 const removeRoute = require('./remove');
+const updateRoute = require('./update');
 
 /**
  * Build Cluster API Plugin
@@ -14,10 +15,11 @@ const removeRoute = require('./remove');
  */
 exports.register = (server, options, next) => {
     server.route([
+        createRoute(),
         getRoute(),
         listRoute(),
-        createRoute(),
-        removeRoute()
+        removeRoute(),
+        updateRoute()
     ]);
 
     next();

@@ -76,7 +76,7 @@ module.exports = () => ({
 
             return userFactory.get({ username, scmContext })
                 .then(user => user.unsealToken())
-                .then(token => scmOrganizations.forEach(organization =>
+                .then(token => Promise.all(scmOrganizations.forEach(organization =>
                     scm.getOrgPermissions({
                         organization,
                         username,
@@ -92,7 +92,7 @@ module.exports = () => ({
                                 );
                             }
                         })
-                ))
+                )))
                 .then(() => buildClusterFactory.create(payload))
                 .then((buildCluster) => {
                     // everything succeeded, inform the user
