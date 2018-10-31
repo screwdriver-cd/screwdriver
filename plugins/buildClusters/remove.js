@@ -26,8 +26,6 @@ module.exports = () => ({
             const name = request.params.name;
             const { username, scmContext } = request.auth.credentials;
 
-            console.log('removing build cluster');
-
             // Fetch the buildCluster and user models
             return Promise.all([
                 buildClusterFactory.list({
@@ -37,15 +35,12 @@ module.exports = () => ({
                 }),
                 userFactory.get({ username, scmContext })
             ]).then(([buildCluster, user]) => {
-                console.log('got build cluster and user');
                 if (!buildCluster) {
-                    throw boom.notFound(`Build cluster ${name} does not exist`);
+                    return reply(boom.notFound(`Build cluster ${name} does not exist`));
                 }
                 if (!user) {
-                    throw boom.notFound(`User ${username} does not exist`);
+                    return reply(boom.notFound(`User ${username} does not exist`));
                 }
-
-                console.log('checking admin details');
 
                 const adminDetails = request.server.plugins.banners
                     .screwdriverAdminDetails(username, scmContext);
@@ -56,8 +51,6 @@ module.exports = () => ({
                         does not have Screwdriver administrative privileges.`
                     ));
                 }
-
-                console.log('permissions good, build cluster: ', buildCluster);
 
                 return buildCluster.remove()
                     .then(() => reply().code(204));
