@@ -28,7 +28,7 @@ const getMockBuildClusters = (buildClusters) => {
     return decorateBuildClusterObject(buildClusters);
 };
 
-describe.only('buildCluster plugin test', () => {
+describe('buildCluster plugin test', () => {
     const username = 'myself';
     const scmContext = 'github:github.com';
     const buildClusterId = 12345;
@@ -385,7 +385,7 @@ describe.only('buildCluster plugin test', () => {
         });
     });
 
-    describe.only('DELETE /buildclusters/{name}', () => {
+    describe('DELETE /buildclusters/{name}', () => {
         const name = 'iOS';
         let options;
         let buildClusterMock;

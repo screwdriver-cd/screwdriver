@@ -50,27 +50,8 @@ Example payload:
 
 #### Get a specific buildCluster
 
-`GET /buildclusters/{id}`
-
-#### Update a specific buildCluster
-
-`PUT /buildclusters/{id}`
-
-**Arguments**
-
-* `message` - An optional new string of text for the buildCluster.
-* `type` - An optional new buildCluster type. Options are `info` and `warn`
-* `isActive` - An optional new status flag to indicate whether buildCluster should display.
-
-Example payload:
-```json
-{
-    "message": "The Screwdriver Team has resolved the random failure issue.",
-    "type": "info",
-    "isActive": "true"
-}
-```
+`GET /buildclusters/{name}`
 
 #### Delete a specific buildCluster
 
-`DELETE /buildclusters/{id}`
+`DELETE /buildclusters/{name}`
