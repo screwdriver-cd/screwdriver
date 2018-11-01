@@ -100,7 +100,7 @@
     "screwdriver-executor-nomad": "^1.0.4",
     "screwdriver-executor-queue": "^2.2.7",
     "screwdriver-executor-router": "^1.0.7",
-    "screwdriver-models": "^27.15.2",
+    "screwdriver-models": "27.15.4",
     "screwdriver-notifications-email": "^1.1.7",
     "screwdriver-notifications-slack": "^2.1.6",
     "screwdriver-scm-github": "^8.0.9",
