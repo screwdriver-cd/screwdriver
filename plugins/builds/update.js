@@ -128,10 +128,10 @@ module.exports = () => ({
                     request.server.emit('build_status', {
                         settings: job.permutations[0].settings,
                         status: build.status,
-                        event,
-                        pipeline,
+                        event: event.toJson(),
+                        pipeline: pipeline.toJson(),
                         jobName: job.name,
-                        build,
+                        build: build.toJson(),
                         buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                     });
