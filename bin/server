@@ -110,6 +110,10 @@ const buildFactory = Models.BuildFactory.getInstance({
     bookend,
     uiUri: ecosystem.ui
 });
+const buildClusterFactory = Models.BuildClusterFactory.getInstance({
+    datastore,
+    scm
+});
 const stepFactory = Models.StepFactory.getInstance({
     datastore
 });
