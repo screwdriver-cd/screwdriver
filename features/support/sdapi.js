@@ -1,6 +1,7 @@
 'use strict';
 
 const request = require('./request');
+const WAIT_TIME = 6;
 
 /**
  * Promise to wait a certain number of seconds
@@ -103,7 +104,7 @@ function findEventBuilds(config) {
             return result;
         }
 
-        return promiseToWait(3).then(() => findEventBuilds(config));
+        return promiseToWait(WAIT_TIME).then(() => findEventBuilds(config));
     });
 }
 
@@ -154,7 +155,7 @@ function searchForBuild(config) {
             return result[0];
         }
 
-        return promiseToWait(3).then(() => searchForBuild(config));
+        return promiseToWait(WAIT_TIME).then(() => searchForBuild(config));
     });
 }
 
@@ -189,7 +190,7 @@ function waitForBuildStatus(config) {
             return buildData;
         }
 
-        return promiseToWait(3).then(() => waitForBuildStatus(config));
+        return promiseToWait(WAIT_TIME).then(() => waitForBuildStatus(config));
     });
 }
 

@@ -46,7 +46,7 @@ module.exports = () => ({
                     return pipeline.getJobs(config);
                 })
                 .then(jobs => reply(jobs.map(j => j.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

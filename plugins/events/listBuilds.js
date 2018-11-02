@@ -33,7 +33,7 @@ module.exports = () => ({
                     return event.getBuilds();
                 })
                 .then(builds => reply(builds.map(b => b.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

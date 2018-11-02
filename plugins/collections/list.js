@@ -39,7 +39,7 @@ module.exports = () => ({
                     return collectionFactory.list(config)
                         .then(collections => reply(collections.map(c => c.toJson())));
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

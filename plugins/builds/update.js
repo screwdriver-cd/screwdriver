@@ -128,10 +128,10 @@ module.exports = () => ({
                     request.server.emit('build_status', {
                         settings: job.permutations[0].settings,
                         status: build.status,
-                        event,
-                        pipeline,
+                        event: event.toJson(),
+                        pipeline: pipeline.toJson(),
                         jobName: job.name,
-                        build,
+                        build: build.toJson(),
                         buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                     });
@@ -166,7 +166,7 @@ module.exports = () => ({
                             })
                         )));
                 }).then(() => reply(build.toJson()).code(200))))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
