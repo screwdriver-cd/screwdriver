@@ -30,7 +30,7 @@ module.exports = () => ({
 
             return buildClusterFactory.list(config)
                 .then(buildClusters => reply(buildClusters.map(c => c.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

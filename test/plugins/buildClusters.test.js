@@ -386,6 +386,7 @@ describe('buildCluster plugin test', () => {
         let options;
         let updatedBuildClusterMock;
         let buildClusterMock;
+        let userMock;
 
         beforeEach(() => {
             buildClusterMock = getMockBuildClusters(testBuildCluster);
@@ -398,11 +399,20 @@ describe('buildCluster plugin test', () => {
                 },
                 credentials
             };
+            userMock = {
+                username,
+                unsealToken: sinon.stub()
+            };
 
             updatedBuildClusterMock = getMockBuildClusters(updatedBuildCluster);
             buildClusterFactoryMock.list.resolves(buildClusterMock);
             buildClusterMock.update.resolves(updatedBuildClusterMock);
             updatedBuildClusterMock.toJson.returns(updatedBuildCluster);
+            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
+                admin: true,
+                member: true
+            });
+            userFactoryMock.get.resolves(userMock);
         });
 
         it('returns 200 and correct build cluster data', () =>
@@ -413,6 +423,16 @@ describe('buildCluster plugin test', () => {
             })
         );
 
+        it('returns 200 when update managedByScrewdriver with cluster admin permissions', () => {
+            options.payload.managedByScrewdriver = true;
+
+            return server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result, updatedBuildCluster);
+                assert.calledOnce(buildClusterMock.update);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 404 when the build cluster name is not found', () => {
             buildClusterFactoryMock.list.resolves(null);
 
@@ -421,11 +441,24 @@ describe('buildCluster plugin test', () => {
             });
         });
 
-        it('returns 403 when the user does not have Screwdriver permissions', () => {
+        it('returns 403 when update managedByScrewdriver without cluster admin permissions', () => {
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            options.payload.managedByScrewdriver = true;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the user is not an org admin for an external cluster', () => {
+            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
+                admin: false,
+                member: true
+            });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(buildClusterFactoryMock.create);
             });
         });
 

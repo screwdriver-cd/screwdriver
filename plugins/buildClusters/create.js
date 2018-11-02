@@ -65,18 +65,18 @@ module.exports = () => ({
                             .header('Location', location).code(201);
                     })
                     // something was botched
-                    .catch(err => reply(boom.wrap(err)));
+                    .catch(err => reply(boom.boomify(err)));
             }
             // Must have admin permission on org if adding org-specific build cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return reply(boom.wrap(boom.badData(
+                return reply(boom.boomify(boom.badData(
                     `No scmOrganizations provided for build cluster ${payload.name}.`
                 )));
             }
 
             return userFactory.get({ username, scmContext })
                 .then(user => user.unsealToken())
-                .then(token => Promise.all(scmOrganizations.forEach(organization =>
+                .then(token => Promise.all(scmOrganizations.map(organization =>
                     scm.getOrgPermissions({
                         organization,
                         username,
@@ -107,7 +107,7 @@ module.exports = () => ({
                         .header('Location', location).code(201);
                 })
                 // something was botched
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: validationSchema.models.buildCluster.create

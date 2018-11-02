@@ -22,42 +22,98 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const { buildClusterFactory } = request.server.app;
+            const buildClusterFactory = request.server.app.buildClusterFactory;
+            const userFactory = request.server.app.userFactory;
+            const scm = buildClusterFactory.scm;
             const name = request.params.name; // name of build cluster to update
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const scmOrganizations = request.payload.scmOrganizations;
 
-            // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners
-                .screwdriverAdminDetails(username, scmContext);
+            // Check permissions
+            // Must be Screwdriver admin to add Screwdriver build cluster
+            if (request.payload.managedByScrewdriver) {
+                const adminDetails = request.server.plugins.banners
+                    .screwdriverAdminDetails(username, scmContext);
 
-            // verify user is authorized to update buildClusters
-            // return unauthorized if not system admin
-            if (!adminDetails.isAdmin) {
-                return reply(boom.forbidden(
-                    `User ${adminDetails.userDisplayName}
-                    does not have Screwdriver administrative privileges.`
-                ));
+                if (!adminDetails.isAdmin) {
+                    return reply(boom.forbidden(
+                        `User ${adminDetails.userDisplayName}
+                        does not have Screwdriver administrative privileges.`
+                    ));
+                }
+
+                return buildClusterFactory.list({
+                    params: {
+                        name
+                    }
+                })
+                    .then((buildCluster) => {
+                        if (!buildCluster) {
+                            throw boom.notFound(`Build cluster ${name} does not exist`);
+                        }
+
+                        Object.assign(buildCluster, request.payload);
+
+                        return buildCluster.update()
+                            .then(updatedBuildCluster =>
+                                reply(updatedBuildCluster.toJson()).code(200)
+                            );
+                    })
+                    .catch(err => reply(boom.boomify(err)));
             }
 
-            return buildClusterFactory.list({
-                params: {
-                    name
-                }
-            })
-                .then((buildCluster) => {
-                    if (!buildCluster) {
-                        throw boom.notFound(`Build cluster ${name} does not exist`);
-                    }
+            // Must have admin permission on org if adding org-specific build cluster
+            if (scmOrganizations && scmOrganizations.length === 0) {
+                return reply(boom.boomify(boom.badData(
+                    `No scmOrganizations provided for build cluster ${name}.`
+                )));
+            }
 
-                    Object.assign(buildCluster, request.payload);
+            return userFactory.get({ username, scmContext })
+                .then(user => Promise.all([
+                    user.unsealToken(),
+                    buildClusterFactory.list({
+                        params: {
+                            name
+                        }
+                    })])
+                    .then(([token, buildCluster]) => {
+                        if (!buildCluster) {
+                            throw boom.notFound(`Build cluster ${name} does not exist`);
+                        }
 
-                    return buildCluster.update()
-                        .then(updatedBuildCluster =>
-                            reply(updatedBuildCluster.toJson()).code(200)
-                        );
-                })
-                .catch(err => reply(boom.wrap(err)));
+                        // To update scmOrganizations, user need to have admin permissions on both old and new organizations
+                        const orgs = buildCluster.scmOrganizations;
+                        const newOrgs = scmOrganizations || [];
+                        const combined = [...new Set([...orgs, ...newOrgs])];
+
+                        return Promise.all(combined.map(organization =>
+                            scm.getOrgPermissions({
+                                organization,
+                                username,
+                                token,
+                                scmContext
+                            })
+                                .then((permissions) => {
+                                    if (!permissions.admin) {
+                                        throw boom.forbidden(
+                                            `User ${username} does not have
+                                            administrative privileges on build
+                                            cluster ${name}.`
+                                        );
+                                    }
+                                })
+                        )).then(() => {
+                            Object.assign(buildCluster, request.payload);
+
+                            return buildCluster.update()
+                                .then(updatedBuildCluster =>
+                                    reply(updatedBuildCluster.toJson()).code(200)
+                                );
+                        });
+                    }))
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
