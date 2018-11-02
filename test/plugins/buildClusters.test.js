@@ -433,6 +433,15 @@ describe('buildCluster plugin test', () => {
             });
         });
 
+        it('returns 404 when the build cluster name is not found for internal cluster', () => {
+            options.payload.managedByScrewdriver = true;
+            buildClusterFactoryMock.list.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it('returns 404 when the build cluster name is not found', () => {
             buildClusterFactoryMock.list.resolves(null);
 
@@ -458,6 +467,15 @@ describe('buildCluster plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
+                assert.notCalled(buildClusterFactoryMock.create);
+            });
+        });
+
+        it('returns 422 when the no scm orgs provided for an external cluster', () => {
+            options.payload.scmOrganizations = [];
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 422);
                 assert.notCalled(buildClusterFactoryMock.create);
             });
         });

@@ -27,7 +27,7 @@ server.register({
 
 ### Routes
 
-#### Create a buildCluster
+#### Create a build cluster
 
 `POST /buildclusters`
 
@@ -44,14 +44,14 @@ Example payload:
 }
 ```
 
-#### Get a listing of all buildClusters
+#### Get a listing of all build clusters
 
 `GET /buildclusters`
 
-#### Get a specific buildCluster
+#### Get a specific build cluster
 
 `GET /buildclusters/{name}`
 
-#### Delete a specific buildCluster
+#### Delete a specific build cluster
 
 `DELETE /buildclusters/{name}`
