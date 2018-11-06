@@ -160,6 +160,3 @@ Unique constraint: `name`
 	3(b). On acknowledgement failures in build cluster, process will be retried for specific # of times before giving up and Offset will be committed and step #1 will be repeated.
 
 	note: in future, 3(b) will be changed to implement failure queues and process messages from failure queues
-
-
-	
