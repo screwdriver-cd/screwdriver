@@ -2,7 +2,7 @@
 
 ## Context
 
-Build a scalable Screwdriver build infrastructure. 
+Build a scalable SD build infrastructure. 
 
 ## Objective 
 
@@ -13,22 +13,22 @@ Build a scalable Screwdriver build infrastructure.
 ## Proposal
 
 1. Implicit build clusters
-	Screwdriver maintains its own multiple build cluster infrastructure.
+	SD maintains its own multiple build cluster infrastructure.
 
 2. Explicit build clusters
 	Users can bring in their own build cluster infrastructure. 
 	
-This can also be Screwdriver maintained specialized cluster where all users have access. Eg: Mobile iOS cluster or Windows cluster.
+This can also be SD maintained specialized cluster where all users have access. Eg: Mobile iOS cluster or Windows cluster.
 	
 
-As part of cluster onboarding process for above both options cluster admin should register their build cluster information with Screwdriver. Below details are required to register a build cluster.
+As part of cluster onboarding process for above both options cluster admin should register their build cluster information with SD. Below details are required to register a build cluster.
 
-	1. Cluster name - Cluster name provided by the client
-	2. isActive - Cluster status whether its active or inactive. This will be used to route / pause. Initially this will be a manual update of cluster health.
+	1. Cluster name - cluster name provided by the client
+	2. isActive - cluster status whether its active or inactive. This will be used to route / pause. Initially this will be a manual update of cluster health.
 	3. Authorization - Authorize using user credentials and queue details.
 	4. SCM Context - git url (github.com). Applicable to only explicit build clusters which are non SD maintained.
 	5. SCM Organization - git organizations. Will be used to validate if job has permission to run on build cluster which is requesting. Applicable to only explicit build clusters which are non SD maintained.
-	6. managedByScrewdriver (true / false) - if true Cluster is maintained by screwdriver team, false cluster is maintained by external team.  
+	6. managedByScrewdriver (true / false) - true cluster is maintained by SD team, false cluster is maintained by external team.  
 
 
 ## Design
@@ -57,27 +57,27 @@ TBD
 
 ```yml
 shared:
-    environment:
-    NODE_ENV: test
-    settings:
-        email:
-    addresses: [test@email.com, test2@email.com]
+  environment:
+  NODE_ENV: test
+  settings:
+    email:
+      addresses: [test@email.com, test2@email.com]
     statuses: [SUCCESS, FAILURE]
     annotations:
-        buildCluster: iOS
+      buildcluster: iOS
 jobs:
-    main:
-        requires: [~pr, ~commit]
-        sourcePaths: ["src/app/", "screwdriver.yaml"]
-        image: node:6
-        steps:
-    - init: npm install
-    - test: npm test
+  main:
+    requires: [~pr, ~commit]
+    sourcePaths: ["src/app/", "screwdriver.yaml"]
+    image: node:6
+    steps:
+      - init: npm install
+      - test: npm test
     publish:
     requires: main
     image: node:6
     steps:
-        - publish: npm publish
+      - publish: npm publish
     ...
 ```
 
