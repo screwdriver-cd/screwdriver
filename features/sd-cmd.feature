@@ -19,11 +19,11 @@ Feature: Commands
 
         Examples:
             | command      | job     | format  | arguments |
-            | binary-test  | binary  | binary  | "foo bar" |
-            | habitat-test | habitat | habitat | "-v"      |
+            | binary-func-test  | binary  | binary  | "foo bar" |
+            | habitat-func-test | habitat | habitat | "-v"      |
 
     Scenario: Promote a command
-        Given promote-test command does not exist yet
+        Given promote-func-test command does not exist yet
         And "1.0.0" version of the command is uploaded with "stable" tag
         And "1.0.1" version of the command is uploaded with "latest" tag
         When execute promote job

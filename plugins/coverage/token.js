@@ -23,7 +23,7 @@ module.exports = config => ({
 
             return config.coveragePlugin.getAccessToken(buildCredentials)
                 .then(reply)
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         }
     }
 });

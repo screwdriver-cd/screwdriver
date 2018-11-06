@@ -49,7 +49,7 @@ module.exports = () => ({
                             return reply(output).code(200);
                         });
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

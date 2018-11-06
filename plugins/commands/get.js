@@ -38,7 +38,7 @@ module.exports = () => ({
 
                     return reply(command);
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: getSchema

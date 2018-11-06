@@ -48,7 +48,7 @@ module.exports = () => ({
                             return output;
                         })));
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

@@ -65,7 +65,7 @@ module.exports = () => ({
                             });
                     });
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
