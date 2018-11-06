@@ -35,7 +35,7 @@ auth:
   # Default session timeout (in minutes)
   sessionTimeout: 120
   # SameSite Cookie Option
-  sameSite: false
+  sameSite: Strict
 
 httpd:
   # Port to listen on
