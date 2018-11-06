@@ -28,7 +28,7 @@ As part of cluster onboarding process for above both options cluster admin shoul
 	3. Authorization - Authorize using user credentials and queue details.
 	4. SCM Context - git url (github.com). Applicable to only explicit build clusters which are non SD maintained.
 	5. SCM Organization - git organizations. Will be used to validate if job has permission to run on build cluster which is requesting. Applicable to only explicit build clusters which are non SD maintained.
-	6. defaultCluster (true / false) - if true Cluster is maintained by screwdriver team, false cluster is maintained by external team.  
+	6. managedByScrewdriver (true / false) - if true Cluster is maintained by screwdriver team, false cluster is maintained by external team.  
 
 
 ## Design
@@ -95,7 +95,7 @@ Columns:
 | `scmOrganizations` | text(500) | yes | no | no | |
 | `scmContext` | text(200) | no | yes | no | |
 | `isActive` | boolean | no | no | no | *false or true* |
-| `defaultCluster` | boolean | no | no | no | *true - cluster maintained by screwdriver team, false - cluster maintained by  external team * |
+| `managedByScrewdriver` | boolean | no | no | no | *true - cluster maintained by screwdriver team, false - cluster maintained by  external team * |
 | `maintainer` | text(100) | yes | no | no | cluster admin email for communications |
 | `weightage`| smallint | yes | no | no | weighted percentage to route jobs; applicable only to screwdriver cluster; default 100
 
@@ -114,16 +114,16 @@ Unique constraint: `name`
 
 | Method | url | Description
 | --- | --- | ---
-| `POST` | ` /buildClusters ` | ` { "name":"iOS", "scmContext":"github:github.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "defaultCluster": true } `
-| `GET` | `	/buildClusters ` | ` get list of buildClusters info `
-| `GET` | `	/buildClusters/:name ` | ` get a particular buildCluster info `
-| `DELETE` | ` /buildClusters/:name ` | ` delete buildCluster `
+| `POST` | ` /buildclusters ` | ` { "name":"iOS", "scmContext":"github:github.com", "scmOrganizations": "[iOS_org1, iOS_org2]", "isActive":true, "managedByScrewdriver": true } `
+| `GET` | `	/buildclusters ` | ` get list of buildclusters info `
+| `GET` | `	/buildclusters/:name ` | ` get a particular buildcluster info `
+| `DELETE` | ` /buildclusters/:name ` | ` delete buildcluster `
 
 
 ### Cluster on-board
 
 1. Build cluster admin requesting access with cluster info and user credentials
-2. SD admin to populate buildCluster table with cluster info 
+2. SD admin to populate buildcluster table with cluster info 
 3. SD admin to create queue based on #1
 4. SD admin authorize build cluster user and queue 
 
@@ -131,7 +131,7 @@ Unique constraint: `name`
 ## Flow
 ### SD Validator
 
-	1. SD validator should validate if the annotated buildCluster in yaml is onboarded and active. 
+	1. SD validator should validate if the annotated buildcluster in yaml is onboarded and active. 
 	
 ### API to Redis
 
@@ -139,8 +139,8 @@ Unique constraint: `name`
 
 ### Model
 
-	1. Query `buildClusters` table for active records with cluster name from build info 
-	2. Validates if build job can be scheduled in specified buildCluster queue by validating scmContext + scmOrganization access. 
+	1. Query `buildclusters` table for active records with cluster name from build info 
+	2. Validates if build job can be scheduled in specified buildcluster queue by validating scmContext + scmOrganization access. 
 	3. one (or) more record exist, then assign job to the queue based on the weighted percentage of cluster
 	4. no records, then query `clusters` table for active records with defaultCluster=true
 	5. repeat step #3
