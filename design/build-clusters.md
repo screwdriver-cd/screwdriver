@@ -95,9 +95,9 @@ Columns:
 | `scmOrganizations` | text(500) | yes | no | no | |
 | `scmContext` | text(200) | no | yes | no | |
 | `isActive` | boolean | no | no | no | *false or true* |
-| `managedByScrewdriver` | boolean | no | no | no | *true - cluster maintained by screwdriver team, false - cluster maintained by  external team * |
+| `managedByScrewdriver` | boolean | no | no | no | *true - cluster maintained by SD team, false - cluster maintained by  external team * |
 | `maintainer` | text(100) | yes | no | no | cluster admin email for communications |
-| `weightage`| smallint | yes | no | no | weighted percentage to route jobs; applicable only to screwdriver cluster; default 100
+| `weightage`| smallint | yes | no | no | weighted percentage to route jobs; applicable only to SD cluster; default 100
 
 
 Unique constraint: `name` 
