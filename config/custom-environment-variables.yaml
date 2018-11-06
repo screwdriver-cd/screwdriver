@@ -36,6 +36,8 @@ auth:
   sessionTimeout: SESSION_TIMEOUT
   # Oauth redirect uri, configure this if your app is not running at root under the host
   oauthRedirectUri: OAUTH_REDIRECT_URI
+  # SameSite Cookie Option
+  sameSite: COOKIE_SAME_SITE
 
 httpd:
   # Port to listen on

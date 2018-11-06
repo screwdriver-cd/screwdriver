@@ -70,6 +70,8 @@ describe('server case', () => {
         });
 
         it('populates access-control-allow-origin correctly', (done) => {
+            Assert.notOk(error);
+
             server.route({
                 method: 'GET',
                 path: '/v1/status',

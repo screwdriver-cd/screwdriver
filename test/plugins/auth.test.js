@@ -114,7 +114,8 @@ describe('auth plugin test', () => {
                 jwtPublicKey,
                 allowGuestAccess: true,
                 https: false,
-                oauthRedirectUri
+                oauthRedirectUri,
+                sameSite: false
             }
         }, done);
     });
@@ -151,7 +152,8 @@ describe('auth plugin test', () => {
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
-                    https: false
+                    https: false,
+                    sameSite: false
                 }
             })
                 .then(() => Promise.reject(new Error('should not be here')))
@@ -203,7 +205,9 @@ describe('auth plugin test', () => {
                     jwtPrivateKey,
                     jwtPublicKey,
                     https: false,
-                    admins: ['github:batman', 'batman']
+                    admins: ['github:batman', 'batman'],
+                    sameSite: false
+
                 }
             }, next);
         });
@@ -226,7 +230,8 @@ describe('auth plugin test', () => {
                     jwtPrivateKey,
                     jwtPublicKey,
                     jwtEnvironment: 'beta',
-                    https: false
+                    https: false,
+                    sameSite: false
                 }
             }).then(() => {
                 const profile = newServer.plugins.auth
@@ -367,7 +372,8 @@ describe('auth plugin test', () => {
                         jwtPrivateKey,
                         jwtPublicKey,
                         https: false,
-                        allowGuestAccess: false
+                        allowGuestAccess: false,
+                        sameSite: false
                     }
                 });
             });
@@ -530,7 +536,8 @@ describe('auth plugin test', () => {
                             jwtPrivateKey,
                             jwtPublicKey,
                             https: false,
-                            whitelist: ['github:batman']
+                            whitelist: ['github:batman'],
+                            sameSite: false
                         }
                     });
                 });
@@ -783,7 +790,8 @@ describe('auth plugin test', () => {
                         jwtPrivateKey,
                         jwtPublicKey,
                         https: false,
-                        admins: ['batman']
+                        admins: ['batman'],
+                        sameSite: false
                     }
                 }, next);
             });
@@ -1010,7 +1018,8 @@ describe('auth plugin test', () => {
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
-                    https: false
+                    https: false,
+                    sameSite: false
                 }
             }).then(() => (
                 server.inject({
