@@ -9,9 +9,9 @@ module.exports = () => ({
     method: 'PUT',
     path: '/buildclusters/{name}',
     config: {
-        description: 'Update a buildCluster',
-        notes: 'Update a buildCluster',
-        tags: ['api', 'buildClusters'],
+        description: 'Update a build cluster',
+        notes: 'Update a build cluster',
+        tags: ['api', 'buildclusters'],
         auth: {
             strategies: ['token'],
             scope: ['user', '!guest']
@@ -31,7 +31,7 @@ module.exports = () => ({
             const scmOrganizations = request.payload.scmOrganizations;
 
             // Check permissions
-            // Must be Screwdriver admin to add Screwdriver build cluster
+            // Must be Screwdriver admin to update Screwdriver build cluster
             if (request.payload.managedByScrewdriver) {
                 const adminDetails = request.server.plugins.banners
                     .screwdriverAdminDetails(username, scmContext);
@@ -62,14 +62,14 @@ module.exports = () => ({
                     })
                     .catch(err => reply(boom.boomify(err)));
             }
-
-            // Must have admin permission on org if adding org-specific build cluster
+            // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
                 return reply(boom.boomify(boom.badData(
                     `No scmOrganizations provided for build cluster ${name}.`
                 )));
             }
 
+            // Must have admin permission on org(s) if updating org-specific build cluster
             return userFactory.get({ username, scmContext })
                 .then(user => Promise.all([
                     user.unsealToken(),
@@ -99,8 +99,8 @@ module.exports = () => ({
                                     if (!permissions.admin) {
                                         throw boom.forbidden(
                                             `User ${username} does not have
-                                            administrative privileges on build
-                                            cluster ${name}.`
+                                            administrative privileges on scm
+                                            organization ${organization}.`
                                         );
                                     }
                                 })

@@ -10,8 +10,8 @@ module.exports = () => ({
     method: 'GET',
     path: '/buildclusters',
     config: {
-        description: 'Get build clusters for requesting user',
-        notes: 'Returns all build cluster records belonging to the requesting user',
+        description: 'Get build clusters',
+        notes: 'Returns all build clusters',
         tags: ['api', 'buildclusters'],
         auth: {
             strategies: ['token'],

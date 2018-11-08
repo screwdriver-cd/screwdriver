@@ -52,6 +52,22 @@ Example payload:
 
 `GET /buildclusters/{name}`
 
+#### Update a build cluster
+
+`PUT /buildclusters/{name}`
+
+Example payload:
+```json
+{
+    "description": "Build cluster for iOS team",
+    "scmOrganizations": ["screwdriver-cd"],
+    "isActive": true,
+    "managedByScrewdriver": true,
+    "maintainer": "foo@bar.com",
+    "weightage": 20
+}
+```
+
 #### Delete a specific build cluster
 
 `DELETE /buildclusters/{name}`

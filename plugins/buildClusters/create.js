@@ -67,13 +67,14 @@ module.exports = () => ({
                     // something was botched
                     .catch(err => reply(boom.boomify(err)));
             }
-            // Must have admin permission on org if adding org-specific build cluster
+            // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
                 return reply(boom.boomify(boom.badData(
                     `No scmOrganizations provided for build cluster ${payload.name}.`
                 )));
             }
 
+            // Must have admin permission on org(s) if adding org-specific build cluster
             return userFactory.get({ username, scmContext })
                 .then(user => user.unsealToken())
                 .then(token => Promise.all(scmOrganizations.map(organization =>
@@ -87,8 +88,8 @@ module.exports = () => ({
                             if (!permissions.admin) {
                                 throw boom.forbidden(
                                     `User ${username} does not have
-                                    administrative privileges on build
-                                    cluster ${payload.name}.`
+                                    administrative privileges on scm
+                                    organization ${organization}.`
                                 );
                             }
                         })
