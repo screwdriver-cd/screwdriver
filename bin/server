@@ -135,6 +135,10 @@ const collectionFactory = Models.CollectionFactory.getInstance({
 const triggerFactory = Models.TriggerFactory.getInstance({
     datastore
 });
+const buildClusterFactory = Models.BuildClusterFactory.getInstance({
+    datastore,
+    scm
+});
 
 // @TODO run setup for SCM and Executor
 datastore.setup()
@@ -153,6 +157,7 @@ datastore.setup()
         jobFactory,
         userFactory,
         buildFactory,
+        buildClusterFactory,
         stepFactory,
         bannerFactory,
         secretFactory,

@@ -22,6 +22,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/auth',
         '../plugins/banners',
         '../plugins/builds',
+        '../plugins/buildClusters',
         '../plugins/collections',
         '../plugins/commands',
         '../plugins/events',
