@@ -35,7 +35,10 @@ module.exports = () => ({
                 }),
                 userFactory.get({ username, scmContext })
             ]).then(([buildCluster, user]) => {
-                if (!buildCluster) {
+                if (!Array.isArray(buildCluster)) {
+                    return reply(boom.badData('Build cluster list returned non-array.'));
+                }
+                if (buildCluster.length === 0) {
                     return reply(boom.notFound(`Build cluster ${name} does not exist`));
                 }
                 if (!user) {
@@ -52,7 +55,7 @@ module.exports = () => ({
                     ));
                 }
 
-                return buildCluster.remove()
+                return buildCluster[0].remove()
                     .then(() => reply().code(204));
             })
                 .catch(err => reply(boom.boomify(err)));

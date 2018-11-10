@@ -23,20 +23,24 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
+            const name = request.params.name;
             const factory = request.server.app.buildClusterFactory;
             const config = {
                 params: {
-                    name: request.params.name
+                    name
                 }
             };
 
             return factory.list(config)
                 .then((model) => {
-                    if (!model) {
-                        return reply(boom.notFound('Build cluster does not exist'));
+                    if (!Array.isArray(model)) {
+                        return reply(boom.badData('Build cluster list returned non-array.'));
+                    }
+                    if (model.length === 0) {
+                        return reply(boom.notFound(`Build cluster ${name} does not exist`));
                     }
 
-                    return reply(model.toJson());
+                    return reply(model[0].toJson());
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
