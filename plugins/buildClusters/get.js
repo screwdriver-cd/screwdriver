@@ -32,15 +32,12 @@ module.exports = () => ({
             };
 
             return factory.list(config)
-                .then((model) => {
-                    if (!Array.isArray(model)) {
-                        return reply(boom.badData('Build cluster list returned non-array.'));
-                    }
-                    if (model.length === 0) {
+                .then((buildClusters) => {
+                    if (buildClusters.length === 0) {
                         return reply(boom.notFound(`Build cluster ${name} does not exist`));
                     }
 
-                    return reply(model[0].toJson());
+                    return reply(buildClusters[0].toJson());
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

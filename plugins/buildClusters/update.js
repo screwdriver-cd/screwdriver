@@ -48,17 +48,14 @@ module.exports = () => ({
                         name
                     }
                 })
-                    .then((buildCluster) => {
-                        if (!Array.isArray(buildCluster)) {
-                            throw boom.badData('Build cluster list returned non-array.');
-                        }
-                        if (buildCluster.length === 0) {
+                    .then((buildClusters) => {
+                        if (buildClusters.length === 0) {
                             throw boom.notFound(`Build cluster ${name} does not exist`);
                         }
 
-                        Object.assign(buildCluster[0], request.payload);
+                        Object.assign(buildClusters[0], request.payload);
 
-                        return buildCluster[0].update()
+                        return buildClusters[0].update()
                             .then(updatedBuildCluster =>
                                 reply(updatedBuildCluster.toJson()).code(200)
                             );

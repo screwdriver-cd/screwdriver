@@ -185,15 +185,6 @@ describe('buildCluster plugin test', () => {
             });
         });
 
-        it('returns 422 when build cluster returns something other than an array', () => {
-            buildClusterFactoryMock.list.withArgs({ params: { name } })
-                .resolves({});
-
-            return server.inject(`/buildclusters/${name}`).then((reply) => {
-                assert.equal(reply.statusCode, 422);
-            });
-        });
-
         it('returns 404 when build cluster does not exist', () => {
             buildClusterFactoryMock.list.withArgs({ params: { name } }).resolves([]);
 
@@ -479,15 +470,6 @@ describe('buildCluster plugin test', () => {
             });
         });
 
-        it('returns 422 when build cluster returns non-array for internal cluster', () => {
-            options.payload.managedByScrewdriver = true;
-            buildClusterFactoryMock.list.resolves({});
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 422);
-            });
-        });
-
         it('returns 422 when build cluster returns non-array for external cluster', () => {
             buildClusterFactoryMock.scm.getOrgPermissions.resolves({
                 admin: false,
@@ -572,14 +554,6 @@ describe('buildCluster plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
-            });
-        });
-
-        it('returns 422 when build cluster returns something other than an array', () => {
-            buildClusterFactoryMock.list.resolves({});
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 422);
             });
         });
 
