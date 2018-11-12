@@ -48,14 +48,14 @@ module.exports = () => ({
                         name
                     }
                 })
-                    .then((buildCluster) => {
-                        if (!buildCluster) {
+                    .then((buildClusters) => {
+                        if (buildClusters.length === 0) {
                             throw boom.notFound(`Build cluster ${name} does not exist`);
                         }
 
-                        Object.assign(buildCluster, request.payload);
+                        Object.assign(buildClusters[0], request.payload);
 
-                        return buildCluster.update()
+                        return buildClusters[0].update()
                             .then(updatedBuildCluster =>
                                 reply(updatedBuildCluster.toJson()).code(200)
                             );
@@ -78,12 +78,16 @@ module.exports = () => ({
                             name
                         }
                     })])
-                    .then(([token, buildCluster]) => {
-                        if (!buildCluster) {
+                    .then(([token, buildClusters]) => {
+                        if (!Array.isArray(buildClusters)) {
+                            throw boom.badData('Build cluster list returned non-array.');
+                        }
+                        if (buildClusters.length === 0) {
                             throw boom.notFound(`Build cluster ${name} does not exist`);
                         }
 
                         // To update scmOrganizations, user need to have admin permissions on both old and new organizations
+                        const buildCluster = buildClusters[0];
                         const orgs = buildCluster.scmOrganizations;
                         const newOrgs = scmOrganizations || [];
                         const combined = [...new Set([...orgs, ...newOrgs])];
@@ -109,8 +113,7 @@ module.exports = () => ({
 
                             return buildCluster.update()
                                 .then(updatedBuildCluster =>
-                                    reply(updatedBuildCluster.toJson()).code(200)
-                                );
+                                    reply(updatedBuildCluster.toJson()).code(200));
                         });
                     }))
                 .catch(err => reply(boom.boomify(err)));
