@@ -863,67 +863,6 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('GET /pipelines/{id}/isAdmin', () => {
-        const id = '123';
-        const username = 'testuser';
-        let options;
-        let pipelineMock;
-        let userMock;
-
-        beforeEach(() => {
-            options = {
-                method: 'GET',
-                url: `/pipelines/${id}/isAdmin`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
-                }
-            };
-            pipelineMock = getPipelineMocks(testPipeline);
-            pipelineFactoryMock.get.resolves(pipelineMock);
-            userMock = getUserMock({ username, scmContext });
-            userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
-        });
-
-        it('returns true for admin', () =>
-            server.inject(options).then((reply) => {
-                assert.calledWith(userMock.getPermissions, pipelineMock.scmUri);
-                assert.deepEqual(reply.result, true);
-                assert.equal(reply.statusCode, 200);
-            })
-        );
-
-        it('returns false for non-admin', () => {
-            userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: false });
-
-            return server.inject(options).then((reply) => {
-                assert.calledWith(userMock.getPermissions, pipelineMock.scmUri);
-                assert.deepEqual(reply.result, false);
-                assert.equal(reply.statusCode, 200);
-            });
-        });
-
-        it('returns 404 for pipeline that does not exist', () => {
-            pipelineFactoryMock.get.resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
-        });
-
-        it('returns 500 when the datastore returns an error', () => {
-            pipelineFactoryMock.get.resolves(pipelineMock);
-            userMock.getPermissions.withArgs(pipelineMock.scmUri)
-                .rejects(new Error('get permission error'));
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-    });
-
     describe('POST /pipelines/{id}/sync', () => {
         const id = 123;
         const username = 'd2lam';
