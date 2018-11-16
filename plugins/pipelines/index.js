@@ -19,6 +19,7 @@ const refreshToken = require('./tokens/refresh');
 const listTokens = require('./tokens/list');
 const removeToken = require('./tokens/remove');
 const removeAllTokens = require('./tokens/removeAll');
+const isAdminRoute = require('./isAdmin');
 
 /**
  * Pipeline API Plugin
@@ -61,7 +62,8 @@ exports.register = (server, options, next) => {
         createToken(),
         listTokens(),
         removeToken(),
-        removeAllTokens()
+        removeAllTokens(),
+        isAdminRoute()
     ]);
 
     next();
