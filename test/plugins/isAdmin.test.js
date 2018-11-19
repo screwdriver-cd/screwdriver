@@ -5,7 +5,7 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const hoek = require('hoek');
 const mockery = require('mockery');
-const testPipeline = require('./data/pipeline.json');
+const pipelineMock = require('./data/pipeline.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -17,20 +17,19 @@ const getUserMock = (user) => {
     return mock;
 };
 
-describe.only('isAdmin plugin test', () => {
-    const pipelineId = 111;
-    const eventId = 222;
-    const jobId = 333;
-    const username = 'testuser';
-    const scmContext = testPipeline.scmContext;
+describe('isAdmin plugin test', () => {
+    let server;
+    let plugin;
     let pipelineFactoryMock;
     let eventFactoryMock;
     let jobFactoryMock;
     let userFactoryMock;
-    let pipelineMock;
     let userMock;
-    let server;
-    let plugin;
+    const pipelineId = 111;
+    const eventId = 222;
+    const jobId = 333;
+    const username = 'testuser';
+    const scmContext = pipelineMock.scmContext;
 
     before(() => {
         mockery.enable({
@@ -40,9 +39,8 @@ describe.only('isAdmin plugin test', () => {
     });
 
     beforeEach((done) => {
-        /* eslint-disable global-require */
+        // eslint-disable-next-line global-require
         plugin = require('../../plugins/isAdmin');
-        /* eslint-enable global-require */
 
         pipelineFactoryMock = {
             get: sinon.stub()
@@ -57,7 +55,7 @@ describe.only('isAdmin plugin test', () => {
             get: sinon.stub()
         };
 
-        pipelineFactoryMock.get.withArgs(pipelineId).resolves(testPipeline);
+        pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipelineMock);
 
         eventFactoryMock.get.withArgs(eventId).resolves({
             id: eventId,
@@ -70,7 +68,7 @@ describe.only('isAdmin plugin test', () => {
         });
 
         userMock = getUserMock({ username, scmContext });
-        userMock.getPermissions.withArgs(testPipeline.scmUri).resolves({ admin: true });
+        userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: true });
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         server = new hapi.Server();
         server.app = {
@@ -79,9 +77,19 @@ describe.only('isAdmin plugin test', () => {
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock
         };
+
         server.connection({
             port: 1234
         });
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, reply) => reply.continue({
+                credentials: {
+                    scope: ['build']
+                }
+            })
+        }));
+        server.auth.strategy('token', 'custom');
+
         server.register([{
             register: plugin
         }], (err) => {
@@ -103,7 +111,7 @@ describe.only('isAdmin plugin test', () => {
         assert.isOk(server.registrations.isAdmin);
     });
 
-    describe('GET /pipelines/{id}/isAdmin', () => {
+    describe('GET /isAdmin?pipelineId=', () => {
         let options;
 
         beforeEach(() => {
@@ -120,6 +128,7 @@ describe.only('isAdmin plugin test', () => {
 
         it('returns true for admin', () =>
             server.inject(options).then((reply) => {
+                assert.calledWith(pipelineFactoryMock.get, pipelineId);
                 assert.calledWith(userMock.getPermissions, pipelineMock.scmUri);
                 assert.deepEqual(reply.result, true);
                 assert.equal(reply.statusCode, 200);
@@ -130,6 +139,7 @@ describe.only('isAdmin plugin test', () => {
             userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
+                assert.calledWith(pipelineFactoryMock.get, pipelineId);
                 assert.calledWith(userMock.getPermissions, pipelineMock.scmUri);
                 assert.deepEqual(reply.result, false);
                 assert.equal(reply.statusCode, 200);
@@ -137,7 +147,7 @@ describe.only('isAdmin plugin test', () => {
         });
 
         it('returns 404 for pipeline that does not exist', () => {
-            pipelineFactoryMock.get.resolves(null);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -153,5 +163,53 @@ describe.only('isAdmin plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+
+        it('finds pipeline that the event belongs to', () =>
+            server.inject({
+                method: 'GET',
+                url: `/isAdmin?eventId=${eventId}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.calledWith(eventFactoryMock.get, eventId);
+                assert.calledWith(pipelineFactoryMock.get, pipelineId);
+                assert.deepEqual(reply.result, true);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('finds pipeline that the job belongs to', () =>
+            server.inject({
+                method: 'GET',
+                url: `/isAdmin?jobId=${jobId}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.calledWith(jobFactoryMock.get, jobId);
+                assert.calledWith(pipelineFactoryMock.get, pipelineId);
+                assert.deepEqual(reply.result, true);
+                assert.equal(reply.statusCode, 200);
+            })
+        );
+
+        it('returns 400 if passes in multiple query params', () =>
+            server.inject({
+                method: 'GET',
+                url: `/isAdmin?pipelineId=999&jobId=${jobId}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 400);
+            })
+        );
     });
 });
