@@ -16,8 +16,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/swagger',
         '../plugins/validator',
         '../plugins/template-validator',
-        '../plugins/command-validator',
-        '../plugins/isAdmin'
+        '../plugins/command-validator'
     ];
     const resourcePlugins = [
         '../plugins/auth',
@@ -33,7 +32,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/templates',
         '../plugins/tokens',
         '../plugins/webhooks',
-        '../plugins/stats'
+        '../plugins/stats',
+        '../plugins/isAdmin'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
     const mocks = {};
