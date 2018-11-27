@@ -32,7 +32,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/templates',
         '../plugins/tokens',
         '../plugins/webhooks',
-        '../plugins/stats'
+        '../plugins/stats',
+        '../plugins/isAdmin'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
     const mocks = {};
