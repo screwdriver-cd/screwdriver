@@ -73,6 +73,7 @@ const pipelineFactory = Models.PipelineFactory.getInstance({
 
 // Setup Executor
 const executorConfig = config.get('executor');
+
 executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
 const executor = new ExecutorPlugin(Object.assign(

@@ -906,7 +906,8 @@ describe('pipeline plugin test', () => {
                 pipelineId: id,
                 scope: ['pipeline']
             };
-            server.inject(options).then((reply) => {
+
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
             });
         });
@@ -1336,7 +1337,8 @@ describe('pipeline plugin test', () => {
                 pipelineId: id,
                 scope: ['pipeline']
             };
-            server.inject(options).then((reply) => {
+
+            return server.inject(options).then((reply) => {
                 assert.calledOnce(pipelineMock.update);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1918,7 +1920,7 @@ describe('pipeline plugin test', () => {
 
             tokenMock.refresh.resolves(getTokenMocks(refreshedToken));
 
-            server.inject(options).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result, refreshedToken);
             });
