@@ -239,6 +239,21 @@ describe('command plugin test', () => {
             });
         });
 
+        it('returns 200 and all commands in compact format', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?compact=true';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    exclude: ['usage', 'docker', 'habitat', 'binary'],
+                    groupBy: ['namespace', 'name'],
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 200 and all commands with search query without namespace field', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?search=nodejs&namespace=nodejs';
