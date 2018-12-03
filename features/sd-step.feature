@@ -18,6 +18,7 @@ Feature: Shared Steps
     - Method to update global SDK state.
     - Method to refer to installed packages via semver.
 
+    @ignore
     Scenario Outline: Use package via sd-step
         Given an existing pipeline with <image> image and <package> package
         When the main job is started
