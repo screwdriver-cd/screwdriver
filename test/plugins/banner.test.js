@@ -153,40 +153,6 @@ describe('banner plugin test', () => {
             });
         });
 
-        it('returns 201 and creates a banner using default type', () => {
-            delete options.payload.type;
-
-            server.inject(options).then((reply) => {
-                const expected = Object.assign({}, testBanner);
-
-                // set expected type to default of 'info'
-                expected.type = 'info';
-
-                delete expected.id;
-                delete expected.createTime;
-                assert.calledWith(bannerFactoryMock.create, expected);
-                assert.equal(reply.statusCode, 201);
-                assert.equal(reply.result, testBanner);
-            });
-        });
-
-        it('returns 201 and creates a banner using default isActive', () => {
-            delete options.payload.isActive;
-
-            server.inject(options).then((reply) => {
-                const expected = Object.assign({}, testBanner);
-
-                // set expected isActive to default of true
-                expected.isActive = false;
-
-                delete expected.id;
-                delete expected.createTime;
-                assert.calledWith(bannerFactoryMock.create, expected);
-                assert.equal(reply.statusCode, 201);
-                assert.equal(reply.result, testBanner);
-            });
-        });
-
         it('returns 403 for non-admin user', () => {
             options.credentials.username = 'batman123';
             server.inject(options).then((reply) => {

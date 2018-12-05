@@ -227,6 +227,21 @@ describe('template plugin test', () => {
             });
         });
 
+        it('returns 200 and all templates in compact format', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?compact=true';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
+                    exclude: ['config'],
+                    groupBy: ['namespace', 'name'],
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 200 and all templates with search query without namespace field', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?search=nodejs&namespace=nodejs';
