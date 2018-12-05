@@ -49,7 +49,7 @@ jobs:
             DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
-            K8S_HOST: api.k8s.screwdriver.cd
+            K8S_HOST: api.ossd.k8s.screwdriver.cd
             K8S_DEPLOYMENT: sdapi-beta
             SD_API_HOST: beta.api.screwdriver.cd
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
@@ -76,7 +76,7 @@ jobs:
             DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
-            K8S_HOST: api.k8s.screwdriver.cd
+            K8S_HOST: api.ossd.k8s.screwdriver.cd
             K8S_DEPLOYMENT: sdapi
             SD_API_HOST: api.screwdriver.cd
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
