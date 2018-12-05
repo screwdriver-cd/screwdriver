@@ -7,6 +7,9 @@ const listSchema = joi.array().items(schema.models.template.get).label('List of 
 const distinctSchema = joi.string()
     .valid(Object.keys(schema.models.template.base.describe().children))
     .label('Field to return unique results by');
+const compactSchema = joi.string()
+    .valid(['', 'false', 'true'])
+    .label('Flag to return compact data');
 const namespaceSchema = joi.reach(schema.models.template.base, 'namespace');
 const namespacesSchema = joi.array().items(joi.object().keys({ namespace: namespaceSchema }));
 
@@ -28,25 +31,33 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.templateFactory;
-            const config = {
-                sort: request.query.sort
-            };
+            const {
+                count,
+                distinct,
+                compact,
+                namespace,
+                page,
+                search,
+                sort,
+                sortBy
+            } = request.query;
+            const config = { sort };
 
             // Return distinct rows for that column name
-            if (request.query.distinct) {
-                config.params = { distinct: request.query.distinct };
+            if (distinct) {
+                config.params = { distinct };
                 config.raw = true;
             }
 
-            if (request.query.namespace) {
-                config.params = { namespace: request.query.namespace };
+            if (namespace) {
+                config.params = { namespace };
             }
 
-            if (request.query.sortBy) {
-                config.sortBy = request.query.sortBy;
+            if (sortBy) {
+                config.sortBy = sortBy;
             }
 
-            if (request.query.search) {
+            if (search) {
                 let fieldsToSearch = ['name', 'namespace', 'description'];
 
                 // Remove from fields to search if namespace is already a param
@@ -58,18 +69,23 @@ module.exports = () => ({
                     field: fieldsToSearch,
                     // Do a fuzzy search for template name
                     // See https://www.w3schools.com/sql/sql_like.asp for syntax
-                    keyword: `%${request.query.search}%`
+                    keyword: `%${search}%`
                 };
             }
 
-            if (request.query.page || request.query.count) {
-                config.paginate = {
-                    page: request.query.page,
-                    count: request.query.count
-                };
+            // check if the call wants compact data
+            if (compact === 'true') {
+                // removing `config` trims most of the bytes
+                config.exclude = ['config'];
+                config.groupBy = ['namespace', 'name'];
             }
 
-            return factory.list(config)
+            if (page || count) {
+                config.paginate = { page, count };
+            }
+
+            return factory
+                .list(config)
                 .then((templates) => {
                     if (config.raw) {
                         return reply(templates);
@@ -83,10 +99,13 @@ module.exports = () => ({
             schema: joi.alternatives().try(listSchema, namespacesSchema)
         },
         validate: {
-            query: schema.api.pagination.concat(joi.object({
-                namespace: namespaceSchema,
-                distinct: distinctSchema
-            }))
+            query: schema.api.pagination.concat(
+                joi.object({
+                    namespace: namespaceSchema,
+                    distinct: distinctSchema,
+                    compact: compactSchema
+                })
+            )
         }
     }
 });

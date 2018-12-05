@@ -148,7 +148,7 @@ describe('banner plugin test', () => {
                 expected.createdBy = options.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
-                assert.equal(reply.result, testBanner);
+                assert.deepEqual(reply.result, testBanner);
             })
         );
 
@@ -161,7 +161,7 @@ describe('banner plugin test', () => {
                 expected.createdBy = options.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
-                assert.equal(reply.result, testBanner);
+                assert.deepEqual(reply.result, testBanner);
             });
         });
 
@@ -174,7 +174,7 @@ describe('banner plugin test', () => {
                 expected.createdBy = options.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
-                assert.equal(reply.result, testBanner);
+                assert.deepEqual(reply.result, testBanner);
             });
         });
 
