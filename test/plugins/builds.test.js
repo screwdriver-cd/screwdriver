@@ -2438,14 +2438,11 @@ describe('build plugin test', () => {
         const scope = ['temporal'];
         const buildTimeout = 50;
         let options;
+        let profile;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
-            const buildMock = getMockBuilds(testBuild);
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
-            generateProfileMock.returns({
+            profile = {
                 username: `${id}`,
                 scmContext: 'github:github.com',
                 scope: ['build'],
@@ -2454,8 +2451,12 @@ describe('build plugin test', () => {
                 pipelineId: 1,
                 eventId: 777,
                 configPipelineId: 123
-            });
+            };
 
+            const buildMock = getMockBuilds(testBuild);
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            generateProfileMock.returns(profile);
             generateTokenMock.withArgs(
                 generateProfileMock(),
                 buildTimeout
@@ -2486,8 +2487,13 @@ describe('build plugin test', () => {
                 assert.calledWith(generateProfileMock,
                     '12345',
                     'github:github.com',
-                    ['build'],
-                    { isPR: false, jobId: 1234, pipelineId: 1, eventId: 777, configPipelineId: 123 }
+                    ['build'], {
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123
+                    }
                 );
                 assert.calledWith(generateTokenMock, {
                     username: '12345',
@@ -2502,6 +2508,38 @@ describe('build plugin test', () => {
                 assert.equal(reply.result.token, 'sometoken');
             })
         );
+
+        it('includes prParentJobId', () => {
+            profile.prParentJobId = 1000;
+            options.credentials.prParentJobId = 1000;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(generateProfileMock,
+                    '12345',
+                    'github:github.com',
+                    ['build'], {
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123,
+                        prParentJobId: 1000
+                    }
+                );
+                assert.calledWith(generateTokenMock, {
+                    username: '12345',
+                    scmContext: 'github:github.com',
+                    scope: ['build'],
+                    isPR: false,
+                    jobId: 1234,
+                    pipelineId: 1,
+                    eventId: 777,
+                    configPipelineId: 123,
+                    prParentJobId: 1000
+                }, 50);
+            });
+        });
 
         it('returns 404 if a parameter of buildId does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(false);
