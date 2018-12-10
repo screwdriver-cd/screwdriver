@@ -3,21 +3,58 @@
 
 > API for the Screwdriver CD service
 
-Screwdriver is a self-contained, pluggable service to help you build, test, and continuously deliver software using the latest containerization technologies.
+[Screwdriver](http://screwdriver.cd) is a self-contained, pluggable service to help you build, test, and continuously deliver software using the latest containerization technologies.
 
-## To start using Screwdriver
+## Table of Contents
 
-For more information about Screwdriver, check out our [documentation](http://docs.screwdriver.cd).
+- [Background](#background)
+- [Installation and Usage](#installation-and-usage)
+- [Configuration](#configuration)
+- [Testing](#testing)
+- [Contribute](#contribute)
+- [License](#license)
 
-## To start contributing to Screwdriver
+## Background
 
-Have a look at our guidelines, as well as pointers on where to start making changes, in our [contributing guide](http://docs.screwdriver.cd/about/contributing).
+Screwdriver began as a hack for simplified interfacing with Jenkins at Yahoo in 2012. As the volume of builds increased, it became clear that Jenkins was not stable or feasible to use at the scale we were running builds. In 2016, we rebuilt Screwdriver from scratch in open source with our best coding practices and CICD goals in mind. Screwdriver is executor and SCM-agnostic, meaning you can choose whichever plugin better suits your need or build your own. It's completely free and open source, and our team is actively maintaining the code.
+
+For more information about Screwdriver, check out our [homepage](http://screwdriver.cd).
+
+## Installation and Usage
+
+### Plugins
+
+This API comes preloaded with 10 (ten) resources:
+
+ - [auth](plugins/auth/README.md)
+ - [banners](plugins/banners/README.md)
+ - [builds](plugins/builds/README.md)
+ - [collections](plugins/collections/README.md)
+ - [coverage](plugins/coverage/README.md) - optional
+ - [events](plugins/events/README.md)
+ - [jobs](plugins/jobs/README.md)
+ - [pipelines](plugins/pipelines/README.md)
+ - [secrets](plugins/secrets/README.md)
+ - [tokens](plugins/tokens/README.md)
+ - [webhooks](plugins/webhooks/README.md)
+
+One (1) option for datastores:
+ - Postgres, MySQL, and Sqlite (`sequelize`)
+
+Three (3) options for executor:
+ - Kubernetes (`k8s`)
+ - Docker (`docker`)
+ - Nomad (`nomad`)
+
+Three (3) options for SCM:
+ - Github (`github`)
+ - Bitbucket (`bitbucket`)
 
 ### Prerequisites
+To use Screwdriver, you will need the following prerequisites:
 
 - Node v8.0.0 or higher
 - [Kubernetes][kubectl] or [Docker][docker]
-
 
 ### From Source
 
@@ -29,7 +66,7 @@ $ npm start
 info: Server running at http://localhost:8080
 ```
 
-### Prebuilt Docker image
+### From a Prebuilt Docker image
 
 ```bash
 $ vim ./local.yaml # See below for configuration
@@ -37,20 +74,14 @@ $ docker run --rm -it --volume=`pwd`/local.yaml:/config/local.yaml -p 8080 screw
 info: Server running at http://localhost:8080
 ```
 
-### In-A-Box
+### Using In-A-Box
 
-This handy feature will bring up an entire Screwdriver instance (ui, api, and log store) locally for you to play with.
-All data written to a database will be stored in `data` directory.
+Our in-a-box script brings up an entire Screwdriver instance (ui, api, and log store) locally for you to play with.
+Follow instructions at https://github.com/screwdriver-cd/in-a-box#screwdriver-in-a-box.
 
-Requires:
- - Python 2.7
- - Mac OSX 10.10+
- - [Docker for Mac][docker]
- - [Docker Compose 1.8.1+][docker-compose]
+### Using Helm
 
-```bash
-$ python <(curl -L https://git.io/screwdriver-box)
-```
+[This chart](https://github.com/screwdriver-cd/screwdriver-chart) bootstraps the whole Screwdriver ecosystem and also nginx ingress controller.
 
 ## Configuration
 
@@ -95,34 +126,6 @@ $ export SECRET_OAUTH_CLIENT_SECRET=another-real-client-secret
 ```
 
 All the possible environment variables are [defined here](config/custom-environment-variables.yaml).
-
-## Plugins
-
-This API comes preloaded with 10 (ten) resources:
-
- - [auth](plugins/auth/README.md)
- - [banners](plugins/banners/README.md)
- - [builds](plugins/builds/README.md)
- - [coverage](plugins/coverage/README.md) - optional
- - [collections](plugins/collections/README.md)
- - [events](plugins/events/README.md)
- - [jobs](plugins/jobs/README.md)
- - [pipelines](plugins/pipelines/README.md)
- - [secrets](plugins/secrets/README.md)
- - [tokens](plugins/tokens/README.md)
- - [webhooks](plugins/webhooks/README.md)
-
-One (1) option for datastores:
- - Postgres, MySQL, and Sqlite (`sequelize`)
-
-Three (3) options for executor:
- - Kubernetes (`k8s`)
- - Docker (`docker`)
- - Nomad (`nomad`)
-
-Two (2) options for SCM:
- - Github (`github`)
- - Bitbucket (`bitbucket`)
 
 ## Testing
 
@@ -170,9 +173,12 @@ Then run the cucumber tests:
 npm run functional
 ```
 
+## Contribute
+To start contributing to Screwdriver, have a look at our guidelines, as well as pointers on where to start making changes, in our [contributing guide](http://docs.screwdriver.cd/about/contributing).
+
 ## License
 
-Code licensed under the BSD 3-Clause license. See LICENSE file for terms.
+Code licensed under the BSD 3-Clause license. See [LICENSE file](https://github.com/screwdriver-cd/screwdriver/blob/master/LICENSE) for terms.
 
 [npm-image]: https://img.shields.io/npm/v/screwdriver-api.svg
 [npm-url]: https://npmjs.org/package/screwdriver-api
