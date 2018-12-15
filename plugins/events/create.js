@@ -6,15 +6,16 @@ const validationSchema = require('screwdriver-data-schema');
 
 /**
  * Update admins array
- * @param  {Pipeline}  pipeline Pipeline object to update
- * @param  {Boolean}   isAdmin  Whether the user is an admin or not
- * @param  {String}    username Username of user
- * @return {Promise}            Updates the pipeline admins and throws an error if not an admin
+ * @param  {Object}    permissions  User permissions
+ * @param  {Pipeline}  pipeline     Pipeline object to update
+ * @param  {String}    username     Username of user
+ * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
  */
-function updateAdmins({ pipeline, isAdmin, username }) {
+function updateAdmins({ permissions, pipeline, username }) {
     const newAdmins = pipeline.admins;
 
-    if (!isAdmin) {
+    // Delete user from admin list if bad permissions
+    if (!permissions.push) {
         delete newAdmins[username];
         // This is needed to make admins dirty and update db
         pipeline.admins = newAdmins;
@@ -26,11 +27,16 @@ function updateAdmins({ pipeline, isAdmin, username }) {
             });
     }
 
-    newAdmins[username] = true;
-    // This is needed to make admins dirty and update db
-    pipeline.admins = newAdmins;
+    // Add user as admin if permissions good and does not already exist
+    if (!pipeline.admins[username]) {
+        newAdmins[username] = true;
+        // This is needed to make admins dirty and update db
+        pipeline.admins = newAdmins;
 
-    return pipeline.update();
+        return pipeline.update();
+    }
+
+    return Promise.resolve();
 }
 
 module.exports = () => ({
@@ -117,73 +123,57 @@ module.exports = () => ({
                         throw boom.unauthorized('Token does not have permission to this pipeline');
                     }
 
-                    let token;
                     let scmConfig;
-                    let prInfo;
+                    let permissions;
 
                     // Check if user has push access
-                    // eslint-disable-next-line consistent-return
                     return user.getPermissions(pipeline.scmUri)
-                        .then((permissions) => {
-                            if (!permissions.push && !prNum) {
-                                return updateAdmins({ pipeline, isAdmin: false, username });
+                        .then((userPermissions) => {
+                            permissions = userPermissions;
+
+                            // Update admins
+                            if (!prNum) {
+                                return updateAdmins({ permissions, pipeline, username });
                             }
 
-                            return user.unsealToken()
-                                .then((t) => {
-                                    token = t;
+                            return Promise.resolve();
+                        // Get scmConfig
+                        }).then(() => user.unsealToken()
+                            .then((token) => {
+                                scmConfig = {
+                                    prNum,
+                                    scmContext,
+                                    scmUri: pipeline.scmUri,
+                                    token
+                                };
 
-                                    scmConfig = {
-                                        prNum,
-                                        scmContext,
-                                        scmUri: pipeline.scmUri,
-                                        token
-                                    };
+                                // Get and set PR data; update admins
+                                if (prNum) {
+                                    payload.prNum = prNum;
+                                    payload.type = 'pr';
 
-                                    if (prNum) {
-                                        payload.prNum = prNum;
-                                        payload.type = 'pr';
+                                    return scm.getPrInfo(scmConfig)
+                                        .then((prInfo) => {
+                                            payload.prInfo = prInfo;
+                                            payload.prRef = prInfo.ref;
 
-                                        return scm.getPrInfo(scmConfig)
-                                            .then((prData) => {
-                                                prInfo = prData;
-                                                payload.prInfo = prInfo;
-                                                payload.prRef = prInfo.ref;
-
-                                                // PR author should be able to rerun their own PR build
-                                                if (!permissions.push) {
-                                                    if (prInfo.username === username) {
-                                                        return Promise.resolve();
-                                                    }
-
-                                                    return updateAdmins({
-                                                        pipeline,
-                                                        isAdmin: false,
-                                                        username
-                                                    });
-                                                }
-
-                                                // user has good permissions, add the user as an admin
-                                                if (!pipeline.admins[username]) {
-                                                    return updateAdmins({
-                                                        pipeline,
-                                                        isAdmin: true,
-                                                        username
-                                                    });
-                                                }
-
+                                            // PR author should be able to rerun their own PR build
+                                            if (prInfo.username === username) {
                                                 return Promise.resolve();
+                                            }
+
+                                            // Remove user from admins
+                                            return updateAdmins({
+                                                permissions,
+                                                pipeline,
+                                                username
                                             });
-                                    }
+                                        });
+                                }
 
-                                    // user has good permissions, add the user as an admin
-                                    if (!pipeline.admins[username]) {
-                                        return updateAdmins({ pipeline, isAdmin: true, username });
-                                    }
-
-                                    return Promise.resolve();
-                                });
-                        })
+                                return Promise.resolve();
+                            })
+                        )
                         // User has good permissions, create an event
                         .then(() => {
                             // If there is parentEvent, pass workflowGraph and sha to payload
