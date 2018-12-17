@@ -6,6 +6,7 @@ const sdapi = require('../support/sdapi');
 const { defineSupportCode } = require('cucumber');
 
 const TIMEOUT = 240 * 1000;
+const WAIT_TIME = 3;
 
 defineSupportCode(({ Before, Given, When, Then }) => {
     Before({
@@ -27,7 +28,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                 return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName);
             })
             // wait not to trigger builds when create a pipeline
-            .then(() => this.promiseToWait(3))
+            .then(() => this.promiseToWait(WAIT_TIME))
             .then(() => this.createPipeline(this.repoName, branch))
             .then((response) => {
                 Assert.oneOf(response.statusCode, [409, 201]);
@@ -103,7 +104,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         return sdapi.findEventBuilds({
             instance: this.instance,
             eventId: this.eventId,
-            jwt: this.jwt
+            jwt: this.jwt,
+            jobs: this.jobs,
+            jobName: triggeredJobName
         })
             .then((builds) => {
                 this.builds = builds;
@@ -124,7 +127,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         return sdapi.findEventBuilds({
             instance: this.instance,
             eventId: this.eventId,
-            jwt: this.jwt
+            jwt: this.jwt,
+            jobs: this.jobs,
+            jobName: joinJobName
         })
             .then((builds) => {
                 this.builds = builds;
@@ -143,18 +148,18 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     Then(/^the "(.*)" job is not triggered$/, {
         timeout: TIMEOUT
     }, function step(jobName) {
-        return sdapi.findEventBuilds({
+        return sdapi.findBuilds({
             instance: this.instance,
-            eventId: this.eventId,
+            pipelineId: this.pipelineId,
+            jobName,
             jwt: this.jwt
-        })
-            .then((builds) => {
-                this.builds = builds;
-                const job = this.jobs.find(j => j.name === jobName);
-                const build = this.builds.find(b => b.jobId === job.id);
+        }).then((buildData) => {
+            let result = buildData.body || [];
 
-                Assert.ok(!build, 'Unexpected job was triggered.');
-            });
+            result = result.filter(item => item.sha === this.sha);
+
+            Assert.equal(result.length, 0, 'Unexpected job was triggered.');
+        });
     });
 
     Then(/^that "(.*)" build uses the same SHA as the "(.*)" build$/, {

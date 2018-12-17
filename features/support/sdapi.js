@@ -82,6 +82,8 @@ function findBuilds(config) {
  * @param  {String}  config.instance    Screwdriver instance to test against
  * @param  {String}  config.eventId     Event ID to find the build in
  * @param  {String}  config.jwt         JWT for authenticating
+ * @param  {String}  config.jobs        Pipeline jobs
+ * @param  {String}  config.jobName     The job name we're looking for
  * @return {Promise}                    A promise that resolves to an array of builds that
  *                                      fulfill the given criteria. If nothing is found, an
  *                                      empty array is returned
@@ -97,11 +99,13 @@ function findEventBuilds(config) {
         auth: {
             bearer: config.jwt
         }
-    }).then((buildData) => {
-        const result = buildData.body || [];
+    }).then((response) => {
+        const builds = response.body || [];
+        const job = config.jobs.find(j => j.name === config.jobName);
+        const build = builds.find(b => b.jobId === job.id);
 
-        if (result.length > 0) {
-            return result;
+        if (build) {
+            return builds;
         }
 
         return promiseToWait(WAIT_TIME).then(() => findEventBuilds(config));
@@ -234,6 +238,7 @@ function cleanupToken(config) {
 
 module.exports = {
     cleanupToken,
+    findBuilds,
     findEventBuilds,
     searchForBuild,
     waitForBuildStatus
