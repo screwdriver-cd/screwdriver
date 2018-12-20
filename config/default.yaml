@@ -227,6 +227,10 @@ coverage: {}
   #   sonarHost: https://sonar.screwdriver.cd
   #   adminToken: your-sonar-admin-token
 
+multiBuildCluster:
+  # Enabled multi build cluster feature or not
+  enabled: false
+
 bookends:
   # Plugins for build setup
   setup:

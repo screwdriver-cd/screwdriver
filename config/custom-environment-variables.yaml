@@ -328,6 +328,10 @@ coverage:
     # Sonar admin token
     adminToken: COVERAGE_SONAR_ADMIN_TOKEN
 
+multiBuildCluster:
+  # Enabled multi build cluster feature or not       
+  enabled: MULTI_BUILD_CLUSTER_ENABLED
+
 ecosystem:
   # URL for the User Interface
   ui: ECOSYSTEM_UI

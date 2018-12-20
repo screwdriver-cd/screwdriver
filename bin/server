@@ -26,6 +26,9 @@ ecosystem.api = httpdConfig.uri;
 // Notification config
 const notificationConfig = config.get('notifications');
 
+// Multiple build cluster feature flag
+const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
+
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
@@ -109,7 +112,8 @@ const buildFactory = Models.BuildFactory.getInstance({
     scm,
     executor,
     bookend,
-    uiUri: ecosystem.ui
+    uiUri: ecosystem.ui,
+    multiBuildClusterEnabled
 });
 const stepFactory = Models.StepFactory.getInstance({
     datastore

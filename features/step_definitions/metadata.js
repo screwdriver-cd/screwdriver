@@ -2,6 +2,7 @@
 
 const Assert = require('chai').assert;
 const request = require('../support/request');
+const sdapi = require('../support/sdapi');
 const { defineSupportCode } = require('cucumber');
 
 const TIMEOUT = 240 * 1000;
@@ -21,30 +22,26 @@ defineSupportCode(({ Before, Given, Then }) => {
     Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
     Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, function step(jobName) {
-        let jobId = '';
-
         switch (jobName) {
         case 'BAR':
-            jobId = this.secondJobId;
+            this.jobName = 'second';
             break;
         case 'BAZ':
-            jobId = this.thirdJobId;
+            this.jobName = 'third';
             break;
         default:
             throw new Error('jobName is neither BAR or BAZ');
         }
 
-        return request({
-            uri: `${this.instance}/${this.namespace}/jobs/${jobId}/builds`,
-            method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
-            }
-        }).then((response) => {
-            Assert.equal(response.statusCode, 200);
-
-            this.buildId = response.body[0].id;
+        return sdapi.searchForBuild({
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            desiredSha: this.sha,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName: this.jobName,
+            jwt: this.jwt
+        }).then((build) => {
+            this.buildId = build.id;
         });
     });
 
