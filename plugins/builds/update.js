@@ -92,7 +92,7 @@ module.exports = () => ({
                         build.stats = Object.assign(build.stats, stats);
                     }
 
-                    // If payload only has statusMessage
+                    // Short circuit for cases that don't need to update status
                     if (!desiredStatus) {
                         if (statusMessage) {
                             build.statusMessage = statusMessage;
