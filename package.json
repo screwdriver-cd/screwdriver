@@ -105,7 +105,7 @@
     "screwdriver-notifications-slack": "^2.1.8",
     "screwdriver-scm-github": "^8.1.5",
     "screwdriver-scm-gitlab": "^1.1.0",
-    "screwdriver-scm-router": "^3.2.0",
+    "screwdriver-scm-router": "^4.0.0",
     "screwdriver-template-validator": "^3.0.5",
     "screwdriver-workflow-parser": "^1.7.0",
     "sqlite3": "^4.0.3",
