@@ -133,28 +133,28 @@ module.exports = () => ({
 
                     // Only trigger next build on success
                     return Promise.all([build.update(), event.update()]);
-                }).then(([newbuild, newevent]) =>
-                    newbuild.job.then(job => job.pipeline.then((pipeline) => {
+                }).then(([newBuild, newEvent]) =>
+                    newBuild.job.then(job => job.pipeline.then((pipeline) => {
                         request.server.emit('build_status', {
                             settings: job.permutations[0].settings,
-                            status: newbuild.status,
-                            event: newevent.toJson(),
+                            status: newBuild.status,
+                            event: newEvent.toJson(),
                             pipeline: pipeline.toJson(),
                             jobName: job.name,
-                            build: newbuild.toJson(),
+                            build: newBuild.toJson(),
                             buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                         });
 
                         // Guard against triggering non-successful or unstable builds
-                        if (newbuild.status !== 'SUCCESS') {
+                        if (newBuild.status !== 'SUCCESS') {
                             return null;
                         }
 
                         const src = `~sd@${pipeline.id}:${job.name}`;
 
                         return triggerNextJobs({
-                            pipeline, job, build: newbuild, username, scmContext
+                            pipeline, job, build: newBuild, username, scmContext
                         })
                             .then(() => triggerFactory.list({ params: { src } }))
                             .then((records) => {
@@ -174,10 +174,10 @@ module.exports = () => ({
                                     pipelineId: parseInt(pipelineId, 10),
                                     startFrom: src,
                                     causeMessage: `Triggered by build ${username}`,
-                                    parentBuildId: newbuild.id
+                                    parentBuildId: newBuild.id
                                 })
                             )));
-                    }).then(() => reply(newbuild.toJson()).code(200))))
+                    }).then(() => reply(newBuild.toJson()).code(200))))
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
