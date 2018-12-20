@@ -593,6 +593,37 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('updates stats only', () => { // for coverage
+                buildMock.stats = {
+                    queueEnterTime: '2017-01-06T01:49:50.384359267Z'
+                };
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        stats: {
+                            hostname: 'node123.mycluster.com'
+                        }
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.deepEqual(buildMock.stats, {
+                        queueEnterTime: '2017-01-06T01:49:50.384359267Z',
+                        hostname: 'node123.mycluster.com'
+                    });
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                    assert.equal(reply.statusCode, 200);
+                });
+            });
+
             it('updates stats', () => {
                 buildMock.stats = {
                     queueEnterTime: '2017-01-06T01:49:50.384359267Z'
