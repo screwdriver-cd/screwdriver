@@ -27,7 +27,7 @@ module.exports = () => ({
             const { buildFactory, eventFactory, jobFactory, triggerFactory, userFactory } = request.server.app;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
-            const statusMessage = request.payload.statusMessage;
+            const { statusMessage, stats } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
             const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
@@ -85,9 +85,18 @@ module.exports = () => ({
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
                 }).then(({ build, event }) => {
-                    // If payload only has statusMessage
-                    if (!desiredStatus && statusMessage) {
-                        build.statusMessage = statusMessage;
+                    // We can't merge from executor-k8s/k8s-vm side because executor doesn't have build object
+                    // So we do merge logic here instead
+                    if (stats) {
+                        // need to do this so the field is dirty
+                        build.stats = Object.assign(build.stats, stats);
+                    }
+
+                    // Short circuit for cases that don't need to update status
+                    if (!desiredStatus) {
+                        if (statusMessage) {
+                            build.statusMessage = statusMessage;
+                        }
 
                         return Promise.all([build.update(), event.update()]);
                     }
@@ -124,48 +133,51 @@ module.exports = () => ({
 
                     // Only trigger next build on success
                     return Promise.all([build.update(), event.update()]);
-                }).then(([build, event]) => build.job.then(job => job.pipeline.then((pipeline) => {
-                    request.server.emit('build_status', {
-                        settings: job.permutations[0].settings,
-                        status: build.status,
-                        event: event.toJson(),
-                        pipeline: pipeline.toJson(),
-                        jobName: job.name,
-                        build: build.toJson(),
-                        buildLink:
+                }).then(([newBuild, newEvent]) =>
+                    newBuild.job.then(job => job.pipeline.then((pipeline) => {
+                        request.server.emit('build_status', {
+                            settings: job.permutations[0].settings,
+                            status: newBuild.status,
+                            event: newEvent.toJson(),
+                            pipeline: pipeline.toJson(),
+                            jobName: job.name,
+                            build: newBuild.toJson(),
+                            buildLink:
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
-                    });
+                        });
 
-                    // Guard against triggering non-successful or unstable builds
-                    if (build.status !== 'SUCCESS') {
-                        return null;
-                    }
+                        // Guard against triggering non-successful or unstable builds
+                        if (newBuild.status !== 'SUCCESS') {
+                            return null;
+                        }
 
-                    const src = `~sd@${pipeline.id}:${job.name}`;
+                        const src = `~sd@${pipeline.id}:${job.name}`;
 
-                    return triggerNextJobs({ pipeline, job, build, username, scmContext })
-                        .then(() => triggerFactory.list({ params: { src } }))
-                        .then((records) => {
-                            // Use set to remove duplicate and keep only unique pipelineIds
-                            const triggeredPipelines = new Set();
-
-                            records.forEach((record) => {
-                                const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
-
-                                triggeredPipelines.add(pipelineId);
-                            });
-
-                            return Array.from(triggeredPipelines);
+                        return triggerNextJobs({
+                            pipeline, job, build: newBuild, username, scmContext
                         })
-                        .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
-                            triggerEvent({
-                                pipelineId: parseInt(pipelineId, 10),
-                                startFrom: src,
-                                causeMessage: `Triggered by build ${username}`,
-                                parentBuildId: build.id
+                            .then(() => triggerFactory.list({ params: { src } }))
+                            .then((records) => {
+                            // Use set to remove duplicate and keep only unique pipelineIds
+                                const triggeredPipelines = new Set();
+
+                                records.forEach((record) => {
+                                    const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
+
+                                    triggeredPipelines.add(pipelineId);
+                                });
+
+                                return Array.from(triggeredPipelines);
                             })
-                        )));
-                }).then(() => reply(build.toJson()).code(200))))
+                            .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
+                                triggerEvent({
+                                    pipelineId: parseInt(pipelineId, 10),
+                                    startFrom: src,
+                                    causeMessage: `Triggered by build ${username}`,
+                                    parentBuildId: newBuild.id
+                                })
+                            )));
+                    }).then(() => reply(newBuild.toJson()).code(200))))
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
