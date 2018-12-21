@@ -331,6 +331,25 @@ describe('event plugin test', () => {
             })
         );
 
+        it('returns 201 when it successfully creates an event without parentBuildId', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
         it('returns 201 when it successfully creates an event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
