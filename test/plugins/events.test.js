@@ -530,16 +530,16 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns unauthorized error when user does not have push permission', () => {
+        it('returns 403 forbidden error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.notCalled(eventFactoryMock.create);
             });
         });
 
-        it('returns unauthorized error when user does not have push permission ' +
+        it('returns 403 forbidden error when user does not have push permission ' +
             'and is not author of PR', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
@@ -561,7 +561,7 @@ describe('event plugin test', () => {
             });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.notCalled(eventFactoryMock.create);
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);

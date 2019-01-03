@@ -37,7 +37,7 @@ module.exports = () => ({
                     throw boom.notFound(`User ${username} does not exist`);
                 }
                 if (collection.userId !== user.id) {
-                    throw boom.unauthorized(`User ${username} does not own collection`);
+                    throw boom.forbidden(`User ${username} does not own collection`);
                 }
 
                 return collection.remove()

@@ -672,19 +672,19 @@ describe('command plugin test', () => {
             formData = new FormData();
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 if it is a PR build', () => {
+        it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -842,7 +842,7 @@ describe('command plugin test', () => {
                 });
             });
 
-            it('returns 401 when pipelineId does not match', () => {
+            it('returns 403 when pipelineId does not match', () => {
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
@@ -853,7 +853,7 @@ describe('command plugin test', () => {
                     options.payload = payload;
 
                     return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 401);
+                        assert.equal(reply.statusCode, 403);
                     });
                 });
             });
@@ -1143,19 +1143,19 @@ describe('command plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 if it is a PR build', () => {
+        it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 

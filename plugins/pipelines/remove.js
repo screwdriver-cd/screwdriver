@@ -39,7 +39,7 @@ module.exports = () => ({
                     throw boom.notFound('Pipeline does not exist');
                 }
                 if (pipeline.configPipelineId) {
-                    throw boom.unauthorized('Child pipeline can only be removed'
+                    throw boom.forbidden('Child pipeline can only be removed'
                         + `by modifying scmUrls in config pipeline ${pipeline.configPipelineId}`);
                 }
                 if (!user) {
@@ -51,7 +51,7 @@ module.exports = () => ({
                     // check if user has admin access
                     .then((permissions) => {
                         if (!permissions.admin) {
-                            throw boom.unauthorized(`User ${username} `
+                            throw boom.forbidden(`User ${username} `
                                 + 'does not have admin permission for this repo');
                         }
                     })

@@ -257,7 +257,7 @@ describe('job plugin test', () => {
             });
         });
 
-        it('returns 401 if user has no push access to the repo', () => {
+        it('returns 403 if user has no push access to the repo', () => {
             const options = {
                 method: 'PUT',
                 url: '/jobs/1234',
@@ -274,7 +274,7 @@ describe('job plugin test', () => {
             });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
     });

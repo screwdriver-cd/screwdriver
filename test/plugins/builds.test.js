@@ -1631,17 +1631,17 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns unauthorized error when user does not have push permission', () => {
+        it('returns 403 forbidden error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
             options.credentials.username = 'bar';
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(pipelineMock.admins, { foo: true });
             });
         });
 
-        it('returns unauthorized error when pipeline token does not have permission', () => {
+        it('returns 401 unauthorized error when pipeline token does not have permission', () => {
             options.credentials = {
                 scope: ['pipeline'],
                 username,

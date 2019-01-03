@@ -65,7 +65,7 @@ module.exports = () => ({
                 // If command exists, but this build's pipelineId is not the same as command's pipelineId
                 // Then this build does not have permission to tag the command
                 if (pipeline.id !== command.pipelineId || isPR) {
-                    throw boom.unauthorized('Not allowed to tag this command');
+                    throw boom.forbidden('Not allowed to tag this command');
                 }
 
                 // If command tag exists, then the only thing it can update is the version

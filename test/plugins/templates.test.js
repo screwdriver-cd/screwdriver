@@ -694,19 +694,19 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 if it is a PR build', () => {
+        it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -849,19 +849,19 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -908,11 +908,11 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -924,11 +924,11 @@ describe('template plugin test', () => {
             });
         });
 
-        it('returns 401 if it is a PR build', () => {
+        it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 

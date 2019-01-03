@@ -527,26 +527,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User myself does not have admin permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
 
-        it('returns 401 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child piepline', () => {
             pipeline.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -912,17 +912,17 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User d2lam does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1012,17 +1012,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User d2lam does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1093,17 +1093,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have push permission', () => {
+        it('returns 403 when user does not have push permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User batman does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1216,11 +1216,11 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when the user does not have admin permissions', () => {
+        it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -1380,19 +1380,19 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child piepline', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 when the user does not have admin permissions', () => {
+        it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -1492,17 +1492,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User d2lam does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1567,17 +1567,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1669,17 +1669,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1777,17 +1777,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1926,17 +1926,17 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -2048,17 +2048,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -2166,17 +2166,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
