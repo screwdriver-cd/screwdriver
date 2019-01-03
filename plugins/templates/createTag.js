@@ -48,7 +48,7 @@ module.exports = () => ({
                 // If template exists, but this build's pipelineId is not the same as template's pipelineId
                 // Then this build does not have permission to tag the template
                 if (pipeline.id !== template.pipelineId || isPR) {
-                    throw boom.unauthorized('Not allowed to tag this template');
+                    throw boom.forbidden('Not allowed to tag this template');
                 }
 
                 // If template tag exists, then the only thing it can update is the version

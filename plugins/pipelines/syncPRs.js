@@ -42,7 +42,7 @@ module.exports = () => ({
                 return user.getPermissions(pipeline.scmUri)
                     .then((permissions) => {
                         if (!permissions.push) {
-                            throw boom.unauthorized(`User ${username} `
+                            throw boom.forbidden(`User ${username} `
                                 + 'does not have push permission for this repo');
                         }
                     })

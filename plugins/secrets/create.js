@@ -42,7 +42,7 @@ module.exports = () => ({
                 return user.getPermissions(pipeline.scmUri)
                     .then((permissions) => {
                         if (!permissions.admin) {
-                            throw boom.unauthorized(
+                            throw boom.forbidden(
                                 `User ${username} is not an admin of this repo`);
                         }
                     })

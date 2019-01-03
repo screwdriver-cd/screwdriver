@@ -22,7 +22,7 @@ function updateAdmins({ permissions, pipeline, username }) {
 
         return pipeline.update()
             .then(() => {
-                throw boom.unauthorized(`User ${username} `
+                throw boom.forbidden(`User ${username} `
                 + 'does not have push permission for this repo');
             });
     }

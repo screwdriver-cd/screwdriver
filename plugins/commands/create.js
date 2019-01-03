@@ -174,7 +174,7 @@ module.exports = () => ({
                         // Then this build does not have permission to publish
                         if (isPR ||
                                 (commands.length !== 0 && pipeline.id !== commands[0].pipelineId)) {
-                            throw boom.unauthorized('Not allowed to publish this command');
+                            throw boom.forbidden('Not allowed to publish this command');
                         }
 
                         // If command name doesn't exist yet, or exists and has good permission, then create

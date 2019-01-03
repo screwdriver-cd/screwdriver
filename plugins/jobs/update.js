@@ -46,7 +46,7 @@ module.exports = () => ({
                             // check if user has push access
                             .then((permissions) => {
                                 if (!permissions.push) {
-                                    throw boom.unauthorized(`User ${username} `
+                                    throw boom.forbidden(`User ${username} `
                                         + 'does not have write permission for this repo');
                                 }
 

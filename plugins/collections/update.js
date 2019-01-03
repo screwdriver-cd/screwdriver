@@ -38,7 +38,7 @@ module.exports = () => ({
 
                     // Check if user owns collection
                     if (oldCollection.userId !== user.id) {
-                        throw boom.unauthorized(`User ${username} does not own this collection`);
+                        throw boom.forbidden(`User ${username} does not own this collection`);
                     }
 
                     Object.assign(oldCollection, request.payload);

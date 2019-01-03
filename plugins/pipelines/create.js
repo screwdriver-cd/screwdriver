@@ -41,7 +41,7 @@ module.exports = () => ({
                         // if the user isn't an admin, reject
                         .then((permissions) => {
                             if (!permissions.admin) {
-                                throw boom.unauthorized(
+                                throw boom.forbidden(
                                     `User ${user.getFullDisplayName()} is not an admin of this repo`
                                 );
                             }

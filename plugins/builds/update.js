@@ -71,7 +71,7 @@ module.exports = () => ({
                                     // Check if user has push access or is a Screwdriver admin
                                     .then((permissions) => {
                                         if (!permissions.push && !adminDetails.isAdmin) {
-                                            throw boom.unauthorized(
+                                            throw boom.forbidden(
                                                 `User ${user.getFullDisplayName()} does not ` +
                                                 'have permission to abort this build'
                                             );

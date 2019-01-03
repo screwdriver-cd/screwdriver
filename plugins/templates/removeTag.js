@@ -46,7 +46,7 @@ module.exports = () => ({
                         .then(([pipeline, template]) => {
                             // Check for permission
                             if (pipeline.id !== template.pipelineId || isPR) {
-                                throw boom.unauthorized('Not allowed to delete this template tag');
+                                throw boom.forbidden('Not allowed to delete this template tag');
                             }
 
                             // Remove the template tag, not the template
