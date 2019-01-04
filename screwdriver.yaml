@@ -8,6 +8,7 @@ jobs:
             - ~commit
             - ~sd@73:publish #artifact-bookend https://cd.screwdriver.cd/pipelines/73
         steps:
+            - meta: meta set meta.summary.coverage "Coverage increased by 90%"
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install: npm install
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
