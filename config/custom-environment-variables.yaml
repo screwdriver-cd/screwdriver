@@ -265,6 +265,8 @@ scms:
   #     # The username and email used for checkout with github
   #     username: SCM_USERNAME
   #     email: SCM_EMAIL
+  #     # Token for writing PR comments in Github, needs public_repo scope
+  #     token: A-BOT-GITHUB-PERSONAL-ACCESS-TOKEN
   #     # Secret to add to GitHub webhooks so that we can validate them
   #     secret: WEBHOOK_GITHUB_SECRET
   #     # Whether it supports private repo: boolean value.
@@ -329,7 +331,7 @@ coverage:
     adminToken: COVERAGE_SONAR_ADMIN_TOKEN
 
 multiBuildCluster:
-  # Enabled multi build cluster feature or not       
+  # Enabled multi build cluster feature or not
   enabled: MULTI_BUILD_CLUSTER_ENABLED
 
 ecosystem:
