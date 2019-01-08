@@ -693,7 +693,7 @@ describe('pipeline plugin test', () => {
         it('returns 302 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '1 success, 1 unknown, 1 failure/red');
+                assert.deepEqual(reply.headers.location, '1 success, 1 failure/red');
             })
         );
 

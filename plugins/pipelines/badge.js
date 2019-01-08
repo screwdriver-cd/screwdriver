@@ -2,6 +2,7 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const workflowParser = require('screwdriver-workflow-parser');
 const tinytim = require('tinytim');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
@@ -86,8 +87,13 @@ module.exports = () => ({
                             let workflowLength = 0;
 
                             if (lastEvent.workflowGraph) {
-                                workflowLength = lastEvent.workflowGraph.nodes.filter(n =>
-                                    n.name !== '~commit' && n.name !== '~pr').length;
+                                const nextJobs = workflowParser.getNextJobs(
+                                    lastEvent.workflowGraph, {
+                                        trigger: lastEvent.startFrom
+                                    }
+                                );
+
+                                workflowLength = nextJobs.length;
                             }
 
                             for (let i = builds.length; i < workflowLength; i += 1) {
