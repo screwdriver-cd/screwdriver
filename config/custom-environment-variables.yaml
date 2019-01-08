@@ -266,7 +266,7 @@ scms:
   #     username: SCM_USERNAME
   #     email: SCM_EMAIL
   #     # Token for writing PR comments in Github, needs public_repo scope
-  #     token: A-BOT-GITHUB-PERSONAL-ACCESS-TOKEN
+  #     commentUserToken: A_BOT_GITHUB_PERSONAL_ACCESS_TOKEN
   #     # Secret to add to GitHub webhooks so that we can validate them
   #     secret: WEBHOOK_GITHUB_SECRET
   #     # Whether it supports private repo: boolean value.
