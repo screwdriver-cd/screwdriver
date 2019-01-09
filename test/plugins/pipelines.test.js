@@ -13,6 +13,7 @@ const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/events.json');
+const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -681,21 +682,33 @@ describe('pipeline plugin test', () => {
         const id = '123';
         let pipelineMock;
         let eventsMock;
+        let eventsPrMock;
 
         beforeEach(() => {
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineFactoryMock.get.resolves(pipelineMock);
             eventsMock = getEventsMocks(testEvents);
+            eventsPrMock = getEventsMocks(testEventsPr);
             eventsMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
+            eventsPrMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
             pipelineMock.getEvents.resolves(eventsMock);
         });
 
         it('returns 302 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '1 success, 1 failure/red');
+                assert.deepEqual(reply.headers.location, '1 success, 1 unknown, 1 failure/red');
             })
         );
+
+        it('returns 302 to for a valid PR build', () => {
+            pipelineMock.getEvents.resolves(eventsPrMock);
+
+            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, '1 success, 1 failure/red');
+            });
+        });
 
         it('returns 302 to unknown for a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
