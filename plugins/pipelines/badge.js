@@ -2,6 +2,7 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const workflowParser = require('screwdriver-workflow-parser');
 const tinytim = require('tinytim');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 
@@ -51,6 +52,41 @@ function getUrl(badgeService, buildsStatus = []) {
     });
 }
 
+/**
+ * DFS the workflowGraph from the start point
+ * @method dfs
+ * @param  {Object} workflowGraph   workflowGraph
+ * @param  {String} start           Start job name
+ * @param  {String} prNum           PR number in case of PR trigger
+ * @return {Set}                    A set of build ids that are visited
+ */
+function dfs(workflowGraph, start, prNum) {
+    let nextJobsConfig;
+
+    if (start === '~pr') {
+        nextJobsConfig = {
+            trigger: start,
+            prNum
+        };
+    } else {
+        nextJobsConfig = {
+            trigger: start
+        };
+    }
+
+    const nextJobs = workflowParser.getNextJobs(workflowGraph, nextJobsConfig);
+
+    let visited = new Set(nextJobs);
+
+    nextJobs.forEach((job) => {
+        const subJobs = dfs(workflowGraph, job);
+
+        visited = new Set([...visited, ...subJobs]);
+    });
+
+    return visited;
+}
+
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/badge',
@@ -86,8 +122,12 @@ module.exports = () => ({
                             let workflowLength = 0;
 
                             if (lastEvent.workflowGraph) {
-                                workflowLength = lastEvent.workflowGraph.nodes.filter(n =>
-                                    n.name !== '~commit' && n.name !== '~pr').length;
+                                const nextJobs = dfs(lastEvent.workflowGraph,
+                                    lastEvent.startFrom,
+                                    lastEvent.prNum,
+                                    builds);
+
+                                workflowLength = nextJobs.size;
                             }
 
                             for (let i = builds.length; i < workflowLength; i += 1) {
