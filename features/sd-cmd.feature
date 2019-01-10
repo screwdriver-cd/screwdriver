@@ -1,4 +1,4 @@
-@ignore
+@sd-cmd
 Feature: Commands
 
     Users want to share binaries or scripts across multiple containers
@@ -8,43 +8,31 @@ Feature: Commands
     (via remote binary, docker image, or habitat package) during a build.
 
     Background:
-        Given an existing pipeline with <image> image and a command:
-            | image         | namespace   | command        | version |
-            | golang:latest | sd-cmd-test | sample-command | 1.0.0   |
+        Given an existing pipeline
 
-    Scenario Outline: Execute a command of habitat format
-        Given command specifications as mode: <mode>, package: <package>, binary: <binary>
-        When execute the command with arguments: <arguments>
-        Then the command finishes successfully
+    Scenario Outline: Publish and execute commands
+        Given <command> command does not exist yet
+        When execute <job> job
+        Then the job is completed successfully
+        And the command is published with <format> format
+        And "exec" step executes the command with arguments: <arguments>
 
         Examples:
-            | mode   | package         | binary | arguments |
-            | remote | core/node/8.9.1 | node   | node -v   |
-            | local  | ./sample.hart   | node   | node -v   |
-
-    Scenario: Execute a command of docker format
-        Given command specification as image: "node:6"
-        When execute the command with arguments: "node -v"
-        Then the command finishes successfully
-
-    Scenario: Execute a command of binary format
-        Given command specification as file: "./sample.sh"
-        When execute the command with arguments: "node -v"
-        Then the command finishes successfully
-
-    Scenario: Publish a command
-        Given command specification file
-        When execute "publish"
-        Then the command is published successfully
+            | command      | job     | format  | arguments |
+            | binary-func-test  | binary  | binary  | "foo bar" |
+            | habitat-func-test | habitat | habitat | "-v"      |
 
     Scenario: Promote a command
-        Given promoting version is "1.0.1"
-        And promoting target is "latest"
-        And currently "1.0.0" is tagged to "latest"
-        When execute "promote"
-        Then promote "1.0.1" to "latest"
-        And remove "1.0.0" from "latest"
+        Given promote-func-test command does not exist yet
+        And "1.0.0" version of the command is uploaded with "stable" tag
+        And "1.0.1" version of the command is uploaded with "latest" tag
+        When execute promote job
+        Then the job is completed successfully
+        And "1.0.1" is tagged with "stable"
+        And "1.0.1" is tagged with "GA"
+        And "stable" tag is removed from "1.0.0"
 
+    @ignore
     Scenario: Get list of explicit command versions
         When execute "list"
         Then get list of explicit versions matching that range with comma separated tags next to applicable tags

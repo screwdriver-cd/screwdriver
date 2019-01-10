@@ -40,7 +40,7 @@ module.exports = () => ({
                         // check if user has push access
                         .then((permissions) => {
                             if (!permissions.push) {
-                                throw boom.unauthorized(`User ${username} `
+                                throw boom.forbidden(`User ${username} `
                                     + 'does not have push permission for this repo');
                             }
                         });
@@ -65,7 +65,7 @@ module.exports = () => ({
                             causeMessage: `Started by ${username}`
                         }))))
                 .then(() => reply().code(201))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

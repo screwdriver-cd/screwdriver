@@ -29,12 +29,29 @@ server.register({
 `GET /builds/{id}`
 
 #### Returns a Stream of logs
-`GET /builds/{id}/steps/{name}/logs?from=0&pages=10`
+`GET /builds/{id}/steps/{name}/logs?from=0&pages=10&sort=descending`
 
 Arguments:
 
 * `from` - Line number to start loading lines from
 * `pages` - Number of pages to load; a page is 100 lines
+* `sort` - Order in which to fetch logs (`ascending` or `descending`), default `ascending`
+
+#### Gets a build step
+`GET /builds/{id}/steps/{name}`
+
+#### Updates a build step
+`PUT /builds/{id}/steps/{name}`
+
+Example payload:
+```json
+{
+    "code": 0,
+    "startTime": "2038-01-19T03:15:08.131Z",
+    "endTime": "2038-01-19T03:15:08.532Z",
+    "lines": 100
+}
+```
 
 #### Creates a build
 `POST /builds`

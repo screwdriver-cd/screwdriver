@@ -205,11 +205,11 @@ describe('secret plugin test', () => {
             });
         });
 
-        it('returns 401 when the user does not have admin permissions', () => {
+        it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 

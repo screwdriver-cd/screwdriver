@@ -22,6 +22,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/auth',
         '../plugins/banners',
         '../plugins/builds',
+        '../plugins/buildClusters',
         '../plugins/collections',
         '../plugins/commands',
         '../plugins/events',
@@ -31,7 +32,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/templates',
         '../plugins/tokens',
         '../plugins/webhooks',
-        '../plugins/stats'
+        '../plugins/stats',
+        '../plugins/isAdmin'
     ];
     const pluginLength = expectedPlugins.length + resourcePlugins.length;
     const mocks = {};

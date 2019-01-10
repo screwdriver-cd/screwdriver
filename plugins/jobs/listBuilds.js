@@ -31,17 +31,20 @@ module.exports = () => ({
                     }
 
                     const config = {
-                        paginate: {
-                            page: request.query.page,
-                            count: request.query.count
-                        },
                         sort: request.query.sort
                     };
+
+                    if (request.query.page || request.query.count) {
+                        config.paginate = {
+                            page: request.query.page,
+                            count: request.query.count
+                        };
+                    }
 
                     return job.getBuilds(config);
                 })
                 .then(builds => reply(builds.map(b => b.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

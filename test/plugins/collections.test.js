@@ -529,7 +529,7 @@ describe('collection plugin test', () => {
             });
         });
 
-        it('returns 401 when the user does not have permission', () => {
+        it('returns 403 when the user does not have permission', () => {
             const fakeUserId = 12;
             const fakeUserMock = getUserMock({
                 username,
@@ -539,7 +539,7 @@ describe('collection plugin test', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -589,7 +589,7 @@ describe('collection plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have permission', () => {
+        it('returns 403 when user does not have permission', () => {
             const fakeUserId = 12;
             const fakeUserMock = getUserMock({
                 username,
@@ -599,7 +599,7 @@ describe('collection plugin test', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 

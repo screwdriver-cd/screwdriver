@@ -33,6 +33,18 @@ server.register({
 
 `GET /commands`
 
+Can filter by command namespace:
+`GET /commands?namespace=chef`
+
+Can search by keyword in command name, namespace, and description:
+`GET /commands?search=screwdriver`
+
+Can list all distinct command namespaces:
+`GET /commands?distinct=namespace`
+
+Can use additional options for sorting and pagination:
+`GET /commands?sort=ascending&sortBy=name&page=1&count=50`
+
 ##### Get all command versions
 
 You can get all versions of commands by providing the command namespace and name.
@@ -109,8 +121,10 @@ Command Tag allows fetching on command version by tag. For example, command `myn
 
 If the command tag already exists, it will update the tag with the version. If the command tag doesn't exist yet, this endpoint will create the tag.
 
+You can also call this endpoint with tag instead of the exact version. In this case, same version will have two tags.  (e.g. version 1.0.0 tagged with both latest and stable)
+
 *Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the command.*
 
 `PUT /commands/{namespace}/{name}/tags/{tagName}` with the following payload
 
-* `version` - Exact version of the command (ex: `1.1.0`)
+* `version` - Exact version or tag of the command (ex: `1.1.0`, `latest`)

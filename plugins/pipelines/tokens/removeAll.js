@@ -43,14 +43,14 @@ module.exports = () => ({
                     return user.getPermissions(pipeline.scmUri)
                         .then((permissions) => {
                             if (!permissions.admin) {
-                                throw boom.unauthorized(`User ${username} `
+                                throw boom.forbidden(`User ${username} `
                                     + 'is not an admin of this repo');
                             }
                         })
                         .then(() => pipeline.tokens.then(tokens => tokens.map(t => t.remove())));
                 })
                 .then(() => reply().code(204))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

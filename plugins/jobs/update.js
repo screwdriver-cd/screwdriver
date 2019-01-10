@@ -46,7 +46,7 @@ module.exports = () => ({
                             // check if user has push access
                             .then((permissions) => {
                                 if (!permissions.push) {
-                                    throw boom.unauthorized(`User ${username} `
+                                    throw boom.forbidden(`User ${username} `
                                         + 'does not have write permission for this repo');
                                 }
 
@@ -59,7 +59,7 @@ module.exports = () => ({
                     });
                 })
                 .then(job => reply(job.toJson()).code(200))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

@@ -150,11 +150,6 @@ describe('template plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
-                    params: {},
-                    paginate: {
-                        page: 1,
-                        count: 50
-                    },
                     sort: 'descending'
                 });
             });
@@ -171,9 +166,111 @@ describe('template plugin test', () => {
                     params: {
                         namespace: 'chef'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all namespaces using distinct query', () => {
+            const namespaces = [
+                { namespace: 'chef' },
+                { namespace: 'docker' },
+                { namespace: 'nodejs' },
+                { namespace: 'screwdriver' },
+                { namespace: 'tools' }
+            ];
+
+            templateFactoryMock.list.resolves(namespaces);
+            options.url = '/templates?distinct=namespace';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, namespaces);
+                assert.calledWith(templateFactoryMock.list, {
+                    params: {
+                        distinct: 'namespace'
+                    },
+                    sort: 'descending',
+                    raw: true
+                });
+            });
+        });
+
+        it('returns 200 and all templates with sortBy query', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?sortBy=name';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
+                    sortBy: 'name',
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates with search query', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?search=nodejs';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
+                    search: {
+                        field: ['name', 'namespace', 'description'],
+                        keyword: '%nodejs%'
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates in compact format', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?compact=true';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
+                    exclude: ['config'],
+                    groupBy: ['namespace', 'name'],
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates with search query without namespace field', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?search=nodejs&namespace=nodejs';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
+                    params: { namespace: 'nodejs' },
+                    search: {
+                        field: ['name', 'description'],
+                        keyword: '%nodejs%'
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all templates with pagination', () => {
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
+            options.url = '/templates?count=30';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplates);
+                assert.calledWith(templateFactoryMock.list, {
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -258,9 +355,23 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplateversions);
                 assert.calledWith(templateFactoryMock.list, {
                     params: { name: 'screwdriver/build' },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all template versions for a template name with pagination', () => {
+            options.url = '/templates/screwdriver%2Fbuild?count=30';
+            templateFactoryMock.list.resolves(getTemplateMocks(testtemplateversions));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplateversions);
+                assert.calledWith(templateFactoryMock.list, {
+                    params: { name: 'screwdriver/build' },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -393,7 +504,7 @@ describe('template plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'Pipeline 1337 is not allowed to access this template'
+                message: 'Not allowed to remove this template'
             };
 
             options = {
@@ -403,6 +514,31 @@ describe('template plugin test', () => {
                     username,
                     scmContext,
                     pipelineId: 1337,
+                    scope: ['build']
+                }
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when build credential is from a PR', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this template'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    pipelineId: 1337,
+                    isPR: true,
                     scope: ['build']
                 }
             };
@@ -447,9 +583,27 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplatetags);
                 assert.calledWith(templateTagFactoryMock.list, {
                     params: { name: 'screwdriver/build' },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all template tags for a template name with pagination', () => {
+            const options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/tags?count=30'
+            };
+
+            templateTagFactoryMock.list.resolves(getTemplateMocks(testtemplatetags));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplatetags);
+                assert.calledWith(templateTagFactoryMock.list, {
+                    params: { name: 'screwdriver/build' },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -483,10 +637,6 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, []);
                 assert.calledWith(templateTagFactoryMock.list, {
                     params: { name: 'template-with-no-tags' },
-                    paginate: {
-                        page: 1,
-                        count: 50
-                    },
                     sort: 'descending'
                 });
             });
@@ -544,19 +694,19 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 if it is a PR build', () => {
+        it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -699,11 +849,19 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when pipelineId does not match', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -750,11 +908,11 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -763,6 +921,14 @@ describe('template plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 

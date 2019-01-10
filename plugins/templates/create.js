@@ -61,7 +61,7 @@ module.exports = () => ({
                     // If template name exists, but this build's pipelineId is not the same as template's pipelineId
                     // Then this build does not have permission to publish
                     if (pipeline.id !== templates[0].pipelineId || isPR) {
-                        throw boom.unauthorized('Not allowed to publish this template');
+                        throw boom.forbidden('Not allowed to publish this template');
                     }
 
                     // If template name exists and has good permission, then create
@@ -77,7 +77,7 @@ module.exports = () => ({
                 });
 
                 return reply(template.toJson()).header('Location', location).code(201);
-            }).catch(err => reply(boom.wrap(err))),
+            }).catch(err => reply(boom.boomify(err))),
         validate: {
             payload: templateSchema.input
         }

@@ -28,22 +28,36 @@ module.exports = () => ({
             let pipelineArray = [];
 
             scmContexts.forEach((scmContext) => {
-                const params = {
-                    scmContext
+                const config = {
+                    params: { scmContext },
+                    sort: request.query.sort
                 };
 
                 if (request.query.configPipelineId) {
-                    params.configPipelineId = request.query.configPipelineId;
+                    config.params.configPipelineId = request.query.configPipelineId;
                 }
 
-                const pipelines = factory.list({
-                    params,
-                    paginate: {
+                if (request.query.sortBy) {
+                    config.sortBy = request.query.sortBy;
+                }
+
+                if (request.query.search) {
+                    config.search = {
+                        field: 'name',
+                        // Do a fuzzy search for name: screwdriver-cd/ui
+                        // See https://www.w3schools.com/sql/sql_like.asp for syntax
+                        keyword: `%${request.query.search}%`
+                    };
+                }
+
+                if (request.query.page || request.query.count) {
+                    config.paginate = {
                         page: request.query.page,
                         count: request.query.count
-                    },
-                    sort: request.query.sort
-                });
+                    };
+                }
+
+                const pipelines = factory.list(config);
 
                 pipelineArray = pipelineArray.concat(pipelines);
             });
@@ -51,7 +65,7 @@ module.exports = () => ({
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
                 .then(allPipelines => reply(allPipelines.map(p => p.toJson())))
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

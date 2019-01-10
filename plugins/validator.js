@@ -21,7 +21,8 @@ exports.register = (server, options, next) => {
             notes: 'Returns the parsed config or validation errors',
             tags: ['api', 'validation', 'yaml'],
             handler: (request, reply) =>
-                parser(request.payload.yaml, request.server.app.templateFactory)
+                parser(request.payload.yaml, request.server.app.templateFactory,
+                    request.server.app.buildClusterFactory)
                     .then(pipeline => reply(pipeline)),
             validate: {
                 payload: validatorSchema.input

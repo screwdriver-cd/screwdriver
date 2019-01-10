@@ -1,0 +1,41 @@
+[{
+    "id": 12345,
+    "type": "pipeline",
+    "pipelineId": 1234,
+    "startFrom": "~pr",
+    "prNum": 1,
+    "sha": "ccc49349d3cffbd12ea9e3d41521480b4aa5de5f",
+    "createTime": "2038-01-19T03:14:08.131Z",
+    "commit": {
+        "url": "https://link.to/commitDiff",
+        "message": "some commit message that is here",
+        "author": {
+            "avatar": "https://avatars.githubusercontent.com/u/1234567?v=3",
+            "name": "Batman",
+            "url": "https://internal-ghe.mycompany.com/imbatman",
+            "username": "imbatman"
+        }
+    },
+    "workflowGraph": {
+        "nodes": [
+            { "name": "~pr" },
+            { "name": "pullrequest" },
+            { "name": "pullrequest2" },
+            { "name": "~commit" },
+            { "name": "main" },
+            { "name": "publish" },
+            { "name": "beta" }
+        ],
+        "edges": [
+            { "src": "~pr", "dest": "pullrequest" },
+            { "src": "~pr", "dest": "pullrequest2" }
+        ]
+    },
+    "causeMessage": "Merge pull request #26 from screwdriver-cd/models",
+    "creator": {
+        "avatar": "https://avatars.githubusercontent.com/u/2042?v=3",
+        "name": "St John",
+        "url": "https://github.com/stjohn",
+        "username": "stjohn"
+    }
+}]

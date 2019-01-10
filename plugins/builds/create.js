@@ -67,7 +67,7 @@ module.exports = () => ({
 
                                 return pipeline.update()
                                     .then(() => {
-                                        throw boom.unauthorized(`User ${username} `
+                                        throw boom.forbidden(`User ${username} `
                                             + 'does not have push permission for this repo');
                                     });
                             }
@@ -140,7 +140,7 @@ module.exports = () => ({
                     return reply(build.toJson()).header('Location', location).code(201);
                 })
                 // something was botched
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: validationSchema.models.build.create

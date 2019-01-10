@@ -33,8 +33,8 @@ module.exports = () => ({
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
                 return reply(boom.forbidden(
-                    `User ${adminDetails.userDisplayName}
-                    does not have Screwdriver administrative privileges.`
+                    `User ${adminDetails.userDisplayName}` +
+                    'does not have Screwdriver administrative privileges.'
                 ));
             }
 
@@ -52,7 +52,7 @@ module.exports = () => ({
 
                     return reply(banner.toJson()).header('Location', location).code(201);
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: schema.models.banner.create

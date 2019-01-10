@@ -56,7 +56,7 @@ module.exports = () => ({
 
                         return reply({ token: profile.token });
                     })
-                    .catch(err => reply(boom.wrap(err)));
+                    .catch(err => reply(boom.boomify(err)));
             }
 
             return reply({ token });

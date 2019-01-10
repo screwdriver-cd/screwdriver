@@ -40,23 +40,29 @@ module.exports = () => ({
                 if (build.status !== 'QUEUED' && build.status !== 'BLOCKED') {
                     throw boom.forbidden('Build is already running or finished.');
                 }
+                const jwtInfo = {
+                    isPR: profile.isPR,
+                    jobId: profile.jobId,
+                    eventId: profile.eventId,
+                    pipelineId: profile.pipelineId,
+                    configPipelineId: profile.configPipelineId
+                };
+
+                if (profile.prParentJobId) {
+                    jwtInfo.prParentJobId = profile.prParentJobId;
+                }
 
                 const token = request.server.plugins.auth.generateToken(
                     request.server.plugins.auth.generateProfile(
                         profile.username,
                         profile.scmContext,
                         ['build'],
-                        {
-                            isPR: profile.isPR,
-                            jobId: profile.jobId,
-                            pipelineId: profile.pipelineId,
-                            configPipelineId: profile.configPipelineId
-                        }
+                        jwtInfo
                     ), parseInt(buildTimeout, 10)
                 );
 
                 return reply({ token });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: schema.api.auth.token

@@ -1,0 +1,33 @@
+[{
+    "id": 12345,
+    "name": "iOS",
+    "scmOrganizations": ["screwdriver-cd"],
+    "scmContext": "github:github.com",
+    "managedByScrewdriver": false,
+    "maintainer": "foo@bar.com",
+    "isActive": true,
+    "description": "Build cluster for iOS team",
+    "weightage": 100
+},
+{
+    "id": 23456,
+    "name": "west1",
+    "scmOrganizations": ["screwdriver-cd"],
+    "scmContext": "github:github.com",
+    "managedByScrewdriver": true,
+    "maintainer": "foo@bar.com",
+    "isActive": true,
+    "description": "West1 default build cluster",
+    "weightage": 80
+},
+{
+    "id": 34567,
+    "name": "west2",
+    "scmOrganizations": ["screwdriver-cd"],
+    "scmContext": "github:github.com",
+    "managedByScrewdriver": true,
+    "maintainer": "foo@bar.com",
+    "isActive": true,
+    "description": "West2 default build cluster",
+    "weightage": 20
+}]

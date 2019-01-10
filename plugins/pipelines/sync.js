@@ -60,7 +60,7 @@ module.exports = () => ({
 
                             return pipeline.update()
                                 .then(() => {
-                                    throw boom.unauthorized(`User ${username} `
+                                    throw boom.forbidden(`User ${username} `
                                         + 'does not have push permission for this repo');
                                 });
                         }
@@ -82,7 +82,7 @@ module.exports = () => ({
                     .then(() => pipeline.sync())
                     .then(() => reply().code(204));
             })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

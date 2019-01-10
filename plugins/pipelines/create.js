@@ -41,7 +41,7 @@ module.exports = () => ({
                         // if the user isn't an admin, reject
                         .then((permissions) => {
                             if (!permissions.admin) {
-                                throw boom.unauthorized(
+                                throw boom.forbidden(
                                     `User ${user.getFullDisplayName()} is not an admin of this repo`
                                 );
                             }
@@ -86,7 +86,7 @@ module.exports = () => ({
                     })
                 )
                 // something broke, respond with error
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: schema.models.pipeline.create

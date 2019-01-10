@@ -17,6 +17,7 @@ const uuid = require('uuid/v4');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
+const JOI_BOOLEAN = joi.boolean().truthy('true').falsy('false');
 
 /**
  * Auth API Plugin
@@ -31,22 +32,25 @@ const ALGORITHM = 'RS256';
  * @param  {String}   options.jwtPrivateKey          Secret for signing JWTs
  * @param  {String}  [options.jwtEnvironment]        Environment for the JWTs. Example: 'prod' or 'beta'
  * @param  {Object}   options.scm                    SCM class to setup Authentication
+ * @param  {Object}   options.sameSite               Cookie option for SameSite setting
  * @param  {Function} next                           Function to call when done
  */
 exports.register = (server, options, next) => {
     const pluginOptions = joi.attempt(options, joi.object().keys({
         jwtEnvironment: joi.string().default(''),
-        https: joi.boolean().truthy('true').falsy('false').required(),
+        https: JOI_BOOLEAN.required(),
         cookiePassword: joi.string().min(32).required(),
         encryptionPassword: joi.string().min(32).required(),
         hashingPassword: joi.string().min(32).required(),
-        allowGuestAccess: joi.boolean().truthy('true').falsy('false').default(false),
+        allowGuestAccess: JOI_BOOLEAN.default(false),
         jwtPrivateKey: joi.string().required(),
         jwtPublicKey: joi.string().required(),
         whitelist: joi.array().default([]),
         admins: joi.array().default([]),
         scm: joi.object().required(),
-        sessionTimeout: joi.number().integer().positive().default(120)
+        sessionTimeout: joi.number().integer().positive().default(120),
+        oauthRedirectUri: joi.string().optional(),
+        sameSite: joi.alternatives().try(JOI_BOOLEAN, joi.string()).required()
     }), 'Invalid config for plugin-auth');
 
     /**
@@ -118,6 +122,10 @@ exports.register = (server, options, next) => {
                 bellConfig.isSecure = pluginOptions.https;
                 bellConfig.forceHttps = pluginOptions.https;
 
+                if (pluginOptions.oauthRedirectUri) {
+                    bellConfig.location = pluginOptions.oauthRedirectUri;
+                }
+
                 // The oauth strategy differs between the scm modules
                 server.auth.strategy(`oauth_${scmContext}`, 'bell', bellConfig);
             });
@@ -126,8 +134,10 @@ exports.register = (server, options, next) => {
                 cookie: 'sid',
                 ttl: pluginOptions.sessionTimeout * 60 * 1000,
                 password: pluginOptions.cookiePassword,
-                isSecure: pluginOptions.https
+                isSecure: pluginOptions.https,
+                isSameSite: pluginOptions.sameSite
             });
+
             server.auth.strategy('token', 'jwt', {
                 key: pluginOptions.jwtPublicKey,
                 verifyOptions: {
@@ -139,6 +149,7 @@ exports.register = (server, options, next) => {
                     cb(null, true);
                 }
             });
+
             server.auth.strategy('auth_token', 'bearer-access-token', {
                 accessTokenName: 'api_token',
                 allowCookieToken: false,

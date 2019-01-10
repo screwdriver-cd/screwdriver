@@ -36,14 +36,17 @@ function promiseToWait(timeToWait) {
  * @method ensurePipelineExists
  * @param   {Object}    config
  * @param   {String}    config.repoName     Name of the pipeline
+ * @param   {String}    [config.branch]     Name of the pipeline branch
  * @return {Promise}
  */
 function ensurePipelineExists(config) {
+    const branch = config.branch || 'master';
+
     return this.getJwt(this.apiToken)
         .then((response) => {
             this.jwt = response.body.token;
 
-            return this.createPipeline(config.repoName);
+            return this.createPipeline(config.repoName, branch);
         })
         .then((response) => {
             Assert.oneOf(response.statusCode, [409, 201]);
@@ -63,7 +66,7 @@ function ensurePipelineExists(config) {
             return this.deletePipeline(this.pipelineId).then((resDel) => {
                 Assert.equal(resDel.statusCode, 204);
 
-                return this.createPipeline(config.repoName).then((resCre) => {
+                return this.createPipeline(config.repoName, branch).then((resCre) => {
                     Assert.equal(resCre.statusCode, 201);
 
                     this.pipelineId = resCre.body.id;
@@ -75,7 +78,9 @@ function ensurePipelineExists(config) {
         .then((response) => {
             Assert.equal(response.statusCode, 200);
 
-            for (let i = 0; i < response.body.length; i += 1) {
+            this.jobs = response.body;
+
+            for (let i = 0; i < this.jobs.length; i += 1) {
                 const job = response.body[i];
 
                 switch (job.name) {
@@ -124,8 +129,8 @@ function CustomWorld({ attach, parameters }) {
         requestretry({
             uri: `${this.instance}/${this.namespace}/builds/${buildID}`,
             method: 'GET',
-            maxAttempts: 25,
-            retryDelay: 5000,
+            maxAttempts: 20,
+            retryDelay: 10000,
             retryStrategy: buildRetryStrategy,
             json: true,
             auth: {
@@ -152,7 +157,7 @@ function CustomWorld({ attach, parameters }) {
                 bearer: this.jwt
             }
         });
-    this.createPipeline = repoName =>
+    this.createPipeline = (repoName, branch) =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
@@ -160,7 +165,7 @@ function CustomWorld({ attach, parameters }) {
                 bearer: this.jwt
             },
             body: {
-                checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#master`
+                checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#${branch}`
             },
             json: true
         });

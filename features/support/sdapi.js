@@ -1,6 +1,7 @@
 'use strict';
 
 const request = require('./request');
+const WAIT_TIME = 6;
 
 /**
  * Promise to wait a certain number of seconds
@@ -74,6 +75,44 @@ function findBuilds(config) {
 }
 
 /**
+ * Finds a build created by latest event in a given pipeline.
+ *
+ * @method findEventBuilds
+ * @param  {Object}  config             Configuration object
+ * @param  {String}  config.instance    Screwdriver instance to test against
+ * @param  {String}  config.eventId     Event ID to find the build in
+ * @param  {String}  config.jwt         JWT for authenticating
+ * @param  {String}  config.jobs        Pipeline jobs
+ * @param  {String}  config.jobName     The job name we're looking for
+ * @return {Promise}                    A promise that resolves to an array of builds that
+ *                                      fulfill the given criteria. If nothing is found, an
+ *                                      empty array is returned
+ */
+function findEventBuilds(config) {
+    const instance = config.instance;
+    const eventId = config.eventId;
+
+    return request({
+        json: true,
+        method: 'GET',
+        uri: `${instance}/v4/events/${eventId}/builds`,
+        auth: {
+            bearer: config.jwt
+        }
+    }).then((response) => {
+        const builds = response.body || [];
+        const job = config.jobs.find(j => j.name === config.jobName);
+        const build = builds.find(b => b.jobId === job.id);
+
+        if (build) {
+            return builds;
+        }
+
+        return promiseToWait(WAIT_TIME).then(() => findEventBuilds(config));
+    });
+}
+
+/**
  * Searches for a job's build in a Pipeline. It is assumed that the job is the main job, unless
  * pull request information is provided.
  *
@@ -120,7 +159,7 @@ function searchForBuild(config) {
             return result[0];
         }
 
-        return promiseToWait(3).then(() => searchForBuild(config));
+        return promiseToWait(WAIT_TIME).then(() => searchForBuild(config));
     });
 }
 
@@ -155,7 +194,7 @@ function waitForBuildStatus(config) {
             return buildData;
         }
 
-        return promiseToWait(3).then(() => waitForBuildStatus(config));
+        return promiseToWait(WAIT_TIME).then(() => waitForBuildStatus(config));
     });
 }
 
@@ -199,6 +238,8 @@ function cleanupToken(config) {
 
 module.exports = {
     cleanupToken,
+    findBuilds,
+    findEventBuilds,
     searchForBuild,
     waitForBuildStatus
 };

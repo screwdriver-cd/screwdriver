@@ -4,6 +4,41 @@ const boom = require('boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 
+/**
+ * Update admins array
+ * @param  {Object}    permissions  User permissions
+ * @param  {Pipeline}  pipeline     Pipeline object to update
+ * @param  {String}    username     Username of user
+ * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
+ */
+function updateAdmins({ permissions, pipeline, username }) {
+    const newAdmins = pipeline.admins;
+
+    // Delete user from admin list if bad permissions
+    if (!permissions.push) {
+        delete newAdmins[username];
+        // This is needed to make admins dirty and update db
+        pipeline.admins = newAdmins;
+
+        return pipeline.update()
+            .then(() => {
+                throw boom.forbidden(`User ${username} `
+                + 'does not have push permission for this repo');
+            });
+    }
+
+    // Add user as admin if permissions good and does not already exist
+    if (!pipeline.admins[username]) {
+        newAdmins[username] = true;
+        // This is needed to make admins dirty and update db
+        pipeline.admins = newAdmins;
+
+        return pipeline.update();
+    }
+
+    return Promise.resolve();
+}
+
 module.exports = () => ({
     method: 'POST',
     path: '/events',
@@ -88,54 +123,59 @@ module.exports = () => ({
                         throw boom.unauthorized('Token does not have permission to this pipeline');
                     }
 
+                    let scmConfig;
+                    let permissions;
+
                     // Check if user has push access
-                    // eslint-disable-next-line consistent-return
                     return user.getPermissions(pipeline.scmUri)
-                        .then((permissions) => {
-                            if (!permissions.push) {
-                                const newAdmins = pipeline.admins;
+                        .then((userPermissions) => {
+                            permissions = userPermissions;
 
-                                delete newAdmins[username];
-                                // This is needed to make admins dirty and update db
-                                pipeline.admins = newAdmins;
-
-                                return pipeline.update()
-                                    .then(() => {
-                                        throw boom.unauthorized(`User ${username} `
-                                        + 'does not have push permission for this repo');
-                                    });
+                            // Update admins
+                            if (!prNum) {
+                                return updateAdmins({ permissions, pipeline, username });
                             }
 
                             return Promise.resolve();
-                        })
-                        // user has good permissions, add the user as an admin
-                        // eslint-disable-next-line consistent-return
-                        .then(() => {
-                            if (!pipeline.admins[username]) {
-                                const newAdmins = pipeline.admins;
+                        // Get scmConfig
+                        }).then(() => user.unsealToken()
+                            .then((token) => {
+                                scmConfig = {
+                                    prNum,
+                                    scmContext,
+                                    scmUri: pipeline.scmUri,
+                                    token
+                                };
 
-                                newAdmins[username] = true;
-                                // This is needed to make admins dirty and update db
-                                pipeline.admins = newAdmins;
+                                // Get and set PR data; update admins
+                                if (prNum) {
+                                    payload.prNum = prNum;
+                                    payload.type = 'pr';
 
-                                return pipeline.update();
-                            }
-                        })
+                                    return scm.getPrInfo(scmConfig)
+                                        .then((prInfo) => {
+                                            payload.prInfo = prInfo;
+                                            payload.prRef = prInfo.ref;
+
+                                            // PR author should be able to rerun their own PR build
+                                            if (prInfo.username === username) {
+                                                return Promise.resolve();
+                                            }
+
+                                            // Remove user from admins
+                                            return updateAdmins({
+                                                permissions,
+                                                pipeline,
+                                                username
+                                            });
+                                        });
+                                }
+
+                                return Promise.resolve();
+                            })
+                        )
                         // User has good permissions, create an event
-                        .then(() => user.unsealToken())
-                        .then((token) => {
-                            const scmConfig = {
-                                prNum,
-                                scmContext,
-                                scmUri: pipeline.scmUri,
-                                token
-                            };
-
-                            if (prNum) {
-                                payload.prNum = prNum;
-                                payload.type = 'pr';
-                            }
-
+                        .then(() => {
                             // If there is parentEvent, pass workflowGraph and sha to payload
                             if (payload.parentEventId) {
                                 return eventFactory.get(parentEventId)
@@ -147,34 +187,14 @@ module.exports = () => ({
                                             payload.configPipelineSha =
                                                 parentEvent.configPipelineSha;
                                         }
-
-                                        if (prNum) {
-                                            return scm.getPrInfo(scmConfig);
-                                        }
-
-                                        return null;
                                     });
                             }
 
                             return scm.getCommitSha(scmConfig).then((sha) => {
                                 payload.sha = sha;
-
-                                // For PRs
-                                if (prNum) {
-                                    return scm.getPrInfo(scmConfig);
-                                }
-
-                                return null;
                             });
                         })
-                        .then((prInfo) => {
-                            if (prInfo) {
-                                payload.prInfo = prInfo;
-                                payload.prRef = prInfo.ref;
-                            }
-
-                            return eventFactory.create(payload);
-                        });
+                        .then(() => eventFactory.create(payload));
                 }).then((event) => {
                     // everything succeeded, inform the user
                     const location = urlLib.format({
@@ -186,7 +206,7 @@ module.exports = () => ({
 
                     return reply(event.toJson()).header('Location', location).code(201);
                 });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: validationSchema.models.event.create

@@ -4,6 +4,23 @@ const boom = require('boom');
 const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 
+const WAIT_FOR_CHANGEDFILES = 1.8;
+
+/**
+ * Promise to wait a certain number of seconds
+ *
+ * Might make this centralized for other tests to leverage
+ *
+ * @method promiseToWait
+ * @param  {Number}      timeToWait  Number of seconds to wait before continuing the chain
+ * @return {Promise}
+ */
+function promiseToWait(timeToWait) {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(), timeToWait * 1000);
+    });
+}
+
 /**
  * Check if the PR is being restricted or not
  * @method isRestrictedPR
@@ -28,15 +45,23 @@ function isRestrictedPR(restriction, prSource) {
  * Stop a job by stopping all the builds associated with it
  * If the build is running, set state to ABORTED
  * @method stopJob
- * @param  {Job}    job     Job to stop
+ * @param  {Object} config
+ * @param  {String} config.action  Event action ('Closed' or 'Synchronized')
+ * @param  {Job}    config.job     Job to stop
+ * @param  {String} config.prNum   Pull request number
  * @return {Promise}
  */
-function stopJob(job) {
+function stopJob({ job, prNum, action }) {
     const stopRunningBuild = (build) => {
         if (build.isDone()) {
             return Promise.resolve();
         }
+
+        const statusMessage = action === 'Closed' ? `Aborted because PR#${prNum} was closed` :
+            `Aborted because new commit was pushed to PR#${prNum}`;
+
         build.status = 'ABORTED';
+        build.statusMessage = statusMessage;
 
         return build.update();
     };
@@ -47,97 +72,180 @@ function stopJob(job) {
 }
 
 /**
- * Run pull request's main job
- * @method startPRJob
+ * Check if the pipeline has a triggered job or not
+ * @method  hasTriggeredJob
+ * @param   {Pipeline}  pipeline    The pipeline to check
+ * @param   {String}    startFrom   The trigger name
+ * @returns {Boolean}               True if the pipeline contains the triggered job
+ */
+function hasTriggeredJob(pipeline, startFrom) {
+    const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
+        trigger: startFrom
+    });
+
+    return nextJobs.length > 0;
+}
+
+/**
+ * Get all pipelines which has triggered job
+ * @method  triggeredPipelines
+ * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
+ * @param   {Object}            scmConfig       Has the token and scmUri to get branches
+ * @param   {String}            branch          The branch which is committed
+ * @param   {String}            type            Triggered event type ('pr' or 'commit')
+ * @returns {Promise}                           Promise that resolves into triggered pipelines
+ */
+function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
+    return pipelineFactory.scm.getBranchList(scmConfig)
+        .then((branches) => {
+            const splitUri = scmConfig.scmUri.split(':');
+
+            // only add non pushed branch, because there is possibility the branch is deleted at filter.
+            return branches.filter(b => b.name !== branch).map((b) => {
+                splitUri[2] = b.name;
+
+                return splitUri.join(':');
+            });
+        })
+        .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
+        .then((pipelines) => {
+            const eventType = (type === 'pr') ? 'pr' : 'commit';
+
+            return pipelines.filter(p => hasTriggeredJob(p, `~${eventType}:${branch}`));
+        })
+        .then(pipelines =>
+            // add pushed branch
+            pipelineFactory.get({ scmUri: scmConfig.scmUri }).then((p) => {
+                if (p) {
+                    pipelines.push(p);
+                }
+
+                return pipelines;
+            })
+        );
+}
+
+/**
+ * Create events for each pipeline
+ * @async  createPREvents
  * @param  {Object}       options
  * @param  {String}       options.username      User who created the PR
- * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
+ * @param  {String}       options.scmConfig     Has the token and scmUri to get branches
  * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {String}       options.prNum         Pull request number
- * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of changed files
- * @param  {String}       options.token         User Auth Token
+ * @param  {String}       options.branch        The branch against which pr is opened
+ * @param  {String}       options.action        Event action
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
-function startPRJob(options, request) {
-    const { username, scmContext, sha, prRef, prNum, pipeline, changedFiles, token } = options;
+async function createPREvents(options, request) {
+    const { username, scmConfig, sha, prRef, prNum, changedFiles, branch, action } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
-    const scmDisplayName = scm.getDisplayName({ scmContext });
+    const pipelineFactory = request.server.app.pipelineFactory;
+    const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
+    const events = [];
+    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr');
 
-    const scmConfig = {
-        prNum,
-        token,
-        scmContext,
-        scmUri: pipeline.scmUri
-    };
+    scmConfig.prNum = prNum;
 
-    return eventFactory.scm.getPrInfo(scmConfig).then((prInfo) => {
-        const eventConfig = {
-            pipelineId: pipeline.id,
-            type: 'pr',
+    for (let i = 0; i < pipelines.length; i += 1) {
+        const p = pipelines[i];
+        /* eslint-disable no-await-in-loop */
+        const b = await p.branch;
+        // obtain pipeline's latest commit sha for branch specific job
+        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        /* eslint-enable no-await-in-loop */
+
+        let eventConfig = {
+            pipelineId: p.id,
+            type: 'pipeline',
             webhooks: true,
             username,
-            scmContext,
+            scmContext: scmConfig.scmContext,
             sha,
-            prInfo,
-            prRef,
-            prNum,
-            startFrom: '~pr',
+            configPipelineSha,
+            startFrom: `~pr:${branch}`,
             changedFiles,
-            causeMessage: `${options.action} by ${userDisplayName}`
+            causeMessage: `${action} by ${userDisplayName}`
         };
 
-        return eventFactory.create(eventConfig);
-    });
+        if (b === branch) {
+            eventConfig.type = 'pr';
+            eventConfig.startFrom = '~pr';
+            eventConfig = Object.assign({
+                prRef,
+                prNum,
+                // eslint-disable-next-line no-await-in-loop
+                prInfo: await eventFactory.scm.getPrInfo(scmConfig)
+            }, eventConfig);
+        }
+
+        events.push(eventFactory.create(eventConfig));
+    }
+
+    return Promise.all(events);
 }
 
 /**
  * Create a new job and start the build for an opened pull-request
- * @method pullRequestOpened
+ * @async  pullRequestOpened
  * @param  {Object}       options
  * @param  {String}       options.hookId        Unique ID for this scm event
- * @param  {String}       options.name          Name of the new job (PR-1)
- * @param  {String}       options.restriction   If we are restricting PRs based on their origin
  * @param  {String}       options.prSource      The origin of this PR
- * @param  {Array}        options.changedFiles  List of files that were changed
+ * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
-function pullRequestOpened(options, request, reply) {
-    const { hookId, restriction, prSource } = options;
+async function pullRequestOpened(options, request, reply) {
+    const { hookId, prSource, pipeline } = options;
 
-    // Check for restriction upfront
-    if (isRestrictedPR(restriction, prSource)) {
-        request.log(['webhook', hookId],
-            'Skipping build since pipeline is configured to restrict ' +
-            `${restriction} and PR is ${prSource}`);
+    if (pipeline) {
+        const p = await pipeline.sync();
+        // @TODO Check for cluster-level default
+        const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
 
-        return reply().code(204);
+        // Check for restriction upfront
+        if (isRestrictedPR(restriction, prSource)) {
+            request.log(['webhook', hookId],
+                'Skipping build since pipeline is configured to restrict ' +
+                `${restriction} and PR is ${prSource}`);
+
+            return reply().code(204);
+        }
     }
 
-    return startPRJob(options, request)
-        .then(() => reply().code(201))
-        .catch(err => reply(boom.wrap(err)));
+    return createPREvents(options, request)
+        .then((events) => {
+            events.forEach((e) => {
+                request.log(['webhook', hookId, e.id],
+                    `Event ${e.id} started`);
+            });
+
+            return reply().code(201);
+        })
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
  * Stop any running builds and disable the job for closed pull-request
- * @method pullRequestClosed
+ * @async  pullRequestClosed
  * @param  {Object}       options
- * @param  {String}       options.hookId     Unique ID for this scm event
- * @param  {String}       options.pipelineId Identifier for the Pipeline
- * @param  {Pipeline}     options.pipeline   Pipeline model for the pr
- * @param  {String}       options.name       Name of the PR: PR-prNum
- * @param  {Hapi.request} request Request from user
- * @param  {Hapi.reply}   reply   Reply to user
+ * @param  {String}       options.hookId            Unique ID for this scm event
+ * @param  {Pipeline}     options.pipeline          Pipeline model for the pr
+ * @param  {String}       options.name              Name of the PR: PR-prNum
+ * @param  {String}       options.prNum             Pull request number
+ * @param  {String}       options.action            Event action
+ * @param  {String}       options.fullCheckoutUrl   CheckoutUrl with branch name
+ * @param  {Hapi.request} request                   Request from user
+ * @param  {Hapi.reply}   reply                     Reply to user
  */
-function pullRequestClosed(options, request, reply) {
-    const { pipeline, hookId, name } = options;
-    const updatePRJobs = (job => stopJob(job)
+async function pullRequestClosed(options, request, reply) {
+    const { pipeline, hookId, name, prNum, action, fullCheckoutUrl } = options;
+    const updatePRJobs = (job => stopJob({ job, prNum, action })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
             job.archived = true;
@@ -146,62 +254,70 @@ function pullRequestClosed(options, request, reply) {
         })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
 
-    return pipeline.jobs
+    if (!pipeline) {
+        request.log(['webhook', hookId],
+            `Skipping since PR job for ${fullCheckoutUrl} does not exist`);
+
+        return reply().code(204);
+    }
+
+    return pipeline.sync()
+        .then(p => p.jobs)
         .then((jobs) => {
             const prJobs = jobs.filter(j => j.name.includes(name));
 
             return Promise.all(prJobs.map(j => updatePRJobs(j)));
         })
         .then(() => reply().code(200))
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
  * Stop any running builds and start the build for the synchronized pull-request
- * @method pullRequestSync
+ * @async  pullRequestSync
  * @param  {Object}       options
  * @param  {String}       options.hookId        Unique ID for this scm event
- * @param  {String}       options.pipelineId    Identifier for the Pipeline
- * @param  {String}       options.name          Name of the job (PR-1)
- * @param  {String}       options.sha           Specific SHA1 commit to start the build with
- * @param  {String}       options.username      User who created the PR
- * @param  {String}       options.scmContext    Scm which pipeline's repository exists in
- * @param  {String}       options.restriction   If we are restricting PRs based on their origin
+ * @param  {String}       options.name          Name of the new job (PR-1)
  * @param  {String}       options.prSource      The origin of this PR
- * @param  {String}       options.prRef         Reference to pull request
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of files that were changed
+ * @param  {String}       options.prNum         Pull request number
+ * @param  {String}       options.action        Event action
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
-function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, restriction, prSource, name } = options;
-    let prJobs;
+async function pullRequestSync(options, request, reply) {
+    const { pipeline, hookId, prSource, name, prNum, action } = options;
 
-    // Check for restriction upfront
-    if (isRestrictedPR(restriction, prSource)) {
-        request.log(['webhook', hookId],
-            'Skipping build since pipeline is configured to restrict ' +
-            `${restriction} and PR is ${prSource}`);
+    if (pipeline) {
+        const p = await pipeline.sync();
+        // @TODO Check for cluster-level default
+        const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
 
-        return reply().code(204);
+        // Check for restriction upfront
+        if (isRestrictedPR(restriction, prSource)) {
+            request.log(['webhook', hookId],
+                'Skipping build since pipeline is configured to restrict ' +
+                `${restriction} and PR is ${prSource}`);
+
+            return reply().code(204);
+        }
+
+        await p.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
+            .then(prJobs => Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action }))));
+
+        request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
     }
 
-    return pipeline.jobs
-        .then((jobs) => {
-            prJobs = jobs.filter(j => j.name.includes(name));
-
-            return Promise.all(prJobs.map(j => stopJob(j)));
-        })
-        .then(() => request.log(['webhook', hookId], `Job(s) for ${name} stopped`))
-        .then(() => startPRJob(options, request))
-        .then(() => {
-            request.log(['webhook', hookId], `Job(s) for ${name} synced`);
+    return createPREvents(options, request)
+        .then((events) => {
+            events.forEach((e) => {
+                request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
+            });
 
             return reply().code(201);
         })
-        // oops. something went wrong
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -210,11 +326,12 @@ function pullRequestSync(options, request, reply) {
  * Some SCM services have different thresholds between IP requests and token requests. This is
  * to ensure we have a token to access the SCM service without being restricted by these quotas
  * @method obtainScmToken
- * @param  {Object}            pluginOptions
- * @param  {String}            pluginOptions.username Generic scm username
- * @param  {UserFactory}       userFactory            UserFactory object
- * @param  {String}            username               Name of the user that the SCM token is associated with
- * @return {Promise}                                  Promise that resolves into a SCM token
+ * @param  {Object}         pluginOptions
+ * @param  {String}         pluginOptions.username  Generic scm username
+ * @param  {UserFactory}    userFactory             UserFactory object
+ * @param  {String}         username                Name of the user that the SCM token is associated with
+ * @param  {String}         scmContext              Scm which pipeline's repository exists in
+ * @return {Promise}                                Promise that resolves into a SCM token
  */
 function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
     const genericUsername = pluginOptions.username;
@@ -246,16 +363,20 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const { hookId, action, checkoutUrl, branch, sha, prNum, prRef,
-        prSource, username, scmContext, changedFiles } = parsed;
+        prSource, username, scmContext, changedFiles, type } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
-    let scmToken = null;
+    const scmConfig = {
+        scmUri: '',
+        token: '',
+        scmContext
+    };
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
     // Fetch the pipeline associated with this hook
     return obtainScmToken(pluginOptions, userFactory, username, scmContext)
         .then((token) => {
-            scmToken = token;
+            scmConfig.token = token;
 
             return pipelineFactory.scm.parseUrl({
                 checkoutUrl: fullCheckoutUrl,
@@ -263,35 +384,36 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                 scmContext
             });
         })
-        .then(scmUri => pipelineFactory.get({ scmUri }))
-        .then((pipeline) => {
-            if (!pipeline) {
+        .then((scmUri) => {
+            scmConfig.scmUri = scmUri;
+
+            return triggeredPipelines(pipelineFactory, scmConfig, branch, type);
+        })
+        .then((pipelines) => {
+            if (!pipelines || pipelines.length === 0) {
                 request.log(['webhook', hookId],
-                    `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
+                    'Skipping since Pipeline triggered by PRs ' +
+                    `against ${fullCheckoutUrl} does not exist`);
 
                 return reply().code(204);
             }
 
-            return pipeline.sync()
-                // handle the PR action
-                .then((p) => {
-                    // @TODO Check for cluster-level default
-                    const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+            return pipelineFactory.get({ scmUri: scmConfig.scmUri })
+                .then((pipeline) => {
                     const options = {
-                        pipelineId: p.id,
                         name: `PR-${prNum}`,
                         hookId,
                         sha,
                         username,
-                        scmContext,
+                        scmConfig,
                         prRef,
                         prNum,
                         prSource,
-                        pipeline: p,
-                        restriction,
+                        pipeline,
                         changedFiles,
-                        token: scmToken,
-                        action: action.charAt(0).toUpperCase() + action.slice(1)
+                        action: action.charAt(0).toUpperCase() + action.slice(1),
+                        branch,
+                        fullCheckoutUrl
                     };
 
                     switch (action) {
@@ -308,56 +430,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                     }
                 });
         })
-        .catch(err => reply(boom.wrap(err)));
-}
-
-/**
- * Check if the pipeline has a triggered job or not
- * @method  hasTriggeredJob
- * @param   {Pipeline}  pipeline    The pipeline to check
- * @param   {String}    startFrom   The trigger name
- * @returns {Boolean}               True if the pipeline contains the triggered job
- */
-function hasTriggeredJob(pipeline, startFrom) {
-    const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
-        trigger: startFrom
-    });
-
-    return nextJobs.length > 0;
-}
-
-/**
- * Get all pipelines which has triggered job
- * @method  triggeredPipelines
- * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
- * @param   {Object}            scmConfig       Has the token and scmUri to get branches
- * @param   {String}            branch          The branch which is committed
- * @returns {Promise}                           Promise that resolves into triggered pipelines
- */
-function triggeredPipelines(pipelineFactory, scmConfig, branch) {
-    return pipelineFactory.scm.getBranchList(scmConfig)
-        .then((branches) => {
-            const splitUri = scmConfig.scmUri.split(':');
-
-            // only add non pushed branch, because there is possibility the branch is deleted at filter.
-            return branches.filter(b => b.name !== branch).map((b) => {
-                splitUri[2] = b.name;
-
-                return splitUri.join(':');
-            });
-        })
-        .then(scmUris => pipelineFactory.list({ params: { scmUri: scmUris } }))
-        .then(pipelines => pipelines.filter(p => hasTriggeredJob(p, `~commit:${branch}`)))
-        .then(pipelines =>
-            // add pushed branch
-            pipelineFactory.get({ scmUri: scmConfig.scmUri }).then((p) => {
-                if (p) {
-                    pipelines.push(p);
-                }
-
-                return pipelines;
-            })
-        );
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -415,12 +488,13 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
  * @param  {String}             pluginOptions.username Generic scm username
  * @param  {Hapi.request}       request                Request from user
  * @param  {Hapi.reply}         reply                  Reply to user
+ * @param  {Object}             parsed                 It has information to create event
  */
 function pushEvent(pluginOptions, request, reply, parsed) {
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, checkoutUrl, branch, username, scmContext } = parsed;
+    const { hookId, checkoutUrl, branch, username, scmContext, type } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -443,7 +517,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
         }).then((scmUri) => {
             scmConfig.scmUri = scmUri;
 
-            return triggeredPipelines(pipelineFactory, scmConfig, branch);
+            return triggeredPipelines(pipelineFactory, scmConfig, branch, type);
         }).then((pipelines) => {
             if (!pipelines || pipelines.length === 0) {
                 request.log(['webhook', hookId],
@@ -466,7 +540,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
 
             return reply().code(201);
         })
-        .catch(err => reply(boom.wrap(err)));
+        .catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -480,7 +554,7 @@ function pushEvent(pluginOptions, request, reply, parsed) {
  * @param  {Object}     options                 Configuration
  * @param  {String}     options.username        Generic scm username
  * @param  {Array}      options.ignoreCommitsBy Ignore commits made by these usernames
- * @param  {Function}   next              Function to call when done
+ * @param  {Function}   next                    Function to call when done
  */
 exports.register = (server, options, next) => {
     const scm = server.root.app.pipelineFactory.scm;
@@ -522,7 +596,11 @@ exports.register = (server, options, next) => {
                         return reply().code(204);
                     }
 
-                    return obtainScmToken(pluginOptions, userFactory, username, scmContext)
+                    return promiseToWait(WAIT_FOR_CHANGEDFILES)
+                        .then(() => obtainScmToken(pluginOptions,
+                            userFactory,
+                            username,
+                            scmContext))
                         .then(token => scm.getChangedFiles({
                             payload: request.payload,
                             type,
@@ -542,7 +620,7 @@ exports.register = (server, options, next) => {
                             return pushEvent(pluginOptions, request, reply, parsed);
                         });
                 })
-                    .catch(err => reply(boom.wrap(err)));
+                    .catch(err => reply(boom.boomify(err)));
             } }
     });
 

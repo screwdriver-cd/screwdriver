@@ -13,6 +13,7 @@ const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/events.json');
+const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -148,6 +149,8 @@ describe('pipeline plugin test', () => {
     let userFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let scmMock;
     let plugin;
     let server;
@@ -184,6 +187,17 @@ describe('pipeline plugin test', () => {
             get: sinon.stub(),
             create: sinon.stub()
         };
+        bannerMock = {
+            register: (s, o, next) => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                next();
+            }
+        };
+        bannerMock.register.attributes = {
+            name: 'banners'
+        };
+
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -211,19 +225,24 @@ describe('pipeline plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                password,
-                scm: scmMock
+        server.register([
+            bannerMock,
+            {
+                register: plugin,
+                options: {
+                    password,
+                    scm: scmMock,
+                    admins: ['github:myself']
+                }
+            },
+            {
+                // eslint-disable-next-line global-require
+                register: require('../../plugins/secrets'),
+                options: {
+                    password
+                }
             }
-        }, {
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/secrets'),
-            options: {
-                password
-            }
-        }], done);
+        ], done);
     });
 
     afterEach(() => {
@@ -275,6 +294,100 @@ describe('pipeline plugin test', () => {
                     count: 3
                 },
                 sort: 'descending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and all pipelines with no pagination', () => {
+            options.url = '/pipelines';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'descending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and all pipelines when sort is set', () => {
+            options.url = '/pipelines?sort=ascending';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'ascending'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'ascending'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and all pipelines when sortBy is set', () => {
+            options.url = '/pipelines?sort=ascending&sortBy=name';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'ascending',
+                sortBy: 'name'
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'ascending',
+                sortBy: 'name'
+            }).resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and all pipelines with matched search', () => {
+            options.url = '/pipelines?search=screwdriver-cd/screwdriver';
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'github:github.com'
+                },
+                sort: 'descending',
+                search: {
+                    field: 'name',
+                    keyword: '%screwdriver-cd/screwdriver%'
+                }
+            }).resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list.withArgs({
+                params: {
+                    scmContext: 'gitlab:mygitlab'
+                },
+                sort: 'descending',
+                search: {
+                    field: 'name',
+                    keyword: '%screwdriver-cd/screwdriver%'
+                }
             }).resolves(getPipelineMocks(gitlabTestPipelines));
 
             return server.inject(options).then((reply) => {
@@ -395,6 +508,10 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
         });
 
+        afterEach(() => {
+            pipelineFactoryMock.get.withArgs(id).reset();
+        });
+
         it('returns 204 when delete successfully', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
@@ -402,26 +519,35 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 204 when repository does not exist and user is admin', () => {
+            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipeline.remove);
+            });
+        });
+
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User myself does not have admin permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
 
-        it('returns 401 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child piepline', () => {
             pipeline.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -462,6 +588,23 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+
+        it('returns 500 when repository does not exist and private repo is enabled', () => {
+            const scms = {
+                'github:github.com': {
+                    config: {
+                        privateRepo: true
+                    }
+                }
+            };
+
+            pipelineFactoryMock.scm.scms = scms;
+            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /pipelines/{id}/jobs', () => {
@@ -485,10 +628,6 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineMock.getJobs, {
                     params: {
                         archived: false
-                    },
-                    paginate: {
-                        count: 50,
-                        page: 1
                     }
                 });
                 assert.deepEqual(reply.result, testJobs);
@@ -543,12 +682,15 @@ describe('pipeline plugin test', () => {
         const id = '123';
         let pipelineMock;
         let eventsMock;
+        let eventsPrMock;
 
         beforeEach(() => {
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineFactoryMock.get.resolves(pipelineMock);
             eventsMock = getEventsMocks(testEvents);
+            eventsPrMock = getEventsMocks(testEventsPr);
             eventsMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
+            eventsPrMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
             pipelineMock.getEvents.resolves(eventsMock);
         });
 
@@ -558,6 +700,15 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.headers.location, '1 success, 1 unknown, 1 failure/red');
             })
         );
+
+        it('returns 302 to for a valid PR build', () => {
+            pipelineMock.getEvents.resolves(eventsPrMock);
+
+            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, '1 success, 1 failure/red');
+            });
+        });
 
         it('returns 302 to unknown for a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
@@ -694,6 +845,19 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 for getting events with pagination', () => {
+            options.url = `/pipelines/${id}/events?type=pr&count=30`;
+            server.inject(options).then((reply) => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pr' },
+                    paginate: { page: undefined, count: 30 }
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 404 for pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
@@ -755,22 +919,23 @@ describe('pipeline plugin test', () => {
                 pipelineId: id,
                 scope: ['pipeline']
             };
-            server.inject(options).then((reply) => {
+
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
             });
         });
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User d2lam does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -860,17 +1025,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User d2lam does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -941,17 +1106,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have push permission', () => {
+        it('returns 403 when user does not have push permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User batman does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1064,11 +1229,11 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when the user does not have admin permissions', () => {
+        it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -1185,7 +1350,8 @@ describe('pipeline plugin test', () => {
                 pipelineId: id,
                 scope: ['pipeline']
             };
-            server.inject(options).then((reply) => {
+
+            return server.inject(options).then((reply) => {
                 assert.calledOnce(pipelineMock.update);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1227,19 +1393,19 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 401 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child piepline', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
-        it('returns 401 when the user does not have admin permissions', () => {
+        it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -1339,17 +1505,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: 'User d2lam does not have push permission for this repo'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1414,17 +1580,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1516,17 +1682,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1624,17 +1790,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1767,23 +1933,23 @@ describe('pipeline plugin test', () => {
 
             tokenMock.refresh.resolves(getTokenMocks(refreshedToken));
 
-            server.inject(options).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.equal(reply.result, refreshedToken);
             });
         });
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1895,17 +2061,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -2013,17 +2179,17 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 401 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission', () => {
             const error = {
-                statusCode: 401,
-                error: 'Unauthorized',
+                statusCode: 403,
+                error: 'Forbidden',
                 message: `User ${username} is not an admin of this repo`
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });

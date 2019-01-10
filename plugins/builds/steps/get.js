@@ -21,15 +21,15 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.buildFactory;
+            const buildFactory = request.server.app.buildFactory;
 
-            factory.get(request.params.id)
-                .then((model) => {
-                    if (!model) {
+            buildFactory.get(request.params.id)
+                .then((buildModel) => {
+                    if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
 
-                    const stepModel = model.steps.filter(step => (
+                    const stepModel = buildModel.steps.filter(step => (
                         step.name === request.params.name
                     )).pop();
 
@@ -39,7 +39,7 @@ module.exports = () => ({
 
                     return reply(stepModel);
                 })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: getSchema

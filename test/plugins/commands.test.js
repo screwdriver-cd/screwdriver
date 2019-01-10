@@ -162,17 +162,12 @@ describe('command plugin test', () => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
-                    params: {},
-                    paginate: {
-                        page: 1,
-                        count: 50
-                    },
                     sort: 'descending'
                 });
             });
         });
 
-        it('returns 200 and all templates with namespace query', () => {
+        it('returns 200 and all commands with namespace query', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?namespace=foo';
 
@@ -183,9 +178,111 @@ describe('command plugin test', () => {
                     params: {
                         namespace: 'foo'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all namespaces using distinct query', () => {
+            const namespaces = [
+                { namespace: 'chef' },
+                { namespace: 'docker' },
+                { namespace: 'nodejs' },
+                { namespace: 'screwdriver' },
+                { namespace: 'tools' }
+            ];
+
+            commandFactoryMock.list.resolves(namespaces);
+            options.url = '/commands?distinct=namespace';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, namespaces);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: {
+                        distinct: 'namespace'
+                    },
+                    sort: 'descending',
+                    raw: true
+                });
+            });
+        });
+
+        it('returns 200 and all commands with sortBy query', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?sortBy=name';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    sortBy: 'name',
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands with search query', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?search=nodejs';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    search: {
+                        field: ['name', 'namespace', 'description'],
+                        keyword: '%nodejs%'
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands in compact format', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?compact=true';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    exclude: ['usage', 'docker', 'habitat', 'binary'],
+                    groupBy: ['namespace', 'name'],
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands with search query without namespace field', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?search=nodejs&namespace=nodejs';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: { namespace: 'nodejs' },
+                    search: {
+                        field: ['name', 'description'],
+                        keyword: '%nodejs%'
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands with pagination', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommands));
+            options.url = '/commands?count=30';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, '200');
+                assert.deepEqual(reply.result, testcommands);
+                assert.calledWith(commandFactoryMock.list, {
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -273,9 +370,26 @@ describe('command plugin test', () => {
                         namespace: 'screwdriver',
                         name: 'build'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all command versions with pagination', () => {
+            commandFactoryMock.list.resolves(getCommandMocks(testcommandVersions));
+            options.url = '/commands/screwdriver/build?count=30';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommandVersions);
+                assert.calledWith(commandFactoryMock.list, {
+                    params: {
+                        namespace: 'screwdriver',
+                        name: 'build'
+                    },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -445,7 +559,7 @@ describe('command plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'Pipeline 1337 is not allowed to access this command'
+                message: 'Not allowed to remove this command'
             };
 
             options = {
@@ -458,6 +572,32 @@ describe('command plugin test', () => {
                     scope: ['build']
                 }
             };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this command'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar',
+                credentials: {
+                    isPR: true,
+                    username,
+                    scmContext,
+                    pipelineId: 1337,
+                    scope: ['build']
+                }
+            };
+            options.credentials.isPR = true;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
@@ -532,11 +672,19 @@ describe('command plugin test', () => {
             formData = new FormData();
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -694,7 +842,7 @@ describe('command plugin test', () => {
                 });
             });
 
-            it('returns 401 when pipelineId does not match', () => {
+            it('returns 403 when pipelineId does not match', () => {
                 formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
@@ -705,7 +853,7 @@ describe('command plugin test', () => {
                     options.payload = payload;
 
                     return server.inject(options).then((reply) => {
-                        assert.equal(reply.statusCode, 401);
+                        assert.equal(reply.statusCode, 403);
                     });
                 });
             });
@@ -899,9 +1047,29 @@ describe('command plugin test', () => {
                         namespace: 'foo',
                         name: 'bar'
                     },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all commands tags with pagination', () => {
+            commandTagFactoryMock.list.resolves(getCommandMocks(testcommandTags));
+            const options = {
+                method: 'GET',
+                url: '/commands/foo/bar/tags?count=30'
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testcommandTags);
+                assert.calledWith(commandTagFactoryMock.list, {
+                    params: {
+                        namespace: 'foo',
+                        name: 'bar'
+                    },
                     paginate: {
-                        page: 1,
-                        count: 50
+                        page: undefined,
+                        count: 30
                     },
                     sort: 'descending'
                 });
@@ -938,10 +1106,6 @@ describe('command plugin test', () => {
                         namespace: 'cmd',
                         name: 'with-no-tags'
                     },
-                    paginate: {
-                        page: 1,
-                        count: 50
-                    },
                     sort: 'descending'
                 });
             });
@@ -954,6 +1118,9 @@ describe('command plugin test', () => {
         let pipelineMock;
         const payload = {
             version: '1.2.0'
+        };
+        const payloadTag = {
+            version: 'latest'
         };
         const testCommandTag = decorateObj(hoek.merge({ id: 1 }, payload));
 
@@ -976,11 +1143,19 @@ describe('command plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns 401 when pipelineId does not match', () => {
+        it('returns 403 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 401);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            options.credentials.isPR = true;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -992,7 +1167,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('creates commands tag if has good permission and tag does not exist', () => {
+        it('creates a command tag if it has permission and tag does not exist', () => {
             commandTagFactoryMock.create.resolves(testCommandTag);
 
             return server.inject(options).then((reply) => {
@@ -1025,7 +1200,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('update command tag if has good permission and tag exists', () => {
+        it('updates a command tag if it has permission and tag exists', () => {
             const command = hoek.merge({
                 update: sinon.stub().resolves(testCommandTag)
             }, testCommandTag);
@@ -1043,6 +1218,70 @@ describe('command plugin test', () => {
                     name: 'test',
                     tag: 'stable'
                 });
+                assert.calledOnce(command.update);
+                assert.notCalled(commandTagFactoryMock.create);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('creates a command tag with tag if it has permission and tag does not exists', () => {
+            commandTagFactoryMock.create.resolves(testCommandTag);
+            commandTagFactoryMock.get.onFirstCall().resolves(testCommandTag);
+            commandTagFactoryMock.get.onSecondCall().resolves(null);
+
+            options.payload = payloadTag;
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/1`
+                };
+
+                assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(commandFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    version: '1.2.0'
+                });
+                assert.calledWith(commandTagFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable'
+                });
+                assert.calledWith(commandTagFactoryMock.create, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable',
+                    version: '1.2.0'
+                });
+                assert.calledTwice(commandTagFactoryMock.get);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('updates a command tag with tag if it has permission and tag exists', () => {
+            const command = hoek.merge({
+                update: sinon.stub().resolves(testCommandTag)
+            }, testCommandTag);
+
+            commandTagFactoryMock.get.resolves(command);
+            options.payload = payloadTag;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(commandFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    version: '1.2.0'
+                });
+                assert.calledWith(commandTagFactoryMock.get, {
+                    namespace: 'screwdriver',
+                    name: 'test',
+                    tag: 'stable'
+                });
+                assert.calledTwice(commandTagFactoryMock.get);
                 assert.calledOnce(command.update);
                 assert.notCalled(commandTagFactoryMock.create);
                 assert.equal(reply.statusCode, 200);

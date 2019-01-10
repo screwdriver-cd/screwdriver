@@ -1,0 +1,11 @@
+{
+    "id": 12345,
+    "name": "iOS",
+    "scmOrganizations": ["screwdriver-cd"],
+    "scmContext": "github:github.com",
+    "managedByScrewdriver": false,
+    "maintainer": "foo@bar.com",
+    "isActive": false,
+    "description": "updated description",
+    "weightage": 100
+}

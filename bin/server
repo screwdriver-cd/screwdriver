@@ -26,19 +26,14 @@ ecosystem.api = httpdConfig.uri;
 // Notification config
 const notificationConfig = config.get('notifications');
 
+// Multiple build cluster feature flag
+const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
+
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
 const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
     (datastoreConfig[datastoreConfig.plugin] || {})));
-
-// Setup Executor
-const executorConfig = config.get('executor');
-const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
-const executor = new ExecutorPlugin(Object.assign(
-    { ecosystem: hoek.clone(ecosystem) },
-    executorConfig[executorConfig.plugin].options
-));
 
 // Source Code Plugin
 const scmConfig = { scms: config.get('scms') };
@@ -51,6 +46,10 @@ authConfig.scm = scm;
 const ArtifactPlugin = require('screwdriver-artifact-bookend');
 const artifact = new ArtifactPlugin(ecosystem.store);
 
+// Build cache plugin
+const CachePlugin = require('screwdriver-cache-bookend');
+const cache = new CachePlugin();
+
 // Plugin to upload coverage
 const coverageConfig = config.get('coverage');
 const CoveragePlugin = require('screwdriver-coverage-bookend');
@@ -61,14 +60,31 @@ const bookends = config.get('bookends');
 const bookend = new Bookend({
     scm,
     'screwdriver-artifact-bookend': artifact,
-    'screwdriver-coverage-bookend': coverage
+    'screwdriver-coverage-bookend': coverage,
+    'screwdriver-cache-bookend': cache
 },
 bookends.setup || [], // plugins required for the setup- steps
 bookends.teardown || [] // plugins required for the teardown- steps
 );
 
-// Setup Model Factories
+// Setup Pipeline Factory for Executor
 const Models = require('screwdriver-models');
+const pipelineFactory = Models.PipelineFactory.getInstance({
+    datastore,
+    scm
+});
+
+// Setup Executor
+const executorConfig = config.get('executor');
+
+executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
+const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
+const executor = new ExecutorPlugin(Object.assign(
+    { ecosystem: hoek.clone(ecosystem) },
+    executorConfig[executorConfig.plugin].options
+));
+
+// Setup Model Factories
 const commandFactory = Models.CommandFactory.getInstance({
     datastore
 });
@@ -80,11 +96,6 @@ const templateFactory = Models.TemplateFactory.getInstance({
 });
 const templateTagFactory = Models.TemplateTagFactory.getInstance({
     datastore
-});
-
-const pipelineFactory = Models.PipelineFactory.getInstance({
-    datastore,
-    scm
 });
 const jobFactory = Models.JobFactory.getInstance({
     datastore,
@@ -101,7 +112,11 @@ const buildFactory = Models.BuildFactory.getInstance({
     scm,
     executor,
     bookend,
-    uiUri: ecosystem.ui
+    uiUri: ecosystem.ui,
+    multiBuildClusterEnabled
+});
+const stepFactory = Models.StepFactory.getInstance({
+    datastore
 });
 const secretFactory = Models.SecretFactory.getInstance({
     datastore,
@@ -125,6 +140,10 @@ const collectionFactory = Models.CollectionFactory.getInstance({
 const triggerFactory = Models.TriggerFactory.getInstance({
     datastore
 });
+const buildClusterFactory = Models.BuildClusterFactory.getInstance({
+    datastore,
+    scm
+});
 
 // @TODO run setup for SCM and Executor
 datastore.setup()
@@ -143,6 +162,8 @@ datastore.setup()
         jobFactory,
         userFactory,
         buildFactory,
+        buildClusterFactory,
+        stepFactory,
         bannerFactory,
         secretFactory,
         tokenFactory,

@@ -2,6 +2,7 @@
     "id": 12345,
     "type": "pipeline",
     "pipelineId": 1234,
+    "startFrom": "~commit",
     "sha": "ccc49349d3cffbd12ea9e3d41521480b4aa5de5f",
     "createTime": "2038-01-19T03:14:08.131Z",
     "commit": {

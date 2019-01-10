@@ -25,22 +25,29 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.commandFactory;
-
-            return factory.list({
-                params: { namespace: request.params.namespace, name: request.params.name },
-                paginate: {
-                    page: request.query.page,
-                    count: request.query.count
+            const config = {
+                params: {
+                    namespace: request.params.namespace,
+                    name: request.params.name
                 },
                 sort: request.query.sort
-            }).then((commands) => {
+            };
+
+            if (request.query.page || request.query.count) {
+                config.paginate = {
+                    page: request.query.page,
+                    count: request.query.count
+                };
+            }
+
+            return factory.list(config).then((commands) => {
                 if (commands.length === 0) {
                     throw boom.notFound('Command does not exist');
                 }
 
                 reply(commands.map(p => p.toJson()));
             })
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

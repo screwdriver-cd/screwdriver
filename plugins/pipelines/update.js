@@ -49,7 +49,7 @@ module.exports = () => ({
                     }
 
                     if (oldPipeline.configPipelineId) {
-                        throw boom.unauthorized('Child pipeline checkoutUrl can only be modified by'
+                        throw boom.forbidden('Child pipeline checkoutUrl can only be modified by'
                             + ` config pipeline ${oldPipeline.configPipelineId}`);
                     }
 
@@ -70,7 +70,7 @@ module.exports = () => ({
                             // if the user isn't an admin, reject
                             .then((permissions) => {
                                 if (!permissions.admin) {
-                                    throw boom.unauthorized(
+                                    throw boom.forbidden(
                                         `User ${username} is not an admin of this repo`);
                                 }
                             })
@@ -97,6 +97,7 @@ module.exports = () => ({
                                     [username]: true
                                 };
                                 oldPipeline.scmRepo = scmRepo;
+                                oldPipeline.name = scmRepo.name;
 
                                 // update pipeline with new scmRepo and branch
                                 return oldPipeline.update()
@@ -108,7 +109,7 @@ module.exports = () => ({
                         );
                 })
                 // something broke, respond with error
-                .catch(err => reply(boom.wrap(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

@@ -5,6 +5,9 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.commandTag.base;
 const urlLib = require('url');
+const VERSION_REGEX = schema.config.regex.VERSION;
+const exactVersionSchema = joi.reach(schema.models.commandTag.base, 'version');
+const tagSchema = joi.reach(schema.models.commandTag.base, 'tag');
 
 /* Currently, only build scope is allowed to tag command due to security reasons.
  * The same pipeline that publishes the command has the permission to tag it.
@@ -26,20 +29,34 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const commandFactory = request.server.app.commandFactory;
-            const commandTagFactory = request.server.app.commandTagFactory;
-            const pipelineId = request.auth.credentials.pipelineId;
+            const { pipelineFactory, commandFactory, commandTagFactory } = request.server.app;
+            const { pipelineId, isPR } = request.auth.credentials;
             const namespace = request.params.namespace;
             const name = request.params.name;
             const tag = request.params.tagName;
-            const version = request.payload.version;
+            let version = request.payload.version;
+            const isVersion = VERSION_REGEX.exec(version);
 
-            return Promise.all([
-                pipelineFactory.get(pipelineId),
-                commandFactory.get({ namespace, name, version }),
-                commandTagFactory.get({ namespace, name, tag })
-            ]).then(([pipeline, command, commandTag]) => {
+            return Promise.resolve().then(() => {
+                if (version && isVersion) {
+                    return Promise.all([
+                        pipelineFactory.get(pipelineId),
+                        commandFactory.get({ namespace, name, version }),
+                        commandTagFactory.get({ namespace, name, tag })
+                    ]);
+                }
+
+                return commandTagFactory.get({ namespace, name, tag: version })
+                    .then((targetCommandTag) => {
+                        version = targetCommandTag.version;
+
+                        return Promise.all([
+                            pipelineFactory.get(pipelineId),
+                            commandFactory.get({ namespace, name, version }),
+                            commandTagFactory.get({ namespace, name, tag })
+                        ]);
+                    });
+            }).then(([pipeline, command, commandTag]) => {
                 // If command doesn't exist, throw error
                 if (!command) {
                     throw boom.notFound(`Command ${namespace}/${name}@${version} not found`);
@@ -47,8 +64,8 @@ module.exports = () => ({
 
                 // If command exists, but this build's pipelineId is not the same as command's pipelineId
                 // Then this build does not have permission to tag the command
-                if (pipeline.id !== command.pipelineId) {
-                    throw boom.unauthorized('Not allowed to tag this command');
+                if (pipeline.id !== command.pipelineId || isPR) {
+                    throw boom.forbidden('Not allowed to tag this command');
                 }
 
                 // If command tag exists, then the only thing it can update is the version
@@ -70,7 +87,7 @@ module.exports = () => ({
 
                         return reply(newTag.toJson()).header('Location', location).code(201);
                     });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
@@ -79,7 +96,10 @@ module.exports = () => ({
                 tagName: joi.reach(baseSchema, 'tag')
             },
             payload: {
-                version: joi.reach(baseSchema, 'version')
+                version: joi.alternatives().try(
+                    exactVersionSchema,
+                    tagSchema
+                )
             }
         }
     }

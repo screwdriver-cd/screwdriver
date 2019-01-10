@@ -126,6 +126,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const data = request.payload;
+            const isPR = request.auth.credentials.isPR;
             let commandSpec;
             let commandBin;
             let multipartCheckResult = { valid: false };
@@ -171,8 +172,9 @@ module.exports = () => ({
 
                         // If command name exists, but this build's pipelineId is not the same as command's pipelineId
                         // Then this build does not have permission to publish
-                        if (commands.length !== 0 && pipeline.id !== commands[0].pipelineId) {
-                            throw boom.unauthorized('Not allowed to publish this command');
+                        if (isPR ||
+                                (commands.length !== 0 && pipeline.id !== commands[0].pipelineId)) {
+                            throw boom.forbidden('Not allowed to publish this command');
                         }
 
                         // If command name doesn't exist yet, or exists and has good permission, then create
@@ -195,7 +197,7 @@ module.exports = () => ({
                     });
 
                     return reply(command.toJson()).header('Location', location).code(201);
-                }).catch(err => reply(boom.wrap(err)));
+                }).catch(err => reply(boom.boomify(err)));
         }
     }
 });

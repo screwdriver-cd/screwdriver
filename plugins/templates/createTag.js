@@ -30,6 +30,7 @@ module.exports = () => ({
             const templateFactory = request.server.app.templateFactory;
             const templateTagFactory = request.server.app.templateTagFactory;
             const pipelineId = request.auth.credentials.pipelineId;
+            const isPR = request.auth.credentials.isPR;
             const name = request.params.templateName;
             const tag = request.params.tagName;
             const version = request.payload.version;
@@ -46,8 +47,8 @@ module.exports = () => ({
 
                 // If template exists, but this build's pipelineId is not the same as template's pipelineId
                 // Then this build does not have permission to tag the template
-                if (pipeline.id !== template.pipelineId) {
-                    throw boom.unauthorized('Not allowed to tag this template');
+                if (pipeline.id !== template.pipelineId || isPR) {
+                    throw boom.forbidden('Not allowed to tag this template');
                 }
 
                 // If template tag exists, then the only thing it can update is the version
@@ -69,7 +70,7 @@ module.exports = () => ({
 
                         return reply(newTag.toJson()).header('Location', location).code(201);
                     });
-            }).catch(err => reply(boom.wrap(err)));
+            }).catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
