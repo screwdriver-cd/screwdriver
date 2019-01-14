@@ -24,7 +24,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             // eslint-disable-next-line max-len
-            const { buildFactory, eventFactory, jobFactory, triggerFactory, userFactory } = request.server.app;
+            const { buildFactory, eventFactory, jobFactory, triggerFactory, userFactory, stepFactory } = request.server.app;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
             const { statusMessage, stats } = request.payload;
@@ -129,6 +129,22 @@ module.exports = () => ({
                         } else {
                             build.statusMessage = statusMessage || null;
                         }
+                    }
+
+                    // If status got updated to RUNNING, update init endTime and code
+                    if (desiredStatus === 'RUNNING') {
+                        return stepFactory.get({ buildId: id, name: 'sd-setup-init' })
+                            .then((step) => {
+                                // If there is no init step, do nothing
+                                if (!step) {
+                                    return null;
+                                }
+
+                                step.endTime = build.startTime;
+                                step.code = 0;
+
+                                return step.update();
+                            }).then(() => Promise.all([build.update(), event.update()]));
                     }
 
                     // Only trigger next build on success

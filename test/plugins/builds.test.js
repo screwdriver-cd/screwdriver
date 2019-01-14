@@ -748,10 +748,22 @@ describe('build plugin test', () => {
                         status
                     }
                 };
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                initStepMock.update.resolves(null);
+                stepFactoryMock.get.withArgs({
+                    buildId: id,
+                    name: initStepName
+                }).resolves(initStepMock);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(initStepMock.update);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
                     assert.isUndefined(buildMock.meta);
@@ -827,12 +839,23 @@ describe('build plugin test', () => {
                         status
                     }
                 };
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                stepFactoryMock.get.withArgs({
+                    buildId: id,
+                    name: initStepName
+                }).resolves(null);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 200);
                     assert.strictEqual(buildMock.status, 'RUNNING');
                     assert.isNull(buildMock.statusMessage);
                     assert.notCalled(buildFactoryMock.create);
+                    assert.notCalled(initStepMock.update);
                 });
             });
 
