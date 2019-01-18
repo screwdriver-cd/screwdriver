@@ -80,7 +80,8 @@ function stopJob({ job, prNum, action }) {
  */
 function hasTriggeredJob(pipeline, startFrom) {
     const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
-        trigger: startFrom
+        trigger: startFrom,
+        prChain: pipeline.prChain
     });
 
     return nextJobs.length > 0;
