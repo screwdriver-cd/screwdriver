@@ -529,13 +529,12 @@ function pushEvent(pluginOptions, request, reply, parsed) {
             return createEvents(eventFactory, pipelineFactory, pipelines, parsed);
         })
         .then((events) => {
-            const triggeredEvents = events.filter(e => e !== null);
+            const hasBuildEvents = events.filter(e => e.builds !== null);
 
-            if (triggeredEvents.length === 0) {
+            if (hasBuildEvents.length === 0) {
                 return reply().code(204);
             }
-
-            triggeredEvents.forEach((e) => {
+            hasBuildEvents.forEach((e) => {
                 request.log(['webhook', hookId, e.id],
                     `Event ${e.id} started`);
             });
