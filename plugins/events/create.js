@@ -196,6 +196,9 @@ module.exports = () => ({
                         })
                         .then(() => eventFactory.create(payload));
                 }).then((event) => {
+                    if (event.builds === null) {
+                        return reply(boom.notFound('No jobs to start.'));
+                    }
                     // everything succeeded, inform the user
                     const location = urlLib.format({
                         host: request.headers.host,
