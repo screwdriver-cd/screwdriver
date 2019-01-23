@@ -80,6 +80,7 @@ datastore:
     retry:
       __name: DATASTORE_SEQUELIZE_RETRY
       __format: json
+    captureBuildMetrics: DATASTORE_SEQUELIZE_ADDHOOK
 
 executor:
   plugin: EXECUTOR_PLUGIN
