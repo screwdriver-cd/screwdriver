@@ -581,5 +581,15 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.create);
             });
         });
+
+        it('returns 201 when it creates an event with parent event for child pipeline', () => {
+            testEvent.builds = null;
+            eventFactoryMock.create.resolves(decorateEventMock(testEvent));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                delete testEvent.builds;
+            });
+        });
     });
 });
