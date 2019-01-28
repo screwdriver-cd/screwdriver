@@ -571,6 +571,7 @@ describe('github plugin test', () => {
                 beforeEach(() => {
                     name = 'PR-2';
                     parsed.prNum = 2;
+                    parsed.prTitle = 'Update the README with new information';
                     parsed.action = 'opened';
                     options.payload = testPayloadOpen;
                     scmConfig.prNum = 2;
@@ -602,6 +603,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr',
                             prNum: 2,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
@@ -715,6 +717,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 2,
                             prRef,
+                            prTitle: 'Update the README with new information',
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             changedFiles
@@ -752,6 +755,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr',
                             prNum: 2,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`
@@ -807,6 +811,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr',
                             prNum: 2,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
@@ -843,6 +848,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr',
                             prNum: 2,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`
@@ -891,6 +897,7 @@ describe('github plugin test', () => {
                         'content-length': '21241'
                     };
                     scmConfig.prNum = 1;
+                    parsed.prTitle = 'Update the README with new information';
                     options.payload = testPayloadSync;
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     eventFactoryMock.scm.getPrInfo.withArgs(scmConfig)
@@ -915,6 +922,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr',
                             prNum: 1,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
@@ -1028,6 +1036,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prNum: 1,
                             prRef,
+                            prTitle: 'Update the README with new information',
                             prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             changedFiles
@@ -1063,6 +1072,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prRef,
                             prNum: 1,
+                            prTitle: 'Update the README with new information',
                             type: 'pr',
                             webhooks: true,
                             changedFiles,
@@ -1125,6 +1135,7 @@ describe('github plugin test', () => {
                             startFrom: '~pr',
                             prInfo,
                             prNum: 1,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
@@ -1161,6 +1172,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr',
                             prNum: 1,
+                            prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`
