@@ -64,7 +64,7 @@ datastore:
     ssl: false
     pool: {}
     retry: {}
-    captureBuildMetrics: "false"
+    buildMetricsEnabled: "false"
 
 executor:
   # Default executor
