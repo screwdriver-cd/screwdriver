@@ -134,6 +134,7 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @param  {String}       options.sha           Specific SHA1 commit to start the build with
  * @param  {String}       options.prRef         Reference to pull request
  * @param  {String}       options.prNum         Pull request number
+ * @param  {String}       options.prTitle       Pull request title
  * @param  {Array}        options.changedFiles  List of changed files
  * @param  {String}       options.branch        The branch against which pr is opened
  * @param  {String}       options.action        Event action
@@ -141,7 +142,8 @@ function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @return {Promise}
  */
 async function createPREvents(options, request) {
-    const { username, scmConfig, sha, prRef, prNum, changedFiles, branch, action } = options;
+    const { username, scmConfig, sha, prRef, prNum,
+        prTitle, changedFiles, branch, action } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
@@ -179,6 +181,7 @@ async function createPREvents(options, request) {
             eventConfig = Object.assign({
                 prRef,
                 prNum,
+                prTitle,
                 // eslint-disable-next-line no-await-in-loop
                 prInfo: await eventFactory.scm.getPrInfo(scmConfig)
             }, eventConfig);
@@ -362,7 +365,7 @@ function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
 function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, action, checkoutUrl, branch, sha, prNum, prRef,
+    const { hookId, action, checkoutUrl, branch, sha, prNum, prTitle, prRef,
         prSource, username, scmContext, changedFiles, type } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
@@ -408,6 +411,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         scmConfig,
                         prRef,
                         prNum,
+                        prTitle,
                         prSource,
                         pipeline,
                         changedFiles,
