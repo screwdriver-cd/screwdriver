@@ -1634,6 +1634,63 @@ describe('pipeline plugin test', () => {
         });
     });
 
+    describe('GET /pipelines/{id}/metrics', () => {
+        const id = 123;
+        const username = 'myself';
+        let options;
+        let pipelineMock;
+        const startTime = '2019-01-29T01:47:27.863Z';
+        const endTime = '2019-01-30T01:47:27.863Z';
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getMetrics = sinon.stub().resolves([]);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 and metrics for pipeline', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: new Date(startTime),
+                    endTime: new Date(endTime)
+                });
+            })
+        );
+
+        it('returns 404 when pipeline does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Pipeline does not exist'
+            };
+
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            pipelineFactoryMock.get.rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('POST /pipelines/{id}/tokens', () => {
         const id = 123;
         const username = 'myself';
