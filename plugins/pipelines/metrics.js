@@ -35,7 +35,7 @@ module.exports = () => ({
                         endTime
                     });
                 })
-                .then(metrics => reply(metrics.map(m => m.toJson())))
+                .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
