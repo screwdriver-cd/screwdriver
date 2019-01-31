@@ -114,7 +114,11 @@ module.exports = () => ({
                         break;
                     // do not update meta or endTime for these cases
                     case 'UNSTABLE':
+                        break;
                     case 'BLOCKED':
+                        build.stats = Object.assign(build.stats, {
+                            blockedStartTime: (new Date()).toISOString()
+                        });
                         break;
                     default:
                         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);

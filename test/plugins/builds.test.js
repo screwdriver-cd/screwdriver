@@ -564,6 +564,32 @@ describe('build plugin test', () => {
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
+                    assert.match(buildMock.stats.blockedStartTime,
+                        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                });
+            });
+
+            it('allows updating to UNSTABLE', () => {
+                const status = 'UNSTABLE';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
                     assert.isUndefined(buildMock.meta);
                     assert.isUndefined(buildMock.endTime);
                 });
