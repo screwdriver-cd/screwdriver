@@ -1661,8 +1661,8 @@ describe('pipeline plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
-                    startTime: new Date(startTime),
-                    endTime: new Date(endTime)
+                    startTime,
+                    endTime
                 });
             })
         );

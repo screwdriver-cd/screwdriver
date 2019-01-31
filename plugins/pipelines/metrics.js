@@ -40,8 +40,8 @@ module.exports = () => ({
         },
         validate: {
             query: joi.object({
-                startTime: joi.date().iso(),
-                endTime: joi.date().iso()
+                startTime: joi.string().isoDate(),
+                endTime: joi.string().isoDate()
             })
         }
     }
