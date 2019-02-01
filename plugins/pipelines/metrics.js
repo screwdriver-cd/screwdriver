@@ -35,13 +35,13 @@ module.exports = () => ({
                         endTime
                     });
                 })
-                .then(metrics => reply(metrics.map(m => m.toJson())))
+                .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             query: joi.object({
-                startTime: joi.date().iso(),
-                endTime: joi.date().iso()
+                startTime: joi.string().isoDate(),
+                endTime: joi.string().isoDate()
             })
         }
     }
