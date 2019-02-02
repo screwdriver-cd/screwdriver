@@ -209,11 +209,12 @@ async function pullRequestOpened(options, request, reply) {
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
-            request.log(['webhook', hookId],
-                'Skipping build since pipeline is configured to restrict ' +
-                `${restriction} and PR is ${prSource}`);
+            const message = 'Skipping build since pipeline is configured to restrict ' +
+                `${restriction} and PR is ${prSource}`;
 
-            return reply().code(204);
+            request.log(['webhook', hookId], message);
+
+            return reply({ message }).code(204);
         }
     }
 
@@ -254,10 +255,11 @@ async function pullRequestClosed(options, request, reply) {
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
 
     if (!pipeline) {
-        request.log(['webhook', hookId],
-            `Skipping since PR job for ${fullCheckoutUrl} does not exist`);
+        const message = `Skipping since PR job for ${fullCheckoutUrl} does not exist`;
 
-        return reply().code(204);
+        request.log(['webhook', hookId], message);
+
+        return reply({ message }).code(204);
     }
 
     return pipeline.sync()
@@ -295,11 +297,12 @@ async function pullRequestSync(options, request, reply) {
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
-            request.log(['webhook', hookId],
-                'Skipping build since pipeline is configured to restrict ' +
-                `${restriction} and PR is ${prSource}`);
+            const message = 'Skipping build since pipeline is configured to restrict ' +
+                `${restriction} and PR is ${prSource}`;
 
-            return reply().code(204);
+            request.log(['webhook', hookId], message);
+
+            return reply({ message }).code(204);
         }
 
         await p.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
@@ -389,11 +392,12 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
         })
         .then((pipelines) => {
             if (!pipelines || pipelines.length === 0) {
-                request.log(['webhook', hookId],
-                    'Skipping since Pipeline triggered by PRs ' +
-                    `against ${fullCheckoutUrl} does not exist`);
+                const message = 'Skipping since Pipeline triggered by PRs ' +
+                    `against ${fullCheckoutUrl} does not exist`;
 
-                return reply().code(204);
+                request.log(['webhook', hookId], message);
+
+                return reply({ message }).code(204);
             }
 
             return pipelineFactory.get({ scmUri: scmConfig.scmUri })
@@ -527,11 +531,11 @@ async function pushEvent(pluginOptions, request, reply, parsed) {
         const hasBuildEvents = events.filter(e => e.builds !== null);
 
         if (hasBuildEvents.length === 0) {
-            return reply().code(204);
+            return reply({ message: 'No jobs to start' }).code(204);
         }
+
         hasBuildEvents.forEach((e) => {
-            request.log(['webhook', hookId, e.id],
-                `Event ${e.id} started`);
+            request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
         });
 
         return reply().code(201);
@@ -570,12 +574,13 @@ exports.register = (server, options, next) => {
             handler: async (request, reply) => {
                 const userFactory = request.server.app.userFactory;
                 const ignoreUser = pluginOptions.ignoreCommitsBy;
+                let message = 'Unable to process this kind of event';
 
                 try {
                     const parsed = await scm.parseHook(request.headers, request.payload);
 
                     if (!parsed) { // for all non-matching events or actions
-                        return reply().code(204);
+                        return reply({ message }).code(204);
                     }
 
                     const { type, hookId, username, scmContext } = parsed;
@@ -583,29 +588,29 @@ exports.register = (server, options, next) => {
                     request.log(['webhook', hookId], `Received event type ${type}`);
 
                     if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
-                        request.log(['webhook', hookId], 'Skipping due to the commit message');
+                        message = 'Skipping due to the commit message';
+                        request.log(['webhook', hookId], message);
 
-                        return reply().code(204);
+                        return reply({ message }).code(204);
                     }
 
                     if (ignoreUser.includes(username)) {
-                        request.log(['webhook', hookId],
-                            `Skipping because user ${username} is ignored`);
+                        message = `Skipping because user ${username} is ignored`;
+                        request.log(['webhook', hookId], message);
 
-                        return reply().code(204);
+                        return reply({ message }).code(204);
                     }
 
                     await promiseToWait(WAIT_FOR_CHANGEDFILES);
                     const token = await obtainScmToken(
                         pluginOptions, userFactory, username, scmContext);
-                    const changedFiles = await scm.getChangedFiles({
+
+                    parsed.changedFiles = await scm.getChangedFiles({
                         payload: request.payload,
                         type,
                         token,
                         scmContext
                     });
-
-                    parsed.changedFiles = changedFiles;
 
                     request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
 
