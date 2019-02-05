@@ -356,4 +356,46 @@ describe('job plugin test', () => {
             });
         });
     });
+
+    describe('GET /jobs/{id}/lastSuccessfulMeta', () => {
+        const id = 1234;
+        let options;
+        let job;
+        let builds;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/lastSuccessfulMeta`
+            };
+
+            job = getJobMocks(testJob);
+            builds = getBuildMocks(testBuilds);
+
+            jobFactoryMock.get.withArgs(id).resolves(job);
+            job.getBuilds.resolves(builds);
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 for getting last successful meta', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    status: 'SUCCESS'
+                });
+                assert.deepEqual(reply.result, {
+                    coverage: {
+                        test: 100
+                    }
+                });
+            })
+        );
+    });
 });
