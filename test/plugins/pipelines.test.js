@@ -1293,6 +1293,7 @@ describe('pipeline plugin test', () => {
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
+        const oldScmUri = 'github.com:12345:branchName';
         const id = 123;
         const token = 'secrettoken';
         const username = 'd2lam';
@@ -1321,6 +1322,7 @@ describe('pipeline plugin test', () => {
 
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
@@ -1393,7 +1395,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child pipeline', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
@@ -1401,8 +1403,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the user does not have admin permissions', () => {
+        it('returns 403 when the user does not have admin permissions on the new repo', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the user does not have admin permissions on the old repo', () => {
+            userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
