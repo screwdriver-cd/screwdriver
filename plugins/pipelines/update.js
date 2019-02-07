@@ -66,10 +66,13 @@ module.exports = () => ({
                             });
                         })
                         // get the user permissions for the repo
-                        .then(scmUri => user.getPermissions(scmUri)
-                            // if the user isn't an admin, reject
-                            .then((permissions) => {
-                                if (!permissions.admin) {
+                        .then(scmUri => Promise.all([
+                            user.getPermissions(scmUri),
+                            user.getPermissions(oldPipeline.scmUri)
+                        ])
+                            // if the user isn't an admin of both new and old repo, reject
+                            .then(([permissions, oldPermissions]) => {
+                                if (!oldPermissions.admin || !permissions.admin) {
                                     throw boom.forbidden(
                                         `User ${username} is not an admin of this repo`);
                                 }

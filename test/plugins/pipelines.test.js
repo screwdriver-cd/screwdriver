@@ -1327,6 +1327,7 @@ describe('pipeline plugin test', () => {
             pipelineMock = getPipelineMocks(testPipeline);
             updatedPipelineMock = hoek.clone(pipelineMock);
 
+            userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: true });
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
             pipelineMock.update.resolves(updatedPipelineMock);
@@ -1403,6 +1404,14 @@ describe('pipeline plugin test', () => {
 
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the user does not have admin permissions on the old pipeline', () => {
+            userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
