@@ -66,12 +66,15 @@ module.exports = () => ({
                             });
                         })
                         // get the user permissions for the repo
-                        .then(scmUri => user.getPermissions(scmUri)
-                            // if the user isn't an admin, reject
-                            .then((permissions) => {
-                                if (!permissions.admin) {
+                        .then(scmUri => Promise.all([
+                            user.getPermissions(oldPipeline.scmUri),
+                            user.getPermissions(scmUri)
+                        ])
+                            // if the user isn't an admin for both repos, reject
+                            .then(([oldPermissions, permissions]) => {
+                                if (!oldPermissions.admin || !permissions.admin) {
                                     throw boom.forbidden(
-                                        `User ${username} is not an admin of this repo`);
+                                        `User ${username} is not an admin of these repos`);
                                 }
                             })
                             // check if there is already a pipeline with the new checkoutUrl

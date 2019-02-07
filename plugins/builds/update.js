@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const hoek = require('hoek');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
@@ -116,9 +117,12 @@ module.exports = () => ({
                     case 'UNSTABLE':
                         break;
                     case 'BLOCKED':
-                        build.stats = Object.assign(build.stats, {
-                            blockedStartTime: (new Date()).toISOString()
-                        });
+                        if (!hoek.reach(build, 'stats.blockedStartTime')) {
+                            build.stats = Object.assign(build.stats, {
+                                blockedStartTime: (new Date()).toISOString()
+                            });
+                        }
+
                         break;
                     default:
                         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
