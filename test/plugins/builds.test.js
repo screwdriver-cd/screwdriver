@@ -571,6 +571,36 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('skips updating BLOCKED stats if they are already set', () => {
+                const status = 'BLOCKED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['temporal']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                buildMock.stats = {
+                    blockedStartTime: '2017-01-06T01:49:50.384359267Z'
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.strictEqual(buildMock.stats.blockedStartTime,
+                        '2017-01-06T01:49:50.384359267Z');
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                });
+            });
+
             it('allows updating to UNSTABLE', () => {
                 const status = 'UNSTABLE';
                 const options = {
