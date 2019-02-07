@@ -3,6 +3,7 @@
 const createRoute = require('./create');
 const getRoute = require('./get');
 const listBuildsRoute = require('./listBuilds');
+const metricsRoute = require('./metrics');
 
 /**
  * Event API Plugin
@@ -15,7 +16,8 @@ exports.register = (server, options, next) => {
     server.route([
         createRoute(),
         getRoute(),
-        listBuildsRoute()
+        listBuildsRoute(),
+        metricsRoute()
     ]);
 
     next();

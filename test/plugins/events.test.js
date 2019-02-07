@@ -28,7 +28,7 @@ const getBuildMocks = (builds) => {
     return decorateBuildMock(builds);
 };
 
-const decorateEventMock = (event) => {
+const getEventMock = (event) => {
     const decorated = hoek.clone(event);
 
     decorated.getBuilds = sinon.stub();
@@ -134,7 +134,7 @@ describe('event plugin test', () => {
         const id = 12345;
 
         it('exposes a route for getting a event', () => {
-            eventFactoryMock.get.withArgs(id).resolves(decorateEventMock(testEvent));
+            eventFactoryMock.get.withArgs(id).resolves(getEventMock(testEvent));
 
             return server.inject('/events/12345')
                 .then((reply) => {
@@ -181,7 +181,7 @@ describe('event plugin test', () => {
                 url: `/events/${id}/builds`
             };
 
-            event = decorateEventMock(testEvent);
+            event = getEventMock(testEvent);
             builds = getBuildMocks(testBuilds);
 
             eventFactoryMock.get.withArgs(id).resolves(event);
@@ -272,8 +272,8 @@ describe('event plugin test', () => {
                 meta
             };
 
-            eventFactoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
-            eventFactoryMock.create.resolves(decorateEventMock(testEvent));
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+            eventFactoryMock.create.resolves(getEventMock(testEvent));
             userFactoryMock.get.resolves(userMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
@@ -294,10 +294,10 @@ describe('event plugin test', () => {
                 name: 'main'
             });
             eventConfig.startFrom = 'main';
-            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
-            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
-            eventFactoryMock.get.resolves(decorateEventMock(testEvent));
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -352,8 +352,8 @@ describe('event plugin test', () => {
 
         it('returns 201 when it successfully creates an event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
-            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
-            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
             options.payload.parentEventId = parentEventId;
 
             return server.inject(options).then((reply) => {
@@ -373,12 +373,12 @@ describe('event plugin test', () => {
 
         it('returns 201 when it creates an event with parent event for child pipeline', () => {
             eventConfig.parentEventId = parentEventId;
-            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
-            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
             testEvent.configPipelineSha = 'configPipelineSha';
             eventConfig.configPipelineSha = 'configPipelineSha';
             options.payload.parentEventId = parentEventId;
-            eventFactoryMock.get.withArgs(parentEventId).resolves(decorateEventMock(testEvent));
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -443,8 +443,8 @@ describe('event plugin test', () => {
 
         it('returns 201 when it successfully creates a PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
-            eventConfig.workflowGraph = decorateEventMock(testEvent).workflowGraph;
-            eventConfig.sha = decorateEventMock(testEvent).sha;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
@@ -584,11 +584,67 @@ describe('event plugin test', () => {
 
         it('returns 201 when it creates an event with parent event for child pipeline', () => {
             testEvent.builds = null;
-            eventFactoryMock.create.resolves(decorateEventMock(testEvent));
+            eventFactoryMock.create.resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 delete testEvent.builds;
+            });
+        });
+    });
+
+    describe('GET /events/{id}/metrics', () => {
+        const id = 123;
+        const username = 'myself';
+        let options;
+        let eventMock;
+        const startTime = '2019-01-29T01:47:27.863Z';
+        const endTime = '2019-01-30T01:47:27.863Z';
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+            eventMock = getEventMock(testEvent);
+            eventMock.getMetrics = sinon.stub().resolves([]);
+            eventFactoryMock.get.resolves(eventMock);
+        });
+
+        it('returns 200 and metrics for event', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(eventMock.getMetrics, {
+                    startTime,
+                    endTime
+                });
+            })
+        );
+
+        it('returns 404 when event does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Event does not exist'
+            };
+
+            eventFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            eventFactoryMock.get.rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
