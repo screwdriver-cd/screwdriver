@@ -90,7 +90,12 @@
                         "endTime": "2038-01-19T03:15:10.130Z"
                     }
                 ],
-                "status": "SUCCESS"
+                "status": "SUCCESS",
+                "meta": {
+                  "coverage": {
+                    "test": 100
+                  }
+                }
             }]
         },
         {
