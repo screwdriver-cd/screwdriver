@@ -229,6 +229,7 @@ coverage: {}
   #   sdApiUrl: https://api.screwdriver.cd
   #   sonarHost: https://sonar.screwdriver.cd
   #   adminToken: your-sonar-admin-token
+  #   sdUiUrl: https://cd.screwdriver.cd
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
