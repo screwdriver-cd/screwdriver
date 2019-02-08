@@ -9,6 +9,7 @@ const stepUpdateRoute = require('./steps/update');
 const stepLogsRoute = require('./steps/logs');
 const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
+const metricsRoute = require('./metrics');
 const workflowParser = require('screwdriver-workflow-parser');
 
 /**
@@ -344,6 +345,7 @@ exports.register = (server, options, next) => {
         // Secrets
         listSecretsRoute(),
         tokenRoute(),
+        metricsRoute(),
         artifactGetRoute(options)
     ]);
 

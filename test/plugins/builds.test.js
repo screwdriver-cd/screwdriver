@@ -32,7 +32,7 @@ const decorateBuildObject = (build) => {
     return decorated;
 };
 
-const getMockBuilds = (builds) => {
+const getBuildMock = (builds) => {
     if (Array.isArray(builds)) {
         return builds.map(decorateBuildObject);
     }
@@ -226,7 +226,7 @@ describe('build plugin test', () => {
         const id = 12345;
 
         it('returns 200 for a build that exists', () => {
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
@@ -275,7 +275,7 @@ describe('build plugin test', () => {
             delete testBuild.endTime;
             delete testBuild.startTime;
 
-            buildMock = getMockBuilds(testBuild);
+            buildMock = getBuildMock(testBuild);
 
             buildMock.update.resolves(buildMock);
             buildFactoryMock.get.resolves(buildMock);
@@ -873,7 +873,7 @@ describe('build plugin test', () => {
             it('update status for non-UNSTABLE builds', () => {
                 testBuild.status = 'BLOCKED';
                 testBuild.statusMessage = 'blocked';
-                buildMock = getMockBuilds(testBuild);
+                buildMock = getBuildMock(testBuild);
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildMock.settings = {
@@ -918,7 +918,7 @@ describe('build plugin test', () => {
             it('does not allow updating from UNSTABLE to SUCCESS and do not trigger', () => {
                 testBuild.status = 'UNSTABLE';
                 testBuild.statusMessage = 'hello';
-                buildMock = getMockBuilds(testBuild);
+                buildMock = getBuildMock(testBuild);
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildMock.settings = {
@@ -1523,7 +1523,7 @@ describe('build plugin test', () => {
                 }
             };
 
-            buildMock = getMockBuilds({ id: buildId, other: 'dataToBeIncluded' });
+            buildMock = getBuildMock({ id: buildId, other: 'dataToBeIncluded' });
             jobMock = {
                 id: jobId,
                 pipelineId,
@@ -1757,7 +1757,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 with hidden secrets', () => {
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
@@ -1771,7 +1771,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 with shown secrets', () => {
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             secretAccessMock.resolves(true);
@@ -1786,7 +1786,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 with no secrets', () => {
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildMock.secrets = Promise.resolve([]);
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
@@ -1818,7 +1818,7 @@ describe('build plugin test', () => {
                 username: 'batman'
             }
         };
-        const buildMock = getMockBuilds(testBuild);
+        const buildMock = getBuildMock(testBuild);
 
         beforeEach(() => {
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
@@ -1871,7 +1871,7 @@ describe('build plugin test', () => {
                 startTime: '2038-01-19T03:15:08.532Z',
                 endTime: '2038-01-19T03:15:09.114Z'
             };
-            buildMock = getMockBuilds(testBuild);
+            buildMock = getBuildMock(testBuild);
             stepMock = getStepMock(testStep);
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
             stepMock.update.resolves(testStep);
@@ -2098,7 +2098,7 @@ describe('build plugin test', () => {
                 t: 1472236248000
             }
         ];
-        const buildMock = getMockBuilds(testBuild);
+        const buildMock = getBuildMock(testBuild);
 
         beforeEach(() => {
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
@@ -2603,7 +2603,7 @@ describe('build plugin test', () => {
                 configPipelineId: 123
             };
 
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             generateProfileMock.returns(profile);
@@ -2740,7 +2740,7 @@ describe('build plugin test', () => {
 
         it('returns 403 if build is already running or finished. (Not QUEUED)', () => {
             testBuild.status = 'RUNNING';
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
@@ -2752,12 +2752,68 @@ describe('build plugin test', () => {
 
         it('returns 200 for BLOCKED build', () => {
             testBuild.status = 'BLOCKED';
-            const buildMock = getMockBuilds(testBuild);
+            const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/metrics', () => {
+        const id = 123;
+        const username = 'myself';
+        let options;
+        let buildMock;
+        const startTime = '2019-01-29T01:47:27.863Z';
+        const endTime = '2019-01-30T01:47:27.863Z';
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/builds/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+            buildMock = getBuildMock(testBuild);
+            buildMock.getMetrics = sinon.stub().resolves([]);
+            buildFactoryMock.get.resolves(buildMock);
+        });
+
+        it('returns 200 and metrics for build', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(buildMock.getMetrics, {
+                    startTime,
+                    endTime
+                });
+            })
+        );
+
+        it('returns 404 when build does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Build does not exist'
+            };
+
+            buildFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            buildFactoryMock.get.rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
