@@ -250,7 +250,6 @@ describe('github plugin test', () => {
 
             pipelineFactoryMock.get.resolves(pipelineMock);
             pipelineFactoryMock.list.resolves([]);
-            pipelineMock.sync.resolves(pipelineMock);
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.scm.parseUrl
                 .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext }).resolves(scmUri);
@@ -591,7 +590,6 @@ describe('github plugin test', () => {
 
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -743,7 +741,6 @@ describe('github plugin test', () => {
                     parsed.action = 'reopened';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -769,7 +766,6 @@ describe('github plugin test', () => {
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
-                        assert.calledWith(pipelineMock.sync);
                     });
                 });
 
@@ -777,7 +773,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'all';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.notCalled(eventFactoryMock.create);
                         assert.equal(reply.statusCode, 204);
                     });
@@ -788,7 +783,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.notCalled(eventFactoryMock.create);
                         assert.equal(reply.statusCode, 204);
                     });
@@ -799,7 +793,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -825,7 +818,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.notCalled(eventFactoryMock.create);
                         assert.equal(reply.statusCode, 204);
                     });
@@ -836,7 +828,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -910,7 +901,6 @@ describe('github plugin test', () => {
 
                 it('returns 201 on success', () =>
                     server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1101,7 +1091,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'all';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.notCalled(eventFactoryMock.create);
                         assert.equal(reply.statusCode, 204);
                     });
@@ -1112,7 +1101,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.notCalled(eventFactoryMock.create);
                         assert.equal(reply.statusCode, 204);
                     });
@@ -1123,7 +1111,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -1149,7 +1136,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.notCalled(eventFactoryMock.create);
                         assert.equal(reply.statusCode, 204);
                     });
@@ -1160,7 +1146,6 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1224,7 +1209,6 @@ describe('github plugin test', () => {
                 it('returns 200 on success', () =>
                     server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'ENABLED');
                         assert.isTrue(jobMock.archived);
@@ -1281,7 +1265,6 @@ describe('github plugin test', () => {
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 500);
-                        assert.calledOnce(pipelineMock.sync);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'ENABLED');
                     });
@@ -1295,7 +1278,6 @@ describe('github plugin test', () => {
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 204);
-                        assert.equal(pipelineMock.sync.callCount, 0);
                         assert.equal(pipelineFactoryMock.get.callCount, 0);
                     });
                 });
