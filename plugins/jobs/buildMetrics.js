@@ -5,14 +5,14 @@ const joi = require('joi');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/pipelines/{id}/metrics',
+    path: '/jobs/{id}/metrics/builds',
     config: {
-        description: 'Get metrics for this pipeline',
-        notes: 'Returns list of metrics for the given pipeline',
-        tags: ['api', 'pipelines', 'metrics'],
+        description: 'Get build metrics for this job',
+        notes: 'Returns list of build metrics for the given job',
+        tags: ['api', 'jobs', 'metrics'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest', 'pipeline']
+            scope: ['user', '!guest', 'job']
         },
         plugins: {
             'hapi-swagger': {
@@ -20,17 +20,17 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.pipelineFactory;
+            const factory = request.server.app.jobFactory;
             const { id } = request.params;
             const { startTime, endTime } = request.query;
 
             return factory.get(id)
-                .then((pipeline) => {
-                    if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
+                .then((job) => {
+                    if (!job) {
+                        throw boom.notFound('Job does not exist');
                     }
 
-                    return pipeline.getEventMetrics({
+                    return job.getBuildMetrics({
                         startTime,
                         endTime
                     });
