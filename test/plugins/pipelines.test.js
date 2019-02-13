@@ -1663,14 +1663,14 @@ describe('pipeline plugin test', () => {
                 }
             };
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.getMetrics = sinon.stub().resolves([]);
+            pipelineMock.getEventMetrics = sinon.stub().resolves([]);
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
         it('returns 200 and metrics for pipeline', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(pipelineMock.getMetrics, {
+                assert.calledWith(pipelineMock.getEventMetrics, {
                     startTime,
                     endTime
                 });

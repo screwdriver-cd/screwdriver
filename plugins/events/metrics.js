@@ -30,7 +30,7 @@ module.exports = () => ({
                         throw boom.notFound('Event does not exist');
                     }
 
-                    return event.getMetrics({
+                    return event.getBuildMetrics({
                         startTime,
                         endTime
                     });

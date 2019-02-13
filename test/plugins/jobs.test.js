@@ -398,4 +398,118 @@ describe('job plugin test', () => {
             })
         );
     });
+
+    describe('GET /jobs/{id}/metrics/builds', () => {
+        const id = 123;
+        const username = 'myself';
+        let options;
+        let jobMock;
+        const startTime = '2019-01-29T01:47:27.863Z';
+        const endTime = '2019-01-30T01:47:27.863Z';
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+            jobMock = decorateJobMock(testJob);
+            jobMock.getBuildMetrics = sinon.stub().resolves([]);
+            jobFactoryMock.get.resolves(jobMock);
+        });
+
+        it('returns 200 and metrics for job', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(jobMock.getBuildMetrics, {
+                    startTime,
+                    endTime
+                });
+            })
+        );
+
+        it('returns 404 when job does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Job does not exist'
+            };
+
+            jobFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            jobFactoryMock.get.rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /jobs/{id}/metrics/steps', () => {
+        const id = 123;
+        const username = 'myself';
+        let options;
+        let jobMock;
+        const startTime = '2019-01-29T01:47:27.863Z';
+        const endTime = '2019-01-30T01:47:27.863Z';
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/metrics/steps/sd-setup-scm` +
+                `?startTime=${startTime}&endTime=${endTime}`,
+                credentials: {
+                    username,
+                    scope: ['user']
+                }
+            };
+            jobMock = decorateJobMock(testJob);
+            jobMock.getStepMetrics = sinon.stub().resolves([]);
+            jobFactoryMock.get.resolves(jobMock);
+        });
+
+        it('returns 200 and metrics for job', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(jobMock.getStepMetrics, {
+                    stepName: 'sd-setup-scm',
+                    startTime,
+                    endTime
+                });
+            })
+        );
+
+        it('returns 404 when job does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Job does not exist'
+            };
+
+            jobFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            jobFactoryMock.get.rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
 });
