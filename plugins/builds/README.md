@@ -73,6 +73,13 @@ Example payload:
 }
 ```
 
+#### Get step metrics for a single build
+`GET /builds/{id}/metrics`
+
+`GET /builds/{id}/metrics?startTime=2019-02-01T12:00:00.000Z`
+
+`GET /builds/{id}/metrics?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server app values:
 

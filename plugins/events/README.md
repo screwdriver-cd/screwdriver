@@ -32,6 +32,14 @@ server.register({
 #### Returns a list of builds associated with the event
 `GET /events/{id}/builds`
 
+#### Get build metrics for a single event
+`GET /events/{id}/metrics/builds`
+
+`GET /events/{id}/metrics/builds?startTime=2019-02-01T12:00:00.000Z`
+
+`GET /events/{id}/metrics/builds?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
+
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server app values:
 

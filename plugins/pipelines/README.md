@@ -109,6 +109,13 @@ Example payload:
 
 `GET /pipelines/{id}/secrets`
 
+#### Get event metrics for a single pipeline
+`GET /pipelines/{id}/metrics`
+
+`GET /pipelines/{id}/metrics?startTime=2019-02-01T12:00:00.000Z`
+
+`GET /pipelines/{id}/metrics?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
+
 #### Start all child pipelines belong to this pipeline
 * Start all child pipelines belong to this config pipeline all at once
 
