@@ -2657,6 +2657,20 @@ describe('build plugin test', () => {
                 assert.deepEqual(reply.headers.location, url);
             });
         });
+
+        it('redirects to store for an artifact download request', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&download=true`;
+
+            return server.inject({
+                url: `/builds/${id}/artifacts/${artifact}?download=true`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
     });
 
     describe('POST /builds/{id}/token', () => {

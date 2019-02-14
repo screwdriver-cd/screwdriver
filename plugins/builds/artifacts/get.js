@@ -7,6 +7,7 @@ const uuid = require('uuid/v4');
 
 const idSchema = joi.reach(schema.models.build.base, 'id');
 const artifactSchema = joi.string().label('Artifact Name');
+const downloadSchema = joi.string().valid(['', 'false', 'true']).label('Flag to trigger download');
 
 module.exports = config => ({
     method: 'GET',
@@ -38,8 +39,12 @@ module.exports = config => ({
                 jwtid: uuid()
             });
 
-            const baseUrl = `${config.ecosystem.store}/v1/builds/`
+            let baseUrl = `${config.ecosystem.store}/v1/builds/`
                 + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
+
+            if (request.query.download) {
+                baseUrl += `&download=${request.query.download}`;
+            }
 
             return reply().redirect().location(baseUrl);
         },
@@ -47,6 +52,9 @@ module.exports = config => ({
             params: {
                 id: idSchema,
                 name: artifactSchema
+            },
+            query: {
+                download: downloadSchema
             }
         }
     }
