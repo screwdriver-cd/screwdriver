@@ -828,6 +828,44 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('sets init step meta on COLLAPSED', () => {
+                const meta = {
+                    foo: 'bar'
+                };
+                const status = 'COLLAPSED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        meta,
+                        status
+                    }
+                };
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                initStepMock.update.resolves(null);
+                stepFactoryMock.get.withArgs({
+                    buildId: id,
+                    name: initStepName
+                }).resolves(initStepMock);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(initStepMock.update);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                });
+            });
+
             it('does not allow updating to QUEUED', () => {
                 const status = 'QUEUED';
                 const options = {
