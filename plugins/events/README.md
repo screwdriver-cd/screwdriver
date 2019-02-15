@@ -33,11 +33,11 @@ server.register({
 `GET /events/{id}/builds`
 
 #### Get build metrics for a single event
-`GET /events/{id}/metrics/builds`
+`GET /events/{id}/metrics`
 
-`GET /events/{id}/metrics/builds?startTime=2019-02-01T12:00:00.000Z`
+`GET /events/{id}/metrics?startTime=2019-02-01T12:00:00.000Z`
 
-`GET /events/{id}/metrics/builds?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
+`GET /events/{id}/metrics?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
 
 
 ### Access to Factory methods
