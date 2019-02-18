@@ -124,6 +124,9 @@ module.exports = () => ({
                         }
 
                         break;
+                    case 'FROZEN':
+                    case 'COLLAPSED':
+                        break;
                     default:
                         throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
                     }
@@ -139,8 +142,8 @@ module.exports = () => ({
                         }
                     }
 
-                    // If status got updated to RUNNING, update init endTime and code
-                    if (desiredStatus === 'RUNNING') {
+                    // If status got updated to RUNNING or COLLAPSED, update init endTime and code
+                    if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
                         return stepFactory.get({ buildId: id, name: 'sd-setup-init' })
                             .then((step) => {
                                 // If there is no init step, do nothing
@@ -148,7 +151,7 @@ module.exports = () => ({
                                     return null;
                                 }
 
-                                step.endTime = build.startTime;
+                                step.endTime = build.startTime || (new Date()).toISOString();
                                 step.code = 0;
 
                                 return step.update();

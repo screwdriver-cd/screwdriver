@@ -828,6 +828,82 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('sets init step meta on COLLAPSED', () => {
+                const meta = {
+                    foo: 'bar'
+                };
+                const status = 'COLLAPSED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        meta,
+                        status
+                    }
+                };
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                initStepMock.update.resolves(null);
+                stepFactoryMock.get.withArgs({
+                    buildId: id,
+                    name: initStepName
+                }).resolves(initStepMock);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(initStepMock.update);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                });
+            });
+
+            it('sets init step meta on FROZEN', () => {
+                const meta = {
+                    foo: 'bar'
+                };
+                const status = 'FROZEN';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    payload: {
+                        meta,
+                        status
+                    }
+                };
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                initStepMock.update.resolves(null);
+                stepFactoryMock.get.withArgs({
+                    buildId: id,
+                    name: initStepName
+                }).resolves(initStepMock);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(initStepMock.update);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                });
+            });
+
             it('does not allow updating to QUEUED', () => {
                 const status = 'QUEUED';
                 const options = {
@@ -2573,6 +2649,20 @@ describe('build plugin test', () => {
 
             return server.inject({
                 url: `/builds/${id}/artifacts/${multiByteArtifact}`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('redirects to store for an artifact download request', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&download=true`;
+
+            return server.inject({
+                url: `/builds/${id}/artifacts/${artifact}?download=true`,
                 credentials: {
                     scope: ['user']
                 }
