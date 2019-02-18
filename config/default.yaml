@@ -222,6 +222,8 @@ webhooks:
   username: sd-buildbot
   # Ignore commits made by these users
   ignoreCommitsBy: []
+  # Restrict PR: all, none, branch, or fork
+  restrictPR: fork
 
 coverage: {}
   # plugin: sonar
