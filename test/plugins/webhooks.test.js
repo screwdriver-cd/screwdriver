@@ -87,7 +87,8 @@ describe('github plugin test', () => {
             register: plugin,
             options: {
                 username: 'sd-buildbot',
-                ignoreCommitsBy: ['batman', 'superman']
+                ignoreCommitsBy: ['batman', 'superman'],
+                restrictPR: 'fork'
             }
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
@@ -773,8 +774,65 @@ describe('github plugin test', () => {
                     });
                 });
 
+                it('skips creating if pr from fork by default', () => {
+                    parsed.prSource = 'fork';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
+                it('use cluster level restrictPR setting', () => {
+                    const testServer = new hapi.Server();
+
+                    testServer.root.app = {
+                        jobFactory: jobFactoryMock,
+                        buildFactory: buildFactoryMock,
+                        pipelineFactory: pipelineFactoryMock,
+                        userFactory: userFactoryMock,
+                        eventFactory: eventFactoryMock
+                    };
+                    testServer.connection({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
+
+                    testServer.register([{
+                        register: plugin,
+                        options: {
+                            username: 'testuser'
+                        }
+                    }]);
+
+                    parsed.prSource = 'fork';
+
+                    return testServer.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            configPipelineSha: latestSha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prTitle: 'Update the README with new information',
+                            prRef,
+                            changedFiles,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
                 it('skips creating if restricting all', () => {
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'all';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'all';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -785,7 +843,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -796,7 +854,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from branch and restricting forks', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -822,7 +880,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -833,7 +891,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from fork and restricting branches', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1097,8 +1155,18 @@ describe('github plugin test', () => {
                     });
                 });
 
+                it('skips creating if pr from fork by default', () => {
+                    parsed.prSource = 'fork';
+
+                    return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.equal(reply.statusCode, 204);
+                    });
+                });
+
                 it('skips creating if restricting all', () => {
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'all';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'all';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1109,7 +1177,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1120,7 +1188,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from branch and restricting forks', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1146,7 +1214,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1157,9 +1225,56 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from fork and restricting branches', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['beta.screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            configPipelineSha: latestSha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prTitle: 'Update the README with new information',
+                            prRef,
+                            changedFiles,
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('use cluster level restrictPR setting', () => {
+                    const testServer = new hapi.Server();
+
+                    testServer.root.app = {
+                        jobFactory: jobFactoryMock,
+                        buildFactory: buildFactoryMock,
+                        pipelineFactory: pipelineFactoryMock,
+                        userFactory: userFactoryMock,
+                        eventFactory: eventFactoryMock
+                    };
+                    testServer.connection({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
+
+                    testServer.register([{
+                        register: plugin,
+                        options: {
+                            username: 'testuser'
+                        }
+                    }]);
+
+                    parsed.prSource = 'fork';
+
+                    return testServer.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,

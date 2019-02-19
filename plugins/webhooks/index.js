@@ -196,16 +196,17 @@ async function createPREvents(options, request) {
  * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
+ * @param  {String}       options.restrictPR    Restrict PR setting
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestOpened(options, request, reply) {
-    const { hookId, prSource, pipeline } = options;
+    const { hookId, prSource, pipeline, restrictPR } = options;
 
     if (pipeline) {
         const p = await pipeline.sync();
-        // @TODO Check for cluster-level default
-        const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+        const defaultRestrictPR = restrictPR || 'none';
+        const restriction = p.annotations['screwdriver.cd/restrict-pr'] || defaultRestrictPR;
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
@@ -280,6 +281,7 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.hookId        Unique ID for this scm event
  * @param  {String}       options.name          Name of the new job (PR-1)
  * @param  {String}       options.prSource      The origin of this PR
+ * @param  {String}       options.restrictPR    Restrict PR setting
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of files that were changed
  * @param  {String}       options.prNum         Pull request number
@@ -288,12 +290,12 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, prSource, name, prNum, action } = options;
+    const { pipeline, hookId, prSource, name, prNum, action, restrictPR } = options;
 
     if (pipeline) {
         const p = await pipeline.sync();
-        // @TODO Check for cluster-level default
-        const restriction = p.annotations['beta.screwdriver.cd/restrict-pr'] || 'none';
+        const defaultRestrictPR = restrictPR || 'none';
+        const restriction = p.annotations['screwdriver.cd/restrict-pr'] || defaultRestrictPR;
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
@@ -355,9 +357,10 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
  *  - Closing a PR should stop the PR job and sync the pipeline (disabling the job)
  * @method pullRequestEvent
  * @param  {Object}             pluginOptions
- * @param  {String}             pluginOptions.username Generic scm username
- * @param  {Hapi.request}       request                Request from user
- * @param  {Hapi.reply}         reply                  Reply to user
+ * @param  {String}             pluginOptions.username    Generic scm username
+ * @param  {String}             pluginOptions.restrictPR  Restrict PR setting
+ * @param  {Hapi.request}       request                   Request from user
+ * @param  {Hapi.reply}         reply                     Reply to user
  * @param  {Object}             parsed
  */
 function pullRequestEvent(pluginOptions, request, reply, parsed) {
@@ -371,6 +374,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
         token: '',
         scmContext
     };
+    const { restrictPR } = pluginOptions;
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
@@ -416,7 +420,8 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         changedFiles,
                         action: action.charAt(0).toUpperCase() + action.slice(1),
                         branch,
-                        fullCheckoutUrl
+                        fullCheckoutUrl,
+                        restrictPR
                     };
 
                     switch (action) {
@@ -555,13 +560,15 @@ async function pushEvent(pluginOptions, request, reply, parsed) {
  * @param  {Object}     options                 Configuration
  * @param  {String}     options.username        Generic scm username
  * @param  {Array}      options.ignoreCommitsBy Ignore commits made by these usernames
+ * @param  {Array}      options.restrictPR      Restrict PR setting
  * @param  {Function}   next                    Function to call when done
  */
 exports.register = (server, options, next) => {
     const scm = server.root.app.pipelineFactory.scm;
     const pluginOptions = joi.attempt(options, joi.object().keys({
         username: joi.string().required(),
-        ignoreCommitsBy: joi.array().items(joi.string()).optional()
+        ignoreCommitsBy: joi.array().items(joi.string()).optional(),
+        restrictPR: joi.string().valid('all', 'none', 'branch', 'fork').optional()
     }), 'Invalid config for plugin-webhooks');
 
     server.route({
@@ -594,7 +601,7 @@ exports.register = (server, options, next) => {
                         return reply({ message }).code(204);
                     }
 
-                    if (ignoreUser.includes(username)) {
+                    if (ignoreUser && ignoreUser.includes(username)) {
                         message = `Skipping because user ${username} is ignored`;
                         request.log(['webhook', hookId], message);
 
