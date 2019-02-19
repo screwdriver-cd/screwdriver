@@ -223,7 +223,7 @@ webhooks:
   # Ignore commits made by these users
   ignoreCommitsBy: []
   # Restrict PR: all, none, branch, or fork
-  restrictPR: fork
+  restrictPR: none
 
 coverage: {}
   # plugin: sonar
