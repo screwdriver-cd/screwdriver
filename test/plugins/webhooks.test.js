@@ -784,6 +784,53 @@ describe('github plugin test', () => {
                     });
                 });
 
+                it('use cluster level restrictPR setting', () => {
+                    const testServer = new hapi.Server();
+
+                    testServer.root.app = {
+                        jobFactory: jobFactoryMock,
+                        buildFactory: buildFactoryMock,
+                        pipelineFactory: pipelineFactoryMock,
+                        userFactory: userFactoryMock,
+                        eventFactory: eventFactoryMock
+                    };
+                    testServer.connection({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
+
+                    testServer.register([{
+                        register: plugin,
+                        options: {
+                            username: 'testuser'
+                        }
+                    }]);
+
+                    parsed.prSource = 'fork';
+
+                    return testServer.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            configPipelineSha: latestSha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prTitle: 'Update the README with new information',
+                            prRef,
+                            changedFiles,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
                 it('skips creating if restricting all', () => {
                     pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'all';
 
@@ -1181,6 +1228,53 @@ describe('github plugin test', () => {
                     pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
 
                     return server.inject(options).then((reply) => {
+                        assert.calledOnce(pipelineMock.sync);
+                        assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            configPipelineSha: latestSha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prTitle: 'Update the README with new information',
+                            prRef,
+                            changedFiles,
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                        });
+                        assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('use cluster level restrictPR setting', () => {
+                    const testServer = new hapi.Server();
+
+                    testServer.root.app = {
+                        jobFactory: jobFactoryMock,
+                        buildFactory: buildFactoryMock,
+                        pipelineFactory: pipelineFactoryMock,
+                        userFactory: userFactoryMock,
+                        eventFactory: eventFactoryMock
+                    };
+                    testServer.connection({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
+
+                    testServer.register([{
+                        register: plugin,
+                        options: {
+                            username: 'testuser'
+                        }
+                    }]);
+
+                    parsed.prSource = 'fork';
+
+                    return testServer.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,

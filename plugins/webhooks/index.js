@@ -601,7 +601,7 @@ exports.register = (server, options, next) => {
                         return reply({ message }).code(204);
                     }
 
-                    if (ignoreUser.includes(username)) {
+                    if (ignoreUser && ignoreUser.includes(username)) {
                         message = `Skipping because user ${username} is ignored`;
                         request.log(['webhook', hookId], message);
 
