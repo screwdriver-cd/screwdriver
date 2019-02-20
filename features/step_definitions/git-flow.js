@@ -6,7 +6,7 @@ const sdapi = require('../support/sdapi');
 const github = require('../support/github');
 const { defineSupportCode } = require('cucumber');
 
-const TIMEOUT = 500 * 1000;
+const TIMEOUT = 800 * 1000;
 
 defineSupportCode(({ Before, Given, When, Then }) => {
     Before({
