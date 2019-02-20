@@ -832,7 +832,7 @@ describe('github plugin test', () => {
                 });
 
                 it('skips creating if restricting all', () => {
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'all';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'all';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -843,7 +843,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -854,7 +854,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from branch and restricting forks', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -880,7 +880,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -891,7 +891,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from fork and restricting branches', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1166,7 +1166,7 @@ describe('github plugin test', () => {
                 });
 
                 it('skips creating if restricting all', () => {
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'all';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'all';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1177,7 +1177,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1188,7 +1188,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from branch and restricting forks', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'fork';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1214,7 +1214,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1225,7 +1225,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from fork and restricting branches', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrict-pr'] = 'branch';
+                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);

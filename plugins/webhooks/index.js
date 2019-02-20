@@ -206,7 +206,7 @@ async function pullRequestOpened(options, request, reply) {
     if (pipeline) {
         const p = await pipeline.sync();
         const defaultRestrictPR = restrictPR || 'none';
-        const restriction = p.annotations['screwdriver.cd/restrict-pr'] || defaultRestrictPR;
+        const restriction = p.annotations['screwdriver.cd/restrictPR'] || defaultRestrictPR;
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
@@ -295,7 +295,7 @@ async function pullRequestSync(options, request, reply) {
     if (pipeline) {
         const p = await pipeline.sync();
         const defaultRestrictPR = restrictPR || 'none';
-        const restriction = p.annotations['screwdriver.cd/restrict-pr'] || defaultRestrictPR;
+        const restriction = p.annotations['screwdriver.cd/restrictPR'] || defaultRestrictPR;
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
