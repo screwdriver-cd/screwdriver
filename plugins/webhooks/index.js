@@ -134,12 +134,13 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @param  {Array}        options.changedFiles  List of changed files
  * @param  {String}       options.branch        The branch against which pr is opened
  * @param  {String}       options.action        Event action
+ * @param  {String}       [options.skipMessage] Skip message
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
 async function createPREvents(options, request) {
     const { username, scmConfig, sha, prRef, prNum,
-        prTitle, changedFiles, branch, action } = options;
+        prTitle, changedFiles, branch, action, skipMessage } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
@@ -168,7 +169,8 @@ async function createPREvents(options, request) {
             configPipelineSha,
             startFrom: `~pr:${branch}`,
             changedFiles,
-            causeMessage: `${action} by ${userDisplayName}`
+            causeMessage: `${action} by ${userDisplayName}`,
+            skipMessage
         };
 
         if (b === branch) {
@@ -197,6 +199,7 @@ async function createPREvents(options, request) {
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {String}       options.restrictPR    Restrict PR setting
+ * @param  {String}       [options.skipMessage] Skip message
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
@@ -286,6 +289,7 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Array}        options.changedFiles  List of files that were changed
  * @param  {String}       options.prNum         Pull request number
  * @param  {String}       options.action        Event action
+ * @param  {String}       [options.skipMessage] Skip message
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
@@ -362,8 +366,9 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
  * @param  {Hapi.request}       request                   Request from user
  * @param  {Hapi.reply}         reply                     Reply to user
  * @param  {Object}             parsed
+ * @param  {String}             [skipMessage]
  */
-function pullRequestEvent(pluginOptions, request, reply, parsed) {
+function pullRequestEvent(pluginOptions, request, reply, parsed, skipMessage) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const { hookId, action, checkoutUrl, branch, sha, prNum, prTitle, prRef,
@@ -421,7 +426,8 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         action: action.charAt(0).toUpperCase() + action.slice(1),
                         branch,
                         fullCheckoutUrl,
-                        restrictPR
+                        restrictPR,
+                        skipMessage
                     };
 
                     switch (action) {
@@ -448,9 +454,10 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  * @param   {PipelineFactory}    pipelineFactory    To use scm module
  * @param   {Array}              pipelines          The pipelines to start events
  * @param   {Object}             parsed             It has information to create event
+ * @param  {String}             [skipMessage]       Skip message
  * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
+async function createEvents(eventFactory, pipelineFactory, pipelines, parsed, skipMessage) {
     const { branch, sha, username, scmContext, changedFiles } = parsed;
     const events = [];
 
@@ -479,7 +486,8 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
             configPipelineSha,
             changedFiles,
             commitBranch: branch,
-            causeMessage: `Merged by ${username}`
+            causeMessage: `Merged by ${username}`,
+            skipMessage
         };
 
         events.push(eventFactory.create(eventConfig));
@@ -497,8 +505,9 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
  * @param  {Hapi.request}       request                Request from user
  * @param  {Hapi.reply}         reply                  Reply to user
  * @param  {Object}             parsed                 It has information to create event
+ * @param  {String}             [skipMessage]          Skip message
  */
-async function pushEvent(pluginOptions, request, reply, parsed) {
+async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
@@ -530,7 +539,9 @@ async function pushEvent(pluginOptions, request, reply, parsed) {
             request.log(['webhook', hookId],
                 `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
         } else {
-            events = await createEvents(eventFactory, pipelineFactory, pipelines, parsed);
+            events = await createEvents(
+                eventFactory, pipelineFactory, pipelines, parsed, skipMessage
+            );
         }
 
         const hasBuildEvents = events.filter(e => e.builds !== null);
@@ -582,6 +593,7 @@ exports.register = (server, options, next) => {
                 const userFactory = request.server.app.userFactory;
                 const ignoreUser = pluginOptions.ignoreCommitsBy;
                 let message = 'Unable to process this kind of event';
+                let skipMessage;
 
                 try {
                     const parsed = await scm.parseHook(request.headers, request.payload);
@@ -595,10 +607,7 @@ exports.register = (server, options, next) => {
                     request.log(['webhook', hookId], `Received event type ${type}`);
 
                     if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
-                        message = 'Skipping due to the commit message';
-                        request.log(['webhook', hookId], message);
-
-                        return reply({ message }).code(204);
+                        skipMessage = 'Skipping due to the commit message: [skip ci]';
                     }
 
                     if (ignoreUser && ignoreUser.includes(username)) {
@@ -622,10 +631,10 @@ exports.register = (server, options, next) => {
                     request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
 
                     if (type === 'pr') {
-                        return pullRequestEvent(pluginOptions, request, reply, parsed);
+                        return pullRequestEvent(pluginOptions, request, reply, parsed, skipMessage);
                     }
 
-                    return pushEvent(pluginOptions, request, reply, parsed);
+                    return pushEvent(pluginOptions, request, reply, parsed, skipMessage);
                 } catch (err) {
                     return reply(boom.boomify(err));
                 }
