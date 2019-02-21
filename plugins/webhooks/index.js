@@ -134,12 +134,13 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @param  {Array}        options.changedFiles  List of changed files
  * @param  {String}       options.branch        The branch against which pr is opened
  * @param  {String}       options.action        Event action
+ * @param  {String}       options.skipMessage   Message to skip starting builds
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
 async function createPREvents(options, request) {
     const { username, scmConfig, sha, prRef, prNum,
-        prTitle, changedFiles, branch, action } = options;
+        prTitle, changedFiles, branch, action, skipMessage } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
@@ -170,6 +171,10 @@ async function createPREvents(options, request) {
             changedFiles,
             causeMessage: `${action} by ${userDisplayName}`
         };
+
+        if (skipMessage) {
+            eventConfig.skipMessage = skipMessage;
+        }
 
         if (b === branch) {
             eventConfig.type = 'pr';
@@ -210,12 +215,8 @@ async function pullRequestOpened(options, request, reply) {
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
-            const message = 'Skipping build since pipeline is configured to restrict ' +
-                `${restriction} and PR is ${prSource}`;
-
-            request.log(['webhook', hookId], message);
-
-            return reply({ message }).code(204);
+            options.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
+            `${restriction} and PR is ${prSource}`;
         }
     }
 
@@ -299,12 +300,8 @@ async function pullRequestSync(options, request, reply) {
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
-            const message = 'Skipping build since pipeline is configured to restrict ' +
+            options.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
                 `${restriction} and PR is ${prSource}`;
-
-            request.log(['webhook', hookId], message);
-
-            return reply({ message }).code(204);
         }
 
         await p.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
