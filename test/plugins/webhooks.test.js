@@ -471,12 +471,26 @@ describe('github plugin test', () => {
                 });
             });
 
-            it('returns 204 when "[skip ci]"', () => {
+            it('returns 201 when "[skip ci]"', () => {
                 parsed.lastCommitMessage = 'foo[skip ci]bar';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
                 return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 204);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        changedFiles,
+                        causeMessage: `Merged by ${username}`,
+                        skipMessage: 'Skipping due to the commit message: [skip ci]'
+                    });
+                    assert.equal(reply.statusCode, 201);
                 });
             });
 

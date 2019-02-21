@@ -134,13 +134,12 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
  * @param  {Array}        options.changedFiles  List of changed files
  * @param  {String}       options.branch        The branch against which pr is opened
  * @param  {String}       options.action        Event action
- * @param  {String}       [options.skipMessage] Skip message
  * @param  {Hapi.request} request               Request from user
  * @return {Promise}
  */
 async function createPREvents(options, request) {
     const { username, scmConfig, sha, prRef, prNum,
-        prTitle, changedFiles, branch, action, skipMessage } = options;
+        prTitle, changedFiles, branch, action } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
@@ -169,8 +168,7 @@ async function createPREvents(options, request) {
             configPipelineSha,
             startFrom: `~pr:${branch}`,
             changedFiles,
-            causeMessage: `${action} by ${userDisplayName}`,
-            skipMessage
+            causeMessage: `${action} by ${userDisplayName}`
         };
 
         if (b === branch) {
@@ -199,7 +197,6 @@ async function createPREvents(options, request) {
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {String}       options.restrictPR    Restrict PR setting
- * @param  {String}       [options.skipMessage] Skip message
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
@@ -289,7 +286,6 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Array}        options.changedFiles  List of files that were changed
  * @param  {String}       options.prNum         Pull request number
  * @param  {String}       options.action        Event action
- * @param  {String}       [options.skipMessage] Skip message
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
@@ -366,9 +362,8 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
  * @param  {Hapi.request}       request                   Request from user
  * @param  {Hapi.reply}         reply                     Reply to user
  * @param  {Object}             parsed
- * @param  {String}             [skipMessage]
  */
-function pullRequestEvent(pluginOptions, request, reply, parsed, skipMessage) {
+function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const { hookId, action, checkoutUrl, branch, sha, prNum, prTitle, prRef,
@@ -426,8 +421,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, skipMessage) {
                         action: action.charAt(0).toUpperCase() + action.slice(1),
                         branch,
                         fullCheckoutUrl,
-                        restrictPR,
-                        skipMessage
+                        restrictPR
                     };
 
                     switch (action) {
@@ -454,7 +448,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, skipMessage) {
  * @param   {PipelineFactory}    pipelineFactory    To use scm module
  * @param   {Array}              pipelines          The pipelines to start events
  * @param   {Object}             parsed             It has information to create event
- * @param  {String}             [skipMessage]       Skip message
+ * @param   {String}            [skipMessage]       Message to skip starting builds
  * @returns {Promise}                               Promise that resolves into events
  */
 async function createEvents(eventFactory, pipelineFactory, pipelines, parsed, skipMessage) {
@@ -486,9 +480,12 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed, sk
             configPipelineSha,
             changedFiles,
             commitBranch: branch,
-            causeMessage: `Merged by ${username}`,
-            skipMessage
+            causeMessage: `Merged by ${username}`
         };
+
+        if (skipMessage) {
+            eventConfig.skipMessage = skipMessage;
+        }
 
         events.push(eventFactory.create(eventConfig));
     }
@@ -505,7 +502,7 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed, sk
  * @param  {Hapi.request}       request                Request from user
  * @param  {Hapi.reply}         reply                  Reply to user
  * @param  {Object}             parsed                 It has information to create event
- * @param  {String}             [skipMessage]          Skip message
+ * @param  {String}             [skipMessage]          Message to skip starting builds
  */
 async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
     const eventFactory = request.server.app.eventFactory;
@@ -631,7 +628,8 @@ exports.register = (server, options, next) => {
                     request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
 
                     if (type === 'pr') {
-                        return pullRequestEvent(pluginOptions, request, reply, parsed, skipMessage);
+                        // disregard skip ci for pull request events
+                        return pullRequestEvent(pluginOptions, request, reply, parsed);
                     }
 
                     return pushEvent(pluginOptions, request, reply, parsed, skipMessage);
