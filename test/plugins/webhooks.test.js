@@ -471,12 +471,26 @@ describe('github plugin test', () => {
                 });
             });
 
-            it('returns 204 when "[skip ci]"', () => {
+            it('returns 201 when "[skip ci]"', () => {
                 parsed.lastCommitMessage = 'foo[skip ci]bar';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
                 return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 204);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        changedFiles,
+                        causeMessage: `Merged by ${username}`,
+                        skipMessage: 'Skipping due to the commit message: [skip ci]'
+                    });
+                    assert.equal(reply.statusCode, 201);
                 });
             });
 
@@ -569,6 +583,8 @@ describe('github plugin test', () => {
             });
 
             describe('open pull request', () => {
+                let expected;
+
                 beforeEach(() => {
                     name = 'PR-2';
                     parsed.prNum = 2;
@@ -588,6 +604,22 @@ describe('github plugin test', () => {
                         state: 'ENABLED'
                     });
                     jobMock.requires = '~pr';
+                    expected = {
+                        causeMessage: 'Opened by github:baxterthehacker',
+                        changedFiles,
+                        configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
+                        pipelineId,
+                        prInfo,
+                        prNum: 2,
+                        prRef,
+                        prTitle: 'Update the README with new information',
+                        scmContext,
+                        sha,
+                        startFrom: '~pr',
+                        type: 'pr',
+                        username,
+                        webhooks: true
+                    };
                 });
 
                 it('returns 201 on success', () =>
@@ -774,13 +806,15 @@ describe('github plugin test', () => {
                     });
                 });
 
-                it('skips creating if pr from fork by default', () => {
+                it('creates empty event if pr from fork by default', () => {
                     parsed.prSource = 'fork';
+                    expected.skipMessage = 'Skipping build since pipeline is configured' +
+                    ' to restrict fork and PR is fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
@@ -831,24 +865,28 @@ describe('github plugin test', () => {
                     });
                 });
 
-                it('skips creating if restricting all', () => {
+                it('creates empty event if restricting all', () => {
                     pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'all';
+                    expected.skipMessage = 'Skipping build since pipeline is configured' +
+                    ' to restrict all and PR is branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
-                it('skips creating if pr from fork and restricting forks', () => {
+                it('creates empty event if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
                     pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+                    expected.skipMessage = 'Skipping build since pipeline is configured' +
+                    ' to restrict fork and PR is fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
@@ -878,14 +916,16 @@ describe('github plugin test', () => {
                     });
                 });
 
-                it('skips creating if pr from branch and restricting branches', () => {
+                it('creates empty event if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
                     pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
+                    expected.skipMessage = 'Skipping build since pipeline is configured' +
+                    ' to restrict branch and PR is branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
@@ -932,8 +972,26 @@ describe('github plugin test', () => {
             describe('synchronize pull request', () => {
                 let model1;
                 let model2;
+                let expected;
 
                 beforeEach(() => {
+                    expected = {
+                        prRef,
+                        prNum: 1,
+                        prTitle: 'Update the README with new information',
+                        prInfo,
+                        pipelineId,
+                        type: 'pr',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
+                        startFrom: '~pr',
+                        changedFiles,
+                        causeMessage: 'Synchronized by github:baxterthehacker'
+                    };
+
                     model1 = {
                         id: 1,
                         isDone: sinon.stub().returns(false),
@@ -1155,34 +1213,40 @@ describe('github plugin test', () => {
                     });
                 });
 
-                it('skips creating if pr from fork by default', () => {
+                it('creates empty event if pr from fork by default', () => {
                     parsed.prSource = 'fork';
+                    expected.skipMessage = 'Skipping build since pipeline is ' +
+                    'configured to restrict fork and PR is fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
-                it('skips creating if restricting all', () => {
+                it('creates empty event if restricting all', () => {
                     pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'all';
+                    expected.skipMessage = 'Skipping build since pipeline is ' +
+                    'configured to restrict all and PR is branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
-                it('skips creating if pr from fork and restricting forks', () => {
+                it('creates empty event if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
                     pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+                    expected.skipMessage = 'Skipping build since pipeline is ' +
+                    'configured to restrict fork and PR is fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
@@ -1215,11 +1279,13 @@ describe('github plugin test', () => {
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
                     pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
+                    expected.skipMessage = 'Skipping build since pipeline is ' +
+                    'configured to restrict branch and PR is branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.equal(reply.statusCode, 204);
+                        assert.calledWith(eventFactoryMock.create, expected);
+                        assert.equal(reply.statusCode, 201);
                     });
                 });
 
