@@ -144,7 +144,7 @@ const getUserMock = (user) => {
     return mock;
 };
 
-describe.only('pipeline plugin test', () => {
+describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let eventFactoryMock;
