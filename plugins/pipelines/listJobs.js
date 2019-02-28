@@ -14,7 +14,7 @@ module.exports = () => ({
         tags: ['api', 'pipelines', 'jobs'],
         auth: {
             strategies: ['token'],
-            scope: ['user', 'pipeline']
+            scope: ['user', 'build', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -22,9 +22,10 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.pipelineFactory;
+            const pipelineFactory = request.server.app.pipelineFactory;
+            const { page, count, jobName } = request.query;
 
-            return factory.get(request.params.id)
+            return pipelineFactory.get(request.params.id)
                 .then((pipeline) => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
@@ -36,11 +37,11 @@ module.exports = () => ({
                         }
                     };
 
-                    if (request.query.page || request.query.count) {
-                        config.paginate = {
-                            page: request.query.page,
-                            count: request.query.count
-                        };
+                    if (jobName) {
+                        config.params.name = jobName;
+                    }
+                    if (page || count) {
+                        config.paginate = { page, count };
                     }
 
                     return pipeline.getJobs(config);
@@ -53,7 +54,8 @@ module.exports = () => ({
         },
         validate: {
             query: schema.api.pagination.concat(joi.object({
-                archived: joi.boolean().truthy('true').falsy('false').default(false)
+                archived: joi.boolean().truthy('true').falsy('false').default(false),
+                jobName: joi.reach(schema.models.job.base, 'name')
             }))
         }
     }

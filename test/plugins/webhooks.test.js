@@ -227,7 +227,8 @@ describe('github plugin test', () => {
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),
                 jobs: Promise.resolve([mainJobMock, jobMock]),
-                branch: Promise.resolve('master')
+                branch: Promise.resolve('master'),
+                update: sinon.stub()
             };
             buildMock = {
                 id: buildId,
@@ -236,7 +237,10 @@ describe('github plugin test', () => {
                 update: sinon.stub()
             };
             userMock = {
-                unsealToken: sinon.stub()
+                unsealToken: sinon.stub(),
+                getPermissions: sinon.stub().resolves({
+                    push: true
+                })
             };
             eventMock = {
                 id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
@@ -373,7 +377,8 @@ describe('github plugin test', () => {
                     sync: sinon.stub(),
                     getConfiguration: sinon.stub(),
                     jobs: Promise.resolve([mainJobMock, jobMock]),
-                    branch: Promise.resolve('branch1')
+                    branch: Promise.resolve('branch1'),
+                    update: sinon.stub()
                 };
                 const pMock2 = {
                     id: 'pipelineHash2',
@@ -386,7 +391,8 @@ describe('github plugin test', () => {
                     sync: sinon.stub(),
                     getConfiguration: sinon.stub(),
                     jobs: Promise.resolve([mainJobMock, jobMock]),
-                    branch: Promise.resolve('branch2')
+                    branch: Promise.resolve('branch2'),
+                    update: sinon.stub()
                 };
                 const pMock3 = {
                     id: 'pipelineHash3',
@@ -399,7 +405,8 @@ describe('github plugin test', () => {
                     sync: sinon.stub(),
                     getConfiguration: sinon.stub(),
                     jobs: Promise.resolve([mainJobMock, jobMock]),
-                    branch: Promise.resolve('fix-1')
+                    branch: Promise.resolve('fix-1'),
+                    update: sinon.stub()
                 };
 
                 pipelineFactoryMock.scm.getBranchList.resolves([
@@ -502,15 +509,75 @@ describe('github plugin test', () => {
                 });
             });
 
-            it('returns 500 when failed', () => {
-                eventFactoryMock.create.rejects(new Error('Failed to start'));
+            it('reuturns 200 when user is registered as admin', () => {
+                const pMock = {
+                    id: 'pipelineHash3',
+                    scmUri: 'github.com:123456:fix-1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: true
+                    },
+                    workflowGraph,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('fix-1'),
+                    update: sinon.stub().resolves()
+                };
+
+                pipelineFactoryMock.list.resolves([pMock]);
+                pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+
+                const userMock1 = {
+                    unsealToken: sinon.stub(),
+                    getPermissions: sinon.stub().resolves({
+                        push: true
+                    })
+                };
+
+                userFactoryMock.get.resolves(userMock1);
+                pipelineFactoryMock.get.resolves(pMock);
 
                 return server.inject(options).then((reply) => {
-                    assert.equal(reply.statusCode, 500);
+                    assert.equal(reply.statusCode, 201);
                 });
             });
 
-            it('handles checkouting when given a non-listed user', () => {
+            it('returns 201 when commits made by non permitted user', () => {
+                const pMock = {
+                    id: 'pipelineHash3',
+                    scmUri: 'github.com:123456:fix-1',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('fix-1'),
+                    update: sinon.stub().resolves()
+                };
+
+                pipelineFactoryMock.list.resolves([pMock]);
+                pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+
+                const userMock1 = {
+                    unsealToken: sinon.stub(),
+                    getPermissions: sinon.stub().resolves({
+                        push: false
+                    })
+                };
+
+                userFactoryMock.get.resolves(userMock1);
+                pipelineFactoryMock.get.resolves(pMock);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                });
+            });
+
+            it('handles checkouting when given a non-listed user on push event', () => {
                 userFactoryMock.get.resolves(null);
                 userFactoryMock.get.withArgs({
                     username: 'sd-buildbot',
@@ -521,6 +588,14 @@ describe('github plugin test', () => {
                     .then((response) => {
                         assert.equal(response.statusCode, 201);
                     });
+            });
+
+            it('returns 500 when failed', () => {
+                eventFactoryMock.create.rejects(new Error('Failed to start'));
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 500);
+                });
             });
         });
 
@@ -795,6 +870,19 @@ describe('github plugin test', () => {
                         });
                         assert.equal(reply.statusCode, 201);
                     });
+                });
+
+                it('handles checkouting when given a non-listed user on pr event', () => {
+                    userFactoryMock.get.resolves(null);
+                    userFactoryMock.get.withArgs({
+                        username: 'sd-buildbot',
+                        scmContext: 'github:github.com'
+                    }).resolves(userMock);
+
+                    return server.inject(options)
+                        .then((response) => {
+                            assert.equal(response.statusCode, 201);
+                        });
                 });
 
                 it('returns 500 when failed', () => {
@@ -1435,7 +1523,8 @@ describe('github plugin test', () => {
                         sync: sinon.stub(),
                         getConfiguration: sinon.stub(),
                         jobs: Promise.resolve([mainJobMock, jobMock]),
-                        branch: Promise.resolve('branch1')
+                        branch: Promise.resolve('branch1'),
+                        update: sinon.stub()
                     };
 
                     pipelineFactoryMock.list.resolves([pMock]);
