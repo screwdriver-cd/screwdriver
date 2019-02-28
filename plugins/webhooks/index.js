@@ -14,13 +14,6 @@ const WAIT_FOR_CHANGEDFILES = 1.8;
  * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
  */
 function updateAdmins(permissions, pipeline, username) {
-    var util = require('util');
-
-    // inspectで中身を見ることができます。
-    console.log('-------------');
-    console.log(util.inspect(pipeline.admins));
-    console.log(username);
-    console.log('-------------');
 
     const newAdmins = pipeline.admins;
 
@@ -43,9 +36,6 @@ function updateAdmins(permissions, pipeline, username) {
         // This is needed to make admins dirty and update db
         pipeline.admins = newAdmins;
 
-        console.log(pipeline.admins);
-        
-        // return pipeline.update();
         return pipeline.update();
     }
 
@@ -529,37 +519,14 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
         };
 
         /* eslint-disable no-loop-func */
-        // utilモジュールを使います。
-        var util = require('util');
-
-        // inspectで中身を見ることができます。
-        // console.log('-------------');
-        // console.log(util.inspect(p));
-        // console.log(util.inspect(p.admins));
-        // console.log('-------------');
-
-        // await Promise.all([
-        //     pipelineFactory.get(p.id),
-        //     userFactory.get({ username, scmContext })
-        // ]).then(([pipeline, user]) => {
-        //     user.getPermissions(p.scmUri)
-        //         .then((userPermissions) => {
-        //             updateAdmins(userPermissions, pipeline, username);
-        //         });
-        // });
-
         await userFactory.get({ username, scmContext })
             .then((user) => {
+
                 return user.getPermissions(p.scmUri)
                     .then((userPermissions) => {
-                        console.log('+++++++++');
-                        console.log(p.admins);
-                        console.log('+++++++++');
-                        updateAdmins(userPermissions, p, username);
+                        return updateAdmins(userPermissions, p, username);
                     });
             });
-        console.log('aaaaa');
-        // await superUpdateAdmins(username, scmContext, p, userFactory);
         /* eslint-enable no-loop-func */
 
         // obtain pipeline's latest commit sha for branch specific job
@@ -690,22 +657,6 @@ exports.register = (server, options, next) => {
 
                     const { type, hookId, username, scmContext } = parsed;
 
-                    // user = userFactory.get(username, scmContext);
-                    // pipeline = pipelineFactory.get(pipelineId);
-                    // const pipelineFactory = server.root.app.pipelineFactory;
-                    // const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, type);
-
-                    // await Promise.all([
-                    //     pipelineFactory.get(pipelineId),
-                    //     userFactory.get({ username, scmContext })
-                    // ]).then(([pipeline, user]) => {
-                    //     user.getPermissions(pipeline.scmUri)
-                    //     .then((userPermissions) => {
-                    //         permissions = userPermissions;
-                    //         updateAdmins(permissions, pipeline, username);
-                    //     });
-                    // });
-
                     request.log(['webhook', hookId], `Received event type ${type}`);
 
                     if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
@@ -738,8 +689,6 @@ exports.register = (server, options, next) => {
                     if (type === 'pr') {
                         return pullRequestEvent(pluginOptions, request, reply, parsed);
                     }
-
-                    return pushEvent(pluginOptions, request, reply, parsed);
                 } catch (err) {
                     return reply(boom.boomify(err));
                 }
@@ -753,3 +702,4 @@ exports.register = (server, options, next) => {
 exports.register.attributes = {
     name: 'webhooks'
 };
+
