@@ -689,6 +689,7 @@ exports.register = (server, options, next) => {
                     if (type === 'pr') {
                         return pullRequestEvent(pluginOptions, request, reply, parsed);
                     }
+                    return pushEvent(pluginOptions, request, reply, parsed);
                 } catch (err) {
                     return reply(boom.boomify(err));
                 }
