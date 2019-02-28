@@ -144,7 +144,7 @@ const getUserMock = (user) => {
     return mock;
 };
 
-describe('pipeline plugin test', () => {
+describe.only('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let eventFactoryMock;
@@ -633,6 +633,21 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, testJobs);
             })
         );
+
+        it('returns 200 for getting jobs with jobNames', () => {
+            options.url = `/pipelines/${id}/jobs?jobName=deploy`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false,
+                        name: 'deploy'
+                    }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
 
         it('returns 400 for wrong query format', () => {
             pipelineFactoryMock.get.resolves(null);

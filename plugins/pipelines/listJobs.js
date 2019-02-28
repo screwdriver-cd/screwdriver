@@ -55,7 +55,7 @@ module.exports = () => ({
         validate: {
             query: schema.api.pagination.concat(joi.object({
                 archived: joi.boolean().truthy('true').falsy('false').default(false),
-                name: joi.reach(schema.models.job.base, 'name')
+                jobName: joi.reach(schema.models.job.base, 'name')
             }))
         }
     }
