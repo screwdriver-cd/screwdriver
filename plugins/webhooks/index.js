@@ -7,6 +7,68 @@ const workflowParser = require('screwdriver-workflow-parser');
 const WAIT_FOR_CHANGEDFILES = 1.8;
 
 /**
+ * Update admins array
+ * @param  {Object}    permissions  User permissions
+ * @param  {Pipeline}  pipeline     Pipeline object to update
+ * @param  {String}    username     Username of user
+ * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
+ */
+function updateAdmins(permissions, pipeline, username) {
+    var util = require('util');
+
+    // inspectで中身を見ることができます。
+    console.log('-------------');
+    console.log(util.inspect(pipeline.admins));
+    console.log(username);
+    console.log('-------------');
+
+    const newAdmins = pipeline.admins;
+
+    // Delete user from admin list if bad permissions
+    if (!permissions.push) {
+        delete newAdmins[username];
+        // This is needed to make admins dirty and update db
+        pipeline.admins = newAdmins;
+
+        return pipeline.update()
+            .then(() => {
+                throw boom.forbidden(`User ${username} `
+                + 'does not have push permission for this repo');
+            });
+    }
+
+    // Add user as admin if permissions good and does not already exist
+    if (!pipeline.admins[username]) {
+        newAdmins[username] = true;
+        // This is needed to make admins dirty and update db
+        pipeline.admins = newAdmins;
+
+        console.log(pipeline.admins);
+        
+        // return pipeline.update();
+        return pipeline.update();
+    }
+
+    return Promise.resolve();
+}
+
+/**
+ * aaa
+ */
+function superUpdateAdmins(username, scmContext, p, userFactory) {
+    userFactory.get({ username, scmContext })
+        .then((user) => {
+            user.getPermissions(p.scmUri)
+                .then((userPermissions) => {
+                    console.log('+++++++++');
+                    console.log(p.admins);
+                    console.log('+++++++++');
+                    updateAdmins(userPermissions, p, username);
+                });
+        });
+}
+
+/**
  * Promise to wait a certain number of seconds
  *
  * Might make this centralized for other tests to leverage
@@ -450,7 +512,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  * @param   {Object}             parsed             It has information to create event
  * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
+async function createEvents(eventFactory, userFactory, pipelineFactory, pipelines, parsed) {
     const { branch, sha, username, scmContext, changedFiles } = parsed;
     const events = [];
 
@@ -465,6 +527,41 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed) {
             token,
             scmContext
         };
+
+        /* eslint-disable no-loop-func */
+        // utilモジュールを使います。
+        var util = require('util');
+
+        // inspectで中身を見ることができます。
+        // console.log('-------------');
+        // console.log(util.inspect(p));
+        // console.log(util.inspect(p.admins));
+        // console.log('-------------');
+
+        // await Promise.all([
+        //     pipelineFactory.get(p.id),
+        //     userFactory.get({ username, scmContext })
+        // ]).then(([pipeline, user]) => {
+        //     user.getPermissions(p.scmUri)
+        //         .then((userPermissions) => {
+        //             updateAdmins(userPermissions, pipeline, username);
+        //         });
+        // });
+
+        await userFactory.get({ username, scmContext })
+            .then((user) => {
+                return user.getPermissions(p.scmUri)
+                    .then((userPermissions) => {
+                        console.log('+++++++++');
+                        console.log(p.admins);
+                        console.log('+++++++++');
+                        updateAdmins(userPermissions, p, username);
+                    });
+            });
+        console.log('aaaaa');
+        // await superUpdateAdmins(username, scmContext, p, userFactory);
+        /* eslint-enable no-loop-func */
+
         // obtain pipeline's latest commit sha for branch specific job
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         /* eslint-enable no-await-in-loop */
@@ -530,7 +627,8 @@ async function pushEvent(pluginOptions, request, reply, parsed) {
             request.log(['webhook', hookId],
                 `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
         } else {
-            events = await createEvents(eventFactory, pipelineFactory, pipelines, parsed);
+            events = await createEvents(eventFactory, userFactory,
+                pipelineFactory, pipelines, parsed);
         }
 
         const hasBuildEvents = events.filter(e => e.builds !== null);
@@ -591,6 +689,22 @@ exports.register = (server, options, next) => {
                     }
 
                     const { type, hookId, username, scmContext } = parsed;
+
+                    // user = userFactory.get(username, scmContext);
+                    // pipeline = pipelineFactory.get(pipelineId);
+                    // const pipelineFactory = server.root.app.pipelineFactory;
+                    // const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, type);
+
+                    // await Promise.all([
+                    //     pipelineFactory.get(pipelineId),
+                    //     userFactory.get({ username, scmContext })
+                    // ]).then(([pipeline, user]) => {
+                    //     user.getPermissions(pipeline.scmUri)
+                    //     .then((userPermissions) => {
+                    //         permissions = userPermissions;
+                    //         updateAdmins(permissions, pipeline, username);
+                    //     });
+                    // });
 
                     request.log(['webhook', hookId], `Received event type ${type}`);
 
