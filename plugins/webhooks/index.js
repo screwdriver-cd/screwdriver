@@ -43,22 +43,6 @@ function updateAdmins(permissions, pipeline, username) {
 }
 
 /**
- * aaa
- */
-function superUpdateAdmins(username, scmContext, p, userFactory) {
-    userFactory.get({ username, scmContext })
-        .then((user) => {
-            user.getPermissions(p.scmUri)
-                .then((userPermissions) => {
-                    console.log('+++++++++');
-                    console.log(p.admins);
-                    console.log('+++++++++');
-                    updateAdmins(userPermissions, p, username);
-                });
-        });
-}
-
-/**
  * Promise to wait a certain number of seconds
  *
  * Might make this centralized for other tests to leverage
