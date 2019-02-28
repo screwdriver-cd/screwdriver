@@ -14,7 +14,6 @@ const WAIT_FOR_CHANGEDFILES = 1.8;
  * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
  */
 function updateAdmins(permissions, pipeline, username) {
-
     const newAdmins = pipeline.admins;
 
     // Delete user from admin list if bad permissions
@@ -441,7 +440,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             }
 
             return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-                .then((pipeline) => {
+                .then(async (pipeline) => {
                     const options = {
                         name: `PR-${prNum}`,
                         hookId,
@@ -459,6 +458,15 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         fullCheckoutUrl,
                         restrictPR
                     };
+
+                    /* eslint-disable no-loop-func */
+                    await userFactory.get({ username, scmContext })
+                        .then(user => user.getPermissions(pipeline.scmUri)
+                            .then(userPermissions => updateAdmins(
+                                userPermissions,
+                                pipeline,
+                                username)));
+                    /* eslint-enable no-loop-func */
 
                     switch (action) {
                     case 'opened':
@@ -504,13 +512,8 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
 
         /* eslint-disable no-loop-func */
         await userFactory.get({ username, scmContext })
-            .then((user) => {
-
-                return user.getPermissions(p.scmUri)
-                    .then((userPermissions) => {
-                        return updateAdmins(userPermissions, p, username);
-                    });
-            });
+            .then(user => user.getPermissions(p.scmUri)
+                .then(userPermissions => updateAdmins(userPermissions, p, username)));
         /* eslint-enable no-loop-func */
 
         // obtain pipeline's latest commit sha for branch specific job
@@ -673,6 +676,7 @@ exports.register = (server, options, next) => {
                     if (type === 'pr') {
                         return pullRequestEvent(pluginOptions, request, reply, parsed);
                     }
+
                     return pushEvent(pluginOptions, request, reply, parsed);
                 } catch (err) {
                     return reply(boom.boomify(err));
@@ -687,4 +691,3 @@ exports.register = (server, options, next) => {
 exports.register.attributes = {
     name: 'webhooks'
 };
-
