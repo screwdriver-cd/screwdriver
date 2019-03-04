@@ -440,7 +440,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             }
 
             return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-                .then((pipeline) => {
+                .then(async (pipeline) => {
                     const options = {
                         name: `PR-${prNum}`,
                         hookId,
@@ -459,7 +459,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         restrictPR
                     };
 
-                    updateAdmins(userFactory, username, scmContext, pipeline);
+                    await updateAdmins(userFactory, username, scmContext, pipeline);
 
                     switch (action) {
                     case 'opened':
