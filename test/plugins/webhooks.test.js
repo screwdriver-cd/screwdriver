@@ -509,7 +509,7 @@ describe('github plugin test', () => {
                 });
             });
 
-            it('reuturns 200 when user is registered as admin', () => {
+            it('returns 200 when user is registered as admin', () => {
                 const pMock = {
                     id: 'pipelineHash3',
                     scmUri: 'github.com:123456:fix-1',
