@@ -53,10 +53,6 @@ async function checkAndUpdateAdmins(userFactory, username, scmContext, pipeline)
     try {
         await userFactory.get({ username, scmContext })
             .then((user) => {
-                if (!pipeline) {
-                    throw boom.notFound('Pipeline does not exist');
-                }
-
                 if (!user) {
                     throw boom.notFound('User does not exist');
                 }
