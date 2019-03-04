@@ -14,33 +14,29 @@ const WAIT_FOR_CHANGEDFILES = 1.8;
  * @param  {String}    username     Username of user
  * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
  */
-function updateAdmins(permissions, pipeline, username) {
-    const newAdmins = pipeline.admins;
-
-    // Delete user from admin list if bad permissions
-    if (!permissions.push) {
-        delete newAdmins[username];
-        // This is needed to make admins dirty and update db
-        pipeline.admins = newAdmins;
-
-        return pipeline.update()
-            .then(() => {
-                throw boom.forbidden(`User ${username} `
-                + 'does not have push permission for this repo');
-            });
-    }
-
-    // Add user as admin if permissions good and does not already exist
-    if (!pipeline.admins[username]) {
-        newAdmins[username] = true;
-        // This is needed to make admins dirty and update db
-        pipeline.admins = newAdmins;
-
-        return pipeline.update();
-    }
-
-    return Promise.resolve();
-}
+// function updateAdmins(permissions, pipeline, username) {
+//     const newAdmins = pipeline.admins;
+//
+//     // Delete user from admin list if bad permissions
+//     if (!permissions.push) {
+//         delete newAdmins[username];
+//         // This is needed to make admins dirty and update db
+//         pipeline.admins = newAdmins;
+//
+//         return pipeline.update();
+//     }
+//
+//     // Add user as admin if permissions good and does not already exist
+//     if (!pipeline.admins[username]) {
+//         newAdmins[username] = true;
+//         // This is needed to make admins dirty and update db
+//         pipeline.admins = newAdmins;
+//
+//         return pipeline.update();
+//     }
+//
+//     return Promise.resolve();
+// }
 
 /**
  * Update admins array after check existance of pipeline, user and permission
@@ -51,21 +47,55 @@ function updateAdmins(permissions, pipeline, username) {
  */
 async function checkAndUpdateAdmins(userFactory, username, scmContext, pipeline) {
     try {
-        await userFactory.get({ username, scmContext })
-            .then((user) => {
-                if (!user) {
-                    throw boom.notFound('User does not exist');
-                }
+        const user = await userFactory.get({ username, scmContext });
+        const userPermissions = await user.getPermissions(pipeline.scmUri);
 
-                return user.getPermissions(pipeline.scmUri);
-            })
-            .then(userPermissions => updateAdmins(
-                userPermissions,
-                pipeline,
-                username));
+        const newAdmins = pipeline.admins;
+
+        // Delete user from admin list if bad permissions
+        if (!userPermissions.push) {
+            delete newAdmins[username];
+            // This is needed to make admins dirty and update db
+            pipeline.admins = newAdmins;
+
+            return pipeline.update();
+        }
+        // Add user as admin if permissions good and does not already exist
+        if (!pipeline.admins[username]) {
+            newAdmins[username] = true;
+            // This is needed to make admins dirty and update db
+            pipeline.admins = newAdmins;
+
+            return pipeline.update();
+        }
+        // return updateAdmins(
+        //     userPermissions,
+        //     pipeline,
+        //     username);
     } catch (err) {
         winston.info(err.message);
+
+        // return false;
     }
+
+    return Promise.resolve();
+
+    // try {
+    // await userFactory.get({ username, scmContext })
+    //     .then((user) => {
+    //         if (!user) {
+    //             throw boom.notFound('User does not exist');
+    //         }
+
+    //         return user.getPermissions(pipeline.scmUri);
+    //     })
+    //     .then(userPermissions => updateAdmins(
+    //         userPermissions,
+    //         pipeline,
+    //         username));
+    // } catch (err) {
+    //     winston.info(err.message);
+    // }
 }
 
 /**
