@@ -9,47 +9,16 @@ const WAIT_FOR_CHANGEDFILES = 1.8;
 
 /**
  * Update admins array
- * @param  {Object}    permissions  User permissions
- * @param  {Pipeline}  pipeline     Pipeline object to update
- * @param  {String}    username     Username of user
- * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
- */
-// function updateAdmins(permissions, pipeline, username) {
-//     const newAdmins = pipeline.admins;
-//
-//     // Delete user from admin list if bad permissions
-//     if (!permissions.push) {
-//         delete newAdmins[username];
-//         // This is needed to make admins dirty and update db
-//         pipeline.admins = newAdmins;
-//
-//         return pipeline.update();
-//     }
-//
-//     // Add user as admin if permissions good and does not already exist
-//     if (!pipeline.admins[username]) {
-//         newAdmins[username] = true;
-//         // This is needed to make admins dirty and update db
-//         pipeline.admins = newAdmins;
-//
-//         return pipeline.update();
-//     }
-//
-//     return Promise.resolve();
-// }
-
-/**
- * Update admins array after check existance of pipeline, user and permission
  * @param  {UserFactory}    userFactory     UserFactory object
  * @param  {String}         username        Username of user
  * @param  {String}         scmContext      Scm which pipeline's repository exists in
  * @param  {Pipeline}       pipeline        Pipeline object
+ * @return {Promise}                        Updates the pipeline admins and throws an error if not an admin
  */
-async function checkAndUpdateAdmins(userFactory, username, scmContext, pipeline) {
+async function updateAdmins(userFactory, username, scmContext, pipeline) {
     try {
         const user = await userFactory.get({ username, scmContext });
         const userPermissions = await user.getPermissions(pipeline.scmUri);
-
         const newAdmins = pipeline.admins;
 
         // Delete user from admin list if bad permissions
@@ -68,34 +37,11 @@ async function checkAndUpdateAdmins(userFactory, username, scmContext, pipeline)
 
             return pipeline.update();
         }
-        // return updateAdmins(
-        //     userPermissions,
-        //     pipeline,
-        //     username);
     } catch (err) {
         winston.info(err.message);
-
-        // return false;
     }
 
     return Promise.resolve();
-
-    // try {
-    // await userFactory.get({ username, scmContext })
-    //     .then((user) => {
-    //         if (!user) {
-    //             throw boom.notFound('User does not exist');
-    //         }
-
-    //         return user.getPermissions(pipeline.scmUri);
-    //     })
-    //     .then(userPermissions => updateAdmins(
-    //         userPermissions,
-    //         pipeline,
-    //         username));
-    // } catch (err) {
-    //     winston.info(err.message);
-    // }
 }
 
 /**
@@ -513,7 +459,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         restrictPR
                     };
 
-                    checkAndUpdateAdmins(userFactory, username, scmContext, pipeline);
+                    updateAdmins(userFactory, username, scmContext, pipeline);
 
                     switch (action) {
                     case 'opened':
@@ -579,7 +525,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         }
 
         /* eslint-disable no-await-in-loop */
-        await checkAndUpdateAdmins(userFactory, username, scmContext, p);
+        await updateAdmins(userFactory, username, scmContext, p);
         /* eslint-enable no-await-in-loop */
 
         events.push(eventFactory.create(eventConfig));
