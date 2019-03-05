@@ -2,9 +2,47 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const winston = require('winston');
 const workflowParser = require('screwdriver-workflow-parser');
 
 const WAIT_FOR_CHANGEDFILES = 1.8;
+
+/**
+ * Update admins array
+ * @param  {UserFactory}    userFactory     UserFactory object
+ * @param  {String}         username        Username of user
+ * @param  {String}         scmContext      Scm which pipeline's repository exists in
+ * @param  {Pipeline}       pipeline        Pipeline object
+ * @return {Promise}                        Updates the pipeline admins and throws an error if not an admin
+ */
+async function updateAdmins(userFactory, username, scmContext, pipeline) {
+    try {
+        const user = await userFactory.get({ username, scmContext });
+        const userPermissions = await user.getPermissions(pipeline.scmUri);
+        const newAdmins = pipeline.admins;
+
+        // Delete user from admin list if bad permissions
+        if (!userPermissions.push) {
+            delete newAdmins[username];
+            // This is needed to make admins dirty and update db
+            pipeline.admins = newAdmins;
+
+            return pipeline.update();
+        }
+        // Add user as admin if permissions good and does not already exist
+        if (!pipeline.admins[username]) {
+            newAdmins[username] = true;
+            // This is needed to make admins dirty and update db
+            pipeline.admins = newAdmins;
+
+            return pipeline.update();
+        }
+    } catch (err) {
+        winston.info(err.message);
+    }
+
+    return Promise.resolve();
+}
 
 /**
  * Promise to wait a certain number of seconds
@@ -402,7 +440,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
             }
 
             return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-                .then((pipeline) => {
+                .then(async (pipeline) => {
                     const options = {
                         name: `PR-${prNum}`,
                         hookId,
@@ -421,14 +459,14 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
                         restrictPR
                     };
 
+                    await updateAdmins(userFactory, username, scmContext, pipeline);
+
                     switch (action) {
                     case 'opened':
                     case 'reopened':
                         return pullRequestOpened(options, request, reply);
-
                     case 'synchronized':
                         return pullRequestSync(options, request, reply);
-
                     case 'closed':
                     default:
                         return pullRequestClosed(options, request, reply);
@@ -442,13 +480,15 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  * Create events for each pipeline
  * @async   createEvents
  * @param   {EventFactory}       eventFactory       To create event
+ * @param   {UserFactory}        userFactory        To get user permission
  * @param   {PipelineFactory}    pipelineFactory    To use scm module
  * @param   {Array}              pipelines          The pipelines to start events
  * @param   {Object}             parsed             It has information to create event
  * @param   {String}            [skipMessage]       Message to skip starting builds
  * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(eventFactory, pipelineFactory, pipelines, parsed, skipMessage) {
+async function createEvents(eventFactory, userFactory, pipelineFactory,
+    pipelines, parsed, skipMessage) {
     const { branch, sha, username, scmContext, changedFiles } = parsed;
     const events = [];
 
@@ -483,6 +523,10 @@ async function createEvents(eventFactory, pipelineFactory, pipelines, parsed, sk
         if (skipMessage) {
             eventConfig.skipMessage = skipMessage;
         }
+
+        /* eslint-disable no-await-in-loop */
+        await updateAdmins(userFactory, username, scmContext, p);
+        /* eslint-enable no-await-in-loop */
 
         events.push(eventFactory.create(eventConfig));
     }
@@ -534,7 +578,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
                 `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
         } else {
             events = await createEvents(
-                eventFactory, pipelineFactory, pipelines, parsed, skipMessage
+                eventFactory, userFactory, pipelineFactory, pipelines, parsed, skipMessage
             );
         }
 
