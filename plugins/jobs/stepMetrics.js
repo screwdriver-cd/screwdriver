@@ -5,7 +5,7 @@ const joi = require('joi');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/jobs/{id}/metrics/steps/{stepName}',
+    path: '/jobs/{id}/metrics/steps',
     config: {
         description: 'Get step metrics for this job',
         notes: 'Returns list of step metrics for the given job',
@@ -21,8 +21,8 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.jobFactory;
-            const { id, stepName } = request.params;
-            const { startTime, endTime } = request.query;
+            const { id } = request.params;
+            const { startTime, endTime, stepName } = request.query;
 
             return factory.get(id)
                 .then((job) => {
@@ -42,7 +42,8 @@ module.exports = () => ({
         validate: {
             query: joi.object({
                 startTime: joi.string().isoDate(),
-                endTime: joi.string().isoDate()
+                endTime: joi.string().isoDate(),
+                stepName: joi.string() // optional, if not passed in will fetch all steps
             })
         }
     }
