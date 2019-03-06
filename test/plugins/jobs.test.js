@@ -466,7 +466,7 @@ describe('job plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/jobs/${id}/metrics/steps/sd-setup-scm` +
+                url: `/jobs/${id}/metrics/steps` +
                 `?startTime=${startTime}&endTime=${endTime}`,
                 credentials: {
                     username,
@@ -478,16 +478,29 @@ describe('job plugin test', () => {
             jobFactoryMock.get.resolves(jobMock);
         });
 
-        it('returns 200 and metrics for job', () =>
+        it('returns 200 and step metrics of all steps for job', () =>
             server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(jobMock.getStepMetrics, {
+                    stepName: undefined,
+                    startTime,
+                    endTime
+                });
+            })
+        );
+
+        it('returns 200 and step metrics of sd-setup-scm for job', () => {
+            options.url = `${options.url}&stepName=sd-setup-scm`;
+
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(jobMock.getStepMetrics, {
                     stepName: 'sd-setup-scm',
                     startTime,
                     endTime
                 });
-            })
-        );
+            });
+        });
 
         it('returns 404 when job does not exist', () => {
             const error = {
