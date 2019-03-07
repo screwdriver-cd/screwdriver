@@ -4,9 +4,16 @@ const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
+const rewire = require('rewire');
 const assert = chai.assert;
 
 chai.use(require('chai-as-promised'));
+
+const RewiredWebhooks = rewire('../../plugins/webhooks');
+/* eslint-disable no-underscore-dangle */
+const ANNOT_CHAIN_PR = RewiredWebhooks.__get__('ANNOT_CHAIN_PR');
+const ANNOT_RESTRICT_PR = RewiredWebhooks.__get__('ANNOT_RESTRICT_PR');
+/* eslint-enable no-underscore-dangle */
 
 const testPayloadPush = require('./data/github.push.json');
 const testPayloadOpen = require('./data/github.pull_request.opened.json');
@@ -88,7 +95,8 @@ describe('github plugin test', () => {
             options: {
                 username: 'sd-buildbot',
                 ignoreCommitsBy: ['batman', 'superman'],
-                restrictPR: 'fork'
+                restrictPR: 'fork',
+                chainPR: false
             }
         }], (err) => {
             server.app.buildFactory.apiUri = apiUri;
@@ -139,6 +147,41 @@ describe('github plugin test', () => {
                 username: ''
             }
         }]), /Invalid config for plugin-webhooks/);
+    });
+
+    describe('resolveChainPR function', () => {
+        it('resolves ChainPR flag', () => {
+            // eslint-disable-next-line no-underscore-dangle
+            const resolveChainPR = RewiredWebhooks.__get__('resolveChainPR');
+
+            let chainPR; // undefined;
+            const pipeline = {
+                annotations: {}
+            };
+
+            pipeline.annotations[ANNOT_CHAIN_PR] = undefined;
+            assert.isFalse(resolveChainPR(chainPR, pipeline));
+            pipeline.annotations[ANNOT_CHAIN_PR] = true;
+            assert.isTrue(resolveChainPR(chainPR, pipeline));
+            pipeline.annotations[ANNOT_CHAIN_PR] = false;
+            assert.isFalse(resolveChainPR(chainPR, pipeline));
+
+            chainPR = true;
+            pipeline.annotations[ANNOT_CHAIN_PR] = undefined;
+            assert.isTrue(resolveChainPR(chainPR, pipeline));
+            pipeline.annotations[ANNOT_CHAIN_PR] = true;
+            assert.isTrue(resolveChainPR(chainPR, pipeline));
+            pipeline.annotations[ANNOT_CHAIN_PR] = false;
+            assert.isFalse(resolveChainPR(chainPR, pipeline));
+
+            chainPR = false;
+            pipeline.annotations[ANNOT_CHAIN_PR] = undefined;
+            assert.isFalse(resolveChainPR(chainPR, pipeline));
+            pipeline.annotations[ANNOT_CHAIN_PR] = true;
+            assert.isTrue(resolveChainPR(chainPR, pipeline));
+            pipeline.annotations[ANNOT_CHAIN_PR] = false;
+            assert.isFalse(resolveChainPR(chainPR, pipeline));
+        });
     });
 
     describe('POST /webhooks', () => {
@@ -681,6 +724,7 @@ describe('github plugin test', () => {
                     jobMock.requires = '~pr';
                     expected = {
                         causeMessage: 'Opened by github:baxterthehacker',
+                        chainPR: false,
                         changedFiles,
                         configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
                         pipelineId,
@@ -714,7 +758,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -800,6 +845,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -812,6 +858,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -828,6 +875,7 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false,
                             changedFiles
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
@@ -866,7 +914,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Reopened by ${scmDisplayName}:${username}`
+                            causeMessage: `Reopened by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -947,14 +996,15 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('creates empty event if restricting all', () => {
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'all';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
                     expected.skipMessage = 'Skipping build since pipeline is configured' +
                     ' to restrict all and PR is branch';
 
@@ -967,7 +1017,7 @@ describe('github plugin test', () => {
 
                 it('creates empty event if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
                     expected.skipMessage = 'Skipping build since pipeline is configured' +
                     ' to restrict fork and PR is fork';
 
@@ -980,7 +1030,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from branch and restricting forks', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -998,7 +1048,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1006,7 +1057,7 @@ describe('github plugin test', () => {
 
                 it('creates empty event if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
                     expected.skipMessage = 'Skipping build since pipeline is configured' +
                     ' to restrict branch and PR is branch';
 
@@ -1019,7 +1070,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from fork and restricting branches', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1037,7 +1088,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1077,7 +1129,8 @@ describe('github plugin test', () => {
                         configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
                         startFrom: '~pr',
                         changedFiles,
-                        causeMessage: 'Synchronized by github:baxterthehacker'
+                        causeMessage: 'Synchronized by github:baxterthehacker',
+                        chainPR: false
                     };
 
                     model1 = {
@@ -1129,7 +1182,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -1215,6 +1269,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -1227,6 +1282,7 @@ describe('github plugin test', () => {
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
@@ -1243,6 +1299,7 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false,
                             changedFiles
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
@@ -1280,7 +1337,8 @@ describe('github plugin test', () => {
                             type: 'pr',
                             webhooks: true,
                             changedFiles,
-                            causeMessage: 'Synchronized by github:baxterthehacker'
+                            causeMessage: 'Synchronized by github:baxterthehacker',
+                            chainPR: false
                         });
                         assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(eventFactoryMock.create));
@@ -1314,7 +1372,7 @@ describe('github plugin test', () => {
                 });
 
                 it('creates empty event if restricting all', () => {
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'all';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
                     'configured to restrict all and PR is branch';
 
@@ -1327,7 +1385,7 @@ describe('github plugin test', () => {
 
                 it('creates empty event if pr from fork and restricting forks', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
                     'configured to restrict fork and PR is fork';
 
@@ -1340,7 +1398,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from branch and restricting forks', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1358,7 +1416,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1366,7 +1425,7 @@ describe('github plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
                     'configured to restrict branch and PR is branch';
 
@@ -1379,7 +1438,7 @@ describe('github plugin test', () => {
 
                 it('returns success if pr from fork and restricting branches', () => {
                     parsed.prSource = 'fork';
-                    pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'branch';
+                    pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
 
                     return server.inject(options).then((reply) => {
                         assert.calledOnce(pipelineMock.sync);
@@ -1397,7 +1456,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1444,7 +1504,8 @@ describe('github plugin test', () => {
                             prTitle: 'Update the README with new information',
                             prRef,
                             changedFiles,
-                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
                     });

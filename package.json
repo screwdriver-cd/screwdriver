@@ -129,6 +129,7 @@
     "nock": "^9.6.1",
     "node-plantuml": "^0.5.0",
     "npm-auto-version": "^1.0.0",
+    "rewire": "^4.0.1",
     "sinon": "^2.3.1",
     "stream-to-promise": "^2.2.0"
   }
