@@ -162,6 +162,7 @@ function hasTriggeredJob(pipeline, startFrom) {
  * @param   {Object}            scmConfig       Has the token and scmUri to get branches
  * @param   {String}            branch          The branch which is committed
  * @param   {String}            type            Triggered GitHub event type ('pr' or 'repo')
+ * @param   {String}            action          Triggered GitHub event action
  * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
 async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action) {
