@@ -441,7 +441,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
-        token: '',
+        token,
         scmContext
     };
     const { restrictPR } = pluginOptions;
