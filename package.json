@@ -123,13 +123,13 @@
     "eslint-config-screwdriver": "^3.0.1",
     "form-data": "^2.3.3",
     "github": "^8.1.1",
-    "jenkins-mocha": "^6.0.0",
+    "jenkins-mocha": "^7.0.0",
     "mockery": "^2.0.0",
     "mz": "^2.6.0",
     "nock": "^9.6.1",
     "node-plantuml": "^0.5.0",
     "npm-auto-version": "^1.0.0",
-    "sinon": "^2.3.1",
+    "sinon": "^7.2.7",
     "stream-to-promise": "^2.2.0"
   }
 }

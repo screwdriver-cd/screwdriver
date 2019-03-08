@@ -245,6 +245,14 @@ describe('github plugin test', () => {
             eventMock = {
                 id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
             };
+            reqHeaders = {
+                'x-github-event': 'notSupported',
+                'x-github-delivery': 'bar',
+                'user-agent': 'shot',
+                host: 'localhost:12345',
+                'content-type': 'application/json',
+                'content-length': '2'
+            };
 
             buildFactoryMock.create.resolves(buildMock);
             buildMock.update.resolves(null);
@@ -269,14 +277,6 @@ describe('github plugin test', () => {
         });
 
         it('returns 204 for unsupported event type', () => {
-            reqHeaders = {
-                'x-github-event': 'notSupported',
-                'x-github-delivery': 'bar',
-                'user-agent': 'shot',
-                host: 'localhost:12345',
-                'content-type': 'application/json',
-                'content-length': '2'
-            };
             pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(null);
 
             options = {
@@ -299,14 +299,9 @@ describe('github plugin test', () => {
             beforeEach(() => {
                 parsed.type = 'repo';
                 parsed.action = 'push';
-                reqHeaders = {
-                    'x-github-event': 'push',
-                    'x-github-delivery': parsed.hookId,
-                    'user-agent': 'shot',
-                    host: 'localhost:12345',
-                    'content-type': 'application/json',
-                    'content-length': '6632'
-                };
+                reqHeaders['x-github-event'] = 'push';
+                reqHeaders['x-github-delivery'] = parsed.hookId;
+                reqHeaders['content-length'] = '6632';
                 payload = testPayloadPush;
                 options = {
                     method: 'POST',
@@ -603,14 +598,9 @@ describe('github plugin test', () => {
             beforeEach(() => {
                 parsed.type = 'pr';
                 parsed.action = 'opened';
-                reqHeaders = {
-                    'x-github-event': 'pull_request',
-                    'x-github-delivery': parsed.hookId,
-                    'user-agent': 'shot',
-                    host: 'localhost:12345',
-                    'content-type': 'application/json',
-                    'content-length': '21236'
-                };
+                reqHeaders['x-github-event'] = 'pull_request';
+                reqHeaders['x-github-delivery'] = parsed.hookId;
+                reqHeaders['content-length'] = '21236';
                 payload = testPayloadOpen;
                 options = {
                     method: 'POST',
@@ -1092,14 +1082,10 @@ describe('github plugin test', () => {
                     };
 
                     parsed.action = 'synchronized';
-                    reqHeaders = {
-                        'x-github-event': 'pull_request',
-                        'x-github-delivery': parsed.hookId,
-                        'user-agent': 'shot',
-                        host: 'localhost:12345',
-                        'content-type': 'application/json',
-                        'content-length': '21241'
-                    };
+                    reqHeaders['x-github-event'] = 'pull_request';
+                    reqHeaders['x-github-delivery'] = parsed.hookId;
+                    reqHeaders['content-length'] = '21241';
+
                     scmConfig.prNum = 1;
                     parsed.prTitle = 'Update the README with new information';
                     options.payload = testPayloadSync;
@@ -1476,14 +1462,9 @@ describe('github plugin test', () => {
                     };
 
                     parsed.action = 'closed';
-                    reqHeaders = {
-                        'x-github-event': 'pull_request',
-                        'x-github-delivery': parsed.hookId,
-                        'user-agent': 'shot',
-                        host: 'localhost:12345',
-                        'content-type': 'application/json',
-                        'content-length': '21236'
-                    };
+                    reqHeaders['x-github-event'] = 'pull_request';
+                    reqHeaders['x-github-delivery'] = parsed.hookId;
+                    reqHeaders['content-length'] = '21236';
                     options.payload = testPayloadClose;
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
