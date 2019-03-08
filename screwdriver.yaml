@@ -3,6 +3,8 @@ shared:
 
 jobs:
     main:
+        annotations:
+            screwdriver.cd/ram: HIGH
         requires:
             - ~pr
             - ~commit
@@ -13,6 +15,8 @@ jobs:
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
             - test: npm test
             - coverage: ./ci/coverage.sh
+        environment:
+            NODE_OPTIONS: "--max_old_space_size=4096"
         secrets:
             # Uploading coverage information to coveralls
             - COVERALLS_REPO_TOKEN
