@@ -638,6 +638,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
  * @param  {String}     options.username        Generic scm username
  * @param  {Array}      options.ignoreCommitsBy Ignore commits made by these usernames
  * @param  {Array}      options.restrictPR      Restrict PR setting
+ * @param  {Boolean}    options.chainPR         Chain PR flag
  * @param  {Function}   next                    Function to call when done
  */
 exports.register = (server, options, next) => {
