@@ -5,6 +5,7 @@ jobs:
     main:
         annotations:
             screwdriver.cd/ram: HIGH
+            screwdriver.cd/cpu: HIGH
         requires:
             - ~pr
             - ~commit
@@ -16,7 +17,7 @@ jobs:
             - test: npm test
             - coverage: ./ci/coverage.sh
         environment:
-            NODE_OPTIONS: "--max_old_space_size=4096"
+            NODE_OPTIONS: "--max_old_space_size=8192"
         secrets:
             # Uploading coverage information to coveralls
             - COVERALLS_REPO_TOKEN
