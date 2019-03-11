@@ -4,6 +4,7 @@ const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
+const rewire = require('rewire');
 const assert = chai.assert;
 
 chai.use(require('chai-as-promised'));
@@ -18,7 +19,102 @@ const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe('github plugin test', () => {
+// separate from "webhooks plugin test" because there is unnecessary beforeEach hook for test test case
+describe('webhooks.determineStartFrom', () => {
+    const webhooks = rewire('../../plugins/webhooks/index.js');
+    // eslint-disable-next-line no-underscore-dangle
+    const determineStartFrom = webhooks.__get__('determineStartFrom');
+    let action;
+    let type;
+    let targetBranch;
+    let pipelineBranch;
+
+    beforeEach(() => {
+        action = 'push';
+        type = 'repo';
+        targetBranch = 'master';
+        pipelineBranch = 'master';
+    });
+
+    it('determines to "~commit" when action is "push"', () => {
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~commit'
+        );
+    });
+
+    it('determines to "~commit:branch" when action is "push" and targetBranch is branch',
+        () => {
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~commit:branch'
+            );
+        });
+
+    it('determines to "~pr" when type is "pr"', () => {
+        type = 'pr';
+
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~pr'
+        );
+    });
+
+    it('determines to "~pr:branch" when type is "pr" and targetBranch is branch',
+        () => {
+            type = 'pr';
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~pr:branch'
+            );
+        });
+
+    it('determines to "~release" when action is "release"', () => {
+        action = 'release';
+
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~release'
+        );
+    });
+
+    it('determines to "~release:branch" when action is "release" and targetBranch is branch',
+        () => {
+            action = 'release';
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~release:branch'
+            );
+        });
+
+    it('determines to "~tag" when action is "tag"', () => {
+        action = 'tag';
+
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~tag'
+        );
+    });
+
+    it('determines to "~tag:branch" when action is "tag" and targetBranch is branch',
+        () => {
+            action = 'tag';
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~tag:branch'
+            );
+        });
+});
+
+describe('webhooks plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
@@ -52,7 +148,8 @@ describe('github plugin test', () => {
                 getDisplayName: sinon.stub(),
                 getChangedFiles: sinon.stub(),
                 getBranchList: sinon.stub(),
-                getCommitSha: sinon.stub()
+                getCommitSha: sinon.stub(),
+                getCommitRefSha: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -65,9 +162,9 @@ describe('github plugin test', () => {
             create: sinon.stub()
         };
 
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/webhooks');
-        /* eslint-enable global-require */
+        plugin = rewire('../../plugins/webhooks');
+        // eslint-disable-next-line no-underscore-dangle
+        plugin.__set__('WAIT_FOR_CHANGEDFILES', 0);
 
         server = new hapi.Server();
         server.root.app = {
@@ -245,6 +342,14 @@ describe('github plugin test', () => {
             eventMock = {
                 id: 'bbf22a3808c19dc50777258a253805b14fb3ad8b'
             };
+            reqHeaders = {
+                'x-github-event': 'notSupported',
+                'x-github-delivery': 'bar',
+                'user-agent': 'shot',
+                host: 'localhost:12345',
+                'content-type': 'application/json',
+                'content-length': '2'
+            };
 
             buildFactoryMock.create.resolves(buildMock);
             buildMock.update.resolves(null);
@@ -261,6 +366,7 @@ describe('github plugin test', () => {
                 .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext }).resolves(scmUri);
             pipelineFactoryMock.scm.getChangedFiles.resolves(['README.md']);
             pipelineFactoryMock.scm.getCommitSha.resolves(latestSha);
+            pipelineFactoryMock.scm.getCommitRefSha.resolves(sha);
 
             userFactoryMock.get.resolves(userMock);
             userMock.unsealToken.resolves(token);
@@ -269,14 +375,6 @@ describe('github plugin test', () => {
         });
 
         it('returns 204 for unsupported event type', () => {
-            reqHeaders = {
-                'x-github-event': 'notSupported',
-                'x-github-delivery': 'bar',
-                'user-agent': 'shot',
-                host: 'localhost:12345',
-                'content-type': 'application/json',
-                'content-length': '2'
-            };
             pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(null);
 
             options = {
@@ -295,18 +393,226 @@ describe('github plugin test', () => {
             });
         });
 
+        describe('tag event', () => {
+            beforeEach(() => {
+                parsed.type = 'repo';
+                parsed.action = 'tag';
+                parsed.ref = 'v0.0.1';
+                delete parsed.sha;
+                mainJobMock.requires = '~tag';
+                reqHeaders['x-github-event'] = 'create';
+                reqHeaders['x-github-delivery'] = parsed.hookId;
+                reqHeaders['content-length'] = '6632';
+                payload = testPayloadPush;
+                options = {
+                    method: 'POST',
+                    url: '/webhooks',
+                    headers: {
+                        'x-github-event': 'create',
+                        'x-github-delivery': parsed.hookId
+                    },
+                    payload,
+                    credentials: {}
+                };
+
+                pipelineMock.workflowGraph = workflowGraph;
+                pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+                pipelineFactoryMock.list.resolves([]);
+                pipelineFactoryMock.scm.getBranchList.resolves([
+                    { name: 'master' },
+                    { name: 'branch' }
+                ]);
+            });
+
+            it('returns 201 on success', () => {
+                const tagWorkflowMock = {
+                    nodes: [
+                        { name: '~tag' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~tag', dest: 'main' }
+                    ]
+                };
+
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~tag',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined
+                    });
+                });
+            });
+
+            it('returns 201 on success with tag branch trigger', () => {
+                const tagWorkflowMock = {
+                    nodes: [
+                        { name: '~tag:branch' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~tag:branch', dest: 'main' }
+                    ]
+                };
+
+                parsed.branch = 'branch';
+                mainJobMock.requires = '~tag:branch';
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+                pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~tag:branch',
+                        commitBranch: 'branch',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined
+                    });
+                });
+            });
+        });
+
+        describe('release event', () => {
+            beforeEach(() => {
+                parsed.type = 'repo';
+                parsed.action = 'release';
+                parsed.ref = 'v0.0.1';
+                delete parsed.sha;
+                mainJobMock.requires = '~release';
+                reqHeaders['x-github-event'] = 'release';
+                reqHeaders['x-github-delivery'] = parsed.hookId;
+                reqHeaders['content-length'] = '6632';
+                payload = testPayloadPush;
+                options = {
+                    method: 'POST',
+                    url: '/webhooks',
+                    headers: {
+                        'x-github-event': 'release',
+                        'x-github-delivery': parsed.hookId
+                    },
+                    payload,
+                    credentials: {}
+                };
+
+                pipelineMock.workflowGraph = workflowGraph;
+                pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+                pipelineFactoryMock.list.resolves([]);
+                pipelineFactoryMock.scm.getBranchList.resolves([
+                    { name: 'master' },
+                    { name: 'branch' }
+                ]);
+            });
+
+            it('returns 201 on success', () => {
+                const releaseWorkflowMock = {
+                    nodes: [
+                        { name: '~release' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~release', dest: 'main' }
+                    ]
+                };
+
+                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~release',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined
+                    });
+                });
+            });
+
+            it('returns 201 on success with release branch trigger', () => {
+                const releaseWorkflowMock = {
+                    nodes: [
+                        { name: '~release:branch' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~release:branch', dest: 'main' }
+                    ]
+                };
+
+                parsed.branch = 'branch';
+                mainJobMock.requires = '~release:branch';
+                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+                pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~release:branch',
+                        commitBranch: 'branch',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined
+                    });
+                });
+            });
+
+            it('returns 204 when getCommitRefSha() is rejected', () => {
+                pipelineFactoryMock.scm.getCommitRefSha.rejects(new Error('some error'));
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
+                });
+            });
+        });
+
         describe('push event', () => {
             beforeEach(() => {
                 parsed.type = 'repo';
                 parsed.action = 'push';
-                reqHeaders = {
-                    'x-github-event': 'push',
-                    'x-github-delivery': parsed.hookId,
-                    'user-agent': 'shot',
-                    host: 'localhost:12345',
-                    'content-type': 'application/json',
-                    'content-length': '6632'
-                };
+                reqHeaders['x-github-event'] = 'push';
+                reqHeaders['x-github-delivery'] = parsed.hookId;
+                reqHeaders['content-length'] = '6632';
                 payload = testPayloadPush;
                 options = {
                     method: 'POST',
@@ -603,14 +909,9 @@ describe('github plugin test', () => {
             beforeEach(() => {
                 parsed.type = 'pr';
                 parsed.action = 'opened';
-                reqHeaders = {
-                    'x-github-event': 'pull_request',
-                    'x-github-delivery': parsed.hookId,
-                    'user-agent': 'shot',
-                    host: 'localhost:12345',
-                    'content-type': 'application/json',
-                    'content-length': '21236'
-                };
+                reqHeaders['x-github-event'] = 'pull_request';
+                reqHeaders['x-github-delivery'] = parsed.hookId;
+                reqHeaders['content-length'] = '21236';
                 payload = testPayloadOpen;
                 options = {
                     method: 'POST',
@@ -1092,14 +1393,10 @@ describe('github plugin test', () => {
                     };
 
                     parsed.action = 'synchronized';
-                    reqHeaders = {
-                        'x-github-event': 'pull_request',
-                        'x-github-delivery': parsed.hookId,
-                        'user-agent': 'shot',
-                        host: 'localhost:12345',
-                        'content-type': 'application/json',
-                        'content-length': '21241'
-                    };
+                    reqHeaders['x-github-event'] = 'pull_request';
+                    reqHeaders['x-github-delivery'] = parsed.hookId;
+                    reqHeaders['content-length'] = '21241';
+
                     scmConfig.prNum = 1;
                     parsed.prTitle = 'Update the README with new information';
                     options.payload = testPayloadSync;
@@ -1476,14 +1773,9 @@ describe('github plugin test', () => {
                     };
 
                     parsed.action = 'closed';
-                    reqHeaders = {
-                        'x-github-event': 'pull_request',
-                        'x-github-delivery': parsed.hookId,
-                        'user-agent': 'shot',
-                        host: 'localhost:12345',
-                        'content-type': 'application/json',
-                        'content-length': '21236'
-                    };
+                    reqHeaders['x-github-event'] = 'pull_request';
+                    reqHeaders['x-github-delivery'] = parsed.hookId;
+                    reqHeaders['content-length'] = '21236';
                     options.payload = testPayloadClose;
                     jobMock.getRunningBuilds.resolves([model1, model2]);
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
