@@ -20,10 +20,10 @@ const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 sinon.assert.expose(assert, { prefix: '' });
 
 // separate from "webhooks plugin test" because there is unnecessary beforeEach hook for test test case
-describe('determineStartFrom', () => {
-    const webhook = rewire('../../plugins/webhooks/index.js');
+describe('webhooks.determineStartFrom', () => {
+    const webhooks = rewire('../../plugins/webhooks/index.js');
     // eslint-disable-next-line no-underscore-dangle
-    const determineStartFrom = webhook.__get__('determineStartFrom');
+    const determineStartFrom = webhooks.__get__('determineStartFrom');
     let action;
     let type;
     let targetBranch;
@@ -593,6 +593,15 @@ describe('webhooks plugin test', () => {
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined
                     });
+                });
+            });
+
+            it('returns 204 when getCommitRefSha() is rejected', () => {
+                pipelineFactoryMock.scm.getCommitRefSha.rejects(new Error('some error'));
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
                 });
             });
         });
