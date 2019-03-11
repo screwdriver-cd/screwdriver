@@ -611,14 +611,14 @@ describe('event plugin test', () => {
                 }
             };
             eventMock = getEventMock(testEvent);
-            eventMock.getBuildMetrics = sinon.stub().resolves([]);
+            eventMock.getMetrics = sinon.stub().resolves([]);
             eventFactoryMock.get.resolves(eventMock);
         });
 
         it('returns 200 and metrics for event', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(eventMock.getBuildMetrics, {
+                assert.calledWith(eventMock.getMetrics, {
                     startTime,
                     endTime
                 });

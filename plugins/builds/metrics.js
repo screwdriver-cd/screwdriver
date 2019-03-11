@@ -30,7 +30,7 @@ module.exports = () => ({
                         throw boom.notFound('Build does not exist');
                     }
 
-                    return build.getStepMetrics({
+                    return build.getMetrics({
                         startTime,
                         endTime
                     });

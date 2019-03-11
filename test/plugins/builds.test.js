@@ -2870,14 +2870,14 @@ describe('build plugin test', () => {
                 }
             };
             buildMock = getBuildMock(testBuild);
-            buildMock.getStepMetrics = sinon.stub().resolves([]);
+            buildMock.getMetrics = sinon.stub().resolves([]);
             buildFactoryMock.get.resolves(buildMock);
         });
 
         it('returns 200 and metrics for build', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(buildMock.getStepMetrics, {
+                assert.calledWith(buildMock.getMetrics, {
                     startTime,
                     endTime
                 });

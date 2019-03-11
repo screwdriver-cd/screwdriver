@@ -417,14 +417,14 @@ describe('job plugin test', () => {
                 }
             };
             jobMock = decorateJobMock(testJob);
-            jobMock.getBuildMetrics = sinon.stub().resolves([]);
+            jobMock.getMetrics = sinon.stub().resolves([]);
             jobFactoryMock.get.resolves(jobMock);
         });
 
         it('returns 200 and metrics for job', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(jobMock.getBuildMetrics, {
+                assert.calledWith(jobMock.getMetrics, {
                     startTime,
                     endTime
                 });

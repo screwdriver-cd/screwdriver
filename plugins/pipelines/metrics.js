@@ -30,7 +30,7 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return pipeline.getEventMetrics({
+                    return pipeline.getMetrics({
                         startTime,
                         endTime
                     });
