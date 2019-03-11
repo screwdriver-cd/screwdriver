@@ -4,8 +4,8 @@ shared:
 jobs:
     main:
         annotations:
-            screwdriver.cd/ram: HIGH
-            screwdriver.cd/cpu: HIGH
+            screwdriver.cd/ram: TURBO
+            screwdriver.cd/cpu: TURBO
         requires:
             - ~pr
             - ~commit
