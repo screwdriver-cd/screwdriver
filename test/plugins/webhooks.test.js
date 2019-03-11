@@ -4,6 +4,7 @@ const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
+const rewire = require('rewire');
 const assert = chai.assert;
 
 chai.use(require('chai-as-promised'));
@@ -18,7 +19,102 @@ const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe('github plugin test', () => {
+// separate from "webhooks plugin test" because there is unnecessary beforeEach hook for test test case
+describe('determineStartFrom', () => {
+    const webhook = rewire('../../plugins/webhooks/index.js');
+    // eslint-disable-next-line no-underscore-dangle
+    const determineStartFrom = webhook.__get__('determineStartFrom');
+    let action;
+    let type;
+    let targetBranch;
+    let pipelineBranch;
+
+    beforeEach(() => {
+        action = 'push';
+        type = 'repo';
+        targetBranch = 'master';
+        pipelineBranch = 'master';
+    });
+
+    it('determines to "~commit" when action is "push"', () => {
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~commit'
+        );
+    });
+
+    it('determines to "~commit:branch" when action is "push" and targetBranch is branch',
+        () => {
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~commit:branch'
+            );
+        });
+
+    it('determines to "~pr" when type is "pr"', () => {
+        type = 'pr';
+
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~pr'
+        );
+    });
+
+    it('determines to "~pr:branch" when type is "pr" and targetBranch is branch',
+        () => {
+            type = 'pr';
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~pr:branch'
+            );
+        });
+
+    it('determines to "~release" when action is "release"', () => {
+        action = 'release';
+
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~release'
+        );
+    });
+
+    it('determines to "~release:branch" when action is "release" and targetBranch is branch',
+        () => {
+            action = 'release';
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~release:branch'
+            );
+        });
+
+    it('determines to "~tag" when action is "tag"', () => {
+        action = 'tag';
+
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch),
+            '~tag'
+        );
+    });
+
+    it('determines to "~tag:branch" when action is "tag" and targetBranch is branch',
+        () => {
+            action = 'tag';
+            targetBranch = 'branch';
+
+            assert.equal(
+                determineStartFrom(action, type, targetBranch, pipelineBranch),
+                '~tag:branch'
+            );
+        });
+});
+
+describe('webhooks plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
@@ -330,7 +426,7 @@ describe('github plugin test', () => {
             });
 
             it('returns 201 on success', () => {
-                const releaseWorkflowMock = {
+                const tagWorkflowMock = {
                     nodes: [
                         { name: '~tag' },
                         { name: 'main' }
@@ -340,7 +436,7 @@ describe('github plugin test', () => {
                     ]
                 };
 
-                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
 
@@ -363,7 +459,7 @@ describe('github plugin test', () => {
             });
 
             it('returns 201 on success with tag branch trigger', () => {
-                const releaseWorkflowMock = {
+                const tagWorkflowMock = {
                     nodes: [
                         { name: '~tag:branch' },
                         { name: 'main' }
@@ -375,7 +471,7 @@ describe('github plugin test', () => {
 
                 parsed.branch = 'branch';
                 mainJobMock.requires = '~tag:branch';
-                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
