@@ -3,6 +3,9 @@ shared:
 
 jobs:
     main:
+        annotations:
+            screwdriver.cd/ram: TURBO
+            screwdriver.cd/cpu: TURBO
         requires:
             - ~pr
             - ~commit
@@ -13,6 +16,8 @@ jobs:
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
             - test: npm test
             - coverage: ./ci/coverage.sh
+        environment:
+            NODE_OPTIONS: "--max_old_space_size=8192"
         secrets:
             # Uploading coverage information to coveralls
             - COVERALLS_REPO_TOKEN

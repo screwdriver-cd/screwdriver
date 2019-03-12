@@ -8,7 +8,39 @@ const workflowParser = require('screwdriver-workflow-parser');
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
 const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
+const CHECKOUT_URL_SCHEMA = require('screwdriver-data-schema').config.regex.CHECKOUT_URL;
+const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const WAIT_FOR_CHANGEDFILES = 1.8;
+
+/**
+ * Determine "startFrom" with type, action and branches
+ * @param {String} action          SCM webhook action type
+ * @param {String} type            Triggered SCM event type ('pr' or 'repo')
+ * @param {String} targetBranch    The branch against which commit is pushed
+ * @param {String} pipelineBranch  The pipeline branch
+ * @returns {String}               startFrom
+ */
+function determineStartFrom(action, type, targetBranch, pipelineBranch) {
+    let startFrom;
+
+    if (type && type === 'pr') {
+        startFrom = '~pr';
+    } else {
+        switch (action) {
+        case 'release':
+            startFrom = '~release';
+            break;
+        case 'tag':
+            startFrom = '~tag';
+            break;
+        default:
+            startFrom = '~commit';
+            break;
+        }
+    }
+
+    return (targetBranch !== pipelineBranch) ? `${startFrom}:${targetBranch}` : startFrom;
+}
 
 /**
  * Update admins array
@@ -133,10 +165,11 @@ function hasTriggeredJob(pipeline, startFrom) {
  * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
  * @param   {Object}            scmConfig       Has the token and scmUri to get branches
  * @param   {String}            branch          The branch which is committed
- * @param   {String}            type            Triggered event type ('pr' or 'commit')
+ * @param   {String}            type            Triggered GitHub event type ('pr' or 'repo')
+ * @param   {String}            action          Triggered GitHub event action
  * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
-async function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
+async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action) {
     const branches = await pipelineFactory.scm.getBranchList(scmConfig);
     const splitUri = scmConfig.scmUri.split(':');
 
@@ -148,9 +181,11 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type) {
     });
 
     let pipelines = await pipelineFactory.list({ params: { scmUri: scmUris } });
-    const eventType = (type === 'pr') ? 'pr' : 'commit';
 
-    pipelines = pipelines.filter(p => hasTriggeredJob(p, `~${eventType}:${branch}`));
+    pipelines = pipelines.filter(p =>
+        // pipelineBranch is not needed because "pipelines" doesn't include a branch which is same with "branch"
+        hasTriggeredJob(p, determineStartFrom(action, type, branch, null))
+    );
 
     // add pushed branch
     const p = await pipelineFactory.get({ scmUri: scmConfig.scmUri });
@@ -189,7 +224,7 @@ async function createPREvents(options, request) {
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];
-    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr');
+    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr', action);
 
     scmConfig.prNum = prNum;
 
@@ -423,9 +458,10 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
  * @param  {Boolean}            pluginOptions.chainPR     Chain PR flag
  * @param  {Hapi.request}       request                   Request from user
  * @param  {Hapi.reply}         reply                     Reply to user
+ * @param  {String}             token                     The token used to authenticate to the SCM
  * @param  {Object}             parsed
  */
-function pullRequestEvent(pluginOptions, request, reply, parsed) {
+function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
     const { hookId, action, checkoutUrl, branch, sha, prNum, prTitle, prRef,
@@ -433,75 +469,66 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
-        token: '',
+        token,
         scmContext
     };
     const { restrictPR, chainPR } = pluginOptions;
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
-    // Fetch the pipeline associated with this hook
-    return obtainScmToken(pluginOptions, userFactory, username, scmContext)
-        .then((token) => {
-            scmConfig.token = token;
+    return pipelineFactory.scm.parseUrl({
+        checkoutUrl: fullCheckoutUrl,
+        token,
+        scmContext
+    }).then((scmUri) => {
+        scmConfig.scmUri = scmUri;
 
-            return pipelineFactory.scm.parseUrl({
-                checkoutUrl: fullCheckoutUrl,
-                token,
-                scmContext
+        return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action);
+    }).then((pipelines) => {
+        if (!pipelines || pipelines.length === 0) {
+            const message = 'Skipping since Pipeline triggered by PRs ' +
+                `against ${fullCheckoutUrl} does not exist`;
+
+            request.log(['webhook', hookId], message);
+
+            return reply({ message }).code(204);
+        }
+
+        return pipelineFactory.get({ scmUri: scmConfig.scmUri })
+            .then(async (pipeline) => {
+                const options = {
+                    name: `PR-${prNum}`,
+                    hookId,
+                    sha,
+                    username,
+                    scmConfig,
+                    prRef,
+                    prNum,
+                    prTitle,
+                    prSource,
+                    pipeline,
+                    changedFiles,
+                    action: action.charAt(0).toUpperCase() + action.slice(1),
+                    branch,
+                    fullCheckoutUrl,
+                    restrictPR,
+                    chainPR
+                };
+
+                await updateAdmins(userFactory, username, scmContext, pipeline);
+
+                switch (action) {
+                case 'opened':
+                case 'reopened':
+                    return pullRequestOpened(options, request, reply);
+                case 'synchronized':
+                    return pullRequestSync(options, request, reply);
+                case 'closed':
+                default:
+                    return pullRequestClosed(options, request, reply);
+                }
             });
-        })
-        .then((scmUri) => {
-            scmConfig.scmUri = scmUri;
-
-            return triggeredPipelines(pipelineFactory, scmConfig, branch, type);
-        })
-        .then((pipelines) => {
-            if (!pipelines || pipelines.length === 0) {
-                const message = 'Skipping since Pipeline triggered by PRs ' +
-                    `against ${fullCheckoutUrl} does not exist`;
-
-                request.log(['webhook', hookId], message);
-
-                return reply({ message }).code(204);
-            }
-
-            return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-                .then(async (pipeline) => {
-                    const options = {
-                        name: `PR-${prNum}`,
-                        hookId,
-                        sha,
-                        username,
-                        scmConfig,
-                        prRef,
-                        prNum,
-                        prTitle,
-                        prSource,
-                        pipeline,
-                        changedFiles,
-                        action: action.charAt(0).toUpperCase() + action.slice(1),
-                        branch,
-                        fullCheckoutUrl,
-                        restrictPR,
-                        chainPR
-                    };
-
-                    await updateAdmins(userFactory, username, scmContext, pipeline);
-
-                    switch (action) {
-                    case 'opened':
-                    case 'reopened':
-                        return pullRequestOpened(options, request, reply);
-                    case 'synchronized':
-                        return pullRequestSync(options, request, reply);
-                    case 'closed':
-                    default:
-                        return pullRequestClosed(options, request, reply);
-                    }
-                });
-        })
-        .catch(err => reply(boom.boomify(err)));
+    }).catch(err => reply(boom.boomify(err)));
 }
 
 /**
@@ -517,14 +544,14 @@ function pullRequestEvent(pluginOptions, request, reply, parsed) {
  */
 async function createEvents(eventFactory, userFactory, pipelineFactory,
     pipelines, parsed, skipMessage) {
-    const { branch, sha, username, scmContext, changedFiles } = parsed;
+    const { action, branch, sha, username, scmContext, changedFiles, type } = parsed;
     const events = [];
 
     for (let i = 0; i < pipelines.length; i += 1) {
         const p = pipelines[i];
         /* eslint-disable no-await-in-loop */
-        const b = await p.branch;
-        const startFrom = (b === branch) ? '~commit' : `~commit:${branch}`;
+        const pipelineBranch = await p.branch;
+        const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
         const token = await p.token;
         const scmConfig = {
             scmUri: p.scmUri,
@@ -571,13 +598,14 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
  * @param  {Hapi.request}       request                Request from user
  * @param  {Hapi.reply}         reply                  Reply to user
  * @param  {Object}             parsed                 It has information to create event
+ * @param  {String}             token                  The token used to authenticate to the SCM
  * @param  {String}             [skipMessage]          Message to skip starting builds
  */
-async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
+async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, token) {
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, checkoutUrl, branch, username, scmContext, type } = parsed;
+    const { hookId, checkoutUrl, branch, scmContext, type, action } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -588,9 +616,6 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
     request.log(['webhook', hookId], `Push for ${fullCheckoutUrl}`);
 
     try {
-        // Fetch the pipeline associated with this hook
-        const token = await obtainScmToken(pluginOptions, userFactory, username, scmContext);
-
         scmConfig.token = token;
         scmConfig.scmUri = await pipelineFactory.scm.parseUrl({
             checkoutUrl: fullCheckoutUrl,
@@ -598,7 +623,9 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
             scmContext
         });
 
-        const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, type);
+        const pipelines = await triggeredPipelines(
+            pipelineFactory, scmConfig, branch, type, action
+        );
         let events = [];
 
         if (!pipelines || pipelines.length === 0) {
@@ -624,6 +651,29 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage) {
     } catch (err) {
         return reply(boom.boomify(err));
     }
+}
+
+/** Execute scm.getCommitRefSha()
+ * @method getCommitRefSha
+ * @param    {Object}     scm
+ * @param    {String}     token            The token used to authenticate to the SCM
+ * @param    {String}     ref              The reference which we want
+ * @param    {String}     checkoutUrl      Scm checkout URL
+ * @param    {String}     scmContext       Scm which pipeline's repository exists in
+ * @returns  {Promise}                     Specific SHA1 commit to start the build with
+ */
+async function getCommitRefSha({ scm, token, ref, checkoutUrl, scmContext }) {
+    // For example, git@github.com:screwdriver-cd/data-schema.git => screwdriver-cd, data-schema
+    const owner = CHECKOUT_URL_SCHEMA_REGEXP.exec(checkoutUrl)[2];
+    const repo = CHECKOUT_URL_SCHEMA_REGEXP.exec(checkoutUrl)[3];
+
+    return scm.getCommitRefSha({
+        token,
+        owner,
+        repo,
+        ref,
+        scmContext
+    });
 }
 
 /**
@@ -670,14 +720,14 @@ exports.register = (server, options, next) => {
                         return reply({ message }).code(204);
                     }
 
-                    const { type, hookId, username, scmContext } = parsed;
+                    const { type, hookId, username, scmContext, ref, checkoutUrl, action } = parsed;
 
                     request.log(['webhook', hookId], `Received event type ${type}`);
 
+                    // skipping checks
                     if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
                         skipMessage = 'Skipping due to the commit message: [skip ci]';
                     }
-
                     if (ignoreUser && ignoreUser.includes(username)) {
                         message = `Skipping because user ${username} is ignored`;
                         request.log(['webhook', hookId], message);
@@ -685,25 +735,45 @@ exports.register = (server, options, next) => {
                         return reply({ message }).code(204);
                     }
 
-                    await promiseToWait(WAIT_FOR_CHANGEDFILES);
                     const token = await obtainScmToken(
                         pluginOptions, userFactory, username, scmContext);
 
-                    parsed.changedFiles = await scm.getChangedFiles({
-                        payload: request.payload,
-                        type,
-                        token,
-                        scmContext
-                    });
+                    if (!parsed.sha) {
+                        try {
+                            parsed.sha = await getCommitRefSha({
+                                scm,
+                                token,
+                                ref,
+                                checkoutUrl,
+                                scmContext
+                            });
+                        } catch (err) {
+                            request.log(['webhook', hookId, 'getCommitRefSha'], err);
 
-                    request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
+                            // there is a possibility of scm.getCommitRefSha() is not implemented yet
+                            return reply({ message }).code(204);
+                        }
+                    }
+
+                    if (action !== 'release' && action !== 'tag') {
+                        await promiseToWait(WAIT_FOR_CHANGEDFILES);
+
+                        parsed.changedFiles = await scm.getChangedFiles({
+                            payload: request.payload,
+                            type,
+                            token,
+                            scmContext
+                        });
+                        request.log(['webhook', hookId],
+                            `Changed files are ${parsed.changedFiles}`);
+                    }
 
                     if (type === 'pr') {
                         // disregard skip ci for pull request events
-                        return pullRequestEvent(pluginOptions, request, reply, parsed);
+                        return pullRequestEvent(pluginOptions, request, reply, parsed, token);
                     }
 
-                    return pushEvent(pluginOptions, request, reply, parsed, skipMessage);
+                    return pushEvent(pluginOptions, request, reply, parsed, skipMessage, token);
                 } catch (err) {
                     return reply(boom.boomify(err));
                 }
