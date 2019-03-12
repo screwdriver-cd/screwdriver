@@ -85,9 +85,10 @@ module.exports = () => ({
                     pipelineId: request.payload.pipelineId,
                     startFrom: request.payload.startFrom,
                     parentBuildId: request.payload.parentBuildId,
-                    parentEventId: request.payload.parentEventId
+                    parentEventId: request.payload.parentEventId,
+                    prNumber: request.payload.prNum
                 };
-            }).then(({ pipelineId, startFrom, parentBuildId, parentEventId }) => {
+            }).then(({ pipelineId, startFrom, parentBuildId, parentEventId, prNumber }) => {
                 const payload = {
                     pipelineId,
                     scmContext,
@@ -95,6 +96,8 @@ module.exports = () => ({
                     type: 'pipeline',
                     username
                 };
+
+                let prNum = prNumber;
 
                 if (parentEventId) {
                     payload.parentEventId = parentEventId;
@@ -108,10 +111,23 @@ module.exports = () => ({
                     payload.meta = meta;
                 }
 
-                // Match PR-prNum, then extract prNum
-                // e.g. if startFrom is "PR-1:main", prNumFullName will be "PR-1"; prNum will be "1"
-                const prNumFullName = startFrom.match(validationSchema.config.regex.PR_JOB_NAME);
-                const prNum = prNumFullName ? prNumFullName[1].split('-')[1] : null;
+                // Trigger "~pr" needs to have PR number given
+                // Note: To kick start builds for all jobs under a PR,
+                // you need both the prNum and the trigger "~pr" as startFrom
+                if (startFrom.match(validationSchema.config.regex.PR_TRIGGER) && !prNum) {
+                    throw boom.badRequest('Trigger "~pr" must be accompanied by a PR number');
+                }
+
+                if (!prNum) {
+                    // If PR number isn't given, induce it from "startFrom"
+                    // Match PR-prNum, then extract prNum
+                    // e.g. if startFrom is "PR-1:main", prNumFullName will be "PR-1"; prNum will be "1"
+                    const prNumFullName = startFrom.match(
+                        validationSchema.config.regex.PR_JOB_NAME
+                    );
+
+                    prNum = prNumFullName ? prNumFullName[1].split('-')[1] : null;
+                }
 
                 // Fetch the job and user models
                 return Promise.all([
@@ -149,26 +165,36 @@ module.exports = () => ({
 
                                 // Get and set PR data; update admins
                                 if (prNum) {
-                                    payload.prNum = prNum;
+                                    payload.prNum = String(prNum);
                                     payload.type = 'pr';
 
-                                    return scm.getPrInfo(scmConfig)
-                                        .then((prInfo) => {
-                                            payload.prInfo = prInfo;
-                                            payload.prRef = prInfo.ref;
+                                    return Promise.all([
+                                        scm.getChangedFiles({
+                                            payload: null,
+                                            type: 'pr',
+                                            ...scmConfig
+                                        }),
+                                        scm.getPrInfo(scmConfig)
+                                    ]).then(([files, prInfo]) => {
+                                        if (files && files.length) {
+                                            payload.changedFiles = files;
+                                        }
 
-                                            // PR author should be able to rerun their own PR build
-                                            if (prInfo.username === username) {
-                                                return Promise.resolve();
-                                            }
+                                        payload.prInfo = prInfo;
+                                        payload.prRef = prInfo.ref;
 
-                                            // Remove user from admins
-                                            return updateAdmins({
-                                                permissions,
-                                                pipeline,
-                                                username
-                                            });
+                                        // PR author should be able to rerun their own PR build
+                                        if (prInfo.username === username) {
+                                            return Promise.resolve();
+                                        }
+
+                                        // Remove user from admins
+                                        return updateAdmins({
+                                            permissions,
+                                            pipeline,
+                                            username
                                         });
+                                    });
                                 }
 
                                 return Promise.resolve();
