@@ -4,6 +4,10 @@ const boom = require('boom');
 const joi = require('joi');
 const winston = require('winston');
 const workflowParser = require('screwdriver-workflow-parser');
+
+const ANNOT_NS = 'screwdriver.cd';
+const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
+const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
 const CHECKOUT_URL_SCHEMA = require('screwdriver-data-schema').config.regex.CHECKOUT_URL;
 const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const WAIT_FOR_CHANGEDFILES = 1.8;
@@ -197,22 +201,23 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
  * Create events for each pipeline
  * @async  createPREvents
  * @param  {Object}       options
- * @param  {String}       options.username      User who created the PR
- * @param  {String}       options.scmConfig     Has the token and scmUri to get branches
- * @param  {String}       options.sha           Specific SHA1 commit to start the build with
- * @param  {String}       options.prRef         Reference to pull request
- * @param  {String}       options.prNum         Pull request number
- * @param  {String}       options.prTitle       Pull request title
- * @param  {Array}        options.changedFiles  List of changed files
- * @param  {String}       options.branch        The branch against which pr is opened
- * @param  {String}       options.action        Event action
- * @param  {String}       options.skipMessage   Message to skip starting builds
- * @param  {Hapi.request} request               Request from user
+ * @param  {String}       options.username        User who created the PR
+ * @param  {String}       options.scmConfig       Has the token and scmUri to get branches
+ * @param  {String}       options.sha             Specific SHA1 commit to start the build with
+ * @param  {String}       options.prRef           Reference to pull request
+ * @param  {String}       options.prNum           Pull request number
+ * @param  {String}       options.prTitle         Pull request title
+ * @param  {Array}        options.changedFiles    List of changed files
+ * @param  {String}       options.branch          The branch against which pr is opened
+ * @param  {String}       options.action          Event action
+ * @param  {String}       options.skipMessage     Message to skip starting builds
+ * @param  {Boolean}      options.resolvedChainPR Resolved Chain PR flag
+ * @param  {Hapi.request} request                 Request from user
  * @return {Promise}
  */
 async function createPREvents(options, request) {
     const { username, scmConfig, sha, prRef, prNum,
-        prTitle, changedFiles, branch, action, skipMessage } = options;
+        prTitle, changedFiles, branch, action, skipMessage, resolvedChainPR } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
@@ -241,7 +246,8 @@ async function createPREvents(options, request) {
             configPipelineSha,
             startFrom: `~pr:${branch}`,
             changedFiles,
-            causeMessage: `${action} by ${userDisplayName}`
+            causeMessage: `${action} by ${userDisplayName}`,
+            chainPR: resolvedChainPR
         };
 
         if (skipMessage) {
@@ -267,6 +273,21 @@ async function createPREvents(options, request) {
 }
 
 /**
+ * Resolve ChainPR flag
+ * @method resolveChainPR
+ * @param  {Boolean}  chainPR              Plugin Chain PR flag
+ * @param  {Pipeline} pipeline             Pipeline
+ * @param  {Object}   pipeline.annotations Pipeline-level annotations
+ * @return {Boolean}
+ */
+function resolveChainPR(chainPR, pipeline) {
+    const defaultChainPR = typeof chainPR === 'undefined' ? false : chainPR;
+    const annotChainPR = pipeline.annotations[ANNOT_CHAIN_PR];
+
+    return typeof annotChainPR === 'undefined' ? defaultChainPR : annotChainPR;
+}
+
+/**
  * Create a new job and start the build for an opened pull-request
  * @async  pullRequestOpened
  * @param  {Object}       options
@@ -274,22 +295,25 @@ async function createPREvents(options, request) {
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {String}       options.restrictPR    Restrict PR setting
+ * @param  {Boolean}      options.chainPR       Chain PR flag
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestOpened(options, request, reply) {
-    const { hookId, prSource, pipeline, restrictPR } = options;
+    const { hookId, prSource, pipeline, restrictPR, chainPR } = options;
 
     if (pipeline) {
         const p = await pipeline.sync();
         const defaultRestrictPR = restrictPR || 'none';
-        const restriction = p.annotations['screwdriver.cd/restrictPR'] || defaultRestrictPR;
+        const restriction = p.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
             options.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
             `${restriction} and PR is ${prSource}`;
         }
+
+        options.resolvedChainPR = resolveChainPR(chainPR, p);
     }
 
     return createPREvents(options, request)
@@ -355,6 +379,7 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {String}       options.name          Name of the new job (PR-1)
  * @param  {String}       options.prSource      The origin of this PR
  * @param  {String}       options.restrictPR    Restrict PR setting
+ * @param  {Boolean}      options.chainPR       Chain PR flag
  * @param  {Pipeline}     options.pipeline      Pipeline model for the pr
  * @param  {Array}        options.changedFiles  List of files that were changed
  * @param  {String}       options.prNum         Pull request number
@@ -363,18 +388,20 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, prSource, name, prNum, action, restrictPR } = options;
+    const { pipeline, hookId, prSource, name, prNum, action, restrictPR, chainPR } = options;
 
     if (pipeline) {
         const p = await pipeline.sync();
         const defaultRestrictPR = restrictPR || 'none';
-        const restriction = p.annotations['screwdriver.cd/restrictPR'] || defaultRestrictPR;
+        const restriction = p.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
 
         // Check for restriction upfront
         if (isRestrictedPR(restriction, prSource)) {
             options.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
                 `${restriction} and PR is ${prSource}`;
         }
+
+        options.resolvedChainPR = resolveChainPR(chainPR, p);
 
         await p.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
             .then(prJobs => Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action }))));
@@ -428,6 +455,7 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
  * @param  {Object}             pluginOptions
  * @param  {String}             pluginOptions.username    Generic scm username
  * @param  {String}             pluginOptions.restrictPR  Restrict PR setting
+ * @param  {Boolean}            pluginOptions.chainPR     Chain PR flag
  * @param  {Hapi.request}       request                   Request from user
  * @param  {Hapi.reply}         reply                     Reply to user
  * @param  {String}             token                     The token used to authenticate to the SCM
@@ -444,7 +472,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
         token,
         scmContext
     };
-    const { restrictPR } = pluginOptions;
+    const { restrictPR, chainPR } = pluginOptions;
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
@@ -483,7 +511,8 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
                     action: action.charAt(0).toUpperCase() + action.slice(1),
                     branch,
                     fullCheckoutUrl,
-                    restrictPR
+                    restrictPR,
+                    chainPR
                 };
 
                 await updateAdmins(userFactory, username, scmContext, pipeline);
@@ -659,6 +688,7 @@ async function getCommitRefSha({ scm, token, ref, checkoutUrl, scmContext }) {
  * @param  {String}     options.username        Generic scm username
  * @param  {Array}      options.ignoreCommitsBy Ignore commits made by these usernames
  * @param  {Array}      options.restrictPR      Restrict PR setting
+ * @param  {Boolean}    options.chainPR         Chain PR flag
  * @param  {Function}   next                    Function to call when done
  */
 exports.register = (server, options, next) => {
@@ -666,7 +696,8 @@ exports.register = (server, options, next) => {
     const pluginOptions = joi.attempt(options, joi.object().keys({
         username: joi.string().required(),
         ignoreCommitsBy: joi.array().items(joi.string()).optional(),
-        restrictPR: joi.string().valid('all', 'none', 'branch', 'fork').optional()
+        restrictPR: joi.string().valid('all', 'none', 'branch', 'fork').optional(),
+        chainPR: joi.boolean().optional()
     }), 'Invalid config for plugin-webhooks');
 
     server.route({

@@ -224,6 +224,8 @@ webhooks:
   ignoreCommitsBy: []
   # Restrict PR: all, none, branch, or fork
   restrictPR: none
+  # Chain PR: true or false
+  chainPR: false
 
 coverage: {}
   # plugin: sonar
