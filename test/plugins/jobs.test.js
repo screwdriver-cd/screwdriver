@@ -44,7 +44,7 @@ const getJobMocks = (jobs) => {
     return decorateJobMock(jobs);
 };
 
-describe('job plugin test', () => {
+describe.only('job plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
     let pipelineMock;
@@ -52,7 +52,6 @@ describe('job plugin test', () => {
     let userMock;
     let plugin;
     let server;
-    let sandbox;
     const dateNow = 1552597858211;
     const nowTime = (new Date(dateNow)).toISOString();
 
@@ -64,10 +63,6 @@ describe('job plugin test', () => {
     });
 
     beforeEach((done) => {
-        sandbox = sinon.createSandbox({
-            useFakeTimers: false
-        });
-        sandbox.useFakeTimers(dateNow);
         pipelineMock = {
             scmUri: 'fakeScmUri'
         };
@@ -123,7 +118,6 @@ describe('job plugin test', () => {
 
     afterEach(() => {
         server = null;
-        sandbox.restore();
         mockery.deregisterAll();
         mockery.resetCache();
     });
@@ -414,8 +408,13 @@ describe('job plugin test', () => {
         let jobMock;
         let startTime = '2019-01-29T01:47:27.863Z';
         let endTime = '2019-01-30T01:47:27.863Z';
+        let sandbox;
 
         beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
                 url: `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`,
@@ -427,6 +426,10 @@ describe('job plugin test', () => {
             jobMock = decorateJobMock(testJob);
             jobMock.getMetrics = sinon.stub().resolves([]);
             jobFactoryMock.get.resolves(jobMock);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
         });
 
         it('returns 200 and metrics for job', () =>
@@ -493,8 +496,13 @@ describe('job plugin test', () => {
         let jobMock;
         let startTime = '2019-01-29T01:47:27.863Z';
         let endTime = '2019-01-30T01:47:27.863Z';
+        let sandbox;
 
         beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
                 url: `/jobs/${id}/metrics/steps` +
@@ -507,6 +515,10 @@ describe('job plugin test', () => {
             jobMock = decorateJobMock(testJob);
             jobMock.getStepMetrics = sinon.stub().resolves([]);
             jobFactoryMock.get.resolves(jobMock);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
         });
 
         it('returns 200 and step metrics of all steps for job', () =>
