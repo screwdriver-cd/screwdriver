@@ -308,6 +308,8 @@ webhooks:
     __format: json
   # Restrict PR: all, none, branch, or fork
   restrictPR: RESTRICT_PR
+  # Chain PR: true or false
+  chainPR: CHAIN_PR
 
 bookends:
   # List of module names, or objects { name, config } for instantiation to use in sd-setup

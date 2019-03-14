@@ -64,7 +64,8 @@ describe('event plugin test', () => {
                     ref: 'prref',
                     url: 'https://github.com/screwdriver-cd/ui/pull/292',
                     username: 'myself'
-                })
+                }),
+                getChangedFiles: sinon.stub().resolves(['screwdriver.yaml'])
             }
         };
         pipelineFactoryMock = {
@@ -407,6 +408,7 @@ describe('event plugin test', () => {
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',
                 username: 'myself'
             };
+            eventConfig.changedFiles = ['screwdriver.yaml'];
 
             options.payload.startFrom = 'PR-1:main';
 
@@ -415,6 +417,33 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 201 when it successfully creates a PR event for given prNum', () => {
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.prRef = 'prref';
+            eventConfig.type = 'pr';
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292',
+                username: 'myself'
+            };
+
+            eventFactoryMock.scm.getChangedFiles.resolves([]);
+
+            options.payload.startFrom = 'PR-1:main';
+            options.payload.prNum = '1';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
 
@@ -430,6 +459,7 @@ describe('event plugin test', () => {
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',
                 username: 'myself'
             };
+            eventConfig.changedFiles = ['screwdriver.yaml'];
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
 
@@ -438,6 +468,7 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
 
@@ -457,6 +488,7 @@ describe('event plugin test', () => {
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',
                 username: 'myself'
             };
+            eventConfig.changedFiles = ['screwdriver.yaml'];
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -470,6 +502,7 @@ describe('event plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
 
@@ -509,6 +542,7 @@ describe('event plugin test', () => {
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',
                 username: 'myself'
             };
+            eventConfig.changedFiles = ['screwdriver.yaml'];
 
             options.payload.startFrom = 'PR-1:main';
 
@@ -517,6 +551,7 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
 
@@ -539,6 +574,23 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 400 bad request error missing prNum for "~pr"', () => {
+            eventConfig.prRef = 'prref';
+            eventConfig.type = 'pr';
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292',
+                username: 'myself'
+            };
+
+            options.payload.startFrom = '~pr';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
         it('returns 403 forbidden error when user does not have push permission ' +
             'and is not author of PR', () => {
             eventConfig.startFrom = 'PR-1:main';
@@ -551,6 +603,7 @@ describe('event plugin test', () => {
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',
                 username: 'myself'
             };
+            eventConfig.changedFiles = ['screwdriver.yaml'];
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
             eventFactoryMock.scm.getPrInfo.resolves({
@@ -565,6 +618,7 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.create);
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
 
