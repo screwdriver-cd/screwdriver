@@ -105,37 +105,41 @@ module.exports = () => ({
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then((events) => {
-                        const lastEvent = events.pop();
+                        const getLastEffectiveEvent = async (events) => { 
+                            const lastEvent = events.pop();
 
-                        if (!lastEvent) {
-                            return reply.redirect(getUrl(badgeService));
-                        }
-
-                        return lastEvent.getBuilds().then((builds) => {
-                            if (!builds || builds.length < 1) {
+                            if (!lastEvent) {
                                 return reply.redirect(getUrl(badgeService));
                             }
 
-                            const buildsStatus = builds.reverse()
-                                .map(build => build.status.toLowerCase());
+                            return lastEvent.getBuilds().then((builds) => {
+                                if (!builds || builds.length < 1) {
+                                    return getLastEffectiveEvent(events);
+                                }
 
-                            let workflowLength = 0;
+                                const buildsStatus = builds.reverse()
+                                    .map(build => build.status.toLowerCase());
 
-                            if (lastEvent.workflowGraph) {
-                                const nextJobs = dfs(lastEvent.workflowGraph,
-                                    lastEvent.startFrom,
-                                    lastEvent.prNum,
-                                    builds);
+                                let workflowLength = 0;
 
-                                workflowLength = nextJobs.size;
-                            }
+                                if (lastEvent.workflowGraph) {
+                                    const nextJobs = dfs(lastEvent.workflowGraph,
+                                        lastEvent.startFrom,
+                                        lastEvent.prNum,
+                                        builds);
 
-                            for (let i = builds.length; i < workflowLength; i += 1) {
-                                buildsStatus[i] = 'unknown';
-                            }
+                                    workflowLength = nextJobs.size;
+                                }
 
-                            return reply.redirect(getUrl(badgeService, buildsStatus));
-                        });
+                                for (let i = builds.length; i < workflowLength; i += 1) {
+                                    buildsStatus[i] = 'unknown';
+                                }
+
+                                return reply.redirect(getUrl(badgeService, buildsStatus));
+                            });
+                        };
+
+                        return getLastEffectiveEvent(events);
                     });
                 })
                 .catch(() => reply.redirect(getUrl(badgeService)));
