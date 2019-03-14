@@ -52,6 +52,9 @@ describe('job plugin test', () => {
     let userMock;
     let plugin;
     let server;
+    let sandbox;
+    const dateNow = 1552597858211;
+    const nowTime = (new Date(dateNow)).toISOString();
 
     before(() => {
         mockery.enable({
@@ -61,6 +64,10 @@ describe('job plugin test', () => {
     });
 
     beforeEach((done) => {
+        sandbox = sinon.createSandbox({
+            useFakeTimers: false
+        });
+        sandbox.useFakeTimers(dateNow);
         pipelineMock = {
             scmUri: 'fakeScmUri'
         };
@@ -116,6 +123,7 @@ describe('job plugin test', () => {
 
     afterEach(() => {
         server = null;
+        sandbox.restore();
         mockery.deregisterAll();
         mockery.resetCache();
     });
@@ -404,8 +412,8 @@ describe('job plugin test', () => {
         const username = 'myself';
         let options;
         let jobMock;
-        const startTime = '2019-01-29T01:47:27.863Z';
-        const endTime = '2019-01-30T01:47:27.863Z';
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
 
         beforeEach(() => {
             options = {
@@ -430,6 +438,29 @@ describe('job plugin test', () => {
                 });
             })
         );
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(jobMock.getMetrics);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('defaults time range if missing', () => {
+            options.url = `/jobs/${id}/metrics/builds`;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(jobMock.getMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
 
         it('returns 404 when job does not exist', () => {
             const error = {
@@ -460,8 +491,8 @@ describe('job plugin test', () => {
         const username = 'myself';
         let options;
         let jobMock;
-        const startTime = '2019-01-29T01:47:27.863Z';
-        const endTime = '2019-01-30T01:47:27.863Z';
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
 
         beforeEach(() => {
             options = {
@@ -499,6 +530,30 @@ describe('job plugin test', () => {
                     startTime,
                     endTime
                 });
+            });
+        });
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/jobs/${id}/metrics/steps?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(jobMock.getStepMetrics);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('defaults time range if missing', () => {
+            options.url = `/jobs/${id}/metrics/steps`;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(jobMock.getStepMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z', // 6 months
+                    stepName: undefined
+                });
+                assert.equal(reply.statusCode, 200);
             });
         });
 

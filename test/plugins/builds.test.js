@@ -2857,10 +2857,17 @@ describe('build plugin test', () => {
         const username = 'myself';
         let options;
         let buildMock;
-        const startTime = '2019-01-29T01:47:27.863Z';
-        const endTime = '2019-01-30T01:47:27.863Z';
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
+        const dateNow = 1552597858211;
+        const nowTime = (new Date(dateNow)).toISOString();
+        let sandbox;
 
         beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
                 url: `/builds/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
@@ -2874,6 +2881,10 @@ describe('build plugin test', () => {
             buildFactoryMock.get.resolves(buildMock);
         });
 
+        afterEach(() => {
+            sandbox.restore();
+        });
+
         it('returns 200 and metrics for build', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -2883,6 +2894,29 @@ describe('build plugin test', () => {
                 });
             })
         );
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/builds/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(buildMock.getMetrics);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('defaults time range if missing', () => {
+            options.url = `/builds/${id}/metrics`;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(buildMock.getMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
 
         it('returns 404 when build does not exist', () => {
             const error = {
