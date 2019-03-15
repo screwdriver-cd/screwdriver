@@ -19,7 +19,7 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
     if (!scmContexts.includes(pipeline.scmContext)) {
         const permission = { admin: false };
 
-        if (pipeline.admins.includes(user.username)) {
+        if (pipeline.admins[user.username]) {
             permission.admin = true;
         }
 
