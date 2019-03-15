@@ -104,8 +104,8 @@ module.exports = () => ({
                         return reply.redirect(getUrl(badgeService));
                     }
 
-                    return pipeline.getEvents({ sort: 'ascending' }).then((events) => {
-                        const getLastEffectiveEvent = async (events) => { 
+                    return pipeline.getEvents({ sort: 'ascending' }).then((allEvents) => {
+                        const getLastEffectiveEvent = async (events) => {
                             const lastEvent = events.pop();
 
                             if (!lastEvent) {
@@ -139,7 +139,7 @@ module.exports = () => ({
                             });
                         };
 
-                        return getLastEffectiveEvent(events);
+                        return getLastEffectiveEvent(allEvents);
                     });
                 })
                 .catch(() => reply.redirect(getUrl(badgeService)));
