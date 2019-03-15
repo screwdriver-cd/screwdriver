@@ -873,6 +873,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 for getting events with pr Number', () => {
+            options.url = `/pipelines/${id}/events?prNum=4`;
+            server.inject(options).then((reply) => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 404 for pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
