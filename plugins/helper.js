@@ -9,7 +9,7 @@
  * @return {Object}                   Default start time and end time
  */
 function setDefaultTimeRange(start, end, maxDay) {
-    const endTime = end || new Date(Date.now()).toISOString();
+    const endTime = end || new Date().toISOString();
     const startTime = start || new Date(new Date().setDate(new Date(endTime).getDate() - maxDay))
         .toISOString();
 
