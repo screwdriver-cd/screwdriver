@@ -1439,7 +1439,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 when the user is admin of old repo with deprecated scmContext', () => {
-            pipelineMock.admins = [username];
+            pipelineMock.admins = { [username]: true };
             pipelineMock.scmContext = 'depreacated';
 
             return server.inject(options).then((reply) => {
@@ -1451,7 +1451,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 403 when the user is not admin of old repo with deprecated scmContext', () => {
-            pipelineMock.admins = ['noone'];
+            pipelineMock.admins = { ohno: true };
             pipelineMock.scmContext = 'depreacated';
 
             return server.inject(options).then((reply) => {
