@@ -105,7 +105,7 @@ module.exports = () => ({
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then((allEvents) => {
-                        const getLastEffectiveEvent = async (events) => {
+                        const getLastEffectiveEvent = (events) => {
                             const lastEvent = events.pop();
 
                             if (!lastEvent) {
