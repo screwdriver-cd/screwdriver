@@ -1351,6 +1351,10 @@ describe('pipeline plugin test', () => {
             pipelineMock.toJson.returns({});
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
             pipelineFactoryMock.scm.decorateUrl.resolves(scmRepo);
+            pipelineFactoryMock.scm.getScmContexts.returns([
+                'github:github.com',
+                'gitlab:mygitlab'
+            ]);
         });
 
         it('returns 200 and correct pipeline data', () =>
@@ -1430,6 +1434,30 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 200 when the user is admin of old repo with deprecated scmContext', () => {
+            pipelineMock.admins = [username];
+            pipelineMock.scmContext = 'depreacated';
+
+            return server.inject(options).then((reply) => {
+                // Only call once to get permissions on the new repo
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 403 when the user is not admin of old repo with deprecated scmContext', () => {
+            pipelineMock.admins = ['noone'];
+            pipelineMock.scmContext = 'depreacated';
+
+            return server.inject(options).then((reply) => {
+                // Only call once to get permissions on the new repo
+                assert.calledOnce(userMock.getPermissions);
+                assert.calledWith(userMock.getPermissions, scmUri);
                 assert.equal(reply.statusCode, 403);
             });
         });
