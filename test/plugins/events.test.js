@@ -658,10 +658,17 @@ describe('event plugin test', () => {
         const username = 'myself';
         let options;
         let eventMock;
-        const startTime = '2019-01-29T01:47:27.863Z';
-        const endTime = '2019-01-30T01:47:27.863Z';
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
+        const dateNow = 1552597858211;
+        const nowTime = (new Date(dateNow)).toISOString();
+        let sandbox;
 
         beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
                 url: `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
@@ -671,19 +678,46 @@ describe('event plugin test', () => {
                 }
             };
             eventMock = getEventMock(testEvent);
-            eventMock.getBuildMetrics = sinon.stub().resolves([]);
+            eventMock.getMetrics = sinon.stub().resolves([]);
             eventFactoryMock.get.resolves(eventMock);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
         });
 
         it('returns 200 and metrics for event', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(eventMock.getBuildMetrics, {
+                assert.calledWith(eventMock.getMetrics, {
                     startTime,
                     endTime
                 });
             })
         );
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(eventMock.getMetrics);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('defaults time range if missing', () => {
+            options.url = `/events/${id}/metrics`;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(eventMock.getMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
 
         it('returns 404 when event does not exist', () => {
             const error = {
