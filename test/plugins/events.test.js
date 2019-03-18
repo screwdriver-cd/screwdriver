@@ -228,7 +228,8 @@ describe('event plugin test', () => {
                 username: 'foo',
                 unsealToken: sinon.stub().resolves('token')
             }),
-            scmUri
+            scmUri,
+            prChain: false
         };
 
         beforeEach(() => {
@@ -402,6 +403,7 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
             eventConfig.prInfo = {
                 sha: testBuild.sha,
                 ref: 'prref',
@@ -426,6 +428,7 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
             eventConfig.prInfo = {
                 sha: testBuild.sha,
                 ref: 'prref',
@@ -453,6 +456,7 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
             eventConfig.prInfo = {
                 sha: testBuild.sha,
                 ref: 'prref',
@@ -480,6 +484,7 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
             options.payload.startFrom = 'PR-1:main';
             options.payload.parentEventId = parentEventId;
             eventConfig.prInfo = {
@@ -536,6 +541,7 @@ describe('event plugin test', () => {
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
             eventConfig.prInfo = {
                 sha: testBuild.sha,
                 ref: 'prref',
