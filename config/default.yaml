@@ -226,6 +226,8 @@ webhooks:
   restrictPR: none
   # Chain PR: true or false
   chainPR: false
+  # Upper limit on incoming uploads to builds
+  maxByteSize: 1048576 # 1MB
 
 coverage: {}
   # plugin: sonar
