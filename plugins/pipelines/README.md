@@ -96,9 +96,10 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
-`page`, `count`, and `sort` are optional
+`page`, `count`, `sort`, and `prNum` are optional  
+Only PR events of specified PR number will be searched when `prNum` is set
 
-`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}`
+`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
 
 #### Get all jobs (including pull requests jobs)
 `archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)

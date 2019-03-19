@@ -40,6 +40,11 @@ module.exports = () => ({
                         };
                     }
 
+                    if (request.query.prNum) {
+                        config.params.type = 'pr';
+                        config.params.prNum = request.query.prNum;
+                    }
+
                     return pipeline.getEvents(config);
                 })
                 .then(events => reply(events.map(e => e.toJson())))
@@ -50,7 +55,8 @@ module.exports = () => ({
         },
         validate: {
             query: schema.api.pagination.concat(joi.object({
-                type: joi.string()
+                type: joi.string(),
+                prNum: joi.reach(schema.models.event.base, 'prNum')
             }))
         }
     }
