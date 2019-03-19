@@ -52,6 +52,8 @@ describe('job plugin test', () => {
     let userMock;
     let plugin;
     let server;
+    const dateNow = 1552597858211;
+    const nowTime = (new Date(dateNow)).toISOString();
 
     before(() => {
         mockery.enable({
@@ -404,10 +406,15 @@ describe('job plugin test', () => {
         const username = 'myself';
         let options;
         let jobMock;
-        const startTime = '2019-01-29T01:47:27.863Z';
-        const endTime = '2019-01-30T01:47:27.863Z';
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
+        let sandbox;
 
         beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
                 url: `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`,
@@ -417,19 +424,46 @@ describe('job plugin test', () => {
                 }
             };
             jobMock = decorateJobMock(testJob);
-            jobMock.getBuildMetrics = sinon.stub().resolves([]);
+            jobMock.getMetrics = sinon.stub().resolves([]);
             jobFactoryMock.get.resolves(jobMock);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
         });
 
         it('returns 200 and metrics for job', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(jobMock.getBuildMetrics, {
+                assert.calledWith(jobMock.getMetrics, {
                     startTime,
                     endTime
                 });
             })
         );
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(jobMock.getMetrics);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('defaults time range if missing', () => {
+            options.url = `/jobs/${id}/metrics/builds`;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(jobMock.getMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
 
         it('returns 404 when job does not exist', () => {
             const error = {
@@ -460,10 +494,15 @@ describe('job plugin test', () => {
         const username = 'myself';
         let options;
         let jobMock;
-        const startTime = '2019-01-29T01:47:27.863Z';
-        const endTime = '2019-01-30T01:47:27.863Z';
+        let startTime = '2019-01-29T01:47:27.863Z';
+        let endTime = '2019-01-30T01:47:27.863Z';
+        let sandbox;
 
         beforeEach(() => {
+            sandbox = sinon.createSandbox({
+                useFakeTimers: false
+            });
+            sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
                 url: `/jobs/${id}/metrics/steps` +
@@ -476,6 +515,10 @@ describe('job plugin test', () => {
             jobMock = decorateJobMock(testJob);
             jobMock.getStepMetrics = sinon.stub().resolves([]);
             jobFactoryMock.get.resolves(jobMock);
+        });
+
+        afterEach(() => {
+            sandbox.restore();
         });
 
         it('returns 200 and step metrics of all steps for job', () =>
@@ -499,6 +542,30 @@ describe('job plugin test', () => {
                     startTime,
                     endTime
                 });
+            });
+        });
+
+        it('returns 400 if time range is too big', () => {
+            startTime = '2018-01-29T01:47:27.863Z';
+            endTime = '2019-01-29T01:47:27.863Z';
+            options.url = `/jobs/${id}/metrics/steps?startTime=${startTime}&endTime=${endTime}`;
+
+            return server.inject(options).then((reply) => {
+                assert.notCalled(jobMock.getStepMetrics);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('defaults time range if missing', () => {
+            options.url = `/jobs/${id}/metrics/steps`;
+
+            return server.inject(options).then((reply) => {
+                assert.calledWith(jobMock.getStepMetrics, {
+                    endTime: nowTime,
+                    startTime: '2018-09-15T21:10:58.211Z', // 6 months
+                    stepName: undefined
+                });
+                assert.equal(reply.statusCode, 200);
             });
         });
 

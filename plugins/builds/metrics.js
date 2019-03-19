@@ -2,6 +2,8 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
+const MAX_DAYS = 180; // 6 months
 
 module.exports = () => ({
     method: 'GET',
@@ -22,7 +24,11 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.buildFactory;
             const { id } = request.params;
-            const { startTime, endTime } = request.query;
+            let { startTime, endTime } = request.query;
+
+            if (!startTime || !endTime) {
+                ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
+            }
 
             return factory.get(id)
                 .then((build) => {
@@ -30,7 +36,11 @@ module.exports = () => ({
                         throw boom.notFound('Build does not exist');
                     }
 
-                    return build.getStepMetrics({
+                    if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
+                        throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
+                    }
+
+                    return build.getMetrics({
                         startTime,
                         endTime
                     });
