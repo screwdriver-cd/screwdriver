@@ -11,7 +11,7 @@ const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
 const CHECKOUT_URL_SCHEMA = require('screwdriver-data-schema').config.regex.CHECKOUT_URL;
 const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const WAIT_FOR_CHANGEDFILES = 1.8;
-const DEFAULT_BYTES = 1048576;
+const DEFAULT_MAX_BYTES = 1048576;
 
 /**
  * Determine "startFrom" with type, action and branches
@@ -690,7 +690,7 @@ async function getCommitRefSha({ scm, token, ref, checkoutUrl, scmContext }) {
  * @param  {Array}      options.ignoreCommitsBy Ignore commits made by these usernames
  * @param  {Array}      options.restrictPR      Restrict PR setting
  * @param  {Boolean}    options.chainPR         Chain PR flag
- * @param  {Integer}    options.maxByteSize     Upper limit on incoming uploads to builds
+ * @param  {Integer}    options.maxBytes        Upper limit on incoming uploads to builds
  * @param  {Function}   next                    Function to call when done
  */
 exports.register = (server, options, next) => {
@@ -700,7 +700,7 @@ exports.register = (server, options, next) => {
         ignoreCommitsBy: joi.array().items(joi.string()).optional(),
         restrictPR: joi.string().valid('all', 'none', 'branch', 'fork').optional(),
         chainPR: joi.boolean().optional(),
-        maxByteSize: joi.number().integer().optional()
+        maxBytes: joi.number().integer().optional()
     }), 'Invalid config for plugin-webhooks');
 
     server.route({
@@ -711,7 +711,7 @@ exports.register = (server, options, next) => {
             notes: 'Acts on pull request, pushes, comments, etc.',
             tags: ['api', 'webhook'],
             payload: {
-                maxBytes: parseInt(pluginOptions.maxByteSize, 10) || DEFAULT_BYTES
+                maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
             },
             handler: async (request, reply) => {
                 const userFactory = request.server.app.userFactory;

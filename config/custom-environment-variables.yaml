@@ -311,7 +311,7 @@ webhooks:
   # Chain PR: true or false
   chainPR: CHAIN_PR
   # Upper limit on incoming uploads to builds
-  maxByteSize: WEBHOOK_MAX_BYTES
+  maxBytes: WEBHOOK_MAX_BYTES
 
 bookends:
   # List of module names, or objects { name, config } for instantiation to use in sd-setup
