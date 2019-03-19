@@ -241,7 +241,7 @@ executor:
   queue:
     enabled: EXECUTOR_QUEUE_ENABLED
     options:
-    # Configuration of the redis instance containing resque
+      # Configuration of the redis instance containing resque
       redisConnection:
         host: QUEUE_REDIS_HOST
         port: QUEUE_REDIS_PORT
@@ -310,6 +310,8 @@ webhooks:
   restrictPR: RESTRICT_PR
   # Chain PR: true or false
   chainPR: CHAIN_PR
+  # Upper limit on incoming uploads to builds
+  maxBytes: WEBHOOK_MAX_BYTES
 
 bookends:
   # List of module names, or objects { name, config } for instantiation to use in sd-setup
@@ -331,7 +333,7 @@ coverage:
     # Screwdriver API url
     sdApiUrl: URI
     # Sonar host url
-    sonarHost:  COVERAGE_SONAR_HOST
+    sonarHost: COVERAGE_SONAR_HOST
     # Sonar admin token
     adminToken: COVERAGE_SONAR_ADMIN_TOKEN
     # crewdriver UI url
