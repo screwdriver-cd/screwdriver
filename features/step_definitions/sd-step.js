@@ -4,7 +4,6 @@
 
 const Assert = require('chai').assert;
 const request = require('../support/request');
-const sdapi = require('../support/sdapi');
 const { defineSupportCode } = require('cucumber');
 
 const TIMEOUT = 240 * 1000;

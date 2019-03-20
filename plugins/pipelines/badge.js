@@ -125,8 +125,7 @@ module.exports = () => ({
                                 if (lastEvent.workflowGraph) {
                                     const nextJobs = dfs(lastEvent.workflowGraph,
                                         lastEvent.startFrom,
-                                        lastEvent.prNum,
-                                        builds);
+                                        lastEvent.prNum);
 
                                     workflowLength = nextJobs.size;
                                 }
