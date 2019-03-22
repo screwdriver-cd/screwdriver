@@ -857,6 +857,30 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 when commits by ignoreCommitsBy, but is a skip ci', () => {
+                parsed.username = 'batman';
+                parsed.lastCommitMessage = 'foo[skip ci]bar';
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username: 'batman',
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        changedFiles,
+                        causeMessage: 'Merged by batman',
+                        skipMessage: 'Skipping due to the commit message: [skip ci]'
+                    });
+                });
+            });
+
             it('returns 200 when user is registered as admin', () => {
                 const pMock = {
                     id: 'pipelineHash3',
