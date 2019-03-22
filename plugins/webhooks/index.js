@@ -734,7 +734,9 @@ exports.register = (server, options, next) => {
                     if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
                         skipMessage = 'Skipping due to the commit message: [skip ci]';
                     }
-                    if (ignoreUser && ignoreUser.includes(username)) {
+
+                    // if skip ci then don't return
+                    if (ignoreUser && ignoreUser.includes(username) && !skipMessage) {
                         message = `Skipping because user ${username} is ignored`;
                         request.log(['webhook', hookId], message);
 
