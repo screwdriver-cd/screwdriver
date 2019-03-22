@@ -9,6 +9,7 @@ const syncPRsRoute = require('./syncPRs');
 const getRoute = require('./get');
 const listRoute = require('./list');
 const badgeRoute = require('./badge');
+const jobBadgeRoute = require('./jobBadge');
 const listJobsRoute = require('./listJobs');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
@@ -53,6 +54,7 @@ exports.register = (server, options, next) => {
         getRoute(),
         listRoute(),
         badgeRoute(),
+        jobBadgeRoute(),
         listJobsRoute(),
         listSecretsRoute(),
         listEventsRoute(),

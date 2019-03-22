@@ -13,7 +13,7 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
  * @param  {Array}  [buildsStatus]   Current status of all builds in the same event
  * @return {string}                  URL to redirect to
  */
-function getUrl(badgeService, buildsStatus = []) {
+function getUrl(badgeService, buildsStatus = [], subject = 'pipeline') {
     const counts = {};
     const parts = [];
     let worst = 'lightgrey';
@@ -48,7 +48,9 @@ function getUrl(badgeService, buildsStatus = []) {
     });
 
     return tinytim.tim(badgeService, {
-        status: parts.join(', '), color: worst
+        subject,
+        status: parts.join(', '),
+        color: worst
     });
 }
 

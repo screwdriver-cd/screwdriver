@@ -9,6 +9,7 @@ const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
+const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 const testBuilds = require('./data/builds.json');
 const testSecrets = require('./data/secrets.json');
@@ -149,6 +150,7 @@ describe('pipeline plugin test', () => {
     let userFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let jobFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
@@ -187,6 +189,9 @@ describe('pipeline plugin test', () => {
             get: sinon.stub(),
             create: sinon.stub()
         };
+        jobFactoryMock = {
+            get: sinon.stub()
+        };
         bannerMock = {
             register: (s, o, next) => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
@@ -205,11 +210,12 @@ describe('pipeline plugin test', () => {
         server = new hapi.Server();
         server.app = {
             eventFactory: eventFactoryMock,
+            jobFactory: jobFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
             tokenFactory: tokenFactoryMock,
             ecosystem: {
-                badges: '{{status}}/{{color}}'
+                badges: '{{subject}}/{{status}}/{{color}}'
             }
         };
         server.connection({
@@ -712,7 +718,8 @@ describe('pipeline plugin test', () => {
         it('returns 302 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '1 success, 1 unknown, 1 failure/red');
+                assert.deepEqual(reply.headers.location,
+                    'pipeline/1 success, 1 unknown, 1 failure/red');
             })
         );
 
@@ -721,7 +728,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '1 success, 1 failure/red');
+                assert.deepEqual(reply.headers.location, 'pipeline/1 success, 1 failure/red');
             });
         });
 
@@ -730,7 +737,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '/lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
             });
         });
 
@@ -739,7 +746,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '/lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
             });
         });
 
@@ -748,7 +755,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '/lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
             });
         });
 
@@ -757,7 +764,44 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, '/lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/{jobName}/badge', () => {
+        const id = '123';
+        const jobName = 'deploy';
+        let jobMock;
+
+        beforeEach(() => {
+            jobMock = getJobsMocks(testJob);
+            jobFactoryMock.get.resolves(jobMock);
+        });
+
+        it('returns 302 to for a valid build', () =>
+            server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location,
+                    'deploy/success/green');
+            })
+        );
+
+        it('returns 302 to unknown for a job that does not exist', () => {
+            jobFactoryMock.get.resolves(null);
+
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'job//lightgrey');
+            });
+        });
+
+        it('returns 302 to unknown when the datastore returns an error', () => {
+            jobFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, 'job//lightgrey');
             });
         });
     });
