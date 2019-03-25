@@ -267,7 +267,7 @@ ecosystem:
   # Externally routable URL for the Artifact Store
   store: https://store.screwdriver.cd
   # Badge service (needs to add a status and color)
-  badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg
+  badges: https://img.shields.io/badge/{{subject}}-{{status}}-{{color}}.svg
   # Default registry to pull build containers from. Uses Docker Hub if nothing/empty string is provided
   dockerRegistry: ""
   # Extra origins allowed to do CORS to API
