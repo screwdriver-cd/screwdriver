@@ -45,21 +45,21 @@ exports.register = (server, options, next) => {
     };
 
     /**
-     * Returns an encoded string of subject based on seperator of the badge service
+     * Returns an encoded string of subject based on separator of the badge service
      * @method encodeBadgeSubject
      * @param  {String} badgeService           badge service url
      * @param  {String} subject                subject to put in the badge
      * @return {String} encodedSubject
      */
     server.expose('encodeBadgeSubject', ({ badgeService, subject }) => {
-        const seperator = badgeService.match(/}}(.){{/)[1];
+        const separator = badgeService.match(/}}(.){{/)[1];
 
-        if (seperator === '/') {
+        if (separator === '/') {
             return encodeURIComponent(subject);
         }
 
         // Reference: https://shields.io/
-        if (seperator === '-') {
+        if (separator === '-') {
             return subject.replace(/-/g, '--').replace(/_/g, '__');
         }
 

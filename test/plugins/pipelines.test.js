@@ -803,11 +803,12 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 302 to unknown when the datastore returns an error', () => {
+            server.app.ecosystem.badges = '{{subject}}*{{status}}*{{color}}';
             jobFactoryMock.get.rejects(new Error('icantdothatdave'));
 
             return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'job--lightgrey');
+                assert.deepEqual(reply.headers.location, 'job**lightgrey');
             });
         });
     });
