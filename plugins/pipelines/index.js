@@ -30,6 +30,20 @@ const metricsRoute = require('./metrics');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
+    const statusColor = {
+        unknown: 'lightgrey',
+        created: 'lightgrey',
+        success: 'green',
+        queued: 'blue',
+        blocked: 'blue',
+        running: 'blue',
+        collapsed: 'lightgrey',
+        frozen: 'lightgrey',
+        unstable: 'yellow',
+        failure: 'red',
+        aborted: 'red'
+    };
+
     /**
      * Returns true if the scope does not include pipeline or includes pipeline
      * and it's pipelineId matches the pipeline, otherwise returns false
@@ -53,8 +67,8 @@ exports.register = (server, options, next) => {
         syncPRsRoute(),
         getRoute(),
         listRoute(),
-        badgeRoute(),
-        jobBadgeRoute(),
+        badgeRoute({ statusColor }),
+        jobBadgeRoute({ statusColor }),
         listJobsRoute(),
         listSecretsRoute(),
         listEventsRoute(),
