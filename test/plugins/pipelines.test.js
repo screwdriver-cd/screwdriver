@@ -720,7 +720,7 @@ describe('pipeline plugin test', () => {
             server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location,
-                    'foo/bar/1 unknown, 1 success, 1 failure/red');
+                    'foo%2Fbar/1 unknown, 1 success, 1 failure/red');
             })
         );
 
@@ -729,7 +729,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'foo/bar/1 success, 1 failure/red');
+                assert.deepEqual(reply.headers.location, 'foo%2Fbar/1 success, 1 failure/red');
             });
         });
 
@@ -777,9 +777,10 @@ describe('pipeline plugin test', () => {
         let pipelineMock;
 
         beforeEach(() => {
+            server.app.ecosystem.badges = '{{subject}}-{{status}}-{{color}}';
             jobMock = getJobsMocks(testJob);
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.name = 'foo/bar';
+            pipelineMock.name = 'foo/bar-test';
             jobFactoryMock.get.resolves(jobMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
@@ -788,7 +789,7 @@ describe('pipeline plugin test', () => {
             server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location,
-                    'foo/bar:deploy/success/green');
+                    'foo/bar--test:deploy-success-green');
             })
         );
 
@@ -797,16 +798,17 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'job//lightgrey');
+                assert.deepEqual(reply.headers.location, 'job--lightgrey');
             });
         });
 
         it('returns 302 to unknown when the datastore returns an error', () => {
+            server.app.ecosystem.badges = '{{subject}}*{{status}}*{{color}}';
             jobFactoryMock.get.rejects(new Error('icantdothatdave'));
 
             return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'job//lightgrey');
+                assert.deepEqual(reply.headers.location, 'job**lightgrey');
             });
         });
     });
