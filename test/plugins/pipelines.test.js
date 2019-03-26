@@ -707,6 +707,7 @@ describe('pipeline plugin test', () => {
 
         beforeEach(() => {
             pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.name = 'foo/bar';
             pipelineFactoryMock.get.resolves(pipelineMock);
             eventsMock = getEventsMocks(testEvents);
             eventsPrMock = getEventsMocks(testEventsPr);
@@ -719,7 +720,7 @@ describe('pipeline plugin test', () => {
             server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location,
-                    'pipeline/1 success, 1 unknown, 1 failure/red');
+                    'foo/bar/1 unknown, 1 success, 1 failure/red');
             })
         );
 
@@ -728,7 +729,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'pipeline/1 success, 1 failure/red');
+                assert.deepEqual(reply.headers.location, 'foo/bar/1 success, 1 failure/red');
             });
         });
 
@@ -773,17 +774,21 @@ describe('pipeline plugin test', () => {
         const id = '123';
         const jobName = 'deploy';
         let jobMock;
+        let pipelineMock;
 
         beforeEach(() => {
             jobMock = getJobsMocks(testJob);
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.name = 'foo/bar';
             jobFactoryMock.get.resolves(jobMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
         it('returns 302 to for a valid build', () =>
             server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
                 assert.deepEqual(reply.headers.location,
-                    'deploy/success/green');
+                    'foo/bar:deploy/success/green');
             })
         );
 

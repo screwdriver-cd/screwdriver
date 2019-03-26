@@ -12,18 +12,9 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
  * @param  {Array}  [builds]         An array of builds
  * @return {string}                  URL to redirect to
  */
-function getUrl(badgeService, builds = [], subject = 'job') {
+function getUrl({ badgeService, statusColor, builds = [], subject = 'job' }) {
     let color = 'lightgrey';
     let status = '';
-
-    const statusColor = {
-        success: 'green',
-        queued: 'blue',
-        running: 'blue',
-        unknown: 'lightgrey',
-        failure: 'red',
-        aborted: 'red'
-    };
 
     if (builds.length > 0) {
         status = builds[0].status.toLowerCase();
@@ -37,7 +28,7 @@ function getUrl(badgeService, builds = [], subject = 'job') {
     });
 }
 
-module.exports = () => ({
+module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/{jobName}/badge',
     config: {
@@ -46,27 +37,41 @@ module.exports = () => ({
         tags: ['api', 'job', 'badge'],
         handler: (request, reply) => {
             const jobFactory = request.server.app.jobFactory;
+            const pipelineFactory = request.server.app.pipelineFactory;
             const { id, jobName } = request.params;
             const badgeService = request.server.app.ecosystem.badges;
+            const { statusColor } = config;
+            const badgeConfig = {
+                badgeService,
+                statusColor
+            };
 
-            return jobFactory.get({
-                pipelineId: id,
-                name: jobName
-            }).then((job) => {
+            return Promise.all([
+                jobFactory.get({
+                    pipelineId: id,
+                    name: jobName
+                }),
+                pipelineFactory.get(id)
+            ]).then(([job, pipeline]) => {
                 if (!job) {
-                    return reply.redirect(getUrl(badgeService));
+                    return reply.redirect(getUrl(badgeConfig));
                 }
 
-                const config = {
+                const listConfig = {
                     paginate: {
                         page: 1,
                         count: 1
                     }
                 };
 
-                return job.getBuilds(config)
-                    .then(builds => reply.redirect(getUrl(badgeService, builds, jobName)));
-            }).catch(() => reply.redirect(getUrl(badgeService)));
+                return job.getBuilds(listConfig)
+                    .then(builds => reply.redirect(getUrl(Object.assign(
+                        badgeConfig,
+                        {
+                            builds,
+                            subject: `${pipeline.name}:${jobName}`
+                        }))));
+            }).catch(() => reply.redirect(getUrl(badgeConfig)));
         },
         validate: {
             params: {

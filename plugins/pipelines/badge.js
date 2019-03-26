@@ -13,28 +13,12 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
  * @param  {Array}  [buildsStatus]   Current status of all builds in the same event
  * @return {string}                  URL to redirect to
  */
-function getUrl(badgeService, buildsStatus = [], subject = 'pipeline') {
+function getUrl({ badgeService, statusColor, buildsStatus = [], subject = 'pipeline' }) {
     const counts = {};
     const parts = [];
     let worst = 'lightgrey';
 
-    const statusColor = {
-        success: 'green',
-        queued: 'blue',
-        running: 'blue',
-        unknown: 'lightgrey',
-        failure: 'red',
-        aborted: 'red'
-    };
-
-    const levels = [
-        'success',
-        'queued',
-        'running',
-        'unknown',
-        'failure',
-        'aborted'
-    ];
+    const levels = Object.keys(statusColor);
 
     buildsStatus.forEach((status) => {
         counts[status] = (counts[status] || 0) + 1;
@@ -89,7 +73,7 @@ function dfs(workflowGraph, start, prNum) {
     return visited;
 }
 
-module.exports = () => ({
+module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/badge',
     config: {
@@ -99,11 +83,16 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;
+            const { statusColor } = config;
+            const badgeConfig = {
+                badgeService,
+                statusColor
+            };
 
             return factory.get(request.params.id)
                 .then((pipeline) => {
                     if (!pipeline) {
-                        return reply.redirect(getUrl(badgeService));
+                        return reply.redirect(getUrl(badgeConfig));
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then((allEvents) => {
@@ -111,7 +100,7 @@ module.exports = () => ({
                             const lastEvent = events.pop();
 
                             if (!lastEvent) {
-                                return reply.redirect(getUrl(badgeService));
+                                return reply.redirect(getUrl(badgeConfig));
                             }
 
                             return lastEvent.getBuilds().then((builds) => {
@@ -136,14 +125,15 @@ module.exports = () => ({
                                     buildsStatus[i] = 'unknown';
                                 }
 
-                                return reply.redirect(getUrl(badgeService, buildsStatus));
+                                return reply.redirect(getUrl(Object.assign(
+                                    badgeConfig, { buildsStatus, subject: pipeline.name })));
                             });
                         };
 
                         return getLastEffectiveEvent(allEvents);
                     });
                 })
-                .catch(() => reply.redirect(getUrl(badgeService)));
+                .catch(() => reply.redirect(getUrl(badgeConfig)));
         },
         validate: {
             params: {
