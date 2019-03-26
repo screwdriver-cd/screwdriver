@@ -9,11 +9,19 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 /**
  * Generate Badge URL
  * @method getUrl
- * @param  {string}  badgeService    Template URL for badges - needs {{status}} and {{color}}
- * @param  {Array}  [buildsStatus]   Current status of all builds in the same event
- * @return {string}                  URL to redirect to
+ * @param  {String} badgeService            Badge service url
+ * @param  {Object} statusColor             Mapping for status and color
+ * @param  {Function} encodeBadgeSubject    Function to encode subject
+ * @param  {Array}  [buildsStatus=[]]       An array of builds
+ * @param  {String} [subject='job']         Subject of the badge
+ * @return {String}
  */
-function getUrl({ badgeService, statusColor, buildsStatus = [], subject = 'pipeline' }) {
+function getUrl({
+    badgeService,
+    statusColor,
+    encodeBadgeSubject,
+    buildsStatus = [],
+    subject = 'pipeline' }) {
     const counts = {};
     const parts = [];
     let worst = 'lightgrey';
@@ -32,7 +40,7 @@ function getUrl({ badgeService, statusColor, buildsStatus = [], subject = 'pipel
     });
 
     return tinytim.tim(badgeService, {
-        subject,
+        subject: encodeBadgeSubject({ badgeService, subject }),
         status: parts.join(', '),
         color: worst
     });
@@ -83,10 +91,12 @@ module.exports = config => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;
+            const encodeBadgeSubject = request.server.plugins.pipelines.encodeBadgeSubject;
             const { statusColor } = config;
             const badgeConfig = {
                 badgeService,
-                statusColor
+                statusColor,
+                encodeBadgeSubject
             };
 
             return factory.get(request.params.id)

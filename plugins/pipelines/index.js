@@ -45,6 +45,28 @@ exports.register = (server, options, next) => {
     };
 
     /**
+     * Returns an encoded string of subject based on seperator of the badge service
+     * @method encodeBadgeSubject
+     * @param  {String} badgeService           badge service url
+     * @param  {String} subject                subject to put in the badge
+     * @return {String} encodedSubject
+     */
+    server.expose('encodeBadgeSubject', ({ badgeService, subject }) => {
+        const seperator = badgeService.match(/}}(.){{/)[1];
+
+        if (seperator === '/') {
+            return encodeURIComponent(subject);
+        }
+
+        // Reference: https://shields.io/
+        if (seperator === '-') {
+            return subject.replace(/-/g, '--').replace(/_/g, '__');
+        }
+
+        return subject;
+    });
+
+    /**
      * Returns true if the scope does not include pipeline or includes pipeline
      * and it's pipelineId matches the pipeline, otherwise returns false
      * @method isValidToken
