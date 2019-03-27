@@ -399,9 +399,21 @@ describe('job plugin test', () => {
                 });
             })
         );
+
+        it('returns {} if there is no last successful meta', () => {
+            job.getBuilds.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    status: 'SUCCESS'
+                });
+                assert.deepEqual(reply.result, {});
+            });
+        });
     });
 
-    describe('GET /jobs/{id}/metrics/builds', () => {
+    describe('GET /jobs/{id}/metrics', () => {
         const id = 123;
         const username = 'myself';
         let options;
@@ -417,7 +429,7 @@ describe('job plugin test', () => {
             sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
-                url: `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`,
+                url: `/jobs/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
                 credentials: {
                     username,
                     scope: ['user']
@@ -437,7 +449,8 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(jobMock.getMetrics, {
                     startTime,
-                    endTime
+                    endTime,
+                    aggregate: false
                 });
             })
         );
@@ -445,7 +458,7 @@ describe('job plugin test', () => {
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';
             endTime = '2019-01-29T01:47:27.863Z';
-            options.url = `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`;
+            options.url = `/jobs/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
 
             return server.inject(options).then((reply) => {
                 assert.notCalled(jobMock.getMetrics);
@@ -454,116 +467,13 @@ describe('job plugin test', () => {
         });
 
         it('defaults time range if missing', () => {
-            options.url = `/jobs/${id}/metrics/builds`;
+            options.url = `/jobs/${id}/metrics`;
 
             return server.inject(options).then((reply) => {
                 assert.calledWith(jobMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
-                });
-                assert.equal(reply.statusCode, 200);
-            });
-        });
-
-        it('returns 404 when job does not exist', () => {
-            const error = {
-                statusCode: 404,
-                error: 'Not Found',
-                message: 'Job does not exist'
-            };
-
-            jobFactoryMock.get.resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-                assert.deepEqual(reply.result, error);
-            });
-        });
-
-        it('returns 500 when datastore fails', () => {
-            jobFactoryMock.get.rejects(new Error('Failed'));
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-    });
-
-    describe('GET /jobs/{id}/metrics/steps', () => {
-        const id = 123;
-        const username = 'myself';
-        let options;
-        let jobMock;
-        let startTime = '2019-01-29T01:47:27.863Z';
-        let endTime = '2019-01-30T01:47:27.863Z';
-        let sandbox;
-
-        beforeEach(() => {
-            sandbox = sinon.createSandbox({
-                useFakeTimers: false
-            });
-            sandbox.useFakeTimers(dateNow);
-            options = {
-                method: 'GET',
-                url: `/jobs/${id}/metrics/steps` +
-                `?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scope: ['user']
-                }
-            };
-            jobMock = decorateJobMock(testJob);
-            jobMock.getStepMetrics = sinon.stub().resolves([]);
-            jobFactoryMock.get.resolves(jobMock);
-        });
-
-        afterEach(() => {
-            sandbox.restore();
-        });
-
-        it('returns 200 and step metrics of all steps for job', () =>
-            server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledWith(jobMock.getStepMetrics, {
-                    stepName: undefined,
-                    startTime,
-                    endTime
-                });
-            })
-        );
-
-        it('returns 200 and step metrics of sd-setup-scm for job', () => {
-            options.url = `${options.url}&stepName=sd-setup-scm`;
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledWith(jobMock.getStepMetrics, {
-                    stepName: 'sd-setup-scm',
-                    startTime,
-                    endTime
-                });
-            });
-        });
-
-        it('returns 400 if time range is too big', () => {
-            startTime = '2018-01-29T01:47:27.863Z';
-            endTime = '2019-01-29T01:47:27.863Z';
-            options.url = `/jobs/${id}/metrics/steps?startTime=${startTime}&endTime=${endTime}`;
-
-            return server.inject(options).then((reply) => {
-                assert.notCalled(jobMock.getStepMetrics);
-                assert.equal(reply.statusCode, 400);
-            });
-        });
-
-        it('defaults time range if missing', () => {
-            options.url = `/jobs/${id}/metrics/steps`;
-
-            return server.inject(options).then((reply) => {
-                assert.calledWith(jobMock.getStepMetrics, {
-                    endTime: nowTime,
                     startTime: '2018-09-15T21:10:58.211Z', // 6 months
-                    stepName: undefined
+                    aggregate: false
                 });
                 assert.equal(reply.statusCode, 200);
             });

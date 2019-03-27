@@ -24,6 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
+            const { aggregate } = request.query;
             let { startTime, endTime } = request.query;
 
             if (!startTime || !endTime) {
@@ -42,7 +43,8 @@ module.exports = () => ({
 
                     return pipeline.getMetrics({
                         startTime,
-                        endTime
+                        endTime,
+                        aggregate
                     });
                 })
                 .then(metrics => reply(metrics))
@@ -51,7 +53,8 @@ module.exports = () => ({
         validate: {
             query: joi.object({
                 startTime: joi.string().isoDate(),
-                endTime: joi.string().isoDate()
+                endTime: joi.string().isoDate(),
+                aggregate: joi.boolean().default(false)
             })
         }
     }

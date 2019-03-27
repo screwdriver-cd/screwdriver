@@ -1787,7 +1787,8 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
                     startTime,
-                    endTime
+                    endTime,
+                    aggregate: false
                 });
             })
         );
@@ -1809,7 +1810,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.calledWith(pipelineMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                    startTime: '2018-09-15T21:10:58.211Z', // 6 months
+                    aggregate: false
                 });
                 assert.equal(reply.statusCode, 200);
             });
