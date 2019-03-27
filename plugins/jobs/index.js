@@ -4,8 +4,7 @@ const getRoute = require('./get');
 const updateRoute = require('./update');
 const listBuildsRoute = require('./listBuilds');
 const lastSuccessfulMeta = require('./lastSuccessfulMeta');
-const buildMetricsRoute = require('./buildMetrics');
-const stepMetricsRoute = require('./stepMetrics');
+const metrics = require('./metrics');
 
 /**
  * Job API Plugin
@@ -20,8 +19,7 @@ exports.register = (server, options, next) => {
         updateRoute(),
         listBuildsRoute(),
         lastSuccessfulMeta(),
-        buildMetricsRoute(),
-        stepMetricsRoute()
+        metrics()
     ]);
 
     next();

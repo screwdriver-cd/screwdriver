@@ -7,10 +7,10 @@ const MAX_DAYS = 180; // 6 months
 
 module.exports = () => ({
     method: 'GET',
-    path: '/jobs/{id}/metrics/steps',
+    path: '/jobs/{id}/metrics',
     config: {
-        description: 'Get step metrics for this job',
-        notes: 'Returns list of step metrics for the given job',
+        description: 'Get build metrics for this job',
+        notes: 'Returns list of build metrics for the given job',
         tags: ['api', 'jobs', 'metrics'],
         auth: {
             strategies: ['token'],
@@ -24,7 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.jobFactory;
             const { id } = request.params;
-            const { stepName } = request.query;
+            const { aggregate } = request.query;
             let { startTime, endTime } = request.query;
 
             if (!startTime || !endTime) {
@@ -41,10 +41,10 @@ module.exports = () => ({
                         throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
                     }
 
-                    return job.getStepMetrics({
+                    return job.getMetrics({
                         startTime,
                         endTime,
-                        stepName
+                        aggregate
                     });
                 })
                 .then(metrics => reply(metrics))
@@ -54,7 +54,7 @@ module.exports = () => ({
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
-                stepName: joi.string() // optional, if not passed in will fetch all steps
+                aggregate: joi.boolean().default(false)
             })
         }
     }
