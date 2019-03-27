@@ -399,6 +399,18 @@ describe('job plugin test', () => {
                 });
             })
         );
+
+        it('returns {} if there is no last successful meta', () => {
+            job.getBuilds.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    status: 'SUCCESS'
+                });
+                assert.deepEqual(reply.result, {});
+            });
+        });
     });
 
     describe('GET /jobs/{id}/metrics', () => {
