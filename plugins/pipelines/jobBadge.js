@@ -62,6 +62,17 @@ module.exports = config => ({
                     return reply.redirect(getUrl(badgeConfig));
                 }
 
+                if (job.state === 'DISABLED') {
+                    return reply.redirect(getUrl(Object.assign(
+                        badgeConfig,
+                        {
+                            builds: [{
+                                status: 'DISABLED'
+                            }],
+                            subject: `${pipeline.name}:${jobName}`
+                        })));
+                }
+
                 const listConfig = {
                     paginate: {
                         page: 1,

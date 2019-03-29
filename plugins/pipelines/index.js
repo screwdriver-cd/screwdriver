@@ -32,6 +32,7 @@ const metricsRoute = require('./metrics');
 exports.register = (server, options, next) => {
     const statusColor = {
         unknown: 'lightgrey',
+        disabled: 'lightgrey',
         created: 'lightgrey',
         success: 'green',
         queued: 'blue',
