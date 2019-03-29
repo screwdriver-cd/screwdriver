@@ -793,6 +793,16 @@ describe('pipeline plugin test', () => {
             })
         );
 
+        it('returns 302 to for a job that is disabled', () => {
+            jobMock.state = 'DISABLED';
+
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location,
+                    'foo/bar--test:deploy-disabled-lightgrey');
+            });
+        });
+
         it('returns 302 to unknown for a job that does not exist', () => {
             jobFactoryMock.get.resolves(null);
 
