@@ -73,8 +73,7 @@ function closePullRequest(token, repoOwner, repoName, prNumber) {
         owner: repoOwner,
         repo: repoName,
         number: prNumber,
-        state: 'closed',
-        base: 'master'
+        state: 'closed'
     });
 }
 
