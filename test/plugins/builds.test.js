@@ -1026,6 +1026,28 @@ describe('build plugin test', () => {
             });
 
             describe('workflow', () => {
+                const publishJobMock = {
+                    id: publishJobId,
+                    pipelineId,
+                    state: 'ENABLED'
+                };
+                const src = `~sd@${pipelineId}:main`;
+                const token = 'token';
+                let prRef = '';
+
+                beforeEach(() => {
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: 'main' },
+                            { name: 'publish' }
+                        ],
+                        edges: [
+                            { src: 'main', dest: 'publish' }
+                        ]
+                    };
+                    buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
+                });
+
                 it('triggers next job in the pipeline workflow and external pipelines', () => {
                     const meta = {
                         darren: 'thebest'
@@ -1045,25 +1067,9 @@ describe('build plugin test', () => {
                             status
                         }
                     };
-                    const publishJobMock = {
-                        id: publishJobId,
-                        pipelineId,
-                        state: 'ENABLED'
-                    };
-                    const src = `~sd@${pipelineId}:main`;
 
-                    eventMock.workflowGraph = {
-                        nodes: [
-                            { name: 'main' },
-                            { name: 'publish' }
-                        ],
-                        edges: [
-                            { src: 'main', dest: 'publish' }
-                        ]
-                    };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
-                    buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -1077,6 +1083,7 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
+                            prRef,
                             start: true
                         });
                         assert.calledWith(triggerFactoryMock.list, {
@@ -1108,6 +1115,71 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('triggers next job in the chainPR workflow', () => {
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['build']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    prRef = 'prref';
+
+                    // Event type should be `pr` in chainPR events
+                    eventMock.type = 'pr';
+                    eventMock.prNum = 15;
+
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
+                        .resolves(publishJobMock);
+
+                    // flag should be true in chainPR events
+                    pipelineMock.prChain = true;
+                    pipelineMock.token = sinon.stub().resolves(token);
+                    buildFactoryMock.scm.getPrInfo.resolves({
+                        sha: testBuild.sha,
+                        ref: prRef
+                    });
+
+                    // Set no external pipeline
+                    triggerMocks = [
+                    ];
+                    triggerFactoryMock.list.resolves(triggerMocks);
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
+                        assert.calledOnce(buildFactoryMock.scm.getPrInfo);
+                        assert.calledWith(buildFactoryMock.scm.getPrInfo, {
+                            scmContext,
+                            scmUri,
+                            token: pipelineMock.token,
+                            prNum: eventMock.prNum
+                        });
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId: publishJobId,
+                            sha: testBuild.sha,
+                            parentBuildId: id,
+                            username,
+                            scmContext,
+                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                            configPipelineSha,
+                            prRef,
+                            start: true
+                        });
+                        // Events should not be created if there is no external pipeline
+                        assert.notCalled(eventFactoryMock.create);
+                    });
+                });
+
                 it('skips triggering if there is no nextJobs ', () => {
                     const status = 'SUCCESS';
                     const options = {
@@ -1122,13 +1194,23 @@ describe('build plugin test', () => {
                         }
                     };
 
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~commit' },
+                            { name: 'main' }
+                        ],
+                        edges: [
+                            { src: '~commit', dest: 'main' }
+                        ]
+                    };
+
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                     });
                 });
 
-                it('skips triggering if the job is a PR', () => {
+                it('skips triggering if the job is a PR and chainPR is false', () => {
                     const status = 'SUCCESS';
                     const options = {
                         method: 'PUT',
@@ -1142,7 +1224,12 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    jobMock.name = 'PR-15';
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
+                        .resolves(publishJobMock);
+
+                    // flag should be false in not-chainPR events
+                    pipelineMock.prChain = false;
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -1168,21 +1255,9 @@ describe('build plugin test', () => {
                             status
                         }
                     };
-                    const publishJobMock = {
-                        id: publishJobId,
-                        pipelineId,
-                        state: 'DISABLED'
-                    };
 
-                    eventMock.workflowGraph = {
-                        nodes: [
-                            { name: 'main' },
-                            { name: 'publish' }
-                        ],
-                        edges: [
-                            { src: 'main', dest: 'publish' }
-                        ]
-                    };
+                    publishJobMock.state = 'DISABLED';
+
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
 
@@ -1212,6 +1287,7 @@ describe('build plugin test', () => {
                     state: 'ENABLED'
                 };
                 const jobC = Object.assign({}, jobB, { id: 3 });
+                const prRef = '';
                 let jobBconfig;
                 let jobCconfig;
                 let parentEventMock;
@@ -1261,7 +1337,8 @@ describe('build plugin test', () => {
                         eventId: '8888',
                         username: 12345,
                         scmContext: 'github:github.com',
-                        configPipelineSha: 'abc123'
+                        configPipelineSha: 'abc123',
+                        prRef
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });
