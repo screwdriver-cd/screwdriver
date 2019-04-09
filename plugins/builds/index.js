@@ -30,11 +30,11 @@ const workflowParser = require('screwdriver-workflow-parser');
  */
 async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
     jobName, username, scmContext, build, start }) {
-    const event = await eventFactory.get(build.eventId).catch(err => reply(boom.boomify(err)));
+    const event = await eventFactory.get(build.eventId);
     const job = await jobFactory.get({
         name: jobName,
         pipelineId
-    }).catch(err => reply(boom.boomify(err)));
+    });
     const prRef = event.pr.ref ? event.pr.ref : '';
 
     if (job.state === 'ENABLED') {
