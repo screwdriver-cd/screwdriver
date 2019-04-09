@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('boom');
 const getRoute = require('./get');
 const updateRoute = require('./update');
 const createRoute = require('./create');
@@ -27,30 +28,14 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {Boolean}  [config.start]        Whether to start the build or not
  * @return {Promise}
  */
-async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineFactory,
-    pipelineId, jobName, username, scmContext, build, start }) {
-    const event = await eventFactory.get(build.eventId);
+async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
+    jobName, username, scmContext, build, start }) {
+    const event = await eventFactory.get(build.eventId).catch(err => reply(boom.boomify(err)));
     const job = await jobFactory.get({
         name: jobName,
         pipelineId
-    });
-
-    let prRef = '';
-
-    if (event.type === 'pr') {
-        const scm = buildFactory.scm;
-        const pipeline = await pipelineFactory.get(pipelineId);
-        const token = await pipeline.token;
-        const scmConfig = {
-            scmContext: pipeline.scmContext,
-            scmUri: pipeline.scmUri,
-            token,
-            prNum: event.prNum
-        };
-        const prInfo = await scm.getPrInfo(scmConfig);
-
-        prRef = prInfo.ref;
-    }
+    }).catch(err => reply(boom.boomify(err)));
+    const prRef = event.pr.ref ? event.pr.ref : '';
 
     if (job.state === 'ENABLED') {
         return buildFactory.create({
@@ -287,7 +272,6 @@ exports.register = (server, options, next) => {
         const eventFactory = server.root.app.eventFactory;
         const jobFactory = server.root.app.jobFactory;
         const buildFactory = server.root.app.buildFactory;
-        const pipelineFactory = server.root.app.pipelineFactory;
         const currentJobName = job.name;
         const pipelineId = pipeline.id;
 
@@ -310,7 +294,6 @@ exports.register = (server, options, next) => {
                     jobFactory,
                     buildFactory,
                     eventFactory,
-                    pipelineFactory,
                     pipelineId,
                     jobName: nextJobName,
                     username,

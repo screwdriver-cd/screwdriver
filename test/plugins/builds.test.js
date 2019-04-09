@@ -311,6 +311,7 @@ describe('build plugin test', () => {
                         { src: '~commit', dest: 'main' }
                     ]
                 },
+                pr: {},
                 getBuilds: sinon.stub(),
                 update: sinon.stub(),
                 toJson: sinon.stub().returns({ id: 123 })
@@ -1032,8 +1033,6 @@ describe('build plugin test', () => {
                     state: 'ENABLED'
                 };
                 const src = `~sd@${pipelineId}:main`;
-                const token = 'token';
-                let prRef = '';
 
                 beforeEach(() => {
                     eventMock.workflowGraph = {
@@ -1083,7 +1082,7 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
-                            prRef,
+                            prRef: '',
                             start: true
                         });
                         assert.calledWith(triggerFactoryMock.list, {
@@ -1131,11 +1130,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    prRef = 'prref';
-
-                    // Event type should be `pr` in chainPR events
-                    eventMock.type = 'pr';
-                    eventMock.prNum = 15;
+                    eventMock.pr = { ref: 'pull/15/merge' };
 
                     jobMock.name = 'PR-15:main';
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
@@ -1143,11 +1138,6 @@ describe('build plugin test', () => {
 
                     // flag should be true in chainPR events
                     pipelineMock.prChain = true;
-                    pipelineMock.token = sinon.stub().resolves(token);
-                    buildFactoryMock.scm.getPrInfo.resolves({
-                        sha: testBuild.sha,
-                        ref: prRef
-                    });
 
                     // Set no external pipeline
                     triggerMocks = [
@@ -1157,13 +1147,6 @@ describe('build plugin test', () => {
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
-                        assert.calledOnce(buildFactoryMock.scm.getPrInfo);
-                        assert.calledWith(buildFactoryMock.scm.getPrInfo, {
-                            scmContext,
-                            scmUri,
-                            token: pipelineMock.token,
-                            prNum: eventMock.prNum
-                        });
                         assert.calledWith(buildFactoryMock.create, {
                             jobId: publishJobId,
                             sha: testBuild.sha,
@@ -1172,7 +1155,7 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
-                            prRef,
+                            prRef: eventMock.pr.ref,
                             start: true
                         });
                         // Events should not be created if there is no external pipeline
@@ -1287,7 +1270,6 @@ describe('build plugin test', () => {
                     state: 'ENABLED'
                 };
                 const jobC = Object.assign({}, jobB, { id: 3 });
-                const prRef = '';
                 let jobBconfig;
                 let jobCconfig;
                 let parentEventMock;
@@ -1338,7 +1320,7 @@ describe('build plugin test', () => {
                         username: 12345,
                         scmContext: 'github:github.com',
                         configPipelineSha: 'abc123',
-                        prRef
+                        prRef: ''
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });
