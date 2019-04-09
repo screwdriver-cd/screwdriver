@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('boom');
 const getRoute = require('./get');
 const updateRoute = require('./update');
 const createRoute = require('./create');
