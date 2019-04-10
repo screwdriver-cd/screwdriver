@@ -1797,8 +1797,7 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
                     startTime,
-                    endTime,
-                    aggregate: false
+                    endTime
                 });
             })
         );
@@ -1820,8 +1819,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.calledWith(pipelineMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z', // 6 months
-                    aggregate: false
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
                 });
                 assert.equal(reply.statusCode, 200);
             });
@@ -1839,6 +1837,31 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 400 when option is bad', () => {
+            const errorMsg = 'child "aggregate" fails because ["aggregate" must be one of '
+                + '[none, day, week, month, year]]';
+
+            options.url = `/pipelines/${id}/metrics?aggregate=biweekly`;
+
+            return server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result.message, errorMsg);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('passes in aggregation option', () => {
+            options.url = `/pipelines/${id}/metrics?aggregate=week`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2018-09-15T21:10:58.211Z',
+                    endTime: nowTime,
+                    aggregate: 'week'
+                });
             });
         });
 

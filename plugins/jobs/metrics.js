@@ -41,11 +41,13 @@ module.exports = () => ({
                         throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
                     }
 
-                    return job.getMetrics({
-                        startTime,
-                        endTime,
-                        aggregate
-                    });
+                    const config = { startTime, endTime };
+
+                    if (aggregate) {
+                        config.aggregate = aggregate;
+                    }
+
+                    return job.getMetrics(config);
                 })
                 .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
@@ -54,7 +56,7 @@ module.exports = () => ({
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
-                aggregate: joi.boolean().default(false)
+                aggregate: joi.string().valid('none', 'day', 'week', 'month', 'year')
             })
         }
     }
