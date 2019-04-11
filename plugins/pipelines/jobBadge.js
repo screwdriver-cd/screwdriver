@@ -17,7 +17,7 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
  */
 function getUrl({ badgeService, statusColor, encodeBadgeSubject, builds = [], subject = 'job' }) {
     let color = 'lightgrey';
-    let status = '';
+    let status = 'unknown';
 
     if (builds.length > 0) {
         status = builds[0].status.toLowerCase();
