@@ -41,7 +41,7 @@ function getUrl({
 
     return tinytim.tim(badgeService, {
         subject: encodeBadgeSubject({ badgeService, subject }),
-        status: parts.join(', '),
+        status: parts.length > 0 ? parts.join(', ') : 'unknown',
         color: worst
     });
 }

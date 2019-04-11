@@ -738,7 +738,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline/unknown/lightgrey');
             });
         });
 
@@ -747,7 +747,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline/unknown/lightgrey');
             });
         });
 
@@ -756,7 +756,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline/unknown/lightgrey');
             });
         });
 
@@ -765,7 +765,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'pipeline//lightgrey');
+                assert.deepEqual(reply.headers.location, 'pipeline/unknown/lightgrey');
             });
         });
     });
@@ -808,7 +808,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'job--lightgrey');
+                assert.deepEqual(reply.headers.location, 'job-unknown-lightgrey');
             });
         });
 
@@ -818,7 +818,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
                 assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, 'job**lightgrey');
+                assert.deepEqual(reply.headers.location, 'job*unknown*lightgrey');
             });
         });
     });
