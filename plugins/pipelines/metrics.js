@@ -24,7 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
-            const { aggregate } = request.query;
+            const { aggregateInterval } = request.query;
             let { startTime, endTime } = request.query;
 
             if (!startTime || !endTime) {
@@ -43,8 +43,8 @@ module.exports = () => ({
 
                     const config = { startTime, endTime };
 
-                    if (aggregate) {
-                        config.aggregate = aggregate;
+                    if (aggregateInterval) {
+                        config.aggregateInterval = aggregateInterval;
                     }
 
                     return pipeline.getMetrics(config);
@@ -56,7 +56,7 @@ module.exports = () => ({
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
-                aggregate: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
             })
         }
     }

@@ -478,10 +478,10 @@ describe('job plugin test', () => {
         });
 
         it('returns 400 when option is bad', () => {
-            const errorMsg = 'child "aggregate" fails because ["aggregate" must be one of '
-                + '[none, day, week, month, year]]';
+            const errorMsg = 'child "aggregateInterval" fails because ["aggregateInterval" ' +
+                'must be one of [none, day, week, month, year]]';
 
-            options.url = `/jobs/${id}/metrics?aggregate=biweekly`;
+            options.url = `/jobs/${id}/metrics?aggregateInterval=biweekly`;
 
             return server.inject(options).then((reply) => {
                 assert.deepEqual(reply.result.message, errorMsg);
@@ -490,12 +490,12 @@ describe('job plugin test', () => {
         });
 
         it('passes in aggregation option', () => {
-            options.url = `/jobs/${id}/metrics?aggregate=week`;
+            options.url = `/jobs/${id}/metrics?aggregateInterval=week`;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(jobMock.getMetrics, {
-                    aggregate: 'week',
+                    aggregateInterval: 'week',
                     startTime: '2018-09-15T21:10:58.211Z',
                     endTime: nowTime
                 });
