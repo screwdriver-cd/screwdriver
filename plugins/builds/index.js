@@ -27,30 +27,30 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {Boolean}  [config.start]        Whether to start the build or not
  * @return {Promise}
  */
-function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId, jobName, username,
-    scmContext, build, start }) {
-    return Promise.all([
-        eventFactory.get(build.eventId),
-        jobFactory.get({
-            name: jobName,
-            pipelineId
-        })
-    ]).then(([event, job]) => {
-        if (job.state === 'ENABLED') {
-            return buildFactory.create({
-                jobId: job.id,
-                sha: build.sha,
-                parentBuildId: build.id,
-                eventId: build.eventId,
-                username,
-                configPipelineSha: event.configPipelineSha,
-                scmContext,
-                start: start !== false
-            });
-        }
-
-        return null;
+async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
+    jobName, username, scmContext, build, start }) {
+    const event = await eventFactory.get(build.eventId);
+    const job = await jobFactory.get({
+        name: jobName,
+        pipelineId
     });
+    const prRef = event.pr.ref ? event.pr.ref : '';
+
+    if (job.state === 'ENABLED') {
+        return buildFactory.create({
+            jobId: job.id,
+            sha: build.sha,
+            parentBuildId: build.id,
+            eventId: build.eventId,
+            username,
+            configPipelineSha: event.configPipelineSha,
+            scmContext,
+            prRef,
+            start: start !== false
+        });
+    }
+
+    return null;
 }
 
 /**
