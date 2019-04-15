@@ -449,8 +449,7 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(jobMock.getMetrics, {
                     startTime,
-                    endTime,
-                    aggregate: false
+                    endTime
                 });
             })
         );
@@ -472,10 +471,34 @@ describe('job plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.calledWith(jobMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z', // 6 months
-                    aggregate: false
+                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
                 });
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 400 when option is bad', () => {
+            const errorMsg = 'child "aggregateInterval" fails because ["aggregateInterval" ' +
+                'must be one of [none, day, week, month, year]]';
+
+            options.url = `/jobs/${id}/metrics?aggregateInterval=biweekly`;
+
+            return server.inject(options).then((reply) => {
+                assert.deepEqual(reply.result.message, errorMsg);
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('passes in aggregation option', () => {
+            options.url = `/jobs/${id}/metrics?aggregateInterval=week`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(jobMock.getMetrics, {
+                    aggregateInterval: 'week',
+                    startTime: '2018-09-15T21:10:58.211Z',
+                    endTime: nowTime
+                });
             });
         });
 
