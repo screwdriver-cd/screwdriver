@@ -66,6 +66,8 @@ module.exports = () => ({
             const username = request.auth.credentials.username;
             const isValidToken = request.server.plugins.pipelines.isValidToken;
             const meta = request.payload.meta;
+            const causeMessage = request.payload.causeMessage;
+            const creator = request.payload.creator;
 
             return Promise.resolve().then(() => {
                 const buildId = request.payload.buildId;
@@ -109,6 +111,14 @@ module.exports = () => ({
 
                 if (meta) {
                     payload.meta = meta;
+                }
+
+                if (causeMessage) {
+                    payload.causeMessage = causeMessage;
+                }
+
+                if (creator) {
+                    payload.creator = creator;
                 }
 
                 // Trigger "~pr" needs to have PR number given
