@@ -65,6 +65,8 @@ datastore:
     pool: {}
     retry: {}
     buildMetricsEnabled: "false"
+    # readOnly datastore config
+    # readOnly: {}
 
 executor:
   # Default executor
