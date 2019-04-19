@@ -95,8 +95,9 @@ module.exports = () => ({
 
                         // Update meta and endtime for builds
                         // Stop all builds
+                        // COLLAPSED builds will never run
                         builds.forEach((b) => {
-                            if (['RUNNING', 'QUEUED', 'BLOCKED']
+                            if (['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN']
                                 .includes(b.status)) {
                                 if (b.status === 'RUNNING') {
                                     b.endTime = (new Date()).toISOString();
