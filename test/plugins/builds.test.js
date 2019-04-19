@@ -2046,7 +2046,6 @@ describe('build plugin test', () => {
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
                 assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
-                assert.notDeepProperty(reply.result, 'startTime');
             });
         });
 
