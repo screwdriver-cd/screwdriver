@@ -1137,7 +1137,7 @@ describe('build plugin test', () => {
                         .resolves(publishJobMock);
 
                     // flag should be true in chainPR events
-                    pipelineMock.prChain = true;
+                    pipelineMock.chainPR = true;
 
                     // Set no external pipeline
                     triggerMocks = [
@@ -1212,7 +1212,7 @@ describe('build plugin test', () => {
                         .resolves(publishJobMock);
 
                     // flag should be false in not-chainPR events
-                    pipelineMock.prChain = false;
+                    pipelineMock.chainPR = false;
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);

@@ -229,7 +229,7 @@ describe('event plugin test', () => {
                 unsealToken: sinon.stub().resolves('token')
             }),
             scmUri,
-            prChain: false
+            chainPR: false
         };
 
         beforeEach(() => {
