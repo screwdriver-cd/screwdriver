@@ -237,9 +237,9 @@ async function createPREvents(options, request) {
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         /* eslint-enable no-await-in-loop */
 
-        let eventConfig = {
+        const eventConfig = {
             pipelineId: p.id,
-            type: 'pipeline',
+            type: 'pr',
             webhooks: true,
             username,
             scmContext: scmConfig.scmContext,
@@ -248,7 +248,12 @@ async function createPREvents(options, request) {
             startFrom: `~pr:${branch}`,
             changedFiles,
             causeMessage: `${action} by ${userDisplayName}`,
-            chainPR: resolvedChainPR
+            chainPR: resolvedChainPR,
+            prRef,
+            prNum,
+            prTitle,
+            // eslint-disable-next-line no-await-in-loop
+            prInfo: await eventFactory.scm.getPrInfo(scmConfig)
         };
 
         if (skipMessage) {
@@ -256,15 +261,7 @@ async function createPREvents(options, request) {
         }
 
         if (b === branch) {
-            eventConfig.type = 'pr';
             eventConfig.startFrom = '~pr';
-            eventConfig = Object.assign({
-                prRef,
-                prNum,
-                prTitle,
-                // eslint-disable-next-line no-await-in-loop
-                prInfo: await eventFactory.scm.getPrInfo(scmConfig)
-            }, eventConfig);
         }
 
         events.push(eventFactory.create(eventConfig));

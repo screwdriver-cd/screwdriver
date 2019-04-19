@@ -1161,26 +1161,34 @@ describe('webhooks plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
-                            type: 'pipeline',
+                            type: 'pr',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
+                            prNum: 2,
+                            prRef,
+                            prTitle: 'Update the README with new information',
+                            prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock2.id,
-                            type: 'pipeline',
+                            type: 'pr',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
+                            prNum: 2,
+                            prRef,
+                            prTitle: 'Update the README with new information',
+                            prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles
@@ -1581,26 +1589,34 @@ describe('webhooks plugin test', () => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
-                            type: 'pipeline',
+                            type: 'pr',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
+                            prNum: 1,
+                            prRef,
+                            prTitle: 'Update the README with new information',
+                            prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock2.id,
-                            type: 'pipeline',
+                            type: 'pr',
                             webhooks: true,
                             username,
                             scmContext,
                             sha,
                             configPipelineSha: latestSha,
                             startFrom: '~pr:master',
+                            prNum: 1,
+                            prRef,
+                            prTitle: 'Update the README with new information',
+                            prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles
