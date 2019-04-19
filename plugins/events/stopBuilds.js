@@ -34,7 +34,6 @@ module.exports = () => ({
             const eventId = request.params.id;
             const updateAdmins = request.server.plugins.events.updateAdmins;
 
-            // Get event
             return eventFactory.get(eventId)
                 .then((event) => {
                     // Check if event exists
@@ -42,15 +41,10 @@ module.exports = () => ({
                         throw boom.notFound(`Event ${eventId} does not exist`);
                     }
 
-                    // Check permission
                     return Promise.all([
                         pipelineFactory.get(event.pipelineId),
                         userFactory.get({ username, scmContext })
                     ]).then(([pipeline, user]) => {
-                        // Check if Screwdriver admin
-                        const adminDetails = request.server.plugins.banners
-                            .screwdriverAdminDetails(username, scmContext);
-
                         // In pipeline scope, check if the token is allowed to the pipeline
                         if (!isValidToken(pipeline.id, request.auth.credentials)) {
                             throw boom.unauthorized(
@@ -62,27 +56,20 @@ module.exports = () => ({
                         // Check permissions
                         return user.getPermissions(pipeline.scmUri)
                             .then((userPermissions) => {
+                                const adminDetails = request.server.plugins.banners
+                                    .screwdriverAdminDetails(username, scmContext);
                                 const isPrOwner = hoek.reach(event,
                                     'commit.author.username') === username;
 
                                 permissions = userPermissions;
 
-                                // Check if user has push access or is a Screwdriver admin
-                                if (permissions.push || adminDetails.isAdmin) {
-                                    // Add good user to admins
-                                    return updateAdmins({
-                                        permissions,
-                                        pipeline,
-                                        username
-                                    });
-                                }
-
-                                // PR author should be able to stop their own PR build
-                                if (event.prNum && isPrOwner) {
+                                // PR author should be able to stop their own PR event
+                                // Screwdriver admin can also stop events
+                                if ((event.prNum && isPrOwner) || adminDetails.isAdmin) {
                                     return Promise.resolve();
                                 }
 
-                                // Remove user from admins
+                                // Check permissions and update user in admins list
                                 return updateAdmins({
                                     permissions,
                                     pipeline,
@@ -93,9 +80,8 @@ module.exports = () => ({
                     }).then(() => event.getBuilds().then((builds) => {
                         const toUpdate = [];
 
-                        // Update meta and endtime for builds
-                        // Stop all builds
-                        // COLLAPSED builds will never run
+                        // Update endtime and stop running builds
+                        // Note: COLLAPSED builds will never run
                         builds.forEach((b) => {
                             if (['CREATED', 'RUNNING', 'QUEUED', 'BLOCKED', 'FROZEN']
                                 .includes(b.status)) {
