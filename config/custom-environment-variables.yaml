@@ -81,6 +81,17 @@ datastore:
       __name: DATASTORE_SEQUELIZE_RETRY
       __format: json
     buildMetricsEnabled: DATASTORE_SEQUELIZE_CAPTURE_METRICS_ENABLED
+    readOnly:
+      __name: DATASTORE_SEQUELIZE_RO
+      __format: json
+      # dialect: sequelize
+      # database:
+      # username:
+      # password:
+      # host:
+      # port:
+      # More arguments here:
+      # http://docs.sequelizejs.com/en/latest/api/sequelize/
 
 executor:
   plugin: EXECUTOR_PLUGIN

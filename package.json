@@ -92,15 +92,15 @@
     "screwdriver-command-validator": "^1.0.5",
     "screwdriver-config-parser": "^4.11.1",
     "screwdriver-coverage-bookend": "^1.0.2",
-    "screwdriver-coverage-sonar": "^1.0.16",
+    "screwdriver-coverage-sonar": "^1.0.17",
     "screwdriver-data-schema": "^18.45.2",
     "screwdriver-datastore-sequelize": "^5.7.1",
     "screwdriver-executor-docker": "^4.2.0",
     "screwdriver-executor-k8s": "^13.6.1",
     "screwdriver-executor-k8s-vm": "^2.10.0",
-    "screwdriver-executor-queue": "^2.4.10",
+    "screwdriver-executor-queue": "^2.4.11",
     "screwdriver-executor-router": "^1.0.11",
-    "screwdriver-models": "^27.31.9",
+    "screwdriver-models": "^27.31.17",
     "screwdriver-notifications-email": "^1.1.9",
     "screwdriver-notifications-slack": "^2.2.0",
     "screwdriver-scm-github": "^9.1.2",
@@ -132,7 +132,7 @@
     "node-plantuml": "^0.5.0",
     "npm-auto-version": "^1.0.0",
     "rewire": "^4.0.1",
-    "sinon": "^7.3.1",
+    "sinon": "^7.3.2",
     "stream-to-promise": "^2.2.0"
   }
 }
