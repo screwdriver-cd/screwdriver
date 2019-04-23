@@ -32,6 +32,19 @@ const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
+
+const datastorePluginConfig = datastoreConfig[datastoreConfig.plugin];
+
+// Readonly Datastore
+const datastoreROConfig = datastorePluginConfig.readOnly;
+let datastoreRO;
+
+if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
+    datastoreRO = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastoreROConfig));
+}
+delete datastorePluginConfig.readOnly;
+
+// Default datastore
 const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
     (datastoreConfig[datastoreConfig.plugin] || {})));
 
@@ -86,28 +99,35 @@ const executor = new ExecutorPlugin(Object.assign(
 
 // Setup Model Factories
 const commandFactory = Models.CommandFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const commandTagFactory = Models.CommandTagFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const templateFactory = Models.TemplateFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const templateTagFactory = Models.TemplateTagFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const jobFactory = Models.JobFactory.getInstance({
     datastore,
+    datastoreRO,
     executor
 });
 const userFactory = Models.UserFactory.getInstance({
     datastore,
+    datastoreRO,
     scm,
     password: authConfig.encryptionPassword
 });
 const buildFactory = Models.BuildFactory.getInstance({
     datastore,
+    datastoreRO,
     dockerRegistry: ecosystem.dockerRegistry,
     scm,
     executor,
@@ -116,32 +136,40 @@ const buildFactory = Models.BuildFactory.getInstance({
     multiBuildClusterEnabled
 });
 const stepFactory = Models.StepFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const secretFactory = Models.SecretFactory.getInstance({
     datastore,
+    datastoreRO,
     password: authConfig.encryptionPassword
 });
 const tokenFactory = Models.TokenFactory.getInstance({
     datastore,
+    datastoreRO,
     password: authConfig.hashingPassword
 });
 const eventFactory = Models.EventFactory.getInstance({
     datastore,
+    datastoreRO,
     scm
 });
 const bannerFactory = Models.BannerFactory.getInstance({
     datastore,
+    datastoreRO,
     scm
 });
 const collectionFactory = Models.CollectionFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const triggerFactory = Models.TriggerFactory.getInstance({
-    datastore
+    datastore,
+    datastoreRO
 });
 const buildClusterFactory = Models.BuildClusterFactory.getInstance({
     datastore,
+    datastoreRO,
     scm
 });
 

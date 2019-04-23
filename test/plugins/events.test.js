@@ -8,6 +8,7 @@ const hoek = require('hoek');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 const testEvent = require('./data/events.json')[0];
+const testEventPr = require('./data/eventsPr.json')[0];
 const urlLib = require('url');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -15,6 +16,7 @@ sinon.assert.expose(assert, { prefix: '' });
 const decorateBuildMock = (build) => {
     const mock = hoek.clone(build);
 
+    mock.update = sinon.stub().resolves();
     mock.toJson = sinon.stub().returns(build);
 
     return mock;
@@ -38,6 +40,8 @@ const getEventMock = (event) => {
 };
 
 describe('event plugin test', () => {
+    let bannerMock;
+    let screwdriverAdminDetailsMock;
     let eventFactoryMock;
     let pipelineFactoryMock;
     let userFactoryMock;
@@ -54,6 +58,7 @@ describe('event plugin test', () => {
     });
 
     beforeEach((done) => {
+        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
         eventFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -77,9 +82,17 @@ describe('event plugin test', () => {
         buildFactoryMock = {
             get: sinon.stub()
         };
-
         jobFactoryMock = {
             get: sinon.stub()
+        };
+        bannerMock = {
+            register: (s, o, next) => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                next();
+            }
+        };
+        bannerMock.register.attributes = {
+            name: 'banners'
         };
 
         /* eslint-disable global-require */
@@ -107,7 +120,7 @@ describe('event plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
+        server.register([bannerMock, {
             register: plugin
         }, {
             // eslint-disable-next-line global-require
@@ -681,6 +694,197 @@ describe('event plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
                 delete testEvent.builds;
+            });
+        });
+    });
+
+    describe('PUT /events/{id}/stop', () => {
+        const pipelineId = 123;
+        const scmContext = 'github:github.com';
+        const scmUri = 'github.com:12345:branchName';
+        const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const pipelineMock = {
+            id: pipelineId,
+            checkoutUrl,
+            update: sinon.stub().resolves(),
+            admins: { foo: true, bar: true },
+            admin: Promise.resolve({
+                username: 'foo',
+                unsealToken: sinon.stub().resolves('token')
+            }),
+            scmUri,
+            prChain: false
+        };
+        const id = 123;
+        const username = 'myself';
+        let expectedLocation;
+        let builds;
+        let event;
+        let options;
+        let userMock;
+
+        beforeEach(() => {
+            userMock = {
+                username,
+                getPermissions: sinon.stub().resolves({ push: true }),
+                unsealToken: sinon.stub().resolves('iamtoken')
+            };
+            options = {
+                method: 'PUT',
+                url: `/events/${id}/stop`,
+                credentials: {
+                    scope: ['user'],
+                    username,
+                    scmContext
+                }
+            };
+
+            userFactoryMock.get.resolves(userMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            event = getEventMock(testEvent);
+            builds = getBuildMocks(testBuilds);
+
+            eventFactoryMock.get.withArgs(id).resolves(event);
+            event.getBuilds.resolves(builds);
+
+            builds[2].update.resolves({ status: 'ABORTED' });
+        });
+
+        it('returns 200 and stops all event builds', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+            })
+        );
+
+        it('returns 200 and stops all event builds when user has push permission' +
+            'and is not Screwdriver admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+            });
+        });
+
+        it('returns 200 and stops all event builds when user is PR owner' +
+            ' and does not have push permission and is not Screwdriver admin', () => {
+            event = getEventMock(testEventPr);
+            eventFactoryMock.get.withArgs(id).resolves(event);
+            event.getBuilds.resolves(builds);
+            userMock = {
+                username: 'imbatman',
+                getPermissions: sinon.stub().resolves({ push: false })
+            };
+            options.credentials.username = 'imbatman';
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+            });
+        });
+
+        it('returns 403 forbidden error when user does not have push permission' +
+            ' and is not Screwdriver admin and is not PR owner', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User myself does not have push permission for this repo'
+            };
+
+            userMock.getPermissions.resolves({ push: false });
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 200 when it successfully stops all event builds with pipeline token', () => {
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId
+            };
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 200);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+            });
+        });
+
+        it('returns 401 unauthorized error when pipeline token does not have permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'Token does not have permission to this pipeline'
+            };
+
+            options.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: pipelineId + 1
+            };
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when event does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Event ${id} does not exist`
+            };
+
+            eventFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            eventFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
