@@ -33,7 +33,7 @@ const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
 
-const datastorePluginConfig = datastoreConfig[datastoreConfig.plugin];
+const datastorePluginConfig = Object.assign({}, datastoreConfig[datastoreConfig.plugin]);
 
 // Readonly Datastore
 const datastoreROConfig = datastorePluginConfig.readOnly;
@@ -46,7 +46,7 @@ delete datastorePluginConfig.readOnly;
 
 // Default datastore
 const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
-    (datastoreConfig[datastoreConfig.plugin] || {})));
+    (datastorePluginConfig || {})));
 
 // Source Code Plugin
 const scmConfig = { scms: config.get('scms') };
