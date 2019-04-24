@@ -158,7 +158,7 @@ module.exports = () => ({
 
                                         payload.prInfo = prInfo;
                                         payload.prRef = prInfo.ref;
-                                        payload.chainPR = pipeline.prChain;
+                                        payload.chainPR = pipeline.chainPR;
 
                                         // PR author should be able to rerun their own PR build
                                         if (prInfo.username === username) {
