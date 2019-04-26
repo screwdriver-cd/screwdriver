@@ -9,6 +9,9 @@
     "endTime": "2038-01-19T03:16:10.131Z",
     "parameters": {},
     "stats": {},
+    "environment": {
+      "FOO": "bar"
+    },
     "steps": [
         {
             "name": "sd-setup",

@@ -22,8 +22,11 @@ const decorateSecretObject = (secret) => {
 
 const decorateBuildObject = (build) => {
     const decorated = hoek.clone(build);
+    const updatedBuild = {
+        toJson: sinon.stub().returns(build)
+    };
 
-    decorated.update = sinon.stub();
+    decorated.update = sinon.stub().resolves(updatedBuild);
     decorated.start = sinon.stub();
     decorated.stop = sinon.stub();
     decorated.toJson = sinon.stub().returns(build);
@@ -232,6 +235,7 @@ describe('build plugin test', () => {
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
+                assert.calledOnce(buildMock.update);
                 assert.deepEqual(reply.result, testBuild);
             });
         });
