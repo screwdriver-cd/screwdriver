@@ -240,6 +240,20 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 200 for a build that exists - env is an array', () => {
+            const buildMock = getBuildMock(testBuild);
+
+            buildMock.environment = [];
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.notCalled(buildMock.update);
+                assert.deepEqual(reply.result, testBuild);
+            });
+        });
+
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
