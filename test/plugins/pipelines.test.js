@@ -1309,7 +1309,41 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
-                    token
+                    token,
+                    rootDir: ''
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('formats the rootDir correctly', () => {
+            const scmUriWithRootDir = 'github.com:12345:master:src/app/component';
+
+            options.payload.rootDir = '/src/app/component/';
+            pipelineFactoryMock.scm.parseUrl.resolves(scmUriWithRootDir);
+            userMock.getPermissions.withArgs(scmUriWithRootDir).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'src/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUriWithRootDir);
+            });
+        });
+
+        it('formats the rootDir correctly when rootDir is /', () => {
+            options.payload.rootDir = '/';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
                 });
                 assert.calledWith(userMock.getPermissions, scmUri);
             });
@@ -1456,9 +1490,28 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
-                    token
+                    token,
+                    rootDir: ''
                 });
                 assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('formats the rootDir correctly', () => {
+            const scmUriWithRootDir = 'github.com:12345:master:src/app/component';
+
+            options.payload.rootDir = '/src/app/component/';
+            pipelineFactoryMock.scm.parseUrl.resolves(scmUriWithRootDir);
+            userMock.getPermissions.withArgs(scmUriWithRootDir).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'src/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUriWithRootDir);
             });
         });
 
@@ -1471,7 +1524,8 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
-                    token
+                    token,
+                    rootDir: ''
                 });
                 assert.calledWith(userMock.getPermissions, scmUri);
             });

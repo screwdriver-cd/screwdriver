@@ -26,6 +26,27 @@ const formatCheckoutUrl = (checkoutUrl) => {
     return result;
 };
 
+/**
+ * Get rid of leading/trailing slashes in rootDir, return empty string as default
+ * @method sanitizeRootDir
+ * @param  {String}     rootDir     Root directory (ex: /src/component/app/ or /)
+ * @return {String}                 Root dir with no leading/trailing slashes
+ */
+const sanitizeRootDir = (rootDir = '') => {
+    let result = rootDir;
+
+    if (rootDir.startsWith('/')) {
+        result = result.slice(1);
+    }
+
+    if (rootDir.endsWith('/')) {
+        result = result.slice(0, -1);
+    }
+
+    return result;
+};
+
 module.exports = {
-    formatCheckoutUrl
+    formatCheckoutUrl,
+    sanitizeRootDir
 };

@@ -23,8 +23,8 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
+            const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
+            const { pipelineFactory, userFactory } = request.server.app;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
 
@@ -33,6 +33,7 @@ module.exports = () => ({
                 .then(user => user.unsealToken()
                     .then(token => pipelineFactory.scm.parseUrl({
                         scmContext,
+                        rootDir,
                         checkoutUrl,
                         token
                     }))
