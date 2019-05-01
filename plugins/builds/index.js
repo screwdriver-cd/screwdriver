@@ -40,7 +40,7 @@ async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
         return buildFactory.create({
             jobId: job.id,
             sha: build.sha,
-            parentBuildId: [build.id],
+            parentBuildId: build.id,
             eventId: build.eventId,
             username,
             configPipelineSha: event.configPipelineSha,
@@ -122,6 +122,13 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
         if (!noFailedBuilds) {
             return nextBuild ? nextBuild.remove() : null;
         }
+        
+        
+        // Get upstream buildIds
+        const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
+            .map(b => b.id);
+        
+        buildConfig.parentBuildId = successBuildsIds;
 
         // If everything successful so far, create or update
         // [A B] -> C. A passed -> create C
@@ -131,11 +138,7 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
 
             return createBuild(buildConfig);
         }
-
-        // If build is already created, update the parentBuildId
-        const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
-            .map(b => b.id);
-
+        
         nextBuild.parentBuildId = successBuildsIds;
 
         return nextBuild.update();
