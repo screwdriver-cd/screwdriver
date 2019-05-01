@@ -122,12 +122,11 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
         if (!noFailedBuilds) {
             return nextBuild ? nextBuild.remove() : null;
         }
-        
-        
+
         // Get upstream buildIds
         const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
             .map(b => b.id);
-        
+
         buildConfig.parentBuildId = successBuildsIds;
 
         // If everything successful so far, create or update
@@ -138,7 +137,7 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
 
             return createBuild(buildConfig);
         }
-        
+
         nextBuild.parentBuildId = successBuildsIds;
 
         return nextBuild.update();
