@@ -40,7 +40,7 @@ async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
         return buildFactory.create({
             jobId: job.id,
             sha: build.sha,
-            parentBuildId: build.id,
+            parentBuildId: [build.id],
             eventId: build.eventId,
             username,
             configPipelineSha: event.configPipelineSha,
