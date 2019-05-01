@@ -32,19 +32,7 @@ const formatCheckoutUrl = (checkoutUrl) => {
  * @param  {String}     rootDir     Root directory (ex: /src/component/app/ or /)
  * @return {String}                 Root dir with no leading/trailing slashes
  */
-const sanitizeRootDir = (rootDir = '') => {
-    let result = rootDir;
-
-    if (rootDir.startsWith('/')) {
-        result = result.slice(1);
-    }
-
-    if (rootDir.endsWith('/')) {
-        result = result.slice(0, -1);
-    }
-
-    return result;
-};
+const sanitizeRootDir = (rootDir = '') => rootDir.replace(/^\/+|\/+$/g, '');
 
 module.exports = {
     formatCheckoutUrl,
