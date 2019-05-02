@@ -11,6 +11,7 @@ const listRoute = require('./list');
 const badgeRoute = require('./badge');
 const jobBadgeRoute = require('./jobBadge');
 const listJobsRoute = require('./listJobs');
+const listTriggersRoute = require('./listTriggers');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
 const startAllRoute = require('./startAll');
@@ -93,6 +94,7 @@ exports.register = (server, options, next) => {
         badgeRoute({ statusColor }),
         jobBadgeRoute({ statusColor }),
         listJobsRoute(),
+        listTriggersRoute(),
         listSecretsRoute(),
         listEventsRoute(),
         startAllRoute(),
