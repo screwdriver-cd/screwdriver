@@ -11,6 +11,7 @@ const testPipelines = require('./data/pipelines.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
+const testTriggers = require('./data/triggers.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/events.json');
@@ -69,6 +70,22 @@ const getJobsMocks = (jobs) => {
     }
 
     return decorateJobMock(jobs);
+};
+
+const decorateTriggerMock = (trigger) => {
+    const mock = hoek.clone(trigger);
+
+    mock.toJson = sinon.stub().returns(trigger);
+
+    return mock;
+};
+
+const getTriggersMocks = (triggers) => {
+    if (Array.isArray(triggers)) {
+        return triggers.map(decorateTriggerMock);
+    }
+
+    return decorateTriggerMock(triggers);
 };
 
 const decoratePipelineMock = (pipeline) => {
@@ -151,6 +168,7 @@ describe('pipeline plugin test', () => {
     let eventFactoryMock;
     let tokenFactoryMock;
     let jobFactoryMock;
+    let triggerFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
@@ -192,6 +210,9 @@ describe('pipeline plugin test', () => {
         jobFactoryMock = {
             get: sinon.stub()
         };
+        triggerFactoryMock = {
+            getTriggers: sinon.stub()
+        };
         bannerMock = {
             register: (s, o, next) => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
@@ -211,6 +232,7 @@ describe('pipeline plugin test', () => {
         server.app = {
             eventFactory: eventFactoryMock,
             jobFactory: jobFactoryMock,
+            triggerFactory: triggerFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
             tokenFactory: tokenFactoryMock,
@@ -695,6 +717,48 @@ describe('pipeline plugin test', () => {
                 });
                 assert.deepEqual(reply.result, testJobs);
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/triggers', () => {
+        const id = '123';
+        let options;
+        let pipelineMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/triggers`
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            triggerFactoryMock.getTriggers.resolves(getTriggersMocks(testTriggers));
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for getting triggers', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(triggerFactoryMock.getTriggers, {
+                    pipelineId: id
+                });
+                assert.deepEqual(reply.result, testTriggers);
+            })
+        );
+
+        it('returns 404 for updating a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', () => {
+            pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
