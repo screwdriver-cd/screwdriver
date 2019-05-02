@@ -1,0 +1,14 @@
+[
+    {
+        "jobName": "main",
+        "triggers": ["~sd@123:main", "~sd@234:main"]
+    },
+    {
+        "jobName": "beta",
+        "triggers": []
+    },
+    {
+        "jobName": "prod",
+        "triggers": ["~sd@345:beta", "~sd@456:deploy"]
+    }
+]

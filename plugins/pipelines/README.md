@@ -110,6 +110,10 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/jobs?archived={boolean}`
 
+#### Get all triggers
+
+`GET /pipelines/{id}/triggers`
+
 #### Get all pipeline secrets
 
 `GET /pipelines/{id}/secrets`
