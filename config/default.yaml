@@ -274,3 +274,8 @@ ecosystem:
   dockerRegistry: ""
   # Extra origins allowed to do CORS to API
   allowCors: []
+
+# default cluster environment variables to inject into builds
+build:
+  environment:
+    SD_VERSION: 4

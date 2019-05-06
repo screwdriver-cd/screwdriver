@@ -359,7 +359,7 @@ async function pullRequestClosed(options, request, reply) {
     }
 
     return pipeline.sync()
-        .then(p => p.jobs)
+        .then(p => p.getJobs({ type: 'pr' }))
         .then((jobs) => {
             const prJobs = jobs.filter(j => j.name.includes(name));
 
@@ -401,7 +401,7 @@ async function pullRequestSync(options, request, reply) {
 
         options.resolvedChainPR = resolveChainPR(chainPR, p);
 
-        await p.jobs.then(jobs => jobs.filter(j => j.name.includes(name)))
+        await p.getJobs({ type: 'pr' }).then(jobs => jobs.filter(j => j.name.includes(name)))
             .then(prJobs => Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action }))));
 
         request.log(['webhook', hookId], `Job(s) for ${name} stopped`);

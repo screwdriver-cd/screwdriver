@@ -39,6 +39,9 @@ server.register({
 
 `GET /events/{id}/metrics?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
 
+#### Stops all builds associated with the event
+`PUT /events/{id}/stop`
+
 
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server app values:

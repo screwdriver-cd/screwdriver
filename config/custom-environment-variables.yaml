@@ -367,3 +367,8 @@ ecosystem:
   allowCors:
     __name: ECOSYSTEM_ALLOW_CORS
     __format: json
+
+build:
+  environment:
+    __name: CLUSTER_ENVIRONMENT_VARIABLES
+    __format: json

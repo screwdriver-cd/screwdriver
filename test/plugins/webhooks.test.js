@@ -365,7 +365,7 @@ describe('webhooks plugin test', () => {
                 workflowGraph,
                 sync: sinon.stub(),
                 getConfiguration: sinon.stub(),
-                jobs: Promise.resolve([mainJobMock, jobMock]),
+                getJobs: sinon.stub().resolves([mainJobMock, jobMock]),
                 branch: Promise.resolve('master'),
                 update: sinon.stub()
             };
