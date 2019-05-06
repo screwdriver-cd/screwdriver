@@ -31,7 +31,19 @@ module.exports = () => ({
                         throw boom.notFound('Build does not exist');
                     }
 
-                    return reply(model.toJson());
+                    if (Array.isArray(model.environment)) {
+                        return reply(model.toJson());
+                    }
+
+                    // convert environment obj to array
+                    const env = [];
+
+                    Object.keys(model.environment).forEach((name) => {
+                        env.push({ [name]: model.environment[name] });
+                    });
+                    model.environment = env;
+
+                    return model.update().then(m => reply(m.toJson()));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
