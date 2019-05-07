@@ -30,7 +30,12 @@ const notificationConfig = config.get('notifications');
 const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
 
 // Default cluster environment variable
-const clusterEnv = config.get('build').environment;
+const clusterEnvConfig = config.get('build').environment; // readonly
+const clusterEnv = Object.assign({}, clusterEnvConfig);
+
+Object.keys(clusterEnv).forEach((k) => {
+    clusterEnv[k] = String(clusterEnv[k]);
+});
 
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
