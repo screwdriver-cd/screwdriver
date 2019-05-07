@@ -66,7 +66,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                     return;
                 }
 
-                request({
+                /* eslint-disable-next-line consistent-return */
+                return request({
                     uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
                     + `/${this.command}`,
                     method: 'DELETE',
