@@ -323,7 +323,11 @@ async function pullRequestOpened(options, request, reply) {
 
             return reply().code(201);
         })
-        .catch(err => reply(boom.boomify(err)));
+        .catch((err) => {
+            winston.error(`[${hookId}]: ${err}`);
+
+            return reply(boom.boomify(err));
+        });
 }
 
 /**
@@ -366,7 +370,11 @@ async function pullRequestClosed(options, request, reply) {
             return Promise.all(prJobs.map(j => updatePRJobs(j)));
         })
         .then(() => reply().code(200))
-        .catch(err => reply(boom.boomify(err)));
+        .catch((err) => {
+            winston.error(`[${hookId}]: ${err}`);
+
+            return reply(boom.boomify(err));
+        });
 }
 
 /**
@@ -415,7 +423,11 @@ async function pullRequestSync(options, request, reply) {
 
             return reply().code(201);
         })
-        .catch(err => reply(boom.boomify(err)));
+        .catch((err) => {
+            winston.error(`[${hookId}]: ${err}`);
+
+            return reply(boom.boomify(err));
+        });
 }
 
 /**
@@ -526,7 +538,11 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
                     return pullRequestClosed(options, request, reply);
                 }
             });
-    }).catch(err => reply(boom.boomify(err)));
+    }).catch((err) => {
+        winston.error(`[${hookId}]: ${err}`);
+
+        return reply(boom.boomify(err));
+    });
 }
 
 /**
@@ -647,6 +663,8 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
 
         return reply().code(201);
     } catch (err) {
+        winston.error(`[${hookId}]: ${err}`);
+
         return reply(boom.boomify(err));
     }
 }
@@ -715,6 +733,7 @@ exports.register = (server, options, next) => {
                 const ignoreUser = pluginOptions.ignoreCommitsBy;
                 let message = 'Unable to process this kind of event';
                 let skipMessage;
+                let parsedHookId = '';
 
                 try {
                     const parsed = await scm.parseHook(request.headers, request.payload);
@@ -724,6 +743,8 @@ exports.register = (server, options, next) => {
                     }
 
                     const { type, hookId, username, scmContext, ref, checkoutUrl, action } = parsed;
+
+                    parsedHookId = hookId;
 
                     request.log(['webhook', hookId], `Received event type ${type}`);
 
@@ -780,6 +801,8 @@ exports.register = (server, options, next) => {
 
                     return pushEvent(pluginOptions, request, reply, parsed, skipMessage, token);
                 } catch (err) {
+                    winston.error(`[${parsedHookId}]: ${err}`);
+
                     return reply(boom.boomify(err));
                 }
             }
