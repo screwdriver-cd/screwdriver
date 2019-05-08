@@ -45,15 +45,12 @@ Create a pipeline and create a job called 'main'
 **Arguments**
 
 * `checkoutUrl` - Source code URL for the application. For a git-based repository, it is typically the SSH endpoint and the branch name, separated by a octothorpe. Must be unique.
-* `configUrl` - *Optional* Source code URL for Screwdriver configuration, if it is in a different location than the
-source code. For a git-based repository, it is typically the SSH endpoint and the branch name, separated by a octothorpe.
 * `rootDir` - *Optional* Root directory where the source code lives. Default to empty string.
 
 Example payload:
 ```json
 {
   "checkoutUrl": "git@github.com:screwdriver-cd/data-model.git#master",
-  "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master",
   "rootDir": "src/app/component"
 }
 ```
