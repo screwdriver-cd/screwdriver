@@ -29,6 +29,14 @@ const notificationConfig = config.get('notifications');
 // Multiple build cluster feature flag
 const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
 
+// Default cluster environment variable
+const clusterEnvConfig = config.get('build').environment; // readonly
+const clusterEnv = Object.assign({}, clusterEnvConfig);
+
+Object.keys(clusterEnv).forEach((k) => {
+    clusterEnv[k] = String(clusterEnv[k]);
+});
+
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
@@ -77,7 +85,7 @@ const bookend = new Bookend({
     'screwdriver-cache-bookend': cache
 },
 bookends.setup || [], // plugins required for the setup- steps
-bookends.teardown || [] // plugins required for the teardown- steps
+bookends.teardown || [] // plugins required for the teardown-steps
 );
 
 // Setup Pipeline Factory for Executor
@@ -152,7 +160,8 @@ const tokenFactory = Models.TokenFactory.getInstance({
 const eventFactory = Models.EventFactory.getInstance({
     datastore,
     datastoreRO,
-    scm
+    scm,
+    clusterEnv
 });
 const bannerFactory = Models.BannerFactory.getInstance({
     datastore,
@@ -170,7 +179,8 @@ const triggerFactory = Models.TriggerFactory.getInstance({
 const buildClusterFactory = Models.BuildClusterFactory.getInstance({
     datastore,
     datastoreRO,
-    scm
+    scm,
+    clusterEnv
 });
 
 // @TODO run setup for SCM and Executor
