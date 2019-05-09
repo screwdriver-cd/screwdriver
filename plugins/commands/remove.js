@@ -33,7 +33,7 @@ function removeCommand(command, storeUrl, authToken) {
             return resolve(response);
         });
     }).then((response) => {
-        if (response.statusCode !== 200) {
+        if (response.statusCode !== 204) {
             throw new Error('An error occured when '
                 + `trying to remove binary from the store:${response.body.message}`);
         }
