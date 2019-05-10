@@ -600,6 +600,15 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         await updateAdmins(userFactory, username, scmContext, p);
         /* eslint-enable no-await-in-loop */
 
+        const checkStartFroms = ['~tag', '~release'];
+
+        if (checkStartFroms.includes(startFrom) && !hasTriggeredJob(p, startFrom)) {
+            winston.info(
+                `event is not created because there are no jobs triggered by ${startFrom}`
+            );
+            continue; // eslint-disable-line no-continue
+        }
+
         events.push(eventFactory.create(eventConfig));
     }
 

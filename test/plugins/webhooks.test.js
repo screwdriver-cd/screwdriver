@@ -500,6 +500,26 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 204 when there is no job to trigger', () => {
+                const tagWorkflowMock = {
+                    nodes: [
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'main' }
+                    ]
+                };
+
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                });
+            });
+
             it('returns 201 on success with tag branch trigger', () => {
                 const tagWorkflowMock = {
                     nodes: [
@@ -599,6 +619,26 @@ describe('webhooks plugin test', () => {
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined
                     });
+                });
+            });
+
+            it('returns 204 when there is no job to trigger', () => {
+                const releaseWorkflowMock = {
+                    nodes: [
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'main' }
+                    ]
+                };
+
+                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
                 });
             });
 
