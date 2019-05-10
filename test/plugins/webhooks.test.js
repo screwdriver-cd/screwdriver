@@ -500,7 +500,7 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 204 when there is no job to trigger', () => {
+            it('returns 204 and not create event when there is no job to trigger', () => {
                 const tagWorkflowMock = {
                     nodes: [
                         { name: '~commit' },
@@ -517,6 +517,7 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
                 });
             });
 
@@ -622,7 +623,7 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 204 when there is no job to trigger', () => {
+            it('returns 204 and not create event when there is no job to trigger', () => {
                 const releaseWorkflowMock = {
                     nodes: [
                         { name: '~commit' },
@@ -639,6 +640,7 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
                 });
             });
 
