@@ -10,7 +10,6 @@ const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
 const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
 const EXTRA_TRIGGERS = schema.config.regex.EXTRA_TRIGGERS;
-const EXTRA_TRIGGERS_REGEXP = new RegExp(EXTRA_TRIGGERS);
 const CHECKOUT_URL_SCHEMA = schema.config.regex.CHECKOUT_URL;
 const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const WAIT_FOR_CHANGEDFILES = 1.8;
@@ -575,7 +574,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
 
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
-        if (startFrom.match(EXTRA_TRIGGERS_REGEXP) && !hasTriggeredJob(p, startFrom)) {
+        if (EXTRA_TRIGGERS.test(startFrom) && !hasTriggeredJob(p, startFrom)) {
             winston.info(`Event not created: there are no jobs triggered by ${startFrom}`);
         } else {
             /* eslint-disable no-await-in-loop */
