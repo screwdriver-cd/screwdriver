@@ -141,7 +141,8 @@ const buildFactory = Models.BuildFactory.getInstance({
     executor,
     bookend,
     uiUri: ecosystem.ui,
-    multiBuildClusterEnabled
+    multiBuildClusterEnabled,
+    clusterEnv
 });
 const stepFactory = Models.StepFactory.getInstance({
     datastore,
@@ -160,8 +161,7 @@ const tokenFactory = Models.TokenFactory.getInstance({
 const eventFactory = Models.EventFactory.getInstance({
     datastore,
     datastoreRO,
-    scm,
-    clusterEnv
+    scm
 });
 const bannerFactory = Models.BannerFactory.getInstance({
     datastore,
@@ -179,8 +179,7 @@ const triggerFactory = Models.TriggerFactory.getInstance({
 const buildClusterFactory = Models.BuildClusterFactory.getInstance({
     datastore,
     datastoreRO,
-    scm,
-    clusterEnv
+    scm
 });
 
 // @TODO run setup for SCM and Executor
