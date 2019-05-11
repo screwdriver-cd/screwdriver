@@ -1428,6 +1428,21 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns default rootDir when rootDir is invalid', () => {
+            options.payload.rootDir = '../src/app/component';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
