@@ -548,6 +548,40 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
 }
 
 /**
+ * Create metadata by the parsed event
+ * @param   {Object}   parsed   It has information to create metadata
+ * @returns {Object}            Metadata
+ */
+function createMeta(parsed) {
+    const { action, ref, releaseId, releaseName, releaseAuthor } = parsed;
+
+    if (action === 'release') {
+        return {
+            sd: {
+                release: {
+                    id: releaseId,
+                    name: releaseName,
+                    author: releaseAuthor
+                },
+                tag: {
+                    name: ref
+                }
+            }
+        };
+    } else if (action === 'tag') {
+        return {
+            sd: {
+                tag: {
+                    name: ref
+                }
+            }
+        };
+    }
+
+    return {};
+}
+
+/**
  * Create events for each pipeline
  * @async   createEvents
  * @param   {EventFactory}       eventFactory       To create event
@@ -562,6 +596,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     pipelines, parsed, skipMessage) {
     const { action, branch, sha, username, scmContext, changedFiles, type } = parsed;
     const events = [];
+    const meta = createMeta(parsed);
 
     for (let i = 0; i < pipelines.length; i += 1) {
         const p = pipelines[i];
@@ -595,7 +630,8 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
                 configPipelineSha,
                 changedFiles,
                 commitBranch: branch,
-                causeMessage: `Merged by ${username}`
+                causeMessage: `Merged by ${username}`,
+                meta
             };
 
             if (skipMessage) {

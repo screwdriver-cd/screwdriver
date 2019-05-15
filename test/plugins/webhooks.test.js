@@ -495,7 +495,14 @@ describe('webhooks plugin test', () => {
                         startFrom: '~tag',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles: undefined
+                        changedFiles: undefined,
+                        meta: {
+                            sd: {
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
                     });
                 });
             });
@@ -552,7 +559,14 @@ describe('webhooks plugin test', () => {
                         startFrom: '~tag:branch',
                         commitBranch: 'branch',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles: undefined
+                        changedFiles: undefined,
+                        meta: {
+                            sd: {
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
                     });
                 });
             });
@@ -563,6 +577,9 @@ describe('webhooks plugin test', () => {
                 parsed.type = 'repo';
                 parsed.action = 'release';
                 parsed.ref = 'v0.0.1';
+                parsed.releaseId = 123456;
+                parsed.releaseName = 'release01';
+                parsed.releaseAuthor = 'testuser';
                 delete parsed.sha;
                 mainJobMock.requires = '~release';
                 reqHeaders['x-github-event'] = 'release';
@@ -618,7 +635,19 @@ describe('webhooks plugin test', () => {
                         startFrom: '~release',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles: undefined
+                        changedFiles: undefined,
+                        meta: {
+                            sd: {
+                                release: {
+                                    id: 123456,
+                                    name: 'release01',
+                                    author: 'testuser'
+                                },
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
                     });
                 });
             });
@@ -675,7 +704,19 @@ describe('webhooks plugin test', () => {
                         startFrom: '~release:branch',
                         commitBranch: 'branch',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles: undefined
+                        changedFiles: undefined,
+                        meta: {
+                            sd: {
+                                release: {
+                                    id: 123456,
+                                    name: 'release01',
+                                    author: 'testuser'
+                                },
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
                     });
                 });
             });
@@ -728,7 +769,8 @@ describe('webhooks plugin test', () => {
                         startFrom: '~commit',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles
+                        changedFiles,
+                        meta: {}
                     });
                 })
             );
@@ -817,7 +859,8 @@ describe('webhooks plugin test', () => {
                         startFrom: '~commit:master',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles
+                        changedFiles,
+                        meta: {}
                     });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pMock2.id,
@@ -830,7 +873,8 @@ describe('webhooks plugin test', () => {
                         startFrom: '~commit:master',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles
+                        changedFiles,
+                        meta: {}
                     });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
@@ -843,7 +887,8 @@ describe('webhooks plugin test', () => {
                         startFrom: '~commit',
                         commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles
+                        changedFiles,
+                        meta: {}
                     });
                     assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                         pipelineId,
@@ -885,7 +930,8 @@ describe('webhooks plugin test', () => {
                         commitBranch: 'master',
                         changedFiles,
                         causeMessage: `Merged by ${username}`,
-                        skipMessage: 'Skipping due to the commit message: [skip ci]'
+                        skipMessage: 'Skipping due to the commit message: [skip ci]',
+                        meta: {}
                     });
                     assert.equal(reply.statusCode, 201);
                 });
@@ -918,7 +964,8 @@ describe('webhooks plugin test', () => {
                         commitBranch: 'master',
                         changedFiles,
                         causeMessage: 'Merged by batman',
-                        skipMessage: 'Skipping due to the commit message: [skip ci]'
+                        skipMessage: 'Skipping due to the commit message: [skip ci]',
+                        meta: {}
                     });
                 });
             });
