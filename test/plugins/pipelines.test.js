@@ -1428,6 +1428,21 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('formats the rootDir correctly when rootDir has ./PATH format', () => {
+            options.payload.rootDir = './src/app/component///////////';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'src/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
         it('returns default rootDir when rootDir is invalid', () => {
             options.payload.rootDir = '../src/app/component';
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });

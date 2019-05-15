@@ -35,7 +35,7 @@ const formatCheckoutUrl = (checkoutUrl) => {
 const sanitizeRootDir = (rootDir = '') => {
     // eslint-disable-next-line max-len
     const DIR_PATH_REGEX = /^([a-zA-Z0-9\s_@\-^!#$%&+={}[\]]+)(\/[a-zA-Z0-9\s_@\-^!#$%&+={}[\]]+)*$/;
-    const sanitizedRootDir = rootDir.replace(/^\/+|\/+$/g, '');
+    const sanitizedRootDir = rootDir.replace(/^(\/+|.\/)|\/+$/g, '');
 
     // Set rootDir as empty string if invalid
     if (!DIR_PATH_REGEX.test(sanitizedRootDir)) {
