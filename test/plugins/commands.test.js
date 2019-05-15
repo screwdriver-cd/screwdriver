@@ -449,10 +449,6 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.resolves([testCommand]);
             commandTagFactoryMock.list.resolves([testCommandTag]);
-
-            /* nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(200, ''); */
         });
 
         afterEach(() => {
@@ -522,7 +518,7 @@ describe('command plugin test', () => {
         it('deletes command if admin user credentials provided and command exists', () => {
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(200, '');
+                .reply(204, '');
 
             return server.inject(options).then((reply) => {
                 assert.calledOnce(testCommand.remove);
@@ -608,7 +604,7 @@ describe('command plugin test', () => {
         it('deletes command if build credentials provided and pipelineIds match', () => {
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(200, '');
+                .reply(204, '');
 
             options = {
                 method: 'DELETE',

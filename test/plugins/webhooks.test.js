@@ -507,6 +507,27 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 204 and not create event when there is no job to trigger', () => {
+                const tagWorkflowMock = {
+                    nodes: [
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'main' }
+                    ]
+                };
+
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
+                });
+            });
+
             it('returns 201 on success with tag branch trigger', () => {
                 const tagWorkflowMock = {
                     nodes: [
@@ -628,6 +649,27 @@ describe('webhooks plugin test', () => {
                             }
                         }
                     });
+                });
+            });
+
+            it('returns 204 and not create event when there is no job to trigger', () => {
+                const releaseWorkflowMock = {
+                    nodes: [
+                        { name: '~commit' },
+                        { name: 'main' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'main' }
+                    ]
+                };
+
+                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
                 });
             });
 

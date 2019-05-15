@@ -4,11 +4,13 @@ const boom = require('boom');
 const joi = require('joi');
 const winston = require('winston');
 const workflowParser = require('screwdriver-workflow-parser');
+const schema = require('screwdriver-data-schema');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
 const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
-const CHECKOUT_URL_SCHEMA = require('screwdriver-data-schema').config.regex.CHECKOUT_URL;
+const EXTRA_TRIGGERS = schema.config.regex.EXTRA_TRIGGER;
+const CHECKOUT_URL_SCHEMA = schema.config.regex.CHECKOUT_URL;
 const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const WAIT_FOR_CHANGEDFILES = 1.8;
 const DEFAULT_MAX_BYTES = 1048576;
@@ -603,40 +605,48 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         const p = pipelines[i];
         /* eslint-disable no-await-in-loop */
         const pipelineBranch = await p.branch;
+        /* eslint-enable no-await-in-loop */
         const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
-        const token = await p.token;
-        const scmConfig = {
-            scmUri: p.scmUri,
-            token,
-            scmContext
-        };
-        // obtain pipeline's latest commit sha for branch specific job
-        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-        /* eslint-enable no-await-in-loop */
-        const eventConfig = {
-            pipelineId: p.id,
-            type: 'pipeline',
-            webhooks: true,
-            username,
-            scmContext,
-            startFrom,
-            sha,
-            configPipelineSha,
-            changedFiles,
-            commitBranch: branch,
-            causeMessage: `Merged by ${username}`,
-            meta
-        };
 
-        if (skipMessage) {
-            eventConfig.skipMessage = skipMessage;
+        // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
+        if (EXTRA_TRIGGERS.test(startFrom) && !hasTriggeredJob(p, startFrom)) {
+            winston.info(`Event not created: there are no jobs triggered by ${startFrom}`);
+        } else {
+            /* eslint-disable no-await-in-loop */
+            const token = await p.token;
+            const scmConfig = {
+                scmUri: p.scmUri,
+                token,
+                scmContext
+            };
+            // obtain pipeline's latest commit sha for branch specific job
+            const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+            /* eslint-enable no-await-in-loop */
+            const eventConfig = {
+                pipelineId: p.id,
+                type: 'pipeline',
+                webhooks: true,
+                username,
+                scmContext,
+                startFrom,
+                sha,
+                configPipelineSha,
+                changedFiles,
+                commitBranch: branch,
+                causeMessage: `Merged by ${username}`,
+                meta
+            };
+
+            if (skipMessage) {
+                eventConfig.skipMessage = skipMessage;
+            }
+
+            /* eslint-disable no-await-in-loop */
+            await updateAdmins(userFactory, username, scmContext, p);
+            /* eslint-enable no-await-in-loop */
+
+            events.push(eventFactory.create(eventConfig));
         }
-
-        /* eslint-disable no-await-in-loop */
-        await updateAdmins(userFactory, username, scmContext, p);
-        /* eslint-enable no-await-in-loop */
-
-        events.push(eventFactory.create(eventConfig));
     }
 
     return Promise.all(events);
