@@ -163,6 +163,25 @@ function hasTriggeredJob(pipeline, startFrom) {
 }
 
 /**
+ * Check if changedFiles are under rootDir. If no custom rootDir, return true.
+ * @param  {Object}  pipeline
+ * @param  {Array}  changedFiles
+ * @return {Boolean}
+ */
+function hasChangesUnderRootDir(pipeline, changedFiles) {
+    const splitUri = pipeline.scmUri.split(':');
+    const rootDir = splitUri.length > 3 ? splitUri[3] : '';
+    const changes = changedFiles || [];
+
+    // Only check if rootDir is set
+    if (rootDir) {
+        return changes.some(file => file.startsWith(rootDir));
+    }
+
+    return true;
+}
+
+/**
  * Get all pipelines which has triggered job
  * @method  triggeredPipelines
  * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
@@ -170,34 +189,35 @@ function hasTriggeredJob(pipeline, startFrom) {
  * @param   {String}            branch          The branch which is committed
  * @param   {String}            type            Triggered GitHub event type ('pr' or 'repo')
  * @param   {String}            action          Triggered GitHub event action
+ * @param   {Array}            changedFiles     Changed files in this commit
  * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
-async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action) {
-    const branches = await pipelineFactory.scm.getBranchList(scmConfig);
-    const splitUri = scmConfig.scmUri.split(':');
+async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles) {
+    const { scmUri } = scmConfig;
+    const splitUri = scmUri.split(':');
+    const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
+    const listConfig = { search: { field: 'scmUri', keyword: `${scmRepoId}%` } };
 
-    // only add non pushed branch, because there is possibility the branch is deleted at filter.
-    const scmUris = await branches.filter(b => b.name !== branch).map((b) => {
-        splitUri[2] = b.name;
+    const pipelines = await pipelineFactory.list(listConfig);
 
-        return splitUri.join(':');
+    let pipelinesOnCommitBranch = [];
+    let pipelinesOnOtherBranch = [];
+
+    pipelines.forEach((p) => {
+        if (p.scmUri.startsWith(scmUri)) {
+            pipelinesOnCommitBranch.push(p);
+        } else {
+            pipelinesOnOtherBranch.push(p);
+        }
     });
 
-    let pipelines = await pipelineFactory.list({ params: { scmUri: scmUris } });
+    pipelinesOnCommitBranch = pipelinesOnCommitBranch.filter(p =>
+        hasChangesUnderRootDir(p, changedFiles));
 
-    pipelines = pipelines.filter(p =>
-        // pipelineBranch is not needed because "pipelines" doesn't include a branch which is same with "branch"
-        hasTriggeredJob(p, determineStartFrom(action, type, branch, null))
-    );
+    pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p =>
+        hasTriggeredJob(p, determineStartFrom(action, type, branch, null)));
 
-    // add pushed branch
-    const p = await pipelineFactory.get({ scmUri: scmConfig.scmUri });
-
-    if (p) {
-        pipelines.push(p);
-    }
-
-    return pipelines;
+    return pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
 }
 
 /**
@@ -227,7 +247,8 @@ async function createPREvents(options, request) {
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];
-    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr', action);
+    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr',
+        action, changedFiles);
 
     scmConfig.prNum = prNum;
 
@@ -495,7 +516,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
     }).then((scmUri) => {
         scmConfig.scmUri = scmUri;
 
-        return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action);
+        return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles);
     }).then((pipelines) => {
         if (!pipelines || pipelines.length === 0) {
             const message = 'Skipping since Pipeline triggered by PRs ' +
@@ -665,7 +686,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const userFactory = request.server.app.userFactory;
-    const { hookId, checkoutUrl, branch, scmContext, type, action } = parsed;
+    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -684,7 +705,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
         });
 
         const pipelines = await triggeredPipelines(
-            pipelineFactory, scmConfig, branch, type, action
+            pipelineFactory, scmConfig, branch, type, action, changedFiles
         );
         let events = [];
 
