@@ -153,7 +153,6 @@ describe('webhooks plugin test', () => {
                 parseUrl: sinon.stub(),
                 getDisplayName: sinon.stub(),
                 getChangedFiles: sinon.stub(),
-                getBranchList: sinon.stub(),
                 getCommitSha: sinon.stub(),
                 getCommitRefSha: sinon.stub()
             }
@@ -461,10 +460,6 @@ describe('webhooks plugin test', () => {
                 pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.list.resolves([]);
-                pipelineFactoryMock.scm.getBranchList.resolves([
-                    { name: 'master' },
-                    { name: 'branch' }
-                ]);
             });
 
             it('returns 201 on success', () => {
@@ -484,6 +479,8 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
+                    assert.calledWith(pipelineFactoryMock.list, {
+                        search: { field: 'scmUri', keyword: 'github.com:123456%' } });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -601,10 +598,6 @@ describe('webhooks plugin test', () => {
                 pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.list.resolves([]);
-                pipelineFactoryMock.scm.getBranchList.resolves([
-                    { name: 'master' },
-                    { name: 'branch' }
-                ]);
             });
 
             it('returns 201 on success', () => {
@@ -751,8 +744,7 @@ describe('webhooks plugin test', () => {
                 };
                 name = 'main';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
-                pipelineFactoryMock.list.resolves([]);
-                pipelineFactoryMock.scm.getBranchList.resolves([{ name: 'master' }]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
             });
 
             it('returns 201 on success', () =>
@@ -841,10 +833,7 @@ describe('webhooks plugin test', () => {
                     update: sinon.stub()
                 };
 
-                pipelineFactoryMock.scm.getBranchList.resolves([
-                    { name: 'master' }, { name: 'branch1' },
-                    { name: 'branch2' }, { name: 'fix-1' }]);
-                pipelineFactoryMock.list.resolves([pMock1, pMock2, pMock3]);
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
@@ -905,8 +894,81 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 on success for pipelines with rootDir', () => {
+                const pMock1 = {
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:master:lib',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('master'),
+                    update: sinon.stub()
+                };
+                const pMock2 = {
+                    id: 'pipelineHash2',
+                    scmUri: 'github.com:123456:master:other',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    sync: sinon.stub(),
+                    getConfiguration: sinon.stub(),
+                    jobs: Promise.resolve([mainJobMock, jobMock]),
+                    branch: Promise.resolve('master'),
+                    update: sinon.stub()
+                };
+
+                pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: ['lib/test.js'],
+                        meta: {}
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pMock1.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: ['lib/test.js'],
+                        meta: {}
+                    });
+                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
+                        pipelineId: pMock2.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        startFrom: '~commit'
+                    }));
+                });
+            });
+
             it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
+                pipelineFactoryMock.list.resolves([]);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
@@ -986,7 +1048,7 @@ describe('webhooks plugin test', () => {
                     update: sinon.stub().resolves()
                 };
 
-                pipelineFactoryMock.list.resolves([pMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock]);
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
                 const userMock1 = {
@@ -1020,7 +1082,7 @@ describe('webhooks plugin test', () => {
                     update: sinon.stub().resolves()
                 };
 
-                pipelineFactoryMock.list.resolves([pMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock]);
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
                 const userMock1 = {
@@ -1079,8 +1141,7 @@ describe('webhooks plugin test', () => {
                     payload
                 };
                 name = 'PR-1';
-                pipelineFactoryMock.list.resolves([]);
-                pipelineFactoryMock.scm.getBranchList.resolves([{ name: 'master' }]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
             });
 
             it('returns 204 when triggered pipelines do not exist', () => {
@@ -1105,7 +1166,7 @@ describe('webhooks plugin test', () => {
 
             it('returns 500 when pipeline model returns error', () => {
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
-                pipelineFactoryMock.get.rejects(new Error('model error'));
+                pipelineFactoryMock.list.rejects(new Error('model error'));
                 options.payload = testPayloadOpen;
 
                 return server.inject(options).then((reply) => {
@@ -1241,10 +1302,7 @@ describe('webhooks plugin test', () => {
                         branch: Promise.resolve('fix-1')
                     };
 
-                    pipelineFactoryMock.scm.getBranchList.resolves([
-                        { name: 'master' }, { name: 'branch1' },
-                        { name: 'branch2' }, { name: 'fix-1' }]);
-                    pipelineFactoryMock.list.resolves([pMock1, pMock2, pMock3]);
+                    pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
@@ -1669,10 +1727,7 @@ describe('webhooks plugin test', () => {
                         branch: Promise.resolve('fix-1')
                     };
 
-                    pipelineFactoryMock.scm.getBranchList.resolves([
-                        { name: 'master' }, { name: 'branch1' },
-                        { name: 'branch2' }, { name: 'fix-1' }]);
-                    pipelineFactoryMock.list.resolves([pMock1, pMock2, pMock3]);
+                    pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
