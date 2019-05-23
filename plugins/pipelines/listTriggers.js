@@ -38,7 +38,7 @@ module.exports = () => ({
 
                     return triggerFactory.getTriggers({ pipelineId });
                 })
-                .then(triggers => reply(triggers.map(t => t.toJson())))
+                .then(triggers => reply(triggers))
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {
