@@ -83,6 +83,18 @@ async function updateAdmins(userFactory, username, scmContext, pipeline) {
 }
 
 /**
+ * Update admins for an array of pipelines
+ * @param  {Object}     config.userFactory      UserFactory
+ * @param  {Array}      config.pipelines        An array of pipelines
+ * @param  {String}     config.username         Username
+ * @param  {String}     config.scmContext       ScmContext
+ */
+async function batchUpdateAdmins({ userFactory, pipelines, username, scmContext }) {
+    await Promise.all(pipelines.map(pipeline =>
+        updateAdmins(userFactory, username, scmContext, pipeline)));
+}
+
+/**
  * Promise to wait a certain number of seconds
  *
  * Might make this centralized for other tests to leverage
@@ -182,6 +194,45 @@ function hasChangesUnderRootDir(pipeline, changedFiles) {
 }
 
 /**
+ * Resolve ChainPR flag
+ * @method resolveChainPR
+ * @param  {Boolean}  chainPR              Plugin Chain PR flag
+ * @param  {Pipeline} pipeline             Pipeline
+ * @param  {Object}   pipeline.annotations Pipeline-level annotations
+ * @return {Boolean}
+ */
+function resolveChainPR(chainPR, pipeline) {
+    const defaultChainPR = typeof chainPR === 'undefined' ? false : chainPR;
+    const annotChainPR = pipeline.annotations[ANNOT_CHAIN_PR];
+
+    return typeof annotChainPR === 'undefined' ? defaultChainPR : annotChainPR;
+}
+
+/**
+ * Returns an object with resolvedChainPR and skipMessage
+ * @param  {Object}       config.pipeline       Pipeline
+ * @param  {String}       config.prSource       The origin of this PR
+ * @param  {String}       config.restrictPR     Restrict PR setting
+ * @param  {Boolean}      config.chainPR        Chain PR flag
+ * @return {Object}
+ */
+function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
+    const defaultRestrictPR = restrictPR || 'none';
+    const restriction = pipeline.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
+    const result = {
+        resolvedChainPR: resolveChainPR(chainPR, pipeline)
+    };
+
+    // Check for restriction upfront
+    if (isRestrictedPR(restriction, prSource)) {
+        result.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
+        `${restriction} and PR is ${prSource}`;
+    }
+
+    return result;
+}
+
+/**
  * Get all pipelines which has triggered job
  * @method  triggeredPipelines
  * @param   {PipelineFactory}   pipelineFactory The pipeline factory to get the branch list from
@@ -233,22 +284,21 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
  * @param  {Array}        options.changedFiles    List of changed files
  * @param  {String}       options.branch          The branch against which pr is opened
  * @param  {String}       options.action          Event action
- * @param  {String}       options.skipMessage     Message to skip starting builds
- * @param  {Boolean}      options.resolvedChainPR Resolved Chain PR flag
+ * @param  {String}       options.prSource      The origin of this PR
+ * @param  {String}       options.restrictPR    Restrict PR setting
+ * @param  {Boolean}      options.chainPR       Chain PR flag
  * @param  {Hapi.request} request                 Request from user
  * @return {Promise}
  */
 async function createPREvents(options, request) {
-    const { username, scmConfig, sha, prRef, prNum,
-        prTitle, changedFiles, branch, action, skipMessage, resolvedChainPR } = options;
+    const { username, scmConfig, sha, prRef, prNum, pipelines,
+        prTitle, changedFiles, branch, action, prSource, restrictPR, chainPR } = options;
     const scm = request.server.app.pipelineFactory.scm;
     const eventFactory = request.server.app.eventFactory;
     const pipelineFactory = request.server.app.pipelineFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];
-    const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, 'pr',
-        action, changedFiles);
 
     scmConfig.prNum = prNum;
 
@@ -259,6 +309,13 @@ async function createPREvents(options, request) {
         // obtain pipeline's latest commit sha for branch specific job
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         /* eslint-enable no-await-in-loop */
+
+        const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
+            pipeline: p,
+            prSource,
+            restrictPR,
+            chainPR
+        });
 
         const eventConfig = {
             pipelineId: p.id,
@@ -294,18 +351,19 @@ async function createPREvents(options, request) {
 }
 
 /**
- * Resolve ChainPR flag
- * @method resolveChainPR
- * @param  {Boolean}  chainPR              Plugin Chain PR flag
- * @param  {Pipeline} pipeline             Pipeline
- * @param  {Object}   pipeline.annotations Pipeline-level annotations
- * @return {Boolean}
+ * Stop all the relevant PR jobs for an array of pipelines
+ * @async  batchStopJobs
+ * @param  {Array}      config.pipelines    An array of pipeline
+ * @param  {Integer}    config.prNum        PR number
+ * @param  {String}     config.action       Event action
+ * @param  {String}     config.name         Prefix of the PR job name: PR-prNum
  */
-function resolveChainPR(chainPR, pipeline) {
-    const defaultChainPR = typeof chainPR === 'undefined' ? false : chainPR;
-    const annotChainPR = pipeline.annotations[ANNOT_CHAIN_PR];
+async function batchStopJobs({ pipelines, prNum, action, name }) {
+    const prJobs = await Promise.all(pipelines.map(p => p.getJobs({ type: 'pr' })
+        .then(jobs => jobs.filter(j => j.name.includes(name)))));
+    const flatPRJobs = prJobs.reduce((prev, curr) => prev.concat(curr));
 
-    return typeof annotChainPR === 'undefined' ? defaultChainPR : annotChainPR;
+    await Promise.all(flatPRJobs.map(j => stopJob({ job: j, prNum, action })));
 }
 
 /**
@@ -321,21 +379,7 @@ function resolveChainPR(chainPR, pipeline) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestOpened(options, request, reply) {
-    const { hookId, prSource, pipeline, restrictPR, chainPR } = options;
-
-    if (pipeline) {
-        const p = await pipeline.sync();
-        const defaultRestrictPR = restrictPR || 'none';
-        const restriction = p.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
-
-        // Check for restriction upfront
-        if (isRestrictedPR(restriction, prSource)) {
-            options.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
-            `${restriction} and PR is ${prSource}`;
-        }
-
-        options.resolvedChainPR = resolveChainPR(chainPR, p);
-    }
+    const { hookId } = options;
 
     return createPREvents(options, request)
         .then((events) => {
@@ -367,7 +411,7 @@ async function pullRequestOpened(options, request, reply) {
  * @param  {Hapi.reply}   reply                     Reply to user
  */
 async function pullRequestClosed(options, request, reply) {
-    const { pipeline, hookId, name, prNum, action, fullCheckoutUrl } = options;
+    const { pipelines, hookId, name, prNum, action } = options;
     const updatePRJobs = (job => stopJob({ job, prNum, action })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} stopped`))
         .then(() => {
@@ -377,21 +421,12 @@ async function pullRequestClosed(options, request, reply) {
         })
         .then(() => request.log(['webhook', hookId, job.id], `${job.name} disabled and archived`)));
 
-    if (!pipeline) {
-        const message = `Skipping since PR job for ${fullCheckoutUrl} does not exist`;
-
-        request.log(['webhook', hookId], message);
-
-        return reply({ message }).code(204);
-    }
-
-    return pipeline.sync()
-        .then(p => p.getJobs({ type: 'pr' }))
+    return Promise.all(pipelines.map(p => p.getJobs({ type: 'pr' })
         .then((jobs) => {
             const prJobs = jobs.filter(j => j.name.includes(name));
 
             return Promise.all(prJobs.map(j => updatePRJobs(j)));
-        })
+        })))
         .then(() => reply().code(200))
         .catch((err) => {
             winston.error(`[${hookId}]: ${err}`);
@@ -417,26 +452,11 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.reply}   reply                 Reply to user
  */
 async function pullRequestSync(options, request, reply) {
-    const { pipeline, hookId, prSource, name, prNum, action, restrictPR, chainPR } = options;
+    const { pipelines, hookId, name, prNum, action } = options;
 
-    if (pipeline) {
-        const p = await pipeline.sync();
-        const defaultRestrictPR = restrictPR || 'none';
-        const restriction = p.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
+    await batchStopJobs({ pipelines, name, prNum, action });
 
-        // Check for restriction upfront
-        if (isRestrictedPR(restriction, prSource)) {
-            options.skipMessage = 'Skipping build since pipeline is configured to restrict ' +
-                `${restriction} and PR is ${prSource}`;
-        }
-
-        options.resolvedChainPR = resolveChainPR(chainPR, p);
-
-        await p.getJobs({ type: 'pr' }).then(jobs => jobs.filter(j => j.name.includes(name)))
-            .then(prJobs => Promise.all(prJobs.map(j => stopJob({ job: j, prNum, action }))));
-
-        request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
-    }
+    request.log(['webhook', hookId], `Job(s) for ${name} stopped`);
 
     return createPREvents(options, request)
         .then((events) => {
@@ -517,7 +537,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
         scmConfig.scmUri = scmUri;
 
         return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles);
-    }).then((pipelines) => {
+    }).then(async (pipelines) => {
         if (!pipelines || pipelines.length === 0) {
             const message = 'Skipping since Pipeline triggered by PRs ' +
                 `against ${fullCheckoutUrl} does not exist`;
@@ -527,40 +547,37 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
             return reply({ message }).code(204);
         }
 
-        return pipelineFactory.get({ scmUri: scmConfig.scmUri })
-            .then(async (pipeline) => {
-                const options = {
-                    name: `PR-${prNum}`,
-                    hookId,
-                    sha,
-                    username,
-                    scmConfig,
-                    prRef,
-                    prNum,
-                    prTitle,
-                    prSource,
-                    pipeline,
-                    changedFiles,
-                    action: action.charAt(0).toUpperCase() + action.slice(1),
-                    branch,
-                    fullCheckoutUrl,
-                    restrictPR,
-                    chainPR
-                };
+        const options = {
+            name: `PR-${prNum}`,
+            hookId,
+            sha,
+            username,
+            scmConfig,
+            prRef,
+            prNum,
+            prTitle,
+            prSource,
+            changedFiles,
+            action: action.charAt(0).toUpperCase() + action.slice(1),
+            branch,
+            fullCheckoutUrl,
+            restrictPR,
+            chainPR,
+            pipelines
+        };
 
-                await updateAdmins(userFactory, username, scmContext, pipeline);
+        await batchUpdateAdmins({ userFactory, pipelines, username, scmContext });
 
-                switch (action) {
-                case 'opened':
-                case 'reopened':
-                    return pullRequestOpened(options, request, reply);
-                case 'synchronized':
-                    return pullRequestSync(options, request, reply);
-                case 'closed':
-                default:
-                    return pullRequestClosed(options, request, reply);
-                }
-            });
+        switch (action) {
+        case 'opened':
+        case 'reopened':
+            return pullRequestOpened(options, request, reply);
+        case 'synchronized':
+            return pullRequestSync(options, request, reply);
+        case 'closed':
+        default:
+            return pullRequestClosed(options, request, reply);
+        }
     }).catch((err) => {
         winston.error(`[${hookId}]: ${err}`);
 
