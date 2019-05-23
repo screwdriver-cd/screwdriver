@@ -72,22 +72,6 @@ const getJobsMocks = (jobs) => {
     return decorateJobMock(jobs);
 };
 
-const decorateTriggerMock = (trigger) => {
-    const mock = hoek.clone(trigger);
-
-    mock.toJson = sinon.stub().returns(trigger);
-
-    return mock;
-};
-
-const getTriggersMocks = (triggers) => {
-    if (Array.isArray(triggers)) {
-        return triggers.map(decorateTriggerMock);
-    }
-
-    return decorateTriggerMock(triggers);
-};
-
 const decoratePipelineMock = (pipeline) => {
     const mock = hoek.clone(pipeline);
 
@@ -732,7 +716,7 @@ describe('pipeline plugin test', () => {
                 url: `/pipelines/${id}/triggers`
             };
             pipelineMock = getPipelineMocks(testPipeline);
-            triggerFactoryMock.getTriggers.resolves(getTriggersMocks(testTriggers));
+            triggerFactoryMock.getTriggers.resolves(testTriggers);
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
