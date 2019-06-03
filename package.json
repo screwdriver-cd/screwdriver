@@ -102,7 +102,7 @@
     "screwdriver-executor-router": "^1.0.11",
     "screwdriver-models": "^27.34.2",
     "screwdriver-notifications-email": "^1.1.9",
-    "screwdriver-notifications-slack": "^2.2.1",
+    "screwdriver-notifications-slack": "^2.3.0",
     "screwdriver-scm-github": "^9.2.3",
     "screwdriver-scm-gitlab": "^1.3.1",
     "screwdriver-scm-router": "^4.1.0",
