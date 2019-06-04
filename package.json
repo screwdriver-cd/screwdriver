@@ -92,7 +92,7 @@
     "screwdriver-command-validator": "^1.0.5",
     "screwdriver-config-parser": "^4.11.1",
     "screwdriver-coverage-bookend": "^1.0.2",
-    "screwdriver-coverage-sonar": "^1.0.22",
+    "screwdriver-coverage-sonar": "^1.0.23",
     "screwdriver-data-schema": "^18.46.3",
     "screwdriver-datastore-sequelize": "^5.7.2",
     "screwdriver-executor-docker": "^4.2.0",
