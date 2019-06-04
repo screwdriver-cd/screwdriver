@@ -493,7 +493,7 @@ describe('webhooks plugin test', () => {
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(pipelineFactoryMock.list, {
-                        search: { field: 'scmUri', keyword: 'github.com:123456%' } });
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' } });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
