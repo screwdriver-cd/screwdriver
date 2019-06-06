@@ -31,8 +31,7 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch) {
     } else {
         switch (action) {
         case 'release':
-            startFrom = '~release';
-            break;
+            return '~release';
         case 'tag':
             return '~tag';
         default:
