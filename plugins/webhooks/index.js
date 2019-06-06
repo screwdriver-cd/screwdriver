@@ -34,8 +34,7 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch) {
             startFrom = '~release';
             break;
         case 'tag':
-            startFrom = '~tag';
-            break;
+            return '~tag';
         default:
             startFrom = '~commit';
             break;

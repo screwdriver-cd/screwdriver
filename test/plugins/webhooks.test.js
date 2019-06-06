@@ -109,14 +109,14 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~tag:branch" when action is "tag" and targetBranch is branch',
+    it('determines to "~tag" when action is "tag" and even targetBranch is branch',
         () => {
             action = 'tag';
             targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch, pipelineBranch),
-                '~tag:branch'
+                '~tag'
             );
         });
 });
@@ -453,6 +453,7 @@ describe('webhooks plugin test', () => {
                 parsed.type = 'repo';
                 parsed.action = 'tag';
                 parsed.ref = 'v0.0.1';
+                parsed.branch = 'master';
                 delete parsed.sha;
                 mainJobMock.requires = '~tag';
                 reqHeaders['x-github-event'] = 'create';
@@ -538,22 +539,22 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 201 on success with tag branch trigger', () => {
+            it('returns 201 on success with non target branch pipeline tag trigger', () => {
                 const tagWorkflowMock = {
                     nodes: [
-                        { name: '~tag:branch' },
+                        { name: '~tag' },
                         { name: 'main' }
                     ],
                     edges: [
-                        { src: '~tag:branch', dest: 'main' }
+                        { src: '~tag', dest: 'main' }
                     ]
                 };
 
-                parsed.branch = 'branch';
-                mainJobMock.requires = '~tag:branch';
+                mainJobMock.requires = '~tag';
                 pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
+                pipelineMock.branch = 'branch';
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
                 return server.inject(options).then((reply) => {
@@ -566,8 +567,8 @@ describe('webhooks plugin test', () => {
                         scmContext,
                         sha,
                         configPipelineSha: latestSha,
-                        startFrom: '~tag:branch',
-                        commitBranch: 'branch',
+                        startFrom: '~tag',
+                        commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
                         meta: {
