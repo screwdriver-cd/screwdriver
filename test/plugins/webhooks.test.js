@@ -89,14 +89,14 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~release:branch" when action is "release" and targetBranch is branch',
+    it('determines to "~release" when action is "release" even targetBranch is branch',
         () => {
             action = 'release';
             targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch, pipelineBranch),
-                '~release:branch'
+                '~release'
             );
         });
 
@@ -109,14 +109,14 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~tag:branch" when action is "tag" and targetBranch is branch',
+    it('determines to "~tag" when action is "tag" even targetBranch is branch',
         () => {
             action = 'tag';
             targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch, pipelineBranch),
-                '~tag:branch'
+                '~tag'
             );
         });
 });
@@ -453,6 +453,7 @@ describe('webhooks plugin test', () => {
                 parsed.type = 'repo';
                 parsed.action = 'tag';
                 parsed.ref = 'v0.0.1';
+                parsed.branch = 'master';
                 delete parsed.sha;
                 mainJobMock.requires = '~tag';
                 reqHeaders['x-github-event'] = 'create';
@@ -538,22 +539,22 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 201 on success with tag branch trigger', () => {
+            it('returns 201 with non target branch pipeline tag trigger', () => {
                 const tagWorkflowMock = {
                     nodes: [
-                        { name: '~tag:branch' },
+                        { name: '~tag' },
                         { name: 'main' }
                     ],
                     edges: [
-                        { src: '~tag:branch', dest: 'main' }
+                        { src: '~tag', dest: 'main' }
                     ]
                 };
 
-                parsed.branch = 'branch';
-                mainJobMock.requires = '~tag:branch';
+                mainJobMock.requires = '~tag';
                 pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
+                pipelineMock.branch = 'branch';
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
                 return server.inject(options).then((reply) => {
@@ -566,8 +567,8 @@ describe('webhooks plugin test', () => {
                         scmContext,
                         sha,
                         configPipelineSha: latestSha,
-                        startFrom: '~tag:branch',
-                        commitBranch: 'branch',
+                        startFrom: '~tag',
+                        commitBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
                         meta: {
@@ -679,20 +680,21 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 201 on success with release branch trigger', () => {
+            it('returns 201 with release non target branch pipeline release trigger', () => {
                 const releaseWorkflowMock = {
                     nodes: [
-                        { name: '~release:branch' },
+                        { name: '~release' },
                         { name: 'main' }
                     ],
                     edges: [
-                        { src: '~release:branch', dest: 'main' }
+                        { src: '~release', dest: 'main' }
                     ]
                 };
 
                 parsed.branch = 'branch';
-                mainJobMock.requires = '~release:branch';
+                mainJobMock.requires = '~release';
                 pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.baxterthehacker = 'master';
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
@@ -707,7 +709,7 @@ describe('webhooks plugin test', () => {
                         scmContext,
                         sha,
                         configPipelineSha: latestSha,
-                        startFrom: '~release:branch',
+                        startFrom: '~release',
                         commitBranch: 'branch',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
