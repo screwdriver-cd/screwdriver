@@ -523,8 +523,7 @@ describe('event plugin test', () => {
 
         it('returns 201 when it successfully creates a PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
-            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
-            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.sha = testBuild.sha;
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
@@ -550,7 +549,7 @@ describe('event plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.notCalled(eventFactoryMock.scm.getCommitSha);
+                assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });

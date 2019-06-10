@@ -180,7 +180,8 @@ module.exports = () => ({
                         // User has good permissions, create an event
                         .then(() => {
                             // If there is parentEvent, pass workflowGraph and sha to payload
-                            if (payload.parentEventId) {
+                            // Skip PR, for PR builds, we should always start from latest commit
+                            if (payload.parentEventId && !prNum) {
                                 return eventFactory.get(parentEventId)
                                     .then((parentEvent) => {
                                         payload.workflowGraph = parentEvent.workflowGraph;
