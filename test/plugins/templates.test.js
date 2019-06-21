@@ -994,4 +994,71 @@ describe('template plugin test', () => {
             });
         });
     });
+
+    describe('PUT /templates/trusted', () => {
+        let options;
+        let templateMock;
+        let testTemplate;
+
+        const payload = {
+            trusted: true
+        };
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: '/templates/template_namespace%2Fnodejs_main/trusted',
+                payload,
+                credentials: {
+                    scope: ['admin']
+                }
+            };
+
+            testTemplate = decorateObj({
+                id: 1,
+                name: 'testtemplate',
+                tag: 'stable',
+                update: sinon.stub().resolves(null)
+            });
+            templateMock = getTemplateMocks([testTemplate]);
+            templateFactoryMock.list.resolves(templateMock);
+        });
+
+        it('returns 404 when template does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Template template_namespace/nodejs_main does not exist'
+            };
+
+            templateFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when user does not have admin permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Insufficient scope'
+            };
+
+            options.credentials.scope = ['user'];
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('update to mark template trusted', () => {
+            server.inject(options).then((reply) => {
+                assert.calledOnce(testTemplate.update);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+    });
 });

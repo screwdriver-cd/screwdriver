@@ -8,6 +8,7 @@ const listRoute = require('./list');
 const removeRoute = require('./remove');
 const listTagsRoute = require('./listTags');
 const listVersionsRoute = require('./listVersions');
+const updateTrustedRoute = require('./updateTrusted');
 
 /**
  * Command API Plugin
@@ -71,7 +72,8 @@ exports.register = (server, options, next) => {
         removeRoute(),
         listRoute(),
         listVersionsRoute(),
-        listTagsRoute()
+        listTagsRoute(),
+        updateTrustedRoute()
     ]);
 
     next();
