@@ -1,0 +1,38 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.13.5
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  SNYK-JS-LODASH-450202:
+    - screwdriver-executor-queue > requestretry > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - async > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-executor-k8s-vm > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-executor-k8s > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - requestretry > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-executor-k8s > requestretry > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-scm-router > async > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-executor-k8s-vm > requestretry > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-models > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-datastore-sequelize > sequelize > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-models > async > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-executor-k8s-vm > eslint-plugin-import > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-scm-router > winston > async > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-datastore-sequelize > winston > async > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-coverage-sonar > winston > async > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
+    - screwdriver-coverage-sonar > request-promise-native > request-promise-core > lodash:
+        patched: '2019-07-04T04:14:01.017Z'
