@@ -55,11 +55,11 @@ describe('server case', () => {
                 triggerFactory: 'trigger',
                 pipelineFactory: 'pipeline',
                 jobFactory: {
-                  executor: {}
+                    executor: {}
                 },
                 userFactory: 'user',
                 buildFactory: {
-                  executor: {}
+                    executor: {}
                 }
             }).then((s) => {
                 server = s;
@@ -198,11 +198,11 @@ describe('server case', () => {
                 triggerFactory: 'trigger',
                 pipelineFactory: 'pipeline',
                 jobFactory: {
-                  executor: {}
+                    executor: {}
                 },
                 userFactory: 'user',
                 buildFactory: {
-                  executor: {}
+                    executor: {}
                 }
             }).then(server => (
                 server.inject({
@@ -220,11 +220,11 @@ describe('server case', () => {
                 triggerFactory: 'trigger',
                 pipelineFactory: 'pipeline',
                 jobFactory: {
-                  executor: {}
+                    executor: {}
                 },
                 userFactory: 'user',
                 buildFactory: {
-                  executor: {}
+                    executor: {}
                 }
             }).then(server => (
                 server.inject({
@@ -243,11 +243,11 @@ describe('server case', () => {
                 triggerFactory: 'trigger',
                 pipelineFactory: 'pipeline',
                 jobFactory: {
-                  executor: {}
+                    executor: {}
                 },
                 userFactory: 'user',
                 buildFactory: {
-                  executor: {}
+                    executor: {}
                 }
             }).then(server => (
                 server.inject({
@@ -266,11 +266,11 @@ describe('server case', () => {
                 triggerFactory: 'trigger',
                 pipelineFactory: 'pipeline',
                 jobFactory: {
-                  executor: {}
+                    executor: {}
                 },
                 userFactory: 'user',
                 buildFactory: {
-                  executor: {}
+                    executor: {}
                 }
             }).then(server => (
                 server.inject({
