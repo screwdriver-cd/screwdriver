@@ -144,7 +144,12 @@ describe('server case', () => {
         it('callsback errors with register plugins', () => {
             registrationManMock.rejects(new Error('registrationMan fail'));
 
-            return hapiEngine({ ecosystem }).catch((error) => {
+            return hapiEngine({
+                ecosystem: {
+                    ui: 'http://example.com',
+                    allowCors: ''
+                }
+            }).catch((error) => {
                 Assert.strictEqual('registrationMan fail', error.message);
             });
         });
