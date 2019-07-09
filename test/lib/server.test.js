@@ -11,6 +11,18 @@ describe('server case', () => {
         ui: 'http://example.com',
         allowCors: ['http://mycors.com']
     };
+    const config = {
+        ecosystem,
+        triggerFactory: 'trigger',
+        pipelineFactory: 'pipeline',
+        jobFactory: {
+            executor: {}
+        },
+        userFactory: 'user',
+        buildFactory: {
+            executor: {}
+        }
+    };
 
     before(() => {
         mockery.enable({
@@ -47,30 +59,17 @@ describe('server case', () => {
 
             registrationManMock.resolves(null);
 
-            return hapiEngine({
-                httpd: {
-                    port: 12347
-                },
-                ecosystem,
-                triggerFactory: 'trigger',
-                pipelineFactory: 'pipeline',
-                jobFactory: {
-                    executor: {}
-                },
-                userFactory: 'user',
-                buildFactory: {
-                    executor: {}
-                }
-            }).then((s) => {
-                server = s;
-                // Pretend we actually registered a login plugin
-                server.plugins.auth = {
-                    generateToken: sinon.stub().returns('foo'),
-                    generateProfile: sinon.stub().returns('bar')
-                };
-            }).catch((e) => {
-                error = e;
-            });
+            return hapiEngine(Object.assign({ httpd: { port: 12347 } }, config))
+                .then((s) => {
+                    server = s;
+                    // Pretend we actually registered a login plugin
+                    server.plugins.auth = {
+                        generateToken: sinon.stub().returns('foo'),
+                        generateProfile: sinon.stub().returns('bar')
+                    };
+                }).catch((e) => {
+                    error = e;
+                });
         });
 
         it('populates access-control-allow-origin correctly', (done) => {
@@ -198,18 +197,7 @@ describe('server case', () => {
         });
 
         it('doesnt affect non-errors', () => (
-            hapiEngine({
-                ecosystem,
-                triggerFactory: 'trigger',
-                pipelineFactory: 'pipeline',
-                jobFactory: {
-                    executor: {}
-                },
-                userFactory: 'user',
-                buildFactory: {
-                    executor: {}
-                }
-            }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/yes'
@@ -220,18 +208,7 @@ describe('server case', () => {
         ));
 
         it('doesnt affect errors', () => (
-            hapiEngine({
-                ecosystem,
-                triggerFactory: 'trigger',
-                pipelineFactory: 'pipeline',
-                jobFactory: {
-                    executor: {}
-                },
-                userFactory: 'user',
-                buildFactory: {
-                    executor: {}
-                }
-            }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/no'
@@ -243,18 +220,7 @@ describe('server case', () => {
         ));
 
         it('defaults to the error message if the stack trace is missing', () => (
-            hapiEngine({
-                ecosystem,
-                triggerFactory: 'trigger',
-                pipelineFactory: 'pipeline',
-                jobFactory: {
-                    executor: {}
-                },
-                userFactory: 'user',
-                buildFactory: {
-                    executor: {}
-                }
-            }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/noStack'
@@ -266,18 +232,7 @@ describe('server case', () => {
         ));
 
         it('responds with error response data', () => (
-            hapiEngine({
-                ecosystem,
-                triggerFactory: 'trigger',
-                pipelineFactory: 'pipeline',
-                jobFactory: {
-                    executor: {}
-                },
-                userFactory: 'user',
-                buildFactory: {
-                    executor: {}
-                }
-            }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/noWithResponse'
