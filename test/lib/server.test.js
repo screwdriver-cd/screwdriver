@@ -11,6 +11,18 @@ describe('server case', () => {
         ui: 'http://example.com',
         allowCors: ['http://mycors.com']
     };
+    const config = {
+        ecosystem,
+        triggerFactory: 'trigger',
+        pipelineFactory: 'pipeline',
+        jobFactory: {
+            executor: {}
+        },
+        userFactory: 'user',
+        buildFactory: {
+            executor: {}
+        }
+    };
 
     before(() => {
         mockery.enable({
@@ -47,26 +59,17 @@ describe('server case', () => {
 
             registrationManMock.resolves(null);
 
-            return hapiEngine({
-                httpd: {
-                    port: 12347
-                },
-                ecosystem,
-                triggerFactory: 'trigger',
-                pipelineFactory: 'pipeline',
-                jobFactory: {},
-                userFactory: 'user',
-                buildFactory: {}
-            }).then((s) => {
-                server = s;
-                // Pretend we actually registered a login plugin
-                server.plugins.auth = {
-                    generateToken: sinon.stub().returns('foo'),
-                    generateProfile: sinon.stub().returns('bar')
-                };
-            }).catch((e) => {
-                error = e;
-            });
+            return hapiEngine(Object.assign({ httpd: { port: 12347 } }, config))
+                .then((s) => {
+                    server = s;
+                    // Pretend we actually registered a login plugin
+                    server.plugins.auth = {
+                        generateToken: sinon.stub().returns('foo'),
+                        generateProfile: sinon.stub().returns('bar')
+                    };
+                }).catch((e) => {
+                    error = e;
+                });
         });
 
         it('populates access-control-allow-origin correctly', (done) => {
@@ -119,6 +122,10 @@ describe('server case', () => {
             Assert.isObject(server.app.jobFactory);
             Assert.isFunction(server.app.jobFactory.tokenGen);
             Assert.strictEqual(server.app.jobFactory.tokenGen('bar'), 'foo');
+            Assert.isFunction(server.app.buildFactory.executor.tokenGen);
+            Assert.strictEqual(server.app.buildFactory.executor.tokenGen('bar'), 'foo');
+            Assert.isFunction(server.app.jobFactory.executor.userTokenGen);
+            Assert.strictEqual(server.app.jobFactory.executor.userTokenGen('bar'), 'foo');
         });
     });
 
@@ -136,7 +143,12 @@ describe('server case', () => {
         it('callsback errors with register plugins', () => {
             registrationManMock.rejects(new Error('registrationMan fail'));
 
-            return hapiEngine({ ecosystem }).catch((error) => {
+            return hapiEngine({
+                ecosystem: {
+                    ui: 'http://example.com',
+                    allowCors: ''
+                }
+            }).catch((error) => {
                 Assert.strictEqual('registrationMan fail', error.message);
             });
         });
@@ -185,7 +197,7 @@ describe('server case', () => {
         });
 
         it('doesnt affect non-errors', () => (
-            hapiEngine({ ecosystem }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/yes'
@@ -196,7 +208,7 @@ describe('server case', () => {
         ));
 
         it('doesnt affect errors', () => (
-            hapiEngine({ ecosystem }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/no'
@@ -208,7 +220,7 @@ describe('server case', () => {
         ));
 
         it('defaults to the error message if the stack trace is missing', () => (
-            hapiEngine({ ecosystem }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/noStack'
@@ -220,7 +232,7 @@ describe('server case', () => {
         ));
 
         it('responds with error response data', () => (
-            hapiEngine({ ecosystem }).then(server => (
+            hapiEngine(config).then(server => (
                 server.inject({
                     method: 'GET',
                     url: '/noWithResponse'
