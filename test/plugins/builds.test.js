@@ -3086,11 +3086,11 @@ describe('isPR', () => {
 describe('trimJobName', () => {
     const trimJobName = rewireBuildsIndex.__get__('trimJobName');
 
-    it('sholud return ', () => {
+    it('sholud return jobName as it is (not trimmed)', () => {
         assert.equal(trimJobName('testJobName'), 'testJobName');
     });
 
-    it('sholud return PR ', () => {
+    it('sholud return trimmed jobName', () => {
         assert.equal(trimJobName('PR-179:testJobName'), 'testJobName');
     });
 });
