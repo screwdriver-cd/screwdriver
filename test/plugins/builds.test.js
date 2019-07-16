@@ -9,6 +9,10 @@ const hoek = require('hoek');
 const nock = require('nock');
 const testBuild = require('./data/build.json');
 const testSecrets = require('./data/secrets.json');
+const rewire = require('rewire');
+const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
+
+/* eslint-disable no-underscore-dangle */
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -1402,6 +1406,54 @@ describe('build plugin test', () => {
                         jobId: 6,
                         status: 'ABORTED'
                     }]);
+
+                    return server.inject(options).then(() => {
+                        // create the builds
+                        assert.calledTwice(buildFactoryMock.create);
+
+                        // jobB is created because there is no join
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+
+                        // there is a finished join, jobC is created without starting, then start separately
+                        // (same action but different flow in the code)
+                        jobCconfig.start = false;
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                        assert.calledOnce(buildMock.start);
+                        buildMock.update = sinon.stub().resolves(buildMock);
+                    });
+                });
+
+                it('triggers if all PR jobs in join are done', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    eventMock.getBuilds.resolves([{
+                        jobId: 1,
+                        status: 'SUCCESS'
+                    }, {
+                        jobId: 4,
+                        status: 'SUCCESS'
+                    }, {
+                        jobId: 5,
+                        status: 'SUCCESS'
+                    }, {
+                        jobId: 6,
+                        status: 'ABORTED'
+                    }]);
+
+                    // for chainPR settings
+                    pipelineMock.chainPR = true;
+                    eventMock.pr = { ref: 'pull/15/merge' };
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
+                    jobMock.name = 'PR-15:a';
+                    jobBconfig.prRef = 'pull/15/merge';
+                    jobCconfig.prRef = 'pull/15/merge';
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -3016,5 +3068,29 @@ describe('build plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+    });
+});
+
+describe('isPR', () => {
+    const isPR = rewireBuildsIndex.__get__('isPR');
+
+    it('sholud return true if job name has PR prefix', () => {
+        assert.isTrue(isPR('PR-1:testJobName'));
+    });
+
+    it('sholud return false if job name does not have PR prefix', () => {
+        assert.isFalse(isPR('testJobName'));
+    });
+});
+
+describe('trimJobName', () => {
+    const trimJobName = rewireBuildsIndex.__get__('trimJobName');
+
+    it('sholud return jobName as it is (not trimmed)', () => {
+        assert.equal(trimJobName('testJobName'), 'testJobName');
+    });
+
+    it('sholud return trimmed jobName', () => {
+        assert.equal(trimJobName('PR-179:testJobName'), 'testJobName');
     });
 });

@@ -196,6 +196,31 @@ function removeDownstreamBuilds(config) {
 }
 
 /**
+ * Return PR job or not
+ * PR job name certainly has ":". e.g. "PR-1:jobName"
+ * @method isPR
+ * @param  {String}  destJobName
+ * @return {Boolean}
+ */
+function isPR(jobName) {
+    return jobName.includes(':');
+}
+
+/**
+ * Trim Job name to follow data-schema
+ * @method trimJobName
+ * @param  {String} jobName
+ * @return {String} trimmed jobName
+ */
+function trimJobName(jobName) {
+    if (isPR(jobName)) {
+        return jobName.split(':')[1];
+    }
+
+    return jobName;
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -331,7 +356,8 @@ exports.register = (server, options, next) => {
                     buildConfig,
                     joinList,
                     finishedBuilds,
-                    jobId: workflowGraph.nodes.find(node => node.name === nextJobName).id
+                    jobId: workflowGraph.nodes
+                        .find(node => node.name === trimJobName(nextJobName)).id
                 }));
             }));
         });
