@@ -29,8 +29,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         }).then((response) => {
             this.jwt = response.body.token;
         }).then(() =>
-            github.cleanUpRepository(this.gitToken, this.branch, this.repoOrg,
-                this.repoName)
+            github.cleanUpRepository(this.branch, this.repoOrg, this.repoName)
         );
     });
 
@@ -65,33 +64,31 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         timeout: TIMEOUT
     }, function step() {
         const branch = this.branch;
-        const token = this.gitToken;
 
-        return github.createBranch(token, branch, this.repoOrg, this.repoName)
-            .then(() => github.createFile(token, branch, this.repoOrg, this.repoName))
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(() =>
-                github.createPullRequest(token, branch, this.repoOrg, this.repoName)
+                github.createPullRequest(branch, this.repoOrg, this.repoName)
             )
-            .then((data) => {
+            .then(({ data }) => {
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             })
             .catch((err) => {
                 // throws an error if a PR already exists, so this is fine
-                Assert.strictEqual(err.code, 422);
+                Assert.strictEqual(err.status, 422);
             });
     });
 
     When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
         const branch = this.branch;
-        const token = this.gitToken;
 
-        return github.createBranch(token, branch, this.repoOrg, this.repoName)
-            .then(() => github.createFile(token, branch, this.repoOrg, this.repoName))
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(() =>
-                github.createPullRequest(token, branch, this.repoOrg, this.repoName)
+                github.createPullRequest(branch, this.repoOrg, this.repoName)
             )
-            .then((data) => {
+            .then(({ data }) => {
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             });
@@ -111,7 +108,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             jwt: this.jwt
         }).then((buildData) => {
             this.previousBuildId = buildData.id;
-        }).then(() => github.closePullRequest(this.gitToken, this.repoOrg, this.repoName,
+        }).then(() => github.closePullRequest(this.repoOrg, this.repoName,
             this.pullRequestNumber)
         );
     });
@@ -128,9 +125,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             jwt: this.jwt
         }).then((buildData) => {
             this.previousBuildId = buildData.id;
-        }).then(() => github.createFile(this.gitToken, this.branch, this.repoOrg,
+        }).then(() => github.createFile(this.branch, this.repoOrg,
             this.repoName))
-            .then((data) => {
+            .then(({ data }) => {
                 this.sha = data.commit.sha;
             });
     });
@@ -140,8 +137,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
         this.testBranch = 'master';
 
-        return github.createFile(this.gitToken, this.testBranch, this.repoOrg, this.repoName)
-            .then((data) => {
+        return github.createFile(this.testBranch, this.repoOrg, this.repoName)
+            .then(({ data }) => {
                 this.sha = data.commit.sha;
             });
     });
@@ -197,9 +194,10 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     });
 
     Then(/^the GitHub status should be updated to reflect the build's status$/, function step() {
-        return github.getStatus(this.gitToken, this.repoOrg, this.repoName, this.sha)
-            .then((data) => {
-                Assert.oneOf(data.state, ['success', 'pending']);
+        return github.getStatus(this.repoOrg, this.repoName, this.sha)
+            .then(({ data }) => {
+                data.statuses.forEach(status =>
+                    Assert.oneOf(status.state, ['success', 'pending']));
             });
     });
 });
