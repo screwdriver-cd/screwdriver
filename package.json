@@ -98,7 +98,7 @@
     "screwdriver-executor-docker": "^4.2.0",
     "screwdriver-executor-k8s": "^13.6.1",
     "screwdriver-executor-k8s-vm": "^2.10.0",
-    "screwdriver-executor-queue": "^2.4.11",
+    "screwdriver-executor-queue": "^2.4.22",
     "screwdriver-executor-router": "^1.0.11",
     "screwdriver-models": "^27.34.2",
     "screwdriver-notifications-email": "^1.1.9",
