@@ -2787,10 +2787,10 @@ describe('build plugin test', () => {
         });
 
         it('redirects to store for an artifact download request', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&download=true`;
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=download`;
 
             return server.inject({
-                url: `/builds/${id}/artifacts/${artifact}?download=true`,
+                url: `/builds/${id}/artifacts/${artifact}?type=download`,
                 credentials: {
                     scope: ['user']
                 }
