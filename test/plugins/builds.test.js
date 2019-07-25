@@ -2800,7 +2800,7 @@ describe('build plugin test', () => {
             });
         });
 
-        it.only('redirects to store for an artifact preview request', () => {
+        it('redirects to store for an artifact preview request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=preview`;
 
             return server.inject({
