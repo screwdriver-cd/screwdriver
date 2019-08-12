@@ -22,6 +22,11 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
+            // Check if the collection to be updated has a type 'default'
+            if (request.payload.type === 'default') {
+                throw boom.forbidden('Collection can not be updated to be a default type');
+            }
+
             const { id } = request.params;
             const { collectionFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
@@ -42,6 +47,8 @@ module.exports = () => ({
                     }
 
                     Object.assign(oldCollection, request.payload);
+
+                    // TODO: May need to check pipelineIds are unique
 
                     // Check that all pipelines exist before updating the pipelineIds of
                     // the collection

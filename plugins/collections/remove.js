@@ -33,6 +33,11 @@ module.exports = () => ({
                 if (!collection) {
                     throw boom.notFound('Collection does not exist');
                 }
+                if (collection.type === 'default') {
+                    throw boom.forbidden(`
+                        Collection with type "default" cannot be deleted by user
+                    `);
+                }
                 if (!user) {
                     throw boom.notFound(`User ${username} does not exist`);
                 }

@@ -21,6 +21,18 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
+            // Check if the collection to be created has a type 'default'
+            if (request.payload.type === 'default') {
+                throw boom.forbidden(
+                    'Collection with type "default" cannot be created by user'
+                );
+            }
+
+            // FIXME: only for testing
+            if (!request.payload.type) {
+                request.payload.type = 'normal';
+            }
+
             const { collectionFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 

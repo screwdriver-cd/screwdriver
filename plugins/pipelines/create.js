@@ -24,7 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
-            const { pipelineFactory, userFactory } = request.server.app;
+            const { pipelineFactory, userFactory, collectionFactory } = request.server.app;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
 
@@ -69,22 +69,71 @@ module.exports = () => ({
                             };
 
                             return pipelineFactory.create(pipelineConfig);
-                        })))
-                // hooray, a pipeline is born!
-                .then(pipeline =>
-                    Promise.all([
-                        pipeline.sync(),
-                        pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-                    ]).then((results) => {
-                        const location = urlLib.format({
-                            host: request.headers.host,
-                            port: request.headers.port,
-                            protocol: request.server.info.protocol,
-                            pathname: `${request.path}/${pipeline.id}`
-                        });
+                        })
+                        // TODO: Add the pipeline to the user's My Pipelines collection
+                        // get the default collection for current user
+                        .then(pipeline =>
+                            collectionFactory.get({
+                                userId: user.id,
+                                type: 'default',
+                                name: 'My Pipelines'
+                            })
+                                .then((collection) => {
+                                    // console.log(collection);
 
-                        return reply(results[0].toJson()).header('Location', location).code(201);
-                    })
+                                    // Check if a default pipeline for current user exists
+                                    // create a default collection if the default collection does not exist
+                                    if (!collection) {
+                                        // TODO: get Ids of all pipelines created by current user ??
+                                        // create a default collection
+                                        return collectionFactory.create({
+                                            userId: user.id,
+                                            name: 'My Pipelines',
+                                            description:
+                                                `The default collection of ${user.username}`,
+                                            type: 'default'
+                                        });
+                                    }
+
+                                    return collection;
+                                })
+                                .then((defaultCollection) => {
+                                    // Check if the pipeline exists in the My Pipelines collection
+                                    // to prevent the situation where a pipeline is deleted and then created right away with the same id
+                                    if (defaultCollection.pipelineIds.includes(pipeline.id)) {
+                                        return defaultCollection;
+                                    }
+
+                                    Object.assign(defaultCollection, {
+                                        pipelineIds: [
+                                            ...defaultCollection.pipelineIds,
+                                            pipeline.id
+                                        ]
+                                    });
+
+                                    return defaultCollection.update();
+                                })
+                                .then(() => {
+                                    // TODO: decide to put this outside or inside
+                                    Promise.all([
+                                        pipeline.sync(),
+                                        pipeline.addWebhook(
+                                            `${request.server.info.uri}/v4/webhooks`)
+                                    ]).then((results) => {
+                                        const location = urlLib.format({
+                                            host: request.headers.host,
+                                            port: request.headers.port,
+                                            protocol: request.server.info.protocol,
+                                            pathname: `${request.path}/${pipeline.id}`
+                                        });
+
+                                        return reply(results[0].toJson())
+                                            .header('Location', location)
+                                            .code(201);
+                                    });
+                                })
+                        )
+                    )
                 )
                 // something broke, respond with error
                 .catch(err => reply(boom.boomify(err)));
