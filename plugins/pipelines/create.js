@@ -90,7 +90,7 @@ module.exports = () => ({
                                             userId: user.id,
                                             name: 'My Pipelines',
                                             description:
-                                                `The default collection of ${user.username}`,
+                                                `The default collection for ${user.username}`,
                                             type: 'default'
                                         });
                                     }
