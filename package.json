@@ -98,7 +98,7 @@
     "screwdriver-executor-docker": "^4.2.0",
     "screwdriver-executor-k8s": "^13.6.1",
     "screwdriver-executor-k8s-vm": "^2.10.0",
-    "screwdriver-executor-queue": "^2.4.11",
+    "screwdriver-executor-queue": "^2.4.22",
     "screwdriver-executor-router": "^1.0.11",
     "screwdriver-models": "^27.34.8",
     "screwdriver-notifications-email": "^1.1.9",
@@ -116,6 +116,7 @@
     "winston": "^2.4.4"
   },
   "devDependencies": {
+    "@octokit/rest": "^16.28.3",
     "chai": "~3.5.0",
     "chai-as-promised": "^6.0.0",
     "chai-jwt": "^2.0.0",
@@ -124,7 +125,6 @@
     "eslint": "^4.19.1",
     "eslint-config-screwdriver": "^3.0.1",
     "form-data": "^2.3.3",
-    "github": "^8.1.1",
     "jenkins-mocha": "^7.0.0",
     "mockery": "^2.0.0",
     "mz": "^2.6.0",

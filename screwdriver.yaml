@@ -16,6 +16,7 @@ jobs:
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
             - test: npm test
             - coverage: ./ci/coverage.sh
+            - cp-coverage-to-artifacts: cp -r artifacts/coverage $SD_ARTIFACTS_DIR
         environment:
             NODE_OPTIONS: "--max_old_space_size=8192"
         secrets:
