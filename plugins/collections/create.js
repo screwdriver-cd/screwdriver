@@ -28,7 +28,8 @@ module.exports = () => ({
                 );
             }
 
-            // FIXME: only for testing
+            // If the request doesn't specify the collection type
+            // a 'normal' type is added to the payload
             if (!request.payload.type) {
                 request.payload.type = 'normal';
             }

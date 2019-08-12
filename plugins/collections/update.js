@@ -48,8 +48,6 @@ module.exports = () => ({
 
                     Object.assign(oldCollection, request.payload);
 
-                    // TODO: May need to check pipelineIds are unique
-
                     // Check that all pipelines exist before updating the pipelineIds of
                     // the collection
                     if (request.payload.pipelineIds) {

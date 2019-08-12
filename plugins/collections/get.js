@@ -130,37 +130,54 @@ module.exports = () => ({
         description: 'Get a single collection',
         notes: 'Returns a collection record',
         tags: ['api', 'collections'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
-            const { collectionFactory, pipelineFactory, eventFactory } = request.server.app;
+            const { collectionFactory, pipelineFactory, eventFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
 
-            return collectionFactory.get(request.params.id)
-                .then((collection) => {
-                    if (!collection) {
-                        throw boom.notFound('Collection does not exist');
-                    }
+            return Promise.all([
+                collectionFactory.get(request.params.id),
+                userFactory.get({ username, scmContext })
+            ]).then(([collection, user]) => {
+                if (!collection) {
+                    throw boom.notFound('Collection does not exist');
+                }
 
-                    // Store promises from pipelineFactory fetch operations
-                    const collectionPipelines = [];
+                // If the user accessing this collection is not the owner, return shared as type
+                if (user.id !== collection.userId) {
+                    collection.type = 'shared';   
+                }
 
-                    collection.pipelineIds.forEach((id) => {
-                        collectionPipelines.push(pipelineFactory.get(id));
+                // Store promises from pipelineFactory fetch operations
+                const collectionPipelines = [];
+
+                collection.pipelineIds.forEach((id) => {
+                    collectionPipelines.push(pipelineFactory.get(id));
+                });
+
+                return Promise.all(collectionPipelines)
+                    // Populate pipelines with PR Info and then last builds
+                    .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
+                    .then((pipelinesWithInfo) => {
+                        const result = Object.assign({}, collection.toJson());
+
+                        result.pipelines = pipelinesWithInfo;
+                        // pipelineIds should only contain pipelines that exist
+                        result.pipelineIds = pipelinesWithInfo.map(p => p.id);
+                        delete result.userId;
+
+                        return reply(result);
                     });
-
-                    return Promise.all(collectionPipelines)
-                        // Populate pipelines with PR Info and then last builds
-                        .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
-                        .then((pipelinesWithInfo) => {
-                            const result = Object.assign({}, collection.toJson());
-
-                            result.pipelines = pipelinesWithInfo;
-                            // pipelineIds should only contain pipelines that exist
-                            result.pipelineIds = pipelinesWithInfo.map(p => p.id);
-                            delete result.userId;
-
-                            return reply(result);
-                        });
-                })
-                .catch(err => reply(boom.boomify(err)));
+            })
+            .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: getSchema
