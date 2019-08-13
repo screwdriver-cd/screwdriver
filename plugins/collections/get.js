@@ -154,6 +154,10 @@ module.exports = () => ({
                 // If the user accessing this collection is not the owner, return shared as type
                 if (user.id !== collection.userId) {
                     collection.type = 'shared';   
+                } 
+                // If the collection type is empty, return normal as type
+                else if (!collection.type) {
+                    collection.type = 'normal';
                 }
 
                 // Store promises from pipelineFactory fetch operations
