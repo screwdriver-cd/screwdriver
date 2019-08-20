@@ -28,8 +28,8 @@ module.exports = () => ({
                 ));
             }
 
-            // If the request doesn't specify the collection type
-            // a 'normal' type is added to the payload
+            // if request.payload.type is either undefined or not part of allowed types,
+            // then default it to normal
             if (!request.payload.type) {
                 request.payload.type = 'normal';
             }
