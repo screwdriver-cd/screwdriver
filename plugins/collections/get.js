@@ -140,52 +140,53 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const { collectionFactory, pipelineFactory, eventFactory, userFactory } = request.server.app;
+            const { collectionFactory, pipelineFactory, eventFactory, userFactory }
+                = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
             return Promise.all([
                 collectionFactory.get(request.params.id),
                 userFactory.get({ username, scmContext })
-            ]).then(([collection, user]) => {
-                if (!collection) {
-                    throw boom.notFound('Collection does not exist');
-                }
+            ])
+                .then(([collection, user]) => {
+                    if (!collection) {
+                        throw boom.notFound('Collection does not exist');
+                    }
 
-                // If the user accessing this collection is not the owner, return shared as type
-                if (user.id !== collection.userId) {
-                    collection.type = 'shared';   
-                } 
-                // If the collection type is empty, return normal as type
-                else if (!collection.type) {
-                    collection.type = 'normal';
-                }
+                    const result = Object.assign({}, collection.toJson());
+ 
+                    if (user.id !== result.userId) {
+                        // If the user accessing this collection is not the owner, return shared as type
+                        result.type = 'shared';
+                    } else if (!result.type) {
+                        // If the collection type is empty, return normal as type
+                        result.type = 'normal';
+                    }
 
-                // Store promises from pipelineFactory fetch operations
-                const collectionPipelines = [];
+                    // Store promises from pipelineFactory fetch operations
+                    const collectionPipelines = [];
 
-                collection.pipelineIds.forEach((id) => {
-                    collectionPipelines.push(pipelineFactory.get(id));
-                });
-
-                return Promise.all(collectionPipelines)
-                    // Populate pipelines with PR Info and then last builds
-                    .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
-                    .then((pipelinesWithInfo) => {
-                        const result = Object.assign({}, collection.toJson());
-
-                        result.pipelines = pipelinesWithInfo;
-                        // pipelineIds should only contain pipelines that exist
-                        result.pipelineIds = pipelinesWithInfo.map(p => p.id);
-                        delete result.userId;
-
-                        return reply(result);
+                    result.pipelineIds.forEach((id) => {
+                        collectionPipelines.push(pipelineFactory.get(id));
                     });
-            })
-            .catch(err => reply(boom.boomify(err)));
+
+                    return Promise.all(collectionPipelines)
+                        // Populate pipelines with PR Info and then last builds
+                        .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
+                        .then((pipelinesWithInfo) => {
+                            result.pipelines = pipelinesWithInfo;
+                            // pipelineIds should only contain pipelines that exist
+                            result.pipelineIds = pipelinesWithInfo.map(p => p.id);
+                            delete result.userId;
+
+                            return reply(result);
+                        });
+                })
+                .catch(err => reply(boom.boomify(err)));
         },
-        response: {
-            schema: getSchema
-        },
+        // response: {
+        //     schema: getSchema
+        // },
         validate: {
             params: {
                 id: idSchema

@@ -79,8 +79,6 @@ module.exports = () => ({
                                 name: 'My Pipelines'
                             })
                                 .then((collection) => {
-                                    // console.log(collection);
-
                                     // Check if a default pipeline for current user exists
                                     // create a default collection if the default collection does not exist
                                     if (!collection) {

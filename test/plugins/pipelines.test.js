@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
+const testDefaultCollection = require('./data/collection.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
@@ -146,11 +147,20 @@ const getUserMock = (user) => {
     return mock;
 };
 
+const getCollectionMock = (collection) => {
+    const mock = hoek.clone(collection);
+
+    mock.update = sinon.stub();
+
+    return mock;
+}
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let collectionFactoryMock;
     let jobFactoryMock;
     let triggerFactoryMock;
     let bannerMock;
@@ -180,6 +190,10 @@ describe('pipeline plugin test', () => {
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha')
             }
+        };
+        collectionFactoryMock = {
+            create: sinon.stub(),
+            get: sinon.stub()
         };
         userFactoryMock = {
             get: sinon.stub()
@@ -220,6 +234,7 @@ describe('pipeline plugin test', () => {
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
             tokenFactory: tokenFactoryMock,
+            collectionFactory: collectionFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
@@ -1289,14 +1304,16 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines', () => {
         let options;
+        let pipelineMock;
+        let userMock;
+
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
-        let pipelineMock;
-        let userMock;
+        const userId = '34';
 
         beforeEach(() => {
             options = {
@@ -1315,6 +1332,8 @@ describe('pipeline plugin test', () => {
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
+            userMock.username = username;
+            userMock.id = userId;
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
@@ -1327,8 +1346,15 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
         });
 
-        it('returns 201 and correct pipeline data', () => {
+        it('returns 201 and correct pipeline data when the default collection does not exist', () => {
             let expectedLocation;
+
+            const type = 'default';
+            const name = 'My Pipelines';
+            const description = `The default collection for ${username}`;
+            
+            collectionFactoryMock.get.withArgs({ userId, type, name }).resolves(null);
+            collectionFactoryMock.create.withArgs({ userId, type, name, description }).resolves(getCollectionMock(testDefaultCollection));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1345,6 +1371,50 @@ describe('pipeline plugin test', () => {
                     },
                     scmUri,
                     scmContext
+                });
+                assert.calledWith(collectionFactoryMock.get, {
+                    userId,
+                    name,
+                    type
+                });
+                assert.calledWith(collectionFactoryMock.create, {
+                    userId,
+                    name,
+                    type,
+                    description
+                });
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 and correct pipeline data when the default collection exists', () => {
+            let expectedLocation;
+
+            const type = 'default';
+            const name = 'My Pipelines';
+            
+            collectionFactoryMock.get.withArgs({ userId, type, name }).resolves(getCollectionMock(testDefaultCollection));
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testId}`
+                };
+                assert.deepEqual(reply.result, testPipeline);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(pipelineFactoryMock.create, {
+                    admins: {
+                        d2lam: true
+                    },
+                    scmUri,
+                    scmContext
+                });
+                assert.calledWith(collectionFactoryMock.get, {
+                    userId,
+                    name,
+                    type
                 });
                 assert.equal(reply.statusCode, 201);
             });

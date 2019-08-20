@@ -22,9 +22,9 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            // Check if the collection to be updated has a type 'default'
+            // Check if the collection is to be updated as a default collection
             if (request.payload.type === 'default') {
-                throw boom.forbidden('Collection can not be updated to type "default"');
+                return reply(boom.forbidden('Collection can not be updated to type "default"'));
             }
 
             const { id } = request.params;

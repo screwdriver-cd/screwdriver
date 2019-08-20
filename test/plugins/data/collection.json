@@ -3,5 +3,6 @@
     "name": "screwdriver",
     "description": "pipelines for screwdriver",
     "userId": 34,
+    "type": "normal",
     "pipelineIds": [123, 124, 125]
 }

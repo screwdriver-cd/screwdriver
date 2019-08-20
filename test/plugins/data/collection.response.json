@@ -3,6 +3,7 @@
     "name": "screwdriver",
     "description": "pipelines for screwdriver",
     "pipelineIds": [123, 124, 125],
+    "type": "normal",
     "pipelines": [
         {
             "id": 123,
