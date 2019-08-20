@@ -188,8 +188,8 @@ describe('collection plugin test', () => {
 
                 delete expected.id;
 
-                assert.calledWith(collectionFactoryMock.get, { 
-                    name, 
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
                     userId
                 });
                 assert.calledWith(collectionFactoryMock.create, expected);
@@ -223,8 +223,8 @@ describe('collection plugin test', () => {
                 delete expectedInput.id;
                 delete expectedInput.pipelineIds;
 
-                assert.calledWith(collectionFactoryMock.get, { 
-                    name, 
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
                     userId
                 });
                 assert.calledWith(collectionFactoryMock.create, expectedInput);
@@ -251,8 +251,8 @@ describe('collection plugin test', () => {
 
                 // It is expected that the invalid pipelineId will be removed from the
                 // create call
-                assert.calledWith(collectionFactoryMock.get, { 
-                    name, 
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
                     userId
                 });
                 assert.calledWith(collectionFactoryMock.create, expected);
@@ -278,8 +278,8 @@ describe('collection plugin test', () => {
                 delete expected.id;
                 // It is expected that the invalid pipelineId will be removed from the
                 // create call
-                assert.calledWith(collectionFactoryMock.get, { 
-                    name, 
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
                     userId
                 });
                 assert.calledWith(collectionFactoryMock.create, expected);
@@ -443,6 +443,7 @@ describe('collection plugin test', () => {
             // Add a pipelineId which doesn't exist in testPipelines
             newTestCollection.pipelineIds.push(126);
             const newCollectionMock = getMock(newTestCollection);
+
             collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
 
             // Since there is no pipeline with id 126, it should only return
@@ -459,6 +460,7 @@ describe('collection plugin test', () => {
             // Delete the type field
             delete newTestCollection.type;
             const newCollectionMock = getMock(newTestCollection);
+
             collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
 
             return server.inject(options).then((reply) => {
@@ -467,18 +469,20 @@ describe('collection plugin test', () => {
             });
         });
 
-        it('sets collection type to shared in response when if user does not own the colleciton', () => {
+        it('sets response collection type to shared when if user does not own it', () => {
             const fakeUserId = '12';
-            const fakeUserMock = getUserMock({ 
+            const fakeUserMock = getUserMock({
                 username,
                 id: fakeUserId
             });
+
             userFactoryMock.get.withArgs({
                 username,
                 scmContext
             }).resolves(fakeUserMock);
-            
+
             const newTestCollectionResponse = Object.assign({}, testCollectionResponse);
+
             newTestCollectionResponse.type = 'shared';
 
             return server.inject(options).then((reply) => {
@@ -687,11 +691,11 @@ describe('collection plugin test', () => {
                 assert.calledOnce(collectionMock.remove);
             })
         );
-        
-        it.only('returns 403 when the collection to be deleted has type "default"', () => {
+
+        it('returns 403 when the collection to be deleted has type "default"', () => {
             const defaultCollection = Object.assign({}, testCollection, { type: 'default' });
             const defaultCollectionMock = getMock(defaultCollection);
-            
+
             collectionFactoryMock.get.withArgs(id).resolves(defaultCollectionMock);
 
             server.inject(options).then((reply) => {

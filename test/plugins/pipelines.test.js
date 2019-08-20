@@ -153,7 +153,7 @@ const getCollectionMock = (collection) => {
     mock.update = sinon.stub();
 
     return mock;
-}
+};
 
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
@@ -1346,15 +1346,16 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
         });
 
-        it('returns 201 and correct pipeline data when the default collection does not exist', () => {
+        it('returns 201 and correct pipeline data when default collection does not exist', () => {
             let expectedLocation;
 
             const type = 'default';
             const name = 'My Pipelines';
             const description = `The default collection for ${username}`;
-            
+
             collectionFactoryMock.get.withArgs({ userId, type, name }).resolves(null);
-            collectionFactoryMock.create.withArgs({ userId, type, name, description }).resolves(getCollectionMock(testDefaultCollection));
+            collectionFactoryMock.create.withArgs({ userId, type, name, description })
+                .resolves(getCollectionMock(testDefaultCollection));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1392,8 +1393,9 @@ describe('pipeline plugin test', () => {
 
             const type = 'default';
             const name = 'My Pipelines';
-            
-            collectionFactoryMock.get.withArgs({ userId, type, name }).resolves(getCollectionMock(testDefaultCollection));
+
+            collectionFactoryMock.get.withArgs({ userId, type, name })
+                .resolves(getCollectionMock(testDefaultCollection));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {

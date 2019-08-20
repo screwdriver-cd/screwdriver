@@ -154,7 +154,7 @@ module.exports = () => ({
                     }
 
                     const result = Object.assign({}, collection.toJson());
- 
+
                     if (user.id !== result.userId) {
                         // If the user accessing this collection is not the owner, return shared as type
                         result.type = 'shared';
@@ -184,9 +184,9 @@ module.exports = () => ({
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
-        // response: {
-        //     schema: getSchema
-        // },
+        response: {
+            schema: getSchema
+        },
         validate: {
             params: {
                 id: idSchema
