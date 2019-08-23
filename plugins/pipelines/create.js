@@ -70,7 +70,6 @@ module.exports = () => ({
 
                             return pipelineFactory.create(pipelineConfig);
                         })
-                        // TODO: Add the pipeline to the user's My Pipelines collection
                         // get the default collection for current user
                         .then(pipeline =>
                             collectionFactory.get({
@@ -82,7 +81,7 @@ module.exports = () => ({
                                     // Check if a default pipeline for current user exists
                                     // create a default collection if the default collection does not exist
                                     if (!collection) {
-                                        // TODO: get Ids of all pipelines created by current user ??
+                                        // TODO: get Ids of all pipelines created by current user
                                         // create a default collection
                                         return collectionFactory.create({
                                             userId: user.id,
