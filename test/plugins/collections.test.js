@@ -234,7 +234,7 @@ describe('collection plugin test', () => {
             });
         });
 
-        it('returns 201 and corrent collection data when given no collection type', () => {
+        it('returns 201 and current collection data when given no collection type', () => {
             // Delete the collection type
             delete options.payload.type;
 
