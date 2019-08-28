@@ -10,6 +10,6 @@ config/local.*
 data/*
 package-lock.json
 docker-compose.yml
-mv-data
+mw-data
 report*.json
 .vscode
