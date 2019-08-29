@@ -17,7 +17,6 @@ function createCollection(body) {
     return this.getJwt(this.apiToken)
         .then((response) => {
             this.jwt = response.body.token;
-
             return request({
                 uri: `${this.instance}/${this.namespace}/collections`,
                 method: 'POST',
@@ -53,6 +52,44 @@ function deleteCollection(id) {
     });
 }
 
+/**
+ * 
+ * @param {*} body 
+ */
+function createPipeline(body) {
+    return this.getJwt(this.apiToken)
+        .then((response) => {
+            this.jwt = response.body.token;
+
+            return request({
+                uri: `${this.instance}/${this.namespace}/pipelines`,
+                method: 'POST',
+                auth: {
+                    bearer: this.jwt
+                },
+                body,
+                json: true
+            });
+        });
+}
+
+function deletePipeline(id) {
+    if (!id) {
+        return Promise.resolve();
+    }
+
+    return request({
+        uri: `${this.instance}/${this.namespace}/pipelines/${id}`,
+        method: 'DELETE',
+        auth: {
+            bearer: this.jwt
+        },
+        json: true
+    }).then((response) => {
+        Assert.strictEqual(response.statusCode, 204);
+    });
+}
+
 defineSupportCode(({ Before, Given, Then, When, After }) => {
     Before('@collections', function hook() {
         this.repoOrg = this.testOrg;
@@ -62,17 +99,50 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         this.secondCollectionId = null;
     });
 
+    When(/^they create the first pipeline$/, { timeout: TIMEOUT }, function step() {
+        const body = {
+            checkoutUrl: `git@github.com:${this.repoOrg}/data-schema.git#master`,
+            rootDir: 'src/app/component'
+        };
+
+        return createPipeline.call(this, body)
+            .then((response) => {
+                Assert.strictEqual(response.statusCode, 201);
+                this.pipelineId = response.body.id;
+            });
+    });
+
+    Then(/^they can see a default collection$/, { timeout: TIMEOUT }, function step() {
+        return request({
+            uri: `${this.instance}/${this.namespace}/collections`,
+            method: 'GET',
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        }).then((response) => {
+            Assert.strictEqual(response.statusCode, 200);
+            this.defaultCollection = response.body.find((collection) => {
+                return collection.type === 'default';
+            });
+            Assert.notEqual(this.defaultCollection, undefined);
+        });
+    });
+
+    Then(/^the default collection contains that pipeline$/, { timeout: TIMEOUT }, function step() {
+        const pipelineId = parseInt(this.pipelineId, 10);
+
+        Assert.oneOf(pipelineId, this.defaultCollection.pipelineIds);
+    });
+
     When(/^they create a new collection "myCollection" with that pipeline$/,
         { timeout: TIMEOUT }, function step() {
-            return this.ensurePipelineExists({ repoName: this.repoName })
-                .then(() => {
-                    const requestBody = {
-                        name: 'myCollection',
-                        pipelineIds: [this.pipelineId]
-                    };
+            const requestBody = {
+                name: 'myCollection',
+                pipelineIds: [this.pipelineId]
+            };
 
-                    return createCollection.call(this, requestBody);
-                })
+            return createCollection.call(this, requestBody)
                 .then((response) => {
                     Assert.strictEqual(response.statusCode, 201);
                     this.firstCollectionId = response.body.id;
@@ -133,24 +203,22 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
 
     When(/^they update the collection "myCollection" with that pipeline$/,
         { timeout: TIMEOUT }, function step() {
-            return this.ensurePipelineExists({ repoName: this.repoName })
-                .then(() => {
-                    const pipelineId = parseInt(this.pipelineId, 10);
+            const pipelineId = parseInt(this.pipelineId, 10);
 
-                    return request({
-                        uri: `${this.instance}/${this.namespace}/collections/` +
-                            `${this.firstCollectionId}`,
-                        method: 'PUT',
-                        auth: {
-                            bearer: this.jwt
-                        },
-                        body: {
-                            pipelineIds: [pipelineId]
-                        },
-                        json: true
-                    }).then((response) => {
-                        Assert.strictEqual(response.statusCode, 200);
-                    });
+            return request({
+                uri: `${this.instance}/${this.namespace}/collections/` +
+                    `${this.firstCollectionId}`,
+                method: 'PUT',
+                auth: {
+                    bearer: this.jwt
+                },
+                body: {
+                    pipelineIds: [pipelineId]
+                },
+                json: true
+            })
+                .then((response) => {
+                    Assert.strictEqual(response.statusCode, 200);
                 });
         });
 
@@ -184,6 +252,26 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
             });
     });
 
+    Given(/^they have a pipeline$/, { timeout: TIMEOUT }, function step() {
+        const body = {
+            checkoutUrl: `git@github.com:${this.repoOrg}/data-schema.git#master`,
+            rootDir: 'src/app/component'
+        };
+
+        return createPipeline.call(this, body)
+            .then((response) => {
+                Assert.oneOf(response.statusCode, [409, 201]);
+
+                if (response.statusCode === 201) {
+                    this.pipelineId = response.body.id;
+                } else {
+                    const str = response.body.message;
+
+                    [, this.pipelineId] = str.split(': ');
+                }
+            })
+    });
+
     When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step() {
         return request({
             uri: `${this.instance}/${this.namespace}/collections`,
@@ -198,12 +286,16 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    Then(/^they can see those collections$/, function step() {
-        const collectionNames = this.collections.map(c => c.name);
+    Then(/^they can see those collections and a default collection$/, function step() {
+        // Default collection will be created when the first pipeline is created
+        const normalCollectionNames = this.collections.filter(c => c.type === 'normal')
+            .map(c => c.name);
+        const defaultCollection = this.collections.filter(c => c.type === 'default');
 
-        Assert.strictEqual(this.collections.length, 2);
-        Assert.ok(collectionNames.includes('myCollection'));
-        Assert.ok(collectionNames.includes('anotherCollection'));
+        Assert.strictEqual(normalCollectionNames.length, 2);
+        Assert.strictEqual(defaultCollection.length, 1);
+        Assert.ok(normalCollectionNames.includes('myCollection'));
+        Assert.ok(normalCollectionNames.includes('anotherCollection'));
     });
 
     When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
@@ -253,7 +345,8 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         // Delete the collections created in the functional tests if they exist
         return Promise.all([
             deleteCollection.call(this, this.firstCollectionId),
-            deleteCollection.call(this, this.secondCollectionId)
+            deleteCollection.call(this, this.secondCollectionId),
+            deletePipeline.call(this, this.pipelineId)
         ]);
     });
 });
