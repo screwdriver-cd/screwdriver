@@ -161,6 +161,7 @@ exports.register = (server, options, next) => {
                     const tokenFactory = request.server.app.tokenFactory;
                     const userFactory = request.server.app.userFactory;
                     const pipelineFactory = request.server.app.pipelineFactory;
+                    const collectionFactory = request.server.app.collectionFactory;
 
                     return tokenFactory.get({ value: tokenValue })
                         .then((token) => {
@@ -173,6 +174,25 @@ exports.register = (server, options, next) => {
                                         if (!user) {
                                             return Promise.reject();
                                         }
+
+                                        const description =
+                                            `The default collection for ${user.username}`;
+
+                                        collectionFactory.get({
+                                            userId: user.id,
+                                            type: 'default',
+                                            name: 'My Pipelines'
+                                        })
+                                            .then((collection) => {
+                                                if (!collection) {
+                                                    collectionFactory.create({
+                                                        userId: user.id,
+                                                        name: 'My Pipelines',
+                                                        description,
+                                                        type: 'default'
+                                                    });
+                                                }
+                                            });
 
                                         return {
                                             username: user.username,
