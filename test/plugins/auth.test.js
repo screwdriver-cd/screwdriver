@@ -447,12 +447,12 @@ describe('auth plugin test', () => {
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
-            collectionFactoryMock.get.withArgs({ userId: id, type, name }).resolves(null);
+            collectionFactoryMock.get.withArgs({ userId: id, type }).resolves(null);
             collectionFactoryMock.create.withArgs({ userId: id, type, name, description })
                 .resolves(getCollectionMock(testDefaultCollection));
         });
 
-        describe('GET', () => {
+        describe.only('GET', () => {
             it('exists', () => (
                 server.inject('/auth/login/github:github.com').then((reply) => {
                     assert.notEqual(reply.statusCode, 404, 'Login route should be available');
@@ -490,7 +490,6 @@ describe('auth plugin test', () => {
                     });
                     assert.calledWith(collectionFactoryMock.get, {
                         userId: id,
-                        name,
                         type
                     });
                     assert.calledWith(collectionFactoryMock.create, {
