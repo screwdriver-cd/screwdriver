@@ -221,7 +221,7 @@ describe('pipeline plugin test', () => {
             name: 'banners'
         };
 
-        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
+        screwdriverAdminDetailsMock = sinon.stub();
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -537,6 +537,7 @@ describe('pipeline plugin test', () => {
 
         afterEach(() => {
             pipelineFactoryMock.get.withArgs(id).reset();
+            screwdriverAdminDetailsMock.reset();
         });
 
         it('returns 204 when delete successfully', () =>
@@ -546,8 +547,9 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 204 when repository does not exist and user is admin', () => {
+        it('returns 204 when repository does not exist and user is Screwdriver admin', () => {
             userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
@@ -555,13 +557,18 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission and is not ' +
+            'Screwdriver admin', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User myself does not have admin permission for this repo'
+                message: 'User d2lam does not have admin permission for this repo'
             };
 
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            options.credentials.username = 'd2lam';
+            userMock = getUserMock({ username: 'd2lam', scmContext });
+            userFactoryMock.get.withArgs({ username: 'd2lam', scmContext }).resolves(userMock);
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
@@ -570,7 +577,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child pipeline', () => {
             pipeline.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
@@ -610,23 +617,6 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when call returns error', () => {
             pipeline.remove.rejects('pipelineRemoveError');
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-
-        it('returns 500 when repository does not exist and private repo is enabled', () => {
-            const scms = {
-                'github:github.com': {
-                    config: {
-                        privateRepo: true
-                    }
-                }
-            };
-
-            pipelineFactoryMock.scm.scms = scms;
-            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
