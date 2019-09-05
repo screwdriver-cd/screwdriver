@@ -445,6 +445,7 @@ describe('webhooks plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
+                assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
             });
         });
 
@@ -493,6 +494,9 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
+                        sinon.match({ refType: 'tags' }));
                     assert.calledWith(pipelineFactoryMock.list, {
                         search: { field: 'scmUri', keyword: 'github.com:123456:%' } });
                     assert.calledWith(eventFactoryMock.create, {
@@ -631,6 +635,9 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
+                        sinon.match({ refType: 'tags' }));
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -765,6 +772,7 @@ describe('webhooks plugin test', () => {
             it('returns 201 on success', () =>
                 server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
+                    assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
                         type: 'pipeline',
@@ -840,6 +848,7 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
+                    assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pMock1.id,
                         type: 'pipeline',
@@ -1143,6 +1152,7 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
+                    assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                 });
             });
 
@@ -1226,6 +1236,7 @@ describe('webhooks plugin test', () => {
                             chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
+                        assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                     })
                 );
 
