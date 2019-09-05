@@ -155,7 +155,7 @@ const getCollectionMock = (collection) => {
     return mock;
 };
 
-describe('pipeline plugin test', () => {
+describe.only('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let collectionFactoryMock;
@@ -1339,10 +1339,9 @@ describe('pipeline plugin test', () => {
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
             const type = 'default';
-            const name = 'My Pipelines';
             const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
 
-            collectionFactoryMock.get.withArgs({ userId, type, name })
+            collectionFactoryMock.get.withArgs({ userId, type })
                 .resolves(getCollectionMock(testDefaultCollection));
 
             return server.inject(options).then((reply) => {
@@ -1363,7 +1362,6 @@ describe('pipeline plugin test', () => {
                 });
                 assert.calledWith(collectionFactoryMock.get, {
                     userId,
-                    name,
                     type
                 });
                 assert.equal(reply.statusCode, 201);
