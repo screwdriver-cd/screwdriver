@@ -452,7 +452,7 @@ describe('auth plugin test', () => {
                 .resolves(getCollectionMock(testDefaultCollection));
         });
 
-        describe.only('GET', () => {
+        describe('GET', () => {
             it('exists', () => (
                 server.inject('/auth/login/github:github.com').then((reply) => {
                     assert.notEqual(reply.statusCode, 404, 'Login route should be available');
