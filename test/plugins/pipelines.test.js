@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
+const testCollection = require('./data/collection.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
@@ -146,9 +147,18 @@ const getUserMock = (user) => {
     return mock;
 };
 
+const getCollectionMock = (collection) => {
+    const mock = hoek.clone(collection);
+
+    mock.update = sinon.stub();
+
+    return mock;
+};
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
+    let collectionFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
     let jobFactoryMock;
@@ -182,6 +192,10 @@ describe('pipeline plugin test', () => {
             }
         };
         userFactoryMock = {
+            get: sinon.stub()
+        };
+        collectionFactoryMock = {
+            create: sinon.stub(),
             get: sinon.stub()
         };
         eventFactoryMock = {
@@ -219,6 +233,7 @@ describe('pipeline plugin test', () => {
             triggerFactory: triggerFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
+            collectionFactory: collectionFactoryMock,
             tokenFactory: tokenFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
@@ -1279,14 +1294,16 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines', () => {
         let options;
+        let pipelineMock;
+        let userMock;
+
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
-        let pipelineMock;
-        let userMock;
+        const userId = '34';
 
         beforeEach(() => {
             options = {
@@ -1305,6 +1322,8 @@ describe('pipeline plugin test', () => {
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
+            userMock.username = username;
+            userMock.id = userId;
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
@@ -1319,6 +1338,11 @@ describe('pipeline plugin test', () => {
 
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
+            const type = 'default';
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
+
+            collectionFactoryMock.get.withArgs({ userId, type })
+                .resolves(getCollectionMock(testDefaultCollection));
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1335,6 +1359,10 @@ describe('pipeline plugin test', () => {
                     },
                     scmUri,
                     scmContext
+                });
+                assert.calledWith(collectionFactoryMock.get, {
+                    userId,
+                    type
                 });
                 assert.equal(reply.statusCode, 201);
             });

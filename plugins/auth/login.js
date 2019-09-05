@@ -78,12 +78,13 @@ function addOAuthRoutes(server, config) {
                     ));
                 }
 
-                const factory = request.server.app.userFactory;
+                const userFactory = request.server.app.userFactory;
+                const collectionFactory = request.server.app.collectionFactory;
                 const accessToken = request.auth.credentials.token;
                 const username = request.auth.credentials.profile.username;
                 const profile = request.server.plugins.auth
                     .generateProfile(username, scmContext, ['user'], {});
-                const scmDisplayName = factory.scm.getDisplayName({ scmContext });
+                const scmDisplayName = userFactory.scm.getDisplayName({ scmContext });
                 const userDisplayName = `${scmDisplayName}:${username}`;
 
                 // Check whitelist
@@ -101,11 +102,13 @@ function addOAuthRoutes(server, config) {
                 );
                 request.cookieAuth.set(profile);
 
-                return factory.get({ username, scmContext })
+                return userFactory.get({ username, scmContext })
                     // get success, so user exists
                     .then((model) => {
                         if (!model) {
-                            return factory.create({
+                            // TODO: Move default collection creation here after database migration
+                            // So that a default collection is created with creation of a new user
+                            return userFactory.create({
                                 username,
                                 scmContext,
                                 token: accessToken
@@ -119,7 +122,25 @@ function addOAuthRoutes(server, config) {
                                 return model.update();
                             });
                     })
-                    .then(() => {
+                    .then((user) => {
+                        // Check if a default pipeline for current user exists
+                        // create a default collection if the default collection does not exist
+                        collectionFactory.get({
+                            userId: user.id,
+                            type: 'default'
+                        })
+                            .then((collection) => {
+                                if (!collection) {
+                                    collectionFactory.create({
+                                        userId: user.id,
+                                        name: 'My Pipelines',
+                                        description:
+                                            `The default collection for ${user.username}`,
+                                        type: 'default'
+                                    });
+                                }
+                            });
+
                         if (request.params.web === 'web') {
                             return reply('<script>window.close();</script>');
                         }
