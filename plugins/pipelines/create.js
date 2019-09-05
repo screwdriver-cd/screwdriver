@@ -74,8 +74,7 @@ module.exports = () => ({
                         .then(pipeline =>
                             collectionFactory.get({
                                 userId: user.id,
-                                type: 'default',
-                                name: 'My Pipelines'
+                                type: 'default'
                             })
                                 .then((defaultCollection) => {
                                     // Check if the pipeline exists in the default collection
