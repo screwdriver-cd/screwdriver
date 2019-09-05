@@ -180,8 +180,7 @@ exports.register = (server, options, next) => {
 
                                         collectionFactory.get({
                                             userId: user.id,
-                                            type: 'default',
-                                            name: 'My Pipelines'
+                                            type: 'default'
                                         })
                                             .then((collection) => {
                                                 if (!collection) {
