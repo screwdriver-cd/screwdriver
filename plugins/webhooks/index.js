@@ -760,7 +760,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
  * @param    {String}     scmContext       Scm which pipeline's repository exists in
  * @returns  {Promise}                     Specific SHA1 commit to start the build with
  */
-async function getCommitRefSha({ scm, token, ref, checkoutUrl, scmContext }) {
+async function getCommitRefSha({ scm, token, ref, refType, checkoutUrl, scmContext }) {
     // For example, git@github.com:screwdriver-cd/data-schema.git => screwdriver-cd, data-schema
     const owner = CHECKOUT_URL_SCHEMA_REGEXP.exec(checkoutUrl)[2];
     const repo = CHECKOUT_URL_SCHEMA_REGEXP.exec(checkoutUrl)[3];
@@ -770,6 +770,7 @@ async function getCommitRefSha({ scm, token, ref, checkoutUrl, scmContext }) {
         owner,
         repo,
         ref,
+        refType,
         scmContext
     });
 }
@@ -846,23 +847,6 @@ exports.register = (server, options, next) => {
                     const token = await obtainScmToken(
                         pluginOptions, userFactory, username, scmContext);
 
-                    if (!parsed.sha) {
-                        try {
-                            parsed.sha = await getCommitRefSha({
-                                scm,
-                                token,
-                                ref,
-                                checkoutUrl,
-                                scmContext
-                            });
-                        } catch (err) {
-                            request.log(['webhook', hookId, 'getCommitRefSha'], err);
-
-                            // there is a possibility of scm.getCommitRefSha() is not implemented yet
-                            return reply({ message }).code(204);
-                        }
-                    }
-
                     if (action !== 'release' && action !== 'tag') {
                         await promiseToWait(WAIT_FOR_CHANGEDFILES);
 
@@ -874,6 +858,23 @@ exports.register = (server, options, next) => {
                         });
                         request.log(['webhook', hookId],
                             `Changed files are ${parsed.changedFiles}`);
+                    } else {
+                        // The payload has no sha when webhook event is tag or release, so we need to get it.
+                        try {
+                            parsed.sha = await getCommitRefSha({
+                                scm,
+                                token,
+                                ref,
+                                refType: 'tags',
+                                checkoutUrl,
+                                scmContext
+                            });
+                        } catch (err) {
+                            request.log(['webhook', hookId, 'getCommitRefSha'], err);
+
+                            // there is a possibility of scm.getCommitRefSha() is not implemented yet
+                            return reply({ message }).code(204);
+                        }
                     }
 
                     if (type === 'pr') {
