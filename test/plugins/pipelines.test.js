@@ -155,7 +155,7 @@ const getCollectionMock = (collection) => {
     return mock;
 };
 
-describe('pipeline plugin test', () => {
+describe.only('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let collectionFactoryMock;
@@ -196,7 +196,7 @@ describe('pipeline plugin test', () => {
         };
         collectionFactoryMock = {
             create: sinon.stub(),
-            get: sinon.stub()
+            list: sinon.stub()
         };
         eventFactoryMock = {
             create: sinon.stub().resolves(null)
@@ -1338,11 +1338,10 @@ describe('pipeline plugin test', () => {
 
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
-            const type = 'default';
             const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
 
-            collectionFactoryMock.get.withArgs({ userId, type })
-                .resolves(getCollectionMock(testDefaultCollection));
+            collectionFactoryMock.list.withArgs({ userId })
+                .resolves([getCollectionMock(testDefaultCollection)]);
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1360,9 +1359,8 @@ describe('pipeline plugin test', () => {
                     scmUri,
                     scmContext
                 });
-                assert.calledWith(collectionFactoryMock.get, {
-                    userId,
-                    type
+                assert.calledWith(collectionFactoryMock.list, {
+                    userId
                 });
                 assert.equal(reply.statusCode, 201);
             });

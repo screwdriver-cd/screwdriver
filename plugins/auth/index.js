@@ -178,12 +178,15 @@ exports.register = (server, options, next) => {
                                         const description =
                                             `The default collection for ${user.username}`;
 
-                                        collectionFactory.get({
-                                            userId: user.id,
-                                            type: 'default'
+                                        collectionFactory.list({
+                                            userId: user.id
                                         })
-                                            .then((collection) => {
-                                                if (!collection) {
+                                            .then((collections) => {
+                                                const defaultCollection = collections
+                                                    .find(collection =>
+                                                        collection.type === 'default');
+
+                                                if (!defaultCollection) {
                                                     collectionFactory.create({
                                                         userId: user.id,
                                                         name: 'My Pipelines',

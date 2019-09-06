@@ -94,7 +94,7 @@ describe('auth plugin test', () => {
         };
         collectionFactoryMock = {
             create: sinon.stub(),
-            get: sinon.stub()
+            list: sinon.stub()
         };
         buildFactoryMock = {
             get: sinon.stub(),
@@ -447,7 +447,7 @@ describe('auth plugin test', () => {
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
-            collectionFactoryMock.get.withArgs({ userId: id, type }).resolves(null);
+            collectionFactoryMock.list.withArgs({ userId: id }).resolves([]);
             collectionFactoryMock.create.withArgs({ userId: id, type, name, description })
                 .resolves(getCollectionMock(testDefaultCollection));
         });
@@ -488,9 +488,8 @@ describe('auth plugin test', () => {
                         scmContext,
                         token
                     });
-                    assert.calledWith(collectionFactoryMock.get, {
-                        userId: id,
-                        type
+                    assert.calledWith(collectionFactoryMock.list, {
+                        userId: id
                     });
                     assert.calledWith(collectionFactoryMock.create, {
                         userId: id,
