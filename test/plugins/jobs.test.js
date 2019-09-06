@@ -320,7 +320,8 @@ describe('job plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             })
@@ -336,7 +337,25 @@ describe('job plugin test', () => {
                         count: 30,
                         page: 2
                     },
-                    sort: 'ascending'
+                    sort: 'ascending',
+                    sortBy: 'createTime'
+                });
+                assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+
+        it('pass in the correct params to getBuilds with all params', () => {
+            options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending&sortBy=id`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    paginate: {
+                        count: 30,
+                        page: 2
+                    },
+                    sort: 'ascending',
+                    sortBy: 'id'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -352,7 +371,8 @@ describe('job plugin test', () => {
                         page: undefined,
                         count: 30
                     },
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });

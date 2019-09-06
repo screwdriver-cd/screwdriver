@@ -31,8 +31,13 @@ module.exports = () => ({
                     }
 
                     const config = {
-                        sort: request.query.sort
+                        sort: request.query.sort,
+                        sortBy: 'createTime'
                     };
+
+                    if (request.query.sortBy) {
+                        config.sortBy = request.query.sortBy;
+                    }
 
                     if (request.query.page || request.query.count) {
                         config.paginate = {
