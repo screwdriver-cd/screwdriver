@@ -185,9 +185,7 @@ exports.register = (server, options, next) => {
                                             }
                                         })
                                             .then((collections) => {
-                                                const defaultCollection = collections[0];
-
-                                                if (!defaultCollection) {
+                                                if (!collections[0]) {
                                                     collectionFactory.create({
                                                         userId: user.id,
                                                         name: 'My Pipelines',
