@@ -132,9 +132,7 @@ function addOAuthRoutes(server, config) {
                             }
                         })
                             .then((collections) => {
-                                const defaultCollection = collections[0];
-
-                                if (!defaultCollection) {
+                                if (!collections[0]) {
                                     collectionFactory.create({
                                         userId: user.id,
                                         name: 'My Pipelines',
