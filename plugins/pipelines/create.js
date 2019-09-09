@@ -72,10 +72,27 @@ module.exports = () => ({
                         })
                         // get the default collection for current user
                         .then(pipeline =>
-                            collectionFactory.get({
-                                userId: user.id,
-                                type: 'default'
+                            collectionFactory.list({
+                                params: {
+                                    userId: user.id,
+                                    type: 'default'
+                                }
                             })
+                                .then((collections) => {
+                                    const defaultCollection = collections[0];
+
+                                    if (!defaultCollection) {
+                                        return collectionFactory.create({
+                                            userId: user.id,
+                                            name: 'My Pipelines',
+                                            description:
+                                                `The default collection for ${user.username}`,
+                                            type: 'default'
+                                        });
+                                    }
+
+                                    return defaultCollection;
+                                })
                                 .then((defaultCollection) => {
                                     // Check if the pipeline exists in the default collection
                                     // to prevent the situation where a pipeline is deleted and then created right away with the same id
