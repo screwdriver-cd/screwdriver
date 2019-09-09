@@ -1340,8 +1340,12 @@ describe('pipeline plugin test', () => {
             let expectedLocation;
             const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
 
-            collectionFactoryMock.list.withArgs({ userId })
-                .resolves([getCollectionMock(testDefaultCollection)]);
+            collectionFactoryMock.list.withArgs({
+                params: {
+                    userId,
+                    type: 'default'
+                }
+            }).resolves([getCollectionMock(testDefaultCollection)]);
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1360,7 +1364,10 @@ describe('pipeline plugin test', () => {
                     scmContext
                 });
                 assert.calledWith(collectionFactoryMock.list, {
-                    userId
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
                 });
                 assert.equal(reply.statusCode, 201);
             });

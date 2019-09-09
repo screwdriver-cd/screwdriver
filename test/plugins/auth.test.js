@@ -447,7 +447,12 @@ describe('auth plugin test', () => {
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
-            collectionFactoryMock.list.withArgs({ userId: id }).resolves([]);
+            collectionFactoryMock.list.withArgs({
+                params: {
+                    userId: id,
+                    type: 'default'
+                }
+            }).resolves([]);
             collectionFactoryMock.create.withArgs({ userId: id, type, name, description })
                 .resolves(getCollectionMock(testDefaultCollection));
         });
@@ -489,7 +494,10 @@ describe('auth plugin test', () => {
                         token
                     });
                     assert.calledWith(collectionFactoryMock.list, {
-                        userId: id
+                        params: {
+                            userId: id,
+                            type: 'default'
+                        }
                     });
                     assert.calledWith(collectionFactoryMock.create, {
                         userId: id,

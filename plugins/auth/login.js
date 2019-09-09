@@ -126,7 +126,10 @@ function addOAuthRoutes(server, config) {
                         // Check if a default pipeline for current user exists
                         // create a default collection if the default collection does not exist
                         collectionFactory.list({
-                            userId: user.id
+                            params: {
+                                userId: user.id,
+                                type: 'default'
+                            }
                         })
                             .then((collections) => {
                                 const defaultCollection = collections.find(collection =>

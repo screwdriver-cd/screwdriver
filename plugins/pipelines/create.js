@@ -73,7 +73,10 @@ module.exports = () => ({
                         // get the default collection for current user
                         .then(pipeline =>
                             collectionFactory.list({
-                                userId: user.id
+                                params: {
+                                    userId: user.id,
+                                    type: 'default'
+                                }
                             })
                                 .then((collections) => {
                                     const defaultCollection = collections.find(collection =>

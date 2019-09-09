@@ -179,7 +179,10 @@ exports.register = (server, options, next) => {
                                             `The default collection for ${user.username}`;
 
                                         collectionFactory.list({
-                                            userId: user.id
+                                            params: {
+                                                userId: user.id,
+                                                type: 'default'
+                                            }
                                         })
                                             .then((collections) => {
                                                 const defaultCollection = collections
