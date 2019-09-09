@@ -185,9 +185,7 @@ exports.register = (server, options, next) => {
                                             }
                                         })
                                             .then((collections) => {
-                                                const defaultCollection = collections
-                                                    .find(collection =>
-                                                        collection.type === 'default');
+                                                const defaultCollection = collections[0];
 
                                                 if (!defaultCollection) {
                                                     collectionFactory.create({

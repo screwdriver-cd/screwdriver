@@ -79,8 +79,7 @@ module.exports = () => ({
                                 }
                             })
                                 .then((collections) => {
-                                    const defaultCollection = collections.find(collection =>
-                                        collection.type === 'default');
+                                    const defaultCollection = collections[0];
 
                                     if (!defaultCollection) {
                                         return collectionFactory.create({
