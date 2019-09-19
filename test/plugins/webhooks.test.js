@@ -1003,11 +1003,29 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 204 when commits made by ignoreCommitsBy user', () => {
+            it('returns 204 when commits sent by ignoreCommitsBy user', () => {
                 parsed.username = 'batman';
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
+                });
+            });
+
+            it('returns 204 when commits made by ignoreCommitsBy user', () => {
+                parsed.commitAuthors = ['batman'];
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                });
+            });
+
+            it('returns 201 when sender is ignoreCommitsBy user but commit author is not', () => {
+                parsed.username = 'batman';
+                parsed.commitAuthors = ['notbatman'];
+                pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
                 });
             });
 

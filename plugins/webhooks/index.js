@@ -837,11 +837,18 @@ exports.register = (server, options, next) => {
                     }
 
                     // if skip ci then don't return
-                    if (ignoreUser && ignoreUser.includes(username) && !skipMessage) {
-                        message = `Skipping because user ${username} is ignored`;
-                        request.log(['webhook', hookId], message);
+                    if (ignoreUser && !skipMessage) {
+                        const commitAuthors = Array.isArray(parsed.commitAuthors) ?
+                            parsed.commitAuthors : [username];
+                        const validCommitAuthors = commitAuthors.filter(author =>
+                            !ignoreUser.includes(author));
 
-                        return reply({ message }).code(204);
+                        if (!validCommitAuthors.length) {
+                            message = `Skipping because user ${username} is ignored`;
+                            request.log(['webhook', hookId], message);
+
+                            return reply({ message }).code(204);
+                        }
                     }
 
                     const token = await obtainScmToken(
