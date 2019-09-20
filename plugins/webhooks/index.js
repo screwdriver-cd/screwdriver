@@ -253,7 +253,10 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
     let pipelinesOnOtherBranch = [];
 
     pipelines.forEach((p) => {
-        if (p.scmUri.startsWith(scmUri)) {
+        const tmpScmUri = p.scmUri.split(':');
+        const tmpScmBranch = `${tmpScmUri[0]}:${tmpScmUri[1]}:${tmpScmUri[2]}`;
+
+        if (tmpScmBranch === scmUri) {
             pipelinesOnCommitBranch.push(p);
         } else {
             pipelinesOnOtherBranch.push(p);
