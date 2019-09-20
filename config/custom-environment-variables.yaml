@@ -340,7 +340,7 @@ notifications:
 
 coverage:
   plugin: COVERAGE_PLUGIN
-  enabled: COVERAGE_PLUGIN_DEFAULT_ENABLED
+  default: COVERAGE_PLUGIN_DEFAULT_ENABLED
   sonar:
     # Screwdriver API url
     sdApiUrl: URI
