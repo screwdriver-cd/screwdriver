@@ -3,6 +3,7 @@
 const boom = require('boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
+const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 
 module.exports = () => ({
     method: 'POST',
@@ -159,9 +160,16 @@ module.exports = () => ({
                                         payload.prInfo = prInfo;
                                         payload.prRef = prInfo.ref;
                                         payload.chainPR = pipeline.chainPR;
+                                        let restrictPR = 'none';
 
-                                        // PR author should be able to rerun their own PR build
-                                        if (prInfo.username === username) {
+                                        if (pipeline.annotations &&
+                                            pipeline.annotations[ANNOT_RESTRICT_PR]) {
+                                            restrictPR = pipeline.annotations[ANNOT_RESTRICT_PR];
+                                        }
+
+                                        // PR author should be able to rerun their own PR build if restrictPR is not on
+                                        if (restrictPR === 'none' &&
+                                            prInfo.username === username) {
                                             return Promise.resolve();
                                         }
 
