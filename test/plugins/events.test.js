@@ -242,7 +242,10 @@ describe('event plugin test', () => {
                 unsealToken: sinon.stub().resolves('token')
             }),
             scmUri,
-            chainPR: false
+            chainPR: false,
+            annotations: {
+                'screwdriver.cd/restrictPR': 'none'
+            }
         };
 
         beforeEach(() => {
@@ -518,6 +521,29 @@ describe('event plugin test', () => {
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 403 when it fails to creates a PR event when ' +
+            'PR author only has permission to run PR and restrictPR is on', () => {
+            eventConfig.startFrom = 'PR-1:main';
+            eventConfig.prNum = '1';
+            eventConfig.prRef = 'prref';
+            eventConfig.type = 'pr';
+            eventConfig.chainPR = false;
+            eventConfig.prInfo = {
+                sha: testBuild.sha,
+                ref: 'prref',
+                url: 'https://github.com/screwdriver-cd/ui/pull/292',
+                username: 'myself'
+            };
+            eventConfig.changedFiles = ['screwdriver.yaml'];
+            options.payload.startFrom = 'PR-1:main';
+            userMock.getPermissions.resolves({ push: false });
+            pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
