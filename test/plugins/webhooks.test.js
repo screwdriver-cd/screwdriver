@@ -970,6 +970,70 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 on success for pipelines when mixed forward matching branchname ', () => {
+                const pMock1 = {
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:master',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    branch: Promise.resolve('master')
+                };
+                const pMock2 = getPipelineMocks({
+                    id: 'pipelineHash2',
+                    scmUri: 'github.com:123456:master01',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    branch: Promise.resolve('master01')
+                });
+
+                pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: ['lib/test.js'],
+                        meta: {}
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pMock1.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: ['lib/test.js'],
+                        meta: {}
+                    });
+                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
+                        pipelineId: pMock2.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        startFrom: '~commit'
+                    }));
+                });
+            });
+
             it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
                 pipelineFactoryMock.list.resolves([]);
