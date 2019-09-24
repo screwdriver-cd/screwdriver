@@ -970,7 +970,7 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 201 on success for pipelines when mixed forward matching branchname ', () => {
+            it('returns 201 on success for pipelines when mixed forward matching branch', () => {
                 const pMock1 = {
                     id: 'pipelineHash1',
                     scmUri: 'github.com:123456:master',
