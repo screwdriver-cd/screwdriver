@@ -630,17 +630,17 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     const events = [];
     const meta = createMeta(parsed);
 
-    const pipelineTaple = await Promise.all(pipelines.map(async (p) => {
-        const taple = { branch: await p.branch, pipeline: p };
+    const pipelineTuple = await Promise.all(pipelines.map(async (p) => {
+        const tuple = { branch: await p.branch, pipeline: p };
 
-        return taple;
+        return tuple;
     }));
 
-    const ignoreExtraTriggeredPipelines = pipelineTaple.filter((taple) => {
-        const startFrom = determineStartFrom(action, type, branch, taple.branch);
+    const ignoreExtraTriggeredPipelines = pipelineTuple.filter((tuple) => {
+        const startFrom = determineStartFrom(action, type, branch, tuple.branch);
 
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
-        if (EXTRA_TRIGGERS.test(startFrom) && !hasTriggeredJob(taple.pipeline, startFrom)) {
+        if (EXTRA_TRIGGERS.test(startFrom) && !hasTriggeredJob(tuple.pipeline, startFrom)) {
             winston.info(`Event not created: there are no jobs triggered by ${startFrom}`);
 
             return false;
@@ -650,19 +650,19 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     });
 
     const eventConfigs = await Promise.all(ignoreExtraTriggeredPipelines.map(async (igpset) => {
-        const resoleved = await igpset;
-        const pipelineBranch = resoleved.branch;
+        const resolved = await igpset;
+        const pipelineBranch = resolved.branch;
         const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
-        const token = await resoleved.pipeline.token;
+        const token = await resolved.pipeline.token;
         const scmConfig = {
-            scmUri: resoleved.pipeline.scmUri,
+            scmUri: resolved.pipeline.scmUri,
             token,
             scmContext
         };
         // obtain pipeline's latest commit sha for branch specific job
         const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         const eventConfig = {
-            pipelineId: resoleved.pipeline.id,
+            pipelineId: resolved.pipeline.id,
             type: 'pipeline',
             webhooks: true,
             username,
@@ -680,7 +680,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
             eventConfig.skipMessage = skipMessage;
         }
 
-        await updateAdmins(userFactory, username, scmContext, resoleved.pipeline);
+        await updateAdmins(userFactory, username, scmContext, resolved.pipeline);
 
         return eventConfig;
     }));
