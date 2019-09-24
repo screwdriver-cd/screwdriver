@@ -253,6 +253,7 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
     let pipelinesOnOtherBranch = [];
 
     pipelines.forEach((p) => {
+        // This uri expects 'scmUriDomain:repoId:branchName:rootDir'. To Compare, rootDir is ignored.
         const tmpScmUri = p.scmUri.split(':');
         const tmpScmBranch = `${tmpScmUri[0]}:${tmpScmUri[1]}:${tmpScmUri[2]}`;
 
