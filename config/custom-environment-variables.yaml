@@ -54,6 +54,7 @@ httpd:
 
 datastore:
   plugin: DATASTORE_PLUGIN
+  ddlSyncEnabled: DATASTORE_DDL_SYNC_ENABLED
   sequelize:
     # Type of server to talk to
     dialect: DATASTORE_SEQUELIZE_DIALECT
