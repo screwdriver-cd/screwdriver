@@ -183,7 +183,8 @@ const buildClusterFactory = Models.BuildClusterFactory.getInstance({
 });
 
 // @TODO run setup for SCM and Executor
-datastore.setup()
+// datastoreConfig.ddlSync => sync datastore schema (ddl) via api (default: true)
+datastore.setup(datastoreConfig.ddlSyncEnabled)
     .then(() => server({
         httpd: httpdConfig,
         auth: authConfig,
