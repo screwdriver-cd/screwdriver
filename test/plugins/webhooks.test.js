@@ -1158,6 +1158,15 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 204 when getCommitSha() is rejected', () => {
+                pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
+                });
+            });
+
             it('handles checkouting when given a non-listed user on push event', () => {
                 userFactoryMock.get.resolves(null);
                 userFactoryMock.get.withArgs({
@@ -1446,6 +1455,15 @@ describe('webhooks plugin test', () => {
                             chainPR: false
                         });
                         assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('returns 201 when getCommitSha() is rejected', () => {
+                    pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 201);
+                        assert.notCalled(eventFactoryMock.create);
                     });
                 });
 

@@ -300,14 +300,20 @@ async function createPREvents(options, request) {
     const pipelineFactory = request.server.app.pipelineFactory;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
+    const events = [];
 
     scmConfig.prNum = prNum;
 
-    return Promise.all(pipelines.map(async (p) => {
+    const eventConfigs = await Promise.all(pipelines.map(async (p) => {
         const b = await p.branch;
         // obtain pipeline's latest commit sha for branch specific job
-        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        let configPipelineSha = '';
 
+        try {
+            configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        } catch (err) {
+            winston.info(`branch: ${b} ${err.message}`);
+        }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
             pipeline: p,
             prSource,
@@ -341,8 +347,16 @@ async function createPREvents(options, request) {
             eventConfig.startFrom = '~pr';
         }
 
-        return eventFactory.create(eventConfig);
+        return eventConfig;
     }));
+
+    eventConfigs.forEach((eventConfig) => {
+        if (eventConfig.configPipelineSha) {
+            events.push(eventFactory.create(eventConfig));
+        }
+    });
+
+    return Promise.all(events);
 }
 
 /**
@@ -661,7 +675,13 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
             scmContext
         };
         // obtain pipeline's latest commit sha for branch specific job
-        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        let configPipelineSha = '';
+
+        try {
+            configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        } catch (err) {
+            winston.info(`branch: ${pipelineBranch} ${err.message}`);
+        }
         const eventConfig = {
             pipelineId: resolved.pipeline.id,
             type: 'pipeline',
@@ -687,7 +707,9 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     }));
 
     eventConfigs.forEach((eventConfig) => {
-        events.push(eventFactory.create(eventConfig));
+        if (eventConfig.configPipelineSha) {
+            events.push(eventFactory.create(eventConfig));
+        }
     });
 
     return Promise.all(events);
