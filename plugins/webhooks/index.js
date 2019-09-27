@@ -313,7 +313,7 @@ async function createPREvents(options, request) {
         try {
             configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         } catch (err) {
-            winston.info(`branch: ${b} skip create event`);
+            winston.info(`skip create event for branch: ${b}`);
         }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
             pipeline: p,
@@ -680,7 +680,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         try {
             configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         } catch (err) {
-            winston.info(`branch: ${pipelineBranch} skip create event`);
+            winston.info(`skip create event for branch: ${pipelineBranch}`);
         }
         const eventConfig = {
             pipelineId: pTuple.pipeline.id,
