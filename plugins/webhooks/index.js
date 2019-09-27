@@ -244,6 +244,7 @@ function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
 async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles) {
     const { scmUri } = scmConfig;
     const splitUri = scmUri.split(':');
+    const scmBranch = `${splitUri[0]}:${splitUri[1]}:${splitUri[2]}`;
     const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
     const listConfig = { search: { field: 'scmUri', keyword: `${scmRepoId}:%` } };
 
@@ -254,10 +255,10 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
 
     pipelines.forEach((p) => {
         // This uri expects 'scmUriDomain:repoId:branchName:rootDir'. To Compare, rootDir is ignored.
-        const tmpScmUri = p.scmUri.split(':');
-        const tmpScmBranch = `${tmpScmUri[0]}:${tmpScmUri[1]}:${tmpScmUri[2]}`;
+        const splitScmUri = p.scmUri.split(':');
+        const pipelineScmBranch = `${splitScmUri[0]}:${splitScmUri[1]}:${splitScmUri[2]}`;
 
-        if (tmpScmBranch === scmUri) {
+        if (pipelineScmBranch === scmBranch) {
             pipelinesOnCommitBranch.push(p);
         } else {
             pipelinesOnOtherBranch.push(p);
@@ -312,7 +313,7 @@ async function createPREvents(options, request) {
         try {
             configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         } catch (err) {
-            winston.info(`branch: ${b} ${err.message}`);
+            winston.info(`branch: ${b} skip create event`);
         }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
             pipeline: p,
@@ -645,13 +646,13 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     const events = [];
     const meta = createMeta(parsed);
 
-    const pipelineTuple = await Promise.all(pipelines.map(async (p) => {
+    const pipelineTuples = await Promise.all(pipelines.map(async (p) => {
         const tuple = { branch: await p.branch, pipeline: p };
 
         return tuple;
     }));
 
-    const ignoreExtraTriggeredPipelines = pipelineTuple.filter((tuple) => {
+    const ignoreExtraTriggeredPipelines = pipelineTuples.filter((tuple) => {
         const startFrom = determineStartFrom(action, type, branch, tuple.branch);
 
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
@@ -664,13 +665,12 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         return true;
     });
 
-    const eventConfigs = await Promise.all(ignoreExtraTriggeredPipelines.map(async (igpset) => {
-        const resolved = await igpset;
-        const pipelineBranch = resolved.branch;
+    const eventConfigs = await Promise.all(ignoreExtraTriggeredPipelines.map(async (pTuple) => {
+        const pipelineBranch = pTuple.branch;
         const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
-        const token = await resolved.pipeline.token;
+        const token = await pTuple.pipeline.token;
         const scmConfig = {
-            scmUri: resolved.pipeline.scmUri,
+            scmUri: pTuple.pipeline.scmUri,
             token,
             scmContext
         };
@@ -680,10 +680,10 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         try {
             configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         } catch (err) {
-            winston.info(`branch: ${pipelineBranch} ${err.message}`);
+            winston.info(`branch: ${pipelineBranch} skip create event`);
         }
         const eventConfig = {
-            pipelineId: resolved.pipeline.id,
+            pipelineId: pTuple.pipeline.id,
             type: 'pipeline',
             webhooks: true,
             username,
@@ -701,7 +701,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
             eventConfig.skipMessage = skipMessage;
         }
 
-        await updateAdmins(userFactory, username, scmContext, resolved.pipeline);
+        await updateAdmins(userFactory, username, scmContext, pTuple.pipeline);
 
         return eventConfig;
     }));
