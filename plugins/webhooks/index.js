@@ -313,7 +313,11 @@ async function createPREvents(options, request) {
         try {
             configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         } catch (err) {
-            winston.info(`skip create event for branch: ${b}`);
+            if (err.status >= 500) {
+                throw err;
+            } else {
+                winston.info(`skip create event for branch: ${b}`);
+            }
         }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
             pipeline: p,
@@ -647,17 +651,17 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     const meta = createMeta(parsed);
 
     const pipelineTuples = await Promise.all(pipelines.map(async (p) => {
-        const tuple = { branch: await p.branch, pipeline: p };
+        const resolvedBranch = await p.branch;
+        const startFrom = determineStartFrom(action, type, branch, resolvedBranch);
+        const tuple = { branch: resolvedBranch, pipeline: p, startFrom };
 
         return tuple;
     }));
 
-    const ignoreExtraTriggeredPipelines = pipelineTuples.filter((tuple) => {
-        const startFrom = determineStartFrom(action, type, branch, tuple.branch);
-
+    const ignoreExtraTriggeredPipelines = pipelineTuples.filter((t) => {
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
-        if (EXTRA_TRIGGERS.test(startFrom) && !hasTriggeredJob(tuple.pipeline, startFrom)) {
-            winston.info(`Event not created: there are no jobs triggered by ${startFrom}`);
+        if (EXTRA_TRIGGERS.test(t.startFrom) && !hasTriggeredJob(t.pipeline, t.startFrom)) {
+            winston.info(`Event not created: there are no jobs triggered by ${t.startFrom}`);
 
             return false;
         }
@@ -680,7 +684,11 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         try {
             configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
         } catch (err) {
-            winston.info(`skip create event for branch: ${pipelineBranch}`);
+            if (err.status >= 500) {
+                throw err;
+            } else {
+                winston.info(`skip create event for branch: ${pipelineBranch}`);
+            }
         }
         const eventConfig = {
             pipelineId: pTuple.pipeline.id,

@@ -1158,11 +1158,26 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 204 when getCommitSha() is rejected', () => {
-                pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
+            it('returns 204 when getCommitSha() is rejected on 4xx error', () => {
+                const err = new Error('400 error');
+
+                err.status = 404;
+                pipelineFactoryMock.scm.getCommitSha.rejects(err);
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
+                });
+            });
+
+            it('returns 500 when getCommitSha() is rejected on 5xx error', () => {
+                const err = new Error('500 error');
+
+                err.status = 500;
+                pipelineFactoryMock.scm.getCommitSha.rejects(err);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 500);
                     assert.notCalled(eventFactoryMock.create);
                 });
             });
