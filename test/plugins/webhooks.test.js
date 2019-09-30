@@ -1159,7 +1159,7 @@ describe('webhooks plugin test', () => {
             });
 
             it('returns 204 when getCommitSha() is rejected on 4xx error', () => {
-                const err = new Error('400 error');
+                const err = new Error('some error');
 
                 err.status = 404;
                 pipelineFactoryMock.scm.getCommitSha.rejects(err);
@@ -1171,7 +1171,7 @@ describe('webhooks plugin test', () => {
             });
 
             it('returns 500 when getCommitSha() is rejected on 5xx error', () => {
-                const err = new Error('500 error');
+                const err = new Error('some error');
 
                 err.status = 500;
                 pipelineFactoryMock.scm.getCommitSha.rejects(err);
