@@ -996,7 +996,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
                         meta: {}
