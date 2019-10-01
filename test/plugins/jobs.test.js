@@ -6,6 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
 const testBuilds = require('./data/builds.json');
+const testBuild = require('./data/build.json');
 const testJob = require('./data/job.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -30,6 +31,7 @@ const decorateJobMock = (job) => {
     const decorated = hoek.clone(job);
 
     decorated.getBuilds = sinon.stub();
+    decorated.getLatestBuild = sinon.stub();
     decorated.update = sinon.stub();
     decorated.toJson = sinon.stub().returns(job);
 
@@ -375,6 +377,55 @@ describe('job plugin test', () => {
                     sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+    });
+
+    describe('GET /jobs/{id}/latestBuild', () => {
+        const id = 1234;
+        let options;
+        let job;
+        let build;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/latestBuild`
+            };
+
+            job = getJobMocks(testJob);
+            build = getBuildMocks(testBuild);
+
+            jobFactoryMock.get.withArgs(id).resolves(job);
+            job.getLatestBuild.resolves(build);
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last build', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            })
+        );
+
+        it('return 404 if there is no last build found', () => {
+            const status = 'SUCCESS';
+
+            job.getLatestBuild.resolves({});
+            options.url = `/jobs/${id}/latestBuild?status=${status}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });
