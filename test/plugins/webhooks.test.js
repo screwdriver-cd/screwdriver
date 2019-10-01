@@ -970,6 +970,46 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 on success for pipelines when mixed forward matching branch', () => {
+                const pMock = getPipelineMocks({
+                    id: 'pipelineHash1',
+                    scmUri: 'github.com:123456:master01',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    branch: Promise.resolve('master01')
+                });
+
+                pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
+                pipelineFactoryMock.list.resolves([pipelineMock, pMock]);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        commitBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: ['lib/test.js'],
+                        meta: {}
+                    });
+                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
+                        pipelineId: pMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        startFrom: '~commit'
+                    }));
+                });
+            });
+
             it('returns 204 when no pipeline', () => {
                 pipelineFactoryMock.get.resolves(null);
                 pipelineFactoryMock.list.resolves([]);
@@ -1115,6 +1155,30 @@ describe('webhooks plugin test', () => {
 
                 return server.inject(options).then((reply) => {
                     assert.equal(reply.statusCode, 201);
+                });
+            });
+
+            it('returns 204 when getCommitSha() is rejected on 4xx error', () => {
+                const err = new Error('some error');
+
+                err.status = 404;
+                pipelineFactoryMock.scm.getCommitSha.rejects(err);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
+                });
+            });
+
+            it('returns 500 when getCommitSha() is rejected on 5xx error', () => {
+                const err = new Error('some error');
+
+                err.status = 500;
+                pipelineFactoryMock.scm.getCommitSha.rejects(err);
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 500);
+                    assert.notCalled(eventFactoryMock.create);
                 });
             });
 
@@ -1412,6 +1476,15 @@ describe('webhooks plugin test', () => {
                             baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
+                    });
+                });
+
+                it('returns 201 when getCommitSha() is rejected', () => {
+                    pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 201);
+                        assert.notCalled(eventFactoryMock.create);
                     });
                 });
 
