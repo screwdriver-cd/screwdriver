@@ -315,6 +315,7 @@ describe('event plugin test', () => {
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
+            eventConfig.baseBranch = 'master';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
@@ -404,6 +405,7 @@ describe('event plugin test', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
             options.payload.parentEventId = parentEventId;
 
             return server.inject(options).then((reply) => {
@@ -416,7 +418,6 @@ describe('event plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
             });
         });
@@ -425,6 +426,7 @@ describe('event plugin test', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
             testEvent.configPipelineSha = 'configPipelineSha';
             eventConfig.configPipelineSha = 'configPipelineSha';
             options.payload.parentEventId = parentEventId;
@@ -440,7 +442,6 @@ describe('event plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
                 delete testEvent.configPipelineSha;
             });
@@ -564,6 +565,7 @@ describe('event plugin test', () => {
                 username: 'myself'
             };
             eventConfig.changedFiles = ['screwdriver.yaml'];
+            eventConfig.baseBranch = 'master';
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {

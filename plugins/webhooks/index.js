@@ -331,7 +331,8 @@ async function createPREvents(options, request) {
             prNum,
             prTitle,
             // eslint-disable-next-line no-await-in-loop
-            prInfo: await eventFactory.scm.getPrInfo(scmConfig)
+            prInfo: await eventFactory.scm.getPrInfo(scmConfig),
+            baseBranch: branch
         };
 
         if (skipMessage) {
@@ -665,7 +666,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
                 sha,
                 configPipelineSha,
                 changedFiles,
-                commitBranch: branch,
+                baseBranch: branch,
                 causeMessage: `Merged by ${username}`,
                 meta
             };

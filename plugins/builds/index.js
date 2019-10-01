@@ -25,10 +25,12 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {String}   config.scmContext     SCM context
  * @param  {Build}    config.build          Build object
  * @param  {Boolean}  [config.start]        Whether to start the build or not
+ * @param  {String}   config.baseBranch     Branch name
  * @return {Promise}
  */
-async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
-    jobName, username, scmContext, build, start }) {
+async function createBuild(config) {
+    const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
+        username, scmContext, build, start } = config;
     const event = await eventFactory.get(build.eventId);
     const job = await jobFactory.get({
         name: jobName,
@@ -46,7 +48,8 @@ async function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId,
             configPipelineSha: event.configPipelineSha,
             scmContext,
             prRef,
-            start: start !== false
+            start: start !== false,
+            baseBranch: config.baseBranch || null
         });
     }
 
@@ -324,7 +327,8 @@ exports.register = (server, options, next) => {
                     jobName: nextJobName,
                     username,
                     scmContext,
-                    build // this is the parentBuild for the next build
+                    build, // this is the parentBuild for the next build
+                    baseBranch: event.baseBranch || null
                 };
 
                 // Just start the build if falls in to these 2 scenarios
