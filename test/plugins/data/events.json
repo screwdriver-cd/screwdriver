@@ -35,5 +35,6 @@
         "name": "St John",
         "url": "https://github.com/stjohn",
         "username": "stjohn"
-    }
+    },
+    "baseBranch": "master"
 }]

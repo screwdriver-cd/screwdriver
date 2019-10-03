@@ -508,7 +508,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~tag',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
                         meta: {
@@ -572,7 +572,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~tag',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
                         meta: {
@@ -647,7 +647,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~release',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
                         meta: {
@@ -717,7 +717,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~release',
-                        commitBranch: 'branch',
+                        baseBranch: 'branch',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
                         meta: {
@@ -782,7 +782,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
                         meta: {}
@@ -858,7 +858,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit:master',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
                         meta: {}
@@ -872,7 +872,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit:master',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
                         meta: {}
@@ -886,7 +886,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
                         meta: {}
@@ -942,7 +942,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
                         meta: {}
@@ -956,7 +956,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
                         meta: {}
@@ -996,7 +996,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
                         meta: {}
@@ -1033,7 +1033,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         changedFiles,
                         causeMessage: `Merged by ${username}`,
                         skipMessage: 'Skipping due to the commit message: [skip ci]',
@@ -1085,7 +1085,7 @@ describe('webhooks plugin test', () => {
                         sha,
                         configPipelineSha: latestSha,
                         startFrom: '~commit',
-                        commitBranch: 'master',
+                        baseBranch: 'master',
                         changedFiles,
                         causeMessage: 'Merged by batman',
                         skipMessage: 'Skipping due to the commit message: [skip ci]',
@@ -1294,7 +1294,8 @@ describe('webhooks plugin test', () => {
                         startFrom: '~pr',
                         type: 'pr',
                         username,
-                        webhooks: true
+                        webhooks: true,
+                        baseBranch: 'master'
                     };
                 });
 
@@ -1315,7 +1316,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                         assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
@@ -1395,7 +1397,8 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
-                            changedFiles
+                            changedFiles,
+                            baseBranch: 'master'
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock2.id,
@@ -1412,7 +1415,8 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
-                            changedFiles
+                            changedFiles,
+                            baseBranch: 'master'
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
@@ -1429,7 +1433,8 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
-                            changedFiles
+                            changedFiles,
+                            baseBranch: 'master'
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                             pipelineId,
@@ -1467,7 +1472,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1555,7 +1561,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1604,7 +1611,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1642,7 +1650,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1683,7 +1692,8 @@ describe('webhooks plugin test', () => {
                         startFrom: '~pr',
                         changedFiles,
                         causeMessage: 'Synchronized by github:baxterthehacker',
-                        chainPR: false
+                        chainPR: false,
+                        baseBranch: 'master'
                     };
 
                     model1 = {
@@ -1732,7 +1742,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     })
@@ -1811,7 +1822,8 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
-                            changedFiles
+                            changedFiles,
+                            baseBranch: 'master'
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock2.id,
@@ -1828,7 +1840,8 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
-                            changedFiles
+                            changedFiles,
+                            baseBranch: 'master'
                         });
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
@@ -1845,7 +1858,8 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
-                            changedFiles
+                            changedFiles,
+                            baseBranch: 'master'
                         });
                         assert.neverCalledWith(eventFactoryMock.create, sinon.match({
                             pipelineId,
@@ -1883,7 +1897,8 @@ describe('webhooks plugin test', () => {
                             webhooks: true,
                             changedFiles,
                             causeMessage: 'Synchronized by github:baxterthehacker',
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.isOk(model1.update.calledBefore(eventFactoryMock.create));
                         assert.isOk(model2.update.calledBefore(eventFactoryMock.create));
@@ -1958,7 +1973,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1996,7 +2012,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });
@@ -2043,7 +2060,8 @@ describe('webhooks plugin test', () => {
                             prRef,
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
-                            chainPR: false
+                            chainPR: false,
+                            baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
                     });

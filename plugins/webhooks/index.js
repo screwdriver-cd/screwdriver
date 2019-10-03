@@ -341,7 +341,8 @@ async function createPREvents(options, request) {
             prRef,
             prNum,
             prTitle,
-            prInfo: await eventFactory.scm.getPrInfo(scmConfig)
+            prInfo: await eventFactory.scm.getPrInfo(scmConfig),
+            baseBranch: branch
         };
 
         if (skipMessage) {
@@ -700,7 +701,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
             sha,
             configPipelineSha,
             changedFiles,
-            commitBranch: branch,
+            baseBranch: branch,
             causeMessage: `Merged by ${username}`,
             meta
         };

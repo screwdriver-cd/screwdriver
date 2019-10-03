@@ -186,25 +186,29 @@ module.exports = () => ({
                             })
                         )
                         // User has good permissions, create an event
+                        .then(() => scm.getCommitSha(scmConfig).then((sha) => {
+                            payload.sha = sha;
+                        }))
                         .then(() => {
                             // If there is parentEvent, pass workflowGraph and sha to payload
                             // Skip PR, for PR builds, we should always start from latest commit
-                            if (payload.parentEventId && !prNum) {
+                            if (payload.parentEventId) {
                                 return eventFactory.get(parentEventId)
                                     .then((parentEvent) => {
-                                        payload.workflowGraph = parentEvent.workflowGraph;
-                                        payload.sha = parentEvent.sha;
+                                        payload.baseBranch = parentEvent.baseBranch || null;
+                                        if (!prNum) {
+                                            payload.workflowGraph = parentEvent.workflowGraph;
+                                            payload.sha = parentEvent.sha;
 
-                                        if (parentEvent.configPipelineSha) {
-                                            payload.configPipelineSha =
-                                                parentEvent.configPipelineSha;
+                                            if (parentEvent.configPipelineSha) {
+                                                payload.configPipelineSha =
+                                                    parentEvent.configPipelineSha;
+                                            }
                                         }
                                     });
                             }
 
-                            return scm.getCommitSha(scmConfig).then((sha) => {
-                                payload.sha = sha;
-                            });
+                            return Promise.resolve();
                         })
                         .then(() => eventFactory.create(payload));
                 }).then((event) => {
