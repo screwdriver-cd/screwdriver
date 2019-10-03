@@ -1105,7 +1105,8 @@ describe('build plugin test', () => {
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
                             prRef: '',
-                            start: true
+                            start: true,
+                            baseBranch: null
                         });
                         assert.calledWith(triggerFactoryMock.list, {
                             params: { src }
@@ -1178,7 +1179,8 @@ describe('build plugin test', () => {
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
                             prRef: eventMock.pr.ref,
-                            start: true
+                            start: true,
+                            baseBranch: null
                         });
                         // Events should not be created if there is no external pipeline
                         assert.notCalled(eventFactoryMock.create);
@@ -1326,6 +1328,7 @@ describe('build plugin test', () => {
                             { name: 'd', id: 4 }
                         ]
                     };
+                    eventMock.baseBranch = 'master';
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
@@ -1342,7 +1345,8 @@ describe('build plugin test', () => {
                         username: 12345,
                         scmContext: 'github:github.com',
                         configPipelineSha: 'abc123',
-                        prRef: ''
+                        prRef: '',
+                        baseBranch: 'master'
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });

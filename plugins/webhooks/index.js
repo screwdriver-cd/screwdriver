@@ -244,6 +244,7 @@ function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
 async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles) {
     const { scmUri } = scmConfig;
     const splitUri = scmUri.split(':');
+    const scmBranch = `${splitUri[0]}:${splitUri[1]}:${splitUri[2]}`;
     const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
     const listConfig = { search: { field: 'scmUri', keyword: `${scmRepoId}:%` } };
 
@@ -253,7 +254,11 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
     let pipelinesOnOtherBranch = [];
 
     pipelines.forEach((p) => {
-        if (p.scmUri.startsWith(scmUri)) {
+        // This uri expects 'scmUriDomain:repoId:branchName:rootDir'. To Compare, rootDir is ignored.
+        const splitScmUri = p.scmUri.split(':');
+        const pipelineScmBranch = `${splitScmUri[0]}:${splitScmUri[1]}:${splitScmUri[2]}`;
+
+        if (pipelineScmBranch === scmBranch) {
             pipelinesOnCommitBranch.push(p);
         } else {
             pipelinesOnOtherBranch.push(p);
@@ -300,14 +305,20 @@ async function createPREvents(options, request) {
 
     scmConfig.prNum = prNum;
 
-    for (let i = 0; i < pipelines.length; i += 1) {
-        const p = pipelines[i];
-        /* eslint-disable no-await-in-loop */
+    const eventConfigs = await Promise.all(pipelines.map(async (p) => {
         const b = await p.branch;
         // obtain pipeline's latest commit sha for branch specific job
-        const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-        /* eslint-enable no-await-in-loop */
+        let configPipelineSha = '';
 
+        try {
+            configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        } catch (err) {
+            if (err.status >= 500) {
+                throw err;
+            } else {
+                winston.info(`skip create event for branch: ${b}`);
+            }
+        }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
             pipeline: p,
             prSource,
@@ -330,8 +341,8 @@ async function createPREvents(options, request) {
             prRef,
             prNum,
             prTitle,
-            // eslint-disable-next-line no-await-in-loop
-            prInfo: await eventFactory.scm.getPrInfo(scmConfig)
+            prInfo: await eventFactory.scm.getPrInfo(scmConfig),
+            baseBranch: branch
         };
 
         if (skipMessage) {
@@ -342,8 +353,14 @@ async function createPREvents(options, request) {
             eventConfig.startFrom = '~pr';
         }
 
-        events.push(eventFactory.create(eventConfig));
-    }
+        return eventConfig;
+    }));
+
+    eventConfigs.forEach((eventConfig) => {
+        if (eventConfig.configPipelineSha) {
+            events.push(eventFactory.create(eventConfig));
+        }
+    });
 
     return Promise.all(events);
 }
@@ -634,53 +651,75 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     const events = [];
     const meta = createMeta(parsed);
 
-    for (let i = 0; i < pipelines.length; i += 1) {
-        const p = pipelines[i];
-        /* eslint-disable no-await-in-loop */
-        const pipelineBranch = await p.branch;
-        /* eslint-enable no-await-in-loop */
-        const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
+    const pipelineTuples = await Promise.all(pipelines.map(async (p) => {
+        const resolvedBranch = await p.branch;
+        const startFrom = determineStartFrom(action, type, branch, resolvedBranch);
+        const tuple = { branch: resolvedBranch, pipeline: p, startFrom };
 
+        return tuple;
+    }));
+
+    const ignoreExtraTriggeredPipelines = pipelineTuples.filter((t) => {
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
-        if (EXTRA_TRIGGERS.test(startFrom) && !hasTriggeredJob(p, startFrom)) {
-            winston.info(`Event not created: there are no jobs triggered by ${startFrom}`);
-        } else {
-            /* eslint-disable no-await-in-loop */
-            const token = await p.token;
-            const scmConfig = {
-                scmUri: p.scmUri,
-                token,
-                scmContext
-            };
-            // obtain pipeline's latest commit sha for branch specific job
-            const configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-            /* eslint-enable no-await-in-loop */
-            const eventConfig = {
-                pipelineId: p.id,
-                type: 'pipeline',
-                webhooks: true,
-                username,
-                scmContext,
-                startFrom,
-                sha,
-                configPipelineSha,
-                changedFiles,
-                commitBranch: branch,
-                causeMessage: `Merged by ${username}`,
-                meta
-            };
+        if (EXTRA_TRIGGERS.test(t.startFrom) && !hasTriggeredJob(t.pipeline, t.startFrom)) {
+            winston.info(`Event not created: there are no jobs triggered by ${t.startFrom}`);
 
-            if (skipMessage) {
-                eventConfig.skipMessage = skipMessage;
+            return false;
+        }
+
+        return true;
+    });
+
+    const eventConfigs = await Promise.all(ignoreExtraTriggeredPipelines.map(async (pTuple) => {
+        const pipelineBranch = pTuple.branch;
+        const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
+        const token = await pTuple.pipeline.token;
+        const scmConfig = {
+            scmUri: pTuple.pipeline.scmUri,
+            token,
+            scmContext
+        };
+        // obtain pipeline's latest commit sha for branch specific job
+        let configPipelineSha = '';
+
+        try {
+            configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+        } catch (err) {
+            if (err.status >= 500) {
+                throw err;
+            } else {
+                winston.info(`skip create event for branch: ${pipelineBranch}`);
             }
+        }
+        const eventConfig = {
+            pipelineId: pTuple.pipeline.id,
+            type: 'pipeline',
+            webhooks: true,
+            username,
+            scmContext,
+            startFrom,
+            sha,
+            configPipelineSha,
+            changedFiles,
+            baseBranch: branch,
+            causeMessage: `Merged by ${username}`,
+            meta
+        };
 
-            /* eslint-disable no-await-in-loop */
-            await updateAdmins(userFactory, username, scmContext, p);
-            /* eslint-enable no-await-in-loop */
+        if (skipMessage) {
+            eventConfig.skipMessage = skipMessage;
+        }
 
+        await updateAdmins(userFactory, username, scmContext, pTuple.pipeline);
+
+        return eventConfig;
+    }));
+
+    eventConfigs.forEach((eventConfig) => {
+        if (eventConfig.configPipelineSha) {
             events.push(eventFactory.create(eventConfig));
         }
-    }
+    });
 
     return Promise.all(events);
 }

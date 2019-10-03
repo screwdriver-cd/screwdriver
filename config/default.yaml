@@ -232,7 +232,8 @@ webhooks:
   # Upper limit on incoming uploads to builds
   maxBytes: 1048576 # 1MB
 
-coverage: {}
+coverage:
+  default: true
   # plugin: sonar
   # sonar:
   #   sdApiUrl: https://api.screwdriver.cd
