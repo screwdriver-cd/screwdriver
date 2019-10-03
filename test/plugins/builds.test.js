@@ -1798,6 +1798,7 @@ describe('build plugin test', () => {
             jobMock.prNum = 15;
             params.sha = '58393af682d61de87789fb4961645c42180cec5a';
             params.prRef = 'prref';
+            eventConfig.startFrom = jobMock.name;
 
             const scmConfig = {
                 token: 'iamtoken',
@@ -1836,6 +1837,7 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            eventConfig.startFrom = jobMock.name;
             params.meta = meta;
 
             return server.inject(options).then((reply) => {
@@ -1880,6 +1882,7 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            eventConfig.startFrom = jobMock.name;
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
