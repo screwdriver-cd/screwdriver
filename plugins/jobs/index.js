@@ -4,6 +4,7 @@ const getRoute = require('./get');
 const updateRoute = require('./update');
 const listBuildsRoute = require('./listBuilds');
 const lastSuccessfulMeta = require('./lastSuccessfulMeta');
+const latestBuild = require('./latestBuild');
 const metrics = require('./metrics');
 
 /**
@@ -19,7 +20,8 @@ exports.register = (server, options, next) => {
         updateRoute(),
         listBuildsRoute(),
         lastSuccessfulMeta(),
-        metrics()
+        metrics(),
+        latestBuild()
     ]);
 
     next();
