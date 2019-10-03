@@ -30,7 +30,7 @@ const workflowParser = require('screwdriver-workflow-parser');
  */
 async function createBuild(config) {
     const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
-        username, scmContext, build, start } = config;
+        username, scmContext, build, start, baseBranch } = config;
     const event = await eventFactory.get(build.eventId);
     const job = await jobFactory.get({
         name: jobName,
@@ -49,7 +49,7 @@ async function createBuild(config) {
             scmContext,
             prRef,
             start: start !== false,
-            baseBranch: config.baseBranch || null
+            baseBranch
         });
     }
 
