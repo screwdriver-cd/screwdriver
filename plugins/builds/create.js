@@ -108,6 +108,7 @@ module.exports = () => ({
                                     return eventFactory.create({
                                         pipelineId: pipeline.id,
                                         meta,
+                                        startFrom: job.name,
                                         type,
                                         username,
                                         scmContext,
