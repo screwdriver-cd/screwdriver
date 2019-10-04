@@ -22,6 +22,7 @@ const listTokens = require('./tokens/list');
 const removeToken = require('./tokens/remove');
 const removeAllTokens = require('./tokens/removeAll');
 const metricsRoute = require('./metrics');
+const latestBuild = require('./latestBuild');
 
 /**
  * Pipeline API Plugin
@@ -104,7 +105,8 @@ exports.register = (server, options, next) => {
         listTokens(),
         removeToken(),
         removeAllTokens(),
-        metricsRoute()
+        metricsRoute(),
+        latestBuild()
     ]);
 
     next();
