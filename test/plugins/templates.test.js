@@ -146,6 +146,11 @@ describe('template plugin test', () => {
         it('returns 200 and all templates', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
 
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
@@ -159,6 +164,11 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?namespace=chef';
 
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
@@ -171,21 +181,18 @@ describe('template plugin test', () => {
             });
         });
 
-        it('returns 200 and all namespaces using distinct query', () => {
-            const namespaces = [
-                { namespace: 'chef' },
-                { namespace: 'docker' },
-                { namespace: 'nodejs' },
-                { namespace: 'screwdriver' },
-                { namespace: 'tools' }
-            ];
-
-            templateFactoryMock.list.resolves(namespaces);
+        it('returns 200 and all templates using distinct query', () => {
+            templateFactoryMock.list.resolves(testtemplates);
             options.url = '/templates?distinct=namespace';
+
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(testtemplates[0]);
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(testtemplates[1]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, namespaces);
+                assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
                         distinct: 'namespace'
@@ -200,6 +207,11 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?sortBy=name';
 
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
@@ -213,6 +225,11 @@ describe('template plugin test', () => {
         it('returns 200 and all templates with search query', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?search=nodejs';
+
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -231,6 +248,11 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?compact=true';
 
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
@@ -245,6 +267,11 @@ describe('template plugin test', () => {
         it('returns 200 and all templates with search query without namespace field', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?search=nodejs&namespace=nodejs';
+
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -263,6 +290,11 @@ describe('template plugin test', () => {
         it('returns 200 and all templates with pagination', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?count=30';
+
+            templateFactoryMock.getTemplate.onFirstCall()
+                .resolves(getTemplateMocks(testtemplates[0]));
+            templateFactoryMock.getTemplate.onSecondCall()
+                .resolves(getTemplateMocks(testtemplates[1]));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);

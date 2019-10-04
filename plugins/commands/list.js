@@ -84,13 +84,22 @@ module.exports = () => ({
                 config.groupBy = ['namespace', 'name'];
             }
 
-            return factory.list(config)
-                .then((commands) => {
+            const newestCommands = [];
+
+            return factory
+                .list(config)
+                .then(async (commands) => {
+                    await Promise.all(
+                        commands.map(c => factory.getCommand(`${c.namespace}/${c.name}`)
+                            .then((newestCommand) => {
+                                newestCommands.push(newestCommand);
+                            }))
+                    );
                     if (config.raw) {
-                        return reply(commands);
+                        return reply(newestCommands);
                     }
 
-                    return reply(commands.map(p => p.toJson()));
+                    return reply(newestCommands.map(p => p.toJson()));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

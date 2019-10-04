@@ -158,6 +158,11 @@ describe('command plugin test', () => {
         it('returns 200 and all commands', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
 
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
@@ -171,6 +176,11 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?namespace=foo';
 
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
@@ -183,21 +193,18 @@ describe('command plugin test', () => {
             });
         });
 
-        it('returns 200 and all namespaces using distinct query', () => {
-            const namespaces = [
-                { namespace: 'chef' },
-                { namespace: 'docker' },
-                { namespace: 'nodejs' },
-                { namespace: 'screwdriver' },
-                { namespace: 'tools' }
-            ];
-
-            commandFactoryMock.list.resolves(namespaces);
+        it('returns 200 and all commands using distinct query', () => {
+            commandFactoryMock.list.resolves(testcommands);
             options.url = '/commands?distinct=namespace';
+
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(testcommands[0]);
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(testcommands[1]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, namespaces);
+                assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
                     params: {
                         distinct: 'namespace'
@@ -212,6 +219,11 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?sortBy=name';
 
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommands);
@@ -225,6 +237,11 @@ describe('command plugin test', () => {
         it('returns 200 and all commands with search query', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?search=nodejs';
+
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -243,6 +260,11 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?compact=true';
 
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
+
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommands);
@@ -257,6 +279,11 @@ describe('command plugin test', () => {
         it('returns 200 and all commands with search query without namespace field', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?search=nodejs&namespace=nodejs';
+
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -275,6 +302,11 @@ describe('command plugin test', () => {
         it('returns 200 and all commands with pagination', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?count=30';
+
+            commandFactoryMock.getCommand.onFirstCall()
+                .resolves(getCommandMocks(testcommands[0]));
+            commandFactoryMock.getCommand.onSecondCall()
+                .resolves(getCommandMocks(testcommands[1]));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, '200');

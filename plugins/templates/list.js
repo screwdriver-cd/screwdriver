@@ -84,14 +84,22 @@ module.exports = () => ({
                 config.paginate = { page, count };
             }
 
+            const newestTemplates = [];
+
             return factory
                 .list(config)
-                .then((templates) => {
+                .then(async (templates) => {
+                    await Promise.all(
+                        templates.map(t => factory.getTemplate(`${t.namespace}/${t.name}`)
+                            .then((newestTemplate) => {
+                                newestTemplates.push(newestTemplate);
+                            })));
+
                     if (config.raw) {
-                        return reply(templates);
+                        return reply(newestTemplates);
                     }
 
-                    return reply(templates.map(p => p.toJson()));
+                    return reply(newestTemplates.map(p => p.toJson()));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
