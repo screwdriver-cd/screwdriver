@@ -754,7 +754,7 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('GET /pipelines/{id}/{jobName}/latestBuild', () => {
+    describe('GET /pipelines/{id}/jobs/{jobName}/latestBuild', () => {
         const id = 1234;
         const name = 'deploy';
         let options;
@@ -764,7 +764,7 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/pipelines/${id}/${name}/latestBuild`
+                url: `/pipelines/${id}/jobs/${name}/latestBuild`
             };
 
             job = getJobsMocks(testJob);
@@ -796,7 +796,7 @@ describe('pipeline plugin test', () => {
             const status = 'SUCCESS';
 
             job.getLatestBuild.resolves({});
-            options.url = `/pipelines/${id}/${name}/latestBuild/latestBuild?status=${status}`;
+            options.url = `/pipelines/${id}/jobs/${name}/latestBuild/latestBuild?status=${status}`;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

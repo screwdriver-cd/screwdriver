@@ -9,7 +9,7 @@ const statusSchema = joi.reach(schema.models.build.base, 'status');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/pipelines/{id}/{jobName}/latestBuild',
+    path: '/pipelines/{id}/jobs/{jobName}/latestBuild',
     config: {
         description: 'Get latest build for a given job',
         notes: 'Return latest build of status specified',
