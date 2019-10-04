@@ -535,6 +535,69 @@ describe('build plugin test', () => {
                     assert.calledWith(buildFactoryMock.get, id);
                 });
             });
+
+            it('allow admin users to update build status to failure', () => {
+                const jobMock = {
+                    id: 1234,
+                    name: 'main',
+                    pipelineId,
+                    permutations: [{
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }]
+                };
+                const userMock = {
+                    username: id,
+                    getPermissions: sinon.stub().resolves({ push: true })
+                };
+                const expected = hoek.applyToDefaults(testBuild, { status: 'FAILURE' });
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    payload: {
+                        status: 'FAILURE',
+                        statusMessage: 'some failure message'
+                    },
+                    credentials: {
+                        scope: ['user'],
+                        username: 'foo'
+                    }
+                };
+
+                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildFactoryMock.get.resolves(buildMock);
+                buildMock.toJson.returns(expected);
+                jobFactoryMock.get.resolves(jobMock);
+                userFactoryMock.get.resolves(userMock);
+
+                return server.inject(options).then((reply) => {
+                    assert.deepEqual(reply.result, expected);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.equal(buildMock.statusMessage, 'some failure message');
+                    assert.equal(reply.statusCode, 200);
+                });
+            });
+
+            it('does not allow admin users other than abort and failure', () => {
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    payload: {
+                        status: 'BLOCKED'
+                    },
+                    credentials: {
+                        scope: ['user'],
+                        username: 'foo'
+                    }
+                };
+
+                return server.inject(options).then((reply) => {
+                    assert.equal(reply.statusCode, 400);
+                    assert.calledWith(buildFactoryMock.get, id);
+                });
+            });
         });
 
         describe('build token', () => {
