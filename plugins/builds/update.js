@@ -62,7 +62,7 @@ module.exports = () => ({
                                     'to ABORTED or FAILURE');
                             }
                         } else if (desiredStatus !== 'ABORTED') {
-                            throw boom.badRequest('Can only update builds to ABORTED');
+                            throw boom.badRequest('User can only update builds to ABORTED');
                         }
 
                         // Check permission against the pipeline
