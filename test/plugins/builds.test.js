@@ -1836,7 +1836,8 @@ describe('build plugin test', () => {
                 username,
                 scmContext,
                 sha: testBuild.sha,
-                meta
+                meta,
+                skipMessage: 'skip build creation'
             };
 
             jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
