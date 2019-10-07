@@ -45,14 +45,13 @@ Create a pipeline and create a job called 'main'
 **Arguments**
 
 * `checkoutUrl` - Source code URL for the application. For a git-based repository, it is typically the SSH endpoint and the branch name, separated by a octothorpe. Must be unique.
-* `configUrl` - *Optional* Source code URL for Screwdriver configuration, if it is in a different location than the
-source code. For a git-based repository, it is typically the SSH endpoint and the branch name, separated by a octothorpe.
+* `rootDir` - *Optional* Root directory where the source code lives. Default to empty string.
 
 Example payload:
 ```json
 {
   "checkoutUrl": "git@github.com:screwdriver-cd/data-model.git#master",
-  "configUrl": "git@github.com:screwdriver-cd/optional-config.git#master"
+  "rootDir": "src/app/component"
 }
 ```
 
@@ -64,11 +63,13 @@ You can update the checkoutUrl of a pipeline.
 **Arguments**
 
 * `checkoutUrl` - Source code URL for the application. For a git-based repository, it is typically the SSH endpoint and the branch name, separated by a octothorpe. Must be unique.
+* `rootDir` - *Optional* Root directory where the source code lives. Default to empty string.
 
 Example payload:
 ```json
 {
-  "checkoutUrl": "git@github.com:screwdriver-cd/data-model.git#master"
+  "checkoutUrl": "git@github.com:screwdriver-cd/data-model.git#master",
+  "rootDir": "src/app/component"
 }
 ```
 
@@ -96,14 +97,19 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
-`page`, `count`, and `sort` are optional
+`page`, `count`, `sort`, and `prNum` are optional  
+Only PR events of specified PR number will be searched when `prNum` is set
 
-`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}`
+`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
 
 #### Get all jobs (including pull requests jobs)
 `archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
 
 `GET /pipelines/{id}/jobs?archived={boolean}`
+
+#### Get all triggers
+
+`GET /pipelines/{id}/triggers`
 
 #### Get all pipeline secrets
 

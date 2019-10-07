@@ -47,6 +47,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
+            const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const id = request.params.id;
             const pipelineFactory = request.server.app.pipelineFactory;
             const userFactory = request.server.app.userFactory;
@@ -86,6 +87,7 @@ module.exports = () => ({
                             return pipelineFactory.scm.parseUrl({
                                 scmContext,
                                 checkoutUrl,
+                                rootDir,
                                 token
                             });
                         })

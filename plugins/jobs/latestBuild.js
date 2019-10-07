@@ -4,14 +4,15 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.job.base, 'id');
+const statusSchema = joi.reach(schema.models.build.base, 'status');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/jobs/{id}/lastSuccessfulMeta',
+    path: '/jobs/{id}/latestBuild',
     config: {
-        description: 'Get the last successful metadata for a given job',
-        notes: 'If no successful builds found in the past 50 builds, will return {}',
-        tags: ['api', 'jobs', 'builds'],
+        description: 'Get latest build for a given job',
+        notes: 'Return latest build of status specified',
+        tags: ['api', 'job', 'build'],
         auth: {
             strategies: ['token'],
             scope: ['user', 'build', 'pipeline']
@@ -22,22 +23,23 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.jobFactory;
+            const jobFactory = request.server.app.jobFactory;
+            const { status } = request.query || {};
 
-            return factory.get(request.params.id)
+            return jobFactory.get(request.params.id)
                 .then((job) => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }
 
-                    return job.getBuilds({
-                        status: 'SUCCESS'
-                    });
+                    return job.getLatestBuild({ status });
                 })
-                .then((builds) => {
-                    const meta = builds[0] ? builds[0].meta : {};
+                .then((build) => {
+                    if (Object.keys(build).length === 0) {
+                        throw boom.notFound('There is no such latest build');
+                    }
 
-                    return reply(meta);
+                    return reply(build.toJson());
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
@@ -47,6 +49,9 @@ module.exports = () => ({
         validate: {
             params: {
                 id: idSchema
+            },
+            query: {
+                status: statusSchema
             }
         }
     }

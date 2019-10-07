@@ -481,10 +481,6 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.resolves([testCommand]);
             commandTagFactoryMock.list.resolves([testCommandTag]);
-
-            /* nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(200, ''); */
         });
 
         afterEach(() => {
@@ -554,7 +550,7 @@ describe('command plugin test', () => {
         it('deletes command if admin user credentials provided and command exists', () => {
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(200, '');
+                .reply(204, '');
 
             return server.inject(options).then((reply) => {
                 assert.calledOnce(testCommand.remove);
@@ -640,7 +636,7 @@ describe('command plugin test', () => {
         it('deletes command if build credentials provided and pipelineIds match', () => {
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(200, '');
+                .reply(204, '');
 
             options = {
                 method: 'DELETE',
@@ -1327,6 +1323,74 @@ describe('command plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /commands/trusted', () => {
+        let options;
+        let testCommand;
+
+        const payload = {
+            trusted: true
+        };
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: '/commands/foo/bar/trusted',
+                payload,
+                credentials: {
+                    scope: ['admin']
+                }
+            };
+
+            testCommand = decorateObj({
+                id: 1,
+                namespace: 'foo',
+                name: 'bar',
+                tag: 'stable',
+                version: '1.0.0',
+                update: sinon.stub().resolves(null)
+            });
+
+            commandFactoryMock.list.resolves([testCommand]);
+        });
+
+        it('returns 404 when command does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Command foo/bar does not exist'
+            };
+
+            commandFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when user does not have admin permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Insufficient scope'
+            };
+
+            options.credentials.scope = ['user'];
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('update to mark command trusted', () => {
+            server.inject(options).then((reply) => {
+                assert.calledOnce(testCommand.update);
+                assert.equal(reply.statusCode, 204);
             });
         });
     });

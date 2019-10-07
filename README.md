@@ -135,6 +135,12 @@ All the possible environment variables are [defined here](config/custom-environm
 npm test
 ```
 
+_Note: You might run into [memory issues running all the unit tests](https://stackoverflow.com/questions/26094420/fatal-error-call-and-retry-last-allocation-failed-process-out-of-memory/48895989#48895989). You can update your `~/.bashrc` file with the line below to ensure there's enough memory for tests to run:_
+
+```bash
+export NODE_OPTIONS=--max_old_space_size=4096
+```
+
 ### Functional tests
 
 Fork `functional-*` repositories to your organization from [screwdriver-cd-test](https://github.com/screwdriver-cd-test)

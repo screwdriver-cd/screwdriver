@@ -62,6 +62,45 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         this.secondCollectionId = null;
     });
 
+    When(/^they check the default collection$/, { timeout: TIMEOUT }, function step() {
+        return this.ensurePipelineExists({ repoName: this.repoName })
+            .then(() => request({
+                uri: `${this.instance}/${this.namespace}/collections`,
+                method: 'GET',
+                auth: {
+                    bearer: this.jwt
+                },
+                json: true
+            })
+                .then((response) => {
+                    Assert.strictEqual(response.statusCode, 200);
+                    this.defaultCollectionId = response.body.find(collection =>
+                        collection.type === 'default'
+                    ).id;
+                    Assert.notEqual(this.defaultCollectionId, undefined);
+                })
+            );
+    });
+
+    Then(/^they can see the default collection contains that pipeline$/, { timeout: TIMEOUT },
+        function step() {
+            const pipelineId = parseInt(this.pipelineId, 10);
+
+            return request({
+                uri: `${this.instance}/${this.namespace}/collections/${this.defaultCollectionId}`,
+                method: 'GET',
+                auth: {
+                    bearer: this.jwt
+                },
+                json: true
+            }).then((response) => {
+                Assert.strictEqual(response.statusCode, 200);
+                // TODO: May need to change back
+                // Assert.deepEqual(response.body.pipelineIds, [pipelineId]);
+                Assert.include(response.body.pipelineIds, pipelineId);
+            });
+        });
+
     When(/^they create a new collection "myCollection" with that pipeline$/,
         { timeout: TIMEOUT }, function step() {
             return this.ensurePipelineExists({ repoName: this.repoName })
@@ -198,12 +237,15 @@ defineSupportCode(({ Before, Given, Then, When, After }) => {
         });
     });
 
-    Then(/^they can see those collections$/, function step() {
-        const collectionNames = this.collections.map(c => c.name);
+    Then(/^they can see those collections and the default collection$/, function step() {
+        const normalCollectionNames = this.collections.filter(c => c.type === 'normal')
+            .map(c => c.name);
+        const defaultCollection = this.collections.filter(c => c.type === 'default');
 
-        Assert.strictEqual(this.collections.length, 2);
-        Assert.ok(collectionNames.includes('myCollection'));
-        Assert.ok(collectionNames.includes('anotherCollection'));
+        Assert.strictEqual(normalCollectionNames.length, 2);
+        Assert.strictEqual(defaultCollection.length, 1);
+        Assert.ok(normalCollectionNames.includes('myCollection'));
+        Assert.ok(normalCollectionNames.includes('anotherCollection'));
     });
 
     When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {

@@ -24,6 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
+            const { aggregateInterval } = request.query;
             let { startTime, endTime } = request.query;
 
             if (!startTime || !endTime) {
@@ -40,10 +41,13 @@ module.exports = () => ({
                         throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
                     }
 
-                    return pipeline.getMetrics({
-                        startTime,
-                        endTime
-                    });
+                    const config = { startTime, endTime };
+
+                    if (aggregateInterval) {
+                        config.aggregateInterval = aggregateInterval;
+                    }
+
+                    return pipeline.getMetrics(config);
                 })
                 .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
@@ -51,7 +55,8 @@ module.exports = () => ({
         validate: {
             query: joi.object({
                 startTime: joi.string().isoDate(),
-                endTime: joi.string().isoDate()
+                endTime: joi.string().isoDate(),
+                aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
             })
         }
     }

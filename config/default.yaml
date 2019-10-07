@@ -56,6 +56,7 @@ httpd:
 
 datastore:
   plugin: sequelize
+  ddlSyncEnabled: "true"
   sequelize:
     # Type of server to talk to
     dialect: sqlite
@@ -65,6 +66,8 @@ datastore:
     pool: {}
     retry: {}
     buildMetricsEnabled: "false"
+    # readOnly datastore config
+    # readOnly: {}
 
 executor:
   # Default executor
@@ -226,8 +229,11 @@ webhooks:
   restrictPR: none
   # Chain PR: true or false
   chainPR: false
+  # Upper limit on incoming uploads to builds
+  maxBytes: 1048576 # 1MB
 
-coverage: {}
+coverage:
+  default: true
   # plugin: sonar
   # sonar:
   #   sdApiUrl: https://api.screwdriver.cd
@@ -265,8 +271,13 @@ ecosystem:
   # Externally routable URL for the Artifact Store
   store: https://store.screwdriver.cd
   # Badge service (needs to add a status and color)
-  badges: https://img.shields.io/badge/build-{{status}}-{{color}}.svg
+  badges: https://img.shields.io/badge/{{subject}}-{{status}}-{{color}}.svg
   # Default registry to pull build containers from. Uses Docker Hub if nothing/empty string is provided
   dockerRegistry: ""
   # Extra origins allowed to do CORS to API
   allowCors: []
+
+# default cluster environment variables to inject into builds
+build:
+  environment:
+    SD_VERSION: 4

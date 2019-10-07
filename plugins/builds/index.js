@@ -25,32 +25,35 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {String}   config.scmContext     SCM context
  * @param  {Build}    config.build          Build object
  * @param  {Boolean}  [config.start]        Whether to start the build or not
+ * @param  {String}   config.baseBranch     Branch name
  * @return {Promise}
  */
-function createBuild({ jobFactory, buildFactory, eventFactory, pipelineId, jobName, username,
-    scmContext, build, start }) {
-    return Promise.all([
-        eventFactory.get(build.eventId),
-        jobFactory.get({
-            name: jobName,
-            pipelineId
-        })
-    ]).then(([event, job]) => {
-        if (job.state === 'ENABLED') {
-            return buildFactory.create({
-                jobId: job.id,
-                sha: build.sha,
-                parentBuildId: build.id,
-                eventId: build.eventId,
-                username,
-                configPipelineSha: event.configPipelineSha,
-                scmContext,
-                start: start !== false
-            });
-        }
-
-        return null;
+async function createBuild(config) {
+    const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
+        username, scmContext, build, start, baseBranch } = config;
+    const event = await eventFactory.get(build.eventId);
+    const job = await jobFactory.get({
+        name: jobName,
+        pipelineId
     });
+    const prRef = event.pr.ref ? event.pr.ref : '';
+
+    if (job.state === 'ENABLED') {
+        return buildFactory.create({
+            jobId: job.id,
+            sha: build.sha,
+            parentBuildId: build.id,
+            eventId: build.eventId,
+            username,
+            configPipelineSha: event.configPipelineSha,
+            scmContext,
+            prRef,
+            start: start !== false,
+            baseBranch
+        });
+    }
+
+    return null;
 }
 
 /**
@@ -123,6 +126,12 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
             return nextBuild ? nextBuild.remove() : null;
         }
 
+        // Get upstream buildIds
+        const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
+            .map(b => b.id);
+
+        buildConfig.parentBuildId = successBuildsIds;
+
         // If everything successful so far, create or update
         // [A B] -> C. A passed -> create C
         // [A B] -> C. A passed -> C created; B passed -> update C
@@ -131,10 +140,6 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
 
             return createBuild(buildConfig);
         }
-
-        // If build is already created, update the parentBuildId
-        const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
-            .map(b => b.id);
 
         nextBuild.parentBuildId = successBuildsIds;
 
@@ -191,6 +196,31 @@ function removeDownstreamBuilds(config) {
     const visitedBuilds = dfs(parentEvent.workflowGraph, startFrom, builds, new Set());
 
     return builds.filter(build => !visitedBuilds.has(build.id));
+}
+
+/**
+ * Return PR job or not
+ * PR job name certainly has ":". e.g. "PR-1:jobName"
+ * @method isPR
+ * @param  {String}  destJobName
+ * @return {Boolean}
+ */
+function isPR(jobName) {
+    return jobName.includes(':');
+}
+
+/**
+ * Trim Job name to follow data-schema
+ * @method trimJobName
+ * @param  {String} jobName
+ * @return {String} trimmed jobName
+ */
+function trimJobName(jobName) {
+    if (isPR(jobName)) {
+        return jobName.split(':')[1];
+    }
+
+    return jobName;
 }
 
 /**
@@ -277,7 +307,7 @@ exports.register = (server, options, next) => {
         return eventFactory.get({ id: build.eventId }).then((event) => {
             const workflowGraph = event.workflowGraph;
             const nextJobs = workflowParser.getNextJobs(workflowGraph,
-                { trigger: currentJobName, prChain: pipeline.prChain });
+                { trigger: currentJobName, chainPR: pipeline.chainPR });
 
             // Create a join object like: {A:[B,C], D:[B,F]} where [B,C] join on A, [B,F] join on D, etc.
             const joinObj = nextJobs.reduce((obj, jobName) => {
@@ -297,7 +327,8 @@ exports.register = (server, options, next) => {
                     jobName: nextJobName,
                     username,
                     scmContext,
-                    build // this is the parentBuild for the next build
+                    build, // this is the parentBuild for the next build
+                    baseBranch: event.baseBranch || null
                 };
 
                 // Just start the build if falls in to these 2 scenarios
@@ -329,7 +360,8 @@ exports.register = (server, options, next) => {
                     buildConfig,
                     joinList,
                     finishedBuilds,
-                    jobId: workflowGraph.nodes.find(node => node.name === nextJobName).id
+                    jobId: workflowGraph.nodes
+                        .find(node => node.name === trimJobName(nextJobName)).id
                 }));
             }));
         });

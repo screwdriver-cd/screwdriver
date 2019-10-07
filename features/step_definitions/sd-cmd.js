@@ -66,7 +66,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
                     return;
                 }
 
-                request({
+                /* eslint-disable-next-line consistent-return */
+                return request({
                     uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
                     + `/${this.command}`,
                     method: 'DELETE',
@@ -161,7 +162,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             }
         }).then((response) => {
             Assert.equal(response.statusCode, 200);
-            Assert.equal(response.body.command,
+            Assert.include(response.body.command,
                 `sd-cmd exec ${this.commandNamespace}/${this.command}@1 ${args}`);
         });
     });

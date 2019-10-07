@@ -6,7 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
-const testBuilds = require('./data/builds.json');
+const testBuilds = require('./data/builds.json').slice(0, 2);
 const testCollection = require('./data/collection.json');
 const testCollectionResponse = require('./data/collection.response.json');
 const testCollections = require('./data/collections.json');
@@ -62,6 +62,7 @@ describe('collection plugin test', () => {
     const username = 'jsequeira';
     const scmContext = 'github:github.com';
     const userId = testCollection.userId;
+    const type = 'normal';
     let collectionFactoryMock;
     let eventFactoryMock;
     let pipelineFactoryMock;
@@ -103,7 +104,6 @@ describe('collection plugin test', () => {
         collectionMock.remove.resolves(null);
         collectionMock.update.resolves(collectionMock);
         collectionFactoryMock.create.resolves(collectionMock);
-
         userMock = getUserMock({
             username,
             scmContext,
@@ -164,7 +164,8 @@ describe('collection plugin test', () => {
                 payload: {
                     name,
                     description,
-                    pipelineIds
+                    pipelineIds,
+                    type
                 },
                 credentials: {
                     username,
@@ -173,6 +174,8 @@ describe('collection plugin test', () => {
                 }
             };
             collectionFactoryMock.get.resolves(null);
+            collectionFactoryMock.create.resolves(collectionMock);
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         });
 
         it('returns 201 and correct collection data', () =>
@@ -186,6 +189,11 @@ describe('collection plugin test', () => {
                 const expected = Object.assign({}, testCollection);
 
                 delete expected.id;
+
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
+                    userId
+                });
                 assert.calledWith(collectionFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testCollection);
@@ -196,14 +204,14 @@ describe('collection plugin test', () => {
         it('returns 201 and creates a collection when no pipelineIds given', () => {
             delete options.payload.pipelineIds;
             const resultCollection = Object.assign({}, testCollection);
+            const newCollectionMock = getMock(resultCollection);
 
             // collectionFactoryMock will resolve a collection model with the pipelineIds
             // field being an empty array
             resultCollection.pipelineIds = [];
-            collectionMock = getMock(resultCollection);
-            collectionMock.remove.resolves(null);
-            collectionMock.update.resolves(collectionMock);
-            collectionFactoryMock.create.resolves(collectionMock);
+            newCollectionMock.remove.resolves(null);
+            newCollectionMock.update.resolves(newCollectionMock);
+            collectionFactoryMock.create.resolves(newCollectionMock);
 
             return server.inject(options).then((reply) => {
                 const expectedLocation = {
@@ -216,9 +224,42 @@ describe('collection plugin test', () => {
 
                 delete expectedInput.id;
                 delete expectedInput.pipelineIds;
+
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
+                    userId
+                });
                 assert.calledWith(collectionFactoryMock.create, expectedInput);
                 assert.equal(reply.statusCode, 201);
                 assert.equal(reply.result, resultCollection);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+            });
+        });
+
+        it('returns 201 and current collection data when given no collection type', () => {
+            // Delete the collection type
+            delete options.payload.type;
+
+            return server.inject(options).then((reply) => {
+                const expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testCollection.id}`
+                };
+                const expected = Object.assign({}, testCollection);
+
+                delete expected.id;
+
+                // It is expected that the invalid pipelineId will be removed from the
+                // create call
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
+                    userId
+                });
+                assert.calledWith(collectionFactoryMock.create, expected);
+                assert.equal(reply.statusCode, 201);
+                assert.deepEqual(reply.result, testCollection);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
             });
         });
@@ -239,6 +280,10 @@ describe('collection plugin test', () => {
                 delete expected.id;
                 // It is expected that the invalid pipelineId will be removed from the
                 // create call
+                assert.calledWith(collectionFactoryMock.get, {
+                    name,
+                    userId
+                });
                 assert.calledWith(collectionFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testCollection);
@@ -255,6 +300,14 @@ describe('collection plugin test', () => {
                 // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
                     assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
                 });
+        });
+
+        it('returns 403 when the collection type is default', () => {
+            options.payload.type = 'default';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
         });
 
         it('returns 404 when the user does not exist', () => {
@@ -341,7 +394,12 @@ describe('collection plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/collections/${id}`
+                url: `/collections/${id}`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
             };
             eventMock = {
                 getBuilds() {
@@ -368,6 +426,7 @@ describe('collection plugin test', () => {
                 return Promise.resolve(jobsMock);
             };
 
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
             eventFactoryMock.get.withArgs(testPipelines[0].lastEventId).resolves(eventMock);
             collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
             pipelineFactoryMock.get.withArgs(testPipelines[0].id).resolves(pipelineMock);
@@ -385,14 +444,52 @@ describe('collection plugin test', () => {
 
             // Add a pipelineId which doesn't exist in testPipelines
             newTestCollection.pipelineIds.push(126);
-            collectionMock = getMock(newTestCollection);
-            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
+            const newCollectionMock = getMock(newTestCollection);
+
+            collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
 
             // Since there is no pipeline with id 126, it should only return
             // all the other pipelines
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollectionResponse);
+            });
+        });
+
+        it('sets collection type to normal in response if the collection type is empty', () => {
+            const newTestCollection = Object.assign({}, testCollection);
+
+            // Delete the type field
+            delete newTestCollection.type;
+            const newCollectionMock = getMock(newTestCollection);
+
+            collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testCollectionResponse);
+            });
+        });
+
+        it('sets response collection type to shared when if user does not own it', () => {
+            const fakeUserId = '12';
+            const fakeUserMock = getUserMock({
+                username,
+                id: fakeUserId
+            });
+
+            userFactoryMock.get.withArgs({
+                username,
+                scmContext
+            }).resolves(fakeUserMock);
+
+            const newTestCollectionResponse = Object.assign({}, testCollectionResponse);
+
+            newTestCollectionResponse.type = 'shared';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, newTestCollectionResponse);
             });
         });
 
@@ -529,6 +626,14 @@ describe('collection plugin test', () => {
             });
         });
 
+        it('returns 404 when the payload type is "default"', () => {
+            options.payload.type = 'default';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
         it('returns 403 when the user does not have permission', () => {
             const fakeUserId = 12;
             const fakeUserMock = getUserMock({
@@ -588,6 +693,17 @@ describe('collection plugin test', () => {
                 assert.calledOnce(collectionMock.remove);
             })
         );
+
+        it('returns 403 when the collection to be deleted has type "default"', () => {
+            const defaultCollection = Object.assign({}, testCollection, { type: 'default' });
+            const defaultCollectionMock = getMock(defaultCollection);
+
+            collectionFactoryMock.get.withArgs(id).resolves(defaultCollectionMock);
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
 
         it('returns 403 when user does not have permission', () => {
             const fakeUserId = 12;

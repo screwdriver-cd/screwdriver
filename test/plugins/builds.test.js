@@ -9,6 +9,10 @@ const hoek = require('hoek');
 const nock = require('nock');
 const testBuild = require('./data/build.json');
 const testSecrets = require('./data/secrets.json');
+const rewire = require('rewire');
+const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
+
+/* eslint-disable no-underscore-dangle */
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -22,8 +26,11 @@ const decorateSecretObject = (secret) => {
 
 const decorateBuildObject = (build) => {
     const decorated = hoek.clone(build);
+    const updatedBuild = {
+        toJson: sinon.stub().returns(build)
+    };
 
-    decorated.update = sinon.stub();
+    decorated.update = sinon.stub().resolves(updatedBuild);
     decorated.start = sinon.stub();
     decorated.stop = sinon.stub();
     decorated.toJson = sinon.stub().returns(build);
@@ -232,6 +239,21 @@ describe('build plugin test', () => {
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
+                assert.calledOnce(buildMock.update);
+                assert.deepEqual(reply.result, testBuild);
+            });
+        });
+
+        it('returns 200 for a build that exists - env is an array', () => {
+            const buildMock = getBuildMock(testBuild);
+
+            buildMock.environment = [];
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(`/builds/${id}`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.notCalled(buildMock.update);
                 assert.deepEqual(reply.result, testBuild);
             });
         });
@@ -311,6 +333,7 @@ describe('build plugin test', () => {
                         { src: '~commit', dest: 'main' }
                     ]
                 },
+                pr: {},
                 getBuilds: sinon.stub(),
                 update: sinon.stub(),
                 toJson: sinon.stub().returns({ id: 123 })
@@ -1026,6 +1049,26 @@ describe('build plugin test', () => {
             });
 
             describe('workflow', () => {
+                const publishJobMock = {
+                    id: publishJobId,
+                    pipelineId,
+                    state: 'ENABLED'
+                };
+                const src = `~sd@${pipelineId}:main`;
+
+                beforeEach(() => {
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: 'main' },
+                            { name: 'publish' }
+                        ],
+                        edges: [
+                            { src: 'main', dest: 'publish' }
+                        ]
+                    };
+                    buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
+                });
+
                 it('triggers next job in the pipeline workflow and external pipelines', () => {
                     const meta = {
                         darren: 'thebest'
@@ -1045,25 +1088,9 @@ describe('build plugin test', () => {
                             status
                         }
                     };
-                    const publishJobMock = {
-                        id: publishJobId,
-                        pipelineId,
-                        state: 'ENABLED'
-                    };
-                    const src = `~sd@${pipelineId}:main`;
 
-                    eventMock.workflowGraph = {
-                        nodes: [
-                            { name: 'main' },
-                            { name: 'publish' }
-                        ],
-                        edges: [
-                            { src: 'main', dest: 'publish' }
-                        ]
-                    };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
-                    buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -1077,7 +1104,9 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
-                            start: true
+                            prRef: '',
+                            start: true,
+                            baseBranch: null
                         });
                         assert.calledWith(triggerFactoryMock.list, {
                             params: { src }
@@ -1108,6 +1137,56 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('triggers next job in the chainPR workflow', () => {
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['build']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    eventMock.pr = { ref: 'pull/15/merge' };
+
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
+                        .resolves(publishJobMock);
+
+                    // flag should be true in chainPR events
+                    pipelineMock.chainPR = true;
+
+                    // Set no external pipeline
+                    triggerMocks = [
+                    ];
+                    triggerFactoryMock.list.resolves(triggerMocks);
+
+                    return server.inject(options).then((reply) => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
+                        assert.calledWith(buildFactoryMock.create, {
+                            jobId: publishJobId,
+                            sha: testBuild.sha,
+                            parentBuildId: id,
+                            username,
+                            scmContext,
+                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                            configPipelineSha,
+                            prRef: eventMock.pr.ref,
+                            start: true,
+                            baseBranch: null
+                        });
+                        // Events should not be created if there is no external pipeline
+                        assert.notCalled(eventFactoryMock.create);
+                    });
+                });
+
                 it('skips triggering if there is no nextJobs ', () => {
                     const status = 'SUCCESS';
                     const options = {
@@ -1122,13 +1201,23 @@ describe('build plugin test', () => {
                         }
                     };
 
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~commit' },
+                            { name: 'main' }
+                        ],
+                        edges: [
+                            { src: '~commit', dest: 'main' }
+                        ]
+                    };
+
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                     });
                 });
 
-                it('skips triggering if the job is a PR', () => {
+                it('skips triggering if the job is a PR and chainPR is false', () => {
                     const status = 'SUCCESS';
                     const options = {
                         method: 'PUT',
@@ -1142,7 +1231,12 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    jobMock.name = 'PR-15';
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
+                        .resolves(publishJobMock);
+
+                    // flag should be false in not-chainPR events
+                    pipelineMock.chainPR = false;
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 200);
@@ -1168,21 +1262,9 @@ describe('build plugin test', () => {
                             status
                         }
                     };
-                    const publishJobMock = {
-                        id: publishJobId,
-                        pipelineId,
-                        state: 'DISABLED'
-                    };
 
-                    eventMock.workflowGraph = {
-                        nodes: [
-                            { name: 'main' },
-                            { name: 'publish' }
-                        ],
-                        edges: [
-                            { src: 'main', dest: 'publish' }
-                        ]
-                    };
+                    publishJobMock.state = 'DISABLED';
+
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
                         .resolves(publishJobMock);
 
@@ -1246,6 +1328,7 @@ describe('build plugin test', () => {
                             { name: 'd', id: 4 }
                         ]
                     };
+                    eventMock.baseBranch = 'master';
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
@@ -1261,7 +1344,9 @@ describe('build plugin test', () => {
                         eventId: '8888',
                         username: 12345,
                         scmContext: 'github:github.com',
-                        configPipelineSha: 'abc123'
+                        configPipelineSha: 'abc123',
+                        prRef: '',
+                        baseBranch: 'master'
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
                 });
@@ -1325,6 +1410,54 @@ describe('build plugin test', () => {
                         jobId: 6,
                         status: 'ABORTED'
                     }]);
+
+                    return server.inject(options).then(() => {
+                        // create the builds
+                        assert.calledTwice(buildFactoryMock.create);
+
+                        // jobB is created because there is no join
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+
+                        // there is a finished join, jobC is created without starting, then start separately
+                        // (same action but different flow in the code)
+                        jobCconfig.start = false;
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                        assert.calledOnce(buildMock.start);
+                        buildMock.update = sinon.stub().resolves(buildMock);
+                    });
+                });
+
+                it('triggers if all PR jobs in join are done', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    eventMock.getBuilds.resolves([{
+                        jobId: 1,
+                        status: 'SUCCESS'
+                    }, {
+                        jobId: 4,
+                        status: 'SUCCESS'
+                    }, {
+                        jobId: 5,
+                        status: 'SUCCESS'
+                    }, {
+                        jobId: 6,
+                        status: 'ABORTED'
+                    }]);
+
+                    // for chainPR settings
+                    pipelineMock.chainPR = true;
+                    eventMock.pr = { ref: 'pull/15/merge' };
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
+                    jobMock.name = 'PR-15:a';
+                    jobBconfig.prRef = 'pull/15/merge';
+                    jobCconfig.prRef = 'pull/15/merge';
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -1665,6 +1798,7 @@ describe('build plugin test', () => {
             jobMock.prNum = 15;
             params.sha = '58393af682d61de87789fb4961645c42180cec5a';
             params.prRef = 'prref';
+            eventConfig.startFrom = jobMock.name;
 
             const scmConfig = {
                 token: 'iamtoken',
@@ -1703,6 +1837,7 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            eventConfig.startFrom = jobMock.name;
             params.meta = meta;
 
             return server.inject(options).then((reply) => {
@@ -1747,6 +1882,7 @@ describe('build plugin test', () => {
             jobMock.isPR.returns(false);
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
+            eventConfig.startFrom = jobMock.name;
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1987,7 +2123,6 @@ describe('build plugin test', () => {
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
                 assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
-                assert.notDeepProperty(reply.result, 'startTime');
             });
         });
 
@@ -2659,10 +2794,24 @@ describe('build plugin test', () => {
         });
 
         it('redirects to store for an artifact download request', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&download=true`;
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=download`;
 
             return server.inject({
-                url: `/builds/${id}/artifacts/${artifact}?download=true`,
+                url: `/builds/${id}/artifacts/${artifact}?type=download`,
+                credentials: {
+                    scope: ['user']
+                }
+            }).then((reply) => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('redirects to store for an artifact preview request', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=preview`;
+
+            return server.inject({
+                url: `/builds/${id}/artifacts/${artifact}?type=preview`,
                 credentials: {
                     scope: ['user']
                 }
@@ -2940,5 +3089,29 @@ describe('build plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+    });
+});
+
+describe('isPR', () => {
+    const isPR = rewireBuildsIndex.__get__('isPR');
+
+    it('sholud return true if job name has PR prefix', () => {
+        assert.isTrue(isPR('PR-1:testJobName'));
+    });
+
+    it('sholud return false if job name does not have PR prefix', () => {
+        assert.isFalse(isPR('testJobName'));
+    });
+});
+
+describe('trimJobName', () => {
+    const trimJobName = rewireBuildsIndex.__get__('trimJobName');
+
+    it('sholud return jobName as it is (not trimmed)', () => {
+        assert.equal(trimJobName('testJobName'), 'testJobName');
+    });
+
+    it('sholud return trimmed jobName', () => {
+        assert.equal(trimJobName('PR-179:testJobName'), 'testJobName');
     });
 });

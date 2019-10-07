@@ -6,6 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
 const testBuilds = require('./data/builds.json');
+const testBuild = require('./data/build.json');
 const testJob = require('./data/job.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -30,6 +31,7 @@ const decorateJobMock = (job) => {
     const decorated = hoek.clone(job);
 
     decorated.getBuilds = sinon.stub();
+    decorated.getLatestBuild = sinon.stub();
     decorated.update = sinon.stub();
     decorated.toJson = sinon.stub().returns(job);
 
@@ -320,7 +322,8 @@ describe('job plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             })
@@ -336,7 +339,25 @@ describe('job plugin test', () => {
                         count: 30,
                         page: 2
                     },
-                    sort: 'ascending'
+                    sort: 'ascending',
+                    sortBy: 'createTime'
+                });
+                assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+
+        it('pass in the correct params to getBuilds with all params', () => {
+            options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending&sortBy=id`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    paginate: {
+                        count: 30,
+                        page: 2
+                    },
+                    sort: 'ascending',
+                    sortBy: 'id'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -352,9 +373,59 @@ describe('job plugin test', () => {
                         page: undefined,
                         count: 30
                     },
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+    });
+
+    describe('GET /jobs/{id}/latestBuild', () => {
+        const id = 1234;
+        let options;
+        let job;
+        let build;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/latestBuild`
+            };
+
+            job = getJobMocks(testJob);
+            build = getBuildMocks(testBuild);
+
+            jobFactoryMock.get.withArgs(id).resolves(job);
+            job.getLatestBuild.resolves(build);
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last build', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            })
+        );
+
+        it('return 404 if there is no last build found', () => {
+            const status = 'SUCCESS';
+
+            job.getLatestBuild.resolves({});
+            options.url = `/jobs/${id}/latestBuild?status=${status}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });
@@ -399,9 +470,21 @@ describe('job plugin test', () => {
                 });
             })
         );
+
+        it('returns {} if there is no last successful meta', () => {
+            job.getBuilds.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    status: 'SUCCESS'
+                });
+                assert.deepEqual(reply.result, {});
+            });
+        });
     });
 
-    describe('GET /jobs/{id}/metrics/builds', () => {
+    describe('GET /jobs/{id}/metrics', () => {
         const id = 123;
         const username = 'myself';
         let options;
@@ -417,7 +500,7 @@ describe('job plugin test', () => {
             sandbox.useFakeTimers(dateNow);
             options = {
                 method: 'GET',
-                url: `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`,
+                url: `/jobs/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
                 credentials: {
                     username,
                     scope: ['user']
@@ -445,7 +528,7 @@ describe('job plugin test', () => {
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';
             endTime = '2019-01-29T01:47:27.863Z';
-            options.url = `/jobs/${id}/metrics/builds?startTime=${startTime}&endTime=${endTime}`;
+            options.url = `/jobs/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
 
             return server.inject(options).then((reply) => {
                 assert.notCalled(jobMock.getMetrics);
@@ -454,7 +537,7 @@ describe('job plugin test', () => {
         });
 
         it('defaults time range if missing', () => {
-            options.url = `/jobs/${id}/metrics/builds`;
+            options.url = `/jobs/${id}/metrics`;
 
             return server.inject(options).then((reply) => {
                 assert.calledWith(jobMock.getMetrics, {
@@ -465,107 +548,28 @@ describe('job plugin test', () => {
             });
         });
 
-        it('returns 404 when job does not exist', () => {
-            const error = {
-                statusCode: 404,
-                error: 'Not Found',
-                message: 'Job does not exist'
-            };
+        it('returns 400 when option is bad', () => {
+            const errorMsg = 'child "aggregateInterval" fails because ["aggregateInterval" ' +
+                'must be one of [none, day, week, month, year]]';
 
-            jobFactoryMock.get.resolves(null);
+            options.url = `/jobs/${id}/metrics?aggregateInterval=biweekly`;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-                assert.deepEqual(reply.result, error);
-            });
-        });
-
-        it('returns 500 when datastore fails', () => {
-            jobFactoryMock.get.rejects(new Error('Failed'));
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-    });
-
-    describe('GET /jobs/{id}/metrics/steps', () => {
-        const id = 123;
-        const username = 'myself';
-        let options;
-        let jobMock;
-        let startTime = '2019-01-29T01:47:27.863Z';
-        let endTime = '2019-01-30T01:47:27.863Z';
-        let sandbox;
-
-        beforeEach(() => {
-            sandbox = sinon.createSandbox({
-                useFakeTimers: false
-            });
-            sandbox.useFakeTimers(dateNow);
-            options = {
-                method: 'GET',
-                url: `/jobs/${id}/metrics/steps` +
-                `?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scope: ['user']
-                }
-            };
-            jobMock = decorateJobMock(testJob);
-            jobMock.getStepMetrics = sinon.stub().resolves([]);
-            jobFactoryMock.get.resolves(jobMock);
-        });
-
-        afterEach(() => {
-            sandbox.restore();
-        });
-
-        it('returns 200 and step metrics of all steps for job', () =>
-            server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledWith(jobMock.getStepMetrics, {
-                    stepName: undefined,
-                    startTime,
-                    endTime
-                });
-            })
-        );
-
-        it('returns 200 and step metrics of sd-setup-scm for job', () => {
-            options.url = `${options.url}&stepName=sd-setup-scm`;
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledWith(jobMock.getStepMetrics, {
-                    stepName: 'sd-setup-scm',
-                    startTime,
-                    endTime
-                });
-            });
-        });
-
-        it('returns 400 if time range is too big', () => {
-            startTime = '2018-01-29T01:47:27.863Z';
-            endTime = '2019-01-29T01:47:27.863Z';
-            options.url = `/jobs/${id}/metrics/steps?startTime=${startTime}&endTime=${endTime}`;
-
-            return server.inject(options).then((reply) => {
-                assert.notCalled(jobMock.getStepMetrics);
+                assert.deepEqual(reply.result.message, errorMsg);
                 assert.equal(reply.statusCode, 400);
             });
         });
 
-        it('defaults time range if missing', () => {
-            options.url = `/jobs/${id}/metrics/steps`;
+        it('passes in aggregation option', () => {
+            options.url = `/jobs/${id}/metrics?aggregateInterval=week`;
 
             return server.inject(options).then((reply) => {
-                assert.calledWith(jobMock.getStepMetrics, {
-                    endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z', // 6 months
-                    stepName: undefined
-                });
                 assert.equal(reply.statusCode, 200);
+                assert.calledWith(jobMock.getMetrics, {
+                    aggregateInterval: 'week',
+                    startTime: '2018-09-15T21:10:58.211Z',
+                    endTime: nowTime
+                });
             });
         });
 

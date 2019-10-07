@@ -130,19 +130,43 @@ module.exports = () => ({
         description: 'Get a single collection',
         notes: 'Returns a collection record',
         tags: ['api', 'collections'],
+        auth: {
+            strategies: ['token'],
+            scope: ['user', '!guest']
+        },
+        plugins: {
+            'hapi-swagger': {
+                security: [{ token: [] }]
+            }
+        },
         handler: (request, reply) => {
-            const { collectionFactory, pipelineFactory, eventFactory } = request.server.app;
+            const { collectionFactory, pipelineFactory, eventFactory, userFactory }
+                = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
 
-            return collectionFactory.get(request.params.id)
-                .then((collection) => {
+            return Promise.all([
+                collectionFactory.get(request.params.id),
+                userFactory.get({ username, scmContext })
+            ])
+                .then(([collection, user]) => {
                     if (!collection) {
                         throw boom.notFound('Collection does not exist');
+                    }
+
+                    const result = Object.assign({}, collection.toJson());
+
+                    if (user.id !== result.userId) {
+                        // If the user accessing this collection is not the owner, return shared as type
+                        result.type = 'shared';
+                    } else if (!result.type) {
+                        // If the collection type is empty, return normal as type
+                        result.type = 'normal';
                     }
 
                     // Store promises from pipelineFactory fetch operations
                     const collectionPipelines = [];
 
-                    collection.pipelineIds.forEach((id) => {
+                    result.pipelineIds.forEach((id) => {
                         collectionPipelines.push(pipelineFactory.get(id));
                     });
 
@@ -150,8 +174,6 @@ module.exports = () => ({
                         // Populate pipelines with PR Info and then last builds
                         .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
                         .then((pipelinesWithInfo) => {
-                            const result = Object.assign({}, collection.toJson());
-
                             result.pipelines = pipelinesWithInfo;
                             // pipelineIds should only contain pipelines that exist
                             result.pipelineIds = pipelinesWithInfo.map(p => p.id);

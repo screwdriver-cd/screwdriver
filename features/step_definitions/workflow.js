@@ -25,7 +25,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then((response) => {
                 this.jwt = response.body.token;
 
-                return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName);
+                return github.createBranch(branch, this.repoOrg, this.repoName);
             })
             // wait not to trigger builds when create a pipeline
             .then(() => this.promiseToWait(WAIT_TIME))
@@ -65,9 +65,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
     When(/^a new commit is pushed to "(.*)" branch$/, {
         timeout: TIMEOUT
     }, function step(branch) {
-        return github.createBranch(this.gitToken, branch, this.repoOrg, this.repoName)
-            .then(() => github.createFile(this.gitToken, branch, this.repoOrg, this.repoName))
-            .then((data) => {
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
                 this.sha = data.commit.sha;
             });
     });

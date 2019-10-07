@@ -9,32 +9,24 @@ const idSchema = joi.reach(schema.models.pipeline.base, 'id');
 /**
  * Generate Badge URL
  * @method getUrl
- * @param  {string}  badgeService    Template URL for badges - needs {{status}} and {{color}}
- * @param  {Array}  [buildsStatus]   Current status of all builds in the same event
- * @return {string}                  URL to redirect to
+ * @param  {String} badgeService            Badge service url
+ * @param  {Object} statusColor             Mapping for status and color
+ * @param  {Function} encodeBadgeSubject    Function to encode subject
+ * @param  {Array}  [buildsStatus=[]]       An array of builds
+ * @param  {String} [subject='job']         Subject of the badge
+ * @return {String}
  */
-function getUrl(badgeService, buildsStatus = []) {
+function getUrl({
+    badgeService,
+    statusColor,
+    encodeBadgeSubject,
+    buildsStatus = [],
+    subject = 'pipeline' }) {
     const counts = {};
     const parts = [];
     let worst = 'lightgrey';
 
-    const statusColor = {
-        success: 'green',
-        queued: 'blue',
-        running: 'blue',
-        unknown: 'lightgrey',
-        failure: 'red',
-        aborted: 'red'
-    };
-
-    const levels = [
-        'success',
-        'queued',
-        'running',
-        'unknown',
-        'failure',
-        'aborted'
-    ];
+    const levels = Object.keys(statusColor);
 
     buildsStatus.forEach((status) => {
         counts[status] = (counts[status] || 0) + 1;
@@ -48,7 +40,9 @@ function getUrl(badgeService, buildsStatus = []) {
     });
 
     return tinytim.tim(badgeService, {
-        status: parts.join(', '), color: worst
+        subject: encodeBadgeSubject({ badgeService, subject }),
+        status: parts.length > 0 ? parts.join(', ') : 'unknown',
+        color: worst
     });
 }
 
@@ -87,7 +81,7 @@ function dfs(workflowGraph, start, prNum) {
     return visited;
 }
 
-module.exports = () => ({
+module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/badge',
     config: {
@@ -97,11 +91,18 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;
+            const encodeBadgeSubject = request.server.plugins.pipelines.encodeBadgeSubject;
+            const { statusColor } = config;
+            const badgeConfig = {
+                badgeService,
+                statusColor,
+                encodeBadgeSubject
+            };
 
             return factory.get(request.params.id)
                 .then((pipeline) => {
                     if (!pipeline) {
-                        return reply.redirect(getUrl(badgeService));
+                        return reply.redirect(getUrl(badgeConfig));
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then((allEvents) => {
@@ -109,7 +110,7 @@ module.exports = () => ({
                             const lastEvent = events.pop();
 
                             if (!lastEvent) {
-                                return reply.redirect(getUrl(badgeService));
+                                return reply.redirect(getUrl(badgeConfig));
                             }
 
                             return lastEvent.getBuilds().then((builds) => {
@@ -125,8 +126,7 @@ module.exports = () => ({
                                 if (lastEvent.workflowGraph) {
                                     const nextJobs = dfs(lastEvent.workflowGraph,
                                         lastEvent.startFrom,
-                                        lastEvent.prNum,
-                                        builds);
+                                        lastEvent.prNum);
 
                                     workflowLength = nextJobs.size;
                                 }
@@ -135,14 +135,15 @@ module.exports = () => ({
                                     buildsStatus[i] = 'unknown';
                                 }
 
-                                return reply.redirect(getUrl(badgeService, buildsStatus));
+                                return reply.redirect(getUrl(Object.assign(
+                                    badgeConfig, { buildsStatus, subject: pipeline.name })));
                             });
                         };
 
                         return getLastEffectiveEvent(allEvents);
                     });
                 })
-                .catch(() => reply.redirect(getUrl(badgeService)));
+                .catch(() => reply.redirect(getUrl(badgeConfig)));
         },
         validate: {
             params: {

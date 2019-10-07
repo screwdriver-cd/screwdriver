@@ -54,6 +54,7 @@ httpd:
 
 datastore:
   plugin: DATASTORE_PLUGIN
+  ddlSyncEnabled: DATASTORE_DDL_SYNC_ENABLED
   sequelize:
     # Type of server to talk to
     dialect: DATASTORE_SEQUELIZE_DIALECT
@@ -81,6 +82,17 @@ datastore:
       __name: DATASTORE_SEQUELIZE_RETRY
       __format: json
     buildMetricsEnabled: DATASTORE_SEQUELIZE_CAPTURE_METRICS_ENABLED
+    readOnly:
+      __name: DATASTORE_SEQUELIZE_RO
+      __format: json
+      # dialect: sequelize
+      # database:
+      # username:
+      # password:
+      # host:
+      # port:
+      # More arguments here:
+      # http://docs.sequelizejs.com/en/latest/api/sequelize/
 
 executor:
   plugin: EXECUTOR_PLUGIN
@@ -241,7 +253,7 @@ executor:
   queue:
     enabled: EXECUTOR_QUEUE_ENABLED
     options:
-    # Configuration of the redis instance containing resque
+      # Configuration of the redis instance containing resque
       redisConnection:
         host: QUEUE_REDIS_HOST
         port: QUEUE_REDIS_PORT
@@ -310,6 +322,8 @@ webhooks:
   restrictPR: RESTRICT_PR
   # Chain PR: true or false
   chainPR: CHAIN_PR
+  # Upper limit on incoming uploads to builds
+  maxBytes: WEBHOOK_MAX_BYTES
 
 bookends:
   # List of module names, or objects { name, config } for instantiation to use in sd-setup
@@ -327,11 +341,12 @@ notifications:
 
 coverage:
   plugin: COVERAGE_PLUGIN
+  default: COVERAGE_PLUGIN_DEFAULT_ENABLED
   sonar:
     # Screwdriver API url
     sdApiUrl: URI
     # Sonar host url
-    sonarHost:  COVERAGE_SONAR_HOST
+    sonarHost: COVERAGE_SONAR_HOST
     # Sonar admin token
     adminToken: COVERAGE_SONAR_ADMIN_TOKEN
     # crewdriver UI url
@@ -353,4 +368,9 @@ ecosystem:
   # Array of extra origins allowed to do CORS to API
   allowCors:
     __name: ECOSYSTEM_ALLOW_CORS
+    __format: json
+
+build:
+  environment:
+    __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json

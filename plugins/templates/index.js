@@ -9,6 +9,7 @@ const listTagsRoute = require('./listTags');
 const listVersionsRoute = require('./listVersions');
 const removeRoute = require('./remove');
 const removeTagRoute = require('./removeTag');
+const updateTrustedRoute = require('./updateTrusted');
 
 /**
  * Template API Plugin
@@ -73,7 +74,8 @@ exports.register = (server, options, next) => {
         listTagsRoute(),
         listVersionsRoute(),
         removeRoute(),
-        removeTagRoute()
+        removeTagRoute(),
+        updateTrustedRoute()
     ]);
 
     next();
