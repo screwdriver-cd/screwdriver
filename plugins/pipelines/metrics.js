@@ -25,8 +25,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
-            const { aggregateInterval } = request.query;
-            const { page, count } = request.query;
+            const { aggregateInterval, page, count } = request.query;
             let { startTime, endTime } = request.query;
 
             return factory.get(id)
@@ -35,20 +34,24 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
+                    let config;
+
                     // Only when either page or count is unavailable
                     // check whether startTime and endTime are valid
                     if (!page || !count) {
                         if (!startTime || !endTime) {
-                            ({ startTime, endTime } = 
+                            ({ startTime, endTime } =
                                 setDefaultTimeRange(startTime, endTime, MAX_DAYS));
                         }
 
                         if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
                             throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
                         }
-                    }
 
-                    const config = { startTime, endTime, page, count };
+                        config = { startTime, endTime };
+                    } else {
+                        config = { page, count };
+                    }
 
                     if (aggregateInterval) {
                         config.aggregateInterval = aggregateInterval;
