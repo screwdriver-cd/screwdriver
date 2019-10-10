@@ -172,16 +172,17 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
-    Then(/^a new build from `main` should be created to test that change$/, {
+    Then(/^a new build from "([^"]*)" should be created to test that change$/, {
         timeout: TIMEOUT
-    }, function step() {
+    }, function step(job) {
         return sdapi.searchForBuild({
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
             desiredSha: this.sha, //TODO
             desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS'],
-            jwt: this.jwt
+            jwt: this.jwt,
+            jobName: job
         })
             .then((data) => {
                 const build = data;
