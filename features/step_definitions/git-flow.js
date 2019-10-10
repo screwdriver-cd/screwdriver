@@ -172,6 +172,36 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
+    When(/^a release is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({data}) => {
+                this.sha = data.commit.sha;
+                return github.createTag(tag, branch, this.repoOrg, this.repoName);
+            })
+            .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
+    });
+
+    When(/^a annotated release is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({data}) => {
+                this.sha = data.commit.sha;
+                return github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
+            })
+            .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
+    });
+
     Then(/^a new build from "([^"]*)" should be created to test that change$/, {
         timeout: TIMEOUT
     }, function step(job) {

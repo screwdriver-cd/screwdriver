@@ -39,8 +39,16 @@ Feature: Git Flow
 
         Scenario: New Tag
              When a tag is created
-             Then a new build from "main" should be created to test that change
+             Then a new build from "tag-triggered" should be created to test that change
 
         Scenario: New Annotated Tag
              When a annotated tag is created
-             Then a new build from "main" should be created to test that change
+             Then a new build from "tag-triggered" should be created to test that change
+
+        Scenario: New Release
+             When a release is created
+             Then a new build from "release-triggered" should be created to test that change
+
+        Scenario: New Annotated Release
+             When a annotated release is created
+             Then a new build from "release-triggered" should be created to test that change

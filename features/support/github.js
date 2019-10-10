@@ -192,7 +192,6 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
     })
         .then((referenceData) =>{
             const sha = referenceData.data.object.sha;
-            console.log(sha);
 
             return octokit.git.createTag({
                 owner,
@@ -209,7 +208,6 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
             })
             .then((response) => {
                 const sha = response.data.sha;
-                console.log(sha);
                 return octokit.git.createRef({
                     owner,
                     repo,
@@ -219,6 +217,25 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
             });
         })
         .catch((err) => {
+            Assert.strictEqual(err.status, 422);
+        });
+}
+
+/**
+ * TODO
+ */
+function createRelease(tag_name, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    // Create a branch from the tip of the master branch
+    return octokit.repos.createRelease({
+        owner,
+        repo,
+        tag_name
+    })
+        .catch((err) => {
+            // throws an error if a branch already exists, so this is fine
             Assert.strictEqual(err.status, 422);
         });
 }
@@ -264,6 +281,7 @@ module.exports = {
     createPullRequest,
     createTag,
     createAnnotatedTag,
+    createRelease,
     getStatus,
     mergePullRequest
 };
