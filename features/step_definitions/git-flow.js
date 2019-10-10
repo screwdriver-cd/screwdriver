@@ -14,6 +14,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         timeout: TIMEOUT
     }, function hook() {
         this.branch = 'darrenBranch';
+        this.tag = 'v1.0';
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-git';
 
@@ -29,7 +30,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         }).then((response) => {
             this.jwt = response.body.token;
         }).then(() =>
-            github.cleanUpRepository(this.branch, this.repoOrg, this.repoName)
+            github.cleanUpRepository(this.branch, this.tag, this.repoOrg, this.repoName)
         );
     });
 
@@ -103,7 +104,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            sha: this.sha,
+            desiredSha: this.sha,
             desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE'],
             jwt: this.jwt
         }).then((buildData) => {
@@ -120,7 +121,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            sha: this.sha,
+            desiredSha: this.sha,
             desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
             jwt: this.jwt
         }).then((buildData) => {
@@ -143,6 +144,34 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
+    When(/^a tag is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+                github.createTag(tag, branch, this.repoOrg, this.repoName)
+            });
+    });
+
+    When(/^a annotated tag is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+                github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName)
+            });
+    });
+
     Then(/^a new build from `main` should be created to test that change$/, {
         timeout: TIMEOUT
     }, function step() {
@@ -150,7 +179,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            sha: this.sha,
+            desiredSha: this.sha, //TODO
             desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS'],
             jwt: this.jwt
         })
