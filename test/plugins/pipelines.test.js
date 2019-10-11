@@ -13,6 +13,7 @@ const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 const testTriggers = require('./data/triggers.json');
+const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/events.json');
@@ -59,6 +60,7 @@ const getTokenMocks = (tokens) => {
 const decorateJobMock = (job) => {
     const mock = hoek.clone(job);
 
+    mock.getLatestBuild = sinon.stub();
     mock.getBuilds = sinon.stub().resolves(getBuildMocks(testBuilds));
     mock.toJson = sinon.stub().returns(job);
 
@@ -748,6 +750,56 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/jobs/{jobName}/latestBuild', () => {
+        const id = 1234;
+        const name = 'deploy';
+        let options;
+        let job;
+        let build;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/jobs/${name}/latestBuild`
+            };
+
+            job = getJobsMocks(testJob);
+            build = getBuildMocks(testBuild);
+
+            jobFactoryMock.get.resolves(job);
+            job.getLatestBuild.resolves(build);
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last build', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            })
+        );
+
+        it('return 404 if there is no last build found', () => {
+            const status = 'SUCCESS';
+
+            job.getLatestBuild.resolves({});
+            options.url = `/pipelines/${id}/jobs/${name}/latestBuild/latestBuild?status=${status}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });

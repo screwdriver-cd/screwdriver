@@ -51,9 +51,18 @@ module.exports = () => ({
 
                     // Users can only mark a running or queued build as aborted
                     if (!isBuild) {
+                        // Check if Screwdriver admin
+                        const adminDetails = request.server.plugins.banners
+                            .screwdriverAdminDetails(username, scmContext);
+
                         // Check desired status
-                        if (desiredStatus !== 'ABORTED') {
-                            throw boom.badRequest('Can only update builds to ABORTED');
+                        if (adminDetails.isAdmin) {
+                            if (desiredStatus !== 'ABORTED' && desiredStatus !== 'FAILURE') {
+                                throw boom.badRequest('Admin can only update builds ' +
+                                    'to ABORTED or FAILURE');
+                            }
+                        } else if (desiredStatus !== 'ABORTED') {
+                            throw boom.badRequest('User can only update builds to ABORTED');
                         }
 
                         // Check permission against the pipeline
@@ -63,25 +72,20 @@ module.exports = () => ({
                             userFactory.get({ username, scmContext })
                         ])
                             // scmUri is buried in the pipeline, so we get that from the job
-                            .then(([job, user]) => job.pipeline.then((pipeline) => {
-                                // Check if Screwdriver admin
-                                const adminDetails = request.server.plugins.banners
-                                    .screwdriverAdminDetails(username, scmContext);
-
-                                return user.getPermissions(pipeline.scmUri)
-                                    // Check if user has push access or is a Screwdriver admin
+                            .then(([job, user]) => job.pipeline.then(pipeline =>
+                                user.getPermissions(pipeline.scmUri)
+                                // Check if user has push access or is a Screwdriver admin
                                     .then((permissions) => {
                                         if (!permissions.push && !adminDetails.isAdmin) {
                                             throw boom.forbidden(
                                                 `User ${user.getFullDisplayName()} does not ` +
-                                                'have permission to abort this build'
+                                                    'have permission to abort this build'
                                             );
                                         }
 
                                         return eventFactory.get(build.eventId)
                                             .then(event => ({ build, event }));
-                                    });
-                            }));
+                                    })));
                     }
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
