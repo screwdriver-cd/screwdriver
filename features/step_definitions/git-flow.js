@@ -81,6 +81,21 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
+    Given(/^a pipeline with all stopped builds$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const jobs = ['main', 'tag-triggered', 'release-triggered'];
+        jobs.forEach(jobName => {
+            sdapi.cleanupBuilds({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                jobName,
+                jwt: this.jwt
+            })
+            .catch(err => console.log(err));
+        });
+    });
+
     When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
         const branch = this.branch;
 

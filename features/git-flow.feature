@@ -13,6 +13,7 @@ Feature: Git Flow
 
     Background:
         Given an existing pipeline
+        And a pipeline with all stopped builds
 
         Scenario: New Pull Request
             When a pull request is opened
@@ -38,17 +39,17 @@ Feature: Git Flow
             Then a new build from "main" should be created to test that change
 
         Scenario: New Tag
-             When a tag is created
-             Then a new build from "tag-triggered" should be created to test that change
+            When a tag is created
+            Then a new build from "tag-triggered" should be created to test that change
 
         Scenario: New Annotated Tag
-             When a annotated tag is created
-             Then a new build from "tag-triggered" should be created to test that change
+            When a annotated tag is created
+            Then a new build from "tag-triggered" should be created to test that change
 
         Scenario: New Release
-             When a release is created
-             Then a new build from "release-triggered" should be created to test that change
+            When a release is created
+            Then a new build from "release-triggered" should be created to test that change
 
         Scenario: New Annotated Release
-             When a annotated release is created
-             Then a new build from "release-triggered" should be created to test that change
+            When a annotated release is created
+            Then a new build from "release-triggered" should be created to test that change

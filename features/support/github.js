@@ -228,14 +228,12 @@ function createRelease(tag_name, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    // Create a branch from the tip of the master branch
     return octokit.repos.createRelease({
         owner,
         repo,
         tag_name
     })
         .catch((err) => {
-            // throws an error if a branch already exists, so this is fine
             Assert.strictEqual(err.status, 422);
         });
 }

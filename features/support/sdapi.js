@@ -236,8 +236,44 @@ function cleanupToken(config) {
     });
 }
 
+/**
+ * TODO
+ */
+function cleanupBuilds(config){
+    const instance = config.instance;
+    const pipelineId = config.pipelineId;
+    const desiredStatus = ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'];
+    const jwt = config.jwt;
+    const jobName = config.jobName;
+
+    return findBuilds({
+        instance,
+        pipelineId,
+        jobName,
+        jwt
+    }).then((buildData) => {
+        let result = buildData.body || [];
+
+        result.filter(item => desiredStatus.includes(item.status)).forEach(build => {
+            console.log(build.id);
+            request({
+                uri: `${instance}/v4/builds/${build.id}`,
+                method: 'PUT',
+                auth: {
+                    bearer: jwt
+                },
+                body: {
+                    status: "ABORTED"
+                },
+                json: true
+            }).catch(err => console.log(err));
+        });
+    });
+}
+
 module.exports = {
     cleanupToken,
+    cleanupBuilds,
     findBuilds,
     findEventBuilds,
     searchForBuild,
