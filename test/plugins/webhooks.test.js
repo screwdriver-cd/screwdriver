@@ -1378,7 +1378,19 @@ describe('webhooks plugin test', () => {
                         branch: Promise.resolve('fix-1')
                     });
 
-                    pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
+                    const pMock4 = getPipelineMocks({
+                        id: 'pipelineHash4',
+                        scmUri: 'github.com:123456:fix-2',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        branch: Promise.resolve('fix-1')
+                    });
+
+                    pipelineFactoryMock.list.resolves([
+                        pipelineMock, pMock1, pMock2, pMock3, pMock4
+                    ]);
 
                     return server.inject(options).then((reply) => {
                         assert.equal(reply.statusCode, 201);
