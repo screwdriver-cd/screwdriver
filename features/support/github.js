@@ -150,7 +150,6 @@ function createPullRequest(branch, repoOwner, repoName) {
     });
 }
 
-
 /**
  * Creates a lightweight tag.
  * @method createTag
@@ -202,7 +201,7 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
         repo,
         ref: `heads/${branch}`
     })
-        .then((referenceData) =>{
+        .then((referenceData) => {
             const sha = referenceData.data.object.sha;
 
             return octokit.git.createTag({
@@ -218,15 +217,12 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
                     date: '2019-10-09T15:00:00+09:00'
                 }
             })
-            .then((response) => {
-                const sha = response.data.sha;
-                return octokit.git.createRef({
+                .then(response => octokit.git.createRef({
                     owner,
                     repo,
                     ref: `refs/tags/${tag}`,
-                    sha
-                });
-            });
+                    sha: response.data.sha
+                }));
         })
         .catch((err) => {
             Assert.strictEqual(err.status, 422);
@@ -236,19 +232,19 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
 /**
  * Creates a release.
  * @method createRelease
- * @param  {String}   tag_name          Name of the tag
+ * @param  {String}   tagName          Name of the tag
  * @param  {String}   [repoOwner]       Owner of the repository
  * @param  {String}   [repoName]        Name of the repository
  * @return {Promise}
  */
-function createRelease(tag_name, repoOwner, repoName) {
+function createRelease(tagName, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
     return octokit.repos.createRelease({
         owner,
         repo,
-        tag_name
+        tag_name: tagName
     })
         .catch((err) => {
             Assert.strictEqual(err.status, 422);

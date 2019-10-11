@@ -85,14 +85,14 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         timeout: TIMEOUT
     }, function step() {
         const jobs = ['main', 'tag-triggered', 'release-triggered'];
-        jobs.forEach(jobName => {
+
+        jobs.forEach((jobName) => {
             sdapi.cleanupBuilds({
                 instance: this.instance,
                 pipelineId: this.pipelineId,
                 jobName,
                 jwt: this.jwt
-            })
-            .catch(err => console.log(err));
+            });
         });
     });
 
@@ -169,7 +169,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(({ data }) => {
                 this.sha = data.commit.sha;
-                github.createTag(tag, branch, this.repoOrg, this.repoName)
+                github.createTag(tag, branch, this.repoOrg, this.repoName);
             });
     });
 
@@ -183,7 +183,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(({ data }) => {
                 this.sha = data.commit.sha;
-                github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName)
+                github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
             });
     });
 
@@ -195,8 +195,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
         return github.createBranch(branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
-            .then(({data}) => {
+            .then(({ data }) => {
                 this.sha = data.commit.sha;
+
                 return github.createTag(tag, branch, this.repoOrg, this.repoName);
             })
             .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
@@ -210,8 +211,9 @@ defineSupportCode(({ Before, Given, When, Then }) => {
 
         return github.createBranch(branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
-            .then(({data}) => {
+            .then(({ data }) => {
                 this.sha = data.commit.sha;
+
                 return github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
             })
             .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
@@ -224,7 +226,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            desiredSha: this.sha, //TODO
+            desiredSha: this.sha,
             desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS'],
             jwt: this.jwt,
             jobName: job

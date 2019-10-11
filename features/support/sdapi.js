@@ -237,7 +237,7 @@ function cleanupToken(config) {
 }
 
 /**
- * abort all working builds 
+ * abort all working builds
  * @method cleanupBuilds
  * @param  {Object}  config
  * @param  {String}  config.instance      Screwdriver instance to test against
@@ -259,10 +259,9 @@ function cleanupBuilds(config) {
         jobName,
         jwt
     }).then((buildData) => {
-        let result = buildData.body || [];
+        const result = buildData.body || [];
 
-        result.filter(item => desiredStatus.includes(item.status)).forEach(build => {
-            console.log(build.id);
+        result.filter(item => desiredStatus.includes(item.status)).forEach(build =>
             request({
                 uri: `${instance}/v4/builds/${build.id}`,
                 method: 'PUT',
@@ -270,11 +269,10 @@ function cleanupBuilds(config) {
                     bearer: jwt
                 },
                 body: {
-                    status: "ABORTED"
+                    status: 'ABORTED'
                 },
                 json: true
-            }).catch(err => console.log(err));
-        });
+            }));
     });
 }
 
