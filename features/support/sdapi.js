@@ -237,14 +237,21 @@ function cleanupToken(config) {
 }
 
 /**
- * TODO
+ * abort all working builds 
+ * @method cleanupBuilds
+ * @param  {Object}  config
+ * @param  {String}  config.instance      Screwdriver instance to test against
+ * @param  {String}  config.pipelineId    Pipeline ID to find the build in
+ * @param  {String}  config.jwt           JWT for authenticating
+ * @param  {String}  config.jobName       The job name we're looking for
+ * @return {Promise}
  */
-function cleanupBuilds(config){
+function cleanupBuilds(config) {
     const instance = config.instance;
     const pipelineId = config.pipelineId;
-    const desiredStatus = ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'];
     const jwt = config.jwt;
     const jobName = config.jobName;
+    const desiredStatus = ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'];
 
     return findBuilds({
         instance,

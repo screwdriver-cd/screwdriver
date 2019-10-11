@@ -152,7 +152,13 @@ function createPullRequest(branch, repoOwner, repoName) {
 
 
 /**
- * TODO
+ * Creates a lightweight tag.
+ * @method createTag
+ * @param  {String}   tag               Name of the tag
+ * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
  */
 function createTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
@@ -179,7 +185,13 @@ function createTag(tag, branch, repoOwner, repoName) {
 }
 
 /**
- * TODO
+ * Creates a annotated tag.
+ * @method createAnnotatedTag
+ * @param  {String}   tag               Name of the tag
+ * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
  */
 function createAnnotatedTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
@@ -222,7 +234,12 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
 }
 
 /**
- * TODO
+ * Creates a release.
+ * @method createRelease
+ * @param  {String}   tag_name          Name of the tag
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
  */
 function createRelease(tag_name, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
