@@ -2014,7 +2014,7 @@ describe('pipeline plugin test', () => {
             sandbox.restore();
         });
 
-        it('returns 200 and metrics for pipeline', () =>
+        it('returns 200 and metrics for pipeline when fetching by period', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
@@ -2023,6 +2023,21 @@ describe('pipeline plugin test', () => {
                 });
             })
         );
+
+        it.only('returns 200 and metrics for pipeline when fetching by pagination', () => {
+            const page = 1;
+            const count = 2;
+
+            options.url = `/pipelines/${id}/metrics?page=${page}&count=${count}`
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    page,
+                    count
+                });
+            });
+        });
 
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';
