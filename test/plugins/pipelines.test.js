@@ -2028,7 +2028,7 @@ describe('pipeline plugin test', () => {
             const page = 1;
             const count = 2;
 
-            options.url = `/pipelines/${id}/metrics?page=${page}&count=${count}`
+            options.url = `/pipelines/${id}/metrics?page=${page}&count=${count}`;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
