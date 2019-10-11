@@ -2024,7 +2024,7 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it.only('returns 200 and metrics for pipeline when fetching by pagination', () => {
+        it('returns 200 and metrics for pipeline when fetching by pagination', () => {
             const page = 1;
             const count = 2;
 
