@@ -57,31 +57,31 @@ async function createBuild(config) {
 }
 
 /**
- * Check if all the jobs in joinList are successful
- * @method isJoinDone
- * @param  {Array}      joinList       array of jobs(name,id) that are in join
- * @param  {Array}      finishedBuilds array of finished builds belong to this event
- * @return {Boolean}                   whether all the jobs in join are successful
+ * Check if all the jobs in internalJoinList are successful
+ * @method checkInternalJoin
+ * @param  {Array}      internalJoinList array of jobs(name,id) that are in join
+ * @param  {Array}      finishedBuilds   array of finished builds belong to this event
+ * @return {Boolean}                     whether all the jobs in join are successful
  */
-function isJoinDone(joinList, finishedBuilds) {
+function checkInternalJoin(internalJoinList, finishedBuilds) {
     const successBuilds = finishedBuilds.filter(b => b.status === 'SUCCESS').map(b => b.jobId);
-    const successBuildsInJoin = joinList.filter(j => successBuilds.includes(j.id));
+    const successBuildsInJoin = internalJoinList.filter(j => successBuilds.includes(j.id));
 
-    return successBuildsInJoin.length === joinList.length;
+    return successBuildsInJoin.length === internalJoinList.length;
 }
 
 /**
  * Check if there is no failures so far in the finishedBuilds
  * @method noFailureSoFar
- * @param  {Array}      joinList       array of jobs(name,id) that are in join
- * @param  {Array}      finishedBuilds array of finished builds belong to this event
- * @return {Boolean}                   whether there is no failure so far
+ * @param  {Array}      internalJoinList array of jobs(name,id) that are in join
+ * @param  {Array}      finishedBuilds  array of finished builds belong to this event
+ * @return {Boolean}                    whether there is no failure so far
  */
-function noFailureSoFar(joinList, finishedBuilds) {
+function noFailureSoFar(internalJoinList, finishedBuilds) {
     const failedBuilds = finishedBuilds
         .filter(b => b.status === 'FAILURE' || b.status === 'ABORTED')
         .map(b => b.jobId);
-    const failedBuildsInJoin = joinList.filter(j => failedBuilds.includes(j.id));
+    const failedBuildsInJoin = internalJoinList.filter(j => failedBuilds.includes(j.id));
 
     return failedBuildsInJoin.length === 0;
 }
@@ -89,73 +89,65 @@ function noFailureSoFar(joinList, finishedBuilds) {
 /**
  * Return the successBuildsInJoinList
  * @method successBuildsInJoinList
- * @param  {Array}      joinList       array of jobs(name,id) that are in join
+ * @param  {Array}      internalJoinList       array of jobs(name,id) that are in join
  * @param  {Array}      finishedBuilds array of finished builds belong to this event
  * @return {Array}                     success builds in join
  */
-function successBuildsInJoinList(joinList, finishedBuilds) {
+function successBuildsInJoinList(internalJoinList, finishedBuilds) {
     const successBuilds = finishedBuilds
         .filter(b => b.status === 'SUCCESS')
         .map(b => ({ id: b.id, jobId: b.jobId }));
 
-    const joinListJobIds = joinList.map(j => j.id);
+    const internalJoinListJobIds = internalJoinList.map(j => j.id);
 
-    return successBuilds.filter(b => joinListJobIds.includes(b.jobId));
+    return successBuilds.filter(b => internalJoinListJobIds.includes(b.jobId));
 }
 
 /**
- * Handle next build logic: create, update, start, or remove
- * @method handleNextBuild
+ * Check if internal join is done
+ * @method isInternalJoinDone
  * @param  {Object}   config                    configuration object
  * @param  {Object}   config.buildConfig        config to create the build with
- * @param  {Array}    config.joinList           list of job that join on this current job
+ * @param  {Array}    config.internalJoinList   list of internal jobs that join on this current job
  * @param  {Array}    config.finishedBuilds     list of finished builds
  * @param  {String}   config.jobName            jobname for this build
- * @return {Promise}  the newly updated/created build
+ * @return {Promise}  Object whether internaljoin is done, and nextBuild
  */
-function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
-    return Promise.resolve().then(() => {
-        const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
-        const nextBuild = finishedBuilds.filter(b => b.jobId === jobId)[0];
+function isInternalJoinDone({ buildConfig, internalJoinList, finishedBuilds, jobId }) {
+    return Promise.resolve()
+        .then(() => {
+            const noFailedBuilds = noFailureSoFar(internalJoinList, finishedBuilds);
+            const nextBuild = finishedBuilds.filter(b => b.jobId === jobId)[0];
 
-        // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
-        // [A B] -> C. A passed -> C created; B failed -> delete C
-        // [A B] -> C. A failed -> C not created; B failed -> do nothing
-        // [A B D] -> C. A passed -> C created; B failed -> delete C; D passed -> do nothing
-        if (!noFailedBuilds) {
-            return nextBuild ? nextBuild.remove() : null;
-        }
+            // If anything failed so far, delete if nextBuild was created previously, or do nothing otherwise
+            // [A B] -> C. A passed -> C created; B failed -> delete C
+            // [A B] -> C. A failed -> C not created; B failed -> do nothing
+            // [A B D] -> C. A passed -> C created; B failed -> delete C; D passed -> do nothing
+            if (!noFailedBuilds) {
+                return nextBuild ? nextBuild.remove() : null;
+            }
 
-        // Get upstream buildIds
-        const successBuildsIds = successBuildsInJoinList(joinList, finishedBuilds)
-            .map(b => b.id);
+            // Get upstream buildIds
+            const successBuildsIds = successBuildsInJoinList(internalJoinList, finishedBuilds)
+                .map(b => b.id);
 
-        buildConfig.parentBuildId = successBuildsIds;
+            buildConfig.parentBuildId = successBuildsIds;
 
-        // If everything successful so far, create or update
-        // [A B] -> C. A passed -> create C
-        // [A B] -> C. A passed -> C created; B passed -> update C
-        if (!nextBuild) {
-            buildConfig.start = false;
+            // If everything successful so far, create or update
+            // [A B] -> C. A passed -> create C
+            // [A B] -> C. A passed -> C created; B passed -> update C
+            if (!nextBuild) {
+                buildConfig.start = false;
 
-            return createBuild(buildConfig);
-        }
+                return createBuild(buildConfig);
+            }
 
-        nextBuild.parentBuildId = successBuildsIds;
+            nextBuild.parentBuildId = successBuildsIds;
 
-        return nextBuild.update();
-    }).then((b) => {
-        const done = isJoinDone(joinList, finishedBuilds);
-
-        if (!done) {
-            return null;
-        }
-
-        b.status = 'QUEUED';
-
-        return b.update()
-            .then(newBuild => newBuild.start());
-    });
+            return nextBuild.update();
+        })
+        .then((nextBuild) => checkInternalJoin(internalJoinList, finishedBuilds)
+            .then((done) => ({done, nextBuild})));
 }
 
 /**
@@ -331,15 +323,15 @@ exports.register = (server, options, next) => {
                     baseBranch: event.baseBranch || null
                 };
 
-                // Just start the build if falls in to these 2 scenarios
-                // 1. No join
-                // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
-                //    joinList doesn't include C, so start A
-                if (joinList.length === 0 || !joinListNames.includes(currentJobName)) {
+                // Just start the build if there is no join
+                if (joinList.length === 0) {
                     return createBuild(buildConfig);
                 }
 
+                // Check if there all internal joins are done
                 return Promise.resolve().then(() => {
+                    const internalJoinList = joinList.filter(j => !j.name.startsWith('sd@'));
+
                     if (!event.parentEventId) {
                         return event.getBuilds();
                     }
@@ -356,13 +348,24 @@ exports.register = (server, options, next) => {
                         )
                         .then(upstreamBuilds => event.getBuilds()
                             .then(builds => builds.concat(upstreamBuilds)));
-                }).then(finishedBuilds => handleNextBuild({
+                }).then(finishedBuilds => isInternalJoinDone({
                     buildConfig,
-                    joinList,
+                    internalJoinList,
                     finishedBuilds,
                     jobId: workflowGraph.nodes
                         .find(node => node.name === trimJobName(nextJobName)).id
-                }));
+                })).then(({done, nextBuild}) => {
+                    if (!done) return nextBuild;
+
+                    return isExternalJoinDone({
+                    })
+                )).then(({done, nextBuild}) => {
+                    if (!done) return nextBuild;
+
+                    nextBuild.status = 'QUEUED';
+
+                    return nextBuild.update().then(b => b.start());
+                });
             }));
         });
     });
