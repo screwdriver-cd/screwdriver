@@ -441,7 +441,6 @@ describe('command plugin test', () => {
             });
 
             userMock = getUserMock({ username, scmContext });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testpipeline);
@@ -515,7 +514,21 @@ describe('command plugin test', () => {
             });
         });
 
-        it('deletes command if admin user credentials provided and command exists', () => {
+        it('deletes command if user has pipeline admin credentials and command exists', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            nock('http://store.example.com')
+                .delete('/v1/commands/foo/bar/1.0.0')
+                .reply(204, '');
+
+            return server.inject(options).then((reply) => {
+                assert.calledOnce(testCommand.remove);
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('deletes command if user has Screwdriver admin credentials and command exists', () => {
+            options.credentials.scope.push('admin');
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .reply(204, '');
@@ -528,6 +541,7 @@ describe('command plugin test', () => {
         });
 
         it('returns 204 even when command binary is not found', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .reply(404, '');
@@ -540,6 +554,7 @@ describe('command plugin test', () => {
         });
 
         it('throws error when store returns an error', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .replyWithError({ message: 'request to the store is error' });

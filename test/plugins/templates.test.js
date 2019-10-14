@@ -423,7 +423,6 @@ describe('template plugin test', () => {
             });
 
             userMock = getUserMock({ username, scmContext });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testpipeline);
@@ -493,12 +492,32 @@ describe('template plugin test', () => {
             });
         });
 
-        it('deletes template if admin user credentials provided and template exists', () =>
-            server.inject(options).then((reply) => {
+        it('deletes template if user has pipeline admin credentials and template exists', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+
+            return server.inject(options).then((reply) => {
                 assert.calledOnce(testTemplate.remove);
                 assert.calledOnce(testTemplateTag.remove);
                 assert.equal(reply.statusCode, 204);
-            }));
+            });
+        });
+
+        it('deletes template if user has Screwdriver admin credentials ' +
+            'and template exists', () =>
+            server.inject({
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user', 'admin', '!guest']
+                }
+            }).then((reply) => {
+                assert.calledOnce(testTemplate.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
+            })
+        );
 
         it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
             const error = {
