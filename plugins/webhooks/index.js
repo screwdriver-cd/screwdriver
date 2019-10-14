@@ -165,11 +165,17 @@ function stopJob({ job, prNum, action }) {
  * @returns {Boolean}               True if the pipeline contains the triggered job
  */
 function hasTriggeredJob(pipeline, startFrom) {
-    const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
-        trigger: startFrom
-    });
+    try {
+        const nextJobs = workflowParser.getNextJobs(pipeline.workflowGraph, {
+            trigger: startFrom
+        });
 
-    return nextJobs.length > 0;
+        return nextJobs.length > 0;
+    } catch (err) {
+        winston.error(`Error finding triggered jobs for ${pipeline.id}: ${err}`);
+
+        return false;
+    }
 }
 
 /**
