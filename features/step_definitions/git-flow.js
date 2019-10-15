@@ -219,7 +219,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
     });
 
-    Then(/^a new build from "([^"]*)" should be created to test that change$/, {
+    Then(/^a new build from "([^"]+)" should be created to test that change$/, {
         timeout: TIMEOUT
     }, function step(job) {
         return sdapi.searchForBuild({
