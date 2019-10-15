@@ -50,6 +50,12 @@ Example payload:
 
 `GET /jobs/{id}/builds?page=2&count=30&sort=ascending&sortBy=id`
 
+#### Get latest build for a single job
+`GET /jobs/{id}/latestBuild`
+
+Can search by build status
+`GET /jobs/{id}/latestBuild?status=SUCCESS`
+
 #### Get build metrics for a single job
 `GET /jobs/{id}/metrics/builds`
 

@@ -112,7 +112,8 @@ module.exports = () => ({
                                         type,
                                         username,
                                         scmContext,
-                                        sha
+                                        sha,
+                                        skipMessage: 'skip build creation'
                                     });
                                 })
                                 .then((event) => {

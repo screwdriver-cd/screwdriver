@@ -151,6 +151,12 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `DELETE /pipelines/{pipelineId}/tokens`
 
+#### Get latest build for a single job
+`GET /pipelines/{id}/jobs/{jobName}/latestBuild`
+
+Can search by build status
+`GET /pipelines/{id}/jobs/{jobName}/latestBuild?status=SUCCESS`
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:
 
