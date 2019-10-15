@@ -31,7 +31,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             this.jwt = response.body.token;
         }).then(() =>
             github.cleanUpRepository(this.branch, this.tag, this.repoOrg, this.repoName)
-        );
+        ).catch(() => Assert.fail('failed to clean up repository'));
     });
 
     Given(/^an existing pipeline$/, {
@@ -85,15 +85,19 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         timeout: TIMEOUT
     }, function step() {
         const jobs = ['main', 'tag-triggered', 'release-triggered'];
+        const builds = [];
 
         jobs.forEach((jobName) => {
-            sdapi.cleanupBuilds({
+            builds.push(sdapi.cleanupBuilds({
                 instance: this.instance,
                 pipelineId: this.pipelineId,
                 jobName,
                 jwt: this.jwt
-            });
+            }));
         });
+
+        return Promise.all(builds)
+            .catch(() => Assert.fail('failed to clean up builds'));
     });
 
     When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
@@ -169,7 +173,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(({ data }) => {
                 this.sha = data.commit.sha;
-                github.createTag(tag, branch, this.repoOrg, this.repoName);
+
+                return github.createTag(tag, branch, this.repoOrg, this.repoName);
             });
     });
 
@@ -183,7 +188,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(({ data }) => {
                 this.sha = data.commit.sha;
-                github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
+
+                return github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
             });
     });
 

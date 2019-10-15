@@ -39,7 +39,7 @@ function randomString(stringLength) {
  * @param  {String}          tag        Name of the tag to delete
  * @return {Promise}
  */
-async function cleanUpRepository(branch, tag, repoOwner, repoName) {
+function cleanUpRepository(branch, tag, repoOwner, repoName) {
     const branchParams = {
         owner: repoOwner,
         repo: repoName,
@@ -51,10 +51,12 @@ async function cleanUpRepository(branch, tag, repoOwner, repoName) {
         ref: `tags/${tag}`
     };
 
-    await octokit.git.getRef(branchParams)
-        .then(() => octokit.git.deleteRef(branchParams), () => {});
-    await octokit.git.getRef(tagParams)
-        .then(() => octokit.git.deleteRef(tagParams), () => {});
+    return octokit.git.getRef(branchParams)
+        .then(() => octokit.git.deleteRef(branchParams))
+        .catch(err => Assert.strictEqual(404, err.status))
+        .then(() => octokit.git.getRef(tagParams))
+        .then(() => octokit.git.deleteRef(tagParams))
+        .catch(err => Assert.strictEqual(404, err.status));
 }
 
 /**
@@ -178,8 +180,8 @@ function createTag(tag, branch, repoOwner, repoName) {
                 sha
             });
         })
-        .catch((err) => {
-            Assert.strictEqual(err.status, 422);
+        .catch(() => {
+            Assert.fail('failed to create tag');
         });
 }
 
@@ -224,8 +226,8 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
                     sha: response.data.sha
                 }));
         })
-        .catch((err) => {
-            Assert.strictEqual(err.status, 422);
+        .catch(() => {
+            Assert.fail('failed to create annotated tag');
         });
 }
 
@@ -246,8 +248,8 @@ function createRelease(tagName, repoOwner, repoName) {
         repo,
         tag_name: tagName
     })
-        .catch((err) => {
-            Assert.strictEqual(err.status, 422);
+        .catch(() => {
+            Assert.fail('failed to create release');
         });
 }
 
