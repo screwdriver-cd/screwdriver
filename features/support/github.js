@@ -218,13 +218,17 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
                     email: 'test@example.com',
                     date: '2019-10-09T15:00:00+09:00'
                 }
-            })
-                .then(response => octokit.git.createRef({
-                    owner,
-                    repo,
-                    ref: `refs/tags/${tag}`,
-                    sha: response.data.sha
-                }));
+            });
+        })
+        .then((response) => {
+            const sha = response.data.sha;
+
+            return octokit.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tag}`,
+                sha
+            });
         })
         .catch(() => {
             Assert.fail('failed to create annotated tag');
