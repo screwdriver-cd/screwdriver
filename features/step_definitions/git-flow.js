@@ -173,7 +173,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
-    When(/^a annotated tag is created$/, {
+    When(/^an annotated tag is created$/, {
         timeout: TIMEOUT
     }, function step() {
         const branch = this.branch;
@@ -203,7 +203,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
     });
 
-    When(/^a annotated release is created$/, {
+    When(/^an annotated release is created$/, {
         timeout: TIMEOUT
     }, function step() {
         const branch = this.branch;
