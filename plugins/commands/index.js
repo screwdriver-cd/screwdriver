@@ -35,6 +35,10 @@ exports.register = (server, options, next) => {
         const { username, scmContext, scope, isPR } = credentials;
         const { userFactory, pipelineFactory } = server.root.app;
 
+        if (credentials.scope.includes('admin')) {
+            return Promise.resolve(true);
+        }
+
         return pipelineFactory.get(command.pipelineId).then((pipeline) => {
             if (!pipeline) {
                 throw boom.notFound(`Pipeline ${command.pipelineId} does not exist`);
