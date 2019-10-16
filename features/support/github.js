@@ -51,11 +51,11 @@ function cleanUpRepository(branch, tag, repoOwner, repoName) {
         ref: `tags/${tag}`
     };
 
-    return octokit.git.getRef(branchParams)
-        .then(() => octokit.git.deleteRef(branchParams))
-        .catch(err => Assert.strictEqual(404, err.status))
-        .then(() => octokit.git.getRef(tagParams))
-        .then(() => octokit.git.deleteRef(tagParams))
+    return Promise.all([
+        octokit.git.getRef(branchParams)
+            .then(() => octokit.git.deleteRef(branchParams)),
+        octokit.git.getRef(tagParams)
+            .then(() => octokit.git.deleteRef(tagParams))])
         .catch(err => Assert.strictEqual(404, err.status));
 }
 
