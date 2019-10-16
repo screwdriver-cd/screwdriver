@@ -11,9 +11,10 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const workflowParser = require('screwdriver-workflow-parser');
+const { EXTERNAL_TRIGGER_AND } = schema.config.;
 
 /**
- * Create the build. If config.start is false or not passed in then do not start the job
+ * Create internal build. If config.start is false or not passed in then do not start the job
  * @method createBuild
  * @param  {Object}   config                Configuration object
  * @param  {Factory}  config.jobFactory     Job Factory
@@ -28,14 +29,10 @@ const workflowParser = require('screwdriver-workflow-parser');
  * @param  {String}   config.baseBranch     Branch name
  * @return {Promise}
  */
-async function createBuild(config) {
-    const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
-        username, scmContext, build, start, baseBranch } = config;
+async function createInternalBuild(config) {
+    const { buildFactory, eventFactory, job, build,
+        username, scmContext, start, baseBranch } = config;
     const event = await eventFactory.get(build.eventId);
-    const job = await jobFactory.get({
-        name: jobName,
-        pipelineId
-    });
     const prRef = event.pr.ref ? event.pr.ref : '';
 
     if (job.state === 'ENABLED') {
@@ -138,6 +135,11 @@ function isInternalJoinDone({ buildConfig, internalJoinList, finishedBuilds, job
             // [A B] -> C. A passed -> C created; B passed -> update C
             if (!nextBuild) {
                 buildConfig.start = false;
+                buildConfig.parentBuilds = {
+                    `${pipelineId}`: {
+                        eventId,
+                    }
+                }
 
                 return createBuild(buildConfig);
             }
@@ -308,30 +310,54 @@ exports.register = (server, options, next) => {
                 return obj;
             }, {});
 
+            // Go through each next job
             return Promise.all(Object.keys(joinObj).map((nextJobName) => {
                 const joinList = joinObj[nextJobName];
                 const joinListNames = joinList.map(j => j.name);
-                const buildConfig = {
-                    jobFactory,
-                    buildFactory,
-                    eventFactory,
-                    pipelineId,
-                    jobName: nextJobName,
-                    username,
-                    scmContext,
-                    build, // this is the parentBuild for the next build
-                    baseBranch: event.baseBranch || null
-                };
+                const isExternal = nextJobName.test(EXTERNAL_TRIGGER_AND);
+                let externalPipelineId, externalJobName;
 
-                // Just start the build if there is no join
-                if (joinList.length === 0) {
-                    return createBuild(buildConfig);
+                if (isExternal) {
+                    [, externalPipelineId, externalJobName] = EXTERNAL_TRIGGER_AND.exec(nextJobName);
                 }
 
-                // Check if there all internal joins are done
-                return Promise.resolve().then(() => {
-                    const internalJoinList = joinList.filter(j => !j.name.startsWith('sd@'));
+                return jobFactory.get({
+                    pipelineId,
+                    jobName
+                });
 
+
+                // If there is no join, just create & start the build
+                if (joinList.length === 0) {
+                    if (!isExternal) {
+                        const buildConfig = {
+                            jobFactory,
+                            buildFactory,
+                            eventFactory,
+                            pipelineId,
+                            jobName: nextJobName,
+                            username,
+                            scmContext,
+                            build, // this is the parentBuild for the next build
+                            baseBranch: event.baseBranch || null
+                        };
+
+                        return createInternalBuild(buildConfig);
+                    }
+
+                    return pipelineFactory.get(externalPipelineId)
+                        .then(p => p.getJobs({ params: { name: externalJobName } }))
+                        .then(jobArray => jobFactory.get(jobArray[0].id))
+                        .then((j) => eventFactory.create({
+                            pipelineId: externalPipelineId,
+                            startFrom: externalJobName,
+                            parentBuildId: build.id,    // current build
+                            causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`
+                        }));
+                }
+
+                // If there are jobs in join
+                return Promise.resolve().then(() => {
                     if (!event.parentEventId) {
                         return event.getBuilds();
                     }
@@ -348,7 +374,40 @@ exports.register = (server, options, next) => {
                         )
                         .then(upstreamBuilds => event.getBuilds()
                             .then(builds => builds.concat(upstreamBuilds)));
-                }).then(finishedBuilds => isInternalJoinDone({
+                }).then(finishedBuilds => {
+                    /* CHECK WHETHER NEXT BUILD EXISTS */
+
+                    // If nextJob is internal, look at the finished builds for this event
+                    if (isInternal) {
+                        const jobId = workflowGraph.nodes.find(node =>
+                            node.name === trimJobName(nextJobName)).id;
+
+                        return !!(finishedBuilds.filter(b => b.jobId === jobId)[0]);
+                    }
+
+                    // If nextjob is external, check the latest build for that job
+
+                    return pipelineFactory.get(externalPipelineId)
+                        .then(p => p.getJobs({ params: { name: externalJobName } }))
+                        .then(jobArray => jobFactory.get(jobArray[0].id))
+                        .then(j => j.getLatestBuild({ status: 'CREATED' }))
+                        .then(b => Object.keys(b).length > 0)
+                }).then((nextBuildExists) => {
+                    // if nextBuild doesn't exist, create next build
+                    if (!nextBuildExists) {
+                        buildConfig.start = false;
+                        buildConfig.parentBuilds = {
+                            `${pipelineId}`: {
+                                eventId
+                            }`
+                        }
+
+                        return createBuild(buildConfig);
+                    })
+                })
+
+
+                    isInternalJoinDone({
                     buildConfig,
                     internalJoinList,
                     finishedBuilds,
@@ -366,6 +425,10 @@ exports.register = (server, options, next) => {
 
                     return nextBuild.update().then(b => b.start());
                 });
+
+                // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
+                //    joinList doesn't include C, so start A
+
             }));
         });
     });
