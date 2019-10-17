@@ -1823,6 +1823,7 @@ describe('build plugin test', () => {
                 id: 12345
             };
             params = {
+                causeMessage: `Started by github:${username}`,
                 jobId: 1234,
                 eventId: 12345,
                 apiUri: 'http://localhost:12345',
