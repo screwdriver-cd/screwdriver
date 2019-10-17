@@ -77,7 +77,7 @@ async function createEvent(config) {
  * @param  {Build}    config.build              Build object
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {Boolean}  [config.start]            Whether to start the build after creating
-@return {Promise}
+ * @return {Promise}
  */
 async function createExternalBuild(config) {
     const { pipelineFactory, externalPipelineId, externalJobName, parentBuildId, parentBuilds, causeMessage, start} = config;
@@ -274,17 +274,34 @@ exports.register = (server, options, next) => {
                 // construct an obj like
                 // {111: {eventId: 2, D:987}}
                 // this is for easy lookup of parent build's status
-                const parentBuildsOfCurrent = build.parentBuilds || {};
 
-                // TODO: need to include all info in joinList
+                // current job's parentBuilds
+                const currentJobParentBuilds = build.parentBuilds || {};
+
+                // join jobs, with eventId and buildId empty
+                const joinParentBuilds = {}
+                joinListNames.forEach(name => {
+                    let pId = pipelineId;
+                    let jName = name;
+                    if (name.test(EXTERNAL_TRIGGER_AND)) {
+                        [, pId, jName] = EXTERNAL_TRIGGER_AND.exec(name);
+                    }
+                    joinParentBuilds[pId] = {
+                        eventId: {},
+                        `${jName}`: {}
+                    }
+                });
+                // need to deepmerge because it's possible same event has multiple builds
+                const combined = deepmerge(currentJobParentBuilds, joinParentBuilds);
+
+                // override currentBuild in the joinParentBuilds
                 const currentBuildInfo = {
                     `${pipelineId}`: {
                         eventId: build.eventId,
                         `${currentJobName}`: build.id
                     }
                 }
-                // need to deepmerge because it's possible same event has multiple builds
-                const parentBuilds = deepmerge(parentBuildsOfCurrent, currentBuildInfo);
+                const parentBuilds = deepmerge(combined, currentBuildInfo);
 
                 // construct a buildConfig. only use if next job is internal
                 const internalBuildConfig = {
@@ -348,8 +365,8 @@ exports.register = (server, options, next) => {
                         // rerun all builds in the path of the startFrom
                         return eventFactory.get({ id: event.parentEventId })
                             .then(parentEvent => parentEvent.getBuilds()
-                                .then(parentBuilds => removeDownstreamBuilds({
-                                    builds: parentBuilds,
+                                .then(parents => removeDownstreamBuilds({
+                                    builds: parents,
                                     startFrom: event.startFrom,
                                     parentEvent
                                 }))
@@ -368,18 +385,18 @@ exports.register = (server, options, next) => {
                 .then((nextBuild) => {
                     // If next build doesn't exist, create it but don't start yet
                     if (!nextBuild) {
-                        if (!isExternal) {
-                            internalBuildConfig.start = false;
+                        if (isExternal) {
+                            externalBuildConfig.start = false;
 
-                            return createInternalBuild(internalBuildConfig);
+                            return createExternalBuild(externalBuildConfig);
                         }
+                        internalBuildConfig.start = false;
 
-                        externalBuildConfig.start = false;
-
-                        return createExternalBuild(externalBuildConfig);
+                        return createInternalBuild(internalBuildConfig);
                     })
 
                     // If next build already exists, update the parentBuilds info
+                    // TODO: add current
                     nextBuild.parentBuilds = parentBuilds;
                     nextBuild.parentBuildId = [].concat(nextBuild.parentBuildId).concat(build.id);
 
@@ -391,10 +408,8 @@ exports.register = (server, options, next) => {
 
                 /* IF ALL SUCCEEDED -> START NEXT BUILD
                    IF ONE FAILED -> DELETE NEXT BUILD
-                   OTHERWISE, SKIP
+                   OTHERWISE (NOT ALL JOBS FINISHED) -> DO NOTHING
                */
-
-
                 )).then(({done, nextBuild}) => {
                     if (!done) return nextBuild;
 
@@ -402,10 +417,6 @@ exports.register = (server, options, next) => {
 
                     return nextBuild.update().then(b => b.start());
                 });
-
-                // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
-                //    joinList doesn't include C, so start A
-
             }));
         });
     });
