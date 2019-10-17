@@ -260,8 +260,9 @@ function cleanupBuilds(config) {
         jwt
     }).then((buildData) => {
         const result = buildData.body || [];
+        const builds = result.filter(item => desiredStatus.includes(item.status));
 
-        result.filter(item => desiredStatus.includes(item.status)).forEach(build =>
+        return Promise.all(builds.map(build =>
             request({
                 uri: `${instance}/v4/builds/${build.id}`,
                 method: 'PUT',
@@ -272,7 +273,7 @@ function cleanupBuilds(config) {
                     status: 'ABORTED'
                 },
                 json: true
-            }));
+            })));
     });
 }
 
