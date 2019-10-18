@@ -3,6 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
+const schema = require('screwdriver-data-schema');
 const MAX_DAYS = 180; // 6 months
 
 module.exports = () => ({
@@ -24,12 +25,8 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
-            const { aggregateInterval } = request.query;
+            const { aggregateInterval, page, count } = request.query;
             let { startTime, endTime } = request.query;
-
-            if (!startTime || !endTime) {
-                ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
-            }
 
             return factory.get(id)
                 .then((pipeline) => {
@@ -37,11 +34,22 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
-                        throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
-                    }
+                    let config = { page, count };
 
-                    const config = { startTime, endTime };
+                    // Only when either page or count is unavailable
+                    // check whether startTime and endTime are valid
+                    if (!page && !count) {
+                        if (!startTime || !endTime) {
+                            ({ startTime, endTime } =
+                                setDefaultTimeRange(startTime, endTime, MAX_DAYS));
+                        }
+
+                        if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
+                            throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
+                        }
+
+                        config = { startTime, endTime };
+                    }
 
                     if (aggregateInterval) {
                         config.aggregateInterval = aggregateInterval;
@@ -53,11 +61,11 @@ module.exports = () => ({
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
-            query: joi.object({
+            query: schema.api.pagination.concat(joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
                 aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
-            })
+            }))
         }
     }
 });
