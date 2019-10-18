@@ -221,26 +221,6 @@ function trimJobName(jobName) {
  */
 exports.register = (server, options, next) => {
     /**
-     * Create event for downstream pipeline that need to be rebuilt
-     * @method triggerEvent
-     * @param {Object}  config               Configuration object
-     * @param {String}  config.pipelineId    Pipeline to be rebuilt
-     * @param {String}  config.startFrom     Job to be rebuilt
-     * @param {String}  config.causeMessage  Caused message, e.g. triggered by 1234(buildId)
-     * @param {String}  config.parentBuildId ID of the build that triggers this event
-     * @param {Object} [config.parentBuilds] Builds that triggered this build
-     * @return {Promise}                     Resolves to the newly created event
-     */
-    server.expose('triggerEvent', (config) => {
-        const eventConfig = config;
-
-        eventConfig.eventFactory = server.root.app.eventFactory;
-        eventConfig.pipelineFactory = server.root.app.pipelineFactory;
-
-        return createEvent(eventConfig);
-    });
-
-    /**
      * Trigger the next jobs of the current job
      * @method triggerNextJobs
      * @param {Object}      config              Configuration object

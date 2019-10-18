@@ -4,7 +4,6 @@ const boom = require('boom');
 const hoek = require('hoek');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const { EXTERNAL_TRIGGER } = schema.config.regex;
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
 module.exports = () => ({
@@ -25,13 +24,13 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             // eslint-disable-next-line max-len
-            const { buildFactory, eventFactory, jobFactory, triggerFactory, userFactory, stepFactory } = request.server.app;
+            const { buildFactory, eventFactory, jobFactory, userFactory, stepFactory } = request.server.app;
             const id = request.params.id;
             const desiredStatus = request.payload.status;
             const { statusMessage, stats } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
-            const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
+            const { triggerNextJobs } = request.server.plugins.builds;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -182,32 +181,9 @@ module.exports = () => ({
                             return null;
                         }
 
-                        const src = `~sd@${pipeline.id}:${job.name}`;
-
                         return triggerNextJobs({
                             pipeline, job, build: newBuild, username, scmContext
-                        })
-                            .then(() => triggerFactory.list({ params: { src } }))
-                            .then((records) => {
-                            // Use set to remove duplicate and keep only unique pipelineIds
-                                const triggeredPipelines = new Set();
-
-                                records.forEach((record) => {
-                                    const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
-
-                                    triggeredPipelines.add(pipelineId);
-                                });
-
-                                return Array.from(triggeredPipelines);
-                            })
-                            .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
-                                triggerEvent({
-                                    pipelineId: parseInt(pipelineId, 10),
-                                    startFrom: src,
-                                    causeMessage: `Triggered by build ${username}`,
-                                    parentBuildId: newBuild.id
-                                })
-                            )));
+                        });
                     }).then(() => reply(newBuild.toJson()).code(200))))
                 .catch(err => reply(boom.boomify(err)));
         },
