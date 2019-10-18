@@ -46,6 +46,12 @@ module.exports = () => ({
                         throw boom.forbidden(`User ${username} does not own this collection`);
                     }
 
+                    if (oldCollection.type === 'default') {
+                        throw boom.forbidden(`
+                            Collection with type "default" cannot be changed by user
+                        `);
+                    }
+
                     Object.assign(oldCollection, request.payload);
 
                     // Check that all pipelines exist before updating the pipelineIds of
