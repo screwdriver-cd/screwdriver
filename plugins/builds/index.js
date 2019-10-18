@@ -12,23 +12,25 @@ const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const workflowParser = require('screwdriver-workflow-parser');
 const deepmerge = require('deepmerge');
+const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER_AND } = schema.config.regex;
 
 /**
  * Create event for downstream pipeline that need to be rebuilt
  * @method createEvent
- * @param {Object}  config               Configuration object
- * @param {String}  config.pipelineId    Pipeline to be rebuilt
- * @param {String}  config.startFrom     Job to be rebuilt
- * @param {String}  config.causeMessage  Caused message, e.g. triggered by 1234(buildId)
- * @param {String}  config.parentBuildId ID of the build that triggers this event
- * @param {Object} [config.parentBuilds] Builds that triggered this build
- * @return {Promise}                     Resolves to the newly created event
+ * @param {Object}  config                  Configuration object
+ * @param {Factory} config.pipelineFactory  Pipeline Factory
+ * @param {Factory} config.eventFactory     Event Factory
+ * @param {String}  config.pipelineId       Pipeline to be rebuilt
+ * @param {String}  config.startFrom        Job to be rebuilt
+ * @param {String}  config.causeMessage     Caused message, e.g. triggered by 1234(buildId)
+ * @param {String}  config.parentBuildId    ID of the build that triggers this event
+ * @param {Object} [config.parentBuilds]    Builds that triggered this build
+ * @return {Promise}                        Resolves to the newly created event
  */
 async function createEvent(config) {
-    const { pipelineId, startFrom, causeMessage, parentBuildId } = config;
-    const eventFactory = server.root.app.eventFactory;
-    const pipelineFactory = server.root.app.pipelineFactory;
+    const { pipelineFactory, eventFactory, pipelineId, startFrom,
+        causeMessage, parentBuildId, parentBuilds } = config;
     const scm = eventFactory.scm;
 
     const payload = {
@@ -44,7 +46,7 @@ async function createEvent(config) {
         payload.parentBuilds = parentBuilds;
     }
 
-    const pipeline = await pipelineFactory.get(pipelineId)
+    const pipeline = await pipelineFactory.get(pipelineId);
     const realAdmin = await pipeline.admin;
     const scmUri = pipeline.scmUri;
     const scmContext = pipeline.scmContext;
@@ -53,7 +55,7 @@ async function createEvent(config) {
     payload.username = realAdmin.username;
 
     // get pipeline admin's token
-    const token = await realAdmin.unsealToken()
+    const token = await realAdmin.unsealToken();
     const scmConfig = {
         scmContext,
         scmUri,
@@ -61,10 +63,11 @@ async function createEvent(config) {
     };
 
     // Get commit sha
-    const sha = await scm.getCommitSha(scmConfig)
+    const sha = await scm.getCommitSha(scmConfig);
+
     payload.sha = sha;
 
-    return await eventFactory.create(payload);
+    return eventFactory.create(payload);
 }
 
 /**
@@ -72,28 +75,29 @@ async function createEvent(config) {
  * @method createExternalBuild
  * @param  {Object}   config                    Configuration object
  * @param  {Factory}  config.pipelineFactory    Pipeline Factory
+ * @param  {Factory}  config.eventFactory       Event Factory
  * @param  {String}   config.externalPipelineId External pipelineId
  * @param  {String}   config.externalJobName    External jobName
- * @param  {Build}    config.build              Build object
+ * @param  {Number}   config.parentBuildId      Parent Build Id
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
+ * @param  {String}   config.causeMessage       Cause message of this event
  * @param  {Boolean}  [config.start]            Whether to start the build after creating
  * @return {Promise}
  */
 async function createExternalBuild(config) {
-    const { pipelineFactory, externalPipelineId, externalJobName, parentBuildId, parentBuilds, causeMessage, start} = config;
-    const pipeline = await pipelineFactory.get(externalPipelineId);
-    const jobArray = await p.getJobs({ params: { name: externalJobName } });
-    const job = await jobFactory.get(jobArray[0].id);
+    const { pipelineFactory, eventFactory, externalPipelineId, externalJobName,
+        parentBuildId, parentBuilds, causeMessage, start } = config;
 
-    return await createEvent({
+    return createEvent({
+        pipelineFactory,
+        eventFactory,
         pipelineId: externalPipelineId,
         startFrom: externalJobName,
-        parentBuildId,    // current build
+        parentBuildId, // current build
         causeMessage,
         parentBuilds,
         start: start !== false
     });
-    return null;
 }
 
 /**
@@ -115,7 +119,7 @@ async function createExternalBuild(config) {
  */
 async function createInternalBuild(config) {
     const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
-        username, scmContext, build, start, baseBranch } = config;
+        username, scmContext, build, parentBuilds, start, baseBranch } = config;
     const event = await eventFactory.get(build.eventId);
     const job = await jobFactory.get({
         name: jobName,
@@ -227,7 +231,14 @@ exports.register = (server, options, next) => {
      * @param {Object} [config.parentBuilds] Builds that triggered this build
      * @return {Promise}                     Resolves to the newly created event
      */
-    server.expose('triggerEvent', (config) => createEvent(config));
+    server.expose('triggerEvent', (config) => {
+        const eventConfig = config;
+
+        eventConfig.eventFactory = server.root.app.eventFactory;
+        eventConfig.pipelineFactory = server.root.app.pipelineFactory;
+
+        return createEvent(eventConfig);
+    });
 
     /**
      * Trigger the next jobs of the current job
@@ -333,6 +344,7 @@ exports.register = (server, options, next) => {
             // construct config for creating an event. only use if next job is external
             const externalBuildConfig = {
                 pipelineFactory,
+                eventFactory,
                 externalPipelineId,
                 externalJobName,
                 parentBuildId: build.id,
@@ -422,8 +434,9 @@ exports.register = (server, options, next) => {
             const upstream = newBuild.parentBuilds;
             let done = true;
             let hasFailure = false;
+            const promisesToAwait = [];
 
-            for (let i = 0; i < joinListNames.length; i += 1 ) {
+            for (let i = 0; i < joinListNames.length; i += 1) {
                 const name = joinListNames[i];
                 const { pId, jName } = getPipelineAndJob(name);
                 const bId = upstream[pId][jName];
@@ -435,35 +448,39 @@ exports.register = (server, options, next) => {
                 }
 
                 // get status of bId
-                let parentBuild = await buildFactory.get(bId);
-                if (parentBuild.status !== 'SUCCESS') {
-                    done = false;
-                    break;
-                }
-                if (parentBuild.status === 'FAILURE') {
-                    hasFailure = true;
-                    break;
-                }
+                promisesToAwait.push(buildFactory.get(bId));
             }
 
+            const builds = await Promise.all(promisesToAwait);
+
+            builds.forEach((b) => {
+                if (b.status === 'FAILURE') {
+                    hasFailure = true;
+                }
+                if (b.status !== 'SUCCESS') {
+                    done = false;
+                }
+            });
+
             /* IF ONE FAILED -> DELETE NEW BUILD
-               IF ALL SUCCEEDED -> START NEXT BUILD
-               OTHERWISE (NOT ALL JOBS FINISHED) -> DO NOTHING
+               IF NOT DONE -> DO NOTHING
+               IF ALL SUCCEEDED -> START NEW BUILD
            */
-           if (hasFailure) {
+            if (hasFailure) {
+                // delete build
+                return newBuild.remove();
+            }
 
-           }
+            if (!done) return newBuild;
 
-           if (!done) return newBuild;
+            // if all join finished successfully
+            newBuild.status = 'QUEUED';
 
-           // if all join finished successfully
-           newBuild.status = 'QUEUED';
+            const queuedBuild = await newBuild.update();
 
-           const queuedBuild = await newBuild.update();
-
-           return await queued.start();
-       }));
-   });
+            return queuedBuild.start();
+        }));
+    });
 
     server.route([
         getRoute(),
