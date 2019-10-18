@@ -265,12 +265,15 @@ exports.register = (server, options, next) => {
             { trigger: currentJobName, chainPR: pipeline.chainPR });
 
         // Create a join object like: {A:[B,C], D:[B,F]} where [B,C] join on A, [B,F] join on D, etc.
+        // This can include external jobs
         const joinObj = nextJobs.reduce((obj, jobName) => {
             obj[jobName] = workflowParser.getSrcForJoin(workflowGraph, { jobName });
 
             return obj;
         }, {});
 
+        // Get pipelineId and job name from the `name`
+        // If internal, pipelineId will be the current pipelineId
         const getPipelineAndJob = (name) => {
             let pId;
             let jName;
@@ -290,17 +293,10 @@ exports.register = (server, options, next) => {
             const joinList = joinObj[nextJobName];
             const joinListNames = joinList.map(j => j.name);
             const isExternal = nextJobName.test(EXTERNAL_TRIGGER_AND);
-            let externalPipelineId;
-            let externalJobName;
+            const { externalPipelineId, externalJobName } = getPipelineAndJob(nextJobName);
 
-            if (isExternal) {
-                [, externalPipelineId, externalJobName] = EXTERNAL_TRIGGER_AND.exec(nextJobName);
-            }
-
-            // construct an obj like
-            // {111: {eventId: 2, D:987}}
-            // this is for easy lookup of parent build's status
-
+            /* CONSTRUCT AN OBJ LIKE {111: {eventId: 2, D:987}}
+             * FOR EASY LOOKUP OF BUILD STATUS */
             // current job's parentBuilds
             const currentJobParentBuilds = build.parentBuilds || {};
 
@@ -315,6 +311,7 @@ exports.register = (server, options, next) => {
                     [jName]: null
                 };
             });
+
             // need to deepmerge because it's possible same event has multiple builds
             const combined = deepmerge(currentJobParentBuilds, joinParentBuilds);
 
@@ -327,7 +324,7 @@ exports.register = (server, options, next) => {
             };
             const parentBuilds = deepmerge(combined, currentBuildInfo);
 
-            // construct a buildConfig. only use if next job is internal
+            /* CONSTRUCT BUILD CONFIG TO CREATE */
             const internalBuildConfig = {
                 jobFactory,
                 buildFactory,
@@ -340,8 +337,6 @@ exports.register = (server, options, next) => {
                 baseBranch: event.baseBranch || null,
                 parentBuilds
             };
-
-            // construct config for creating an event. only use if next job is external
             const externalBuildConfig = {
                 pipelineFactory,
                 eventFactory,
@@ -352,16 +347,17 @@ exports.register = (server, options, next) => {
                 causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`
             };
 
+            /* CREATE AND START NEXT BUILD IF ALL INTO 3 SCENARIOS
+             * 1. No join
+             * 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
+             *    joinList doesn't include D, so start A
+             * 3. ([~D,B,C]-> sd@123:A) currentJob=D, nextJob=sd@123:A, joinList(A)=[sd@111:B,sd@111:C]
+             *    joinList doesn't include sd@111:D, so start A
+             */
             // current job can be "external" in nextJob's perspective
             const currentJobNotInJoinList = !joinListNames.includes(currentJobName) &&
                 !joinListNames.includes(`sd@${pipelineId}:${currentJobName}`);
 
-            // Just start the build if falls in to these 2 scenarios
-            // 1. No join
-            // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
-            //    joinList doesn't include D, so start A
-            // 3. ([~D,B,C]-> sd@123:A) currentJob=D, nextJob=sd@123:A, joinList(A)=[sd@111:B,sd@111:C]
-            //    joinList doesn't include sd@111:D, so start A
             if (joinList.length === 0 || currentJobNotInJoinList) {
                 if (!isExternal) {
                     return createInternalBuild(internalBuildConfig);
@@ -416,12 +412,11 @@ exports.register = (server, options, next) => {
             if (!nextBuild) {
                 if (isExternal) {
                     externalBuildConfig.start = false;
-
                     newBuild = await createExternalBuild(externalBuildConfig);
+                } else {
+                    internalBuildConfig.start = false;
+                    newBuild = await createInternalBuild(internalBuildConfig);
                 }
-                internalBuildConfig.start = false;
-
-                newBuild = await createInternalBuild(internalBuildConfig);
 
             // If next build already exists, update the parentBuilds info
             } else {
@@ -442,40 +437,28 @@ exports.register = (server, options, next) => {
                 const bId = upstream[pId][jName];
 
                 // if buildId is empty, the job hasn't executed yet -> Join is not done
-                if (!bId) {
-                    done = false;
-                    break;
-                }
-
-                // get status of bId
-                promisesToAwait.push(buildFactory.get(bId));
+                if (!bId) done = false;
+                // otherwise, get that build to check the status
+                else promisesToAwait.push(buildFactory.get(bId));
             }
 
-            const builds = await Promise.all(promisesToAwait);
+            // Check if some joined build failed, so that we can delete next build
+            const joinedBuilds = await Promise.all(promisesToAwait);
 
-            builds.forEach((b) => {
-                if (b.status === 'FAILURE') {
-                    hasFailure = true;
-                }
-                if (b.status !== 'SUCCESS') {
-                    done = false;
-                }
+            joinedBuilds.forEach((b) => {
+                if (b.status === 'FAILURE') hasFailure = true;
+                if (b.status !== 'SUCCESS') done = false; // some builds are still going on
             });
 
             /* IF ONE FAILED -> DELETE NEW BUILD
                IF NOT DONE -> DO NOTHING
                IF ALL SUCCEEDED -> START NEW BUILD
            */
-            if (hasFailure) {
-                // delete build
-                return newBuild.remove();
-            }
+            if (hasFailure) await newBuild.remove(); // delete new build
+            if (hasFailure || !done) return null;
 
-            if (!done) return newBuild;
-
-            // if all join finished successfully
+            // if all join finished successfully, start next build
             newBuild.status = 'QUEUED';
-
             const queuedBuild = await newBuild.update();
 
             return queuedBuild.start();
