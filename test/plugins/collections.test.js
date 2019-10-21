@@ -618,6 +618,17 @@ describe('collection plugin test', () => {
                 });
         });
 
+        it('returns 403 when the collection to be changed has type "default"', () => {
+            const defaultCollection = Object.assign({}, testCollection, { type: 'default' });
+            const defaultCollectionMock = getMock(defaultCollection);
+
+            collectionFactoryMock.get.withArgs({ id }).resolves(defaultCollectionMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
         it('returns 404 when the collection id is not found', () => {
             collectionFactoryMock.get.withArgs({ id }).resolves(null);
 
