@@ -281,3 +281,4 @@ ecosystem:
 build:
   environment:
     SD_VERSION: 4
+  externalJoin: false

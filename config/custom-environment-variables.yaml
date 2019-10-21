@@ -374,3 +374,4 @@ build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json
+  externalJoin: EXTERNAL_JOIN
