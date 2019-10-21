@@ -209,7 +209,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
     });
 
-    When(/^an annotated release is created$/, {
+    When(/^an release with annotated tag is created$/, {
         timeout: TIMEOUT
     }, function step() {
         const branch = this.branch;
