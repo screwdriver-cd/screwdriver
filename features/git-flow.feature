@@ -51,5 +51,5 @@ Feature: Git Flow
         Then a new build from "release-triggered" should be created to test that change
 
     Scenario: New Release with Annotated Tag
-        When an release with annotated tag is created
+        When a release with annotated tag is created
         Then a new build from "release-triggered" should be created to test that change
