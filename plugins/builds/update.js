@@ -32,7 +32,7 @@ module.exports = config => ({
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
             const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
-            const externalJoin = config.externalJoin;
+            const externalJoin = config.externalJoin || false;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -165,8 +165,9 @@ module.exports = config => ({
 
                     // Only trigger next build on success
                     return Promise.all([build.update(), event.update()]);
-                }).then(([newBuild, newEvent]) =>
-                    newBuild.job.then(job => job.pipeline.then((pipeline) => {
+                })
+                .then(([newBuild, newEvent]) => newBuild.job
+                    .then(job => job.pipeline.then((pipeline) => {
                         request.server.emit('build_status', {
                             settings: job.permutations[0].settings,
                             status: newBuild.status,
@@ -213,9 +214,12 @@ module.exports = config => ({
                                         causeMessage: `Triggered by build ${username}`,
                                         parentBuildId: newBuild.id
                                     })
-                                )).then(() => reply(newBuild.toJson()).code(200)));
-                        }).catch(err => reply(boom.boomify(err)));
-                    })));
+                                )));
+                        });
+                    })
+                        .then(() => reply(newBuild.toJson()).code(200))
+                        .catch(err => reply(boom.boomify(err)))
+                    ));
         },
         validate: {
             params: {

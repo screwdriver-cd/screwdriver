@@ -206,7 +206,8 @@ describe('build plugin test', () => {
                     },
                     authConfig: {
                         jwtPrivateKey: 'boo'
-                    }
+                    },
+                    externalJoin: false
                 }
             }, {
                 // eslint-disable-next-line global-require

@@ -678,7 +678,7 @@ exports.register = (server, options, next) => {
 
     server.route([
         getRoute(),
-        updateRoute(),
+        updateRoute(options),
         createRoute(),
         // Steps
         stepGetRoute(),
