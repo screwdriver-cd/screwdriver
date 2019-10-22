@@ -1133,6 +1133,89 @@ describe('build plugin test', () => {
                     buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
                 });
 
+                it('skip external OR if exernalJoin flag is on', () => {
+                    const newServer = new hapi.Server();
+
+                    newServer.app = {
+                        buildFactory: buildFactoryMock,
+                        stepFactory: stepFactoryMock,
+                        pipelineFactory: pipelineFactoryMock,
+                        jobFactory: jobFactoryMock,
+                        userFactory: userFactoryMock,
+                        eventFactory: eventFactoryMock,
+                        triggerFactory: triggerFactoryMock
+                    };
+                    newServer.connection({
+                        port: 12345,
+                        host: 'localhost'
+                    });
+                    newServer.auth.scheme('custom', () => ({
+                        authenticate: (request, reply) => reply.continue({
+                            credentials: {
+                                scope: ['user']
+                            }
+                        })
+                    }));
+                    newServer.auth.strategy('token', 'custom');
+                    newServer.auth.strategy('session', 'custom');
+                    newServer.event('build_status');
+
+                    return newServer.register({
+                        register: plugin,
+                        options: {
+                            ecosystem: {
+                                store: logBaseUrl
+                            },
+                            authConfig: {
+                                jwtPrivateKey: 'boo'
+                            },
+                            externalJoin: true
+                        }
+                    }).then(() => {
+                        const username = id;
+                        const status = 'SUCCESS';
+                        const options = {
+                            method: 'PUT',
+                            url: `/builds/${id}`,
+                            credentials: {
+                                username,
+                                scmContext,
+                                scope: ['build']
+                            },
+                            payload: {
+                                status
+                            }
+                        };
+
+                        jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
+                            .resolves(publishJobMock);
+
+                        return newServer.inject(options).then((reply) => {
+                            assert.equal(reply.statusCode, 200);
+                            assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
+                            assert.calledWith(buildFactoryMock.create, {
+                                jobId: publishJobId,
+                                sha: testBuild.sha,
+                                parentBuildId: id,
+                                username,
+                                scmContext,
+                                eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                                configPipelineSha,
+                                prRef: '',
+                                start: true,
+                                baseBranch: null,
+                                parentBuilds: {
+                                    123: {
+                                        eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                                        main: 12345
+                                    }
+                                }
+                            });
+                            assert.notCalled(triggerFactoryMock.list);
+                        });
+                    });
+                });
+
                 it('triggers next job in the pipeline workflow and external pipelines', () => {
                     const meta = {
                         darren: 'thebest'

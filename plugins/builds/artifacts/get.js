@@ -26,7 +26,6 @@ module.exports = config => ({
             }
         },
         handler: (request, reply) => {
-            console.log('----', config);
             const artifact = request.params.name;
             const buildId = request.params.id;
 

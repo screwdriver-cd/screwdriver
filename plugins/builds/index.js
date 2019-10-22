@@ -474,7 +474,6 @@ exports.register = (server, options, next) => {
         const workflowGraph = event.workflowGraph;
         const nextJobs = workflowParser.getNextJobs(workflowGraph,
             { trigger: currentJobName, chainPR: pipeline.chainPR });
-
         // Create a join object like: {A:[B,C], D:[B,F]} where [B,C] join on A, [B,F] join on D, etc.
         // This can include external jobs
         const joinObj = nextJobs.reduce((obj, jobName) => {
@@ -489,7 +488,7 @@ exports.register = (server, options, next) => {
             let pId;
             let jName;
 
-            if (name.test(EXTERNAL_TRIGGER_AND)) {
+            if (EXTERNAL_TRIGGER_AND.test(name)) {
                 [, pId, jName] = EXTERNAL_TRIGGER_AND.exec(name);
             } else {
                 pId = pipelineId;
@@ -503,7 +502,7 @@ exports.register = (server, options, next) => {
         return Promise.all(Object.keys(joinObj).map(async (nextJobName) => {
             const joinList = joinObj[nextJobName];
             const joinListNames = joinList.map(j => j.name);
-            const isExternal = nextJobName.test(EXTERNAL_TRIGGER_AND);
+            const isExternal = EXTERNAL_TRIGGER_AND.test(nextJobName);
             const { externalPipelineId, externalJobName } = getPipelineAndJob(nextJobName);
 
             /* CONSTRUCT AN OBJ LIKE {111: {eventId: 2, D:987}}
@@ -522,7 +521,6 @@ exports.register = (server, options, next) => {
                     [jName]: null
                 };
             });
-
             // need to deepmerge because it's possible same event has multiple builds
             const combined = deepmerge(currentJobParentBuilds, joinParentBuilds);
 
