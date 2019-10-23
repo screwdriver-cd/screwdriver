@@ -403,6 +403,7 @@ exports.register = (server, options, next) => {
         const currentJobName = job.name;
         const pipelineId = pipeline.id;
 
+        console.log(config.externalJoin);
         // Use old flow if external join flag is off
         if (!externalJoin) {
             return eventFactory.get({ id: build.eventId }).then((event) => {
@@ -468,6 +469,8 @@ exports.register = (server, options, next) => {
             });
         }
 
+        console.log('hereee');
+
         // New implementation that allows external join
         const pipelineFactory = server.root.app.pipelineFactory;
         const event = await eventFactory.get({ id: build.eventId });
@@ -498,8 +501,11 @@ exports.register = (server, options, next) => {
             return { pId, jName };
         };
 
+        console.log(joinObj);
+
         // Go through each next job
         return Promise.all(Object.keys(joinObj).map(async (nextJobName) => {
+            console.log('---- nextJobName ', nextJobName);
             const joinList = joinObj[nextJobName];
             const joinListNames = joinList.map(j => j.name);
             const isExternal = EXTERNAL_TRIGGER_AND.test(nextJobName);
@@ -607,7 +613,6 @@ exports.register = (server, options, next) => {
 
                     finishedInternalBuilds = await builds.concat(upstreamBuilds);
                 }
-
                 const jobId = workflowGraph.nodes.find(node =>
                     node.name === trimJobName(nextJobName)).id;
 
@@ -629,8 +634,8 @@ exports.register = (server, options, next) => {
 
             // If next build already exists, update the parentBuilds info
             } else {
-                newBuild.parentBuilds = parentBuilds;
-                newBuild.parentBuildId = [].concat(nextBuild.parentBuildId).concat(build.id);
+                nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds);
+                nextBuild.parentBuildId = [].concat(nextBuild.parentBuildId).concat(build.id);
                 newBuild = await nextBuild.update();
             }
 
@@ -639,6 +644,9 @@ exports.register = (server, options, next) => {
             let done = true;
             let hasFailure = false;
             const promisesToAwait = [];
+
+            console.log('===== upstream', upstream);
+            console.log('---- joinListName', joinListNames);
 
             for (let i = 0; i < joinListNames.length; i += 1) {
                 const name = joinListNames[i];
@@ -654,6 +662,7 @@ exports.register = (server, options, next) => {
             // Check if some joined build failed, so that we can delete next build
             const joinedBuilds = await Promise.all(promisesToAwait);
 
+            console.log(joinedBuilds);
             joinedBuilds.forEach((b) => {
                 if (b.status === 'FAILURE') hasFailure = true;
                 if (b.status !== 'SUCCESS') done = false; // some builds are still going on
@@ -663,6 +672,9 @@ exports.register = (server, options, next) => {
                IF NOT DONE -> DO NOTHING
                IF ALL SUCCEEDED -> START NEW BUILD
            */
+
+            console.log(hasFailure);
+            console.log(done);
             if (hasFailure) await newBuild.remove(); // delete new build
             if (hasFailure || !done) return null;
 
