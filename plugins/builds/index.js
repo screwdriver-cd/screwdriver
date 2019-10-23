@@ -469,8 +469,6 @@ exports.register = (server, options, next) => {
             });
         }
 
-        console.log('hereee');
-
         // New implementation that allows external join
         const pipelineFactory = server.root.app.pipelineFactory;
         const event = await eventFactory.get({ id: build.eventId });
@@ -626,32 +624,33 @@ exports.register = (server, options, next) => {
             if (!nextBuild) {
                 if (isExternal) {
                     externalBuildConfig.start = false;
-                    newBuild = await createExternalBuild(externalBuildConfig);
+                    nextBuild = await createExternalBuild(externalBuildConfig);
                 } else {
                     internalBuildConfig.start = false;
-                    newBuild = await createInternalBuild(internalBuildConfig);
+                    nextBuild = await createInternalBuild(internalBuildConfig);
                 }
 
             // If next build already exists, update the parentBuilds info
             } else {
-                nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds);
-                nextBuild.parentBuildId = [].concat(nextBuild.parentBuildId).concat(build.id);
+                nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds || {});
+                nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
                 newBuild = await nextBuild.update();
             }
 
             /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
-            const upstream = newBuild.parentBuilds;
+            const upstream = newBuild.parentBuilds || {};
             let done = true;
             let hasFailure = false;
             const promisesToAwait = [];
 
-            console.log('===== upstream', upstream);
-            console.log('---- joinListName', joinListNames);
-
             for (let i = 0; i < joinListNames.length; i += 1) {
                 const name = joinListNames[i];
                 const { pId, jName } = getPipelineAndJob(name);
-                const bId = upstream[pId][jName];
+                let bId;
+
+                if (upstream[pId] && upstream[pId][jName]) {
+                    bId = upstream[pId][jName];
+                }
 
                 // if buildId is empty, the job hasn't executed yet -> Join is not done
                 if (!bId) done = false;
@@ -662,7 +661,6 @@ exports.register = (server, options, next) => {
             // Check if some joined build failed, so that we can delete next build
             const joinedBuilds = await Promise.all(promisesToAwait);
 
-            console.log(joinedBuilds);
             joinedBuilds.forEach((b) => {
                 if (b.status === 'FAILURE') hasFailure = true;
                 if (b.status !== 'SUCCESS') done = false; // some builds are still going on
@@ -673,8 +671,6 @@ exports.register = (server, options, next) => {
                IF ALL SUCCEEDED -> START NEW BUILD
            */
 
-            console.log(hasFailure);
-            console.log(done);
             if (hasFailure) await newBuild.remove(); // delete new build
             if (hasFailure || !done) return null;
 

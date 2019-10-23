@@ -1775,7 +1775,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('update parent build IDs', () => {
+                it('update parent build IDs', () => {
                     const updatedBuildC = Object.assign({}, buildMock);
 
                     updatedBuildC.start = sinon.stub().resolves();
@@ -2249,6 +2249,7 @@ describe('build plugin test', () => {
 
                     updatedBuildC.start = sinon.stub().resolves();
                     updatedBuildC.update = sinon.stub().resolves(updatedBuildC);
+                    updatedBuildC.parentBuilds = { 123: { eventId: '8888', b: 111, a: 12345 } };
 
                     const buildC = {
                         id: 333,
@@ -2277,7 +2278,7 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildMock.update); // current build
-                        assert.deepEqual(buildC.parentBuildId, [111, 222]);
+                        assert.deepEqual(buildC.parentBuildId, [12345, 111]);
                         assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.update);
                         assert.calledOnce(updatedBuildC.start);
