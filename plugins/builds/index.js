@@ -545,7 +545,7 @@ exports.register = (server, options, next) => {
                 };
             });
             // need to deepmerge because it's possible same event has multiple builds
-            const combined = deepmerge(currentJobParentBuilds, joinParentBuilds);
+            // const combined = deepmerge(currentJobParentBuilds, joinParentBuilds);
 
             // override currentBuild in the joinParentBuilds
             const currentBuildInfo = {
@@ -554,7 +554,9 @@ exports.register = (server, options, next) => {
                     [currentJobName]: build.id
                 }
             };
-            const parentBuilds = deepmerge(combined, currentBuildInfo);
+            // const parentBuilds = deepmerge(combined, currentBuildInfo);
+            const parentBuilds = deepmerge.all(
+                [joinParentBuilds, currentJobParentBuilds, currentBuildInfo]);
 
             /* CONSTRUCT BUILD CONFIG TO CREATE */
             const internalBuildConfig = {
@@ -634,14 +636,12 @@ exports.register = (server, options, next) => {
                 const jobId = workflowGraph.nodes.find(node =>
                     node.name === trimJobName(nextJobName)).id;
 
-                console.log('==========', jobId);
                 nextBuild = finishedInternalBuilds.filter(b => b.jobId === jobId)[0];
             }
 
             let newBuild;
 
             /* CREATE OR UPDATE NEXTBUILD */
-            console.log('---nextBuild', nextBuild);
             // If next build doesn't exist, create it but don't start yet
             if (!nextBuild) {
                 if (isExternal) {
@@ -655,11 +655,20 @@ exports.register = (server, options, next) => {
             // If next build already exists, update the parentBuilds info
             } else {
                 // override
-                nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds || {});
+                console.log('----parentBuilds', parentBuilds);
+                console.log('----nextBuild parentBuilds', nextBuild.parentBuilds);
+
+                const newParentBuilds = deepmerge.all(
+                    [joinParentBuilds, currentJobParentBuilds,
+                        nextBuild.parentBuilds, currentBuildInfo]);
+
+                console.log('----newBuild updated', newParentBuilds);
+
+                nextBuild.parentBuilds = newParentBuilds;
+                // nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds || {});
                 nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
 
-                console.log(' parentBuild', parentBuilds);
-                console.log('----newBuild updated', nextBuild);
+                console.log('---parentBuildId', nextBuild.parentBuildId);
                 newBuild = await nextBuild.update();
             }
 
@@ -669,7 +678,6 @@ exports.register = (server, options, next) => {
             let hasFailure = false;
             const promisesToAwait = [];
 
-            console.log('----upstream ', upstream);
             for (let i = 0; i < joinListNames.length; i += 1) {
                 const name = joinListNames[i];
                 const { pId, jName } = getPipelineAndJob(name);
@@ -679,8 +687,7 @@ exports.register = (server, options, next) => {
                     bId = upstream[pId][jName];
                 }
 
-                console.log('-----', bId);
-
+                console.log('---bId', bId);
                 // if buildId is empty, the job hasn't executed yet -> Join is not done
                 if (!bId) done = false;
                 // otherwise, get that build to check the status
@@ -690,27 +697,30 @@ exports.register = (server, options, next) => {
             // Check if some joined build failed, so that we can delete next build
             const joinedBuilds = await Promise.all(promisesToAwait);
 
-            console.log('---- joinedBuilds', joinedBuilds);
-            let finishedBuildCount = 0;
-
             joinedBuilds.forEach((b) => {
-                finishedBuildCount += 1;
+                console.log(b.status);
                 if (b.status === 'FAILURE') hasFailure = true;
-                if (b.status !== 'SUCCESS') done = false; // some builds are still going on
+                if (b.status !== 'SUCCESS' && b.status !== 'FAILURE') done = false; // some builds are still going on
             });
 
-            /* IF ONE FAILED -> DELETE NEW BUILD
-               IF NOT DONE -> DO NOTHING
+            /*  IF NOT DONE -> DO NOTHING
+                IF DONE ->
+                    CHECK IF HAS FAILURE -> DELETE NEW BUILD
+                    OTHERWISE -> START NEW BUILD
                IF ALL SUCCEEDED -> START NEW BUILD
            */
 
             console.log('----has failure ', hasFailure);
+            console.log('----done ', done);
+
+            if (!done) return null;
 
             // only delete if this is the last build in the required join jobs
-            if (hasFailure && finishedBuildCount === joinedBuilds.length) await newBuild.remove(); // delete new build
+            if (hasFailure) {
+                await newBuild.remove(); // delete new build
 
-            // do not start new Build if there is some failure, or not done
-            if (hasFailure || !done) return null;
+                return null;
+            }
 
             // if all join finished successfully, start new build
             newBuild.status = 'QUEUED';

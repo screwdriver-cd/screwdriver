@@ -179,7 +179,6 @@ module.exports = config => ({
                             `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                         });
 
-                        console.log('-----------', newBuild);
                         // Guard against triggering non-successful or unstable builds
                         if (newBuild.status !== 'SUCCESS') {
                             return reply(newBuild.toJson()).code(200);
