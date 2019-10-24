@@ -14,6 +14,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         timeout: TIMEOUT
     }, function hook() {
         this.branch = 'darrenBranch';
+        this.tag = 'v1.0';
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-git';
 
@@ -29,8 +30,8 @@ defineSupportCode(({ Before, Given, When, Then }) => {
         }).then((response) => {
             this.jwt = response.body.token;
         }).then(() =>
-            github.cleanUpRepository(this.branch, this.repoOrg, this.repoName)
-        );
+            github.cleanUpRepository(this.branch, this.tag, this.repoOrg, this.repoName)
+        ).catch(() => Assert.fail('failed to clean up repository'));
     });
 
     Given(/^an existing pipeline$/, {
@@ -80,6 +81,25 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
+    Given(/^a pipeline with all stopped builds$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const jobs = ['main', 'tag-triggered', 'release-triggered'];
+        const builds = [];
+
+        jobs.forEach((jobName) => {
+            builds.push(sdapi.cleanupBuilds({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                jobName,
+                jwt: this.jwt
+            }));
+        });
+
+        return Promise.all(builds)
+            .catch(() => Assert.fail('failed to clean up builds'));
+    });
+
     When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
         const branch = this.branch;
 
@@ -103,7 +123,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            sha: this.sha,
+            desiredSha: this.sha,
             desiredStatus: ['RUNNING', 'SUCCESS', 'FAILURE'],
             jwt: this.jwt
         }).then((buildData) => {
@@ -120,7 +140,7 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            sha: this.sha,
+            desiredSha: this.sha,
             desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
             jwt: this.jwt
         }).then((buildData) => {
@@ -143,16 +163,79 @@ defineSupportCode(({ Before, Given, When, Then }) => {
             });
     });
 
-    Then(/^a new build from `main` should be created to test that change$/, {
+    When(/^a tag is created$/, {
         timeout: TIMEOUT
     }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+
+                return github.createTag(tag, branch, this.repoOrg, this.repoName);
+            });
+    });
+
+    When(/^an annotated tag is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+
+                return github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
+            });
+    });
+
+    When(/^a release is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+
+                return github.createTag(tag, branch, this.repoOrg, this.repoName);
+            })
+            .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
+    });
+
+    When(/^a release with annotated tag is created$/, {
+        timeout: TIMEOUT
+    }, function step() {
+        const branch = this.branch;
+        const tag = this.tag;
+
+        return github.createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.sha = data.commit.sha;
+
+                return github.createAnnotatedTag(tag, branch, this.repoOrg, this.repoName);
+            })
+            .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
+    });
+
+    Then(/^a new build from "([^"]+)" should be created to test that change$/, {
+        timeout: TIMEOUT
+    }, function step(job) {
         return sdapi.searchForBuild({
             instance: this.instance,
             pipelineId: this.pipelineId,
             pullRequestNumber: this.pullRequestNumber,
-            sha: this.sha,
+            desiredSha: this.sha,
             desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS'],
-            jwt: this.jwt
+            jwt: this.jwt,
+            jobName: job
         })
             .then((data) => {
                 const build = data;
