@@ -41,7 +41,7 @@ Example:
 | `blockedBy` |  job config | syntax will be something like `blockedBy: [~sd@123:main]` (similar to `requires`) so it should live in the same place |
 | `buildPeriodically` | annotation | only works with executor queue plugin |
 | `freezeWindow` | annotation | similar to `buildPeriodically` |
-| `repoManifest` | annotation | only works with Github plugin |
+| `repoManifest` | annotation | only works with GitHub plugin |
 
 ## Contributing
 
