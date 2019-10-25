@@ -49,7 +49,7 @@ The resources (or scope) that we care about are `pipelines`, their `jobs`, and t
 
 #### Inheritance
 
-- Read permissions inherit bi-bidirectionally (and do not need to be included).
+- Read permissions inherit bidirectionally (and do not need to be included).
 - Write permissions automatically include read permission.
 
 This inheritance is designed to reduce the amount of content that needs to be stored in the JWT.
