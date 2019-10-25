@@ -73,7 +73,7 @@ jobs:
 
 Injecting malicious code into a build via the caching mechanism is a real concern. This can lead to theft of tokens or credentials from job, or in even lead to malicious code being deployed to a production environment. 
 
-Pull requests, as the main vector for injection of malicious code, require additional security considerations. Pull requests therefore treat caches as readonly. 
+Pull requests, as the main vector for injection of malicious code, require additional security considerations. Pull requests therefore treat caches as read-only. 
 
 Caching of potentially sensitive data also needs to be handled. Data provided via the secrets field should not be cached. 
 
@@ -135,7 +135,7 @@ Executions of a pipeline for the same commit are viewed as different executions.
 
 Use when:
 
-1. Generated resources are time dependant
+1. Generated resources are time dependent
 2. Generated resources are only valid for single execution
 3. Generated resources are meant for deployment (Please note that triggering deployment with a detached job will create a new event and, by extension, cache.)
 
