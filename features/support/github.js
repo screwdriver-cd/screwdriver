@@ -36,17 +36,27 @@ function randomString(stringLength) {
  * @param  {String}          repoOwner  Owner of the repository
  * @param  {String}          repoName   Name of the repository
  * @param  {String}          branch     Name of the branch to delete
+ * @param  {String}          tag        Name of the tag to delete
  * @return {Promise}
  */
-function cleanUpRepository(branch, repoOwner, repoName) {
+function cleanUpRepository(branch, tag, repoOwner, repoName) {
     const branchParams = {
         owner: repoOwner,
         repo: repoName,
         ref: `heads/${branch}`
     };
+    const tagParams = {
+        owner: repoOwner,
+        repo: repoName,
+        ref: `tags/${tag}`
+    };
 
-    return octokit.git.getRef(branchParams)
-        .then(() => octokit.git.deleteRef(branchParams), () => {});
+    return Promise.all([
+        octokit.git.getRef(branchParams)
+            .then(() => octokit.git.deleteRef(branchParams)),
+        octokit.git.getRef(tagParams)
+            .then(() => octokit.git.deleteRef(tagParams))])
+        .catch(err => Assert.strictEqual(404, err.status));
 }
 
 /**
@@ -143,6 +153,111 @@ function createPullRequest(branch, repoOwner, repoName) {
 }
 
 /**
+ * Creates a lightweight tag.
+ * @method createTag
+ * @param  {String}   tag               Name of the tag
+ * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
+ */
+function createTag(tag, branch, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    return octokit.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`
+    })
+        .then((referenceData) => {
+            const sha = referenceData.data.object.sha;
+
+            return octokit.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tag}`,
+                sha
+            });
+        })
+        .catch(() => {
+            Assert.fail('failed to create tag');
+        });
+}
+
+/**
+ * Creates a annotated tag.
+ * @method createAnnotatedTag
+ * @param  {String}   tag               Name of the tag
+ * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
+ */
+function createAnnotatedTag(tag, branch, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    return octokit.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`
+    })
+        .then((referenceData) => {
+            const sha = referenceData.data.object.sha;
+
+            return octokit.git.createTag({
+                owner,
+                repo,
+                tag,
+                message: 'this is annotated tag',
+                object: sha,
+                type: 'commit',
+                tagger: {
+                    name: 'test',
+                    email: 'test@example.com',
+                    date: '2019-10-09T15:00:00+09:00'
+                }
+            });
+        })
+        .then((response) => {
+            const sha = response.data.sha;
+
+            return octokit.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tag}`,
+                sha
+            });
+        })
+        .catch(() => {
+            Assert.fail('failed to create annotated tag');
+        });
+}
+
+/**
+ * Creates a release.
+ * @method createRelease
+ * @param  {String}   tagName          Name of the tag
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
+ */
+function createRelease(tagName, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    return octokit.repos.createRelease({
+        owner,
+        repo,
+        tag_name: tagName
+    })
+        .catch(() => {
+            Assert.fail('failed to create release');
+        });
+}
+
+/**
  * Get status of pull request
  * @method getStatus
  * @param  {String}   branch        The branch to create the file in
@@ -181,6 +296,9 @@ module.exports = {
     createBranch,
     createFile,
     createPullRequest,
+    createTag,
+    createAnnotatedTag,
+    createRelease,
     getStatus,
     mergePullRequest
 };

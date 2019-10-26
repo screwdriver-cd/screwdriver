@@ -2,7 +2,7 @@
 
 ## Context
 
-Running a user's commands inside their container is _the_ point of Screwdriver.  This document describes the expected control flow of a build, specifically how each component interacts with eachother.
+Running a user's commands inside their container is _the_ point of Screwdriver.  This document describes the expected control flow of a build, specifically how each component interacts with each other.
 
 ## Status
 
@@ -86,7 +86,7 @@ These are the additional environment variables we will be setting during any com
 - `SD_JOB_ID` - Internal identifier of the Job
 - `SD_JOB_NAME` - Human readable name of the Job
 - `SD_PIPELINE_ID` - Internal identifier of the Pipeline
-- `SD_BUILD_JWT` - See terminiology section below
+- `SD_BUILD_JWT` - See terminology section below
 - `SD_CONTROL_JWT` - See terminology section below
 - `SD_ROOT_DIR ` - See terminology section below
 - `SD_BOOKEND_DIR ` - See terminology section below
