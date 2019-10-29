@@ -25,7 +25,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
-            const { aggregateInterval, page, count } = request.query;
+            const { aggregateInterval, page, count, sort } = request.query;
             let { startTime, endTime } = request.query;
 
             return factory.get(id)
@@ -34,7 +34,7 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    let config = { page, count };
+                    let config = { page, count, sort };
 
                     // Only when either page or count is unavailable
                     // check whether startTime and endTime are valid
