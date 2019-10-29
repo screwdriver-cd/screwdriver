@@ -115,7 +115,7 @@
     "winston": "^2.4.4"
   },
   "devDependencies": {
-    "@octokit/rest": "^16.33.1",
+    "@octokit/rest": "~16.33",
     "chai": "~3.5.0",
     "chai-as-promised": "^6.0.0",
     "chai-jwt": "^2.0.0",
