@@ -15,25 +15,6 @@ const deepmerge = require('deepmerge');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER_AND } = schema.config.regex;
 
-// /**
-//  * [customMerge description]
-//  * @param  {[type]} a [description]
-//  * @param  {[type]} b [description]
-//  * @return {[type]}   [description]
-//  */
-// function customMerge(a, b) {
-//     const merged = {};
-//
-//     Object.keys(a).forEach((aKey) => {
-//         if (!b[aKey]) {
-//             merged[aKey] = a[aKey];
-//         } else {
-//
-//         }
-//     });
-//
-//     return merged;
-// }
 /**
  * Create the build. If config.start is false or not passed in then do not start the job
  * @method createBuild
