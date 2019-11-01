@@ -1207,7 +1207,7 @@ describe.only('build plugin test', () => {
                                 parentBuilds: {
                                     123: {
                                         eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
-                                        main: 12345
+                                        jobs: { main: 12345 }
                                     }
                                 }
                             });
@@ -1912,7 +1912,7 @@ describe.only('build plugin test', () => {
                         configPipelineSha: 'abc123',
                         prRef: '',
                         baseBranch: 'master',
-                        parentBuilds: { 123: { a: 12345, eventId: '8888' } }
+                        parentBuilds: { 123: { jobs: { a: 12345 }, eventId: '8888' } }
                     };
                     jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
 
@@ -1993,7 +1993,10 @@ describe.only('build plugin test', () => {
                     ];
 
                     return newServer.inject(options).then(() => {
-                        jobBconfig.parentBuilds = { 123: { a: 12345, d: null, eventId: '8888' } };
+                        jobBconfig.parentBuilds = { 123: {
+                            jobs: { a: 12345, d: null },
+                            eventId: '8888'
+                        } };
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
                     });
                 });
@@ -2007,7 +2010,10 @@ describe.only('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
 
-                    buildMock.parentBuilds = { 123: { a: 12345, d: 5555, eventId: '8888' } };
+                    buildMock.parentBuilds = { 123: {
+                        jobs: { a: 12345, d: 5555 },
+                        eventId: '8888'
+                    } };
                     buildMock.update = sinon.stub().resolves();
 
                     eventMock.getBuilds.resolves([{
@@ -2017,7 +2023,7 @@ describe.only('build plugin test', () => {
                         jobId: 3,
                         status: 'CREATED',
                         parentBuildId: 5555,
-                        parentBuilds: { 123: { a: null, d: 5555, eventId: '8888' } },
+                        parentBuilds: { 123: { jobs: { a: null, d: 5555 }, eventId: '8888' } },
                         update: sinon.stub().resolves(buildMock)
                     }, {
                         jobId: 4,
@@ -2034,7 +2040,7 @@ describe.only('build plugin test', () => {
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
-                        jobBconfig.parentBuilds = { 123: { a: 12345, eventId: '8888' } };
+                        jobBconfig.parentBuilds = { 123: { jobs: { a: 12345 }, eventId: '8888' } };
                         // jobB is created because there is no join
                         // assert.calledWith(buildFactoryMock.create, jobBconfig);
                         // assert.calledOnotnce(buildMock.update);
@@ -2054,12 +2060,12 @@ describe.only('build plugin test', () => {
                         jobId: 3,
                         status: 'CREATED',
                         parentBuilds: { 123: {
-                            eventId: '8888', 'PR-15:a': null, 'PR-15:d': 5555 } }
+                            eventId: '8888', jobs: { 'PR-15:a': null, 'PR-15:d': 5555 } } }
                     };
 
                     const updatedBuildC = Object.assign(buildC, {
                         parentBuilds: {
-                            123: { eventId: '8888', 'PR-15:a': 12345, 'PR-15:d': 5555 }
+                            123: { eventId: '8888', jobs: { 'PR-15:a': 12345, 'PR-15:d': 5555 } }
                         },
                         start: sinon.stub().resolves()
                     });
@@ -2089,9 +2095,9 @@ describe.only('build plugin test', () => {
                     jobBconfig.prRef = 'pull/15/merge';
                     jobCconfig.prRef = 'pull/15/merge';
                     jobBconfig.parentBuilds = { 123: {
-                        eventId: '8888', 'PR-15:a': 12345 } };
+                        eventId: '8888', jobs: { 'PR-15:a': 12345 } } };
                     jobCconfig.parentBuilds = { 123: {
-                        eventId: '8888', 'PR-15:a': 12345, 'PR-15:d': null } };
+                        eventId: '8888', jobs: { 'PR-15:a': 12345, 'PR-15:d': null } } };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -2116,7 +2122,7 @@ describe.only('build plugin test', () => {
                     };
 
                     const updatedBuildC = Object.assign(buildC, {
-                        parentBuilds: { 123: { eventId: '8888', d: 5555, a: 12345 } }
+                        parentBuilds: { 123: { eventId: '8888', jobs: { d: 5555, a: 12345 } } }
                     });
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
@@ -2259,7 +2265,10 @@ describe.only('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         jobCconfig.start = false;
-                        jobCconfig.parentBuilds = { 123: { a: 12345, b: null, eventId: '8888' } };
+                        jobCconfig.parentBuilds = { 123: {
+                            jobs: { a: 12345, b: null },
+                            eventId: '8888'
+                        } };
                         assert.calledWith(buildFactoryMock.create, jobCconfig);
                     });
                 });
@@ -2276,11 +2285,11 @@ describe.only('build plugin test', () => {
                     const buildC = {
                         jobId: 3,
                         status: 'CREATED',
-                        parentBuilds: { 123: { a: null, b: 5555, eventId: '8888' } }
+                        parentBuilds: { 123: { jobs: { a: null, b: 5555 }, eventId: '8888' } }
                     };
 
                     const updatedBuildC = Object.assign(jobC, {
-                        parentBuilds: { 123: { eventId: '8888', b: 5555, a: 12345 } },
+                        parentBuilds: { 123: { eventId: '8888', jobs: { b: 5555, a: 12345 } } },
                         remove: sinon.stub().resolves(null)
                     });
 

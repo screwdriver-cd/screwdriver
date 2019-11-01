@@ -39,7 +39,7 @@ async function createBuild(config) {
         name: jobName,
         pipelineId
     });
-    const prRef = event.pr.ref ? event.pr.ref : '';
+    const prRef = event.pr.ref || '';
 
     if (job.state === 'ENABLED') {
         return buildFactory.create({
@@ -177,7 +177,7 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
 async function createEvent(config) {
     const { pipelineFactory, eventFactory, pipelineId, startFrom,
         causeMessage, parentBuildId, parentBuilds } = config;
-    const scm = eventFactory.scm;
+    const { scm } = eventFactory;
 
     const payload = {
         pipelineId,
@@ -194,8 +194,7 @@ async function createEvent(config) {
 
     const pipeline = await pipelineFactory.get(pipelineId);
     const realAdmin = await pipeline.admin;
-    const scmUri = pipeline.scmUri;
-    const scmContext = pipeline.scmContext;
+    const { scmContext, scmUri } = pipeline;
 
     payload.scmContext = scmContext;
     payload.username = realAdmin.username;
@@ -522,7 +521,7 @@ exports.register = (server, options, next) => {
 
                 joinParentBuilds[pId] = {
                     eventId: null,
-                    [jName]: null
+                    jobs: { [jName]: null }
                 };
             });
             // need to deepmerge because it's possible same event has multiple builds
@@ -532,7 +531,7 @@ exports.register = (server, options, next) => {
             const currentBuildInfo = {
                 [pipelineId]: {
                     eventId: build.eventId,
-                    [currentJobName]: build.id
+                    jobs: { [currentJobName]: build.id }
                 }
             };
             // const parentBuilds = deepmerge(combined, currentBuildInfo);
@@ -573,6 +572,7 @@ exports.register = (server, options, next) => {
             const currentJobNotInJoinList = !joinListNames.includes(currentJobName) &&
                 !joinListNames.includes(`sd@${pipelineId}:${currentJobName}`);
 
+            // Handle no join case
             if (joinList.length === 0 || currentJobNotInJoinList) {
                 if (!isExternal) {
                     return createInternalBuild(internalBuildConfig);
@@ -584,6 +584,7 @@ exports.register = (server, options, next) => {
             let nextBuild;
 
             /* CHECK WHETHER NEXT BUILD EXISTS */
+            // Handle join case
             // if next build is external, check the latest build
             if (isExternal) {
                 const p = await pipelineFactory.get(externalPipelineId);
@@ -664,8 +665,8 @@ exports.register = (server, options, next) => {
                 const { pId, jName } = getPipelineAndJob(name);
                 let bId;
 
-                if (upstream[pId] && upstream[pId][jName]) {
-                    bId = upstream[pId][jName];
+                if (upstream[pId] && upstream[pId].jobs[jName]) {
+                    bId = upstream[pId].jobs[jName];
                 }
 
                 console.log('---bId', bId);
@@ -680,7 +681,7 @@ exports.register = (server, options, next) => {
 
             joinedBuilds.forEach((b) => {
                 console.log(b.status);
-                if (b.status === 'FAILURE') hasFailure = true;
+                if (b.status === 'FAILURE' || b.status === 'ABORTED') hasFailure = true;
                 if (b.status !== 'SUCCESS' && b.status !== 'FAILURE') done = false; // some builds are still going on
             });
 

@@ -194,6 +194,7 @@ module.exports = config => ({
                                 return reply(newBuild.toJson()).code(200);
                             }
 
+                            // Old flow
                             return triggerFactory.list({ params: { src } })
                                 .then((records) => {
                                     // Use set to remove duplicate and keep only unique pipelineIds
