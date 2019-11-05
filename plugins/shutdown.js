@@ -1,6 +1,15 @@
 'use strict';
 
 const Joi = require('joi');
+const winston = require('winston');
+
+winston.level = process.env.LOG_LEVEL || 'info';
+const logger = new (winston.Logger)({
+    transports: [
+        new (winston.transports.Console)({ timestamp: true })
+    ]
+});
+
 const tasks = {};
 const taskSchema = Joi.object({
     taskname: Joi.string().required(),
@@ -24,19 +33,21 @@ function register(task) {
 }
 
 /**
- *
+ * Function to return promise timeout or resolution
+ * whichever happens first
  * @param {function} fn
  * @param {string} timeout
  */
 function promiseTimeout(fn, timeout) {
-    return new Promise(((resolve, reject) => {
-        fn(resolve, reject);
-
-        // Set up the timeout
-        setTimeout(() => {
-            resolve(`Promise timed out after ${timeout} ms`);
-        }, timeout);
-    }));
+    return Promise.race([
+        Promise.resolve(fn),
+        new Promise((resolve) => {
+            const id = setTimeout(() => {
+                clearTimeout(id);
+                resolve(`Promise timed out after ${timeout} ms`);
+            }, timeout);
+        })
+    ]);
 }
 
 /**
@@ -46,46 +57,46 @@ function promiseTimeout(fn, timeout) {
  * @param  {Object}         options
  */
 exports.register = (server, options, next) => {
-    const taskHandler = async (resolve, reject) => {
+    const taskHandler = async () => {
         try {
             await Promise.all(Object.keys(tasks).map(async (key) => {
-                server.log(['shutdown'], `executing task ${key}`, new Date().toISOString());
+                logger.info(`executing task ${key}`);
                 const item = tasks[key];
 
                 await item.task();
             }));
-            resolve();
+
+            return Promise.resolve();
         } catch (err) {
-            console.log(err);
-            reject(err);
+            logger.error(err);
+            throw err;
         }
     };
+
     const gracefulStop = async () => {
         try {
-            server.log(['shutdown'], 'gracefully shutting down server', new Date().toISOString());
+            logger.info('gracefully shutting down server');
             await server.root.stop({
                 timeout: 5000
             });
             process.exit(0);
         } catch (err) {
-            console.log(err);
+            logger.error(err);
             process.exit(1);
         }
     };
 
     const onSigterm = async () => {
         try {
-            server.log(['shutdown'],
-                'got SIGTERM; running triggers before shutdown',
-                new Date().toISOString());
-            const res = await promiseTimeout(taskHandler, options.terminationGracePeriod * 1000);
+            logger.info('got SIGTERM; running triggers before shutdown');
+            const res = await promiseTimeout(taskHandler(), options.terminationGracePeriod * 1000);
 
             if (res) {
-                server.log(['shutdown'], res, new Date().toISOString());
+                logger.error(res);
             }
             await gracefulStop();
         } catch (err) {
-            console.log(err);
+            logger.error(err);
         }
     };
 
