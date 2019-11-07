@@ -261,6 +261,9 @@ executor:
           password: QUEUE_REDIS_PASSWORD
           tls: QUEUE_REDIS_TLS_ENABLED
         database: QUEUE_REDIS_DATABASE
+  # build cache strategies: s3, disk, with s3 as default option to store cache
+  cache:
+      strategy: CACHE_STRATEGY
 
 scms:
   __name: SCM_SETTINGS
