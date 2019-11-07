@@ -12,8 +12,26 @@ const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const workflowParser = require('screwdriver-workflow-parser');
 const deepmerge = require('deepmerge');
-const schema = require('screwdriver-data-schema');
-const { EXTERNAL_TRIGGER_AND } = schema.config.regex;
+// const schema = require('screwdriver-data-schema');
+// const { EXTERNAL_TRIGGER_AND } = schema.config.regex;
+const EXTERNAL_TRIGGER_AND = /^sd@(\d+):([\w-]+)$/;
+
+/**
+ * Get pipelineId and job name from the `name`
+ * If internal, pipelineId will be the current pipelineId
+ * @param  {String} name [description]
+ * @return {Object}      With pipeline id and job name
+ */
+function getPipelineAndJob(name, pipelineId) {
+    let externalJobName = name;
+    let externalPipelineId = pipelineId;
+
+    if (EXTERNAL_TRIGGER_AND.test(name)) {
+        [, externalPipelineId, externalJobName] = EXTERNAL_TRIGGER_AND.exec(name);
+    }
+
+    return { externalPipelineId, externalJobName };
+}
 
 /**
  * Create the build. If config.start is false or not passed in then do not start the job
@@ -482,22 +500,6 @@ exports.register = (server, options, next) => {
             return obj;
         }, {});
 
-        // Get pipelineId and job name from the `name`
-        // If internal, pipelineId will be the current pipelineId
-        const getPipelineAndJob = (name) => {
-            let pId;
-            let jName;
-
-            if (EXTERNAL_TRIGGER_AND.test(name)) {
-                [, pId, jName] = EXTERNAL_TRIGGER_AND.exec(name);
-            } else {
-                pId = pipelineId;
-                jName = name;
-            }
-
-            return { pId, jName };
-        };
-
         console.log(joinObj);
 
         // Go through each next job
@@ -506,22 +508,25 @@ exports.register = (server, options, next) => {
             const joinList = joinObj[nextJobName];
             const joinListNames = joinList.map(j => j.name);
             const isExternal = EXTERNAL_TRIGGER_AND.test(nextJobName);
-            const { externalPipelineId, externalJobName } = getPipelineAndJob(nextJobName);
+            const { externalPipelineId, externalJobName } =
+                getPipelineAndJob(nextJobName, pipelineId);
 
             /* CONSTRUCT AN OBJ LIKE {111: {eventId: 2, D:987}}
              * FOR EASY LOOKUP OF BUILD STATUS */
             // current job's parentBuilds
             const currentJobParentBuilds = build.parentBuilds || {};
 
+            console.log('-------- currentJobParentBuilds: ', currentJobParentBuilds);
+
             // join jobs, with eventId and buildId empty
             const joinParentBuilds = {};
 
             joinListNames.forEach((name) => {
-                const { pId, jName } = getPipelineAndJob(name);
+                const joinInfo = getPipelineAndJob(name, pipelineId);
 
-                joinParentBuilds[pId] = {
+                joinParentBuilds[joinInfo.externalPipelineId] = {
                     eventId: null,
-                    jobs: { [jName]: null }
+                    jobs: { [joinInfo.externalJobName]: null }
                 };
             });
             // need to deepmerge because it's possible same event has multiple builds
@@ -662,11 +667,12 @@ exports.register = (server, options, next) => {
 
             for (let i = 0; i < joinListNames.length; i += 1) {
                 const name = joinListNames[i];
-                const { pId, jName } = getPipelineAndJob(name);
+                const joinInfo = getPipelineAndJob(name, pipelineId);
                 let bId;
 
-                if (upstream[pId] && upstream[pId].jobs[jName]) {
-                    bId = upstream[pId].jobs[jName];
+                if (upstream[joinInfo.externalPipelineId]
+                    && upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName]) {
+                    bId = upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName];
                 }
 
                 console.log('---bId', bId);
