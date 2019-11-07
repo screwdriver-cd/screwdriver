@@ -19,8 +19,9 @@ const EXTERNAL_TRIGGER_AND = /^sd@(\d+):([\w-]+)$/;
 /**
  * Get pipelineId and job name from the `name`
  * If internal, pipelineId will be the current pipelineId
- * @param  {String} name [description]
- * @return {Object}      With pipeline id and job name
+ * @param  {String} name        Job name
+ * @param  {String} pipelineId  Pipeline ID
+ * @return {Object}             With pipeline id and job name
  */
 function getPipelineAndJob(name, pipelineId) {
     let externalJobName = name;
