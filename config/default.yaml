@@ -181,6 +181,7 @@ executor:
 # build cache strategies: s3, disk, with s3 as default option to store cache
   cache:
       strategy: s3
+      path: ""
 
 scms: {}
 #   github:
