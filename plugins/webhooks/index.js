@@ -12,7 +12,6 @@ const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
 const EXTRA_TRIGGERS = schema.config.regex.EXTRA_TRIGGER;
 const CHECKOUT_URL_SCHEMA = schema.config.regex.CHECKOUT_URL;
 const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
-const WAIT_FOR_CHANGEDFILES = 1.8;
 const DEFAULT_MAX_BYTES = 1048576;
 
 /**
@@ -90,21 +89,6 @@ async function updateAdmins(userFactory, username, scmContext, pipeline) {
 async function batchUpdateAdmins({ userFactory, pipelines, username, scmContext }) {
     await Promise.all(pipelines.map(pipeline =>
         updateAdmins(userFactory, username, scmContext, pipeline)));
-}
-
-/**
- * Promise to wait a certain number of seconds
- *
- * Might make this centralized for other tests to leverage
- *
- * @method promiseToWait
- * @param  {Number}      timeToWait  Number of seconds to wait before continuing the chain
- * @return {Promise}
- */
-function promiseToWait(timeToWait) {
-    return new Promise((resolve) => {
-        setTimeout(() => resolve(), timeToWait * 1000);
-    });
 }
 
 /**
@@ -870,7 +854,16 @@ exports.register = (server, options, next) => {
                         return reply({ message }).code(204);
                     }
 
-                    const { type, hookId, username, scmContext, ref, checkoutUrl, action } = parsed;
+                    const {
+                        type,
+                        hookId,
+                        username,
+                        scmContext,
+                        ref,
+                        checkoutUrl,
+                        action,
+                        prNum
+                    } = parsed;
 
                     parsedHookId = hookId;
 
@@ -900,13 +893,18 @@ exports.register = (server, options, next) => {
                         pluginOptions, userFactory, username, scmContext);
 
                     if (action !== 'release' && action !== 'tag') {
-                        await promiseToWait(WAIT_FOR_CHANGEDFILES);
+                        let scmUri;
 
+                        if (type === 'pr') {
+                            scmUri = await scm.parseUrl({ checkoutUrl, token, scmContext });
+                        }
                         parsed.changedFiles = await scm.getChangedFiles({
                             payload: request.payload,
                             type,
                             token,
-                            scmContext
+                            scmContext,
+                            scmUri,
+                            prNum
                         });
                         request.log(['webhook', hookId],
                             `Changed files are ${parsed.changedFiles}`);
