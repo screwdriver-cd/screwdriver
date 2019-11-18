@@ -35,7 +35,10 @@ describe('Register Unit Test Case', () => {
         '../plugins/stats',
         '../plugins/isAdmin'
     ];
-    const pluginLength = expectedPlugins.length + resourcePlugins.length;
+    const customPlugins = [
+        '../plugins/shutdown'
+    ];
+    const pluginLength = expectedPlugins.length + resourcePlugins.length + customPlugins.length;
     const mocks = {};
     const config = {};
     let main;
@@ -63,6 +66,12 @@ describe('Register Unit Test Case', () => {
             mocks[plugin] = sinon.stub();
             mockery.registerMock(plugin, mocks[plugin]);
         });
+
+        customPlugins.forEach((plugin) => {
+            mocks[plugin] = sinon.stub();
+            mockery.registerMock(plugin, mocks[plugin]);
+        });
+
         /* eslint-disable global-require */
         main = require('../../lib/registerPlugins');
         /* eslint-enable global-require */
@@ -108,6 +117,21 @@ describe('Register Unit Test Case', () => {
                         prefix: '/v4'
                     }
                 });
+            });
+        });
+    });
+
+    it('registered custom plugins', () => {
+        serverMock.register.callsArgAsync(2);
+
+        return main(serverMock, config).then(() => {
+            Assert.equal(serverMock.register.callCount, pluginLength);
+
+            customPlugins.forEach((plugin) => {
+                Assert.calledWith(serverMock.register, {
+                    register: mocks[plugin],
+                    options: { terminationGracePeriod: 30 }
+                }, {});
             });
         });
     });

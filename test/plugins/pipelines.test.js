@@ -2034,7 +2034,8 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
                     page,
-                    count
+                    count,
+                    sort: 'descending'
                 });
             });
         });
