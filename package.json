@@ -1,13 +1,13 @@
 {
   "name": "screwdriver-api",
   "version": "0.5.0",
-  "description": "API server for the Screwdriver CD service",
+  "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 4000 --exit",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=pretty --tags 'not @ignore'",
+    "functional": "cucumber-js --format=progress --tags 'not @ignore' --retry 2 --fail-fast",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
     "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png"
   },
@@ -121,7 +121,7 @@
     "chai-as-promised": "^6.0.0",
     "chai-jwt": "^2.0.0",
     "coveralls": "^3.0.7",
-    "cucumber": "2.3.1",
+    "cucumber": "6.0.4",
     "eslint": "^4.19.1",
     "eslint-config-screwdriver": "^3.0.1",
     "form-data": "^2.5.1",
