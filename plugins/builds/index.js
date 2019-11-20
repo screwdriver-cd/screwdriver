@@ -14,6 +14,7 @@ const workflowParser = require('screwdriver-workflow-parser');
 const deepmerge = require('deepmerge');
 // const schema = require('screwdriver-data-schema');
 // const { EXTERNAL_TRIGGER_AND } = schema.config.regex;
+// Note: Temporary fix before data-schema ^19.0.0 is pulled in
 const EXTERNAL_TRIGGER_AND = /^sd@(\d+):([\w-]+)$/;
 
 /**
@@ -250,7 +251,7 @@ async function createEvent(config) {
  */
 async function createExternalBuild(config) {
     const { pipelineFactory, eventFactory, externalPipelineId, externalJobName,
-        parentBuildId, parentBuilds, causeMessage, start } = config;
+        parentBuildId, parentBuilds, causeMessage } = config;
 
     return createEvent({
         pipelineFactory,
@@ -259,8 +260,7 @@ async function createExternalBuild(config) {
         startFrom: externalJobName,
         parentBuildId, // current build
         causeMessage,
-        parentBuilds,
-        start: start !== false
+        parentBuilds
     });
 }
 
@@ -624,7 +624,7 @@ exports.register = (server, options, next) => {
                 const jobId = workflowGraph.nodes.find(node =>
                     node.name === trimJobName(nextJobName)).id;
 
-                nextBuild = finishedInternalBuilds.filter(b => b.jobId === jobId)[0];
+                nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId);
             }
 
             let newBuild;
@@ -654,7 +654,7 @@ exports.register = (server, options, next) => {
 
                 nextBuild.parentBuilds = newParentBuilds;
                 // nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds || {});
-                nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
+                nextBuild.parentBuildIds = [build.id].concat(nextBuild.parentBuildId || []);
 
                 console.log('---parentBuildId', nextBuild.parentBuildId);
                 newBuild = await nextBuild.update();
@@ -696,8 +696,8 @@ exports.register = (server, options, next) => {
                 IF DONE ->
                     CHECK IF HAS FAILURE -> DELETE NEW BUILD
                     OTHERWISE -> START NEW BUILD
-               IF ALL SUCCEEDED -> START NEW BUILD
-           */
+                IF ALL SUCCEEDED -> START NEW BUILD
+            */
 
             console.log('----has failure ', hasFailure);
             console.log('----done ', done);
