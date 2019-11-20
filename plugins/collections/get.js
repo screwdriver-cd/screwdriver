@@ -3,9 +3,9 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const winston = require('winston');
 const getSchema = schema.models.collection.get;
 const idSchema = joi.reach(schema.models.collection.base, 'id');
+const logger = require('../helper').getLogger();
 
 /**
  * Helper function to get PR info of pipeline
@@ -50,7 +50,7 @@ function getPipelinePRInfo(pipeline) {
             return prs;
         })
         .catch((err) => {
-            winston.error(err);
+            logger.error(err);
 
             return prs;
         });
@@ -88,7 +88,7 @@ function getPipelineHealth(pipeline, eventFactory) {
                 });
         })
         .catch((err) => {
-            winston.error(err);
+            logger.error(err);
 
             return lastBuilds;
         });

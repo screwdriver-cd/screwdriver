@@ -112,7 +112,12 @@ describe('collection plugin test', () => {
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         pipelineFactoryMock.get.callsFake(getPipelineMockFromId);
 
-        mockery.registerMock('winston', winstonMock);
+        mockery.registerMock('winston', {
+            createLogger: () => winstonMock,
+            transports: {
+                Console: sinon.stub()
+            }
+        });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/collections');

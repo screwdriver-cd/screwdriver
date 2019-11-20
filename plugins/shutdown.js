@@ -1,14 +1,8 @@
 'use strict';
 
 const Joi = require('joi');
-const winston = require('winston');
 
-winston.level = process.env.LOG_LEVEL || 'info';
-const logger = new (winston.Logger)({
-    transports: [
-        new (winston.transports.Console)({ timestamp: true })
-    ]
-});
+const logger = require('./helper').getLogger();
 
 const tasks = {};
 const taskSchema = Joi.object({

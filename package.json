@@ -112,7 +112,7 @@
     "uuid": "^3.3.3",
     "verror": "^1.6.1",
     "vision": "^4.1.0",
-    "winston": "^2.4.4"
+    "winston": "^3.0.0"
   },
   "devDependencies": {
     "@octokit/rest": "~16.33",
