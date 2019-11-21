@@ -7,7 +7,7 @@ const ndjson = require('ndjson');
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
 
-const logger = require('../../helper').getLogger();
+const logger = require('screwdriver-logger');
 
 /**
  * Makes the request to the Store to get lines from a log

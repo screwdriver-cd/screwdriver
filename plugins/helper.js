@@ -1,23 +1,6 @@
 'use strict';
 
 const dayjs = require('dayjs');
-const winston = require('winston');
-
-const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
-    transports: [
-        new (winston.transports.Console)({ timestamp: true })
-    ]
-});
-
-/**
- * Get logger object for model
- * @method getLogger
- * @return {Object}  winston logger object for model
- */
-function getLogger() {
-    return logger;
-}
 
 /**
  * Set default start time and end time
@@ -50,6 +33,5 @@ function validTimeRange(start, end, maxDay) {
 
 module.exports = {
     setDefaultTimeRange,
-    validTimeRange,
-    getLogger
+    validTimeRange
 };

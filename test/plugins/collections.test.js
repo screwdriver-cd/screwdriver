@@ -68,7 +68,7 @@ describe('collection plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let collectionMock;
-    let winstonMock;
+    let loggerMock;
     let userMock;
     let plugin;
     let server;
@@ -95,7 +95,7 @@ describe('collection plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
-        winstonMock = {
+        loggerMock = {
             info: sinon.stub(),
             error: sinon.stub()
         };
@@ -112,12 +112,7 @@ describe('collection plugin test', () => {
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         pipelineFactoryMock.get.callsFake(getPipelineMockFromId);
 
-        mockery.registerMock('winston', {
-            createLogger: () => winstonMock,
-            transports: {
-                Console: sinon.stub()
-            }
-        });
+        mockery.registerMock('screwdriver-logger', loggerMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/collections');
@@ -516,7 +511,7 @@ describe('collection plugin test', () => {
             return server.inject(options).then((reply) => {
                 // The response should still be 200 but error should be logged
                 assert.equal(reply.statusCode, 200);
-                assert.calledOnce(winstonMock.error);
+                assert.calledOnce(loggerMock.error);
             });
         });
 
@@ -530,7 +525,7 @@ describe('collection plugin test', () => {
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
-                assert.calledOnce(winstonMock.error);
+                assert.calledOnce(loggerMock.error);
             });
         });
 

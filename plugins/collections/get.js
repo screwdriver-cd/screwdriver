@@ -5,7 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.collection.get;
 const idSchema = joi.reach(schema.models.collection.base, 'id');
-const logger = require('../helper').getLogger();
+const logger = require('screwdriver-logger');
 
 /**
  * Helper function to get PR info of pipeline

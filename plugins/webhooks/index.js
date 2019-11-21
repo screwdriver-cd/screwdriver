@@ -4,7 +4,7 @@ const boom = require('boom');
 const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
-const logger = require('../helper').getLogger();
+const logger = require('screwdriver-logger');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;

@@ -7,7 +7,7 @@ const config = require('config');
 const server = require('../');
 const hoek = require('hoek');
 const { Bookend } = require('screwdriver-build-bookend');
-const logger = require('../plugins/helper').getLogger();
+const logger = require('screwdriver-logger');
 
 // Setup Authentication
 const authConfig = config.get('auth');

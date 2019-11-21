@@ -2,7 +2,7 @@
 
 const Joi = require('joi');
 
-const logger = require('./helper').getLogger();
+const logger = require('screwdriver-logger');
 
 const tasks = {};
 const taskSchema = Joi.object({
