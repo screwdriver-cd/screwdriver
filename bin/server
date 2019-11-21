@@ -92,7 +92,8 @@ bookends.teardown || [] // plugins required for the teardown-steps
 const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
-    scm
+    scm,
+    multiBuildClusterEnabled
 });
 
 // Setup Executor
