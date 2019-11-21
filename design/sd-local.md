@@ -3,8 +3,7 @@ The build environment on Screwdriver.cd differs from the user execution environm
 - `sd-step` is available
 - Template is available
 - Metadata is available
-- Environment Variables are idempotent
-- OS in Build Container is used
+- Guarantee build reproducibillity
 
 Therefore, the build results may differ between the build environment on local and the build environment on Screwdriver.cd.
 As a result, User cannot confirm whether the result obtained on CI is the expected result until the build is actually run on Screwdriver.cd.
@@ -49,7 +48,9 @@ test
    - The common volume prepared in `Initialization` No.4
    - Source Directory
    - Artifacts Directory
-2. Run `run.sh` on Build Container
+2. Run Local Mode Launcher on Build Container
+   - Run Launcher binary with `--local-mode` option in `run.sh`
+   - Config Build Environment Variables and Environment Variables by env option 
    - Run Steps got in `Initialization` No.3
    - Run `sd-cmd`
      1. Get the binaries from Store
@@ -59,45 +60,27 @@ test
 
 ### Build Environment Variables
 
-- SD_BUILD_ID: Not set
-- SD_EVENT_ID: Not set
-- SD_JOB_ID: Not set
 - SD_JOB_NAME: The value passed as a argument
-- SD_PARENT_BUILD_ID: Not set
-- SD_PARENT_EVENT_ID: Not set
-- SD_PR_PARENT_JOB_ID: Not set
-- SD_PIPELINE_ID: Not set
-- SD_PIPELINE_NAME: Not set
-- SD_PULL_REQUEST: Not set
 - SD_TEMPLATE_FULLNAME: The value got from validator API
 - SD_TEMPLATE_NAME: The value got from validator API
 - SD_TEMPLATE_NAMESPACE: The value got from validator API
 - SD_TEMPLATE_VERSION: The value got from validator API
 - SD_TOKEN: JWT got in `Initialization`
-- SD_ZIP_ARTIFACTS: Not set
 - USER_SHELL_BIN: Set by user, otherwise Screwdriver.cd default
 - GIT_SHALLOW_CLONE: Set by user, otherwise Screwdriver.cd default
 - GIT_SHALLOW_CLONE_DEPTH: Set by user, otherwise Screwdriver.cd default
 - GIT_SHALLOW_CLONE_SINCE: Set by user, otherwise Screwdriver.cd default
 - GIT_SHALLOW_CLONE_SINGLE_BRANCH: Set by user, otherwise Screwdriver.cd default
 - SD_COVERAGE_PLUGIN_ENABLED: Set by user, otherwise Screwdriver.cd default
-- SD_SONAR_AUTH_URL: Not set
-- SD_SONAR_HOST: Not set
 - SD_ARTIFACTS_DIR: `/sd/workspace/artifacts`
 - SD_META_PATH: `/sd/meta/meta.json`
 - SD_ROOT_DIR: `/sd/workspace`
 - SD_SOURCE_DIR: `/sd/workspace/src/<SCM hostname>/<organization>/<repository>`
 - SD_SOURCE_PATH: Generate from `screwdriver.yaml`
-- SD_CONFIG_DIR: Not set (Need to be set to support External Config)
-- SCM_URL: Not set
-- GIT_URL: Not set
-- CONFIG_URL: Not set (Need to be set to support External Config)
-- GIT_BRANCH: Not set
-- SD_BUILD_SHA: Not set
-- SD_API_URL: The value got from Configuration File
-- SD_BUILD_URL: Not set
-- SD_STORE_URL: The value got from Configuration File
-- SD_UI_URL: Not set
+- SD_CONFIG_DIR: Not set (Need to be set when External Config is supported)
+- CONFIG_URL: Not set (Need to be set when External Config is supported)
+- SD_API_URL: The value got from config file
+- SD_STORE_URL: The value got from config file
 - CI: `false`
 - CONTINUOUS_INTEGRATION: `false`
 - SCREWDRIVER: `false`
@@ -123,7 +106,7 @@ $ sdlocal build [job-name] [options]
 - `--meta [json]` Set values of `meta` (JSON)
 - `--meta-file [path]` Path to config file of `meta` (JSON)
 - `-e, --env [key=value]` Set `key` and `value` relationship which is set as environment variables of Build Container.
-  - `secrets` is also set as the environment variables.
+  - `secrets` is also set as environment variables.
 - `--env-file [path]` Path to config file of environment variables. (`.env`)
 - `--artifacts-dir [path]` Path to the host side directory which is mounted into `$SD_ARTIFACTS_DIR`. (default: `./sd-artifacts`)
 - `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
@@ -174,17 +157,13 @@ $ sdlocal config view
 
 ## Design considerations
 
-- APIs which is needed to call from Launcher.
-  - build API
-    - For getting informations of each steps or the other.
-      - This may be obtained from the `commands` which is included an JSON response of validator API.
-- Screwdriver has to recognize `run.sh` is executed from the `sdlocal` command.
-- Build logs which are output to the `log-service` must be changed to stdout.
+#### Implement Local Mode Launcher.
+Need to be implement the following:
+- Add `--local-mode` option to run Launcher binary on Local Mode
+- Not to call Screwdriver API on Local Mode
+- Use the steps information from the response of validator API in `Initialization`
+- Output the build logs to stdout instead of `log-service`
+- Add the option that run Launcher binary on Local Mode to `run.sh`
+
+#### Others
 - `publish`/`promote` of any `sd-cmd` must not be executed from the `sdlocal` command.
-
-- Not support feature in the first step.
-  - `docker build` from the `sdlocal` command. (It may possible if using `privileged`)
-  - Entering into docker container for debugging.
-    - It is possible if we add `sleep` command in the teardown step, and enter the container with `exec` command during that time.
-    - We can enter the container only by restarting the container which has finished the build. It is not good for user to restart the same build.
-
