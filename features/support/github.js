@@ -119,7 +119,8 @@ function createBranch(branch, repoOwner, repoName) {
  * @return {Promise}
  */
 function createFile(branch, repoOwner, repoName) {
-    const content = new Buffer(randomString(MAX_CONTENT_LENGTH));
+    // eslint-disable-next-line new-cap
+    const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';

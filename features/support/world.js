@@ -5,7 +5,7 @@ const path = require('path');
 const env = require('node-env-file');
 const requestretry = require('requestretry');
 const request = require('../support/request');
-const { defineSupportCode } = require('cucumber');
+const { setWorldConstructor } = require('cucumber');
 
 /**
  * Retry until the build has finished
@@ -181,5 +181,4 @@ function CustomWorld({ attach, parameters }) {
     this.ensurePipelineExists = ensurePipelineExists;
 }
 
-defineSupportCode(({ setWorldConstructor }) =>
-    setWorldConstructor(CustomWorld));
+setWorldConstructor(CustomWorld);
