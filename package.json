@@ -100,6 +100,7 @@
     "screwdriver-executor-k8s-vm": "^2.10.0",
     "screwdriver-executor-queue": "^2.4.28",
     "screwdriver-executor-router": "^1.0.11",
+    "screwdriver-logger": "^1.0.0",
     "screwdriver-models": "^27.36.0",
     "screwdriver-notifications-email": "^1.2.0",
     "screwdriver-notifications-slack": "^2.3.0",
@@ -111,8 +112,7 @@
     "tinytim": "^0.1.1",
     "uuid": "^3.3.3",
     "verror": "^1.6.1",
-    "vision": "^4.1.0",
-    "winston": "^2.4.4"
+    "vision": "^4.1.0"
   },
   "devDependencies": {
     "@octokit/rest": "~16.33",

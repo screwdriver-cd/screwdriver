@@ -2,9 +2,9 @@
 
 const boom = require('boom');
 const joi = require('joi');
-const winston = require('winston');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
@@ -74,7 +74,7 @@ async function updateAdmins(userFactory, username, scmContext, pipeline) {
             return pipeline.update();
         }
     } catch (err) {
-        winston.info(err.message);
+        logger.info(err.message);
     }
 
     return Promise.resolve();
@@ -172,7 +172,7 @@ function hasTriggeredJob(pipeline, startFrom) {
 
         return nextJobs.length > 0;
     } catch (err) {
-        winston.error(`Error finding triggered jobs for ${pipeline.id}: ${err}`);
+        logger.error(`Error finding triggered jobs for ${pipeline.id}: ${err}`);
 
         return false;
     }
@@ -322,7 +322,7 @@ async function createPREvents(options, request) {
             if (err.status >= 500) {
                 throw err;
             } else {
-                winston.info(`skip create event for branch: ${b}`);
+                logger.info(`skip create event for branch: ${b}`);
             }
         }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
@@ -412,7 +412,7 @@ async function pullRequestOpened(options, request, reply) {
             return reply().code(201);
         })
         .catch((err) => {
-            winston.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}]: ${err}`);
 
             return reply(boom.boomify(err));
         });
@@ -450,7 +450,7 @@ async function pullRequestClosed(options, request, reply) {
         })))
         .then(() => reply().code(200))
         .catch((err) => {
-            winston.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}]: ${err}`);
 
             return reply(boom.boomify(err));
         });
@@ -488,7 +488,7 @@ async function pullRequestSync(options, request, reply) {
             return reply().code(201);
         })
         .catch((err) => {
-            winston.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}]: ${err}`);
 
             return reply(boom.boomify(err));
         });
@@ -600,7 +600,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
             return pullRequestClosed(options, request, reply);
         }
     }).catch((err) => {
-        winston.error(`[${hookId}]: ${err}`);
+        logger.error(`[${hookId}]: ${err}`);
 
         return reply(boom.boomify(err));
     });
@@ -668,7 +668,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     const ignoreExtraTriggeredPipelines = pipelineTuples.filter((t) => {
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
         if (EXTRA_TRIGGERS.test(t.startFrom) && !hasTriggeredJob(t.pipeline, t.startFrom)) {
-            winston.info(`Event not created: there are no jobs triggered by ${t.startFrom}`);
+            logger.warn(`Event not created: there are no jobs triggered by ${t.startFrom}`);
 
             return false;
         }
@@ -694,7 +694,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
             if (err.status >= 500) {
                 throw err;
             } else {
-                winston.info(`skip create event for branch: ${pipelineBranch}`);
+                logger.info(`skip create event for branch: ${pipelineBranch}`);
             }
         }
         const eventConfig = {
@@ -790,7 +790,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
 
         return reply().code(201);
     } catch (err) {
-        winston.error(`[${hookId}]: ${err}`);
+        logger.error(`[${hookId}]: ${err}`);
 
         return reply(boom.boomify(err));
     }
@@ -936,7 +936,7 @@ exports.register = (server, options, next) => {
 
                     return pushEvent(pluginOptions, request, reply, parsed, skipMessage, token);
                 } catch (err) {
-                    winston.error(`[${parsedHookId}]: ${err}`);
+                    logger.error(`[${parsedHookId}]: ${err}`);
 
                     return reply(boom.boomify(err));
                 }
