@@ -7,7 +7,7 @@
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 4000 --exit",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=progress --tags 'not @ignore' --retry 2 --fail-fast",
+    "functional": "cucumber-js --format=progress --tags 'not @ignore' --retry 2 --fail-fast --exit",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
     "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png"
   },
