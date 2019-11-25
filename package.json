@@ -7,7 +7,7 @@
     "pretest": "eslint .",
     "test": "jenkins-mocha --recursive --timeout 4000 --exit",
     "start": "./bin/server",
-    "functional": "cucumber-js --format=progress --tags 'not @ignore' --retry 2 --fail-fast",
+    "functional": "cucumber-js --format=progress --tags 'not @ignore' --retry 2 --fail-fast --exit",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
     "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png"
   },
@@ -97,9 +97,10 @@
     "screwdriver-datastore-sequelize": "^5.8.1",
     "screwdriver-executor-docker": "^4.2.0",
     "screwdriver-executor-k8s": "^13.6.1",
-    "screwdriver-executor-k8s-vm": "^2.10.0",
+    "screwdriver-executor-k8s-vm": "^3.1.0",
     "screwdriver-executor-queue": "^2.4.28",
     "screwdriver-executor-router": "^1.0.11",
+    "screwdriver-logger": "^1.0.0",
     "screwdriver-models": "^27.36.0",
     "screwdriver-notifications-email": "^1.2.0",
     "screwdriver-notifications-slack": "^2.3.0",
@@ -111,8 +112,7 @@
     "tinytim": "^0.1.1",
     "uuid": "^3.3.3",
     "verror": "^1.6.1",
-    "vision": "^4.1.0",
-    "winston": "^2.4.4"
+    "vision": "^4.1.0"
   },
   "devDependencies": {
     "@octokit/rest": "~16.33",
