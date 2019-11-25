@@ -262,7 +262,7 @@ Then(/^the build should know they are in a pull request/, function step() {
 Then(/^any existing builds should be stopped$/, {
     timeout: TIMEOUT
 }, function step() {
-    const desiredStatus = ['ABORTED', 'SUCCESS'];
+    const desiredStatus = ['ABORTED', 'SUCCESS', 'FAILURE'];
 
     return sdapi.waitForBuildStatus({
         buildId: this.previousBuildId,

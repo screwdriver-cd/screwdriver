@@ -4,9 +4,10 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
-const winston = require('winston');
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
+
+const logger = require('screwdriver-logger');
 
 /**
  * Makes the request to the Store to get lines from a log
@@ -66,7 +67,7 @@ async function getMaxLines({ baseUrl, authToken }) {
             linesFrom: 0,
             page: 0 });
     } catch (err) {
-        winston.error(err);
+        logger.error(err);
         throw new Error(err);
     }
 
@@ -100,7 +101,7 @@ async function loadLines({
     try {
         lines = await fetchLog({ baseUrl, linesFrom, authToken, page, sort });
     } catch (err) {
-        winston.error(err);
+        logger.error(err);
         throw new Error(err);
     }
 

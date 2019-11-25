@@ -122,7 +122,7 @@ When(/^sd-step command is executed to use (.*) package with specified version (.
 Then(/^(.*) package is available via sd-step$/, { timeout: 700 * 1000 }, function step(pkg) {
     return this.waitForBuild(this.buildId).then((response) => {
         Assert.equal(response.statusCode, 200);
-        Assert.equal(response.body.status, 'SUCCESS');
+        Assert.oneOf(response.body.status, ['SUCCESS', 'RUNNING']);
     });
 });
 
