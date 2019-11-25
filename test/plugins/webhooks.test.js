@@ -169,8 +169,6 @@ describe('webhooks plugin test', () => {
         };
 
         plugin = rewire('../../plugins/webhooks');
-        // eslint-disable-next-line no-underscore-dangle
-        plugin.__set__('WAIT_FOR_CHANGEDFILES', 0);
 
         server = new hapi.Server();
         server.root.app = {
