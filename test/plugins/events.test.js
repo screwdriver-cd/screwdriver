@@ -184,7 +184,7 @@ describe('event plugin test', () => {
     });
 
     describe('GET /events/{id}/builds', () => {
-        const id = '12345';
+        const id = 12345;
         let options;
         let event;
         let builds;
