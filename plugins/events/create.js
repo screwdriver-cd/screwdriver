@@ -196,6 +196,11 @@ module.exports = () => ({
                                 return eventFactory.get(parentEventId)
                                     .then((parentEvent) => {
                                         payload.baseBranch = parentEvent.baseBranch || null;
+
+                                        if (parentEvent.meta && parentEvent.meta.parameters) {
+                                            payload.meta.parameters = parentEvent.meta.parameters;
+                                        }
+
                                         if (!prNum) {
                                             payload.workflowGraph = parentEvent.workflowGraph;
                                             payload.sha = parentEvent.sha;
