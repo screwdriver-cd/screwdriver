@@ -5,6 +5,8 @@ const joi = require('joi');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const schema = require('screwdriver-data-schema');
 const MAX_DAYS = 180; // 6 months
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineMetricListSchema = joi.array().items(joi.object());
 
 module.exports = () => ({
     method: 'GET',
@@ -60,7 +62,13 @@ module.exports = () => ({
                 .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
         },
+        response: {
+            schema: pipelineMetricListSchema
+        },
         validate: {
+            params: {
+                id: pipelineIdSchema
+            },
             query: schema.api.pagination.concat(joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
