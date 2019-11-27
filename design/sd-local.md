@@ -56,7 +56,7 @@ test
      1. Get the binaries from Store
      2. Run it
 3. Write Artifacts to Artifacts Directory
-4. Output logs to stdout
+4. Output logs to a file under Artifacts Directory
 
 ### Build Environment Variables
 
@@ -105,12 +105,11 @@ $ sdlocal build [job-name] [options]
 - `--env-file [path]` Path to config file of environment variables. (`.env`)
 - `--artifacts-dir [path]` Path to the host side directory which is mounted into `$SD_ARTIFACTS_DIR`. (default: `./sd-artifacts`)
 - `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
-- `-o --output [path]` Path to file name where the logs are output. (default: stdout)
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 
 #### Output
 
-- Logs of all executed steps in the job.
+- Logs of all executed steps in the job to `$SD_ARTIFACTS_DIR`.
 - Artifacts which is output to `$SD_ARTIFACTS_DIR`.
 
 ### Configuration
@@ -157,8 +156,15 @@ Need to be implement the following:
 - Add `--local-mode` option to run Launcher binary on Local Mode
 - Not to call Screwdriver API on Local Mode
 - Use the steps information from the response of validator API in `Initialization`
-- Output the build logs to stdout instead of `log-service`
+- Output the build logs by using local-mode `log-service`
 - Add the option that run Launcher binary on Local Mode to `run.sh`
+
+#### Implement Local Mode `log-service`.
+Need to be implement the following:
+- Add `--local-mode` option to run `log-service` on local mode
+- On local mode, output the build logs to a file under Artifacts Directory instead of Store.
+- Need to output some simplified log to stdout so as to recognize the build progress. For example, output only the name of each steps.
 
 #### Others
 - `publish`/`promote` of any `sd-cmd` must not be executed from the `sdlocal` command.
+
