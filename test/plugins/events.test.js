@@ -428,7 +428,15 @@ describe('event plugin test', () => {
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.baseBranch = 'master';
             testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
             eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
             options.payload.parentEventId = parentEventId;
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
@@ -566,6 +574,9 @@ describe('event plugin test', () => {
             };
             eventConfig.changedFiles = ['screwdriver.yaml'];
             eventConfig.baseBranch = 'master';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
