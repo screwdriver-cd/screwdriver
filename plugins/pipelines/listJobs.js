@@ -3,7 +3,9 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.job.get).label('List of jobs');
+const jobListSchema = joi.array().items(schema.models.job.get).label('List of jobs');
+const jobNameSchema = joi.reach(schema.models.job.base, 'name');
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
     method: 'GET',
@@ -50,12 +52,15 @@ module.exports = () => ({
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {
-            schema: listSchema
+            schema: jobListSchema
         },
         validate: {
+            params: {
+                id: pipelineIdSchema
+            },
             query: schema.api.pagination.concat(joi.object({
                 archived: joi.boolean().truthy('true').falsy('false').default(false),
-                jobName: joi.reach(schema.models.job.base, 'name')
+                jobName: jobNameSchema
             }))
         }
     }

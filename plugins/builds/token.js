@@ -1,7 +1,10 @@
 'use strict';
 
 const boom = require('boom');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const authTokenSchema = schema.api.auth.token;
+const buildIdSchema = joi.reach(schema.models.build.base, 'id');
 
 module.exports = () => ({
     method: 'POST',
@@ -65,7 +68,12 @@ module.exports = () => ({
             }).catch(err => reply(boom.boomify(err)));
         },
         response: {
-            schema: schema.api.auth.token
+            schema: authTokenSchema
+        },
+        validate: {
+            params: {
+                id: buildIdSchema
+            }
         }
     }
 });

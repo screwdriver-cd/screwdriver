@@ -284,7 +284,7 @@ describe('job plugin test', () => {
     });
 
     describe('GET /jobs/{id}/builds', () => {
-        const id = '1234';
+        const id = 1234;
         let options;
         let job;
         let builds;

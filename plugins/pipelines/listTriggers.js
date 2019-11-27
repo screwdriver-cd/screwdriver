@@ -4,8 +4,9 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER, JOB_NAME } = schema.config.regex;
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 const destSchema = joi.string().regex(EXTERNAL_TRIGGER).max(64);
-const listSchema = joi.array().items(joi.object({
+const triggerListSchema = joi.array().items(joi.object({
     jobName: JOB_NAME,
     triggers: joi.array().items(destSchema)
 })).label('List of triggers');
@@ -42,7 +43,12 @@ module.exports = () => ({
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {
-            schema: listSchema
+            schema: triggerListSchema
+        },
+        validate: {
+            params: {
+                id: pipelineIdSchema
+            }
         }
     }
 });
