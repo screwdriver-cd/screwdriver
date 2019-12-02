@@ -163,7 +163,7 @@ Need to be implement the following:
 Need to be implement the following:
 - Add `--local-mode` option to run `log-service` on local mode
 - On local mode, output the build logs to a file under Artifacts Directory instead of Store.
-- Need to output some simplified log to stdout so as to recognize the build progress. For example, output only the name of each steps.
+
 
 #### Others
 - `publish`/`promote` of any `sd-cmd` must not be executed from the `sdlocal` command.
