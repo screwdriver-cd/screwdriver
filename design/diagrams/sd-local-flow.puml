@@ -1,0 +1,62 @@
+@startuml
+actor User
+database Volume order 1
+database FileSystem order 2
+
+Group Initialization
+
+	User -> sdlocal : Build
+	activate sdlocal
+        sdlocal -> API : GET /v4/auth/token
+        activate API
+            sdlocal <-- API : JWT
+        deactivate API
+		sdlocal -> API : POST /v4/validator
+		activate API
+			sdlocal <-- API: result
+		deactivate API
+		sdlocal -> "Docker Hub" : Pull Launcher Image
+		activate "Docker Hub"
+			sdlocal <-- "Docker Hub" : Launcher Image
+		deactivate "Docker Hub"
+		sdlocal -> "Launcher Container" : Run Container
+		activate "Launcher Container"
+			"Launcher Container" -> Volume : Copy Binaries
+			activate Volume
+			deactivate Volume
+		deactivate "Launcher Container"
+		sdlocal -> "Docker Hub" : Pull Build Image
+		activate "Docker Hub"
+			sdlocal <-- "Docker Hub" : Build Image
+		deactivate "Docker Hub"
+	end
+
+	Group Run Build
+		sdlocal -> "Build Container" : Run
+		activate "Build Container"
+                        "Build Container" -> FileSystem : Mount SSH-Agent Socket
+			activate FileSystem
+			deactivate FileSystem
+			"Build Container" -> FileSystem : Mount Source Directory
+			activate FileSystem
+			deactivate FileSystem
+			"Build Container" -> FileSystem : Mount Artifacts Directory
+			activate FileSystem
+			deactivate FileSystem
+			"Build Container" -> Volume : Mount Volume
+			activate Volume
+			deactivate Volume
+			"Build Container" -> "Build Container" : run.sh
+			"Build Container" -> Store : Execute sd-cmd
+			activate Store
+				"Build Container" <-- Store : sd-cmd Binaries
+			deactivate Store
+                        "Build Container" -> FileSystem : Write Artifacts
+                        activate FileSystem
+                        deactivate FileSystem
+			sdlocal <-- "Build Container" : Output
+		deactivate "Build Container"
+	deactivate sdlocal
+end
+
+@enduml

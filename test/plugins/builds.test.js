@@ -2575,7 +2575,7 @@ describe.only('build plugin test', () => {
     });
 
     describe('GET /builds/{id}/secrets', () => {
-        const id = '12345';
+        const id = 12345;
         let options;
         let username;
 
@@ -3446,7 +3446,7 @@ describe.only('build plugin test', () => {
     });
 
     describe('POST /builds/{id}/token', () => {
-        const id = '12345';
+        const id = 12345;
         const scope = ['temporal'];
         const buildTimeout = 50;
         let options;

@@ -374,6 +374,10 @@ ecosystem:
   allowCors:
     __name: ECOSYSTEM_ALLOW_CORS
     __format: json
+  # build cache strategies: s3, disk, with s3 as default option to store cache
+  cache:
+    strategy: CACHE_STRATEGY
+    path: CACHE_PATH
 
 build:
   environment:
