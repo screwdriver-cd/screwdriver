@@ -378,6 +378,9 @@ ecosystem:
   cache:
     strategy: CACHE_STRATEGY
     path: CACHE_PATH
+    compress: CACHE_COMPRESS
+    md5check: CACHE_MD5CHECK
+    max_size_mb: CACHE_MAX_SIZE_MB
 
 build:
   environment:
