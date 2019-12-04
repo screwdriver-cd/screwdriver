@@ -285,6 +285,9 @@ ecosystem:
   cache:
     strategy: "s3"
     path: "/"
+    compress: false
+    md5check: false
+    max_size_mb: 0
 
 # default cluster environment variables to inject into builds
 build:
