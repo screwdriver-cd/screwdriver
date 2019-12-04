@@ -67,12 +67,12 @@ test
 - SD_TEMPLATE_VERSION: The value got from validator API
 - SD_TOKEN: JWT got in `Initialization`
 - USER_SHELL_BIN: Set by user, otherwise Screwdriver.cd default
-- SD_ARTIFACTS_DIR: `/sd/workspace/artifacts`
 - SD_META_DIR: `/sd/meta` (by default)
 - SD_META_PATH: `${SD_META_DIR}/meta.json`
 - SD_ROOT_DIR: `/sd/workspace` (by default)
 - SD_SOURCE_DIR: `${SD_ROOT_DIR}/src/<SCM hostname>/<organization>/<repository>`
 - SD_SOURCE_PATH: Generate from `screwdriver.yaml`
+- SD_ARTIFACTS_DIR: `${SD_ROOT_DIR}/artifacts`
 - SD_CONFIG_DIR: Not set (Need to be set when External Config is supported)
 - CONFIG_URL: Not set (Need to be set when External Config is supported)
 - SD_API_URL: The value got from config file
