@@ -197,7 +197,8 @@ module.exports = () => ({
                                     .then((parentEvent) => {
                                         payload.baseBranch = parentEvent.baseBranch || null;
 
-                                        if (parentEvent.meta && parentEvent.meta.parameters) {
+                                        if ((!payload.meta || !payload.meta.parameters) &&
+                                            parentEvent.meta && parentEvent.meta.parameters) {
                                             payload.meta.parameters = parentEvent.meta.parameters;
                                         }
 
