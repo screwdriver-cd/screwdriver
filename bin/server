@@ -37,6 +37,8 @@ Object.keys(clusterEnv).forEach((k) => {
     clusterEnv[k] = String(clusterEnv[k]);
 });
 
+const externalJoin = config.get('build').externalJoin; // flag to allow external join
+
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
@@ -93,6 +95,7 @@ const Models = require('screwdriver-models');
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm,
+    externalJoin,
     multiBuildClusterEnabled
 });
 
@@ -212,7 +215,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled)
         banners: authConfig,
         builds: {
             ecosystem,
-            authConfig
+            authConfig,
+            externalJoin
         },
         stats: {
             executor, scm

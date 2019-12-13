@@ -7,7 +7,7 @@ const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
-module.exports = () => ({
+module.exports = config => ({
     method: 'PUT',
     path: '/builds/{id}',
     config: {
@@ -32,6 +32,7 @@ module.exports = () => ({
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
             const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
+            const externalJoin = config.externalJoin || false;
 
             if (isBuild && username !== id) {
                 return reply(boom.forbidden(`Credential only valid for ${username}`));
@@ -164,8 +165,9 @@ module.exports = () => ({
 
                     // Only trigger next build on success
                     return Promise.all([build.update(), event.update()]);
-                }).then(([newBuild, newEvent]) =>
-                    newBuild.job.then(job => job.pipeline.then((pipeline) => {
+                })
+                .then(([newBuild, newEvent]) => newBuild.job
+                    .then(job => job.pipeline.then((pipeline) => {
                         request.server.emit('build_status', {
                             settings: job.permutations[0].settings,
                             status: newBuild.status,
@@ -179,37 +181,46 @@ module.exports = () => ({
 
                         // Guard against triggering non-successful or unstable builds
                         if (newBuild.status !== 'SUCCESS') {
-                            return null;
+                            return reply(newBuild.toJson()).code(200);
                         }
 
                         const src = `~sd@${pipeline.id}:${job.name}`;
 
                         return triggerNextJobs({
-                            pipeline, job, build: newBuild, username, scmContext
-                        })
-                            .then(() => triggerFactory.list({ params: { src } }))
-                            .then((records) => {
-                            // Use set to remove duplicate and keep only unique pipelineIds
-                                const triggeredPipelines = new Set();
+                            pipeline, job, build: newBuild, username, scmContext, externalJoin
+                        }).then(() => {
+                            // if external join is allow, then triggerNextJobs will take care of external OR already
+                            if (externalJoin) {
+                                return reply(newBuild.toJson()).code(200);
+                            }
 
-                                records.forEach((record) => {
-                                    const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
+                            // Old flow
+                            return triggerFactory.list({ params: { src } })
+                                .then((records) => {
+                                    // Use set to remove duplicate and keep only unique pipelineIds
+                                    const triggeredPipelines = new Set();
 
-                                    triggeredPipelines.add(pipelineId);
-                                });
+                                    records.forEach((record) => {
+                                        const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
 
-                                return Array.from(triggeredPipelines);
-                            })
-                            .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
-                                triggerEvent({
-                                    pipelineId: parseInt(pipelineId, 10),
-                                    startFrom: src,
-                                    causeMessage: `Triggered by build ${username}`,
-                                    parentBuildId: newBuild.id
+                                        triggeredPipelines.add(pipelineId);
+                                    });
+
+                                    return Array.from(triggeredPipelines);
                                 })
-                            )));
-                    }).then(() => reply(newBuild.toJson()).code(200))))
-                .catch(err => reply(boom.boomify(err)));
+                                .then(pipelineIds => Promise.all(pipelineIds.map(pipelineId =>
+                                    triggerEvent({
+                                        pipelineId: parseInt(pipelineId, 10),
+                                        startFrom: src,
+                                        causeMessage: `Triggered by build ${username}`,
+                                        parentBuildId: newBuild.id
+                                    })
+                                )))
+                                .then(() => reply(newBuild.toJson()).code(200));
+                        });
+                    })
+                        .catch(err => reply(boom.boomify(err)))
+                    ));
         },
         validate: {
             params: {
