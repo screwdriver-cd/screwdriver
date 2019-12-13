@@ -391,7 +391,6 @@ function trimJobName(jobName) {
  * @return {Object}                With above information
  */
 function parseJobInfo({ joinObj, currentJobName, nextJobName, pipelineId, build }) {
-    console.log('---- nextJobName ', nextJobName);
     const joinList = joinObj[nextJobName];
     const joinListNames = joinList.map(j => j.name);
     const isExternal = EXTERNAL_TRIGGER_AND.test(nextJobName);
@@ -400,8 +399,6 @@ function parseJobInfo({ joinObj, currentJobName, nextJobName, pipelineId, build 
      * FOR EASY LOOKUP OF BUILD STATUS */
     // current job's parentBuilds
     const currentJobParentBuilds = build.parentBuilds || {};
-
-    console.log('-------- currentJobParentBuilds: ', currentJobParentBuilds);
 
     // join jobs, with eventId and buildId empty
     const joinParentBuilds = {};
@@ -499,20 +496,12 @@ async function getNextBuild({
 async function updateParentBuilds({
     joinParentBuilds, currentJobParentBuilds, nextBuild, currentBuildInfo, build }) {
     // Override old parentBuilds info
-    console.log('----joinParentBuilds', joinParentBuilds);
-    console.log('----nextBuild parentBuilds', nextBuild.parentBuilds);
-
     const newParentBuilds = deepmerge.all(
         [joinParentBuilds, currentJobParentBuilds,
             nextBuild.parentBuilds, currentBuildInfo]);
 
-    console.log('----newBuild updated', newParentBuilds);
-
     nextBuild.parentBuilds = newParentBuilds;
-    // nextBuild.parentBuilds = deepmerge(parentBuilds, nextBuild.parentBuilds || {});
     nextBuild.parentBuildIds = [build.id].concat(nextBuild.parentBuildId || []);
-
-    console.log('---parentBuildId', nextBuild.parentBuildIds);
 
     return nextBuild.update();
 }
@@ -542,7 +531,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
             bId = upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName];
         }
 
-        console.log('---bId', bId);
         // If buildId is empty, the job hasn't executed yet and the join is not done
         if (!bId) {
             done = false;
@@ -556,7 +544,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
     const joinedBuilds = await Promise.all(promisesToAwait);
 
     joinedBuilds.forEach((b) => {
-        console.log('++++++++++++++++++++++ build status: ', b.status);
         // Do not need to run the next build; terminal status
         if (['FAILURE', 'ABORTED', 'COLLAPSED'].includes(b.status)) {
             hasFailure = true;
@@ -582,9 +569,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @return {Promise}            The newly updated/created build
  */
 async function handleNewBuild({ done, hasFailure, newBuild }) {
-    console.log('----has failure ', hasFailure);
-    console.log('----done ', done);
-
     if (done) {
         // Delete new build since previous build failed
         if (hasFailure) {
@@ -657,7 +641,6 @@ exports.register = (server, options, next) => {
             return obj;
         }, {});
 
-        console.log('--- current job ', config.job);
         // Use old flow if external join flag is off
         if (!externalJoin) {
             return Promise.all(Object.keys(joinObj).map((nextJobName) => {
