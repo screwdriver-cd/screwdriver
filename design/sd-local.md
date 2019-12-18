@@ -8,6 +8,11 @@ The build environment on Screwdriver.cd differs from the user execution environm
 Therefore, the build results may differ between the build environment on local and the build environment on Screwdriver.cd.
 As a result, User cannot confirm whether the result obtained on CI is the expected result until the build is actually run on Screwdriver.cd.
 
+## Status
+- December 3rd, 2019: Proposal submitted
+- December 6th, 2019: Added `SD_META_DIR`
+- December 18th, 2019: Updated `launcher` / `log-service`
+
 ## Proposal
 
 Provide the function for users to run builds locally.
