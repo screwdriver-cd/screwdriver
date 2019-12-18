@@ -45,12 +45,17 @@ module.exports = () => ({
 
                 return buildClusterFactory.list({
                     params: {
-                        name
+                        name,
+                        scmContext
                     }
                 })
                     .then((buildClusters) => {
+                        if (!Array.isArray(buildClusters)) {
+                            throw boom.badData('Build cluster list returned non-array.');
+                        }
                         if (buildClusters.length === 0) {
-                            throw boom.notFound(`Build cluster ${name} does not exist`);
+                            throw boom.notFound(`Build cluster ${name}, ` +
+                                ` scmContext ${scmContext} does not exist`);
                         }
 
                         Object.assign(buildClusters[0], request.payload);
@@ -75,7 +80,8 @@ module.exports = () => ({
                     user.unsealToken(),
                     buildClusterFactory.list({
                         params: {
-                            name
+                            name,
+                            scmContext
                         }
                     })])
                     .then(([token, buildClusters]) => {
@@ -83,7 +89,8 @@ module.exports = () => ({
                             throw boom.badData('Build cluster list returned non-array.');
                         }
                         if (buildClusters.length === 0) {
-                            throw boom.notFound(`Build cluster ${name} does not exist`);
+                            throw boom.notFound(`Build cluster ${name} ` +
+                                ` scmContext ${scmContext} does not exist`);
                         }
 
                         // To update scmOrganizations, user need to have admin permissions on both old and new organizations
