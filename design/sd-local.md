@@ -38,6 +38,8 @@ test
 3. Validate screwdriver.yaml
    - Validate yaml
    - Get Template/Step information
+   - Merge Template／Step information and Meta／Secrets from sd-local options
+   - Format in the same format as payload from /v4/builds/{id}
 4. Pull Launcher Image from Docker Hub
 5. Copy the binaries under `/opt/sd/` from Launcher Container to the common volume
 6. Pull Build Image from Docker Hub
@@ -49,7 +51,7 @@ test
    - Source Directory
    - Artifacts Directory
 2. Run Local Mode Launcher on Build Container
-   - Run Launcher binary with `--local-mode` option in `run.sh`
+   - Run Launcher binary with `--local-mode` option in `local_run.sh`
    - Config Build Environment Variables and Environment Variables by env option 
    - Run Steps got in `Initialization` No.3
    - Run `sd-cmd`
@@ -152,17 +154,20 @@ $ sdlocal config view
 
 ## Design considerations
 
-#### Implement Local Mode Launcher.
+#### Implement Local Mode `launcher`.
 Need to be implement the following:
 - Add `--local-mode` option to run Launcher binary on Local Mode
+- Add `--local-build-json` option to pass JSON in the same format as payload from `/v4/builds/{id}`
+- Add `--local-job-name` option to use job name
 - Not to call Screwdriver API on Local Mode
 - Use the steps information from the response of validator API in `Initialization`
 - Output the build logs by using local-mode `log-service`
-- Add the option that run Launcher binary on Local Mode to `run.sh`
+- Add `local_run.sh` to run Launcher binary on Local Mode
 
 #### Implement Local Mode `log-service`.
 Need to be implement the following:
 - Add `--local-mode` option to run `log-service` on local mode
+- Add `--build-log-file` option to set the output destination of local-mode `log-service` logs. (The option must be passed by sd-local on local mode.)
 - On local mode, output the build logs to a file under Artifacts Directory instead of Store.
 
 
