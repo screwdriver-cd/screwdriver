@@ -172,7 +172,7 @@ Need to be implement the following:
 #### Implement Local Mode `log-service`.
 Need to be implement the following:
 - Add `--local-mode` option to run `log-service` on local mode
-- Add `--build-log-file` option to set the output destination of local-mode `log-service` logs. (The option must be passed by sd-local on local mode.)
+- Add `--build-log-file` option to set the output destination of local-mode `log-service` logs. (The option must be passed by sd-local.)
 - On local mode, output the build logs to a file under Artifacts Directory instead of Store.
 
 
