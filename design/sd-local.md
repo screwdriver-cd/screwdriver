@@ -162,7 +162,28 @@ $ sdlocal config view
 #### Implement Local Mode `launcher`.
 Need to be implement the following:
 - Add `--local-mode` option to run Launcher binary on Local Mode
-- Add `--local-build-json` option to pass JSON in the same format as payload from `/v4/builds/{id}`
+- Add `--local-build-json` option to pass JSON in the same format as payload from `/v4/builds/{id}`. Specifically, it has the following JSON format. (ref: [type `Build` in launcher](https://github.com/screwdriver-cd/launcher/blob/master/screwdriver/screwdriver.go#L131-L140))
+  ```
+  {
+    "id": 0,
+    "environment": [
+      {}
+    ],
+    "eventId": 0,
+    "jobId": 0,
+    "parentBuildId": [
+      0
+    ],
+    "sha": "dummy",
+    "meta": {},
+    "steps": [
+      {
+        "name": "install",
+        "command": "npm install"
+      }
+    ]
+  }
+  ```
 - Add `--local-job-name` option to use job name
 - Not to call Screwdriver API on Local Mode
 - Use the steps information from the response of validator API in `Initialization`
