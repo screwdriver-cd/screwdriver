@@ -2653,29 +2653,27 @@ describe.only('build plugin test', () => {
                 username: 'batman'
             }
         };
-        const buildMock = getBuildMock(testBuild);
+        let testStep;
 
         beforeEach(() => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            testStep = {
+                name: 'install',
+                code: 1,
+                startTime: '2038-01-19T03:15:08.532Z',
+                endTime: '2038-01-19T03:15:09.114Z'
+            };
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(testStep);
         });
 
-        it('returns 200 for a step that exists', () => {
+        it('returns 200 for a step that exists', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testBuild.steps[1]);
-            });
-        });
-
-        it('returns 404 when build does not exist', () => {
-            buildFactoryMock.get.withArgs(id).resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
-        });
+                assert.deepEqual(reply.result, testStep);
+            })
+        );
 
         it('returns 404 when step does not exist', () => {
-            options.url = `/builds/${id}/steps/fail`;
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -2683,7 +2681,7 @@ describe.only('build plugin test', () => {
         });
 
         it('returns 500 when datastore returns an error', () => {
-            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).rejects(new Error('blah'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -2695,7 +2693,6 @@ describe.only('build plugin test', () => {
         const id = 12345;
         const step = 'publish';
         let options;
-        let buildMock;
         let stepMock;
         let testStep;
 
@@ -2706,12 +2703,9 @@ describe.only('build plugin test', () => {
                 startTime: '2038-01-19T03:15:08.532Z',
                 endTime: '2038-01-19T03:15:09.114Z'
             };
-            buildMock = getBuildMock(testBuild);
             stepMock = getStepMock(testStep);
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
             stepMock.update.resolves(testStep);
-            buildMock.update.resolves(buildMock);
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             options = {
                 method: 'PUT',
@@ -2728,41 +2722,14 @@ describe.only('build plugin test', () => {
             };
         });
 
-        it('returns 200 when updating the code/endTime', () => {
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 0);
-                assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
-                assert.notDeepProperty(reply.result, 'startTime');
-            });
-        });
-
-        it('returns 200 when updating the code/endTime when the step model exists', () => {
+        it('returns 200 when updating the code/endTime when the step model exists', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
                 assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
-            });
-        });
-
-        it('returns 200 when updating the code without endTime', () => {
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
-            delete options.payload.startTime;
-            delete options.payload.endTime;
-            delete testStep.startTime;
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 0);
-                assert.match(reply.result.endTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
-                assert.notDeepProperty(reply.result, 'startTime');
-            });
-        });
+            })
+        );
 
         it('returns 200 when updating the code without endTime when the step model exists', () => {
             delete options.payload.startTime;
@@ -2778,21 +2745,6 @@ describe.only('build plugin test', () => {
             });
         });
 
-        it('returns 200 when updating the startTime', () => {
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
-            delete options.payload.code;
-            delete testStep.code;
-            delete testStep.endTime;
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.notDeepProperty(reply.result, 'code');
-                assert.deepProperty(reply.result, 'startTime', options.payload.startTime);
-                assert.notDeepProperty(reply.result, 'endTime');
-            });
-        });
-
         it('returns 200 when updating the startTime when the step model exists', () => {
             delete options.payload.code;
             delete testStep.code;
@@ -2803,23 +2755,6 @@ describe.only('build plugin test', () => {
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.notDeepProperty(reply.result, 'code');
                 assert.deepProperty(reply.result, 'startTime', options.payload.startTime);
-                assert.notDeepProperty(reply.result, 'endTime');
-            });
-        });
-
-        it('returns 200 when updating without any fields', () => {
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
-            delete options.payload.startTime;
-            delete options.payload.endTime;
-            delete options.payload.code;
-            delete testStep.code;
-            delete testStep.endTime;
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.notDeepProperty(reply.result, 'code');
-                assert.match(reply.result.startTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
                 assert.notDeepProperty(reply.result, 'endTime');
             });
         });
@@ -2840,23 +2775,7 @@ describe.only('build plugin test', () => {
             });
         });
 
-        it('returns 200 when updating the lines', () => {
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-            delete options.payload.startTime;
-            delete options.payload.endTime;
-            delete options.payload.code;
-            options.payload.lines = 100;
-            testStep.lines = 100;
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'lines', options.payload.lines);
-            });
-        });
-
         it('returns 200 when updating the lines when the step model exists', () => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
             delete options.payload.startTime;
             delete options.payload.endTime;
             delete options.payload.code;
@@ -2877,14 +2796,6 @@ describe.only('build plugin test', () => {
             });
         });
 
-        it('returns 404 when build does not exist', () => {
-            buildFactoryMock.get.withArgs(id).resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
-        });
-
         it('returns 404 when step does not exist', () => {
             options.url = `/builds/${id}/steps/fail`;
             stepFactoryMock.get.withArgs({ buildId: id, name: 'fail' }).resolves(null);
@@ -2894,17 +2805,8 @@ describe.only('build plugin test', () => {
             });
         });
 
-        it('returns 500 when build get returns an error', () => {
-            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-
         it('returns 500 when build update returns an error', () => {
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
-            buildMock.update.rejects(new Error('blah'));
+            stepMock.update.rejects(new Error('blah'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -2932,10 +2834,18 @@ describe.only('build plugin test', () => {
                 t: 1472236248000
             }
         ];
-        const buildMock = getBuildMock(testBuild);
+        let stepMock;
+        let testStep;
 
         beforeEach(() => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            testStep = {
+                name: 'install',
+                code: 1,
+                startTime: '2038-01-19T03:15:08.532Z',
+                endTime: '2038-01-19T03:15:09.114Z'
+            };
+            stepMock = getStepMock(testStep);
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
             nock.disableNetConnect();
         });
 
@@ -3275,6 +3185,10 @@ describe.only('build plugin test', () => {
         });
 
         it('returns false more-data for a step that is not started', () => {
+            stepMock = getStepMock({
+                name: 'publish'
+            });
+            stepFactoryMock.get.withArgs({ buildId: id, name: 'publish' }).resolves(stepMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
@@ -3293,6 +3207,11 @@ describe.only('build plugin test', () => {
         });
 
         it('returns empty array on invalid data', () => {
+            stepMock = getStepMock({
+                name: 'test',
+                startTime: '2038-01-19T03:15:09.114Z'
+            });
+            stepFactoryMock.get.withArgs({ buildId: id, name: 'test' }).resolves(stepMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/test/log.0`)
                 .twice()
@@ -3310,8 +3229,8 @@ describe.only('build plugin test', () => {
             });
         });
 
-        it('returns 404 when build does not exist', () => {
-            buildFactoryMock.get.withArgs(id).resolves(null);
+        it('returns 404 when step does not exist', () => {
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
             return server.inject({
                 url: `/builds/${id}/steps/${step}/logs`,
@@ -3323,19 +3242,8 @@ describe.only('build plugin test', () => {
             });
         });
 
-        it('returns 404 when step does not exist', () => {
-            server.inject({
-                url: `/builds/${id}/steps/fail/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
-        });
-
         it('returns 500 when datastore returns an error', () => {
-            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).rejects(new Error('blah'));
 
             return server.inject({
                 url: `/builds/${id}/steps/${step}/logs`,
