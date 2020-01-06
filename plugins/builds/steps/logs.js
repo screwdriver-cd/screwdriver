@@ -160,21 +160,13 @@ module.exports = config => ({
             }
         },
         handler: (req, reply) => {
-            const factory = req.server.app.buildFactory;
+            const factory = req.server.app.stepFactory;
             const buildId = req.params.id;
             const stepName = req.params.name;
             const headers = req.headers;
 
-            factory.get(buildId)
-                .then((model) => {
-                    if (!model) {
-                        throw boom.notFound('Build does not exist');
-                    }
-
-                    const stepModel = model.steps.filter(step => (
-                        step.name === stepName
-                    )).pop();
-
+            factory.get({ buildId, name: stepName })
+                .then((stepModel) => {
                     if (!stepModel) {
                         throw boom.notFound('Step does not exist');
                     }
