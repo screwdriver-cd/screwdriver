@@ -152,7 +152,7 @@ module.exports = config => ({
         tags: ['api', 'builds', 'steps', 'log'],
         auth: {
             strategies: ['token'],
-            scope: ['user', 'pipeline']
+            scope: ['user', 'pipeline', 'build']
         },
         plugins: {
             'hapi-swagger': {
