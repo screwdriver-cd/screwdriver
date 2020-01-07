@@ -23,27 +23,32 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const factory = request.server.app.buildFactory;
+            const buildFactory = request.server.app.buildFactory;
+            const stepFactory = request.server.app.stepFactory;
 
-            return factory.get(request.params.id)
-                .then((model) => {
-                    if (!model) {
+            return Promise.all([buildFactory.get(request.params.id),
+                stepFactory.list({ params: { buildId: request.params.id } })])
+                .then(([buildModel, stepsModel]) => {
+                    if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
 
-                    if (Array.isArray(model.environment)) {
-                        return reply(model.toJson());
+                    const steps = stepsModel.map(s => s.toJson());
+
+                    if (Array.isArray(buildModel.environment)) {
+                        return reply(Object.assign(buildModel.toJson(), { steps }));
                     }
 
                     // convert environment obj to array
                     const env = [];
 
-                    Object.keys(model.environment).forEach((name) => {
-                        env.push({ [name]: model.environment[name] });
+                    Object.keys(buildModel.environment).forEach((name) => {
+                        env.push({ [name]: buildModel.environment[name] });
                     });
-                    model.environment = env;
+                    buildModel.environment = env;
 
-                    return model.update().then(m => reply(m.toJson()));
+                    return buildModel.update().then(m =>
+                        reply(Object.assign(m.toJson(), { steps })));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

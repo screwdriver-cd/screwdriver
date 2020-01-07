@@ -99,6 +99,7 @@ describe.only('build plugin test', () => {
         };
         stepFactoryMock = {
             get: sinon.stub(),
+            list: sinon.stub(),
             create: sinon.stub(),
             update: sinon.stub()
         };
@@ -232,11 +233,13 @@ describe.only('build plugin test', () => {
 
     describe('GET /builds/{id}', () => {
         const id = 12345;
+        const stepMock = getStepMock([]);
 
         it('returns 200 for a build that exists', () => {
             const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            stepFactoryMock.list.withArgs({ params: { buildId: id } }).resolves(stepMock);
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -251,6 +254,7 @@ describe.only('build plugin test', () => {
             buildMock.environment = [];
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            stepFactoryMock.list.withArgs({ params: { buildId: id } }).resolves(stepMock);
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
