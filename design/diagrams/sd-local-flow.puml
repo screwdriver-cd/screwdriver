@@ -46,7 +46,7 @@ Group Initialization
 			"Build Container" -> Volume : Mount Volume
 			activate Volume
 			deactivate Volume
-			"Build Container" -> "Build Container" : run.sh
+			"Build Container" -> "Build Container" : local_run.sh
 			"Build Container" -> Store : Execute sd-cmd
 			activate Store
 				"Build Container" <-- Store : sd-cmd Binaries
