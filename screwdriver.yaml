@@ -79,7 +79,7 @@ jobs:
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
             - test: |
                 npm install
-                GIT_TOKEN=${GIT_TOKEN_PROD} npm run functional
+                GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
@@ -93,7 +93,7 @@ jobs:
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
-            - SD_API_TOKEN
+            - SD_API_TOKEN_PROD
             # Git access token
             - GIT_TOKEN_PROD
             # Talking to Kubernetes
