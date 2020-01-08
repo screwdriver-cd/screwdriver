@@ -209,4 +209,6 @@ After({
     if (this.pipelineId) {
         return this.deletePipeline(this.pipelineId);
     }
+
+    return false;
 });
