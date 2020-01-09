@@ -204,6 +204,7 @@ Then(/^the "(.*)" build failed$/, {
 });
 
 After({
+    tags: '@workflow',
     timeout: TIMEOUT
 }, function hook() {
     if (this.pipelineId) {
