@@ -598,26 +598,31 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 
 /**
  * [createOrRunNextBuild description]
- * @param  {[type]}  buildFactory       [description]
- * @param  {[type]}  jobFactory         [description]
- * @param  {[type]}  eventFactory       [description]
- * @param  {[type]}  pipelineFactory    [description]
- * @param  {[type]}  pipelineId         [description]
- * @param  {[type]}  jobName            [description]
- * @param  {[type]}  start              [description]
- * @param  {[type]}  username           [description]
- * @param  {[type]}  scmContext         [description]
- * @param  {[type]}  build              [description]
- * @param  {[type]}  event              [description]
- * @param  {[type]}  parentBuilds       [description]
- * @param  {[type]}  parentEventId      [description]
- * @param  {[type]}  externalPipelineId [description]
- * @param  {[type]}  externalJobName    [description]
- * @param  {[type]}  parentBuildId      [description]
- * @param  {Boolean} isExternal         [description]
- * @param  {[type]}  workflowGraph      [description]
- * @param  {[type]}  nextJobName        [description]
- * @return {[type]}                     [description]
+ * @param  {[type]}  buildFactory           [description]
+ * @param  {[type]}  jobFactory             [description]
+ * @param  {[type]}  eventFactory           [description]
+ * @param  {[type]}  pipelineFactory        [description]
+ * @param  {[type]}  pipelineId             [description]
+ * @param  {[type]}  jobName                [description]
+ * @param  {[type]}  start                  [description]
+ * @param  {[type]}  username               [description]
+ * @param  {[type]}  scmContext             [description]
+ * @param  {[type]}  build                  [description]
+ * @param  {[type]}  event                  [description]
+ * @param  {[type]}  parentBuilds           [description]
+ * @param  {[type]}  parentEventId          [description]
+ * @param  {[type]}  externalPipelineId     [description]
+ * @param  {[type]}  externalJobName        [description]
+ * @param  {[type]}  parentBuildId          [description]
+ * @param  {Boolean} isExternal             [description]
+ * @param  {[type]}  workflowGraph          [description]
+ * @param  {[type]}  nextJobName            [description]
+ * @param  {[type]}  externalBuild          [description]
+ * @param  {[type]}  joinListNames          [description]
+ * @param  {[type]}  joinParentBuilds       [description]
+ * @param  {[type]}  currentJobParentBuilds [description]
+ * @param  {[type]}  currentBuildInfo       [description]
+ * @return {[type]}                         [description]
  */
 async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pipelineFactory,
     pipelineId, jobName, start, username, scmContext, build, event, parentBuilds, parentEventId,
@@ -673,7 +678,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
             newBuild = await createInternalBuild(internalBuildConfig1);
         }
     } else {
-        console.log('++++ NEXT BUILD EXISTS, UPDATE PARENTBUILDS INFO IN EX');
         newBuild = await updateParentBuilds({
             joinParentBuilds,
             currentJobParentBuilds,
@@ -683,8 +687,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         });
     }
 
-    console.log('++++ CHECKING STATUS OF PARENTBUILDS IN EX');
-
     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
     const { hasFailure, done } = await getParentBuildStatus({
         newBuild,
@@ -692,9 +694,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         pipelineId,
         buildFactory
     });
-
-    console.log('hasFailure: ', hasFailure);
-    console.log('done: ', done);
 
     /*  IF NOT DONE -> DO NOTHING
         IF DONE ->
@@ -759,8 +758,6 @@ exports.register = (server, options, next) => {
 
             return obj;
         }, {});
-
-        console.log('currentJobName: ', currentJobName);
 
         // Use old flow if external join flag is off
         if (!externalJoin) {
