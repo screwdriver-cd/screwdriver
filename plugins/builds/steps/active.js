@@ -22,10 +22,11 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const buildFactory = request.server.app.buildFactory;
-            const buildIdCred = request.auth.credentials.username;
-            const buildId = request.params.id;
+            const buildIdCred = request.auth.credentials.username
+                && request.auth.credentials.username.toString();
+            const buildId = request.params.id && request.params.id.toString();
 
-            if (request.auth.credentials.scope === 'temporal' && buildId !== buildIdCred) {
+            if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
                 return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
             }
 
