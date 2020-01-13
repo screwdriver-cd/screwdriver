@@ -16,6 +16,7 @@ Feature: Commands
         Then the job is completed successfully
         And the command is published with <format> format
         And "exec" step executes the command with arguments: <arguments>
+        And the command is deleted
 
         Examples:
             | command      | job     | format  | arguments |
@@ -31,6 +32,7 @@ Feature: Commands
         And "1.0.1" is tagged with "stable"
         And "1.0.1" is tagged with "GA"
         And "stable" tag is removed from "1.0.0"
+        And the command is deleted
 
     @ignore
     Scenario: Get list of explicit command versions

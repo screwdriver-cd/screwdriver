@@ -77,7 +77,9 @@ jobs:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
-            - test: npm install && npm run functional
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
@@ -87,12 +89,12 @@ jobs:
             SD_API_HOST: api.screwdriver.cd
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
             K8S_ENV_VALUE: rc2_
-            TEST_USERNAME: sd-buildbot
+            TEST_USERNAME: sd-buildbot-functional
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
-            - SD_API_TOKEN
+            - SD_API_TOKEN_PROD
             # Git access token
-            - GIT_TOKEN
+            - GIT_TOKEN_PROD
             # Talking to Kubernetes
             - K8S_TOKEN

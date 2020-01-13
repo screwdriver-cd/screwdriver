@@ -502,7 +502,7 @@ async function updateParentBuilds({
             nextBuild.parentBuilds, currentBuildInfo]);
 
     nextBuild.parentBuilds = newParentBuilds;
-    nextBuild.parentBuildIds = [build.id].concat(nextBuild.parentBuildId || []);
+    nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
 
     return nextBuild.update();
 }
