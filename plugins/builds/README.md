@@ -40,6 +40,9 @@ Arguments:
 #### Gets a build step
 `GET /builds/{id}/steps/{name}`
 
+#### Gets the current active build step
+`GET /builds/{id}/steps/active`
+
 #### Updates a build step
 `PUT /builds/{id}/steps/{name}`
 
