@@ -2264,12 +2264,20 @@ describe('build plugin test', () => {
                     }]);
 
                     return newServer.inject(options).then(() => {
-                        jobCconfig.start = false;
-                        jobCconfig.parentBuilds = { 123: {
-                            jobs: { a: 12345, b: null },
-                            eventId: '8888'
-                        } };
-                        assert.calledWith(buildFactoryMock.create, jobCconfig);
+                        assert.calledWith(buildFactoryMock.create.firstCall, {
+                            baseBranch: 'master',
+                            configPipelineSha: 'abc123',
+                            eventId: '8888',
+                            jobId: 3,
+                            parentBuildId: 12345,
+                            parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345, b: null } } },
+                            parentEventId: 123,
+                            prRef: '',
+                            scmContext: 'github:github.com',
+                            sha: '58393af682d61de87789fb4961645c42180cec5a',
+                            start: false,
+                            username: 12345
+                        });
                     });
                 });
 

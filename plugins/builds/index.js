@@ -598,31 +598,31 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 
 /**
  * [createOrRunNextBuild description]
- * @param  {[type]}  buildFactory           [description]
- * @param  {[type]}  jobFactory             [description]
- * @param  {[type]}  eventFactory           [description]
- * @param  {[type]}  pipelineFactory        [description]
- * @param  {[type]}  pipelineId             [description]
- * @param  {[type]}  jobName                [description]
- * @param  {[type]}  start                  [description]
- * @param  {[type]}  username               [description]
- * @param  {[type]}  scmContext             [description]
- * @param  {[type]}  build                  [description]
- * @param  {[type]}  event                  [description]
- * @param  {[type]}  parentBuilds           [description]
- * @param  {[type]}  parentEventId          [description]
- * @param  {[type]}  externalPipelineId     [description]
- * @param  {[type]}  externalJobName        [description]
- * @param  {[type]}  parentBuildId          [description]
- * @param  {Boolean} isExternal             [description]
- * @param  {[type]}  workflowGraph          [description]
- * @param  {[type]}  nextJobName            [description]
- * @param  {[type]}  externalBuild          [description]
- * @param  {[type]}  joinListNames          [description]
- * @param  {[type]}  joinParentBuilds       [description]
- * @param  {[type]}  currentJobParentBuilds [description]
- * @param  {[type]}  currentBuildInfo       [description]
- * @return {[type]}                         [description]
+ * @param  {Factory}    buildFactory        Build factory
+ * @param  {Factory}    jobFactory          Job factory
+ * @param  {Factory}    eventFactory        Event factory
+ * @param  {Factory}    pipelineFactory     Pipeline factory
+ * @param  {Build}      build               The parentBuild for the next build
+ * @param  {Event}      event               Current event
+ * @param  {String}     jobName             Job name
+ * @param  {Number}     pipelineId          Pipeline ID
+ * @param  {String}     externalJobName     Next job name
+ * @param  {Number}     externalPipelineId  Next pipeline ID
+ * @param  {String}     nextJobName         Next job name
+ * @param  {Object}     workflowGraph       Workflow graph
+ * @param  {Boolean}    start               Start build or not
+ * @param  {String}     username            Username
+ * @param  {String}     scmContext          Scm context
+ * @param  {Object}     parentBuilds        Parent builds info
+ * @param  {Number}     parentEventId       Parent event ID
+ * @param  {Number}     parentBuildId       Parent build ID
+ * @param  {Boolean}    isExternal          Is external or not
+ * @param  {Build}      externalBuild       External build
+ * @param  {Array}      joinListNames       Join list names
+ * @param  {Object}     joinParentBuilds    Parent builds info for join
+ * @param  {Object}     currentJobParentBuilds Parent builds info for current job
+ * @param  {Object}     currentBuildInfo    Parent builds info for current build
+ * @return {Promise}                        The newly updated/created build
  */
 async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pipelineFactory,
     pipelineId, jobName, start, username, scmContext, build, event, parentBuilds, parentEventId,
