@@ -2713,7 +2713,7 @@ describe('build plugin test', () => {
             url: `/builds/${id}/steps/active`,
             credentials: {
                 scope: ['user'],
-                username: 'batman'
+                username: '12345'
             }
         };
         const buildMock = getBuildMock(testBuild);
@@ -2726,15 +2726,6 @@ describe('build plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuild.steps[2]);
-            });
-        });
-
-        it('returns 403 when token is temporal and build id is different', () => {
-            options.credentials.scope = ['temporal'];
-            options.credentials.username = '999';
-
-            server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 403);
             });
         });
 
@@ -2761,6 +2752,15 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 403 when token is temporal and build id is different', () => {
+            options.credentials.scope = ['temporal'];
+            options.credentials.username = '999';
+
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
     });
