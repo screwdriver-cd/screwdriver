@@ -32,13 +32,14 @@ module.exports = () => ({
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
-	
-                    // build.stepsが使われなくなって十分な時間がたったら消す。
-                    // 古いビルドのステップだとDBに保存されている順番が保証されていないので、
-                    // 完了しているビルドステップはstartTimeでソートし順番を保証する。
+
+
+                    // This if statement should be removed after enough time has passed since build.steps removed.
+                    // Make orders of steps in completed builds sure,
+                    // because steps in old builds in DB have the order not sorted.
                     if (buildModel.endTime) {
                         stepsModel.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-		    }	    
+                    }
 
                     const steps = stepsModel.map(s => s.toJson());
 
