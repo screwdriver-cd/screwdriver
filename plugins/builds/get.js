@@ -33,6 +33,9 @@ module.exports = () => ({
                         throw boom.notFound('Build does not exist');
                     }
 
+                    if (!stepsModel) {
+                        throw boom.notFound('Steps do not exist');
+                    }
 
                     // This if statement should be removed after enough time has passed since build.steps removed.
                     // Make orders of steps in completed builds sure,
