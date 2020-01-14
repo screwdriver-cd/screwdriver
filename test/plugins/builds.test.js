@@ -239,7 +239,10 @@ describe.only('build plugin test', () => {
             const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
-            stepFactoryMock.list.withArgs({ params: { buildId: id } }).resolves(stepMock);
+            stepFactoryMock.list.withArgs({
+                params: { buildId: id },
+                sortBy: 'id',
+                sort: 'ascending' }).resolves(stepMock);
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -254,12 +257,56 @@ describe.only('build plugin test', () => {
             buildMock.environment = [];
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
-            stepFactoryMock.list.withArgs({ params: { buildId: id } }).resolves(stepMock);
+            stepFactoryMock.list.withArgs({
+                params: { buildId: id },
+                sortBy: 'id',
+                sort: 'ascending' }).resolves(stepMock);
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.notCalled(buildMock.update);
                 assert.deepEqual(reply.result, testBuild);
+            });
+        });
+
+        it('returns steps sorted', () => {
+            const buildMock = getBuildMock(testBuild);
+            const testSteps = [
+                getStepMock({
+                    name: 'publish',
+                    code: 1,
+                    startTime: '2039-01-19T03:15:08.532Z',
+                    endTime: '2039-01-19T03:15:09.114Z'
+                }),
+                getStepMock({
+                    name: 'install',
+                    code: 1,
+                    startTime: '2038-01-19T03:15:08.532Z',
+                    endTime: '2038-01-19T03:15:09.114Z'
+                })];
+            const testStepsSorted = [{
+                name: 'install',
+                code: 1,
+                startTime: '2038-01-19T03:15:08.532Z',
+                endTime: '2038-01-19T03:15:09.114Z'
+            }, {
+                name: 'publish',
+                code: 1,
+                startTime: '2039-01-19T03:15:08.532Z',
+                endTime: '2039-01-19T03:15:09.114Z'
+            }];
+
+            buildMock.environment = [];
+
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            stepFactoryMock.list.withArgs({
+                params: { buildId: id },
+                sortBy: 'id',
+                sort: 'ascending' }).resolves(testSteps);
+
+            return server.inject(`/builds/${id}`).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result.steps, testStepsSorted);
             });
         });
 
@@ -2675,38 +2722,6 @@ describe.only('build plugin test', () => {
                 assert.deepEqual(reply.result, testStep);
             })
         );
-
-        it('returns steps sorted', () => {
-            const testSteps = [{
-                name: 'publish',
-                code: 1,
-                startTime: '2039-01-19T03:15:08.532Z',
-                endTime: '2039-01-19T03:15:09.114Z'
-            },{
-                name: 'install',
-                code: 1,
-                startTime: '2038-01-19T03:15:08.532Z',
-                endTime: '2038-01-19T03:15:09.114Z'
-            }];
-            const testStepsSorted = [{
-                name: 'install',
-                code: 1,
-                startTime: '2038-01-19T03:15:08.532Z',
-                endTime: '2038-01-19T03:15:09.114Z'
-            },{
-                name: 'publish',
-                code: 1,
-                startTime: '2039-01-19T03:15:08.532Z',
-                endTime: '2039-01-19T03:15:09.114Z'
-            }];
-
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(testSteps);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testStepsSorted);
-            });
-        });
 
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
