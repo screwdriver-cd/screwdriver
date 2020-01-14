@@ -27,7 +27,10 @@ module.exports = () => ({
             const stepFactory = request.server.app.stepFactory;
 
             return Promise.all([buildFactory.get(request.params.id),
-                stepFactory.list({ params: { buildId: request.params.id }, sortBy: 'id', sort: 'ascending' })])
+                stepFactory.list({
+                    params: { buildId: request.params.id },
+                    sortBy: 'id',
+                    sort: 'ascending' })])
                 .then(([buildModel, stepsModel]) => {
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
@@ -41,7 +44,9 @@ module.exports = () => ({
                     // Make orders of steps in completed builds sure,
                     // because steps in old builds in DB have the order not sorted.
                     if (buildModel.endTime) {
-                        stepsModel.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+                        stepsModel.sort((a, b) =>
+                            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+                        );
                     }
 
                     const steps = stepsModel.map(s => s.toJson());
