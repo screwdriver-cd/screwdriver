@@ -2676,6 +2676,38 @@ describe.only('build plugin test', () => {
             })
         );
 
+        it('returns steps sorted', () => {
+            const testSteps = [{
+                name: 'publish',
+                code: 1,
+                startTime: '2039-01-19T03:15:08.532Z',
+                endTime: '2039-01-19T03:15:09.114Z'
+            },{
+                name: 'install',
+                code: 1,
+                startTime: '2038-01-19T03:15:08.532Z',
+                endTime: '2038-01-19T03:15:09.114Z'
+            }];
+            const testStepsSorted = [{
+                name: 'install',
+                code: 1,
+                startTime: '2038-01-19T03:15:08.532Z',
+                endTime: '2038-01-19T03:15:09.114Z'
+            },{
+                name: 'publish',
+                code: 1,
+                startTime: '2039-01-19T03:15:08.532Z',
+                endTime: '2039-01-19T03:15:09.114Z'
+            }];
+
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(testSteps);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStepsSorted);
+            });
+        });
+
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
