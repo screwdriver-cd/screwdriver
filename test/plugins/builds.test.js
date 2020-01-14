@@ -2707,7 +2707,7 @@ describe('build plugin test', () => {
     });
 
     describe('GET /builds/{id}/steps/active', () => {
-        const id = 12345;
+        const id = '12345';
         const options = {
             method: 'GET',
             url: `/builds/${id}/steps/active`,
@@ -2739,7 +2739,6 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 when build id does not exist', () => {
-            options.url = '/builds/56789/steps/active';
             buildFactoryMock.get.withArgs(id).resolves(null);
 
             return server.inject(options).then((reply) => {
@@ -2759,7 +2758,7 @@ describe('build plugin test', () => {
             options.credentials.scope = ['temporal'];
             options.credentials.username = '999';
 
-            server.inject(options).then((reply) => {
+            return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 403);
             });
         });

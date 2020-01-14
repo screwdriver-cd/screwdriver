@@ -46,11 +46,7 @@ module.exports = () => ({
 
                     return reply(stepModel);
                 })
-                .catch((err) => {
-                    console.log(err);
-
-                    reply(boom.boomify(err));
-                });
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: getSchema
