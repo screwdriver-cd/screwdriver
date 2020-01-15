@@ -628,7 +628,7 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
     pipelineId, jobName, start, username, scmContext, build, event, parentBuilds, parentEventId,
     externalPipelineId, externalJobName, parentBuildId, isExternal, workflowGraph, nextJobName,
     externalBuild, joinListNames, joinParentBuilds, currentJobParentBuilds, currentBuildInfo }) {
-    const internalBuildConfig1 = {
+    const internalBuildConfig = {
         jobFactory,
         buildFactory,
         eventFactory,
@@ -642,7 +642,7 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         parentBuilds,
         parentEventId
     };
-    const externalBuildConfig1 = {
+    const externalBuildConfig = {
         pipelineFactory,
         eventFactory,
         start,
@@ -671,11 +671,11 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
     // Create next build
     if (!nextBuild) {
         if (isExternal) {
-            externalBuildConfig1.start = false;
-            newBuild = await createExternalBuild(externalBuildConfig1);
+            externalBuildConfig.start = false;
+            newBuild = await createExternalBuild(externalBuildConfig);
         } else {
-            internalBuildConfig1.start = false;
-            newBuild = await createInternalBuild(internalBuildConfig1);
+            internalBuildConfig.start = false;
+            newBuild = await createInternalBuild(internalBuildConfig);
         }
     } else {
         newBuild = await updateParentBuilds({
@@ -872,43 +872,44 @@ exports.register = (server, options, next) => {
                     return createInternalBuild(internalBuildConfig);
                 }
 
-                return createExternalBuild(externalBuildConfig).then(async (result) => {
+                return createExternalBuild(externalBuildConfig).then(async (externalEvent) => {
                     const externalJobId = workflowGraph.nodes
                         .find(n => n.name === nextJobName).id;
-                    const externalBuildId = result.builds.find(b => b.jobId === externalJobId).id;
+                    const externalBuildId = externalEvent.builds
+                        .find(b => b.jobId === externalJobId).id;
                     const externalBuild = await buildFactory.get({ id: externalBuildId });
                     const masterParentBuilds = {};
 
-                    masterParentBuilds[result.pipelineId] = {
-                        eventId: result.id,
+                    masterParentBuilds[externalEvent.pipelineId] = {
+                        eventId: externalEvent.id,
                         jobs: { [externalJobName]: externalBuildId }
                     };
-                    const nextJobs1 = workflowParser.getNextJobs(workflowGraph,
+                    const nextJobToTrigger = workflowParser.getNextJobs(workflowGraph,
                         { trigger: nextJobName, chainPR: pipeline.chainPR });
 
                     // Create next build and store parentBuilds info
-                    nextJobs1.forEach(async (nextJobName1) => {
-                        const result1 = getPipelineAndJob(nextJobName1, pipelineId);
+                    nextJobToTrigger.forEach(async (nextJobToTriggerName) => {
+                        const pipelineAndJob = getPipelineAndJob(nextJobToTriggerName, pipelineId);
 
                         return createOrRunNextBuild({ buildFactory,
                             jobFactory,
                             eventFactory,
                             pipelineFactory,
                             pipelineId,
-                            jobName: nextJobName1,
+                            jobName: nextJobToTriggerName,
                             start: false,
                             username,
                             scmContext,
                             build,
-                            event: result.id,
+                            event: externalEvent,
                             parentBuilds: masterParentBuilds,
-                            parentEventId: result1.id,
-                            externalPipelineId: result1.externalPipelineId,
-                            externalJobName: result1.externalJobName,
+                            parentEventId: externalEvent.id,
+                            externalPipelineId: pipelineAndJob.externalPipelineId,
+                            externalJobName: pipelineAndJob.externalJobName,
                             parentBuildId: build.id,
                             isExternal,
                             workflowGraph,
-                            nextJobName: nextJobName1,
+                            nextJobName: nextJobToTriggerName,
                             externalBuild,
                             joinListNames,
                             joinParentBuilds: {},
@@ -917,7 +918,7 @@ exports.register = (server, options, next) => {
                         });
                     });
 
-                    return result;
+                    return externalEvent;
                 });
             }
 
