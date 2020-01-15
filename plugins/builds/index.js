@@ -467,7 +467,6 @@ async function getNextBuild({
 
         return j.getLatestBuild({ status: 'CREATED' });
     }
-
     // Get finished internal builds from event
     let finishedInternalBuilds;
 
@@ -597,7 +596,7 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 }
 
 /**
- * [createOrRunNextBuild description]
+ * Create next build or check if current build can be started
  * @param  {Factory}    buildFactory        Build factory
  * @param  {Factory}    jobFactory          Job factory
  * @param  {Factory}    eventFactory        Event factory
@@ -828,6 +827,7 @@ exports.register = (server, options, next) => {
                 pipelineId,
                 build
             });
+
             const { externalPipelineId, externalJobName } =
                 getPipelineAndJob(nextJobName, pipelineId);
 

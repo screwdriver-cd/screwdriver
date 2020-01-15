@@ -27,11 +27,19 @@ const decorateSecretObject = (secret) => {
 const decorateBuildObject = (build) => {
     const decorated = hoek.clone(build);
     const updatedBuild = {
-        toJson: sinon.stub().returns(build)
+        toJson: sinon.stub().returns(build),
+        update: sinon.stub().returns({
+            id: 12345,
+            parentBuilds: {
+                2: { eventId: 2, jobs: { a: 555 } },
+                3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
+            },
+            start: sinon.stub().resolves({})
+        })
     };
 
     decorated.update = sinon.stub().resolves(updatedBuild);
-    decorated.start = sinon.stub();
+    decorated.start = sinon.stub().resolves({});
     decorated.stop = sinon.stub();
     decorated.toJson = sinon.stub().returns(build);
     decorated.secrets = Promise.resolve(testSecrets.map(decorateSecretObject));
@@ -1859,11 +1867,35 @@ describe('build plugin test', () => {
                     state: 'ENABLED'
                 };
                 const jobC = Object.assign({}, jobB, { id: 3 });
+                const jobD = {
+                    id: 3,
+                    getLatestBuild: sinon.stub().resolves(getBuildMock({
+                        id: 12345,
+                        status: 'CREATED',
+                        parentBuilds: {
+                            2: { eventId: 2, jobs: { a: 555 } },
+                            3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
+                        }
+                    }))
+                };
+                let externalEventMock;
                 let jobBconfig;
                 let jobCconfig;
                 let parentEventMock;
 
                 beforeEach((done) => {
+                    externalEventMock = {
+                        id: 2,
+                        builds: [{
+                            id: 555,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }, {
+                            id: 777,
+                            jobId: 7,
+                            status: 'ABORTED'
+                        }]
+                    };
                     parentEventMock = {
                         id: 456,
                         pipelineId,
@@ -1894,7 +1926,14 @@ describe('build plugin test', () => {
                         ]
                     };
                     eventMock.baseBranch = 'master';
+
+                    pipelineFactoryMock.get.withArgs(123).resolves({ id: pipelineId,
+                        getJobs: sinon.stub().resolves([{
+                            id: 3
+                        }])
+                    });
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
+                    jobFactoryMock.get.withArgs(3).resolves(jobD);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
@@ -1980,6 +2019,49 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                    });
+                });
+
+                it('triggers next next job when next job is external', () => {
+                    const expectedEventArgs = {
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } },
+                        parentEventId: 123,
+                        pipelineId: '2',
+                        scmContext: 'github:github.com',
+                        sha: 'sha',
+                        startFrom: 'a',
+                        type: 'pipeline',
+                        username: 'foo'
+                    };
+
+                    eventFactoryMock.create.resolves(externalEventMock);
+                    buildFactoryMock.get.withArgs(555).resolves({ id: 1234, status: 'SUCCESS' });
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: 'b', id: 2 },
+                            { name: 'c', id: 3 },
+                            { name: 'sd@2:a', id: 4 }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: 'a', dest: 'b' },
+                            { src: 'b', dest: 'c' },
+                            { src: 'a', dest: 'sd@2:a' },
+                            { src: 'sd@2:a', dest: 'c' }
+                        ]
+                    };
+                    // buildMock.update = sinon.stub().resolves(jobD);
+
+                    return newServer.inject(options).then(() => {
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                     });
                 });
 
