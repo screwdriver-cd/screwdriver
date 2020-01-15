@@ -32,8 +32,6 @@ module.exports = () => ({
 
             return buildFactory.get(buildId)
                 .then((buildModel) => {
-                    console.log(buildModel);
-
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
