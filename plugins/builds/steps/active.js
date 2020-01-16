@@ -27,7 +27,7 @@ module.exports = () => ({
             const buildId = request.params.id && request.params.id.toString();
 
             if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
-                return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
+                return reply(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
             }
 
             return buildFactory.get(buildId)
