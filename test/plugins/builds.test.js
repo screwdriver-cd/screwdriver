@@ -2193,12 +2193,19 @@ describe('build plugin test', () => {
                         }
                     ]);
                     jobCconfig.start = false;
+                    // TODO: Remove temp fix for test after merge
+                    jobCconfig.parentBuilds = {
+                        123: {
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
+                        }
+                    };
 
                     return newServer.inject(options).then(() => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
-                        assert.calledOnce(buildMock.start);
+                        assert.notCalled(buildMock.start);
                     });
                 });
 
