@@ -2713,11 +2713,11 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('GET /builds/{id}/steps/active', () => {
+    describe('GET /builds/{id}/steps?status=active', () => {
         const id = '12345';
         const options = {
             method: 'GET',
-            url: `/builds/${id}/steps/active`,
+            url: `/builds/${id}/steps?status=active`,
             credentials: {
                 scope: ['user'],
                 username: '12345'
@@ -2761,7 +2761,16 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 403 when status is different in query', () => {
+            options.url = `/builds/${id}/steps?status=completed`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
         it('returns 403 when token is temporal and build id is different', () => {
+            options.url = `/builds/${id}/steps?status=active`;
             options.credentials.scope = ['temporal'];
             options.credentials.username = '999';
 

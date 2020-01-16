@@ -6,7 +6,7 @@ const getSchema = schema.models.build.getStep;
 
 module.exports = () => ({
     method: 'GET',
-    path: '/builds/{id}/steps/active',
+    path: '/builds/{id}/steps',
     config: {
         description: 'Get a step for a build',
         notes: 'Returns a step record',
@@ -25,6 +25,11 @@ module.exports = () => ({
             const buildIdCred = request.auth.credentials.username
                 && request.auth.credentials.username.toString();
             const buildId = request.params.id && request.params.id.toString();
+            const status = request.query.status;
+
+            if (status !== 'active') {
+                return reply(boom.forbidden('Only status active is allowed'));
+            }
 
             if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
                 return reply(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
