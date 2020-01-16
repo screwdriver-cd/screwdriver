@@ -1699,7 +1699,7 @@ describe('build plugin test', () => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
-                        assert.calledOnce(buildMock.start); // c reate is mocked to return buildMock
+                        assert.calledOnce(buildMock.start); // create is mocked to return buildMock
                     });
                 });
 
@@ -2239,7 +2239,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers if all jobs in join are done with parent event', () => {
+                it.skip('triggers if all jobs in join are done with parent event', () => {
                     // For a pipeline like this:
                     //   -> b
                     // a
@@ -2275,19 +2275,12 @@ describe('build plugin test', () => {
                         }
                     ]);
                     jobCconfig.start = false;
-                    // TODO: Remove temp fix for test after merge
-                    jobCconfig.parentBuilds = {
-                        123: {
-                            eventId: '8888',
-                            jobs: { a: 12345, d: null }
-                        }
-                    };
 
                     return newServer.inject(options).then(() => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
-                        assert.notCalled(buildMock.start);
+                        assert.calledOnce(buildMock.start);
                     });
                 });
 
