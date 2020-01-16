@@ -98,7 +98,7 @@
     "screwdriver-datastore-sequelize": "^5.8.2",
     "screwdriver-executor-docker": "^4.2.0",
     "screwdriver-executor-k8s": "^13.6.1",
-    "screwdriver-executor-k8s-vm": "^3.2.1",
+    "screwdriver-executor-k8s-vm": "^3.2.2",
     "screwdriver-executor-queue": "^2.4.28",
     "screwdriver-executor-router": "^1.0.11",
     "screwdriver-logger": "^1.0.0",
