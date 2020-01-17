@@ -1699,7 +1699,7 @@ describe('build plugin test', () => {
                         assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
-                        assert.calledOnce(buildMock.start); // c reate is mocked to return buildMock
+                        assert.calledOnce(buildMock.start); // create is mocked to return buildMock
                     });
                 });
 
@@ -1927,7 +1927,8 @@ describe('build plugin test', () => {
                     };
                     eventMock.baseBranch = 'master';
 
-                    pipelineFactoryMock.get.withArgs(123).resolves({ id: pipelineId,
+                    pipelineFactoryMock.get.withArgs(123).resolves({
+                        id: pipelineId,
                         getJobs: sinon.stub().resolves([{
                             id: 3
                         }])
@@ -2075,10 +2076,12 @@ describe('build plugin test', () => {
                     ];
 
                     return newServer.inject(options).then(() => {
-                        jobBconfig.parentBuilds = { 123: {
-                            jobs: { a: 12345, d: null },
-                            eventId: '8888'
-                        } };
+                        jobBconfig.parentBuilds = {
+                            123: {
+                                jobs: { a: 12345, d: null },
+                                eventId: '8888'
+                            }
+                        };
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
                     });
                 });
@@ -2092,10 +2095,12 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
 
-                    buildMock.parentBuilds = { 123: {
-                        jobs: { a: 12345, d: 5555 },
-                        eventId: '8888'
-                    } };
+                    buildMock.parentBuilds = {
+                        123: {
+                            jobs: { a: 12345, d: 5555 },
+                            eventId: '8888'
+                        }
+                    };
                     buildMock.update = sinon.stub().resolves();
 
                     eventMock.getBuilds.resolves([{
@@ -2141,8 +2146,11 @@ describe('build plugin test', () => {
                     const buildC = {
                         jobId: 3,
                         status: 'CREATED',
-                        parentBuilds: { 123: {
-                            eventId: '8888', jobs: { 'PR-15:a': null, 'PR-15:d': 5555 } } }
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888', jobs: { 'PR-15:a': null, 'PR-15:d': 5555 }
+                            }
+                        }
                     };
 
                     const updatedBuildC = Object.assign(buildC, {
@@ -2176,10 +2184,16 @@ describe('build plugin test', () => {
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
                     jobCconfig.prRef = 'pull/15/merge';
-                    jobBconfig.parentBuilds = { 123: {
-                        eventId: '8888', jobs: { 'PR-15:a': 12345 } } };
-                    jobCconfig.parentBuilds = { 123: {
-                        eventId: '8888', jobs: { 'PR-15:a': 12345, 'PR-15:d': null } } };
+                    jobBconfig.parentBuilds = {
+                        123: {
+                            eventId: '8888', jobs: { 'PR-15:a': 12345 }
+                        }
+                    };
+                    jobCconfig.parentBuilds = {
+                        123: {
+                            eventId: '8888', jobs: { 'PR-15:a': 12345, 'PR-15:d': null }
+                        }
+                    };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -2781,6 +2795,95 @@ describe('build plugin test', () => {
         });
     });
 
+    describe('GET /builds/{id}/steps', () => {
+        const id = '12345';
+        const options = {
+            method: 'GET',
+            url: `/builds/${id}/steps?status=active`,
+            credentials: {
+                scope: ['user'],
+                username: '12345'
+            }
+        };
+        const buildMock = getBuildMock(testBuild);
+
+        beforeEach(() => {
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+        });
+
+        it('returns 200 when there is an active step', () => {
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [testBuild.steps[2]]);
+            });
+        });
+
+        it('returns 200 with all steps when no status is present', () => {
+            options.url = `/builds/${id}/steps`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [].concat(testBuild.steps));
+            });
+        });
+
+        it('returns empty when there are no active steps', () => {
+            options.url = `/builds/${id}/steps?status=active`;
+            buildMock.steps[2].endTime = new Date().toISOString();
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+            });
+        });
+
+        it('returns 200 and list of completed steps for status success', () => {
+            options.url = `/builds/${id}/steps?status=success`;
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [testBuild.steps[0]]);
+            });
+        });
+
+        it('returns 404 when build id does not exist', () => {
+            buildFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 200 and failed steps when status is failure', () => {
+            options.url = `/builds/${id}/steps?status=failure`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [testBuild.steps[1]]);
+            });
+        });
+
+        it('returns 403 when token is temporal and build id is different', () => {
+            options.url = `/builds/${id}/steps?status=active`;
+            options.credentials.scope = ['temporal'];
+            options.credentials.username = '999';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+    });
+
     describe('PUT /builds/{id}/steps/{step}', () => {
         const id = 12345;
         const step = 'publish';
@@ -2960,6 +3063,26 @@ describe('build plugin test', () => {
         });
 
         it('returns 403 for a the wrong build permission', () => {
+            options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 200 when updating with temporal token of same build', () => {
+            options.credentials.scope = ['temporal'];
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepProperty(reply.result, 'name', 'test');
+                assert.deepProperty(reply.result, 'code', 0);
+                assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
+            });
+        });
+
+        it('returns 403 when updating with temporal token with wrong build permission', () => {
+            options.credentials.scope = ['temporal'];
             options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
 
             return server.inject(options).then((reply) => {

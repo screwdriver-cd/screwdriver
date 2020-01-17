@@ -4,6 +4,7 @@ const getRoute = require('./get');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
+const listStepsRoute = require('./steps/list');
 const artifactGetRoute = require('./artifacts/get');
 const stepUpdateRoute = require('./steps/update');
 const stepLogsRoute = require('./steps/logs');
@@ -543,7 +544,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
         // If buildId is empty, the job hasn't executed yet and the join is not done
         if (!bId) {
             done = false;
-        // Otherwise, get the build to check the status
+            // Otherwise, get the build to check the status
         } else {
             promisesToAwait.push(buildFactory.get(bId));
         }
@@ -959,6 +960,7 @@ exports.register = (server, options, next) => {
         stepGetRoute(),
         stepUpdateRoute(),
         stepLogsRoute(options),
+        listStepsRoute(),
         // Secrets
         listSecretsRoute(),
         tokenRoute(),
