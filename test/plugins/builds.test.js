@@ -2818,7 +2818,17 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 200 with all steps when no status is present', () => {
+            options.url = `/builds/${id}/steps`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [].concat(testBuild.steps));
+            });
+        });
+
         it('returns empty when there are no active steps', () => {
+            options.url = `/builds/${id}/steps?status=active`;
             buildMock.steps[2].endTime = new Date().toISOString();
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 

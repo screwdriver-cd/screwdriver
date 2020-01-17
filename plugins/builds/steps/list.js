@@ -1,6 +1,9 @@
 'use strict';
 
 const boom = require('boom');
+const joi = require('joi');
+const schema = require('screwdriver-data-schema');
+const listSchema = joi.array().items(schema.models.build.getStep).label('List of steps');
 
 module.exports = () => ({
     method: 'GET',
@@ -50,12 +53,15 @@ module.exports = () => ({
                             step => step.startTime && step.endTime && step.code > 0);
                         break;
                     default:
-                        stepModel = [];
+                        stepModel = [].concat(buildModel.steps);
                     }
 
                     return reply(stepModel);
                 })
                 .catch(err => reply(boom.boomify(err)));
+        },
+        response: {
+            schema: listSchema
         }
     }
 });
