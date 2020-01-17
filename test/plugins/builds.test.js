@@ -1927,7 +1927,8 @@ describe('build plugin test', () => {
                     };
                     eventMock.baseBranch = 'master';
 
-                    pipelineFactoryMock.get.withArgs(123).resolves({ id: pipelineId,
+                    pipelineFactoryMock.get.withArgs(123).resolves({
+                        id: pipelineId,
                         getJobs: sinon.stub().resolves([{
                             id: 3
                         }])
@@ -2794,7 +2795,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('GET /builds/{id}/steps?status=active', () => {
+    describe('GET /builds/{id}/steps', () => {
         const id = '12345';
         const options = {
             method: 'GET',
@@ -2813,16 +2814,27 @@ describe('build plugin test', () => {
         it('returns 200 when there is an active step', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testBuild.steps[2]);
+                assert.deepEqual(reply.result, [testBuild.steps[2]]);
             });
         });
 
-        it('returns 404 when there are no active steps', () => {
+        it('returns empty when there are no active steps', () => {
             buildMock.steps[2].endTime = new Date().toISOString();
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+            });
+        });
+
+        it('returns 200 and list of completed steps for status success', () => {
+            options.url = `/builds/${id}/steps?status=success`;
+            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [testBuild.steps[0]]);
             });
         });
 
@@ -2842,11 +2854,12 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 403 when status is different in query', () => {
-            options.url = `/builds/${id}/steps?status=completed`;
+        it('returns 200 and failed steps when status is failure', () => {
+            options.url = `/builds/${id}/steps?status=failure`;
 
             return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [testBuild.steps[1]]);
             });
         });
 

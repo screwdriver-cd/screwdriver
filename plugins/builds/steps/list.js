@@ -1,8 +1,6 @@
 'use strict';
 
 const boom = require('boom');
-const schema = require('screwdriver-data-schema');
-const getSchema = schema.models.build.getStep;
 
 module.exports = () => ({
     method: 'GET',
@@ -27,10 +25,6 @@ module.exports = () => ({
             const buildId = request.params.id && request.params.id.toString();
             const status = request.query.status;
 
-            if (status !== 'active') {
-                return reply(boom.forbidden('Only status active is allowed'));
-            }
-
             if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
                 return reply(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
             }
@@ -40,19 +34,28 @@ module.exports = () => ({
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
-                    const stepModel = buildModel.steps.find(
-                        step => step.startTime && !step.endTime);
+                    let stepModel;
 
-                    if (!stepModel) {
-                        throw boom.notFound('Active step does not exist');
+                    switch (status) {
+                    case 'active':
+                        stepModel = buildModel.steps.filter(
+                            step => step.startTime && !step.endTime);
+                        break;
+                    case 'success':
+                        stepModel = buildModel.steps.filter(
+                            step => step.startTime && step.endTime && step.code === 0);
+                        break;
+                    case 'failure':
+                        stepModel = buildModel.steps.filter(
+                            step => step.startTime && step.endTime && step.code > 0);
+                        break;
+                    default:
+                        stepModel = [];
                     }
 
                     return reply(stepModel);
                 })
                 .catch(err => reply(boom.boomify(err)));
-        },
-        response: {
-            schema: getSchema
         }
     }
 });

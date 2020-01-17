@@ -40,7 +40,7 @@ Arguments:
 #### Gets a build step
 `GET /builds/{id}/steps/{name}`
 
-#### Gets the build step by status (active)
+#### List the build step by status (active)
 `GET /builds/{id}/steps?status=active`
 
 #### Updates a build step
