@@ -4,11 +4,12 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.job.base, 'id');
+const positionSchema = joi.string().description('position in relative to latestBuild');
 const statusSchema = joi.reach(schema.models.build.base, 'status');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/jobs/{id}/latestBuild',
+    path: '/jobs/{id}/{position}',
     config: {
         description: 'Get latest build for a given job',
         notes: 'Return latest build of status specified',
@@ -25,18 +26,19 @@ module.exports = () => ({
         handler: (request, reply) => {
             const jobFactory = request.server.app.jobFactory;
             const { status } = request.query || {};
+            const { position, id } = request.params;
 
-            return jobFactory.get(request.params.id)
+            return jobFactory.get(id)
                 .then((job) => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }
 
-                    return job.getLatestBuild({ status });
+                    return job.getLatestBuild({ position, status });
                 })
                 .then((build) => {
                     if (Object.keys(build).length === 0) {
-                        throw boom.notFound('There is no such latest build');
+                        throw boom.notFound('There is no such build');
                     }
 
                     return reply(build.toJson());
@@ -48,7 +50,8 @@ module.exports = () => ({
         },
         validate: {
             params: {
-                id: idSchema
+                id: idSchema,
+                position: positionSchema
             },
             query: {
                 status: statusSchema

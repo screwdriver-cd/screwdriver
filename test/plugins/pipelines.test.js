@@ -764,9 +764,10 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('GET /pipelines/{id}/jobs/{jobName}/latestBuild', () => {
+    describe('GET /pipelines/{id}/jobs/{jobName}/{position}', () => {
         const id = 1234;
         const name = 'deploy';
+        const position = 'latestBuild';
         let options;
         let job;
         let build;
@@ -774,7 +775,7 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/pipelines/${id}/jobs/${name}/latestBuild`
+                url: `/pipelines/${id}/jobs/${name}/${position}`
             };
 
             job = getJobsMocks(testJob);
@@ -796,17 +797,33 @@ describe('pipeline plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getLatestBuild, {
+                    position: 'latestBuild',
                     status: undefined
                 });
                 assert.deepEqual(reply.result, testBuild);
             })
         );
 
+        it('returns 200 if found second to last build', () => {
+            const secondToLast = '1';
+
+            options.url = `/pipelines/${id}/jobs/${name}/${secondToLast}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    position: '1',
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            });
+        });
+
         it('return 404 if there is no last build found', () => {
             const status = 'SUCCESS';
 
             job.getLatestBuild.resolves({});
-            options.url = `/pipelines/${id}/jobs/${name}/latestBuild/latestBuild?status=${status}`;
+            options.url = `/pipelines/${id}/jobs/${name}/${position}?status=${status}`;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);

@@ -381,8 +381,9 @@ describe('job plugin test', () => {
         });
     });
 
-    describe('GET /jobs/{id}/latestBuild', () => {
+    describe('GET /jobs/{id}/{position}', () => {
         const id = 1234;
+        const position = 'latestBuild';
         let options;
         let job;
         let build;
@@ -390,7 +391,7 @@ describe('job plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/jobs/${id}/latestBuild`
+                url: `/jobs/${id}/${position}`
             };
 
             job = getJobMocks(testJob);
@@ -408,10 +409,26 @@ describe('job plugin test', () => {
             });
         });
 
+        it('returns 200 if found second to last build', () => {
+            const secondToLast = '1';
+
+            options.url = `/jobs/${id}/${secondToLast}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    position: '1',
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            });
+        });
+
         it('returns 200 if found last build', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getLatestBuild, {
+                    position: 'latestBuild',
                     status: undefined
                 });
                 assert.deepEqual(reply.result, testBuild);
@@ -422,7 +439,7 @@ describe('job plugin test', () => {
             const status = 'SUCCESS';
 
             job.getLatestBuild.resolves({});
-            options.url = `/jobs/${id}/latestBuild?status=${status}`;
+            options.url = `/jobs/${id}/${position}?status=${status}`;
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
