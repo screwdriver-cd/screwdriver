@@ -110,7 +110,6 @@
     "screwdriver-scm-router": "^4.1.0",
     "screwdriver-template-validator": "^3.0.6",
     "screwdriver-workflow-parser": "^2.0.0",
-    "sqlite3": "^4.1.1",
     "tinytim": "^0.1.1",
     "uuid": "^3.3.3",
     "verror": "^1.6.1",
