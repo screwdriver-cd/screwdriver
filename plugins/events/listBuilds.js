@@ -24,7 +24,6 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const eventFactory = request.server.app.eventFactory;
-            const stepFactory = request.server.app.stepFactory;
 
             return eventFactory.get(request.params.id)
                 .then((event) => {
@@ -34,30 +33,13 @@ module.exports = () => ({
 
                     return event.getBuilds();
                 })
-                .then( (buildsModel) => {
-                    return Promise.all(buildsModel.map((buildModel) => {
-                        return stepFactory.list({
-                            params: { buildId: buildModel.id },
-                            sortBy: 'id',
-                            sort: 'ascending'})
-                        .then( (stepsModel) => {
-                            // This if statement should be removed after enough time has passed since build.steps removed.
-                            // Make orders of steps in completed builds sure,
-                            // because steps in old builds in DB have the order not sorted.
-                            if (buildModel.endTime) {
-                                stepsModel.sort((a, b) =>
-                                    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-                                );
-                            }
-
-                            const steps = stepsModel.map(s => s.toJson());
-
-                            return Object.assign(buildModel.toJson(), { steps });
-
-                        })
-                    }))
-                    .then( builds => reply(builds) 
-                )})
+                .then(buildsModel =>
+                    reply(
+                        Promise.all(buildsModel.map(buildModel =>
+                            buildModel.toJsonWithSteps()
+                        ))
+                    )
+                )
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {

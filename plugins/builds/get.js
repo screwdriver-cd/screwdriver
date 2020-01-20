@@ -24,35 +24,15 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const buildFactory = request.server.app.buildFactory;
-            const stepFactory = request.server.app.stepFactory;
 
-            return Promise.all([buildFactory.get(request.params.id),
-                stepFactory.list({
-                    params: { buildId: request.params.id },
-                    sortBy: 'id',
-                    sort: 'ascending' })])
-                .then(([buildModel, stepsModel]) => {
+            return buildFactory.get(request.params.id)
+                .then((buildModel) => {
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
 
-                    if (!stepsModel) {
-                        throw boom.notFound('Steps do not exist');
-                    }
-
-                    // This if statement should be removed after enough time has passed since build.steps removed.
-                    // Make orders of steps in completed builds sure,
-                    // because steps in old builds in DB have the order not sorted.
-                    if (buildModel.endTime) {
-                        stepsModel.sort((a, b) =>
-                            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-                        );
-                    }
-
-                    const steps = stepsModel.map(s => s.toJson());
-
                     if (Array.isArray(buildModel.environment)) {
-                        return reply(Object.assign(buildModel.toJson(), { steps }));
+                        return reply(buildModel.toJsonWithSteps());
                     }
 
                     // convert environment obj to array
@@ -64,7 +44,7 @@ module.exports = () => ({
                     buildModel.environment = env;
 
                     return buildModel.update().then(m =>
-                        reply(Object.assign(m.toJson(), { steps })));
+                        reply(m.toJsonWithSteps()));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

@@ -27,13 +27,15 @@ const decorateSecretObject = (secret) => {
 const decorateBuildObject = (build) => {
     const decorated = hoek.clone(build);
     const updatedBuild = {
-        toJson: sinon.stub().returns(build)
+        toJson: sinon.stub().returns(build),
+        toJsonWithSteps: sinon.stub().resolves(build)
     };
 
     decorated.update = sinon.stub().resolves(updatedBuild);
     decorated.start = sinon.stub();
     decorated.stop = sinon.stub();
     decorated.toJson = sinon.stub().returns(build);
+    decorated.toJsonWithSteps = sinon.stub().resolves(build);
     decorated.secrets = Promise.resolve(testSecrets.map(decorateSecretObject));
 
     return decorated;
@@ -61,7 +63,7 @@ const jwtMock = {
     sign: () => 'sign'
 };
 
-describe.only('build plugin test', () => {
+describe('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
     let userFactoryMock;
@@ -233,16 +235,11 @@ describe.only('build plugin test', () => {
 
     describe('GET /builds/{id}', () => {
         const id = 12345;
-        const stepMock = getStepMock([]);
 
         it('returns 200 for a build that exists', () => {
             const buildMock = getBuildMock(testBuild);
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
-            stepFactoryMock.list.withArgs({
-                params: { buildId: id },
-                sortBy: 'id',
-                sort: 'ascending' }).resolves(stepMock);
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -255,58 +252,12 @@ describe.only('build plugin test', () => {
             const buildMock = getBuildMock(testBuild);
 
             buildMock.environment = [];
-
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
-            stepFactoryMock.list.withArgs({
-                params: { buildId: id },
-                sortBy: 'id',
-                sort: 'ascending' }).resolves(stepMock);
 
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.notCalled(buildMock.update);
                 assert.deepEqual(reply.result, testBuild);
-            });
-        });
-
-        it('returns steps sorted', () => {
-            const buildMock = getBuildMock(testBuild);
-            const testSteps = [
-                getStepMock({
-                    name: 'publish',
-                    code: 1,
-                    startTime: '2039-01-19T03:15:08.532Z',
-                    endTime: '2039-01-19T03:15:09.114Z'
-                }),
-                getStepMock({
-                    name: 'install',
-                    code: 1,
-                    startTime: '2038-01-19T03:15:08.532Z',
-                    endTime: '2038-01-19T03:15:09.114Z'
-                })];
-            const testStepsSorted = [{
-                name: 'install',
-                code: 1,
-                startTime: '2038-01-19T03:15:08.532Z',
-                endTime: '2038-01-19T03:15:09.114Z'
-            }, {
-                name: 'publish',
-                code: 1,
-                startTime: '2039-01-19T03:15:08.532Z',
-                endTime: '2039-01-19T03:15:09.114Z'
-            }];
-
-            buildMock.environment = [];
-
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
-            stepFactoryMock.list.withArgs({
-                params: { buildId: id },
-                sortBy: 'id',
-                sort: 'ascending' }).resolves(testSteps);
-
-            return server.inject(`/builds/${id}`).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result.steps, testStepsSorted);
             });
         });
 
