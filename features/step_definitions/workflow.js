@@ -3,7 +3,7 @@
 const Assert = require('chai').assert;
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
-const { Before, Given, When, Then } = require('cucumber');
+const { Before, Given, When, Then, After } = require('cucumber');
 
 const TIMEOUT = 240 * 1000;
 const WAIT_TIME = 3;
@@ -201,4 +201,15 @@ Then(/^the "(.*)" build failed$/, {
         Assert.equal(resp.statusCode, 200);
         Assert.equal(resp.body.status, 'FAILURE', `Unexpected build status: ${jobName}`);
     });
+});
+
+After({
+    tags: '@workflow',
+    timeout: TIMEOUT
+}, function hook() {
+    if (this.pipelineId) {
+        return this.deletePipeline(this.pipelineId);
+    }
+
+    return false;
 });

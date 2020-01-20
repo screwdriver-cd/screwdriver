@@ -222,3 +222,20 @@ Then(/^"([^"]+)" tag is removed from "([^"]+)"$/, {
         Assert.notEqual(response.body.version, version);
     });
 });
+
+Then(/^the command is deleted$/, {
+    timeout: TIMEOUT
+}, function step() {
+    /* eslint-disable-next-line consistent-return */
+    return request({
+        uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}`
+        + `/${this.command}`,
+        method: 'DELETE',
+        json: true,
+        auth: {
+            bearer: this.jwt
+        }
+    }).then((resp) => {
+        Assert.equal(resp.statusCode, 204);
+    });
+});
