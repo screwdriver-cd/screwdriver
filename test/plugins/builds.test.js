@@ -3011,14 +3011,6 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 404 when build does not exist', () => {
-            buildFactoryMock.get.withArgs(id).resolves(null);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
-        });
-
         it('returns 404 when step does not exist', () => {
             options.url = `/builds/${id}/steps/fail`;
             stepFactoryMock.get.withArgs({ buildId: id, name: 'fail' }).resolves(null);
