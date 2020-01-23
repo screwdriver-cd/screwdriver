@@ -160,12 +160,12 @@ module.exports = config => ({
             }
         },
         handler: (req, reply) => {
-            const factory = req.server.app.stepFactory;
+            const stepFactory = req.server.app.stepFactory;
             const buildId = req.params.id;
             const stepName = req.params.name;
             const headers = req.headers;
 
-            factory.get({ buildId, name: stepName })
+            stepFactory.get({ buildId, name: stepName })
                 .then((stepModel) => {
                     if (!stepModel) {
                         throw boom.notFound('Step does not exist');
