@@ -1885,6 +1885,15 @@ describe('build plugin test', () => {
                         }
                     }))
                 };
+                const externalEventBuilds = [{
+                    id: 555,
+                    jobId: 4,
+                    status: 'SUCCESS'
+                }, {
+                    id: 777,
+                    jobId: 7,
+                    status: 'ABORTED'
+                }];
                 let externalEventMock;
                 let jobBconfig;
                 let jobCconfig;
@@ -1893,15 +1902,8 @@ describe('build plugin test', () => {
                 beforeEach((done) => {
                     externalEventMock = {
                         id: 2,
-                        builds: [{
-                            id: 555,
-                            jobId: 4,
-                            status: 'SUCCESS'
-                        }, {
-                            id: 777,
-                            jobId: 7,
-                            status: 'ABORTED'
-                        }]
+                        builds: externalEventBuilds,
+                        getBuilds: sinon.stub().resolves(externalEventBuilds)
                     };
                     parentEventMock = {
                         id: 456,
@@ -2059,16 +2061,15 @@ describe('build plugin test', () => {
                             { src: '~pr', dest: 'a' },
                             { src: '~commit', dest: 'a' },
                             { src: 'a', dest: 'b' },
-                            { src: 'b', dest: 'c' },
+                            { src: 'b', dest: 'c', join: true },
                             { src: 'a', dest: 'sd@2:a' },
-                            { src: 'sd@2:a', dest: 'c' }
+                            { src: 'sd@2:a', dest: 'c', join: true }
                         ]
                     };
-                    // buildMock.update = sinon.stub().resolves(jobD);
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
-                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledTwice(buildFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                     });
                 });
