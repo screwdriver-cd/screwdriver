@@ -908,7 +908,7 @@ exports.register = (server, options, next) => {
                             externalPipelineId: pipelineAndJob.externalPipelineId,
                             externalJobName: pipelineAndJob.externalJobName,
                             parentBuildId: build.id,
-                            isExternal,
+                            isExternal: EXTERNAL_TRIGGER_AND.test(nextJobToTriggerName),
                             workflowGraph,
                             nextJobName: nextJobToTriggerName,
                             externalBuild,
