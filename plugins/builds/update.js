@@ -181,7 +181,7 @@ module.exports = config => ({
 
                         // Guard against triggering non-successful or unstable builds
                         if (newBuild.status !== 'SUCCESS') {
-                            return reply(newBuild.toJson()).code(200);
+                            return reply(newBuild.toJsonWithSteps()).code(200);
                         }
 
                         const src = `~sd@${pipeline.id}:${job.name}`;
@@ -191,7 +191,7 @@ module.exports = config => ({
                         }).then(() => {
                             // if external join is allow, then triggerNextJobs will take care of external OR already
                             if (externalJoin) {
-                                return reply(newBuild.toJson()).code(200);
+                                return reply(newBuild.toJsonWithSteps()).code(200);
                             }
 
                             // Old flow
@@ -216,7 +216,7 @@ module.exports = config => ({
                                         parentBuildId: newBuild.id
                                     })
                                 )))
-                                .then(() => reply(newBuild.toJson()).code(200));
+                                .then(() => reply(newBuild.toJsonWithSteps()).code(200));
                         });
                     })
                         .catch(err => reply(boom.boomify(err)))

@@ -49,7 +49,7 @@ module.exports = () => ({
 
                     return job.getBuilds(config);
                 })
-                .then(builds => reply(builds.map(b => b.toJson())))
+                .then(builds => reply(Promise.all(builds.map(b => b.toJsonWithSteps()))))
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {

@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const nock = require('nock');
 const testBuild = require('./data/build.json');
+const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testSecrets = require('./data/secrets.json');
 const rewire = require('rewire');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
@@ -26,6 +27,7 @@ const decorateSecretObject = (secret) => {
 
 const decorateBuildObject = (build) => {
     const decorated = hoek.clone(build);
+    const noStepBuild = Object.assign({}, build);
     const updatedBuild = {
         toJson: sinon.stub().returns(build),
         toJsonWithSteps: sinon.stub().resolves(build),
@@ -42,19 +44,20 @@ const decorateBuildObject = (build) => {
     decorated.update = sinon.stub().resolves(updatedBuild);
     decorated.start = sinon.stub().resolves({});
     decorated.stop = sinon.stub();
-    decorated.toJson = sinon.stub().returns(build);
+    delete noStepBuild.steps;
+    decorated.toJson = sinon.stub().returns(noStepBuild);
     decorated.toJsonWithSteps = sinon.stub().resolves(build);
     decorated.secrets = Promise.resolve(testSecrets.map(decorateSecretObject));
 
     return decorated;
 };
 
-const getBuildMock = (builds) => {
-    if (Array.isArray(builds)) {
-        return builds.map(decorateBuildObject);
+const getBuildMock = (buildsWithSteps) => {
+    if (Array.isArray(buildsWithSteps)) {
+        return buildsWithSteps.map(decorateBuildObject);
     }
 
-    return decorateBuildObject(builds);
+    return decorateBuildObject(buildsWithSteps);
 };
 
 const getStepMock = (user) => {
@@ -482,7 +485,7 @@ describe('build plugin test', () => {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
                 };
-                const expected = hoek.applyToDefaults(testBuild, { status: 'ABORTED' });
+                const expected = hoek.applyToDefaults(testBuildWithSteps, { status: 'ABORTED' });
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -498,7 +501,8 @@ describe('build plugin test', () => {
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
-                buildMock.toJson.returns(expected);
+                buildMock.toJson.returns(testBuild);
+                buildMock.toJsonWithSteps.resolves(expected);
                 jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
@@ -562,7 +566,7 @@ describe('build plugin test', () => {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
                 };
-                const expected = hoek.applyToDefaults(testBuild, { status: 'FAILURE' });
+                const expected = hoek.applyToDefaults(testBuildWithSteps, { status: 'FAILURE' });
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -579,7 +583,8 @@ describe('build plugin test', () => {
                 jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
-                buildMock.toJson.returns(expected);
+                buildMock.toJsonWithSteps.resolves(expected);
+                buildMock.toJson.returns(testBuild);
                 jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
@@ -2805,7 +2810,7 @@ describe('build plugin test', () => {
                 username: '12345'
             }
         };
-        const buildMock = getBuildMock(testBuild);
+        const buildMock = getBuildMock(testBuildWithSteps);
 
         beforeEach(() => {
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
@@ -2814,7 +2819,7 @@ describe('build plugin test', () => {
         it('returns 200 when there is an active step', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, [testBuild.steps[2]]);
+                assert.deepEqual(reply.result, [testBuildWithSteps.steps[2]]);
             });
         });
 
@@ -2823,7 +2828,7 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, [].concat(testBuild.steps));
+                assert.deepEqual(reply.result, [].concat(testBuildWithSteps.steps));
             });
         });
 
@@ -2844,7 +2849,7 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, [testBuild.steps[0]]);
+                assert.deepEqual(reply.result, [testBuildWithSteps.steps[0]]);
             });
         });
 
@@ -2869,7 +2874,7 @@ describe('build plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, [testBuild.steps[1]]);
+                assert.deepEqual(reply.result, [testBuildWithSteps.steps[1]]);
             });
         });
 

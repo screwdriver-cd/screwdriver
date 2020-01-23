@@ -6,7 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
 const testBuilds = require('./data/builds.json');
-const testBuild = require('./data/build.json');
+const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -14,7 +14,7 @@ sinon.assert.expose(assert, { prefix: '' });
 const decorateBuildMock = (build) => {
     const mock = hoek.clone(build);
 
-    mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
