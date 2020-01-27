@@ -13,7 +13,7 @@ module.exports = () => ({
         tags: ['api', 'secrets'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -26,6 +26,7 @@ module.exports = () => ({
             const secretFactory = request.server.app.secretFactory;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
 
             return Promise.all([
                 pipelineFactory.get(request.payload.pipelineId),
@@ -37,6 +38,11 @@ module.exports = () => ({
 
                 if (!user) {
                     throw boom.notFound(`User ${username} does not exist`);
+                }
+
+                // In pipeline scope, check if the token is allowed to the pipeline
+                if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                    throw boom.unauthorized('Token does not have permission to this pipeline');
                 }
 
                 return user.getPermissions(pipeline.scmUri)
