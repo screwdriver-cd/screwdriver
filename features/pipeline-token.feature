@@ -61,3 +61,8 @@ Feature: Pipeline Token
     When he calls API Using a invalid Pipeline token
     Then he can not receives the value from API
 
+  Scenario: Call API using a not tied him pipeline token
+    Given "calvin" owns Pipeline token name "tiger" that is not tied to him
+    When he calls API using token name "tiger"
+    Then he can not receives the value from API
+
