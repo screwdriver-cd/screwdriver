@@ -262,11 +262,6 @@ executor:
           tls: QUEUE_REDIS_TLS_ENABLED
         database: QUEUE_REDIS_DATABASE
 
-# build cache strategies: s3, disk, with s3 as default option to store cache
-cache:
-  strategy: CACHE_STRATEGY
-  path: CACHE_PATH
-
 scms:
   __name: SCM_SETTINGS
   __format: json
@@ -374,8 +369,16 @@ ecosystem:
   allowCors:
     __name: ECOSYSTEM_ALLOW_CORS
     __format: json
+  # build cache strategies: s3, disk, with s3 as default option to store cache
+  cache:
+    strategy: CACHE_STRATEGY
+    path: CACHE_PATH
+    compress: CACHE_COMPRESS
+    md5check: CACHE_MD5CHECK
+    max_size_mb: CACHE_MAX_SIZE_MB
 
 build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json
+  externalJoin: EXTERNAL_JOIN

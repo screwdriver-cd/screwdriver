@@ -713,7 +713,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/triggers', () => {
-        const id = '123';
+        const id = 123;
         let options;
         let pipelineMock;
 
@@ -736,6 +736,16 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, testTriggers);
             })
         );
+
+        it('returns 400 for passing in string as pipeline id', () => {
+            const stringId = 'test';
+
+            options.url = `/pipelines/${stringId}/triggers`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
 
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);

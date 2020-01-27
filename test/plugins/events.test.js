@@ -184,7 +184,7 @@ describe('event plugin test', () => {
     });
 
     describe('GET /events/{id}/builds', () => {
-        const id = '12345';
+        const id = 12345;
         let options;
         let event;
         let builds;
@@ -428,8 +428,52 @@ describe('event plugin test', () => {
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.baseBranch = 'master';
             testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
             eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
             options.payload.parentEventId = parentEventId;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates an event with custom parameters and parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.meta.parameters = {
+                user: { value: 'klu' }
+            };
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
@@ -566,6 +610,9 @@ describe('event plugin test', () => {
             };
             eventConfig.changedFiles = ['screwdriver.yaml'];
             eventConfig.baseBranch = 'master';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {

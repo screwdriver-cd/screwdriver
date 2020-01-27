@@ -30,13 +30,18 @@ module.exports = () => ({
             return Promise.all([
                 buildClusterFactory.list({
                     params: {
-                        name
+                        name,
+                        scmContext
                     }
                 }),
                 userFactory.get({ username, scmContext })
             ]).then(([buildClusters, user]) => {
+                if (!Array.isArray(buildClusters)) {
+                    throw boom.badData('Build cluster list returned non-array.');
+                }
                 if (buildClusters.length === 0) {
-                    return reply(boom.notFound(`Build cluster ${name} does not exist`));
+                    return reply(boom.notFound(`Build cluster ${name}, ` +
+                        ` scmContext ${scmContext} does not exist`));
                 }
                 if (!user) {
                     return reply(boom.notFound(`User ${username} does not exist`));
