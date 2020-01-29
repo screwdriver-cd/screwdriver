@@ -1,3 +1,4 @@
+@ignore
 @pipelinetoken
 Feature: Pipeline Token
 
@@ -16,7 +17,6 @@ Feature: Pipeline Token
   Background:
     Given: "calvin" is logged in
 
-  @ignore
   Scenario: Generate New Pipeline Token
     Given "calvin" created pipeline dose not own a token named "tiger"
     When a new Pipeline token named "tiger" is generated
@@ -24,28 +24,24 @@ Feature: Pipeline Token
     Then a valid JWT is received that represents "calvin"
     And the "tiger" token's 'last used' property is updated
 
-  @ignore
   Scenario: List Pipeline Tokens
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
     When he lists all his tokens
     Then his "tiger" token is in the list
     And his token is safely described
 
-  @ignore
   Scenario: Edit Pipeline Tokens
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
     When he changes the label associated with the token
     Then his token will have that new label
     And the token's 'last used' property will not be update
 
-  @ignore
   Scenario: Revoke Pipeline Token
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
     When he revokes the token
     And the token is used to log in to the specific pipeline
     Then the login attempt fails
 
-  @ignore
   Scenario: Refresh Pipeline Token
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
     When he refreshes the token
@@ -55,14 +51,12 @@ Feature: Pipeline Token
     Then a valid JWT is received that represents "calvin"
     And the "tiger" token's 'last used' property is updated
 
-  @ignore
   Scenario: Call API using a valid pipeline token
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
     When he calls API using a valid Pipeline token
     And the token is used to log in to the specific pipeline
     Then he receives valid value from API
 
-  @ignore
   Scenario: Call API using a invalid pipeline token
     Given "calvin" created pipeline owns an invalid Pipeline token named "tiger"
     When he calls API Using a invalid Pipeline token
