@@ -2062,7 +2062,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
-                        assert.calledTwice(buildFactoryMock.create);
+                        assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                     });
                 });
@@ -2354,27 +2354,32 @@ describe('build plugin test', () => {
                         { src: 'b', dest: 'c', join: true }
                     ];
 
+                    const buildC = {
+                        jobId: 3,
+                        status: 'CREATED',
+                        parentBuilds: { 123: { jobs: { a: null, b: 5555 }, eventId: '8888' } }
+                    };
+
+                    const updatedBuildC = Object.assign(jobC, {
+                        parentBuilds: { 123: { eventId: '8888', jobs: { b: 5555, a: 12345 } } },
+                        remove: sinon.stub().resolves(null)
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+
                     // job B is not done
                     eventMock.getBuilds.resolves([{
                         jobId: 1,
                         status: 'SUCCESS'
-                    }]);
+                    }, {
+                        jobId: 2,
+                        status: 'RUNNING'
+                    }, buildC]);
+
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'RUNNING' });
 
                     return newServer.inject(options).then(() => {
-                        assert.calledWith(buildFactoryMock.create.firstCall, {
-                            baseBranch: 'master',
-                            configPipelineSha: 'abc123',
-                            eventId: '8888',
-                            jobId: 3,
-                            parentBuildId: 12345,
-                            parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345, b: null } } },
-                            parentEventId: 123,
-                            prRef: '',
-                            scmContext: 'github:github.com',
-                            sha: '58393af682d61de87789fb4961645c42180cec5a',
-                            start: false,
-                            username: 12345
-                        });
+                        assert.notCalled(buildFactoryMock.create);
                     });
                 });
 
