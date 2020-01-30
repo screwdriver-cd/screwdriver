@@ -7,7 +7,7 @@ Feature: Pipeline Token
     interact with the Screwdriver API in a programmatic way.
 
     Rules:
-        - Tokens should be specifically tied to the user that issued them
+        - Tokens should be specifically tied to the pipeline that issued them
         - Tokens should have a label/name associated with them
         - Users can add description to their issued, so they know what they're using them for
         - User can see when a token was last used
@@ -26,14 +26,14 @@ Feature: Pipeline Token
 
   Scenario: List Pipeline Tokens
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
-    When he lists all his tokens
-    Then his "tiger" token is in the list
-    And his token is safely described
+    When the pipeline list all tokens
+    Then "tiger" token is in the list
+    And the token is safely described
 
   Scenario: Edit Pipeline Tokens
     Given "calvin" created pipeline owns an existing Pipeline token named "tiger"
     When he changes the label associated with the token
-    Then his token will have that new label
+    Then the token will have that new label
     And the token's 'last used' property will not be update
 
   Scenario: Revoke Pipeline Token
