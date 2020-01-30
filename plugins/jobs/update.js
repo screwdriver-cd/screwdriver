@@ -14,7 +14,7 @@ module.exports = () => ({
         tags: ['api', 'jobs'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
@@ -26,6 +26,7 @@ module.exports = () => ({
             const id = request.params.id;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
+            const isValidToken = request.server.plugins.pipelines.isValidToken;
 
             return jobFactory.get(id)
                 .then((job) => {
@@ -39,6 +40,12 @@ module.exports = () => ({
                     ]).then(([pipeline, user]) => {
                         if (!pipeline) {
                             throw boom.notFound('Pipeline does not exist');
+                        }
+
+                        // In pipeline scope, check if the token is allowed to the pipeline
+                        if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                            throw boom.unauthorized('Token does not have permission' +
+                             ' to this pipeline');
                         }
 
                         // ask the user for permissions on this repo
