@@ -22,7 +22,7 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const buildFactory = request.server.app.buildFactory;
+            const stepFactory = request.server.app.stepFactory;
             const buildIdCred = request.auth.credentials.username
                 && request.auth.credentials.username.toString();
             const buildId = request.params.id && request.params.id.toString();
@@ -32,33 +32,36 @@ module.exports = () => ({
                 return reply(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
             }
 
-            return buildFactory.get(buildId)
-                .then((buildModel) => {
-                    if (!buildModel) {
-                        throw boom.notFound('Build does not exist');
-                    }
-                    let stepModel;
+            return stepFactory.list({
+                params: { buildId },
+                sortBy: 'id',
+                sort: 'ascending'
+            }).then((steps) => {
+                if (steps.length <= 0) {
+                    throw boom.notFound('Build does not exist');
+                }
+                let stepModel;
 
-                    switch (status) {
-                    case 'active':
-                        stepModel = buildModel.steps.filter(
-                            step => step.startTime && !step.endTime);
-                        break;
-                    case 'success':
-                        stepModel = buildModel.steps.filter(
-                            step => step.startTime && step.endTime && step.code === 0);
-                        break;
-                    case 'failure':
-                        stepModel = buildModel.steps.filter(
-                            step => step.startTime && step.endTime && step.code > 0);
-                        break;
-                    default:
-                        stepModel = [].concat(buildModel.steps);
-                    }
+                switch (status) {
+                case 'active':
+                    stepModel = steps.filter(
+                        step => step.startTime && !step.endTime);
+                    break;
+                case 'success':
+                    stepModel = steps.filter(
+                        step => step.startTime && step.endTime && step.code === 0);
+                    break;
+                case 'failure':
+                    stepModel = steps.filter(
+                        step => step.startTime && step.endTime && step.code > 0);
+                    break;
+                default:
+                    stepModel = [].concat(steps);
+                }
 
-                    return reply(stepModel);
-                })
-                .catch(err => reply(boom.boomify(err)));
+                return reply(stepModel.map(step => step.toJson()));
+            })
+            .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema

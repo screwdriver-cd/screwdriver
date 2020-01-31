@@ -60,12 +60,12 @@ const getBuildMock = (buildsWithSteps) => {
     return decorateBuildObject(buildsWithSteps);
 };
 
-const getStepMock = (user) => {
-    const mock = hoek.clone(user);
+const getStepMock = (step) => {
+    const mock = hoek.clone(step);
 
     mock.update = sinon.stub();
     mock.get = sinon.stub();
-    mock.toJson = sinon.stub().returns(user);
+    mock.toJson = sinon.stub().returns(step);
 
     return mock;
 };
@@ -2811,10 +2811,14 @@ describe('build plugin test', () => {
                 username: '12345'
             }
         };
-        const buildMock = getBuildMock(testBuildWithSteps);
+        const stepsMock = testBuildWithSteps.steps.map(step => getStepMock(step));
 
         beforeEach(() => {
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            stepFactoryMock.list.withArgs({
+                params: { buildId: id },
+                sortBy: 'id',
+                sort: 'ascending'
+            }).resolves(stepsMock);
         });
 
         it('returns 200 when there is an active step', () => {
@@ -2835,8 +2839,7 @@ describe('build plugin test', () => {
 
         it('returns empty when there are no active steps', () => {
             options.url = `/builds/${id}/steps?status=active`;
-            buildMock.steps[2].endTime = new Date().toISOString();
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
+            stepsMock[2].endTime = new Date().toISOString();
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -2846,7 +2849,6 @@ describe('build plugin test', () => {
 
         it('returns 200 and list of completed steps for status success', () => {
             options.url = `/builds/${id}/steps?status=success`;
-            buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
@@ -2855,7 +2857,11 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 when build id does not exist', () => {
-            buildFactoryMock.get.withArgs(id).resolves(null);
+            stepFactoryMock.list.withArgs({
+                params: { buildId: id },
+                sortBy: 'id',
+                sort: 'ascending'
+            }).resolves([]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
@@ -2863,7 +2869,11 @@ describe('build plugin test', () => {
         });
 
         it('returns 500 when datastore returns an error', () => {
-            buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
+            stepFactoryMock.list.withArgs({
+                params: { buildId: id },
+                sortBy: 'id',
+                sort: 'ascending'
+            }).rejects(new Error('blah'));
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
