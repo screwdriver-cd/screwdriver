@@ -21,7 +21,7 @@ Feature: Pipeline Token
     Given "calvin" created pipeline dose not own a token named "tiger"
     When a new Pipeline token named "tiger" is generated
     And the token is used to log in to the specific pipeline
-    Then a valid JWT is received that represents "calvin"
+    Then a valid JWT is received that represents the pipeline
     And the "tiger" token's 'last used' property is updated
 
   Scenario: List Pipeline Tokens
