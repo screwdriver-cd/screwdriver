@@ -113,6 +113,10 @@ describe('job plugin test', () => {
 
         server.register([{
             register: plugin
+        }, {
+            /* eslint-disable global-require */
+            register: require('../../plugins/pipelines')
+            /* eslint-enable global-require */
         }], (err) => {
             done(err);
         });
