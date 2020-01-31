@@ -61,7 +61,7 @@ module.exports = () => ({
 
                 return reply(stepModel.map(step => step.toJson()));
             })
-            .catch(err => reply(boom.boomify(err)));
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: listSchema
