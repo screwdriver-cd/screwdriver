@@ -607,6 +607,8 @@ async function getFinishedBuilds(event, eventFactory) {
         return event.getBuilds();
     }
 
+    // If parent event id, merge parent build status data recurively and
+    // rerun all builds in the path of the startFrom
     const parentEvent = await eventFactory.get({ id: event.parentEventId });
     const parents = await getFinishedBuilds(parentEvent, eventFactory);
     const upstreamBuilds = await removeDownstreamBuilds({
