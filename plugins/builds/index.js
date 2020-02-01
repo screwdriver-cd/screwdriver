@@ -514,7 +514,6 @@ async function getNextBuild({
     if (!event.parentEventId) {
         finishedInternalBuilds = await event.getBuilds();
     } else {
-        console.log('parent event id exists: ', event.parentEventId);
         // If parent event id, merge parent build status data and
         // rerun all builds in the path of the startFrom
         const parentEvent = await eventFactory.get({ id: event.parentEventId });
@@ -902,8 +901,6 @@ exports.register = (server, options, next) => {
                     return createInternalBuild(internalBuildConfig);
                 }
 
-                console.log('no join, not internal');
-
                 /* GET OR CREATE NEXT BUILD, UPDATE WITH PARENT BUILDS INFO, AND
                  * DECIDE IF NEED TO START
                  * If next job is an external join job (if parentBuilds pipelineId
@@ -912,7 +909,6 @@ exports.register = (server, options, next) => {
                  * Otherwise, create internal build for matching pipeline
                  */
                 if (build.parentBuilds && build.parentBuilds[externalPipelineId]) {
-                    console.log(`parentBuilds matches for build ${build.id}`);
                     const externalEventId = build.parentBuilds[externalPipelineId].eventId;
                     const externalEvent = await eventFactory.get(externalEventId);
                     const externalPipeline = await pipelineFactory.get(externalEvent.pipelineId);
@@ -994,8 +990,6 @@ exports.register = (server, options, next) => {
                     */
                     return handleNewBuild({ done, hasFailure, newBuild });
                 }
-
-                console.log('no join, creating external');
 
                 // Simply create an external event if external job is not join job
                 const externalBuildConfig = {
