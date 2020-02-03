@@ -638,6 +638,31 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 }
 
 /**
+ * Get finished builds in the all parent events
+ * @param  {Event}      event           Current event
+ * @param  {Factory}    eventFactory    Event Factory
+ * @return {Promise}                    All finished builds
+ */
+async function getFinishedBuilds(event, eventFactory) {
+    if (!event.parentEventId) {
+        return event.getBuilds();
+    }
+
+    // If parent event id, merge parent build status data recurively and
+    // rerun all builds in the path of the startFrom
+    const parentEvent = await eventFactory.get({ id: event.parentEventId });
+    const parents = await getFinishedBuilds(parentEvent, eventFactory);
+    const upstreamBuilds = await removeDownstreamBuilds({
+        builds: parents,
+        startFrom: event.startFrom,
+        parentEvent
+    });
+    const builds = await event.getBuilds();
+
+    return builds.concat(upstreamBuilds);
+}
+
+/**
  * Create next build or check if current build can be started
  * @param  {Factory}    buildFactory        Build factory
  * @param  {Factory}    jobFactory          Job factory
@@ -825,30 +850,14 @@ exports.register = (server, options, next) => {
                     return createBuild(buildConfig);
                 }
 
-                return Promise.resolve().then(() => {
-                    if (!event.parentEventId) {
-                        return event.getBuilds();
-                    }
-
-                    // If parent event id, merge parent build status data and
-                    // rerun all builds in the path of the startFrom
-                    return eventFactory.get({ id: event.parentEventId })
-                        .then(parentEvent => parentEvent.getBuilds()
-                            .then(parentBuilds => removeDownstreamBuilds({
-                                builds: parentBuilds,
-                                startFrom: event.startFrom,
-                                parentEvent
-                            }))
-                        )
-                        .then(upstreamBuilds => event.getBuilds()
-                            .then(builds => builds.concat(upstreamBuilds)));
-                }).then(finishedBuilds => handleNextBuild({
-                    buildConfig,
-                    joinList,
-                    finishedBuilds,
-                    jobId: workflowGraph.nodes
-                        .find(node => node.name === trimJobName(nextJobName)).id
-                }));
+                return Promise.resolve().then(() => getFinishedBuilds(event, eventFactory))
+                    .then(finishedBuilds => handleNextBuild({
+                        buildConfig,
+                        joinList,
+                        finishedBuilds,
+                        jobId: workflowGraph.nodes
+                            .find(node => node.name === trimJobName(nextJobName)).id
+                    }));
             }));
         }
 
