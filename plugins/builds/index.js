@@ -909,6 +909,7 @@ exports.register = (server, options, next) => {
                  * Otherwise, create internal build for matching pipeline
                  */
                 if (build.parentBuilds && build.parentBuilds[externalPipelineId]) {
+                    // TODO: refactor this section to reduce number of DB calls
                     const externalEventId = build.parentBuilds[externalPipelineId].eventId;
                     const externalEvent = await eventFactory.get(externalEventId);
                     const externalPipeline = await pipelineFactory.get(externalEvent.pipelineId);
