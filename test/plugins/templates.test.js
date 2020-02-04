@@ -10,6 +10,7 @@ const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplatetags = require('./data/templateTags.json');
 const testtemplateversions = require('./data/templateVersions.json');
+const testtemplateversionsmetrics = require('./data/templateVersionsMetrics.json');
 const testTemplateWithNamespace = require('./data/templateWithNamespace.json');
 const testpipeline = require('./data/pipeline.json');
 const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
@@ -75,6 +76,7 @@ describe('template plugin test', () => {
         templateFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
+            listWithMetrics: sinon.stub(),
             getTemplate: sinon.stub(),
             get: sinon.stub()
         };
@@ -380,6 +382,56 @@ describe('template plugin test', () => {
 
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.list.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
+    describe('GET /templates/name/metrics', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/metrics'
+            };
+        });
+
+        it('returns 200 and all template versions and metrics for a template name', () => {
+            templateFactoryMock.listWithMetrics.resolves(testtemplateversionsmetrics);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplateversionsmetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all versions and metrics for a template name with pagination', () => {
+            options.url = '/templates/screwdriver%2Fbuild/metrics?count=30';
+            templateFactoryMock.listWithMetrics.resolves(testtemplateversionsmetrics);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testtemplateversionsmetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    paginate: {
+                        page: undefined,
+                        count: 30
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.listWithMetrics.resolves([]);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 404);
