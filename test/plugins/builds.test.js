@@ -1665,14 +1665,14 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers if all jobs in join are done with parent event', () => {
+                it('triggers if all jobs in join are done with all parent event', () => {
                     // For a pipeline like this:
                     //   -> b
                     // a
                     //   ->
                     //      c
                     // d ->
-                    // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
+                    // If user restarts `a`, it should get `d`'s all parent event status and trigger `c`
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
                     eventMock.workflowGraph.edges = [
@@ -1683,6 +1683,8 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
+                    parentEventMock.parentEventId = 789;
+                    parentEventMock.startFrom = 'a';
                     eventMock.getBuilds.resolves([{
                         id: 5,
                         jobId: 1,
@@ -1690,17 +1692,48 @@ describe('build plugin test', () => {
                     }]);
                     parentEventMock.getBuilds.resolves([
                         {
-                            id: 1,
+                            id: 6,
                             jobId: 1,
                             status: 'FAILURE'
-                        },
-                        {
-                            id: 4,
-                            jobId: 4,
-                            status: 'SUCCESS'
                         }
                     ]);
                     jobCconfig.start = false;
+
+                    const parentEventMock2 = {
+                        id: 789,
+                        pipelineId,
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'd', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'b' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'd', dest: 'c', join: true }
+                            ]
+                        },
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 1,
+                                jobId: 1,
+                                status: 'FAILURE'
+                            },
+                            {
+                                id: 4,
+                                jobId: 4,
+                                status: 'SUCCESS'
+                            }
+                        ])
+                    };
+
+                    eventFactoryMock.get.withArgs({ id: 789 }).resolves(parentEventMock2);
 
                     return server.inject(options).then(() => {
                         assert.calledTwice(buildFactoryMock.create);
