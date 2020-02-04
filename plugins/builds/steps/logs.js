@@ -165,7 +165,7 @@ module.exports = config => ({
             const stepName = req.params.name;
             const headers = req.headers;
 
-            stepFactory.get({ buildId, name: stepName })
+            return stepFactory.get({ buildId, name: stepName })
                 .then((stepModel) => {
                     if (!stepModel) {
                         throw boom.notFound('Step does not exist');
