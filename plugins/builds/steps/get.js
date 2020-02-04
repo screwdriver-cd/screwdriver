@@ -23,7 +23,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const stepFactory = request.server.app.stepFactory;
 
-            stepFactory.get({ buildId: request.params.id, name: request.params.name })
+            return stepFactory.get({ buildId: request.params.id, name: request.params.name })
                 .then((stepModel) => {
                     if (!stepModel) {
                         throw boom.notFound('Step does not exist');
