@@ -42,12 +42,20 @@ module.exports = () => ({
                 if (buildId) { // restart case
                     return buildFactory.get(buildId)
                         .then(b => jobFactory.get(b.jobId)
-                            .then(j => ({
-                                pipelineId: j.pipelineId,
-                                startFrom: j.name,
-                                parentBuildId: b.parentBuildId,
-                                parentEventId: b.eventId
-                            })));
+                            .then((j) => {
+                                const restartConfig = {
+                                    pipelineId: j.pipelineId,
+                                    startFrom: j.name,
+                                    parentBuildId: b.parentBuildId,
+                                    parentEventId: b.eventId
+                                };
+
+                                if (b.parentBuilds) {
+                                    restartConfig.parentBuilds = b.parentBuilds;
+                                }
+
+                                return restartConfig;
+                            }));
                 }
 
                 return {
@@ -57,7 +65,8 @@ module.exports = () => ({
                     parentEventId: request.payload.parentEventId,
                     prNumber: request.payload.prNum
                 };
-            }).then(({ pipelineId, startFrom, parentBuildId, parentEventId, prNumber }) => {
+            }).then(({
+                pipelineId, startFrom, parentBuildId, parentBuilds, parentEventId, prNumber }) => {
                 const payload = {
                     pipelineId,
                     scmContext,
@@ -74,6 +83,10 @@ module.exports = () => ({
 
                 if (parentBuildId) {
                     payload.parentBuildId = parentBuildId;
+                }
+
+                if (parentBuilds) {
+                    payload.parentBuilds = parentBuilds;
                 }
 
                 if (meta) {
