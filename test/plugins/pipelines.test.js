@@ -13,7 +13,7 @@ const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 const testTriggers = require('./data/triggers.json');
-const testBuild = require('./data/build.json');
+const testBuild = require('./data/buildWithSteps.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/events.json');
@@ -25,7 +25,7 @@ sinon.assert.expose(assert, { prefix: '' });
 const decorateBuildMock = (build) => {
     const mock = hoek.clone(build);
 
-    mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
