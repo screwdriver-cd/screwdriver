@@ -10,7 +10,7 @@ const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplatetags = require('./data/templateTags.json');
 const testtemplateversions = require('./data/templateVersions.json');
-const testtemplateversionsmetrics = require('./data/templateVersionsMetrics.json');
+const testTemplateVersionsMetrics = require('./data/templateVersionsMetrics.json');
 const testTemplateWithNamespace = require('./data/templateWithNamespace.json');
 const testpipeline = require('./data/pipeline.json');
 const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
@@ -400,11 +400,11 @@ describe('template plugin test', () => {
         });
 
         it('returns 200 and all template versions and metrics for a template name', () => {
-            templateFactoryMock.listWithMetrics.resolves(testtemplateversionsmetrics);
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testtemplateversionsmetrics);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
                 assert.calledWith(templateFactoryMock.listWithMetrics, {
                     params: { name: 'screwdriver/build' },
                     sort: 'descending'
@@ -414,11 +414,11 @@ describe('template plugin test', () => {
 
         it('returns 200 and all versions and metrics for a template name with pagination', () => {
             options.url = '/templates/screwdriver%2Fbuild/metrics?count=30';
-            templateFactoryMock.listWithMetrics.resolves(testtemplateversionsmetrics);
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testtemplateversionsmetrics);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
                 assert.calledWith(templateFactoryMock.listWithMetrics, {
                     params: { name: 'screwdriver/build' },
                     paginate: {
