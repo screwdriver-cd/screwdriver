@@ -145,7 +145,7 @@ module.exports = () => ({
                         pathname: `${request.path}/${build.id}`
                     });
 
-                    return reply(build.toJson()).header('Location', location).code(201);
+                    return reply(build.toJsonWithSteps()).header('Location', location).code(201);
                 })
                 // something was botched
                 .catch(err => reply(boom.boomify(err)));

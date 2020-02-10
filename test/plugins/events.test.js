@@ -18,6 +18,7 @@ const decorateBuildMock = (build) => {
 
     mock.update = sinon.stub().resolves();
     mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
