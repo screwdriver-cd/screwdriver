@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "pretest": "eslint .",
-    "test": "jenkins-mocha --recursive --timeout 4000 --exit",
+    "test": "mocha --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true",
     "start": "./bin/server",
     "debug": "node --nolazy --inspect-brk=9229 ./bin/server",
     "profile": "node --prof ./bin/server",
@@ -128,7 +128,7 @@
     "eslint": "^4.19.1",
     "eslint-config-screwdriver": "^3.0.1",
     "form-data": "^2.5.1",
-    "jenkins-mocha": "^8.0.0",
+    "mocha": "^7.0.1",
     "mockery": "^2.0.0",
     "mz": "^2.6.0",
     "nock": "^9.6.1",
