@@ -635,7 +635,6 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
  * @param  {Boolean}    isExternal          Is external or not
  * @param  {Build}      externalBuild       External build
  * @param  {Array}      joinListNames       Join list names
- * @param  {Object}     joinParentBuilds    Parent builds info for join
  * @param  {Object}     currentJobParentBuilds Parent builds info for current job
  * @param  {Object}     currentBuildInfo    Parent builds info for current build
  * @return {Promise}                        The newly updated/created build
@@ -643,7 +642,7 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pipelineFactory,
     pipelineId, jobName, start, username, scmContext, build, event, parentBuilds, parentEventId,
     externalPipelineId, externalJobName, parentBuildId, isExternal, workflowGraph, nextJobName,
-    externalBuild, joinListNames, joinParentBuilds, currentJobParentBuilds, currentBuildInfo }) {
+    externalBuild, joinListNames, currentJobParentBuilds, currentBuildInfo }) {
     const internalBuildConfig = {
         jobFactory,
         buildFactory,

@@ -422,6 +422,48 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it successfully creates an event with parent builds', () => {
+            const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
+
+            options.payload = {
+                buildId: 1234,
+                meta,
+                parentBuilds
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId,
+                eventId: 888
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.parentBuilds = parentBuilds;
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.baseBranch = 'master';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
         it('returns 201 when it creates an event with parent event for child pipeline', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
