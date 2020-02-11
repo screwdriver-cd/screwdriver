@@ -21,6 +21,7 @@ const getMock = (obj) => {
 
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(obj);
+    mock.toJsonWithSteps = sinon.stub().resolves(obj);
     mock.remove = sinon.stub();
 
     return mock;
