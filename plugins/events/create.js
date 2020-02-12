@@ -22,32 +22,32 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const eventFactory = request.server.app.eventFactory;
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const buildFactory = request.server.app.buildFactory;
-            const jobFactory = request.server.app.jobFactory;
+            const { buildFactory, jobFactory, eventFactory, pipelineFactory,
+                userFactory } = request.server.app;
+            const { buildId, causeMessage, creator, meta, parentBuilds } = request.payload;
+            const { scmContext, username } = request.auth.credentials;
             const scm = eventFactory.scm;
-            const scmContext = request.auth.credentials.scmContext;
-            const username = request.auth.credentials.username;
             const isValidToken = request.server.plugins.pipelines.isValidToken;
-            const meta = request.payload.meta;
-            const causeMessage = request.payload.causeMessage;
-            const creator = request.payload.creator;
             const updateAdmins = request.server.plugins.events.updateAdmins;
 
             return Promise.resolve().then(() => {
-                const buildId = request.payload.buildId;
-
                 if (buildId) { // restart case
                     return buildFactory.get(buildId)
                         .then(b => jobFactory.get(b.jobId)
-                            .then(j => ({
-                                pipelineId: j.pipelineId,
-                                startFrom: j.name,
-                                parentBuildId: b.parentBuildId,
-                                parentEventId: b.eventId
-                            })));
+                            .then((j) => {
+                                const restartConfig = {
+                                    pipelineId: j.pipelineId,
+                                    startFrom: j.name,
+                                    parentBuildId: b.parentBuildId,
+                                    parentEventId: b.eventId
+                                };
+
+                                if (b.parentBuilds) {
+                                    restartConfig.parentBuildsInfo = b.parentBuilds;
+                                }
+
+                                return restartConfig;
+                            }));
                 }
 
                 return {
@@ -57,7 +57,8 @@ module.exports = () => ({
                     parentEventId: request.payload.parentEventId,
                     prNumber: request.payload.prNum
                 };
-            }).then(({ pipelineId, startFrom, parentBuildId, parentEventId, prNumber }) => {
+            }).then(({ pipelineId, startFrom, parentBuildId, parentBuildsInfo,
+                parentEventId, prNumber }) => {
                 const payload = {
                     pipelineId,
                     scmContext,
@@ -74,6 +75,10 @@ module.exports = () => ({
 
                 if (parentBuildId) {
                     payload.parentBuildId = parentBuildId;
+                }
+
+                if (parentBuilds || parentBuildsInfo) {
+                    payload.parentBuilds = parentBuilds || parentBuildsInfo;
                 }
 
                 if (meta) {
