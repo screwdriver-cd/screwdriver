@@ -248,6 +248,7 @@ describe('event plugin test', () => {
                 'screwdriver.cd/restrictPR': 'none'
             }
         };
+        const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
 
         beforeEach(() => {
             userMock = {
@@ -306,7 +307,8 @@ describe('event plugin test', () => {
                 id: 1234,
                 jobId: 222,
                 parentBuildId,
-                eventId: 888
+                eventId: 888,
+                parentBuilds
             });
             jobFactoryMock.get.resolves({
                 pipelineId,
@@ -317,6 +319,7 @@ describe('event plugin test', () => {
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
             eventConfig.baseBranch = 'master';
+            eventConfig.parentBuilds = parentBuilds;
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
@@ -424,8 +427,6 @@ describe('event plugin test', () => {
         });
 
         it('returns 201 when it successfully creates an event with parent builds', () => {
-            const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
-
             options.payload = {
                 buildId: 1234,
                 meta,

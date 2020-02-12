@@ -676,8 +676,19 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         const p = await pipelineFactory.get(externalPipelineId);
         const jobArray = await p.getJobs({ params: { name: externalJobName } });
         const j = await jobFactory.get(jobArray[0].id);
+        const DEFAULT_COUNT = 10;
 
-        nextBuild = await j.getLatestBuild({ status: 'CREATED' });
+        nextBuild = await buildFactory.list({
+            params: {
+                jobId: j.id,
+                status: 'CREATED',
+                eventId: event.id
+            },
+            paginate: {
+                count: DEFAULT_COUNT
+            },
+            sort: 'descending' // Sort by primary sort key
+        })[0] || {};
     } else {
         // Get finished internal builds from event
         const finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);

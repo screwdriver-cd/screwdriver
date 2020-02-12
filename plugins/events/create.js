@@ -42,8 +42,8 @@ module.exports = () => ({
                                     parentEventId: b.eventId
                                 };
 
-                                if (parentBuilds) {
-                                    restartConfig.parentBuildsInfo = parentBuilds;
+                                if (b.parentBuilds) {
+                                    restartConfig.parentBuildsInfo = b.parentBuilds;
                                 }
 
                                 return restartConfig;
