@@ -678,30 +678,31 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         const j = await jobFactory.get(jobArray[0].id);
 
         nextBuild = await j.getLatestBuild({ status: 'CREATED' });
-    }
-    // Get finished internal builds from event
-    const finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
+    } else {
+        // Get finished internal builds from event
+        const finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
 
-    if (event.parentEventId) {
-        Object.keys(parentBuilds).forEach((pid) => {
-            parentBuilds[pid].eventId = event.id;
-            Object.keys(parentBuilds[pid].jobs).forEach((jName) => {
-                if (parentBuilds[pid].jobs[jName] === null) {
-                    const jobId = workflowGraph.nodes.find(node =>
-                        node.name === trimJobName(jName)).id;
+        if (event.parentEventId) {
+            Object.keys(parentBuilds).forEach((pid) => {
+                parentBuilds[pid].eventId = event.id;
+                Object.keys(parentBuilds[pid].jobs).forEach((jName) => {
+                    if (parentBuilds[pid].jobs[jName] === null) {
+                        const jobId = workflowGraph.nodes.find(node =>
+                            node.name === trimJobName(jName)).id;
 
-                    parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
-                        b.jobId === jobId).id;
-                }
+                        parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
+                            b.jobId === jobId).id;
+                    }
+                });
             });
-        });
+        }
+
+        // If next build is internal, look at the finished builds for this event
+        const jobId = workflowGraph.nodes.find(node =>
+            node.name === trimJobName(nextJobName)).id;
+
+        nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId);
     }
-
-    // If next build is internal, look at the finished builds for this event
-    const jobId = workflowGraph.nodes.find(node =>
-        node.name === trimJobName(nextJobName)).id;
-
-    nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId);
 
     let newBuild;
 
