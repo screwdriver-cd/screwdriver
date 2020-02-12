@@ -53,5 +53,12 @@ to the queue service, thereby giving a pluggable interface in executor.
 ### Starting a build
 ![](./diagrams/executor-queue-service-start-sequence.png)
 
+### Stopping a build
+![](./diagrams/executor-queue-service-stop-sequence.png)
+
+
 ### Starting a periodic/frozen build
 ![](./diagrams/executor-queue-service-startPeriodic-sequence.png)
+
+### Stopping a periodic/frozen build
+![](./diagrams/executor-queue-service-stopPeriodic-sequence.png)
