@@ -1,17 +1,16 @@
-# Queue Service
+# Executor Queue
 
 ## Context
 
-This is a highly available REST based queue service for screwdriver to enqueue builds and process them.
-It makes use of [Resque][node-resque-URL] to add a queueing mechanism.
+This is an executor plugin for Screwdriver that makes use of [Resque][node-resque-URL] to add a queueing mechanism.
 
 #### Problem
 
-In existing structure, executor is tightly coupled with screwdriver api and it constantly polls for
-jobs which causes blocking in the api requests. Also, if the api crashes this can cause scheduled jobs
-not being added to queue and causing failures. To avoid such issues we need a resilient queuing system whcih puts and deletes messages from queue and acts as scheduler. 
+Right now, Screwdriver directly calls the executor when a build needs to be started. If the executor target is offline or full, the build is generally dropped with an error message. This isn't a good user experience, especially if the error is hidden due to the build being started from a PR or commit.
 
-The rest of this document will describe the overall architecture of the highly available and resiliant queuing service.
+Instead, Screwdriver should be pushing planned builds into a queue; all available executors should be listening on that queue and taking items off when they have capacity. This will allow us to distribute between N number of Docker Swarm clusters, for example.
+
+The rest of this document will describe the overall architecture of the executor queue, as well as of the various plug-ins that will eventually be built on top of it.
 
 ## Design Decisions
 
@@ -26,9 +25,6 @@ The rest of this document will describe the overall architecture of the highly a
 * Persistent
 * Allows for prioritization
 * Password-protected security
-* Decoupled queueing system
-* Highly available and resilient
-
 
 ### Why Node-Resque?
 
@@ -48,31 +44,16 @@ A plugin has access to four unique hooks:
 
 More information about node-resque plugins can be found [here](node-resque-plugins-URL).
 
-# Executor Queue
-
-## Context
-
-This is an executor plugin for Screwdriver which acts as a wrapper to make API calls
-to the queue service.
-
-#### Problem
-
-Right now, Screwdriver directly calls the executor when a build needs to be started. If the executor target is offline or full, the build is generally dropped with an error message. This isn't a good user experience, especially if the error is hidden due to the build being started from a PR or commit.
-
-Instead, Screwdriver should be pushing planned builds into a queue; all available executors should be listening on that queue and taking items off when they have capacity. This will allow us to distribute between N number of Docker Swarm clusters, for example.
-
-The rest of this document will describe the overall architecture of the executor queue, as well as of the various plug-ins that will eventually be built on top of it.
-
 #### Node-resque Executor
 
-| Screwdriver Executor Task | node_resque Equivalent(s) | Queue Service API
-| ------------------------- |---------------------------|--------------------------------------
-| Start                     | queue.enqueue(queue, job, args) | POST /queue/message
-| Stop (job in queue)       | queue.del(queue, job, args, callback) | DEL /queue/message
-| Stop (job in execution)   | API call to the worker?* | POST /queue/message
-| Status (job in queue)     | - queue.queued (.filter) </br> - Add another data structure** | GET /queue/message
-| Status (job in execution) | - Add another data structure** | GET /queue/message
-| Stats                     | - queue.stats (number of jobs completed) </br> - queue.queued (things in the queue) </br> - queue.allWorkingOn (status of all workers) </br> - queue.failed, queue.failedCount (# and info on failed jobs) </br> - Add another data structure** (jobs in execution) | GET /queue/stats
+| Screwdriver Executor Task | node_resque Equivalent(s) |
+| ------------------------- |---------------------------|
+| Start                     | queue.enqueue(queue, job, args) |
+| Stop (job in queue)       | queue.del(queue, job, args, callback) |
+| Stop (job in execution)   | API call to the worker?* |
+| Status (job in queue)     | - queue.queued (.filter) </br> - Add another data structure** |
+| Status (job in execution) | - Add another data structure** |
+| Stats                     | - queue.stats (number of jobs completed) </br> - queue.queued (things in the queue) </br> - queue.allWorkingOn (status of all workers) </br> - queue.failed, queue.failedCount (# and info on failed jobs) </br> - Add another data structure** (jobs in execution) |
 
 \* Worker.end() will tell the worker to finish whatever job it’s working on, and then not take on any further work after that completes. To shut down a job that’s in flight seems to require something else.
 
