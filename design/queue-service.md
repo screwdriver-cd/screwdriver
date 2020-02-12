@@ -9,7 +9,7 @@ It makes use of [Resque][node-resque-URL] to add a queueing mechanism.
 
 In existing structure, executor is tightly coupled with screwdriver api and it constantly polls for
 jobs which causes blocking in the api requests. Also, if the api crashes this can cause scheduled jobs
-not being added to queue and causing failures. To avoid such issues we need a resilient queuing system whcih puts and deletes messages from queue and acts as scheduler. 
+not being added to queue and causing failures. To avoid such issues we need a resilient queuing system which puts and deletes messages from queue and acts as scheduler. 
 
 The rest of this document will describe the overall architecture of the highly available and resiliant queuing service.
 
