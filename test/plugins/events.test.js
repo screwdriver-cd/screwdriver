@@ -236,6 +236,7 @@ describe('event plugin test', () => {
         const pipelineMock = {
             id: pipelineId,
             checkoutUrl,
+            scmContext: 'github:github.com',
             update: sinon.stub().resolves(),
             admins: { foo: true, bar: true },
             admin: Promise.resolve({
@@ -258,7 +259,7 @@ describe('event plugin test', () => {
             };
             scmConfig = {
                 prNum: null,
-                scmContext,
+                scmContext: 'github:github.com',
                 scmUri,
                 token: 'iamtoken'
             };
@@ -788,6 +789,15 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 403 forbidden error when user\'s scm' +
+            ' and pipeline\'s scm are different', () => {
+            options.credentials.scmContext = 'mygit:mygit.com';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
