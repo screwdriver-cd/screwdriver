@@ -993,9 +993,12 @@ exports.register = (server, options, next) => {
                     externalJobName,
                     parentBuildId: build.id,
                     parentBuilds,
-                    causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
-                    parentEventId: event.id
+                    causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`
                 };
+
+                if (!event.parentEventId) {
+                    externalBuildConfig.parentEventId = event.id;
+                }
 
                 return createExternalBuild(externalBuildConfig);
             }
