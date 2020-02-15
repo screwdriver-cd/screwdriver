@@ -545,8 +545,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
     let hasFailure = false;
     const promisesToAwait = [];
 
-    console.log('upstream: ', upstream);
-
     // Get buildId
     for (let i = 0; i < joinListNames.length; i += 1) {
         const name = joinListNames[i];
@@ -615,9 +613,11 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 }
 
 /**
- * [getParallelBuilds description]
- * @param  {[type]} parentEventId [description]
- * @return {[type]}               [description]
+ * Get all builds with same parent event id
+ * @param  {Factory}    eventFactory  Event factory
+ * @param  {Number}     parentEventId Parent event ID
+ * @param  {Number}     pipelineId    Pipeline ID
+ * @return {Promise}                  Array of builds with same parent event ID
  */
 async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
     let parallelEvents = await eventFactory.list({
@@ -626,8 +626,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
         }
     });
 
-    console.log('pipelineId in getParallelBuilds: ', pipelineId);
-
+    // Remove previous events from same pipeline
     parallelEvents = parallelEvents.filter(pe => pe.pipelineId !== pipelineId);
 
     let parallelBuilds = [];
@@ -635,11 +634,8 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
     await Promise.all(parallelEvents.map(async (pe) => {
         const parallelBuild = await pe.getBuilds();
 
-        console.log(`parallel build for event ${pe.id}: `, parallelBuild);
         parallelBuilds = parallelBuilds.concat(parallelBuild);
     }));
-
-    console.log('parallel builds: ', parallelBuilds);
 
     return parallelBuilds;
 }
@@ -705,7 +701,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
 
     // If next build is external, return the latest build with same job ID
     if (isExternal) {
-        console.log(`next job ${nextJobName} is external`);
         const p = await pipelineFactory.get(externalPipelineId);
         const jobArray = await p.getJobs({ params: { name: externalJobName } });
         const j = await jobFactory.get(jobArray[0].id);
@@ -727,8 +722,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         // Get finished internal builds from event
         let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
 
-        console.log(`parentBuilds for ${nextJobName}: `, parentBuilds);
-
         if (event.parentEventId) {
             const parallelBuilds = await getParallelBuilds({
                 eventFactory,
@@ -736,39 +729,21 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
                 pipelineId
             });
 
-            console.log('done getting parallel builds: ', parallelBuilds);
-
             finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
 
-            console.log(`finishedInternalBuilds for event ${event.id}: `,
-                finishedInternalBuilds);
-
-            console.log(`parentEventId ${event.parentEventId} exists, updating parentBuilds`);
             Object.keys(parentBuilds).forEach((pid) => {
                 parentBuilds[pid].eventId = event.id;
                 Object.keys(parentBuilds[pid].jobs).forEach((jName) => {
-                    console.log('jName: ', jName);
-                    console.log('pid: ', pid);
-                    console.log('pipelineId: ', pipelineId);
                     let jobId;
 
-                    console.log('parentBuilds[pid].jobs[jName]: ', parentBuilds[pid].jobs[jName]);
-
                     if (parentBuilds[pid].jobs[jName] === null) {
-                        console.log('pid === pipelineId: ', pid === pipelineId);
-                        console.log('type pid: ', typeof pid);
-                        console.log('type pipelineId: ', typeof pipelineId);
                         if (parseInt(pid, 10) === pipelineId) {
-                            console.log('pid === pipelineId');
                             jobId = workflowGraph.nodes.find(node =>
                                 node.name === trimJobName(jName)).id;
                         } else {
-                            console.log('pid !== pipelineId');
                             jobId = workflowGraph.nodes.find(node =>
                                 node.name.includes(`sd@${pid}:${jName}`)).id;
                         }
-
-                        console.log(`finding jobId for job name ${jName}: `, jobId);
 
                         parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
                             b.jobId === jobId).id;
@@ -776,7 +751,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
                 });
             });
         }
-
         // If next build is internal, look at the finished builds for this event
         const jobId = workflowGraph.nodes.find(node =>
             node.name === trimJobName(nextJobName)).id;
@@ -788,18 +762,14 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
 
     // Create next build
     if (!nextBuild) {
-        console.log(`no next build exists for ${nextJobName}, creating job`);
         if (isExternal) {
-            console.log(`creating external event for ${nextJobName}`);
             externalBuildConfig.start = false;
             newBuild = await createExternalBuild(externalBuildConfig);
         } else {
-            console.log(`creating internal event for ${nextJobName}`);
             internalBuildConfig.start = false;
             newBuild = await createInternalBuild(internalBuildConfig);
         }
     } else {
-        console.log(`next build exists for ${nextJobName}, updating parent builds`);
         newBuild = await updateParentBuilds({
             joinParentBuilds: parentBuilds,
             currentJobParentBuilds,
@@ -816,9 +786,6 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         pipelineId,
         buildFactory
     });
-
-    console.log(`${nextJobName} done? ${done}`);
-    console.log(`${nextJobName} hasFailure? ${hasFailure}`);
 
     /*  IF NOT DONE -> DO NOTHING
         IF DONE ->
@@ -941,8 +908,6 @@ exports.register = (server, options, next) => {
             const currentJobNotInJoinList = !joinListNames.includes(currentJobName) &&
                 !joinListNames.includes(`sd@${pipelineId}:${currentJobName}`);
 
-            console.log(`next job for current job "${currentJobName}" is ${nextJobName}`);
-
             // Handle no-join case
             // Note: current job can be "external" in nextJob's perspective
             /* CREATE AND START NEXT BUILD IF ALL 3 SCENARIOS ARE TRUE
@@ -953,7 +918,6 @@ exports.register = (server, options, next) => {
              *    joinList doesn't include sd@111:D, so start A
              */
             if (joinListNames.length === 0 || currentJobNotInJoinList) {
-                console.log(`no join for ${currentJobName}`)
                 // Next build is internal
                 if (!isExternal) {
                     const internalBuildConfig = {
@@ -980,12 +944,8 @@ exports.register = (server, options, next) => {
                  * Otherwise, create internal build for matching pipeline
                  */
                 if (build.parentBuilds && build.parentBuilds[externalPipelineId]) {
-                    console.log(`external join for ${currentJobName}`);
                     // TODO: refactor this section to reduce number of DB calls
                     const externalEventId = build.parentBuilds[externalPipelineId].eventId;
-
-                    console.log('externalEventId: ', externalEventId);
-                    console.log('event.parentEventId: ', event.parentEventId);
                     const externalEvent = await eventFactory.get(externalEventId);
                     const externalPipeline = await pipelineFactory.get(externalEvent.pipelineId);
                     const parentWorkflowGraph = externalEvent.workflowGraph;
@@ -998,18 +958,10 @@ exports.register = (server, options, next) => {
                     const isRestartCase = finishedExternalBuilds.find(b => b.jobId === jobId
                         && b.status !== 'CREATED');
                     const fullCurrentJobName = `sd@${pipelineId}:${currentJobName}`;
-                    const externalParentBuilds = createParentBuildsObj({
-                        buildId: build.id,
-                        eventId: event.id,
-                        pipelineId: event.pipelineId,
-                        jobName: currentJobName
-                    });
 
                     // Get finished internal builds from event
                     let finishedInternalBuilds = await getFinishedBuilds(
                         externalEvent, eventFactory);
-
-                    console.log(`parentBuilds for ${nextJobName}: `, parentBuilds);
 
                     if (externalEventId) {
                         const parallelBuilds = await getParallelBuilds({
@@ -1018,77 +970,56 @@ exports.register = (server, options, next) => {
                             pipelineId: externalEvent.pipelineId
                         });
 
-                        console.log('done getting parallel builds: ', parallelBuilds);
-
                         finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
 
-                        console.log(`finishedInternalBuilds for event ${event.id}: `,
-                            finishedInternalBuilds);
-
-                        console.log(`parentEventId ${event.parentEventId} exists`);
                         Object.keys(parentBuilds).forEach((pid) => {
                             parentBuilds[pid].eventId = event.id;
                             Object.keys(parentBuilds[pid].jobs).forEach((jName) => {
-                                console.log('jName: ', jName);
-                                console.log('pid: ', pid);
-                                console.log('pipelineId: ', pipelineId);
-                                let jobId2;
-
-                                console.log('parentBuilds[pid].jobs[jName]: ',
-                                    parentBuilds[pid].jobs[jName]);
+                                let joinJobId;
 
                                 if (parentBuilds[pid].jobs[jName] === null) {
-                                    if (pid === pipelineId) {
-                                        jobId2 = workflowGraph.nodes.find(node =>
+                                    if (parseInt(pid, 10) === pipelineId) {
+                                        joinJobId = workflowGraph.nodes.find(node =>
                                             node.name === trimJobName(jName)).id;
-                                    }
-
-                                    if (pid !== pipelineId) {
-                                        jobId2 = workflowGraph.nodes.find(node =>
+                                    } else {
+                                        joinJobId = workflowGraph.nodes.find(node =>
                                             node.name.includes(`sd@${pid}:${jName}`)).id;
                                     }
-
-                                    console.log(`finding jobId2 for job name ${jName}: `, jobId2);
-
                                     parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
-                                        b.jobId === jobId2).id;
+                                        b.jobId === joinJobId).id;
                                 }
                             });
                         });
                     }
-                    console.log(`parentBuilds after ${nextJobName}: `, parentBuilds);
-
-                    console.log('nextBuild: ', nextBuild);
-
                     let newBuild;
+                    let parentBuildsForJoin = joinParentBuilds;
 
                     // Create next build if doesn't exist
                     if (!nextBuild) {
-                        console.log('creating next build');
                         const parentSrc = workflowGraph.edges.find(edge =>
                             edge.dest === currentJobName).src;
                         const parentJobName = getPipelineAndJob(parentSrc).externalJobName;
                         const parentBuild = await buildFactory.get(
                             build.parentBuilds[externalPipelineId].jobs[parentJobName]);
 
-                        console.log('isRestartCase: ', isRestartCase);
-
                         // if restart case, should create event
                         if (isRestartCase) {
-                            console.log('creating external build');
-                            newBuild = await createExternalBuild({
+                            parentBuildsForJoin = isRestartCase.parentBuilds;
+
+                            const newEvent = await createExternalBuild({
                                 pipelineFactory,
                                 eventFactory,
                                 externalPipelineId: externalEvent.pipelineId,
                                 externalJobName,
                                 parentBuildId: build.id,
-                                parentBuilds,
+                                parentBuilds: deepmerge.all([parentBuildsForJoin, parentBuilds]),
                                 causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
                                 parentEventId: event.id,
                                 start: false
                             });
+
+                            newBuild = newEvent.builds.filter(b => b.jobId === jobId)[0];
                         } else {
-                            console.log('creating internal build');
                             newBuild = await createInternalBuild({
                                 jobFactory,
                                 buildFactory,
@@ -1106,7 +1037,6 @@ exports.register = (server, options, next) => {
                         }
                     // If next build exists, update next build with parentBuilds info
                     } else {
-                        console.log('updating next build');
                         newBuild = await updateParentBuilds({
                             joinParentBuilds: {},
                             currentJobParentBuilds: {},
@@ -1115,8 +1045,6 @@ exports.register = (server, options, next) => {
                             build
                         });
                     }
-
-                    console.log('getting join info for join job');
 
                     // Get join information in context of join job
                     const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {
@@ -1132,8 +1060,6 @@ exports.register = (server, options, next) => {
                     const joinListForJoin = joinObjForJoin[externalJobName];
                     const joinListNamesForJoin = joinListForJoin.map(j => j.name);
 
-                    console.log('checking parent builds statuses');
-
                     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
                     const { hasFailure, done } = await getParentBuildStatus({
                         newBuild,
@@ -1141,9 +1067,6 @@ exports.register = (server, options, next) => {
                         pipelineId: externalPipelineId,
                         buildFactory
                     });
-
-                    console.log('done: ', done);
-                    console.log('hasFailure: ', hasFailure);
 
                     /*  IF NOT DONE -> DO NOTHING
                         IF DONE ->
@@ -1153,8 +1076,6 @@ exports.register = (server, options, next) => {
                     */
                     return handleNewBuild({ done, hasFailure, newBuild });
                 }
-
-                console.log(`simple external job for ${currentJobName}`);
 
                 // Simply create an external event if external job is not join job
                 const externalBuildConfig = {
@@ -1170,8 +1091,6 @@ exports.register = (server, options, next) => {
 
                 return createExternalBuild(externalBuildConfig);
             }
-
-            console.log(`join case for ${currentJobName}`);
 
             // Handle join case
             return createOrRunNextBuild({ buildFactory,
