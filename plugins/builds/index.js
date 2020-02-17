@@ -955,7 +955,8 @@ exports.register = (server, options, next) => {
                     // Get next build
                     const nextBuild = finishedExternalBuilds.find(b => b.jobId === jobId
                         && b.status === 'CREATED');
-                    const isRestartCase = finishedExternalBuilds.find(b => b.jobId === jobId
+                    // The next build has been restarted and this was the original run
+                    const previousBuild = finishedExternalBuilds.find(b => b.jobId === jobId
                         && b.status !== 'CREATED');
                     const fullCurrentJobName = `sd@${pipelineId}:${currentJobName}`;
 
@@ -1003,8 +1004,8 @@ exports.register = (server, options, next) => {
                             build.parentBuilds[externalPipelineId].jobs[parentJobName]);
 
                         // if restart case, should create event
-                        if (isRestartCase) {
-                            parentBuildsForJoin = isRestartCase.parentBuilds;
+                        if (previousBuild) {
+                            parentBuildsForJoin = previousBuild.parentBuilds;
 
                             const newEvent = await createExternalBuild({
                                 pipelineFactory,
