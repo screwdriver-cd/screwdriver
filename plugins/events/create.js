@@ -124,6 +124,11 @@ module.exports = () => ({
                     let scmConfig;
                     let permissions;
 
+                    if (scmContext !== pipeline.scmContext) {
+                        // eslint-disable-next-line max-len
+                        throw boom.forbidden('This checkoutUrl is not supported for your current login host.');
+                    }
+
                     // Check if user has push access
                     return user.getPermissions(pipeline.scmUri)
                         .then((userPermissions) => {
