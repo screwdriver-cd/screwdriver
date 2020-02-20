@@ -37,7 +37,7 @@ As part of cluster onboarding process for above both options cluster admin shoul
 
 
 ### Responsibilities
-	1. No change in current API to Redis implemention  
+	1. No change in current API to Redis implementation  
 	2. Master queue worker will push build job to queue from redis, after successfully validating blockedBy and other checks.
 	3. Build cluster queue worker will consume/poll from its respective queue.
 	4. Queue authorization (acls) will authorize the build cluster queue worker request.

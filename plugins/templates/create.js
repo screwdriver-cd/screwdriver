@@ -53,14 +53,10 @@ module.exports = () => ({
                         labels: config.template.labels || []
                     });
 
-                    // If template name doesn't exist yet, just create a new entry
-                    if (templates.length === 0) {
-                        return templateFactory.create(templateConfig);
-                    }
-
                     // If template name exists, but this build's pipelineId is not the same as template's pipelineId
                     // Then this build does not have permission to publish
-                    if (pipeline.id !== templates[0].pipelineId || isPR) {
+                    if (isPR ||
+                        (templates.length !== 0 && pipeline.id !== templates[0].pipelineId)) {
                         throw boom.forbidden('Not allowed to publish this template');
                     }
 

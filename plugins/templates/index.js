@@ -7,6 +7,7 @@ const getRoute = require('./get');
 const listRoute = require('./list');
 const listTagsRoute = require('./listTags');
 const listVersionsRoute = require('./listVersions');
+const listVersionsWithMetricsRouter = require('./listVersionsWithMetric');
 const removeRoute = require('./remove');
 const removeTagRoute = require('./removeTag');
 const updateTrustedRoute = require('./updateTrusted');
@@ -35,6 +36,10 @@ exports.register = (server, options, next) => {
     server.expose('canRemove', (credentials, template, permission) => {
         const { username, scmContext, scope } = credentials;
         const { userFactory, pipelineFactory } = server.root.app;
+
+        if (credentials.scope.includes('admin')) {
+            return Promise.resolve(true);
+        }
 
         return pipelineFactory.get(template.pipelineId).then((pipeline) => {
             if (!pipeline) {
@@ -73,6 +78,7 @@ exports.register = (server, options, next) => {
         listRoute(),
         listTagsRoute(),
         listVersionsRoute(),
+        listVersionsWithMetricsRouter(),
         removeRoute(),
         removeTagRoute(),
         updateTrustedRoute()

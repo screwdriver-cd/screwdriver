@@ -9,6 +9,6 @@
     },
     {
         "jobName": "prod",
-        "triggers": ["~sd@345:beta", "~sd@456:deploy"]
+        "triggers": ["~sd@345:beta", "sd@456:deploy"]
     }
 ]

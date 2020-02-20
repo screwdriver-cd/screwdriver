@@ -28,9 +28,9 @@ module.exports = () => ({
             const scm = buildFactory.scm;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
-            const meta = request.payload.meta;
+            const { meta, jobId } = request.payload;
             const payload = {
-                jobId: request.payload.jobId,
+                jobId,
                 apiUri: request.server.info.uri,
                 username,
                 scmContext
@@ -108,10 +108,12 @@ module.exports = () => ({
                                     return eventFactory.create({
                                         pipelineId: pipeline.id,
                                         meta,
+                                        startFrom: job.name,
                                         type,
                                         username,
                                         scmContext,
-                                        sha
+                                        sha,
+                                        skipMessage: 'skip build creation'
                                     });
                                 })
                                 .then((event) => {
@@ -123,6 +125,12 @@ module.exports = () => ({
                                     if (prInfo) {
                                         payload.prRef = prInfo.ref;
                                     }
+
+                                    const displayLabel = scmContext.split(':')[0];
+                                    const displayName = displayLabel ?
+                                        `${displayLabel}:${user.username}` : user.username;
+
+                                    payload.causeMessage = `Started by ${displayName}`;
 
                                     return buildFactory.create(payload);
                                 });
@@ -137,7 +145,7 @@ module.exports = () => ({
                         pathname: `${request.path}/${build.id}`
                     });
 
-                    return reply(build.toJson()).header('Location', location).code(201);
+                    return reply(build.toJsonWithSteps()).header('Location', location).code(201);
                 })
                 // something was botched
                 .catch(err => reply(boom.boomify(err)));

@@ -39,6 +39,11 @@ module.exports = () => ({
                 if (collection.userId !== user.id) {
                     throw boom.forbidden(`User ${username} does not own collection`);
                 }
+                if (collection.type === 'default') {
+                    throw boom.forbidden(`
+                        Collection with type "default" cannot be deleted by user
+                    `);
+                }
 
                 return collection.remove()
                     .then(() => reply().code(204));

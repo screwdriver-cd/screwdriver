@@ -1,0 +1,64 @@
+[{
+  "id": 7969,
+  "name": "screwdriver/build",
+  "labels": ["stable"],
+  "version": "0.0.1",
+  "description": "this is a template to test",
+  "maintainer": "foo@bar.com",
+  "pipelineId": 8765,
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  },
+  "metrics": {
+    "jobs": {
+      "count": 2
+    },
+    "builds": {
+      "count": 7
+    }
+  }
+},{
+  "id": 7970,
+  "name": "screwdriver/build",
+  "labels": ["stable"],
+  "version": "1.0.2",
+  "description": "this is a template to test",
+  "maintainer": "foo@bar.com",
+  "pipelineId": 8765,
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  },
+  "metrics": {
+    "jobs": {
+      "count": 1
+    },
+    "builds": {
+      "count": 9
+    }
+  }
+}, {
+  "id": 7971,
+  "name": "screwdriver/build",
+  "labels": ["stable"],
+  "version": "3.2.1",
+  "description": "this is a template to test",
+  "maintainer": "foo@bar.com",
+  "pipelineId": 8765,
+  "config": {
+      "steps": [{
+          "echo": "echo hello"
+      }]
+  },
+  "metrics": {
+    "jobs": {
+      "count": 5
+    },
+    "builds": {
+      "count": 13
+    }
+  }
+}]

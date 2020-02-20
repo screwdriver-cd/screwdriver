@@ -24,7 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
-            const { pipelineFactory, userFactory } = request.server.app;
+            const { pipelineFactory, userFactory, collectionFactory } = request.server.app;
             const username = request.auth.credentials.username;
             const scmContext = request.auth.credentials.scmContext;
 
@@ -69,22 +69,67 @@ module.exports = () => ({
                             };
 
                             return pipelineFactory.create(pipelineConfig);
-                        })))
-                // hooray, a pipeline is born!
-                .then(pipeline =>
-                    Promise.all([
-                        pipeline.sync(),
-                        pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-                    ]).then((results) => {
-                        const location = urlLib.format({
-                            host: request.headers.host,
-                            port: request.headers.port,
-                            protocol: request.server.info.protocol,
-                            pathname: `${request.path}/${pipeline.id}`
-                        });
+                        })
+                        // get the default collection for current user
+                        .then(pipeline =>
+                            collectionFactory.list({
+                                params: {
+                                    userId: user.id,
+                                    type: 'default'
+                                }
+                            })
+                                .then((collections) => {
+                                    const defaultCollection = collections[0];
 
-                        return reply(results[0].toJson()).header('Location', location).code(201);
-                    })
+                                    if (!defaultCollection) {
+                                        return collectionFactory.create({
+                                            userId: user.id,
+                                            name: 'My Pipelines',
+                                            description:
+                                                `The default collection for ${user.username}`,
+                                            type: 'default'
+                                        });
+                                    }
+
+                                    return defaultCollection;
+                                })
+                                .then((defaultCollection) => {
+                                    // Check if the pipeline exists in the default collection
+                                    // to prevent the situation where a pipeline is deleted and then created right away with the same id
+                                    if (defaultCollection.pipelineIds.includes(pipeline.id)) {
+                                        return defaultCollection;
+                                    }
+
+                                    Object.assign(defaultCollection, {
+                                        pipelineIds: [
+                                            ...defaultCollection.pipelineIds,
+                                            pipeline.id
+                                        ]
+                                    });
+
+                                    return defaultCollection.update();
+                                })
+                                .then(() => {
+                                    // TODO: decide to put this outside or inside
+                                    Promise.all([
+                                        pipeline.sync(),
+                                        pipeline.addWebhook(
+                                            `${request.server.info.uri}/v4/webhooks`)
+                                    ]).then((results) => {
+                                        const location = urlLib.format({
+                                            host: request.headers.host,
+                                            port: request.headers.port,
+                                            protocol: request.server.info.protocol,
+                                            pathname: `${request.path}/${pipeline.id}`
+                                        });
+
+                                        return reply(results[0].toJson())
+                                            .header('Location', location)
+                                            .code(201);
+                                    });
+                                })
+                        )
+                    )
                 )
                 // something broke, respond with error
                 .catch(err => reply(boom.boomify(err)));

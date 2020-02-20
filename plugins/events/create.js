@@ -3,6 +3,7 @@
 const boom = require('boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
+const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 
 module.exports = () => ({
     method: 'POST',
@@ -21,32 +22,32 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const eventFactory = request.server.app.eventFactory;
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const buildFactory = request.server.app.buildFactory;
-            const jobFactory = request.server.app.jobFactory;
+            const { buildFactory, jobFactory, eventFactory, pipelineFactory,
+                userFactory } = request.server.app;
+            const { buildId, causeMessage, creator, meta, parentBuilds } = request.payload;
+            const { scmContext, username } = request.auth.credentials;
             const scm = eventFactory.scm;
-            const scmContext = request.auth.credentials.scmContext;
-            const username = request.auth.credentials.username;
             const isValidToken = request.server.plugins.pipelines.isValidToken;
-            const meta = request.payload.meta;
-            const causeMessage = request.payload.causeMessage;
-            const creator = request.payload.creator;
             const updateAdmins = request.server.plugins.events.updateAdmins;
 
             return Promise.resolve().then(() => {
-                const buildId = request.payload.buildId;
-
                 if (buildId) { // restart case
                     return buildFactory.get(buildId)
                         .then(b => jobFactory.get(b.jobId)
-                            .then(j => ({
-                                pipelineId: j.pipelineId,
-                                startFrom: j.name,
-                                parentBuildId: b.parentBuildId,
-                                parentEventId: b.eventId
-                            })));
+                            .then((j) => {
+                                const restartConfig = {
+                                    pipelineId: j.pipelineId,
+                                    startFrom: j.name,
+                                    parentBuildId: b.parentBuildId,
+                                    parentEventId: b.eventId
+                                };
+
+                                if (b.parentBuilds) {
+                                    restartConfig.parentBuildsInfo = b.parentBuilds;
+                                }
+
+                                return restartConfig;
+                            }));
                 }
 
                 return {
@@ -56,7 +57,8 @@ module.exports = () => ({
                     parentEventId: request.payload.parentEventId,
                     prNumber: request.payload.prNum
                 };
-            }).then(({ pipelineId, startFrom, parentBuildId, parentEventId, prNumber }) => {
+            }).then(({ pipelineId, startFrom, parentBuildId, parentBuildsInfo,
+                parentEventId, prNumber }) => {
                 const payload = {
                     pipelineId,
                     scmContext,
@@ -73,6 +75,10 @@ module.exports = () => ({
 
                 if (parentBuildId) {
                     payload.parentBuildId = parentBuildId;
+                }
+
+                if (parentBuilds || parentBuildsInfo) {
+                    payload.parentBuilds = parentBuilds || parentBuildsInfo;
                 }
 
                 if (meta) {
@@ -118,6 +124,11 @@ module.exports = () => ({
                     let scmConfig;
                     let permissions;
 
+                    if (scmContext !== pipeline.scmContext) {
+                        // eslint-disable-next-line max-len
+                        throw boom.forbidden('This checkoutUrl is not supported for your current login host.');
+                    }
+
                     // Check if user has push access
                     return user.getPermissions(pipeline.scmUri)
                         .then((userPermissions) => {
@@ -159,9 +170,16 @@ module.exports = () => ({
                                         payload.prInfo = prInfo;
                                         payload.prRef = prInfo.ref;
                                         payload.chainPR = pipeline.chainPR;
+                                        let restrictPR = 'none';
 
-                                        // PR author should be able to rerun their own PR build
-                                        if (prInfo.username === username) {
+                                        if (pipeline.annotations &&
+                                            pipeline.annotations[ANNOT_RESTRICT_PR]) {
+                                            restrictPR = pipeline.annotations[ANNOT_RESTRICT_PR];
+                                        }
+
+                                        // PR author should be able to rerun their own PR build if restrictPR is not on
+                                        if (restrictPR === 'none' &&
+                                            prInfo.username === username) {
                                             return Promise.resolve();
                                         }
 
@@ -178,25 +196,35 @@ module.exports = () => ({
                             })
                         )
                         // User has good permissions, create an event
+                        .then(() => scm.getCommitSha(scmConfig).then((sha) => {
+                            payload.sha = sha;
+                        }))
                         .then(() => {
                             // If there is parentEvent, pass workflowGraph and sha to payload
                             // Skip PR, for PR builds, we should always start from latest commit
-                            if (payload.parentEventId && !prNum) {
+                            if (payload.parentEventId) {
                                 return eventFactory.get(parentEventId)
                                     .then((parentEvent) => {
-                                        payload.workflowGraph = parentEvent.workflowGraph;
-                                        payload.sha = parentEvent.sha;
+                                        payload.baseBranch = parentEvent.baseBranch || null;
 
-                                        if (parentEvent.configPipelineSha) {
-                                            payload.configPipelineSha =
-                                                parentEvent.configPipelineSha;
+                                        if ((!payload.meta || !payload.meta.parameters) &&
+                                            parentEvent.meta && parentEvent.meta.parameters) {
+                                            payload.meta.parameters = parentEvent.meta.parameters;
+                                        }
+
+                                        if (!prNum) {
+                                            payload.workflowGraph = parentEvent.workflowGraph;
+                                            payload.sha = parentEvent.sha;
+
+                                            if (parentEvent.configPipelineSha) {
+                                                payload.configPipelineSha =
+                                                    parentEvent.configPipelineSha;
+                                            }
                                         }
                                     });
                             }
 
-                            return scm.getCommitSha(scmConfig).then((sha) => {
-                                payload.sha = sha;
-                            });
+                            return Promise.resolve();
                         })
                         .then(() => eventFactory.create(payload));
                 }).then((event) => {

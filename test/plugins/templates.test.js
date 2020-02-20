@@ -10,6 +10,7 @@ const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplatetags = require('./data/templateTags.json');
 const testtemplateversions = require('./data/templateVersions.json');
+const testTemplateVersionsMetrics = require('./data/templateVersionsMetrics.json');
 const testTemplateWithNamespace = require('./data/templateWithNamespace.json');
 const testpipeline = require('./data/pipeline.json');
 const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
@@ -75,6 +76,7 @@ describe('template plugin test', () => {
         templateFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
+            listWithMetrics: sinon.stub(),
             getTemplate: sinon.stub(),
             get: sinon.stub()
         };
@@ -387,6 +389,56 @@ describe('template plugin test', () => {
         });
     });
 
+    describe('GET /templates/name/metrics', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/metrics'
+            };
+        });
+
+        it('returns 200 and all template versions and metrics for a template name', () => {
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all versions and metrics for a template name with pagination', () => {
+            options.url = '/templates/screwdriver%2Fbuild/metrics?count=30';
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    paginate: {
+                        page: undefined,
+                        count: 30
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.listWithMetrics.resolves([]);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
     describe('DELETE /templates/name', () => {
         const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
@@ -423,7 +475,6 @@ describe('template plugin test', () => {
             });
 
             userMock = getUserMock({ username, scmContext });
-            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testpipeline);
@@ -493,12 +544,32 @@ describe('template plugin test', () => {
             });
         });
 
-        it('deletes template if admin user credentials provided and template exists', () =>
-            server.inject(options).then((reply) => {
+        it('deletes template if user has pipeline admin credentials and template exists', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+
+            return server.inject(options).then((reply) => {
                 assert.calledOnce(testTemplate.remove);
                 assert.calledOnce(testTemplateTag.remove);
                 assert.equal(reply.statusCode, 204);
-            }));
+            });
+        });
+
+        it('deletes template if user has Screwdriver admin credentials ' +
+            'and template exists', () =>
+            server.inject({
+                method: 'DELETE',
+                url: '/templates/testtemplate',
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user', 'admin', '!guest']
+                }
+            }).then((reply) => {
+                assert.calledOnce(testTemplate.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
+            })
+        );
 
         it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
             const error = {

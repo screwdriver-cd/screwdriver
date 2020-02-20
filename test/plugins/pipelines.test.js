@@ -8,10 +8,12 @@ const urlLib = require('url');
 const hoek = require('hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
+const testCollection = require('./data/collection.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
 const testTriggers = require('./data/triggers.json');
+const testBuild = require('./data/buildWithSteps.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/events.json');
@@ -23,7 +25,7 @@ sinon.assert.expose(assert, { prefix: '' });
 const decorateBuildMock = (build) => {
     const mock = hoek.clone(build);
 
-    mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
@@ -58,6 +60,7 @@ const getTokenMocks = (tokens) => {
 const decorateJobMock = (job) => {
     const mock = hoek.clone(job);
 
+    mock.getLatestBuild = sinon.stub();
     mock.getBuilds = sinon.stub().resolves(getBuildMocks(testBuilds));
     mock.toJson = sinon.stub().returns(job);
 
@@ -146,9 +149,18 @@ const getUserMock = (user) => {
     return mock;
 };
 
+const getCollectionMock = (collection) => {
+    const mock = hoek.clone(collection);
+
+    mock.update = sinon.stub();
+
+    return mock;
+};
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
+    let collectionFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
     let jobFactoryMock;
@@ -184,6 +196,10 @@ describe('pipeline plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
+        collectionFactoryMock = {
+            create: sinon.stub(),
+            list: sinon.stub()
+        };
         eventFactoryMock = {
             create: sinon.stub().resolves(null)
         };
@@ -207,7 +223,7 @@ describe('pipeline plugin test', () => {
             name: 'banners'
         };
 
-        screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
+        screwdriverAdminDetailsMock = sinon.stub();
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -219,6 +235,7 @@ describe('pipeline plugin test', () => {
             triggerFactory: triggerFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
+            collectionFactory: collectionFactoryMock,
             tokenFactory: tokenFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
@@ -522,6 +539,7 @@ describe('pipeline plugin test', () => {
 
         afterEach(() => {
             pipelineFactoryMock.get.withArgs(id).reset();
+            screwdriverAdminDetailsMock.reset();
         });
 
         it('returns 204 when delete successfully', () =>
@@ -531,8 +549,9 @@ describe('pipeline plugin test', () => {
             })
         );
 
-        it('returns 204 when repository does not exist and user is admin', () => {
+        it('returns 204 when repository does not exist and user is Screwdriver admin', () => {
             userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 204);
@@ -540,13 +559,18 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when user does not have admin permission', () => {
+        it('returns 403 when user does not have admin permission and is not ' +
+            'Screwdriver admin', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User myself does not have admin permission for this repo'
+                message: 'User d2lam does not have admin permission for this repo'
             };
 
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            options.credentials.username = 'd2lam';
+            userMock = getUserMock({ username: 'd2lam', scmContext });
+            userFactoryMock.get.withArgs({ username: 'd2lam', scmContext }).resolves(userMock);
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then((reply) => {
@@ -555,7 +579,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the pipeline is child piepline', () => {
+        it('returns 403 when the pipeline is child pipeline', () => {
             pipeline.configPipelineId = 123;
 
             return server.inject(options).then((reply) => {
@@ -595,23 +619,6 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when call returns error', () => {
             pipeline.remove.rejects('pipelineRemoveError');
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
-        });
-
-        it('returns 500 when repository does not exist and private repo is enabled', () => {
-            const scms = {
-                'github:github.com': {
-                    config: {
-                        privateRepo: true
-                    }
-                }
-            };
-
-            pipelineFactoryMock.scm.scms = scms;
-            userMock.getPermissions.withArgs(scmUri).rejects({ code: 404 });
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
@@ -706,7 +713,7 @@ describe('pipeline plugin test', () => {
     });
 
     describe('GET /pipelines/{id}/triggers', () => {
-        const id = '123';
+        const id = 123;
         let options;
         let pipelineMock;
 
@@ -730,6 +737,16 @@ describe('pipeline plugin test', () => {
             })
         );
 
+        it('returns 400 for passing in string as pipeline id', () => {
+            const stringId = 'test';
+
+            options.url = `/pipelines/${stringId}/triggers`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
@@ -743,6 +760,56 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/jobs/{jobName}/latestBuild', () => {
+        const id = 1234;
+        const name = 'deploy';
+        let options;
+        let job;
+        let build;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/jobs/${name}/latestBuild`
+            };
+
+            job = getJobsMocks(testJob);
+            build = getBuildMocks(testBuild);
+
+            jobFactoryMock.get.resolves(job);
+            job.getLatestBuild.resolves(build);
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last build', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            })
+        );
+
+        it('return 404 if there is no last build found', () => {
+            const status = 'SUCCESS';
+
+            job.getLatestBuild.resolves({});
+            options.url = `/pipelines/${id}/jobs/${name}/latestBuild/latestBuild?status=${status}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });
@@ -1289,14 +1356,16 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines', () => {
         let options;
+        let pipelineMock;
+        let userMock;
+
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
-        let pipelineMock;
-        let userMock;
+        const userId = '34';
 
         beforeEach(() => {
             options = {
@@ -1315,6 +1384,8 @@ describe('pipeline plugin test', () => {
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userMock.unsealToken.resolves(token);
+            userMock.username = username;
+            userMock.id = userId;
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipelineMock = getPipelineMocks(testPipeline);
@@ -1329,6 +1400,14 @@ describe('pipeline plugin test', () => {
 
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
+
+            collectionFactoryMock.list.withArgs({
+                params: {
+                    userId,
+                    type: 'default'
+                }
+            }).resolves([getCollectionMock(testDefaultCollection)]);
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -1345,6 +1424,12 @@ describe('pipeline plugin test', () => {
                     },
                     scmUri,
                     scmContext
+                });
+                assert.calledWith(collectionFactoryMock.list, {
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
                 });
                 assert.equal(reply.statusCode, 201);
             });
@@ -1939,7 +2024,7 @@ describe('pipeline plugin test', () => {
             sandbox.restore();
         });
 
-        it('returns 200 and metrics for pipeline', () =>
+        it('returns 200 and metrics for pipeline when fetching by period', () =>
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
@@ -1948,6 +2033,22 @@ describe('pipeline plugin test', () => {
                 });
             })
         );
+
+        it('returns 200 and metrics for pipeline when fetching by pagination', () => {
+            const page = 1;
+            const count = 2;
+
+            options.url = `/pipelines/${id}/metrics?page=${page}&count=${count}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    page,
+                    count,
+                    sort: 'descending'
+                });
+            });
+        });
 
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';

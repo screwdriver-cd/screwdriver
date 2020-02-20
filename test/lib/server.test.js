@@ -189,6 +189,10 @@ describe('server case', () => {
                     }
                 });
 
+                server.plugins.shutdown = {
+                    handler: sinon.stub()
+                };
+
                 return Promise.resolve();
             });
             /* eslint-disable global-require */

@@ -6,6 +6,7 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
 const testBuilds = require('./data/builds.json');
+const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -13,7 +14,7 @@ sinon.assert.expose(assert, { prefix: '' });
 const decorateBuildMock = (build) => {
     const mock = hoek.clone(build);
 
-    mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
@@ -30,6 +31,7 @@ const decorateJobMock = (job) => {
     const decorated = hoek.clone(job);
 
     decorated.getBuilds = sinon.stub();
+    decorated.getLatestBuild = sinon.stub();
     decorated.update = sinon.stub();
     decorated.toJson = sinon.stub().returns(job);
 
@@ -111,6 +113,10 @@ describe('job plugin test', () => {
 
         server.register([{
             register: plugin
+        }, {
+            /* eslint-disable global-require */
+            register: require('../../plugins/pipelines')
+            /* eslint-enable global-require */
         }], (err) => {
             done(err);
         });
@@ -282,7 +288,7 @@ describe('job plugin test', () => {
     });
 
     describe('GET /jobs/{id}/builds', () => {
-        const id = '1234';
+        const id = 1234;
         let options;
         let job;
         let builds;
@@ -320,7 +326,8 @@ describe('job plugin test', () => {
             server.inject(options).then((reply) => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             })
@@ -336,7 +343,25 @@ describe('job plugin test', () => {
                         count: 30,
                         page: 2
                     },
-                    sort: 'ascending'
+                    sort: 'ascending',
+                    sortBy: 'createTime'
+                });
+                assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+
+        it('pass in the correct params to getBuilds with all params', () => {
+            options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending&sortBy=id`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    paginate: {
+                        count: 30,
+                        page: 2
+                    },
+                    sort: 'ascending',
+                    sortBy: 'id'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -352,9 +377,59 @@ describe('job plugin test', () => {
                         page: undefined,
                         count: 30
                     },
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+    });
+
+    describe('GET /jobs/{id}/latestBuild', () => {
+        const id = 1234;
+        let options;
+        let job;
+        let build;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/jobs/${id}/latestBuild`
+            };
+
+            job = getJobMocks(testJob);
+            build = getBuildMocks(testBuild);
+
+            jobFactoryMock.get.withArgs(id).resolves(job);
+            job.getLatestBuild.resolves(build);
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last build', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getLatestBuild, {
+                    status: undefined
+                });
+                assert.deepEqual(reply.result, testBuild);
+            })
+        );
+
+        it('return 404 if there is no last build found', () => {
+            const status = 'SUCCESS';
+
+            job.getLatestBuild.resolves({});
+            options.url = `/jobs/${id}/latestBuild?status=${status}`;
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 404);
             });
         });
     });

@@ -236,8 +236,50 @@ function cleanupToken(config) {
     });
 }
 
+/**
+ * abort all working builds
+ * @method cleanupBuilds
+ * @param  {Object}  config
+ * @param  {String}  config.instance      Screwdriver instance to test against
+ * @param  {String}  config.pipelineId    Pipeline ID to find the build in
+ * @param  {String}  config.jwt           JWT for authenticating
+ * @param  {String}  config.jobName       The job name we're looking for
+ * @return {Promise}
+ */
+function cleanupBuilds(config) {
+    const instance = config.instance;
+    const pipelineId = config.pipelineId;
+    const jwt = config.jwt;
+    const jobName = config.jobName;
+    const desiredStatus = ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'];
+
+    return findBuilds({
+        instance,
+        pipelineId,
+        jobName,
+        jwt
+    }).then((buildData) => {
+        const result = buildData.body || [];
+        const builds = result.filter(item => desiredStatus.includes(item.status));
+
+        return Promise.all(builds.map(build =>
+            request({
+                uri: `${instance}/v4/builds/${build.id}`,
+                method: 'PUT',
+                auth: {
+                    bearer: jwt
+                },
+                body: {
+                    status: 'ABORTED'
+                },
+                json: true
+            })));
+    });
+}
+
 module.exports = {
     cleanupToken,
+    cleanupBuilds,
     findBuilds,
     findEventBuilds,
     searchForBuild,

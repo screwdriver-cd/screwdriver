@@ -22,6 +22,11 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
+            // Check if the collection is to be updated as a default collection
+            if (request.payload.type === 'default') {
+                return reply(boom.forbidden('Collection can not be updated to type "default"'));
+            }
+
             const { id } = request.params;
             const { collectionFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
@@ -39,6 +44,12 @@ module.exports = () => ({
                     // Check if user owns collection
                     if (oldCollection.userId !== user.id) {
                         throw boom.forbidden(`User ${username} does not own this collection`);
+                    }
+
+                    if (oldCollection.type === 'default') {
+                        throw boom.forbidden(`
+                            Collection with type "default" cannot be changed by user
+                        `);
                     }
 
                     Object.assign(oldCollection, request.payload);

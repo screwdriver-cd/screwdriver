@@ -1,11 +1,13 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const Github = require('github');
-const github = new Github({
-    host: process.env.TEST_SCM_HOSTNAME || 'api.github.com',
-    pathPrefix: process.env.TEST_SCM_HOSTNAME ? '/api/v3' : '',
-    protocol: 'https'
+const octokitRest = require('@octokit/rest');
+const octokit = octokitRest({
+    baseUrl: [
+        `https://${process.env.TEST_SCM_HOSTNAME || 'api.github.com'}`,
+        `${process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''}`
+    ].join(''),
+    auth: process.env.GIT_TOKEN
 });
 
 const MAX_CONTENT_LENGTH = 354;
@@ -31,48 +33,45 @@ function randomString(stringLength) {
 /**
  * Clean up repository
  * @method cleanUpRepository
- * @param  {String}          token      Github token
  * @param  {String}          repoOwner  Owner of the repository
  * @param  {String}          repoName   Name of the repository
  * @param  {String}          branch     Name of the branch to delete
+ * @param  {String}          tag        Name of the tag to delete
  * @return {Promise}
  */
-function cleanUpRepository(token, branch, repoOwner, repoName) {
+function cleanUpRepository(branch, tag, repoOwner, repoName) {
     const branchParams = {
         owner: repoOwner,
         repo: repoName,
         ref: `heads/${branch}`
     };
+    const tagParams = {
+        owner: repoOwner,
+        repo: repoName,
+        ref: `tags/${tag}`
+    };
 
-    // Github operations require
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
-    return github.gitdata.getReference(branchParams)
-        .then(() => github.gitdata.deleteReference(branchParams), () => {});
+    return Promise.all([
+        octokit.git.getRef(branchParams)
+            .then(() => octokit.git.deleteRef(branchParams)),
+        octokit.git.getRef(tagParams)
+            .then(() => octokit.git.deleteRef(tagParams))])
+        .catch(err => Assert.strictEqual(404, err.status));
 }
 
 /**
  * Close a pull request for a given repository
  * @method closePullRequest
- * @param  {String}     token              Github token
  * @param  {String}     repoOwner          Owner of the repository
  * @param  {String}     repoName           Name of the repository
  * @param  {Number}     prNumber           Number of the pull request
  * @return {Promise}
  */
-function closePullRequest(token, repoOwner, repoName, prNumber) {
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
-    return github.pullRequests.update({
+function closePullRequest(repoOwner, repoName, prNumber) {
+    return octokit.pulls.update({
         owner: repoOwner,
         repo: repoName,
-        number: prNumber,
+        pull_number: prNumber,
         state: 'closed'
     });
 }
@@ -80,32 +79,25 @@ function closePullRequest(token, repoOwner, repoName, prNumber) {
 /**
  * Create a branch on the given repository
  * @method createBranch
- * @param  {String}     token              Github token
  * @param  {String}     branch             Name of the branch to create
  * @param  {String}     [repoOwner]        Owner of the repository
  * @param  {String}     [repoName]         Name of the repository
  * @return {Promise}
  */
-function createBranch(token, branch, repoOwner, repoName) {
+function createBranch(branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    // Branch creation requires authentication
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
     // Create a branch from the tip of the master branch
-    return github.gitdata.getReference({
+    return octokit.git.getRef({
         owner,
         repo,
         ref: 'heads/master'
     })
         .then((referenceData) => {
-            const sha = referenceData.object.sha;
+            const sha = referenceData.data.object.sha;
 
-            return github.gitdata.createReference({
+            return octokit.git.createRef({
                 owner,
                 repo,
                 ref: `refs/heads/${branch}`,
@@ -114,31 +106,26 @@ function createBranch(token, branch, repoOwner, repoName) {
         })
         .catch((err) => {
             // throws an error if a branch already exists, so this is fine
-            Assert.strictEqual(err.code, 422);
+            Assert.strictEqual(err.status, 422);
         });
 }
 
 /**
  * Creates a random file, with a random content.
  * @method createFile
- * @param  {String}   token             Github token
  * @param  {String}   branch            The branch to create the file in
  * @param  {String}   [repoOwner]       Owner of the repository
  * @param  {String}   [repoName]        Name of the repository
  * @return {Promise}
  */
-function createFile(token, branch, repoOwner, repoName) {
-    const content = new Buffer(randomString(MAX_CONTENT_LENGTH));
+function createFile(branch, repoOwner, repoName) {
+    // eslint-disable-next-line new-cap
+    const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
-    return github.repos.createFile({
+    return octokit.repos.createOrUpdateFile({
         owner,
         repo,
         path: `testfiles/${filename}`,
@@ -151,19 +138,13 @@ function createFile(token, branch, repoOwner, repoName) {
 /**
  * Creates a pull request.
  * @method createPullRequest
- * @param  {String}   token             Github token
  * @param  {String}   branch            The branch to create the file in
  * @param  {String}   repoOwner         Owner of the repository
  * @param  {String}   repoName          Name of the repository
  * @return {Promise}
  */
-function createPullRequest(token, branch, repoOwner, repoName) {
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
-    return github.pullRequests.create({
+function createPullRequest(branch, repoOwner, repoName) {
+    return octokit.pulls.create({
         owner: repoOwner,
         repo: repoName,
         title: '[DNM] testing',
@@ -173,22 +154,121 @@ function createPullRequest(token, branch, repoOwner, repoName) {
 }
 
 /**
+ * Creates a lightweight tag.
+ * @method createTag
+ * @param  {String}   tag               Name of the tag
+ * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
+ */
+function createTag(tag, branch, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    return octokit.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`
+    })
+        .then((referenceData) => {
+            const sha = referenceData.data.object.sha;
+
+            return octokit.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tag}`,
+                sha
+            });
+        })
+        .catch(() => {
+            Assert.fail('failed to create tag');
+        });
+}
+
+/**
+ * Creates a annotated tag.
+ * @method createAnnotatedTag
+ * @param  {String}   tag               Name of the tag
+ * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
+ */
+function createAnnotatedTag(tag, branch, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    return octokit.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`
+    })
+        .then((referenceData) => {
+            const sha = referenceData.data.object.sha;
+
+            return octokit.git.createTag({
+                owner,
+                repo,
+                tag,
+                message: 'this is annotated tag',
+                object: sha,
+                type: 'commit',
+                tagger: {
+                    name: 'test',
+                    email: 'test@example.com',
+                    date: '2019-10-09T15:00:00+09:00'
+                }
+            });
+        })
+        .then((response) => {
+            const sha = response.data.sha;
+
+            return octokit.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tag}`,
+                sha
+            });
+        })
+        .catch(() => {
+            Assert.fail('failed to create annotated tag');
+        });
+}
+
+/**
+ * Creates a release.
+ * @method createRelease
+ * @param  {String}   tagName          Name of the tag
+ * @param  {String}   [repoOwner]       Owner of the repository
+ * @param  {String}   [repoName]        Name of the repository
+ * @return {Promise}
+ */
+function createRelease(tagName, repoOwner, repoName) {
+    const owner = repoOwner || 'screwdriver-cd-test';
+    const repo = repoName || 'functional-git';
+
+    return octokit.repos.createRelease({
+        owner,
+        repo,
+        tag_name: tagName
+    })
+        .catch(() => {
+            Assert.fail('failed to create release');
+        });
+}
+
+/**
  * Get status of pull request
  * @method getStatus
- * @param  {String}   token         Github token
  * @param  {String}   branch        The branch to create the file in
  * @param  {String}   repoOwner     Owner of the repository
  * @param  {String}   repoName      Name of the repository
  * @param  {String}   sha           Git sha
  * @return {Promise}
  */
-function getStatus(token, repoOwner, repoName, sha) {
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
-    return github.repos.getCombinedStatus({
+function getStatus(repoOwner, repoName, sha) {
+    return octokit.repos.getCombinedStatusForRef({
         owner: repoOwner,
         repo: repoName,
         ref: sha
@@ -198,22 +278,16 @@ function getStatus(token, repoOwner, repoName, sha) {
 /**
  * Merge a pull request for a given repository
  * @method mergePullRequest
- * @param  {String}     token              Github token
  * @param  {String}     repoOwner          Owner of the repository
  * @param  {String}     repoName           Name of the repository
  * @param  {Number}     prNumber           Number of the pull request
  * @return {Promise}
  */
-function mergePullRequest(token, repoOwner, repoName, prNumber) {
-    github.authenticate({
-        type: 'oauth',
-        token
-    });
-
-    return github.pullRequests.merge({
+function mergePullRequest(repoOwner, repoName, prNumber) {
+    return octokit.pulls.merge({
         owner: repoOwner,
         repo: repoName,
-        number: prNumber
+        pull_number: prNumber
     });
 }
 
@@ -223,6 +297,9 @@ module.exports = {
     createBranch,
     createFile,
     createPullRequest,
+    createTag,
+    createAnnotatedTag,
+    createRelease,
     getStatus,
     mergePullRequest
 };

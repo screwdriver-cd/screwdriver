@@ -8,6 +8,7 @@ const sinon = require('sinon');
 const fs = require('fs');
 const hoek = require('hoek');
 const jwt = require('jsonwebtoken');
+const testCollection = require('./data/collection.json');
 
 chai.use(require('chai-jwt'));
 chai.use(require('chai-as-promised'));
@@ -33,12 +34,27 @@ function getUserMock(user) {
     return result;
 }
 
+/**
+ * helper to generate a collection model mock
+ * @method getCollectionMock
+ * @param {Object}      collection { userId, type, name, description }
+ * @reutrn {Object}                Model with stubbed function(s)
+ */
+const getCollectionMock = (collection) => {
+    const mock = hoek.clone(collection);
+
+    mock.update = sinon.stub();
+
+    return mock;
+};
+
 describe('auth plugin test', () => {
     let userFactoryMock;
     let buildFactoryMock;
     let jobFactoryMock;
     let pipelineFactoryMock;
     let tokenFactoryMock;
+    let collectionFactoryMock;
     let plugin;
     let server;
     let scm;
@@ -76,6 +92,10 @@ describe('auth plugin test', () => {
             create: sinon.stub(),
             scm
         };
+        collectionFactoryMock = {
+            create: sinon.stub(),
+            list: sinon.stub()
+        };
         buildFactoryMock = {
             get: sinon.stub(),
             scm
@@ -99,6 +119,7 @@ describe('auth plugin test', () => {
         server.app.userFactory = userFactoryMock;
         server.app.pipelineFactory = pipelineFactoryMock;
         server.app.tokenFactory = tokenFactoryMock;
+        server.app.collectionFactory = collectionFactoryMock;
         server.connection({
             port: 1234
         });
@@ -403,6 +424,9 @@ describe('auth plugin test', () => {
             scmContext,
             token
         };
+        const type = 'default';
+        const name = 'My Pipelines';
+        const description = `The default collection for ${username}`;
         const options = {
             url: '/auth/login/github:github.com',
             credentials: {
@@ -413,6 +437,8 @@ describe('auth plugin test', () => {
                 token
             }
         };
+
+        const testDefaultCollection = Object.assign({}, testCollection, { type: 'default' });
         let userMock;
 
         beforeEach(() => {
@@ -421,6 +447,14 @@ describe('auth plugin test', () => {
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
+            collectionFactoryMock.list.withArgs({
+                params: {
+                    userId: id,
+                    type: 'default'
+                }
+            }).resolves([]);
+            collectionFactoryMock.create.withArgs({ userId: id, type, name, description })
+                .resolves(getCollectionMock(testDefaultCollection));
         });
 
         describe('GET', () => {
@@ -447,7 +481,7 @@ describe('auth plugin test', () => {
                 })
             ));
 
-            it('creates a user and returns token', () => {
+            it('creates a user with a default collection and returns token', () => {
                 userFactoryMock.get.resolves(null);
 
                 return server.inject(options).then((reply) => {
@@ -458,6 +492,18 @@ describe('auth plugin test', () => {
                         username,
                         scmContext,
                         token
+                    });
+                    assert.calledWith(collectionFactoryMock.list, {
+                        params: {
+                            userId: id,
+                            type: 'default'
+                        }
+                    });
+                    assert.calledWith(collectionFactoryMock.create, {
+                        userId: id,
+                        name,
+                        type,
+                        description
                     });
                 });
             });
@@ -521,6 +567,7 @@ describe('auth plugin test', () => {
                 beforeEach(() => {
                     server = new hapi.Server();
                     server.app.userFactory = userFactoryMock;
+                    server.app.collectionFactory = collectionFactoryMock;
 
                     server.connection({
                         port: 1234

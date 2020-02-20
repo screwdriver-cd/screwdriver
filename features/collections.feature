@@ -18,6 +18,11 @@ Feature: User Collections
 #            | miss wormwood | no access   |
         And an existing pipeline with that repository
 
+    Scenario: Check Default Collection
+        And "calvin" is logged in
+        When they check the default collection
+        Then they can see the default collection contains that pipeline
+
     Scenario: Create New Collection
         And "calvin" is logged in
         When they create a new collection "myCollection" with that pipeline
@@ -38,7 +43,7 @@ Feature: User Collections
         And they have a collection "myCollection"
         And they have a collection "anotherCollection"
         When they fetch all their collections
-        Then they can see those collections
+        Then they can see those collections and the default collection
 
     Scenario: Deleting A Collection
         And "calvin" is logged in
