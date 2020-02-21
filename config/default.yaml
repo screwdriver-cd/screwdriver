@@ -270,6 +270,8 @@ ecosystem:
   ui: https://cd.screwdriver.cd
   # Externally routable URL for the Artifact Store
   store: https://store.screwdriver.cd
+  # Externally routable URL for the Queue Service
+  queue: https://queue.screwdriver.cd
   # Badge service (needs to add a status and color)
   badges: https://img.shields.io/badge/{{subject}}-{{status}}-{{color}}.svg
   # Default registry to pull build containers from. Uses Docker Hub if nothing/empty string is provided

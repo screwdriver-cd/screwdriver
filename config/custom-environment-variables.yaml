@@ -361,6 +361,8 @@ ecosystem:
   ui: ECOSYSTEM_UI
   # Externally routable URL for the Artifact Store
   store: ECOSYSTEM_STORE
+  # Externally routable URL for the Queue Service
+  queue: ECOSYSTEM_QUEUE
   # Badge service (needs to add a status and color)
   badges: ECOSYSTEM_BADGES
   # Default registry to pull build containers from
