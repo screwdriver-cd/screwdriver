@@ -62,3 +62,14 @@ to the queue service, thereby giving a pluggable interface in executor.
 
 ### Stopping a periodic/frozen build
 ![](./diagrams/executor-queue-service-stopPeriodic-sequence.png)
+
+## Resources
+* [Resque Workers Lock](https://github.com/bartolsthoorn/resque-workers-lock)
+* [node-resque][node-resque-URL]
+* [resque-bus][resque-bus-URL]
+* [plugins][node-resque-plugins-URL]
+
+[node-resque-URL]: https://github.com/taskrabbit/node-resque
+[node-resque-plugins-URL]: https://github.com/taskrabbit/node-resque#plugins
+[resque-URL]: https://github.com/resque/resque
+[resque-bus-URL]: https://github.com/queue-bus/resque-bus
