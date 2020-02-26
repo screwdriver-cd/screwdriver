@@ -571,7 +571,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
     joinedBuilds.forEach((b) => {
         // Do not need to run the next build; terminal status
-        if (['FAILURE', 'ABORTED', 'COLLAPSED'].includes(b.status)) {
+        if (['FAILURE', 'ABORTED', 'COLLAPSED', 'UNSTABLE'].includes(b.status)) {
             hasFailure = true;
         }
         // Some builds are still going on
@@ -1021,6 +1021,38 @@ exports.register = (server, options, next) => {
 
                             newBuild = newEvent.builds.filter(b => b.jobId === jobId)[0];
                         } else {
+                            console.log('----creating internal build----');
+                            let start = false;
+                            const nextJobsForJoin = workflowParser
+                                .getNextJobs(parentWorkflowGraph, {
+                                    trigger: fullCurrentJobName,
+                                    chainPR: externalPipeline.chainPR
+                                });
+
+                            console.log('nextJobsForJoin: ', nextJobsForJoin);
+
+                            const joinObjForJoin = nextJobsForJoin.reduce((obj, jobName) => {
+                                obj[jobName] = workflowParser
+                                    .getSrcForJoin(parentWorkflowGraph, { jobName });
+
+                                return obj;
+                            }, {});
+
+                            console.log('joinObjForJoin: ', joinObjForJoin);
+                            const joinListForJoin = joinObjForJoin[externalJobName];
+
+                            console.log('joinListForJoin: ', joinListForJoin);
+                            const joinListNamesForJoin = joinListForJoin ?
+                                joinListForJoin.map(j => j.name) : undefined;
+
+                            console.log('joinListNamesForJoin1: ', joinListNamesForJoin);
+
+                            if (!joinListNamesForJoin) {
+                                start = true;
+                            }
+
+                            console.log('start: ', start);
+
                             newBuild = await createInternalBuild({
                                 jobFactory,
                                 buildFactory,
@@ -1033,7 +1065,7 @@ exports.register = (server, options, next) => {
                                 baseBranch: event.baseBranch || null,
                                 parentBuilds,
                                 parentBuildId: build.id,
-                                start: false
+                                start
                             });
                         }
                     // If next build exists, update next build with parentBuilds info
