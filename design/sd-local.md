@@ -136,6 +136,15 @@ $ sdlocal build [job-name] [options]
 - `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 
+###### src-url option
+- How to specify the branch of url
+-- To specify the branch, `src-url` should be formated like below
+-- `--src-url git@github.com:foo/bar#baz`
+-- `--src-url git@github.com:foo/bar --branch baz`
+- How to manage the src repository in local environment
+-- Clone repository and store it in a path like below
+--- `~/.sdlocal/repo/<instance>/<org>/<repo>`
+
 #### Output
 
 - Logs of all executed steps in the job to `$SD_ARTIFACTS_DIR`.
