@@ -571,7 +571,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
     joinedBuilds.forEach((b) => {
         // Do not need to run the next build; terminal status
-        if (['FAILURE', 'ABORTED', 'COLLAPSED'].includes(b.status)) {
+        if (['FAILURE', 'ABORTED', 'COLLAPSED', 'UNSTABLE'].includes(b.status)) {
             hasFailure = true;
         }
         // Some builds are still going on
@@ -1059,7 +1059,8 @@ exports.register = (server, options, next) => {
                         return obj;
                     }, {});
                     const joinListForJoin = joinObjForJoin[externalJobName];
-                    const joinListNamesForJoin = joinListForJoin.map(j => j.name);
+                    const joinListNamesForJoin = joinListForJoin ?
+                        joinListForJoin.map(j => j.name) : [];
 
                     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
                     const { hasFailure, done } = await getParentBuildStatus({
