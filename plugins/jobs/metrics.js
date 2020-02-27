@@ -4,6 +4,9 @@ const boom = require('boom');
 const joi = require('joi');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
+const schema = require('screwdriver-data-schema');
+const jobMetricListSchema = joi.array().items(joi.object());
+const jobIdSchema = joi.reach(schema.models.job.base, 'id');
 
 module.exports = () => ({
     method: 'GET',
@@ -52,7 +55,13 @@ module.exports = () => ({
                 .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
         },
+        response: {
+            schema: jobMetricListSchema
+        },
         validate: {
+            params: {
+                id: jobIdSchema
+            },
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),

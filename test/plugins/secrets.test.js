@@ -95,6 +95,10 @@ describe('secret plugin test', () => {
             options: {
                 password
             }
+        }, {
+            /* eslint-disable global-require */
+            register: require('../../plugins/pipelines')
+            /* eslint-enable global-require */
         }], done);
     });
 

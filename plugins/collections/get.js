@@ -3,9 +3,9 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const winston = require('winston');
 const getSchema = schema.models.collection.get;
 const idSchema = joi.reach(schema.models.collection.base, 'id');
+const logger = require('screwdriver-logger');
 
 /**
  * Helper function to get PR info of pipeline
@@ -50,7 +50,7 @@ function getPipelinePRInfo(pipeline) {
             return prs;
         })
         .catch((err) => {
-            winston.error(err);
+            logger.error(err);
 
             return prs;
         });
@@ -81,14 +81,15 @@ function getPipelineHealth(pipeline, eventFactory) {
                     if (builds.length) {
                         // The events are sorted by most recent first. Need to reverse the order
                         // to allow for matching with workflow job on the UI
-                        lastBuilds = builds.map(b => b.toJson()).reverse();
+                        lastBuilds = Promise.all(builds.map(b => b.toJsonWithSteps()))
+                            .then(bs => bs.reverse());
                     }
 
                     return lastBuilds;
                 });
         })
         .catch((err) => {
-            winston.error(err);
+            logger.error(err);
 
             return lastBuilds;
         });
