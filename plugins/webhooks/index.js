@@ -348,6 +348,7 @@ async function createPREvents(options, request) {
             prNum,
             prTitle,
             prInfo: await eventFactory.scm.getPrInfo(scmConfig),
+            prSource,
             baseBranch: branch
         };
 
