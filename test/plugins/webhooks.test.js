@@ -2012,6 +2012,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('skips creating if pr from branch and restricting branches', () => {
+                    parsed.prSource = 'branch';
                     expected.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
