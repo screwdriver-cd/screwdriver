@@ -995,6 +995,21 @@ exports.register = (server, options, next) => {
                     let newBuild;
                     let parentBuildsForJoin = joinParentBuilds;
 
+                    // Get join information in context of join job
+                    const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {
+                        trigger: fullCurrentJobName,
+                        chainPR: externalPipeline.chainPR
+                    });
+                    const joinObjForJoin = nextJobsForJoin.reduce((obj, jobName) => {
+                        obj[jobName] = workflowParser
+                            .getSrcForJoin(parentWorkflowGraph, { jobName });
+
+                        return obj;
+                    }, {});
+                    const joinListForJoin = joinObjForJoin[externalJobName];
+                    const joinListNamesForJoin = joinListForJoin ?
+                        joinListForJoin.map(j => j.name) : undefined;
+
                     // Create next build if doesn't exist
                     if (!nextBuild) {
                         const parentSrc = workflowGraph.edges.find(edge =>
@@ -1021,37 +1036,12 @@ exports.register = (server, options, next) => {
 
                             newBuild = newEvent.builds.filter(b => b.jobId === jobId)[0];
                         } else {
-                            console.log('----creating internal build----');
                             let start = false;
-                            const nextJobsForJoin = workflowParser
-                                .getNextJobs(parentWorkflowGraph, {
-                                    trigger: fullCurrentJobName,
-                                    chainPR: externalPipeline.chainPR
-                                });
 
-                            console.log('nextJobsForJoin: ', nextJobsForJoin);
-
-                            const joinObjForJoin = nextJobsForJoin.reduce((obj, jobName) => {
-                                obj[jobName] = workflowParser
-                                    .getSrcForJoin(parentWorkflowGraph, { jobName });
-
-                                return obj;
-                            }, {});
-
-                            console.log('joinObjForJoin: ', joinObjForJoin);
-                            const joinListForJoin = joinObjForJoin[externalJobName];
-
-                            console.log('joinListForJoin: ', joinListForJoin);
-                            const joinListNamesForJoin = joinListForJoin ?
-                                joinListForJoin.map(j => j.name) : undefined;
-
-                            console.log('joinListNamesForJoin1: ', joinListNamesForJoin);
-
+                            // Start job if not in join list
                             if (!joinListNamesForJoin) {
                                 start = true;
                             }
-
-                            console.log('start: ', start);
 
                             newBuild = await createInternalBuild({
                                 jobFactory,
@@ -1078,20 +1068,6 @@ exports.register = (server, options, next) => {
                             build
                         });
                     }
-
-                    // Get join information in context of join job
-                    const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {
-                        trigger: fullCurrentJobName,
-                        chainPR: externalPipeline.chainPR
-                    });
-                    const joinObjForJoin = nextJobsForJoin.reduce((obj, jobName) => {
-                        obj[jobName] = workflowParser
-                            .getSrcForJoin(parentWorkflowGraph, { jobName });
-
-                        return obj;
-                    }, {});
-                    const joinListForJoin = joinObjForJoin[externalJobName];
-                    const joinListNamesForJoin = joinListForJoin.map(j => j.name);
 
                     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
                     const { hasFailure, done } = await getParentBuildStatus({

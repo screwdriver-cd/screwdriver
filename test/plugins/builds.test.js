@@ -2299,6 +2299,92 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('starts single external job when it circles back to original pipeline', () => {
+                    // For a pipeline like this:
+                    //  ~sd@2:a -> a -> sd@2:c
+                    // If user is at `a`, it should trigger `sd@2:c`
+                    eventMock.workflowGraph = { nodes: [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'a', id: 1 },
+                        { name: '~sd@2:a', id: 4 },
+                        { name: 'sd@2:c', id: 6 }
+                    ],
+                    edges: [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: '~sd@2:a', dest: 'a' },
+                        { src: 'a', dest: 'sd@2:c' }
+                    ] };
+                    buildMock.parentBuilds = {
+                        2: { eventId: '8887', jobs: { a: 12345 } }
+                    };
+                    const parentBuilds = {
+                        123: { eventId: '8888', jobs: { a: 12345 } },
+                        2: { eventId: '8888', jobs: { a: 12345 } }
+                    };
+                    const buildC = {
+                        jobId: 3,
+                        status: 'CREATED',
+                        parentBuilds,
+                        start: sinon.stub().resolves()
+                    };
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds,
+                        start: sinon.stub().resolves()
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    const externalEventMock = {
+                        id: 2,
+                        pipelineId: 123,
+                        builds: [{
+                            id: 888,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }],
+                        getBuilds: sinon.stub().resolves([{
+                            id: 888,
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        }]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 4 },
+                                { name: 'c', id: 6 },
+                                { name: '~sd@123:c', id: 3 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: '~sd@123:c' },
+                                { src: '~sd@123:c', dest: 'c' }
+                            ] } };
+
+                    eventMock.getBuilds.resolves([{
+                        jobId: 3,
+                        status: 'SUCCESS'
+                    }]);
+                    jobCconfig.start = true;
+                    jobCconfig.parentBuilds = parentBuilds;
+                    eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.list.resolves([
+                        Object.assign(externalEventMock, { id: '8889' })]);
+                    buildFactoryMock.create.onCall(0).resolves(buildC);
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.calledTwice(externalEventMock.getBuilds);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create, jobCconfig);
+                        assert.notCalled(buildC.update);
+                        assert.notCalled(updatedBuildC.start);
+                    });
+                });
+
                 it('creates without starting join job in external join when fork not done', () => {
                     eventMock.workflowGraph = {
                         nodes: [
