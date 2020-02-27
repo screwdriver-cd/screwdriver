@@ -995,21 +995,6 @@ exports.register = (server, options, next) => {
                     let newBuild;
                     let parentBuildsForJoin = joinParentBuilds;
 
-                    // Get join information in context of join job
-                    const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {
-                        trigger: fullCurrentJobName,
-                        chainPR: externalPipeline.chainPR
-                    });
-                    const joinObjForJoin = nextJobsForJoin.reduce((obj, jobName) => {
-                        obj[jobName] = workflowParser
-                            .getSrcForJoin(parentWorkflowGraph, { jobName });
-
-                        return obj;
-                    }, {});
-                    const joinListForJoin = joinObjForJoin[externalJobName];
-                    const joinListNamesForJoin = joinListForJoin ?
-                        joinListForJoin.map(j => j.name) : undefined;
-
                     // Create next build if doesn't exist
                     if (!nextBuild) {
                         const parentSrc = workflowGraph.edges.find(edge =>
@@ -1036,13 +1021,6 @@ exports.register = (server, options, next) => {
 
                             newBuild = newEvent.builds.filter(b => b.jobId === jobId)[0];
                         } else {
-                            let start = false;
-
-                            // Start job if not in join list
-                            if (!joinListNamesForJoin) {
-                                start = true;
-                            }
-
                             newBuild = await createInternalBuild({
                                 jobFactory,
                                 buildFactory,
@@ -1055,7 +1033,7 @@ exports.register = (server, options, next) => {
                                 baseBranch: event.baseBranch || null,
                                 parentBuilds,
                                 parentBuildId: build.id,
-                                start
+                                start: false
                             });
                         }
                     // If next build exists, update next build with parentBuilds info
@@ -1068,6 +1046,21 @@ exports.register = (server, options, next) => {
                             build
                         });
                     }
+
+                    // Get join information in context of join job
+                    const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {
+                        trigger: fullCurrentJobName,
+                        chainPR: externalPipeline.chainPR
+                    });
+                    const joinObjForJoin = nextJobsForJoin.reduce((obj, jobName) => {
+                        obj[jobName] = workflowParser
+                            .getSrcForJoin(parentWorkflowGraph, { jobName });
+
+                        return obj;
+                    }, {});
+                    const joinListForJoin = joinObjForJoin[externalJobName];
+                    const joinListNamesForJoin = joinListForJoin ?
+                        joinListForJoin.map(j => j.name) : [];
 
                     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
                     const { hasFailure, done } = await getParentBuildStatus({

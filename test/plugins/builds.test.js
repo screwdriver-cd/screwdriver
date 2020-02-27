@@ -2367,8 +2367,6 @@ describe('build plugin test', () => {
                         jobId: 3,
                         status: 'SUCCESS'
                     }]);
-                    jobCconfig.start = true;
-                    jobCconfig.parentBuilds = parentBuilds;
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
                     eventFactoryMock.list.resolves([
                         Object.assign(externalEventMock, { id: '8889' })]);
@@ -2379,9 +2377,8 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create, jobCconfig);
-                        assert.notCalled(buildC.update);
-                        assert.notCalled(updatedBuildC.start);
+                        assert.calledOnce(buildC.update);
+                        assert.calledOnce(updatedBuildC.start);
                     });
                 });
 
