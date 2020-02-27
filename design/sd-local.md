@@ -138,12 +138,12 @@ $ sdlocal build [job-name] [options]
 
 ###### src-url option
 - How to specify the branch of url
--- To specify the branch, `src-url` should be formated like below
--- `--src-url git@github.com:foo/bar#baz`
--- `--src-url git@github.com:foo/bar --branch baz`
+  - To specify the branch, `src-url` should be formated like below
+  - `--src-url git@github.com:foo/bar#baz`
 - How to manage the src repository in local environment
--- Clone repository and store it in a path like below
---- `~/.sdlocal/repo/<instance>/<org>/<repo>`
+  - Clone repository and store it in a path like below in temporarily
+  - `~/.sdlocal/repo/<instance>/<org>/<repo>`
+  - The directory should be clean up when the build is finished
 
 #### Output
 
