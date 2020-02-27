@@ -797,6 +797,80 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
 }
 
 /**
+ * Trigger single event for all external jobs with matching pipeline IDs
+ * Also, remove the above job names from the joinObj
+ * @param  {Object}   config
+ * @param  {Build}    config.build           Curreng build
+ * @param  {String}   config.currentJobName  Current job name
+ * @param  {Event}    config.event           Current event
+ * @param  {Factory}  config.eventFactory    Event factory
+ * @param  {Object}   config.joinObj         Join object (eg: {'join':['fork1', 'fork2', 'sd@123:main']})
+ * @param  {Factory}  config.pipelineFactory Pipeline factory
+ * @param  {Number}   config.pipelineId      Current pipeline ID
+ * @return {Promise}                         Modified join object
+ */
+async function handleDuplicatePipelines(config) {
+    const { joinObj, pipelineFactory, eventFactory, pipelineId,
+        currentJobName, build, event } = config;
+    const newJoinObj = joinObj;
+    // Get all external job names that do not have a join
+    const externalJobNamesWithNoJoinArr = Object.keys(joinObj).filter(jName =>
+        EXTERNAL_TRIGGER_ALL.test(jName) && joinObj[jName].length === 0);
+    // Get pipeline IDs only
+    const externalJobPipelineIds = externalJobNamesWithNoJoinArr.map(n =>
+        EXTERNAL_TRIGGER_ALL.exec(n)[1]);
+    // Find uniq pipelineIds
+    const uniqPipelineIds = externalJobPipelineIds.map(pid => ({ count: 1, pid }))
+        .reduce((a, b) => {
+            a[b.pid] = (a[b.pid] || 0) + b.count;
+
+            return a;
+        }, {});
+    const duplicatePipelineIds = Object.keys(uniqPipelineIds)
+        .filter(a => uniqPipelineIds[a] > 1);
+
+    // Construct parent builds
+    const currentJobParentBuilds = build.parentBuilds || {};
+    const currentBuildInfo = createParentBuildsObj({
+        buildId: build.id,
+        eventId: build.eventId,
+        pipelineId,
+        jobName: currentJobName
+    });
+    const parentBuilds = deepmerge.all(
+        [currentJobParentBuilds, currentBuildInfo]);
+
+    // Handle external events
+    // if no join array and external and pipeline the same, should be same event
+    if (duplicatePipelineIds.length) {
+        return Promise.all(duplicatePipelineIds.forEach((pid) => {
+            const externalJobNamesWithMatchingPipelineId =
+                externalJobNamesWithNoJoinArr.filter(jName =>
+                    EXTERNAL_TRIGGER_ALL.exec(jName)[1] === pid);
+
+            // Remove job names with duplicate pipeline IDs from joinObj
+            externalJobNamesWithMatchingPipelineId.forEach((name) => {
+                delete newJoinObj[name];
+            });
+
+            // Start one event per duplicate pipelineId
+            return createExternalBuild({
+                pipelineFactory,
+                eventFactory,
+                externalPipelineId: pid,
+                externalJobName: `~sd@${pipelineId}:${currentJobName}`,
+                parentBuildId: build.id,
+                parentBuilds,
+                causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
+                parentEventId: event.id
+            }).then(() => newJoinObj);
+        }));
+    }
+
+    return newJoinObj;
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -845,13 +919,15 @@ exports.register = (server, options, next) => {
             { trigger: currentJobName, chainPR: pipeline.chainPR });
         // Create a join object like: {A:[B,C], D:[B,F]} where [B,C] join on A, [B,F] join on D, etc.
         // This can include external jobs
-        const joinObj = nextJobs.reduce((obj, jobName) => {
+        let joinObj = nextJobs.reduce((obj, jobName) => {
             obj[jobName] = workflowParser.getSrcForJoin(workflowGraph, { jobName });
 
             return obj;
         }, {});
 
-        // Use old flow if external join flag is off
+        /* OLD FLOW
+         * Use if external join flag is false
+         */
         if (!externalJoin) {
             return Promise.all(Object.keys(joinObj).map((nextJobName) => {
                 const joinList = joinObj[nextJobName];
@@ -887,7 +963,20 @@ exports.register = (server, options, next) => {
             }));
         }
 
-        // New implementation that allows external join (if external join flag is on)
+        /* NEW FLOW
+         * Use if external join flag is true
+         */
+        // Trigger jobs with duplicate pipelines first; remove them from joinObj
+        joinObj = await handleDuplicatePipelines({
+            joinObj,
+            pipelineFactory,
+            eventFactory,
+            pipelineId,
+            currentJobName,
+            build,
+            event
+        });
+
         return Promise.all(Object.keys(joinObj).map(async (nextJobName) => {
             const {
                 parentBuilds,
@@ -964,6 +1053,7 @@ exports.register = (server, options, next) => {
                     let finishedInternalBuilds = await getFinishedBuilds(
                         externalEvent, eventFactory);
 
+                    // Fill in missing parentBuilds info
                     if (externalEventId) {
                         const parallelBuilds = await getParallelBuilds({
                             eventFactory,

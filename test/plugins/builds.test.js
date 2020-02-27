@@ -2382,6 +2382,87 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('creates a single event for downstream triggers in the same pipeline', () => {
+                    // For a pipeline like this:
+                    //      -> sd@2:a
+                    //    a
+                    //      -> sd@2:b
+                    // If user is at `a`, it should trigger both `sd@2:a` and `sd@2:b` in one event
+                    eventMock.workflowGraph = { nodes: [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'a', id: 1 },
+                        { name: 'sd@2:a', id: 4 },
+                        { name: 'sd@2:c', id: 6 }
+                    ],
+                    edges: [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'sd@2:a' },
+                        { src: 'a', dest: 'sd@2:c' }
+                    ] };
+                    const parentBuilds = {
+                        123: { eventId: '8888', jobs: { a: 12345 } }
+                    };
+                    const buildC = {
+                        jobId: 3,
+                        status: 'CREATED',
+                        parentBuilds,
+                        start: sinon.stub().resolves()
+                    };
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds,
+                        start: sinon.stub().resolves()
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    const externalEventMock = {
+                        id: 2,
+                        pipelineId: 123,
+                        builds: [],
+                        getBuilds: sinon.stub().resolves([]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 4 },
+                                { name: 'c', id: 6 },
+                                { name: '~sd@123:a', id: 1 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: '~sd@123:a', dest: 'a' },
+                                { src: '~sd@123:a', dest: 'c' }
+                            ] } };
+                    const eventConfig = {
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } },
+                        parentEventId: '8888',
+                        pipelineId: '2',
+                        scmContext: 'github:github.com',
+                        sha: 'sha',
+                        startFrom: '~sd@123:a',
+                        type: 'pipeline',
+                        username: 'foo'
+                    };
+
+                    eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.list.resolves([
+                        Object.assign(externalEventMock, { id: '8889' })]);
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+
+                    return newServer.inject(options).then(() => {
+                        assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, eventConfig);
+                        assert.notCalled(externalEventMock.getBuilds);
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.notCalled(buildC.update);
+                        assert.notCalled(updatedBuildC.start);
+                    });
+                });
+
                 it('creates without starting join job in external join when fork not done', () => {
                     eventMock.workflowGraph = {
                         nodes: [
