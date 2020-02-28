@@ -14,13 +14,13 @@ Before({
     this.repoName = 'functional-trigger';
     this.pipelineIdA = null;
     this.pipelineIdB = null;
-    this.successAJobId = null;
-    this.failAJobId = null;
-    this.successBJobId = null;
-    this.failBJobId = null;
-    this.parallelAJobId = null;
-    this.parallelB1JobId = null;
-    this.parallelB2JobId = null;
+    this.success_AJobId = null;
+    this.fail_AJobId = null;
+    this.success_BJobId = null;
+    this.fail_BJobId = null;
+    this.parallel_AJobId = null;
+    this.parallel_B1JobId = null;
+    this.parallel_B2JobId = null;
     this.builds = null;
 });
 
@@ -58,44 +58,10 @@ Given(/^an existing pipeline on branch "(.*)" with job "(.*)"$/, {
         shouldNotDeletePipeline: true });
 });
 
-When(/^the "(.*)" job on branch "(?:.*)" is started$/,
+When(/^the "(fail_A|success_A|parallel_A)" job on branch "(?:.*)" is started$/,
     { timeout: TIMEOUT }, function step(jobName) {
-        let jobId;
-        let buildVarName;
-
-        switch (jobName) {
-        case 'success_A':
-            jobId = this.successAJobId;
-            buildVarName = 'successABuildId';
-            break;
-        case 'fail_A':
-            jobId = this.failAJobId;
-            buildVarName = 'failABuildId';
-            break;
-        case 'success_B':
-            jobId = this.successBJobId;
-            buildVarName = 'successBBuildId';
-            break;
-        case 'fail_B':
-            jobId = this.failBJobId;
-            buildVarName = 'failBBuildId';
-            break;
-        case 'parallel_A':
-            jobId = this.parallelAJobId;
-            buildVarName = 'parallelABuildId';
-            break;
-        case 'parallel_B1':
-            jobId = this.parallelB1JobId;
-            buildVarName = 'parallelB1BuildId';
-            break;
-        case 'parallel_B2':
-            jobId = this.parallelB2JobId;
-            buildVarName = 'parallelB2BuildId';
-            break;
-        default: // main job
-            jobId = this.jobId;
-            buildVarName = 'buildId';
-        }
+        const jobId = jobName ? this[`${jobName}JobId`] : this.jobId;
+        const buildVarName = jobName ? `${jobName}BuildId` : 'buildId';
 
         return request({
             uri: `${this.instance}/${this.namespace}/builds`,
@@ -115,37 +81,16 @@ When(/^the "(.*)" job on branch "(?:.*)" is started$/,
         });
     });
 
+// no-op since the next test handles this case
+Then(/^the "(?:success_B|parallel_B1|parallel_B2)" job on branch "(?:.*)" is started$/, {
+    timeout: TIMEOUT
+}, () => null);
+
 // eslint-disable-next-line no-useless-escape
 Then(/^the "(.*)" build\'s parentBuildId is that "(.*)" build\'s buildId$/, {
     timeout: TIMEOUT
 }, function step(jobName1, jobName2) {
-    let buildVarName;
-
-    switch (jobName2) {
-    case 'success_A':
-        buildVarName = 'successABuildId';
-        break;
-    case 'fail_A':
-        buildVarName = 'failABuildId';
-        break;
-    case 'success_B':
-        buildVarName = 'successBBuildId';
-        break;
-    case 'fail_B':
-        buildVarName = 'failBBuildId';
-        break;
-    case 'parallel_A':
-        buildVarName = 'parallelABuildId';
-        break;
-    case 'parallel_B1':
-        buildVarName = 'parallelB1BuildId';
-        break;
-    case 'parallel_B2':
-        buildVarName = 'parallelB2BuildId';
-        break;
-    default: // main job
-        buildVarName = 'buildId';
-    }
+    const buildVarName = jobName2 ? `${jobName2}BuildId` : 'buildId';
 
     return sdapi.searchForBuild({
         instance: this.instance,
@@ -178,5 +123,22 @@ Then(/^the "(.*)" job on branch "(.*)" is not triggered$/, {
         result = result.filter(item => item.sha === this.sha);
 
         Assert.equal(result.length, 0, 'Unexpected job was triggered.');
+    });
+});
+
+Then(/^builds for "(.*)" and "(.*)" jobs are part of a single event$/, {
+    timeout: TIMEOUT
+}, function step(jobName1, jobName2) {
+    const buildVarName1 = `${jobName1}BuildId`;
+    const buildVarName2 = `${jobName2}BuildId`;
+
+    return Promise.all([
+        this.waitForBuild(this[buildVarName1]),
+        this.waitForBuild(this[buildVarName2])
+    ]).then(([build1, build2]) => {
+        const result1 = build1.body || {};
+        const result2 = build2.body || {};
+
+        Assert.deepEqual(result1.eventId, result2.eventId, 'Jobs triggered in separate events.');
     });
 });

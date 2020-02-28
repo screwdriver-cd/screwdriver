@@ -131,25 +131,25 @@ function ensurePipelineExists(config) {
                     this.thirdJobId = job.id;
                     break;
                 case 'success_A':
-                    this.successAJobId = job.id;
+                    this.success_AJobId = job.id;
                     break;
                 case 'fail_A':
-                    this.failAJobId = job.id;
+                    this.fail_AJobId = job.id;
                     break;
                 case 'success_B':
-                    this.successBJobId = job.id;
+                    this.success_BJobId = job.id;
                     break;
                 case 'fail_B':
-                    this.failBJobId = job.id;
+                    this.fail_BJobId = job.id;
                     break;
                 case 'parallel_A':
-                    this.parallelAJobId = job.id;
+                    this.parallel_AJobId = job.id;
                     break;
                 case 'parallel_B1':
-                    this.parallelB1JobId = job.id;
+                    this.parallel_B1JobId = job.id;
                     break;
                 case 'parallel_B2':
-                    this.parallelB2JobId = job.id;
+                    this.parallel_B2JobId = job.id;
                     break;
                 default: // main job
                     this.jobId = job.id;

@@ -23,7 +23,7 @@ Feature: Remote Trigger
     Rules:
         - Configuration for trigger must reside in Workflow/Job being triggered
         - Triggered workflow/job should start with latest commit on configured SCM branch
-        //- If multiple jobs in a pipeline requires the same external pipeline's Job as trigger, then
+        - If multiple jobs in a pipeline requires the same external pipeline's Job as trigger, then
           builds for these jobs should be part of same pipeline event
 
       Scenario: External builds are not triggered if required build is not successful.
@@ -57,3 +57,4 @@ Feature: Remote Trigger
           And the "parallel_B1" build's parentBuildId is that "parallel_A" build's buildId
           And the "parallel_B2" job on branch "pipelineB" is started
           And the "parallel_B2" build's parentBuildId is that "parallel_A" build's buildId
+          And builds for "parallel_B1" and "parallel_B2" jobs are part of a single event
