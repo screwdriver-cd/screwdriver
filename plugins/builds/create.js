@@ -17,7 +17,8 @@ module.exports = () => ({
         },
         plugins: {
             'hapi-swagger': {
-                security: [{ token: [] }]
+                security: [{ token: [] }],
+                deprecated: true
             }
         },
         handler: (request, reply) => {
