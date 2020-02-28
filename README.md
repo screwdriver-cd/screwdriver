@@ -46,8 +46,9 @@ Three (3) options for executor:
  - Docker (`docker`)
  - Nomad (`nomad`)
 
-Two (2) options for SCM:
+Three (3) options for SCM:
  - Github (`github`)
+ - Gitlab (`gitlab`)
  - Bitbucket (`bitbucket`)
 
 ### Prerequisites
