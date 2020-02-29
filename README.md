@@ -24,7 +24,7 @@ For more information about Screwdriver, check out our [homepage](http://screwdri
 
 ### Plugins
 
-This API comes preloaded with 10 (ten) resources:
+This API comes preloaded with 11 (eleven) resources:
 
  - [auth](plugins/auth/README.md)
  - [banners](plugins/banners/README.md)
