@@ -38,7 +38,7 @@ This API comes preloaded with 10 (ten) resources:
  - [tokens](plugins/tokens/README.md)
  - [webhooks](plugins/webhooks/README.md)
 
-One (1) option for datastores:
+Three (3) option for datastores:
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
 Three (3) options for executor:
