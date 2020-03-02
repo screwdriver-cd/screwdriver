@@ -3,7 +3,8 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.secret.get).label('List of secrets');
+const secretListSchema = joi.array().items(schema.models.secret.get).label('List of secrets');
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
     method: 'GET',
@@ -51,7 +52,12 @@ module.exports = () => ({
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {
-            schema: listSchema
+            schema: secretListSchema
+        },
+        validate: {
+            params: {
+                id: pipelineIdSchema
+            }
         }
     }
 });

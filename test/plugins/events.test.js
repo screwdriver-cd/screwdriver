@@ -18,6 +18,7 @@ const decorateBuildMock = (build) => {
 
     mock.update = sinon.stub().resolves();
     mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
@@ -184,7 +185,7 @@ describe('event plugin test', () => {
     });
 
     describe('GET /events/{id}/builds', () => {
-        const id = '12345';
+        const id = 12345;
         let options;
         let event;
         let builds;
@@ -235,6 +236,7 @@ describe('event plugin test', () => {
         const pipelineMock = {
             id: pipelineId,
             checkoutUrl,
+            scmContext: 'github:github.com',
             update: sinon.stub().resolves(),
             admins: { foo: true, bar: true },
             admin: Promise.resolve({
@@ -247,6 +249,7 @@ describe('event plugin test', () => {
                 'screwdriver.cd/restrictPR': 'none'
             }
         };
+        const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
 
         beforeEach(() => {
             userMock = {
@@ -256,7 +259,7 @@ describe('event plugin test', () => {
             };
             scmConfig = {
                 prNum: null,
-                scmContext,
+                scmContext: 'github:github.com',
                 scmUri,
                 token: 'iamtoken'
             };
@@ -305,7 +308,8 @@ describe('event plugin test', () => {
                 id: 1234,
                 jobId: 222,
                 parentBuildId,
-                eventId: 888
+                eventId: 888,
+                parentBuilds
             });
             jobFactoryMock.get.resolves({
                 pipelineId,
@@ -316,6 +320,7 @@ describe('event plugin test', () => {
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
             eventConfig.baseBranch = 'master';
+            eventConfig.parentBuilds = parentBuilds;
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
@@ -422,14 +427,98 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 201 when it successfully creates an event with parent builds', () => {
+            options.payload = {
+                buildId: 1234,
+                meta,
+                parentBuilds
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId,
+                eventId: 888
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.parentBuilds = parentBuilds;
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.baseBranch = 'master';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
         it('returns 201 when it creates an event with parent event for child pipeline', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.baseBranch = 'master';
             testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
             eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
             options.payload.parentEventId = parentEventId;
+            eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
+
+            return server.inject(options).then((reply) => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                delete testEvent.configPipelineSha;
+            });
+        });
+
+        it('returns 201 when it creates an event with custom parameters and parent event', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            testEvent.configPipelineSha = 'configPipelineSha';
+            testEvent.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
+            };
+            eventConfig.configPipelineSha = 'configPipelineSha';
+            eventConfig.meta.parameters = {
+                user: { value: 'klu' }
+            };
+            options.payload.parentEventId = parentEventId;
+            options.payload.meta.parameters = {
+                user: { value: 'klu' }
+            };
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
             return server.inject(options).then((reply) => {
@@ -566,6 +655,9 @@ describe('event plugin test', () => {
             };
             eventConfig.changedFiles = ['screwdriver.yaml'];
             eventConfig.baseBranch = 'master';
+            eventConfig.meta.parameters = {
+                user: { value: 'adong' }
+            };
 
             return server.inject(options).then((reply) => {
                 expectedLocation = {
@@ -697,6 +789,15 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
+            });
+        });
+
+        it('returns 403 forbidden error when user\'s scm' +
+            ' and pipeline\'s scm are different', () => {
+            options.credentials.scmContext = 'mygit:mygit.com';
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 

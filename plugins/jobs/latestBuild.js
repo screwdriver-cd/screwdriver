@@ -39,7 +39,7 @@ module.exports = () => ({
                         throw boom.notFound('There is no such latest build');
                     }
 
-                    return reply(build.toJson());
+                    return reply(build.toJsonWithSteps());
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

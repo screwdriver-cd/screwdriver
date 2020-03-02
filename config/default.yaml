@@ -179,11 +179,6 @@ executor:
           tls: false
         database: 0
 
-# build cache strategies: s3, disk, with s3 as default option to store cache
-cache:
-  strategy: s3
-  path: ""
-
 scms: {}
 #   github:
 #     plugin: github
@@ -275,14 +270,24 @@ ecosystem:
   ui: https://cd.screwdriver.cd
   # Externally routable URL for the Artifact Store
   store: https://store.screwdriver.cd
+  # Externally routable URL for the Queue Service
+  queue: https://queue.screwdriver.cd
   # Badge service (needs to add a status and color)
   badges: https://img.shields.io/badge/{{subject}}-{{status}}-{{color}}.svg
   # Default registry to pull build containers from. Uses Docker Hub if nothing/empty string is provided
   dockerRegistry: ""
   # Extra origins allowed to do CORS to API
   allowCors: []
+  # build cache strategies: s3, disk, with s3 as default option to store cache
+  cache:
+    strategy: "s3"
+    path: "/"
+    compress: false
+    md5check: false
+    max_size_mb: 0
 
 # default cluster environment variables to inject into builds
 build:
   environment:
     SD_VERSION: 4
+  externalJoin: false

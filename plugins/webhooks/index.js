@@ -2,9 +2,9 @@
 
 const boom = require('boom');
 const joi = require('joi');
-const winston = require('winston');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
@@ -12,7 +12,6 @@ const ANNOT_RESTRICT_PR = `${ANNOT_NS}/restrictPR`;
 const EXTRA_TRIGGERS = schema.config.regex.EXTRA_TRIGGER;
 const CHECKOUT_URL_SCHEMA = schema.config.regex.CHECKOUT_URL;
 const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
-const WAIT_FOR_CHANGEDFILES = 1.8;
 const DEFAULT_MAX_BYTES = 1048576;
 
 /**
@@ -74,7 +73,7 @@ async function updateAdmins(userFactory, username, scmContext, pipeline) {
             return pipeline.update();
         }
     } catch (err) {
-        winston.info(err.message);
+        logger.info(err.message);
     }
 
     return Promise.resolve();
@@ -90,21 +89,6 @@ async function updateAdmins(userFactory, username, scmContext, pipeline) {
 async function batchUpdateAdmins({ userFactory, pipelines, username, scmContext }) {
     await Promise.all(pipelines.map(pipeline =>
         updateAdmins(userFactory, username, scmContext, pipeline)));
-}
-
-/**
- * Promise to wait a certain number of seconds
- *
- * Might make this centralized for other tests to leverage
- *
- * @method promiseToWait
- * @param  {Number}      timeToWait  Number of seconds to wait before continuing the chain
- * @return {Promise}
- */
-function promiseToWait(timeToWait) {
-    return new Promise((resolve) => {
-        setTimeout(() => resolve(), timeToWait * 1000);
-    });
 }
 
 /**
@@ -172,7 +156,7 @@ function hasTriggeredJob(pipeline, startFrom) {
 
         return nextJobs.length > 0;
     } catch (err) {
-        winston.error(`Error finding triggered jobs for ${pipeline.id}: ${err}`);
+        logger.error(`Error finding triggered jobs for ${pipeline.id}: ${err}`);
 
         return false;
     }
@@ -322,7 +306,7 @@ async function createPREvents(options, request) {
             if (err.status >= 500) {
                 throw err;
             } else {
-                winston.info(`skip create event for branch: ${b}`);
+                logger.info(`skip create event for branch: ${b}`);
             }
         }
         const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
@@ -413,7 +397,7 @@ async function pullRequestOpened(options, request, reply) {
             return reply().code(201);
         })
         .catch((err) => {
-            winston.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}]: ${err}`);
 
             return reply(boom.boomify(err));
         });
@@ -451,7 +435,7 @@ async function pullRequestClosed(options, request, reply) {
         })))
         .then(() => reply().code(200))
         .catch((err) => {
-            winston.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}]: ${err}`);
 
             return reply(boom.boomify(err));
         });
@@ -489,7 +473,7 @@ async function pullRequestSync(options, request, reply) {
             return reply().code(201);
         })
         .catch((err) => {
-            winston.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}]: ${err}`);
 
             return reply(boom.boomify(err));
         });
@@ -601,7 +585,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
             return pullRequestClosed(options, request, reply);
         }
     }).catch((err) => {
-        winston.error(`[${hookId}]: ${err}`);
+        logger.error(`[${hookId}]: ${err}`);
 
         return reply(boom.boomify(err));
     });
@@ -669,7 +653,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
     const ignoreExtraTriggeredPipelines = pipelineTuples.filter((t) => {
         // empty event is not created when it is triggered by extra triggers (e.g. ~tag, ~release)
         if (EXTRA_TRIGGERS.test(t.startFrom) && !hasTriggeredJob(t.pipeline, t.startFrom)) {
-            winston.info(`Event not created: there are no jobs triggered by ${t.startFrom}`);
+            logger.warn(`Event not created: there are no jobs triggered by ${t.startFrom}`);
 
             return false;
         }
@@ -695,7 +679,7 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
             if (err.status >= 500) {
                 throw err;
             } else {
-                winston.info(`skip create event for branch: ${pipelineBranch}`);
+                logger.info(`skip create event for branch: ${pipelineBranch}`);
             }
         }
         const eventConfig = {
@@ -791,7 +775,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
 
         return reply().code(201);
     } catch (err) {
-        winston.error(`[${hookId}]: ${err}`);
+        logger.error(`[${hookId}]: ${err}`);
 
         return reply(boom.boomify(err));
     }
@@ -871,7 +855,16 @@ exports.register = (server, options, next) => {
                         return reply({ message }).code(204);
                     }
 
-                    const { type, hookId, username, scmContext, ref, checkoutUrl, action } = parsed;
+                    const {
+                        type,
+                        hookId,
+                        username,
+                        scmContext,
+                        ref,
+                        checkoutUrl,
+                        action,
+                        prNum
+                    } = parsed;
 
                     parsedHookId = hookId;
 
@@ -901,13 +894,18 @@ exports.register = (server, options, next) => {
                         pluginOptions, userFactory, username, scmContext);
 
                     if (action !== 'release' && action !== 'tag') {
-                        await promiseToWait(WAIT_FOR_CHANGEDFILES);
+                        let scmUri;
 
+                        if (type === 'pr') {
+                            scmUri = await scm.parseUrl({ checkoutUrl, token, scmContext });
+                        }
                         parsed.changedFiles = await scm.getChangedFiles({
                             payload: request.payload,
                             type,
                             token,
-                            scmContext
+                            scmContext,
+                            scmUri,
+                            prNum
                         });
                         request.log(['webhook', hookId],
                             `Changed files are ${parsed.changedFiles}`);
@@ -937,7 +935,7 @@ exports.register = (server, options, next) => {
 
                     return pushEvent(pluginOptions, request, reply, parsed, skipMessage, token);
                 } catch (err) {
-                    winston.error(`[${parsedHookId}]: ${err}`);
+                    logger.error(`[${parsedHookId}]: ${err}`);
 
                     return reply(boom.boomify(err));
                 }

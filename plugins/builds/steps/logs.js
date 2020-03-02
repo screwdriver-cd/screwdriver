@@ -4,9 +4,10 @@ const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
-const winston = require('winston');
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
+
+const logger = require('screwdriver-logger');
 
 /**
  * Makes the request to the Store to get lines from a log
@@ -66,7 +67,7 @@ async function getMaxLines({ baseUrl, authToken }) {
             linesFrom: 0,
             page: 0 });
     } catch (err) {
-        winston.error(err);
+        logger.error(err);
         throw new Error(err);
     }
 
@@ -100,7 +101,7 @@ async function loadLines({
     try {
         lines = await fetchLog({ baseUrl, linesFrom, authToken, page, sort });
     } catch (err) {
-        winston.error(err);
+        logger.error(err);
         throw new Error(err);
     }
 
@@ -151,7 +152,7 @@ module.exports = config => ({
         tags: ['api', 'builds', 'steps', 'log'],
         auth: {
             strategies: ['token'],
-            scope: ['user', 'pipeline']
+            scope: ['user', 'pipeline', 'build']
         },
         plugins: {
             'hapi-swagger': {
@@ -159,21 +160,13 @@ module.exports = config => ({
             }
         },
         handler: (req, reply) => {
-            const factory = req.server.app.buildFactory;
+            const stepFactory = req.server.app.stepFactory;
             const buildId = req.params.id;
             const stepName = req.params.name;
             const headers = req.headers;
 
-            factory.get(buildId)
-                .then((model) => {
-                    if (!model) {
-                        throw boom.notFound('Build does not exist');
-                    }
-
-                    const stepModel = model.steps.filter(step => (
-                        step.name === stepName
-                    )).pop();
-
+            return stepFactory.get({ buildId, name: stepName })
+                .then((stepModel) => {
                     if (!stepModel) {
                         throw boom.notFound('Step does not exist');
                     }

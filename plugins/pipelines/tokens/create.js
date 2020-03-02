@@ -1,8 +1,11 @@
 'use strict';
 
+const joi = require('joi');
 const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const tokenCreateSchema = schema.models.token.create;
 
 module.exports = () => ({
     method: 'POST',
@@ -80,7 +83,10 @@ module.exports = () => ({
             });
         },
         validate: {
-            payload: schema.models.token.create
+            params: {
+                id: pipelineIdSchema
+            },
+            payload: tokenCreateSchema
         }
     }
 });
