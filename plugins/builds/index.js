@@ -845,9 +845,9 @@ async function handleDuplicatePipelines(config) {
         [currentJobParentBuilds, currentBuildInfo]);
 
     // Handle external events
-    // if no join array and external and pipeline the same, should be same event
+    // If no join array and external and pipeline the same, should be same event
     if (duplicatePipelineIds.length) {
-        return Promise.all(duplicatePipelineIds.forEach((pid) => {
+        await Promise.all(duplicatePipelineIds.map(async (pid) => {
             const externalJobNamesWithMatchingPipelineId =
                 externalJobNamesWithNoJoinArr.filter(jName =>
                     EXTERNAL_TRIGGER_ALL.exec(jName)[1] === pid);
@@ -858,7 +858,7 @@ async function handleDuplicatePipelines(config) {
             });
 
             // Start one event per duplicate pipelineId
-            return createExternalBuild({
+            await createExternalBuild({
                 pipelineFactory,
                 eventFactory,
                 externalPipelineId: pid,
@@ -867,7 +867,7 @@ async function handleDuplicatePipelines(config) {
                 parentBuilds,
                 causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
                 parentEventId: event.id
-            }).then(() => newJoinObj);
+            });
         }));
     }
 

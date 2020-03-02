@@ -24,7 +24,7 @@ For more information about Screwdriver, check out our [homepage](http://screwdri
 
 ### Plugins
 
-This API comes preloaded with 10 (ten) resources:
+This API comes preloaded with 11 (eleven) resources:
 
  - [auth](plugins/auth/README.md)
  - [banners](plugins/banners/README.md)
@@ -38,7 +38,7 @@ This API comes preloaded with 10 (ten) resources:
  - [tokens](plugins/tokens/README.md)
  - [webhooks](plugins/webhooks/README.md)
 
-One (1) option for datastores:
+Three (3) option for datastores:
  - Postgres, MySQL, and Sqlite (`sequelize`)
 
 Three (3) options for executor:
@@ -46,8 +46,9 @@ Three (3) options for executor:
  - Docker (`docker`)
  - Nomad (`nomad`)
 
-Two (2) options for SCM:
+Three (3) options for SCM:
  - Github (`github`)
+ - Gitlab (`gitlab`)
  - Bitbucket (`bitbucket`)
 
 ### Prerequisites

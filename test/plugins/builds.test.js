@@ -2390,14 +2390,15 @@ describe('build plugin test', () => {
 
                 it('creates a single event for downstream triggers in the same pipeline', () => {
                     // For a pipeline like this:
-                    //      -> sd@2:a
+                    //      -> b
                     //    a
-                    //      -> sd@2:b
+                    //      -> sd@2:b, sd@2:a
                     // If user is at `a`, it should trigger both `sd@2:a` and `sd@2:b` in one event
                     eventMock.workflowGraph = { nodes: [
                         { name: '~pr' },
                         { name: '~commit' },
                         { name: 'a', id: 1 },
+                        { name: 'b', id: 2 },
                         { name: 'sd@2:a', id: 4 },
                         { name: 'sd@2:c', id: 6 }
                     ],
@@ -2405,7 +2406,8 @@ describe('build plugin test', () => {
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
                         { src: 'a', dest: 'sd@2:a' },
-                        { src: 'a', dest: 'sd@2:c' }
+                        { src: 'a', dest: 'sd@2:c' },
+                        { src: 'a', dest: 'b' }
                     ] };
                     const parentBuilds = {
                         123: { eventId: '8888', jobs: { a: 12345 } }
@@ -2463,7 +2465,8 @@ describe('build plugin test', () => {
                         assert.calledOnce(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create, eventConfig);
                         assert.notCalled(externalEventMock.getBuilds);
-                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create, jobBconfig);
                         assert.notCalled(buildC.update);
                         assert.notCalled(updatedBuildC.start);
                     });
