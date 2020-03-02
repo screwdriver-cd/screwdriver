@@ -67,7 +67,9 @@ async function createBuild(config) {
         name: jobName,
         pipelineId
     });
-    const prRef = event.pr.ref || '';
+    const prRef = event.pr.ref ? event.pr.ref : '';
+    const prSource = event.pr.prSource ? event.pr.prSource : '';
+    const prInfo = event.pr.prInfo ? event.pr.prInfo : '';
 
     if (job.state === 'ENABLED') {
         return buildFactory.create({
@@ -78,6 +80,8 @@ async function createBuild(config) {
             username,
             configPipelineSha: event.configPipelineSha,
             scmContext,
+            prSource,
+            prInfo,
             prRef,
             start: start !== false,
             baseBranch
