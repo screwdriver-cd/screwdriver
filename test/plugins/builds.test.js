@@ -1265,6 +1265,8 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
+                            prSource: '',
+                            prInfo: '',
                             prRef: '',
                             start: true,
                             baseBranch: null
@@ -1339,6 +1341,8 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
+                            prSource: '',
+                            prInfo: '',
                             prRef: eventMock.pr.ref,
                             start: true,
                             baseBranch: null
@@ -1506,6 +1510,8 @@ describe('build plugin test', () => {
                         username: 12345,
                         scmContext: 'github:github.com',
                         configPipelineSha: 'abc123',
+                        prSource: '',
+                        prInfo: '',
                         prRef: '',
                         baseBranch: 'master'
                     };
