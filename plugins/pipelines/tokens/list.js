@@ -4,6 +4,7 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = joi.array().items(schema.models.token.get);
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
     method: 'GET',
@@ -61,6 +62,11 @@ module.exports = () => ({
         },
         response: {
             schema: getSchema
+        },
+        validate: {
+            params: {
+                id: pipelineIdSchema
+            }
         }
     }
 });
