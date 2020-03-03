@@ -1623,16 +1623,22 @@ describe('build plugin test', () => {
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
-                    eventMock.pr = { ref: 'pull/15/merge', prSource: 'branch', prInfo: {} };
+                    eventMock.pr = {
+                        ref: 'pull/15/merge',
+                        prSource: 'branch',
+                        prInfo: {
+                            prBranchName: 'prBranchName'
+                        }
+                    };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
                     jobBconfig.prSource = 'branch';
-                    jobBconfig.prInfo = {};
+                    jobBconfig.prInfo = { prBranchName: 'prBranchName' };
                     jobCconfig.prRef = 'pull/15/merge';
                     jobCconfig.prSource = 'branch';
-                    jobCconfig.prInfo = {};
+                    jobCconfig.prInfo = { prBranchName: 'prBranchName' };
 
                     return server.inject(options).then(() => {
                         // create the builds
