@@ -67,7 +67,9 @@ async function createBuild(config) {
         name: jobName,
         pipelineId
     });
-    const prRef = event.pr.ref || '';
+    const prRef = event.pr.ref ? event.pr.ref : '';
+    const prSource = event.pr.prSource ? event.pr.prSource : '';
+    const prInfo = event.pr.prInfo ? event.pr.prInfo : '';
 
     if (job.state === 'ENABLED') {
         return buildFactory.create({
@@ -78,6 +80,8 @@ async function createBuild(config) {
             username,
             configPipelineSha: event.configPipelineSha,
             scmContext,
+            prSource,
+            prInfo,
             prRef,
             start: start !== false,
             baseBranch
@@ -977,7 +981,8 @@ exports.register = (server, options, next) => {
             event
         });
 
-        return Promise.all(Object.keys(joinObj).map(async (nextJobName) => {
+        // function for handling build creation/starting logic
+        const processNextJob = await (async (nextJobName) => {
             const {
                 parentBuilds,
                 joinListNames,
@@ -1213,7 +1218,18 @@ exports.register = (server, options, next) => {
                 currentJobParentBuilds,
                 currentBuildInfo
             });
-        }));
+        });
+
+        const nextJobNames = Object.keys(joinObj);
+
+        // Start each build sequentially
+        await nextJobNames.reduce(async (jobRunPromise, nextJobName) => {
+            await jobRunPromise;
+
+            return processNextJob(nextJobName);
+        }, Promise.resolve());
+
+        return null;
     });
 
     server.route([
