@@ -1,5 +1,6 @@
 'use strict';
 
+const logger = require('screwdriver-logger');
 const getRoute = require('./get');
 const updateRoute = require('./update');
 const createRoute = require('./create');
@@ -344,7 +345,15 @@ async function createInternalBuild(config) {
  * @return {Set}                    A set of build ids that are visited
  */
 function dfs(workflowGraph, start, builds, visited) {
-    const jobId = workflowGraph.nodes.find(node => node.name === start).id;
+    const startNode = workflowGraph.nodes.find(node => node.name === start);
+
+    if (!startNode) {
+        logger.error(`Workflow does not contain ${start}`);
+
+        return visited;
+    }
+
+    const jobId = startNode.id;
     const nextJobs = workflowParser.getNextJobs(workflowGraph, { trigger: start });
 
     // If the start job has no build in parentEvent then just return
@@ -504,7 +513,7 @@ async function getFinishedBuilds(event, eventFactory) {
     // rerun all builds in the path of the startFrom
     const parentEvent = await eventFactory.get({ id: event.parentEventId });
     const parents = await getFinishedBuilds(parentEvent, eventFactory);
-    const upstreamBuilds = await removeDownstreamBuilds({
+    const upstreamBuilds = removeDownstreamBuilds({
         builds: parents,
         startFrom: event.startFrom,
         parentEvent
@@ -724,6 +733,7 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         })[0] || {};
     } else {
         // Get finished internal builds from event
+        logger.info(`Fetching finished builds for ${event.id}`);
         let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
 
         if (event.parentEventId) {
@@ -781,6 +791,10 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
             currentBuildInfo,
             build: externalBuild
         });
+    }
+
+    if (!newBuild) {
+        throw new Error(`No build found for ${pipelineId}:${jobName}`);
     }
 
     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
@@ -982,7 +996,7 @@ exports.register = (server, options, next) => {
         });
 
         // function for handling build creation/starting logic
-        const processNextJob = await (async (nextJobName) => {
+        const processNextJob = (async (nextJobName) => {
             const {
                 parentBuilds,
                 joinListNames,
@@ -1226,7 +1240,13 @@ exports.register = (server, options, next) => {
         await nextJobNames.reduce(async (jobRunPromise, nextJobName) => {
             await jobRunPromise;
 
-            return processNextJob(nextJobName);
+            try {
+                return processNextJob(nextJobName);
+            } catch (err) {
+                logger.error(`Failed to run processNextJob ${pipelineId}:${nextJobName}`, err);
+
+                return Promise.resolve();
+            }
         }, Promise.resolve());
 
         return null;
