@@ -259,7 +259,7 @@ async function createEvent(config) {
  * @param  {Factory}  config.pipelineFactory    Pipeline Factory
  * @param  {Factory}  config.eventFactory       Event Factory
  * @param  {String}   config.externalPipelineId External pipelineId
- * @param  {String}   config.externalJobName    External jobName
+ * @param  {String}   config.startFrom          External trigger to start from
  * @param  {Number}   config.parentBuildId      Parent Build Id
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {String}   config.causeMessage       Cause message of this event
@@ -267,14 +267,14 @@ async function createEvent(config) {
  * @return {Promise}
  */
 async function createExternalBuild(config) {
-    const { pipelineFactory, eventFactory, externalPipelineId, externalJobName,
+    const { pipelineFactory, eventFactory, externalPipelineId, startFrom,
         parentBuildId, parentBuilds, causeMessage, parentEventId } = config;
 
     const createEventConfig = {
         pipelineFactory,
         eventFactory,
         pipelineId: externalPipelineId,
-        startFrom: externalJobName,
+        startFrom,
         parentBuildId, // current build
         causeMessage,
         parentBuilds
@@ -697,15 +697,16 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         baseBranch: event.baseBranch || null,
         parentBuilds
     };
+    const triggerName = `sd@${pipelineId}:${externalJobName}`;
     const externalBuildConfig = {
         pipelineFactory,
         eventFactory,
         start,
         externalPipelineId,
-        externalJobName,
+        startFrom: `~${triggerName}`,
         parentBuildId,
         parentBuilds,
-        causeMessage: `Triggered by sd@${pipelineId}:${externalJobName}`,
+        causeMessage: `Triggered by ${triggerName}`,
         parentEventId
     };
 
@@ -865,6 +866,7 @@ async function handleDuplicatePipelines(config) {
             const externalJobNamesWithMatchingPipelineId =
                 externalJobNamesWithNoJoinArr.filter(jName =>
                     EXTERNAL_TRIGGER_ALL.exec(jName)[1] === pid);
+            const triggerName = `sd@${pipelineId}:${currentJobName}`;
 
             // Remove job names with duplicate pipeline IDs from joinObj
             externalJobNamesWithMatchingPipelineId.forEach((name) => {
@@ -876,10 +878,10 @@ async function handleDuplicatePipelines(config) {
                 pipelineFactory,
                 eventFactory,
                 externalPipelineId: pid,
-                externalJobName: `~sd@${pipelineId}:${currentJobName}`,
+                startFrom: `~${triggerName}`,
                 parentBuildId: build.id,
                 parentBuilds,
-                causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
+                causeMessage: `Triggered by ${triggerName}`,
                 parentEventId: event.id
             });
         }));
@@ -1116,14 +1118,15 @@ exports.register = (server, options, next) => {
                         if (previousBuild) {
                             parentBuildsForJoin = previousBuild.parentBuilds;
 
+                            const triggerName = `sd@${pipelineId}:${currentJobName}`;
                             const newEvent = await createExternalBuild({
                                 pipelineFactory,
                                 eventFactory,
                                 externalPipelineId: externalEvent.pipelineId,
-                                externalJobName,
+                                startFrom: `~${triggerName}`,
                                 parentBuildId: build.id,
                                 parentBuilds: deepmerge.all([parentBuildsForJoin, parentBuilds]),
-                                causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
+                                causeMessage: `Triggered by ${triggerName}`,
                                 parentEventId: event.id,
                                 start: false
                             });
@@ -1189,14 +1192,15 @@ exports.register = (server, options, next) => {
                 }
 
                 // Simply create an external event if external job is not join job
+                const triggerName = `sd@${pipelineId}:${currentJobName}`;
                 const externalBuildConfig = {
                     pipelineFactory,
                     eventFactory,
                     externalPipelineId,
-                    externalJobName,
+                    startFrom: `~${triggerName}`,
                     parentBuildId: build.id,
                     parentBuilds,
-                    causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`
+                    causeMessage: `Triggered by ${triggerName}`
                 };
 
                 if (!event.parentEventId) {
