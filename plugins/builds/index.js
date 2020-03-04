@@ -764,10 +764,18 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
 
                         if (parentJob) {
                             jobId = parentJob.id;
-                            parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
-                                b.jobId === jobId).id;
+                            const parentJobBuild = finishedInternalBuilds.find(b =>
+                                b.jobId === jobId);
+
+                            if (parentJobBuild) {
+                                parentBuilds[pid].jobs[jName] = parentJobBuild.id;
+                            } else {
+                                logger.warn(`Job ${jName}:${pid} not found` +
+                                ' in finishedInternalBuilds');
+                            }
                         } else {
-                            logger.error(`Job ${jName} not found in event workflowGraph`);
+                            logger.error(`Job ${jName}:${pid} not found` +
+                                ' in event workflowGraph');
                         }
                     }
                 });
