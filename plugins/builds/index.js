@@ -752,16 +752,23 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
                     let jobId;
 
                     if (parentBuilds[pid].jobs[jName] === null) {
+                        let parentJob;
+
                         if (parseInt(pid, 10) === pipelineId) {
-                            jobId = workflowGraph.nodes.find(node =>
-                                node.name === trimJobName(jName)).id;
+                            parentJob = workflowGraph.nodes.find(node =>
+                                node.name === trimJobName(jName));
                         } else {
-                            jobId = workflowGraph.nodes.find(node =>
-                                node.name.includes(`sd@${pid}:${jName}`)).id;
+                            parentJob = workflowGraph.nodes.find(node =>
+                                node.name.includes(`sd@${pid}:${jName}`));
                         }
 
-                        parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
-                            b.jobId === jobId).id;
+                        if (parentJob) {
+                            jobId = parentJob.id;
+                            parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
+                                b.jobId === jobId).id;
+                        } else {
+                            logger.error(`Job ${jName} not found in event workflowGraph`);
+                        }
                     }
                 });
             });
@@ -1242,9 +1249,9 @@ exports.register = (server, options, next) => {
 
         // Start each build sequentially
         await nextJobNames.reduce(async (jobRunPromise, nextJobName) => {
-            await jobRunPromise;
-
             try {
+                await jobRunPromise;
+
                 return processNextJob(nextJobName);
             } catch (err) {
                 logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` +
