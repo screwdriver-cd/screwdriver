@@ -12,7 +12,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - December 3rd, 2019: Proposal submitted
 - December 6th, 2019: Added `SD_META_DIR`
 - December 18th, 2019: Updated `launcher` / `log-service`
-- May 4th, 2020: Added `src-url option`
+- March 4th, 2020: Added `src-url option`
 
 ## Proposal
 
