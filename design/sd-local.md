@@ -138,8 +138,8 @@ $ sdlocal build [job-name] [options]
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 
 ###### src-url option
-- How to specify the url
-  - The URL can be passed with ether https or ssh schema
+- How to specify the URL
+  - The URL can be passed with either https or ssh schema
   - To specify the branch, we can add a `#<branch>` suffix to the url
   - ex) `--src-url git@github.com:foo/bar#baz`
 
