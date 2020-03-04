@@ -2084,7 +2084,7 @@ describe('build plugin test', () => {
                 it('triggers next next job when next job is external', () => {
                     const expectedEventArgs = {
                         pipelineId: '2',
-                        startFrom: 'a',
+                        startFrom: '~sd@123:a',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
                         parentBuildId: 12345,
