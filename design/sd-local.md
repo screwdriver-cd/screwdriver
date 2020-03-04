@@ -12,6 +12,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - December 3rd, 2019: Proposal submitted
 - December 6th, 2019: Added `SD_META_DIR`
 - December 18th, 2019: Updated `launcher` / `log-service`
+- May 4th, 2020: Added `src-url option`
 
 ## Proposal
 
@@ -137,13 +138,10 @@ $ sdlocal build [job-name] [options]
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 
 ###### src-url option
-- How to specify the branch of url
-  - To specify the branch, `src-url` should be formated like below
-  - `--src-url git@github.com:foo/bar#baz`
-- How to manage the src repository in local environment
-  - Clone repository and store it in a path like below in temporarily
-  - `~/.sdlocal/repo/<instance>/<org>/<repo>`
-  - The directory should be clean up when the build is finished
+- How to specify the url
+  - The URL can be passed with ether https or ssh schema
+  - To specify the branch, we can add a `#<branch>` suffix to the url
+  - ex) `--src-url git@github.com:foo/bar#baz`
 
 #### Output
 
