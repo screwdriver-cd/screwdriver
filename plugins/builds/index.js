@@ -734,7 +734,7 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         })[0] || {};
     } else {
         // Get finished internal builds from event
-        logger.info(`Fetching finished builds for ${event.id}`);
+        logger.info(`Fetching finished builds for event ${event.id}`);
         let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
 
         if (event.parentEventId) {
@@ -1247,7 +1247,8 @@ exports.register = (server, options, next) => {
             try {
                 return processNextJob(nextJobName);
             } catch (err) {
-                logger.error(`Failed to run processNextJob ${pipelineId}:${nextJobName}`, err);
+                logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` +
+                    ` event:${event.id}`, err);
 
                 return Promise.resolve();
             }
