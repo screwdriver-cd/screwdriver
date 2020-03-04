@@ -140,7 +140,7 @@ $ sdlocal build [job-name] [options]
 ###### src-url option
 - How to specify the URL
   - The URL can be passed with either https or ssh schema
-  - To specify the branch, we can add a `#<branch>` suffix to the url
+  - To specify the branch, we can add a `#<branch>` suffix to the URL
   - ex) `--src-url git@github.com:foo/bar#baz`
 
 #### Output
