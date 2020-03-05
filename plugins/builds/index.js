@@ -810,7 +810,9 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
     }
 
     if (!newBuild) {
-        throw new Error(`No build found for ${pipelineId}:${jobName}`);
+        logger.error(`No build found for ${pipelineId}:${jobName}`);
+
+        return null;
     }
 
     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
@@ -1256,18 +1258,17 @@ exports.register = (server, options, next) => {
         const nextJobNames = Object.keys(joinObj);
 
         // Start each build sequentially
-        await nextJobNames.reduce(async (jobRunPromise, nextJobName) => {
+        // FIXME:: Remove eslint disable after upgrading eslint rules
+        /* eslint-disable */
+        for (const nextJobName of nextJobNames) {
             try {
-                await jobRunPromise;
-
-                return processNextJob(nextJobName);
+                await processNextJob(nextJobName);
             } catch (err) {
                 logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` +
-                    ` event:${event.id}`, err);
-
-                return Promise.resolve();
+                    ` event:${event.id} `, err);
             }
-        }, Promise.resolve());
+        }
+        /* eslint-enable */
 
         return null;
     });
