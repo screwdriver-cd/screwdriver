@@ -302,12 +302,14 @@ async function createExternalBuild(config) {
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {String}   config.baseBranch         Branch name
  * @param  {Number}   [config.parentBuildId]    Parent build ID
+ * @param  {Number}   [config.eventId]          Event ID for build
  * @param  {Boolean}  [config.start]            Whether to start the build or not
  * @return {Promise}
  */
 async function createInternalBuild(config) {
     const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
-        username, scmContext, build, parentBuilds, start, baseBranch, parentBuildId } = config;
+        username, scmContext, build, parentBuilds, start, baseBranch, parentBuildId,
+        eventId } = config;
     const event = await eventFactory.get(build.eventId);
     const job = await jobFactory.get({
         name: jobName,
@@ -319,7 +321,7 @@ async function createInternalBuild(config) {
         sha: build.sha,
         parentBuildId: parentBuildId || build.id,
         parentBuilds: parentBuilds || {},
-        eventId: build.eventId,
+        eventId: eventId || build.eventId,
         username,
         configPipelineSha: event.configPipelineSha,
         scmContext,
@@ -615,6 +617,7 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 
             return null;
         }
+
         // If all join builds finished successfully, start new build
         newBuild.status = 'QUEUED';
         const queuedBuild = await newBuild.update();
@@ -1126,8 +1129,6 @@ exports.register = (server, options, next) => {
                         const parentSrc = workflowGraph.edges.find(edge =>
                             edge.dest === currentJobName).src;
                         const parentJobName = getPipelineAndJob(parentSrc).externalJobName;
-                        const parentBuild = await buildFactory.get(
-                            build.parentBuilds[externalPipelineId].jobs[parentJobName]);
 
                         // if restart case, should create event
                         if (previousBuild) {
@@ -1148,6 +1149,11 @@ exports.register = (server, options, next) => {
 
                             newBuild = newEvent.builds.filter(b => b.jobId === jobId)[0];
                         } else {
+                            const parentBuildId = build.parentBuilds[externalPipelineId]
+                                .jobs[parentJobName];
+                            const parentBuild = parentBuildId ? await buildFactory.get(
+                                parentBuildId) : build;
+
                             newBuild = await createInternalBuild({
                                 jobFactory,
                                 buildFactory,
@@ -1160,7 +1166,8 @@ exports.register = (server, options, next) => {
                                 baseBranch: event.baseBranch || null,
                                 parentBuilds,
                                 parentBuildId: build.id,
-                                start: false
+                                start: false,
+                                eventId: externalEventId
                             });
                         }
                     // If next build exists, update next build with parentBuilds info
