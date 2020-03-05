@@ -24,7 +24,7 @@ module.exports = () => ({
         handler: (request, reply) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory,
                 userFactory } = request.server.app;
-            const { buildId, causeMessage, creator, meta, parentBuilds } = request.payload;
+            const { buildId, causeMessage, creator, meta } = request.payload;
             const { scmContext, username } = request.auth.credentials;
             const scm = eventFactory.scm;
             const isValidToken = request.server.plugins.pipelines.isValidToken;
@@ -39,11 +39,23 @@ module.exports = () => ({
                                     pipelineId: j.pipelineId,
                                     startFrom: j.name,
                                     parentBuildId: b.parentBuildId,
-                                    parentEventId: b.eventId
+                                    parentEventId: b.eventId,
+                                    groupEventId: request.payload.groupEventId,
+                                    parentBuilds: b.parentBuilds
                                 };
 
-                                if (b.parentBuilds) {
-                                    restartConfig.parentBuildsInfo = b.parentBuilds;
+                                if (!restartConfig.parentBuilds) {
+                                    restartConfig.parentBuilds = request.payload.parentBuilds;
+                                }
+
+                                if (b.eventId && !restartConfig.groupEventId) {
+                                    return eventFactory.get(b.eventId)
+                                        .then((parentEvent) => {
+                                            restartConfig.groupEventId =
+                                                parentEvent.groupEventId || b.eventId;
+
+                                            return restartConfig;
+                                        });
                                 }
 
                                 return restartConfig;
@@ -54,11 +66,13 @@ module.exports = () => ({
                     pipelineId: request.payload.pipelineId,
                     startFrom: request.payload.startFrom,
                     parentBuildId: request.payload.parentBuildId,
+                    parentBuilds: request.payload.parentBuilds,
+                    groupEventId: request.payload.groupEventId,
                     parentEventId: request.payload.parentEventId,
                     prNumber: request.payload.prNum
                 };
-            }).then(({ pipelineId, startFrom, parentBuildId, parentBuildsInfo,
-                parentEventId, prNumber }) => {
+            }).then(({ pipelineId, startFrom, parentBuildId, parentBuilds,
+                groupEventId, parentEventId, prNumber }) => {
                 const payload = {
                     pipelineId,
                     scmContext,
@@ -73,12 +87,16 @@ module.exports = () => ({
                     payload.parentEventId = parentEventId;
                 }
 
+                if (groupEventId) {
+                    payload.groupEventId = groupEventId;
+                }
+
                 if (parentBuildId) {
                     payload.parentBuildId = parentBuildId;
                 }
 
-                if (parentBuilds || parentBuildsInfo) {
-                    payload.parentBuilds = parentBuilds || parentBuildsInfo;
+                if (parentBuilds) {
+                    payload.parentBuilds = parentBuilds;
                 }
 
                 if (meta) {

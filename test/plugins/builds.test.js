@@ -3051,6 +3051,22 @@ describe('build plugin test', () => {
                             { src: 'a', dest: 'c', join: true },
                             { src: 'sd@123:a', dest: 'c', join: true }
                         ] } };
+                    const eventConfig = {
+                        causeMessage: 'Triggered by sd@123:a',
+                        groupEventId: '8888',
+                        parentBuildId: 12345,
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345, c: 45678 } },
+                            2: { eventId: '8888', jobs: { a: 12345 } }
+                        },
+                        parentEventId: '8888',
+                        pipelineId: 123,
+                        scmContext: 'github:github.com',
+                        sha: 'sha',
+                        startFrom: '~sd@123:a',
+                        type: 'pipeline',
+                        username: 'foo'
+                    };
 
                     eventMock.getBuilds.resolves([{
                         jobId: 1,
@@ -3098,6 +3114,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, eventConfig);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);
