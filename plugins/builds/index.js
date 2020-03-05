@@ -1,5 +1,6 @@
 'use strict';
 
+const logger = require('screwdriver-logger');
 const getRoute = require('./get');
 const updateRoute = require('./update');
 const createRoute = require('./create');
@@ -258,7 +259,7 @@ async function createEvent(config) {
  * @param  {Factory}  config.pipelineFactory    Pipeline Factory
  * @param  {Factory}  config.eventFactory       Event Factory
  * @param  {String}   config.externalPipelineId External pipelineId
- * @param  {String}   config.externalJobName    External jobName
+ * @param  {String}   config.startFrom          External trigger to start from
  * @param  {Number}   config.parentBuildId      Parent Build Id
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {String}   config.causeMessage       Cause message of this event
@@ -266,14 +267,14 @@ async function createEvent(config) {
  * @return {Promise}
  */
 async function createExternalBuild(config) {
-    const { pipelineFactory, eventFactory, externalPipelineId, externalJobName,
+    const { pipelineFactory, eventFactory, externalPipelineId, startFrom,
         parentBuildId, parentBuilds, causeMessage, parentEventId } = config;
 
     const createEventConfig = {
         pipelineFactory,
         eventFactory,
         pipelineId: externalPipelineId,
-        startFrom: externalJobName,
+        startFrom,
         parentBuildId, // current build
         causeMessage,
         parentBuilds
@@ -344,7 +345,15 @@ async function createInternalBuild(config) {
  * @return {Set}                    A set of build ids that are visited
  */
 function dfs(workflowGraph, start, builds, visited) {
-    const jobId = workflowGraph.nodes.find(node => node.name === start).id;
+    const startNode = workflowGraph.nodes.find(node => node.name === start);
+
+    if (!startNode) {
+        logger.error(`Workflow does not contain ${start}`);
+
+        return visited;
+    }
+
+    const jobId = startNode.id;
     const nextJobs = workflowParser.getNextJobs(workflowGraph, { trigger: start });
 
     // If the start job has no build in parentEvent then just return
@@ -504,7 +513,7 @@ async function getFinishedBuilds(event, eventFactory) {
     // rerun all builds in the path of the startFrom
     const parentEvent = await eventFactory.get({ id: event.parentEventId });
     const parents = await getFinishedBuilds(parentEvent, eventFactory);
-    const upstreamBuilds = await removeDownstreamBuilds({
+    const upstreamBuilds = removeDownstreamBuilds({
         builds: parents,
         startFrom: event.startFrom,
         parentEvent
@@ -688,15 +697,16 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         baseBranch: event.baseBranch || null,
         parentBuilds
     };
+    const triggerName = `sd@${pipelineId}:${externalJobName}`;
     const externalBuildConfig = {
         pipelineFactory,
         eventFactory,
         start,
         externalPipelineId,
-        externalJobName,
+        startFrom: `~${triggerName}`,
         parentBuildId,
         parentBuilds,
-        causeMessage: `Triggered by sd@${pipelineId}:${externalJobName}`,
+        causeMessage: `Triggered by ${triggerName}`,
         parentEventId
     };
 
@@ -724,6 +734,7 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
         })[0] || {};
     } else {
         // Get finished internal builds from event
+        logger.info(`Fetching finished builds for event ${event.id}`);
         let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
 
         if (event.parentEventId) {
@@ -741,16 +752,31 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
                     let jobId;
 
                     if (parentBuilds[pid].jobs[jName] === null) {
+                        let parentJob;
+
                         if (parseInt(pid, 10) === pipelineId) {
-                            jobId = workflowGraph.nodes.find(node =>
-                                node.name === trimJobName(jName)).id;
+                            parentJob = workflowGraph.nodes.find(node =>
+                                node.name === trimJobName(jName));
                         } else {
-                            jobId = workflowGraph.nodes.find(node =>
-                                node.name.includes(`sd@${pid}:${jName}`)).id;
+                            parentJob = workflowGraph.nodes.find(node =>
+                                node.name.includes(`sd@${pid}:${jName}`));
                         }
 
-                        parentBuilds[pid].jobs[jName] = finishedInternalBuilds.find(b =>
-                            b.jobId === jobId).id;
+                        if (parentJob) {
+                            jobId = parentJob.id;
+                            const parentJobBuild = finishedInternalBuilds.find(b =>
+                                b.jobId === jobId);
+
+                            if (parentJobBuild) {
+                                parentBuilds[pid].jobs[jName] = parentJobBuild.id;
+                            } else {
+                                logger.warn(`Job ${jName}:${pid} not found` +
+                                ' in finishedInternalBuilds');
+                            }
+                        } else {
+                            logger.error(`Job ${jName}:${pid} not found` +
+                                ' in event workflowGraph');
+                        }
                     }
                 });
             });
@@ -781,6 +807,10 @@ async function createOrRunNextBuild({ buildFactory, jobFactory, eventFactory, pi
             currentBuildInfo,
             build: externalBuild
         });
+    }
+
+    if (!newBuild) {
+        throw new Error(`No build found for ${pipelineId}:${jobName}`);
     }
 
     /* CHECK IF ALL PARENTBUILDS OF NEW BUILD ARE DONE */
@@ -851,6 +881,7 @@ async function handleDuplicatePipelines(config) {
             const externalJobNamesWithMatchingPipelineId =
                 externalJobNamesWithNoJoinArr.filter(jName =>
                     EXTERNAL_TRIGGER_ALL.exec(jName)[1] === pid);
+            const triggerName = `sd@${pipelineId}:${currentJobName}`;
 
             // Remove job names with duplicate pipeline IDs from joinObj
             externalJobNamesWithMatchingPipelineId.forEach((name) => {
@@ -862,10 +893,10 @@ async function handleDuplicatePipelines(config) {
                 pipelineFactory,
                 eventFactory,
                 externalPipelineId: pid,
-                externalJobName: `~sd@${pipelineId}:${currentJobName}`,
+                startFrom: `~${triggerName}`,
                 parentBuildId: build.id,
                 parentBuilds,
-                causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
+                causeMessage: `Triggered by ${triggerName}`,
                 parentEventId: event.id
             });
         }));
@@ -982,7 +1013,7 @@ exports.register = (server, options, next) => {
         });
 
         // function for handling build creation/starting logic
-        const processNextJob = await (async (nextJobName) => {
+        const processNextJob = (async (nextJobName) => {
             const {
                 parentBuilds,
                 joinListNames,
@@ -1102,14 +1133,15 @@ exports.register = (server, options, next) => {
                         if (previousBuild) {
                             parentBuildsForJoin = previousBuild.parentBuilds;
 
+                            const triggerName = `sd@${pipelineId}:${currentJobName}`;
                             const newEvent = await createExternalBuild({
                                 pipelineFactory,
                                 eventFactory,
                                 externalPipelineId: externalEvent.pipelineId,
-                                externalJobName,
+                                startFrom: `~${triggerName}`,
                                 parentBuildId: build.id,
                                 parentBuilds: deepmerge.all([parentBuildsForJoin, parentBuilds]),
-                                causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
+                                causeMessage: `Triggered by ${triggerName}`,
                                 parentEventId: event.id,
                                 start: false
                             });
@@ -1175,14 +1207,15 @@ exports.register = (server, options, next) => {
                 }
 
                 // Simply create an external event if external job is not join job
+                const triggerName = `sd@${pipelineId}:${currentJobName}`;
                 const externalBuildConfig = {
                     pipelineFactory,
                     eventFactory,
                     externalPipelineId,
-                    externalJobName,
+                    startFrom: `~${triggerName}`,
                     parentBuildId: build.id,
                     parentBuilds,
-                    causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`
+                    causeMessage: `Triggered by ${triggerName}`
                 };
 
                 if (!event.parentEventId) {
@@ -1224,9 +1257,16 @@ exports.register = (server, options, next) => {
 
         // Start each build sequentially
         await nextJobNames.reduce(async (jobRunPromise, nextJobName) => {
-            await jobRunPromise;
+            try {
+                await jobRunPromise;
 
-            return processNextJob(nextJobName);
+                return processNextJob(nextJobName);
+            } catch (err) {
+                logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` +
+                    ` event:${event.id}`, err);
+
+                return Promise.resolve();
+            }
         }, Promise.resolve());
 
         return null;
