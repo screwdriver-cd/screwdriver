@@ -1287,6 +1287,7 @@ describe('webhooks plugin test', () => {
                         prNum: 2,
                         prRef,
                         prTitle: 'Update the README with new information',
+                        prSource: 'branch',
                         scmContext,
                         sha,
                         startFrom: '~pr',
@@ -1312,6 +1313,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1407,6 +1409,7 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
+                            prSource: 'branch',
                             changedFiles,
                             baseBranch: 'master'
                         });
@@ -1423,6 +1426,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -1441,6 +1445,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -1480,6 +1485,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1520,6 +1526,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('creates empty event if pr from fork by default', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
                     expected.skipMessage = 'Skipping build since pipeline is configured' +
                     ' to restrict fork and PR is fork';
@@ -1552,7 +1559,6 @@ describe('webhooks plugin test', () => {
                             username: 'testuser'
                         }
                     }]);
-
                     parsed.prSource = 'fork';
 
                     return testServer.inject(options).then((reply) => {
@@ -1569,6 +1575,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1590,6 +1597,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('creates empty event if pr from fork and restricting forks', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
                     expected.skipMessage = 'Skipping build since pipeline is configured' +
@@ -1619,6 +1627,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1658,6 +1667,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1750,6 +1760,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1830,6 +1841,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -1848,6 +1860,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -1866,6 +1879,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -1903,6 +1917,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prNum: 1,
                             prTitle: 'Update the README with new information',
+                            prSource: 'branch',
                             type: 'pr',
                             webhooks: true,
                             changedFiles,
@@ -1930,6 +1945,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('creates empty event if pr from fork by default', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
                     'configured to restrict fork and PR is fork';
@@ -1941,6 +1957,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('creates empty event if restricting all', () => {
+                    expected.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
                     'configured to restrict all and PR is branch';
@@ -1952,6 +1969,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('creates empty event if pr from fork and restricting forks', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
@@ -1981,6 +1999,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1992,6 +2011,7 @@ describe('webhooks plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
+                    expected.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
                     expected.skipMessage = 'Skipping build since pipeline is ' +
                     'configured to restrict branch and PR is branch';
@@ -2020,6 +2040,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -2068,6 +2089,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
