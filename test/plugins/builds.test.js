@@ -2353,6 +2353,22 @@ describe('build plugin test', () => {
                         parentBuilds,
                         start: sinon.stub().resolves()
                     });
+                    const jobCConfig = {
+                        baseBranch: 'master',
+                        configPipelineSha: 'abc123',
+                        eventId: '8887',
+                        jobId: 3,
+                        parentBuildId: 12345,
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345 } },
+                            2: { eventId: '8888', jobs: { a: 12345 } }
+                        },
+                        prRef: '',
+                        scmContext: 'github:github.com',
+                        sha: '58393af682d61de87789fb4961645c42180cec5a',
+                        start: false,
+                        username: 12345
+                    };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
@@ -2397,6 +2413,7 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create, jobCConfig);
                         assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });
@@ -3012,6 +3029,21 @@ describe('build plugin test', () => {
                         },
                         start: sinon.stub().resolves()
                     });
+                    const createEventConfig = {
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345, c: 45678 } },
+                            2: { eventId: '8888', jobs: { a: 12345 } }
+                        },
+                        parentEventId: '8888',
+                        pipelineId: 123,
+                        scmContext: 'github:github.com',
+                        sha: 'sha',
+                        startFrom: '~sd@123:a',
+                        type: 'pipeline',
+                        username: 'foo'
+                    };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
@@ -3098,6 +3130,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, createEventConfig);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);
