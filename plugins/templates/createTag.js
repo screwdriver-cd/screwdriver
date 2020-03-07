@@ -26,51 +26,62 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const templateFactory = request.server.app.templateFactory;
-            const templateTagFactory = request.server.app.templateTagFactory;
-            const pipelineId = request.auth.credentials.pipelineId;
-            const isPR = request.auth.credentials.isPR;
+            const { pipelineFactory } = request.server.app;
+            const { templateFactory } = request.server.app;
+            const { templateTagFactory } = request.server.app;
+            const { pipelineId } = request.auth.credentials;
+            const { isPR } = request.auth.credentials;
             const name = request.params.templateName;
             const tag = request.params.tagName;
-            const version = request.payload.version;
+            const { version } = request.payload;
 
             return Promise.all([
                 pipelineFactory.get(pipelineId),
                 templateFactory.get({ name, version }),
                 templateTagFactory.get({ name, tag })
-            ]).then(([pipeline, template, templateTag]) => {
-                // If template doesn't exist, throw error
-                if (!template) {
-                    throw boom.notFound(`Template ${name}@${version} not found`);
-                }
+            ])
+                .then(([pipeline, template, templateTag]) => {
+                    // If template doesn't exist, throw error
+                    if (!template) {
+                        throw boom.notFound(
+                            `Template ${name}@${version} not found`
+                        );
+                    }
 
-                // If template exists, but this build's pipelineId is not the same as template's pipelineId
-                // Then this build does not have permission to tag the template
-                if (pipeline.id !== template.pipelineId || isPR) {
-                    throw boom.forbidden('Not allowed to tag this template');
-                }
+                    // If template exists, but this build's pipelineId is not the same as template's pipelineId
+                    // Then this build does not have permission to tag the template
+                    if (pipeline.id !== template.pipelineId || isPR) {
+                        throw boom.forbidden(
+                            'Not allowed to tag this template'
+                        );
+                    }
 
-                // If template tag exists, then the only thing it can update is the version
-                if (templateTag) {
-                    templateTag.version = version;
+                    // If template tag exists, then the only thing it can update is the version
+                    if (templateTag) {
+                        templateTag.version = version;
 
-                    return templateTag.update().then(newTag => reply(newTag.toJson()).code(200));
-                }
+                        return templateTag
+                            .update()
+                            .then(newTag => reply(newTag.toJson()).code(200));
+                    }
 
-                // If template exists, then create the tag
-                return templateTagFactory.create({ name, tag, version })
-                    .then((newTag) => {
-                        const location = urlLib.format({
-                            host: request.headers.host,
-                            port: request.headers.port,
-                            protocol: request.server.info.protocol,
-                            pathname: `${request.path}/${newTag.id}`
+                    // If template exists, then create the tag
+                    return templateTagFactory
+                        .create({ name, tag, version })
+                        .then(newTag => {
+                            const location = urlLib.format({
+                                host: request.headers.host,
+                                port: request.headers.port,
+                                protocol: request.server.info.protocol,
+                                pathname: `${request.path}/${newTag.id}`
+                            });
+
+                            return reply(newTag.toJson())
+                                .header('Location', location)
+                                .code(201);
                         });
-
-                        return reply(newTag.toJson()).header('Location', location).code(201);
-                    });
-            }).catch(err => reply(boom.boomify(err)));
+                })
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {

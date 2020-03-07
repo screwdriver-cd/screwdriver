@@ -23,7 +23,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const { buildClusterFactory, userFactory } = request.server.app;
-            const name = request.params.name;
+            const { name } = request.params;
             const { username, scmContext } = request.auth.credentials;
 
             // Fetch the buildCluster and user models
@@ -35,31 +35,45 @@ module.exports = () => ({
                     }
                 }),
                 userFactory.get({ username, scmContext })
-            ]).then(([buildClusters, user]) => {
-                if (!Array.isArray(buildClusters)) {
-                    throw boom.badData('Build cluster list returned non-array.');
-                }
-                if (buildClusters.length === 0) {
-                    return reply(boom.notFound(`Build cluster ${name}, ` +
-                        ` scmContext ${scmContext} does not exist`));
-                }
-                if (!user) {
-                    return reply(boom.notFound(`User ${username} does not exist`));
-                }
+            ])
+                .then(([buildClusters, user]) => {
+                    if (!Array.isArray(buildClusters)) {
+                        throw boom.badData(
+                            'Build cluster list returned non-array.'
+                        );
+                    }
+                    if (buildClusters.length === 0) {
+                        return reply(
+                            boom.notFound(
+                                `Build cluster ${name}, ` +
+                                    ` scmContext ${scmContext} does not exist`
+                            )
+                        );
+                    }
+                    if (!user) {
+                        return reply(
+                            boom.notFound(`User ${username} does not exist`)
+                        );
+                    }
 
-                const adminDetails = request.server.plugins.banners
-                    .screwdriverAdminDetails(username, scmContext);
+                    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                        username,
+                        scmContext
+                    );
 
-                if (!adminDetails.isAdmin) {
-                    return reply(boom.forbidden(
-                        `User ${adminDetails.userDisplayName}
+                    if (!adminDetails.isAdmin) {
+                        return reply(
+                            boom.forbidden(
+                                `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                    ));
-                }
+                            )
+                        );
+                    }
 
-                return buildClusters[0].remove()
-                    .then(() => reply().code(204));
-            })
+                    return buildClusters[0]
+                        .remove()
+                        .then(() => reply().code(204));
+                })
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {

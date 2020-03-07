@@ -10,13 +10,20 @@ module.exports = {
             interval: 1000
         },
         reporters: {
-            console: [{
-                module: 'good-squeeze',
-                name: 'Squeeze',
-                args: [{ error: '*', log: '*', response: '*', request: '*' }]
-            }, {
-                module: 'good-console'
-            }, suppressAPITokens, 'stdout']
+            console: [
+                {
+                    module: 'good-squeeze',
+                    name: 'Squeeze',
+                    args: [
+                        { error: '*', log: '*', response: '*', request: '*' }
+                    ]
+                },
+                {
+                    module: 'good-console'
+                },
+                suppressAPITokens,
+                'stdout'
+            ]
         }
     }
 };

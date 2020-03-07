@@ -22,14 +22,19 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const { jobFactory, pipelineFactory, userFactory } = request.server.app;
-            const id = request.params.id;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
-            const isValidToken = request.server.plugins.pipelines.isValidToken;
+            const {
+                jobFactory,
+                pipelineFactory,
+                userFactory
+            } = request.server.app;
+            const { id } = request.params;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
+            const { isValidToken } = request.server.plugins.pipelines;
 
-            return jobFactory.get(id)
-                .then((job) => {
+            return jobFactory
+                .get(id)
+                .then(job => {
                     if (!job) {
                         throw boom.notFound(`Job ${id} does not exist`);
                     }
@@ -43,26 +48,37 @@ module.exports = () => ({
                         }
 
                         // In pipeline scope, check if the token is allowed to the pipeline
-                        if (!isValidToken(pipeline.id, request.auth.credentials)) {
-                            throw boom.unauthorized('Token does not have permission' +
-                             ' to this pipeline');
+                        if (
+                            !isValidToken(pipeline.id, request.auth.credentials)
+                        ) {
+                            throw boom.unauthorized(
+                                'Token does not have permission' +
+                                    ' to this pipeline'
+                            );
                         }
 
                         // ask the user for permissions on this repo
-                        return user.getPermissions(pipeline.scmUri)
-                            // check if user has push access
-                            .then((permissions) => {
-                                if (!permissions.push) {
-                                    throw boom.forbidden(`User ${username} `
-                                        + 'does not have write permission for this repo');
-                                }
+                        return (
+                            user
+                                .getPermissions(pipeline.scmUri)
+                                // check if user has push access
+                                .then(permissions => {
+                                    if (!permissions.push) {
+                                        throw boom.forbidden(
+                                            `User ${username} ` +
+                                                'does not have write permission for this repo'
+                                        );
+                                    }
 
-                                Object.keys(request.payload).forEach((key) => {
-                                    job[key] = request.payload[key];
-                                });
+                                    Object.keys(request.payload).forEach(
+                                        key => {
+                                            job[key] = request.payload[key];
+                                        }
+                                    );
 
-                                return job.update();
-                            });
+                                    return job.update();
+                                })
+                        );
                     });
                 })
                 .then(job => reply(job.toJson()).code(200))

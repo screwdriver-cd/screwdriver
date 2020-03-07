@@ -2,9 +2,9 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
-const schema = require('screwdriver-data-schema');
 const jobMetricListSchema = joi.array().items(joi.object());
 const jobIdSchema = joi.reach(schema.models.job.base, 'id');
 
@@ -31,17 +31,24 @@ module.exports = () => ({
             let { startTime, endTime } = request.query;
 
             if (!startTime || !endTime) {
-                ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
+                ({ startTime, endTime } = setDefaultTimeRange(
+                    startTime,
+                    endTime,
+                    MAX_DAYS
+                ));
             }
 
-            return factory.get(id)
-                .then((job) => {
+            return factory
+                .get(id)
+                .then(job => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }
 
                     if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
-                        throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
+                        throw boom.badRequest(
+                            `Time range is longer than ${MAX_DAYS} days`
+                        );
                     }
 
                     const config = { startTime, endTime };
@@ -65,7 +72,9 @@ module.exports = () => ({
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
-                aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                aggregateInterval: joi
+                    .string()
+                    .valid('none', 'day', 'week', 'month', 'year')
             })
         }
     }

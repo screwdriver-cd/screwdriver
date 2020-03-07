@@ -3,8 +3,10 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const buildListSchema = joi.array()
-    .items(schema.models.secret.get).label('List of secrets');
+const buildListSchema = joi
+    .array()
+    .items(schema.models.secret.get)
+    .label('List of secrets');
 const buildIdSchema = joi.reach(schema.models.build.base, 'id');
 
 module.exports = () => ({
@@ -25,32 +27,36 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.buildFactory;
-            const credentials = request.auth.credentials;
-            const canAccess = request.server.plugins.secrets.canAccess;
+            const { credentials } = request.auth;
+            const { canAccess } = request.server.plugins.secrets;
 
-            return factory.get(request.params.id)
-                .then((build) => {
+            return factory
+                .get(request.params.id)
+                .then(build => {
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }
 
                     return build.secrets;
                 })
-                .then((secrets) => {
+                .then(secrets => {
                     if (secrets.length === 0) {
                         return reply([]);
                     }
 
-                    return canAccess(credentials, secrets[0], 'push').then(showSecret =>
-                        reply(secrets.map((s) => {
-                            const output = s.toJson();
+                    return canAccess(credentials, secrets[0], 'push').then(
+                        showSecret =>
+                            reply(
+                                secrets.map(s => {
+                                    const output = s.toJson();
 
-                            if (!showSecret) {
-                                delete output.value;
-                            }
+                                    if (!showSecret) {
+                                        delete output.value;
+                                    }
 
-                            return output;
-                        }))
+                                    return output;
+                                })
+                            )
                     );
                 })
                 .catch(err => reply(boom.boomify(err)));

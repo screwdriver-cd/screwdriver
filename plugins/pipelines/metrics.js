@@ -2,8 +2,8 @@
 
 const boom = require('boom');
 const joi = require('joi');
-const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const schema = require('screwdriver-data-schema');
+const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
 const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
@@ -30,8 +30,9 @@ module.exports = () => ({
             const { aggregateInterval, page, count, sort } = request.query;
             let { startTime, endTime } = request.query;
 
-            return factory.get(id)
-                .then((pipeline) => {
+            return factory
+                .get(id)
+                .then(pipeline => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
                     }
@@ -42,12 +43,17 @@ module.exports = () => ({
                     // check whether startTime and endTime are valid
                     if (!page && !count) {
                         if (!startTime || !endTime) {
-                            ({ startTime, endTime } =
-                                setDefaultTimeRange(startTime, endTime, MAX_DAYS));
+                            ({ startTime, endTime } = setDefaultTimeRange(
+                                startTime,
+                                endTime,
+                                MAX_DAYS
+                            ));
                         }
 
                         if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
-                            throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
+                            throw boom.badRequest(
+                                `Time range is longer than ${MAX_DAYS} days`
+                            );
                         }
 
                         config = { startTime, endTime };
@@ -69,11 +75,15 @@ module.exports = () => ({
             params: {
                 id: pipelineIdSchema
             },
-            query: schema.api.pagination.concat(joi.object({
-                startTime: joi.string().isoDate(),
-                endTime: joi.string().isoDate(),
-                aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
-            }))
+            query: schema.api.pagination.concat(
+                joi.object({
+                    startTime: joi.string().isoDate(),
+                    endTime: joi.string().isoDate(),
+                    aggregateInterval: joi
+                        .string()
+                        .valid('none', 'day', 'week', 'month', 'year')
+                })
+            )
         }
     }
 });

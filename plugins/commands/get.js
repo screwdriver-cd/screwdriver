@@ -13,7 +13,8 @@ module.exports = () => ({
     method: 'GET',
     path: '/commands/{namespace}/{name}/{versionOrTag}',
     config: {
-        description: 'Get a single command given command namespace, name and version or tag',
+        description:
+            'Get a single command given command namespace, name and version or tag',
         notes: 'Returns a command record',
         tags: ['api', 'commands'],
         auth: {
@@ -26,14 +27,16 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const commandFactory = request.server.app.commandFactory;
+            const { commandFactory } = request.server.app;
             const { namespace, name, versionOrTag } = request.params;
 
-            return commandFactory.getCommand(`${namespace}/${name}@${versionOrTag}`)
-                .then((command) => {
+            return commandFactory
+                .getCommand(`${namespace}/${name}@${versionOrTag}`)
+                .then(command => {
                     if (!command) {
                         throw boom.notFound(
-                            `Command ${namespace}/${name}@${versionOrTag} does not exist`);
+                            `Command ${namespace}/${name}@${versionOrTag} does not exist`
+                        );
                     }
 
                     return reply(command);
@@ -47,10 +50,7 @@ module.exports = () => ({
             params: {
                 namespace: namespaceSchema,
                 name: nameSchema,
-                versionOrTag: joi.alternatives().try(
-                    versionSchema,
-                    tagSchema
-                )
+                versionOrTag: joi.alternatives().try(versionSchema, tagSchema)
             }
         }
     }

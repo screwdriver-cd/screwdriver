@@ -3,7 +3,10 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const buildListSchema = joi.array().items(schema.models.build.get).label('List of builds');
+const buildListSchema = joi
+    .array()
+    .items(schema.models.build.get)
+    .label('List of builds');
 const eventIdSchema = joi.reach(schema.models.event.base, 'id');
 
 module.exports = () => ({
@@ -23,10 +26,11 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const eventFactory = request.server.app.eventFactory;
+            const { eventFactory } = request.server.app;
 
-            return eventFactory.get(request.params.id)
-                .then((event) => {
+            return eventFactory
+                .get(request.params.id)
+                .then(event => {
                     if (!event) {
                         throw boom.notFound('Event does not exist');
                     }
@@ -35,9 +39,11 @@ module.exports = () => ({
                 })
                 .then(buildsModel =>
                     reply(
-                        Promise.all(buildsModel.map(buildModel =>
-                            buildModel.toJsonWithSteps()
-                        ))
+                        Promise.all(
+                            buildsModel.map(buildModel =>
+                                buildModel.toJsonWithSteps()
+                            )
+                        )
                     )
                 )
                 .catch(err => reply(boom.boomify(err)));

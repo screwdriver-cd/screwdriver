@@ -21,10 +21,13 @@ const MAX_FILENAME_LENGTH = 17;
  */
 function randomString(stringLength) {
     let content = '';
-    const alphanumeric = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const alphanumeric =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
     for (let i = 0; i < stringLength; i += 1) {
-        content += alphanumeric.charAt(Math.floor(Math.random() * alphanumeric.length));
+        content += alphanumeric.charAt(
+            Math.floor(Math.random() * alphanumeric.length)
+        );
     }
 
     return content;
@@ -52,11 +55,13 @@ function cleanUpRepository(branch, tag, repoOwner, repoName) {
     };
 
     return Promise.all([
-        octokit.git.getRef(branchParams)
+        octokit.git
+            .getRef(branchParams)
             .then(() => octokit.git.deleteRef(branchParams)),
-        octokit.git.getRef(tagParams)
-            .then(() => octokit.git.deleteRef(tagParams))])
-        .catch(err => Assert.strictEqual(404, err.status));
+        octokit.git
+            .getRef(tagParams)
+            .then(() => octokit.git.deleteRef(tagParams))
+    ]).catch(err => Assert.strictEqual(404, err.status));
 }
 
 /**
@@ -89,13 +94,14 @@ function createBranch(branch, repoOwner, repoName) {
     const repo = repoName || 'functional-git';
 
     // Create a branch from the tip of the master branch
-    return octokit.git.getRef({
-        owner,
-        repo,
-        ref: 'heads/master'
-    })
-        .then((referenceData) => {
-            const sha = referenceData.data.object.sha;
+    return octokit.git
+        .getRef({
+            owner,
+            repo,
+            ref: 'heads/master'
+        })
+        .then(referenceData => {
+            const { sha } = referenceData.data.object;
 
             return octokit.git.createRef({
                 owner,
@@ -104,7 +110,7 @@ function createBranch(branch, repoOwner, repoName) {
                 sha
             });
         })
-        .catch((err) => {
+        .catch(err => {
             // throws an error if a branch already exists, so this is fine
             Assert.strictEqual(err.status, 422);
         });
@@ -120,7 +126,10 @@ function createBranch(branch, repoOwner, repoName) {
  */
 function createFile(branch, repoOwner, repoName) {
     // eslint-disable-next-line new-cap
-    const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
+    const content = new Buffer.alloc(
+        MAX_CONTENT_LENGTH,
+        randomString(MAX_CONTENT_LENGTH)
+    );
     const filename = randomString(MAX_FILENAME_LENGTH);
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
@@ -129,7 +138,7 @@ function createFile(branch, repoOwner, repoName) {
         owner,
         repo,
         path: `testfiles/${filename}`,
-        message: (new Date()).toString(), // commit message is the current time
+        message: new Date().toString(), // commit message is the current time
         content: content.toString('base64'), // content needs to be transmitted in base64
         branch
     });
@@ -166,13 +175,14 @@ function createTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    return octokit.git.getRef({
-        owner,
-        repo,
-        ref: `heads/${branch}`
-    })
-        .then((referenceData) => {
-            const sha = referenceData.data.object.sha;
+    return octokit.git
+        .getRef({
+            owner,
+            repo,
+            ref: `heads/${branch}`
+        })
+        .then(referenceData => {
+            const { sha } = referenceData.data.object;
 
             return octokit.git.createRef({
                 owner,
@@ -199,13 +209,14 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    return octokit.git.getRef({
-        owner,
-        repo,
-        ref: `heads/${branch}`
-    })
-        .then((referenceData) => {
-            const sha = referenceData.data.object.sha;
+    return octokit.git
+        .getRef({
+            owner,
+            repo,
+            ref: `heads/${branch}`
+        })
+        .then(referenceData => {
+            const { sha } = referenceData.data.object;
 
             return octokit.git.createTag({
                 owner,
@@ -221,8 +232,8 @@ function createAnnotatedTag(tag, branch, repoOwner, repoName) {
                 }
             });
         })
-        .then((response) => {
-            const sha = response.data.sha;
+        .then(response => {
+            const { sha } = response.data;
 
             return octokit.git.createRef({
                 owner,
@@ -248,11 +259,12 @@ function createRelease(tagName, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    return octokit.repos.createRelease({
-        owner,
-        repo,
-        tag_name: tagName
-    })
+    return octokit.repos
+        .createRelease({
+            owner,
+            repo,
+            tag_name: tagName
+        })
         .catch(() => {
             Assert.fail('failed to create release');
         });

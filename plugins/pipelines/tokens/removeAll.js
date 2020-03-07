@@ -22,10 +22,10 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
+            const { pipelineFactory } = request.server.app;
+            const { userFactory } = request.server.app;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
 
             return Promise.all([
                 pipelineFactory.get(request.params.id),
@@ -40,14 +40,21 @@ module.exports = () => ({
                         throw boom.notFound('User does not exist');
                     }
 
-                    return user.getPermissions(pipeline.scmUri)
-                        .then((permissions) => {
+                    return user
+                        .getPermissions(pipeline.scmUri)
+                        .then(permissions => {
                             if (!permissions.admin) {
-                                throw boom.forbidden(`User ${username} `
-                                    + 'is not an admin of this repo');
+                                throw boom.forbidden(
+                                    `User ${username} ` +
+                                        'is not an admin of this repo'
+                                );
                             }
                         })
-                        .then(() => pipeline.tokens.then(tokens => tokens.map(t => t.remove())));
+                        .then(() =>
+                            pipeline.tokens.then(tokens =>
+                                tokens.map(t => t.remove())
+                            )
+                        );
                 })
                 .then(() => reply().code(204))
                 .catch(err => reply(boom.boomify(err)));

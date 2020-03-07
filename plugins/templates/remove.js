@@ -30,19 +30,25 @@ module.exports = () => ({
             return Promise.all([
                 templateFactory.list({ params: { name } }),
                 templateTagFactory.list({ params: { name } })
-            ]).then(([templates, tags]) => {
-                if (templates.length === 0) {
-                    throw boom.notFound(`Template ${name} does not exist`);
-                }
+            ])
+                .then(([templates, tags]) => {
+                    if (templates.length === 0) {
+                        throw boom.notFound(`Template ${name} does not exist`);
+                    }
 
-                return canRemove(credentials, templates[0], 'admin').then(() => {
-                    const templatePromises = templates.map(template => template.remove());
-                    const tagPromises = tags.map(tag => tag.remove());
+                    return canRemove(credentials, templates[0], 'admin')
+                        .then(() => {
+                            const templatePromises = templates.map(template =>
+                                template.remove()
+                            );
+                            const tagPromises = tags.map(tag => tag.remove());
 
-                    return Promise.all(templatePromises.concat(tagPromises));
+                            return Promise.all(
+                                templatePromises.concat(tagPromises)
+                            );
+                        })
+                        .then(() => reply().code(204));
                 })
-                    .then(() => reply().code(204));
-            })
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {

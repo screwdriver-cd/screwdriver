@@ -11,7 +11,7 @@ const tokenRoute = require('./token');
  * @param  {Function}  next            Function to call when done
  */
 exports.register = (server, options, next) => {
-    const coveragePlugin = options.coveragePlugin;
+    const { coveragePlugin } = options;
 
     server.route([
         infoRoute({ coveragePlugin }),

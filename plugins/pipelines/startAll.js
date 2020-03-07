@@ -22,10 +22,14 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const { pipelineFactory, eventFactory, userFactory } = request.server.app;
+            const {
+                pipelineFactory,
+                eventFactory,
+                userFactory
+            } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
-            const id = request.params.id;
-            const scm = pipelineFactory.scm;
+            const { id } = request.params;
+            const { scm } = pipelineFactory;
 
             return Promise.all([
                 pipelineFactory.get(id),
@@ -36,34 +40,49 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return user.getPermissions(pipeline.scmUri)
-                        // check if user has push access
-                        .then((permissions) => {
-                            if (!permissions.push) {
-                                throw boom.forbidden(`User ${username} `
-                                    + 'does not have push permission for this repo');
-                            }
-                        });
+                    return (
+                        user
+                            .getPermissions(pipeline.scmUri)
+                            // check if user has push access
+                            .then(permissions => {
+                                if (!permissions.push) {
+                                    throw boom.forbidden(
+                                        `User ${username} ` +
+                                            'does not have push permission for this repo'
+                                    );
+                                }
+                            })
+                    );
                 })
-                .then(() => pipelineFactory.list({
-                    params: {
-                        configPipelineId: id
-                    }
-                }))
-                .then(pipelines => pipelines.map(p =>
-                    p.token.then(token => scm.getCommitSha({
-                        scmContext,
-                        scmUri: p.scmUri,
-                        token
-                    }))
-                        .then(sha => eventFactory.create({
-                            pipelineId: p.id,
-                            sha,
-                            username,
-                            scmContext,
-                            startFrom: '~commit',
-                            causeMessage: `Started by ${username}`
-                        }))))
+                .then(() =>
+                    pipelineFactory.list({
+                        params: {
+                            configPipelineId: id
+                        }
+                    })
+                )
+                .then(pipelines =>
+                    pipelines.map(p =>
+                        p.token
+                            .then(token =>
+                                scm.getCommitSha({
+                                    scmContext,
+                                    scmUri: p.scmUri,
+                                    token
+                                })
+                            )
+                            .then(sha =>
+                                eventFactory.create({
+                                    pipelineId: p.id,
+                                    sha,
+                                    username,
+                                    scmContext,
+                                    startFrom: '~commit',
+                                    causeMessage: `Started by ${username}`
+                                })
+                            )
+                    )
+                )
                 .then(() => reply().code(201))
                 .catch(err => reply(boom.boomify(err)));
         },

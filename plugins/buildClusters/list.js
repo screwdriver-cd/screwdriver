@@ -3,7 +3,9 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.buildCluster.get)
+const listSchema = joi
+    .array()
+    .items(schema.models.buildCluster.get)
     .label('List of build clusters');
 
 module.exports = () => ({
@@ -28,8 +30,11 @@ module.exports = () => ({
                 sort: request.query.sort
             };
 
-            return buildClusterFactory.list(config)
-                .then(buildClusters => reply(buildClusters.map(c => c.toJson())))
+            return buildClusterFactory
+                .list(config)
+                .then(buildClusters =>
+                    reply(buildClusters.map(c => c.toJson()))
+                )
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {

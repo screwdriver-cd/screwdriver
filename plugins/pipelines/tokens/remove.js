@@ -23,11 +23,11 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const tokenFactory = request.server.app.tokenFactory;
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
+            const { tokenFactory } = request.server.app;
+            const { pipelineFactory } = request.server.app;
+            const { userFactory } = request.server.app;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
 
             return Promise.all([
                 pipelineFactory.get(request.params.pipelineId),
@@ -42,25 +42,34 @@ module.exports = () => ({
                         throw boom.notFound('User does not exist');
                     }
 
-                    return user.getPermissions(pipeline.scmUri)
-                        .then((permissions) => {
+                    return user
+                        .getPermissions(pipeline.scmUri)
+                        .then(permissions => {
                             if (!permissions.admin) {
-                                throw boom.forbidden(`User ${username} `
-                                    + 'is not an admin of this repo');
+                                throw boom.forbidden(
+                                    `User ${username} ` +
+                                        'is not an admin of this repo'
+                                );
                             }
                         })
-                        .then(() => tokenFactory.get(request.params.tokenId)
-                            .then((token) => {
-                                if (!token) {
-                                    throw boom.notFound('Token does not exist');
-                                }
+                        .then(() =>
+                            tokenFactory
+                                .get(request.params.tokenId)
+                                .then(token => {
+                                    if (!token) {
+                                        throw boom.notFound(
+                                            'Token does not exist'
+                                        );
+                                    }
 
-                                if (token.pipelineId !== pipeline.id) {
-                                    throw boom.forbidden('Pipeline does not own token');
-                                }
+                                    if (token.pipelineId !== pipeline.id) {
+                                        throw boom.forbidden(
+                                            'Pipeline does not own token'
+                                        );
+                                    }
 
-                                return token.remove();
-                            })
+                                    return token.remove();
+                                })
                         );
                 })
                 .then(() => reply().code(204))

@@ -30,17 +30,24 @@ module.exports = () => ({
             let { startTime, endTime } = request.query;
 
             if (!startTime || !endTime) {
-                ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
+                ({ startTime, endTime } = setDefaultTimeRange(
+                    startTime,
+                    endTime,
+                    MAX_DAYS
+                ));
             }
 
-            return factory.get(id)
-                .then((build) => {
+            return factory
+                .get(id)
+                .then(build => {
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }
 
                     if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
-                        throw boom.badRequest(`Time range is longer than ${MAX_DAYS} days`);
+                        throw boom.badRequest(
+                            `Time range is longer than ${MAX_DAYS} days`
+                        );
                     }
 
                     return build.getMetrics({

@@ -32,11 +32,12 @@ exports.register = (server, options, next) => {
             // This is needed to make admins dirty and update db
             pipeline.admins = newAdmins;
 
-            return pipeline.update()
-                .then(() => {
-                    throw boom.forbidden(`User ${username} `
-                    + 'does not have push permission for this repo');
-                });
+            return pipeline.update().then(() => {
+                throw boom.forbidden(
+                    `User ${username} ` +
+                        'does not have push permission for this repo'
+                );
+            });
         }
 
         // Add user as admin if permissions good and does not already exist

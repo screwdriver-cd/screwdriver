@@ -25,8 +25,9 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.jobFactory;
 
-            return factory.get(request.params.id)
-                .then((job) => {
+            return factory
+                .get(request.params.id)
+                .then(job => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }

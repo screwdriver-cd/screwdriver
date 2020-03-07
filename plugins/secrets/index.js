@@ -1,10 +1,10 @@
 'use strict';
 
+const boom = require('boom');
 const createRoute = require('./create');
 const getRoute = require('./get');
 const removeRoute = require('./remove');
 const updateRoute = require('./update');
-const boom = require('boom');
 
 /**
  * Secrets API Plugin
@@ -30,53 +30,58 @@ exports.register = (server, options, next) => {
      * @return {Boolean}
      */
     server.expose('canAccess', (credentials, secret, permission) => {
-        const userFactory = server.root.app.userFactory;
-        const pipelineFactory = server.root.app.pipelineFactory;
-        const username = credentials.username;
-        const scmContext = credentials.scmContext;
-        const scope = credentials.scope;
+        const { userFactory } = server.root.app;
+        const { pipelineFactory } = server.root.app;
+        const { username } = credentials;
+        const { scmContext } = credentials;
+        const { scope } = credentials;
 
-        return pipelineFactory.get(secret.pipelineId).then((pipeline) => {
+        return pipelineFactory.get(secret.pipelineId).then(pipeline => {
             if (!pipeline) {
-                throw boom.notFound(`Pipeline ${secret.pipelineId} does not exist`);
+                throw boom.notFound(
+                    `Pipeline ${secret.pipelineId} does not exist`
+                );
             }
 
             if (scope.includes('user')) {
-                return userFactory.get({ username, scmContext }).then((user) => {
+                return userFactory.get({ username, scmContext }).then(user => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
-                        if (!permissions[permission]) {
-                            throw boom.forbidden(`User ${username}
+                    return user
+                        .getPermissions(pipeline.scmUri)
+                        .then(permissions => {
+                            if (!permissions[permission]) {
+                                throw boom.forbidden(`User ${username}
                                 does not have ${permission} access to this repo`);
-                        }
+                            }
 
-                        return false;
-                    });
+                            return false;
+                        });
                 });
             }
 
-            if (secret.pipelineId !== credentials.pipelineId &&
-                secret.pipelineId !== credentials.configPipelineId) {
-                throw boom.forbidden(`${username} is not allowed to access this secret`);
+            if (
+                secret.pipelineId !== credentials.pipelineId &&
+                secret.pipelineId !== credentials.configPipelineId
+            ) {
+                throw boom.forbidden(
+                    `${username} is not allowed to access this secret`
+                );
             }
 
             if (!secret.allowInPR && credentials.isPR) {
-                throw boom.forbidden('This secret is not allowed in pull requests');
+                throw boom.forbidden(
+                    'This secret is not allowed in pull requests'
+                );
             }
 
             return true;
         });
     });
 
-    server.route([
-        createRoute(),
-        getRoute(),
-        removeRoute(),
-        updateRoute()
-    ]);
+    server.route([createRoute(), getRoute(), removeRoute(), updateRoute()]);
 
     next();
 };

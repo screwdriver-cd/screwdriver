@@ -25,8 +25,9 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
 
-            return factory.get(request.params.id)
-                .then((pipeline) => {
+            return factory
+                .get(request.params.id)
+                .then(pipeline => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
                     }

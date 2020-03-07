@@ -28,7 +28,7 @@ exports.register = (server, options, next) => {
         };
 
         if (scmContext) {
-            const scm = server.root.app.bannerFactory.scm;
+            const { scm } = server.root.app.bannerFactory;
             const scmDisplayName = scm.getDisplayName({ scmContext });
             const adminsList = options.admins;
 
@@ -37,8 +37,10 @@ exports.register = (server, options, next) => {
 
             // Check system configuration for list of system admins
             // set admin status true if current user is identified to be a system admin
-            if (adminsList.length > 0
-                && adminsList.includes(adminDetails.userDisplayName)) {
+            if (
+                adminsList.length > 0 &&
+                adminsList.includes(adminDetails.userDisplayName)
+            ) {
                 adminDetails.isAdmin = true;
             }
         }
@@ -61,4 +63,3 @@ exports.register = (server, options, next) => {
 exports.register.attributes = {
     name: 'banners'
 };
-

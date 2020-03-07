@@ -22,10 +22,10 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const tokenFactory = request.server.app.tokenFactory;
-            const userFactory = request.server.app.userFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
+            const { tokenFactory } = request.server.app;
+            const { userFactory } = request.server.app;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
 
             return Promise.all([
                 tokenFactory.get(request.params.id),
@@ -44,23 +44,26 @@ module.exports = () => ({
                         throw boom.forbidden('User does not own token');
                     }
 
-                    return user.tokens
-                        .then((tokens) => {
-                            // Make sure it won't cause a name conflict
-                            const match = tokens && tokens.find(
-                                t => t.name === request.payload.name);
+                    return user.tokens.then(tokens => {
+                        // Make sure it won't cause a name conflict
+                        const match =
+                            tokens &&
+                            tokens.find(t => t.name === request.payload.name);
 
-                            if (match && request.params.id !== match.id) {
-                                throw boom.conflict(`Token with name ${match.name} already exists`);
-                            }
+                        if (match && request.params.id !== match.id) {
+                            throw boom.conflict(
+                                `Token with name ${match.name} already exists`
+                            );
+                        }
 
-                            Object.keys(request.payload).forEach((key) => {
-                                token[key] = request.payload[key];
-                            });
-
-                            return token.update()
-                                .then(() => reply(token.toJson()).code(200));
+                        Object.keys(request.payload).forEach(key => {
+                            token[key] = request.payload[key];
                         });
+
+                        return token
+                            .update()
+                            .then(() => reply(token.toJson()).code(200));
+                    });
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

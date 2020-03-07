@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -24,7 +24,7 @@ const TEMPLATE_DESCRIPTION = [
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateObj = (obj) => {
+const decorateObj = obj => {
     const mock = hoek.clone(obj);
 
     mock.toJson = sinon.stub().returns(obj);
@@ -32,7 +32,7 @@ const decorateObj = (obj) => {
     return mock;
 };
 
-const getTemplateMocks = (templates) => {
+const getTemplateMocks = templates => {
     if (Array.isArray(templates)) {
         return templates.map(decorateObj);
     }
@@ -40,7 +40,7 @@ const getTemplateMocks = (templates) => {
     return decorateObj(templates);
 };
 
-const getPipelineMocks = (pipelines) => {
+const getPipelineMocks = pipelines => {
     if (Array.isArray(pipelines)) {
         return pipelines.map(decorateObj);
     }
@@ -48,7 +48,7 @@ const getPipelineMocks = (pipelines) => {
     return decorateObj(pipelines);
 };
 
-const getUserMock = (user) => {
+const getUserMock = user => {
     const mock = hoek.clone(user);
 
     mock.getPermissions = sinon.stub();
@@ -72,7 +72,7 @@ describe('template plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         templateFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -108,17 +108,23 @@ describe('template plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin
-        }], done);
+        server.register(
+            [
+                {
+                    register: plugin
+                }
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -148,7 +154,7 @@ describe('template plugin test', () => {
         it('returns 200 and all templates', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -161,7 +167,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?namespace=chef';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -185,7 +191,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(namespaces);
             options.url = '/templates?distinct=namespace';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, namespaces);
                 assert.calledWith(templateFactoryMock.list, {
@@ -202,7 +208,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?sortBy=name';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -216,7 +222,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?search=nodejs';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -233,7 +239,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?compact=true';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -248,7 +254,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?search=nodejs&namespace=nodejs';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -266,7 +272,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves(getTemplateMocks(testtemplates));
             options.url = '/templates?count=30';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
@@ -282,7 +288,7 @@ describe('template plugin test', () => {
         it('returns 500 when datastore fails', () => {
             templateFactoryMock.list.rejects(new Error('fittoburst'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -301,9 +307,12 @@ describe('template plugin test', () => {
         it('returns 200 and a template when given the template name and version', () => {
             templateFactoryMock.getTemplate.resolves(testtemplate);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testtemplate);
-                assert.calledWith(templateFactoryMock.getTemplate, 'screwdriver@1.7.3');
+                assert.calledWith(
+                    templateFactoryMock.getTemplate,
+                    'screwdriver@1.7.3'
+                );
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -315,9 +324,12 @@ describe('template plugin test', () => {
             };
             templateFactoryMock.getTemplate.resolves(testtemplate);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testtemplate);
-                assert.calledWith(templateFactoryMock.getTemplate, 'screwdriver@stable');
+                assert.calledWith(
+                    templateFactoryMock.getTemplate,
+                    'screwdriver@stable'
+                );
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -325,7 +337,7 @@ describe('template plugin test', () => {
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.getTemplate.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -333,7 +345,7 @@ describe('template plugin test', () => {
         it('returns 500 when datastore fails', () => {
             templateFactoryMock.getTemplate.rejects(new Error('some error'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -350,9 +362,11 @@ describe('template plugin test', () => {
         });
 
         it('returns 200 and all template versions for a template name', () => {
-            templateFactoryMock.list.resolves(getTemplateMocks(testtemplateversions));
+            templateFactoryMock.list.resolves(
+                getTemplateMocks(testtemplateversions)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplateversions);
                 assert.calledWith(templateFactoryMock.list, {
@@ -364,9 +378,11 @@ describe('template plugin test', () => {
 
         it('returns 200 and all template versions for a template name with pagination', () => {
             options.url = '/templates/screwdriver%2Fbuild?count=30';
-            templateFactoryMock.list.resolves(getTemplateMocks(testtemplateversions));
+            templateFactoryMock.list.resolves(
+                getTemplateMocks(testtemplateversions)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplateversions);
                 assert.calledWith(templateFactoryMock.list, {
@@ -383,7 +399,7 @@ describe('template plugin test', () => {
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -400,9 +416,11 @@ describe('template plugin test', () => {
         });
 
         it('returns 200 and all template versions and metrics for a template name', () => {
-            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+            templateFactoryMock.listWithMetrics.resolves(
+                testTemplateVersionsMetrics
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testTemplateVersionsMetrics);
                 assert.calledWith(templateFactoryMock.listWithMetrics, {
@@ -414,9 +432,11 @@ describe('template plugin test', () => {
 
         it('returns 200 and all versions and metrics for a template name with pagination', () => {
             options.url = '/templates/screwdriver%2Fbuild/metrics?count=30';
-            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+            templateFactoryMock.listWithMetrics.resolves(
+                testTemplateVersionsMetrics
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testTemplateVersionsMetrics);
                 assert.calledWith(templateFactoryMock.listWithMetrics, {
@@ -433,7 +453,7 @@ describe('template plugin test', () => {
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.listWithMetrics.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -475,7 +495,9 @@ describe('template plugin test', () => {
             });
 
             userMock = getUserMock({ username, scmContext });
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            userFactoryMock.get
+                .withArgs({ username, scmContext })
+                .resolves(userMock);
 
             pipeline = getPipelineMocks(testpipeline);
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipeline);
@@ -493,7 +515,7 @@ describe('template plugin test', () => {
 
             templateFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -503,12 +525,13 @@ describe('template plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User myself does not have admin access for this template'
+                message:
+                    'User myself does not have admin access for this template'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
@@ -521,9 +544,11 @@ describe('template plugin test', () => {
                 message: 'User myself does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+            userFactoryMock.get
+                .withArgs({ username, scmContext })
+                .resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -538,7 +563,7 @@ describe('template plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -547,28 +572,32 @@ describe('template plugin test', () => {
         it('deletes template if user has pipeline admin credentials and template exists', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledOnce(testTemplate.remove);
                 assert.calledOnce(testTemplateTag.remove);
                 assert.equal(reply.statusCode, 204);
             });
         });
 
-        it('deletes template if user has Screwdriver admin credentials ' +
-            'and template exists', () =>
-            server.inject({
-                method: 'DELETE',
-                url: '/templates/testtemplate',
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user', 'admin', '!guest']
-                }
-            }).then((reply) => {
-                assert.calledOnce(testTemplate.remove);
-                assert.calledOnce(testTemplateTag.remove);
-                assert.equal(reply.statusCode, 204);
-            })
+        it(
+            'deletes template if user has Screwdriver admin credentials ' +
+                'and template exists',
+            () =>
+                server
+                    .inject({
+                        method: 'DELETE',
+                        url: '/templates/testtemplate',
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['user', 'admin', '!guest']
+                        }
+                    })
+                    .then(reply => {
+                        assert.calledOnce(testTemplate.remove);
+                        assert.calledOnce(testTemplateTag.remove);
+                        assert.equal(reply.statusCode, 204);
+                    })
         );
 
         it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
@@ -589,7 +618,7 @@ describe('template plugin test', () => {
                 }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
@@ -614,7 +643,7 @@ describe('template plugin test', () => {
                 }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
@@ -632,7 +661,7 @@ describe('template plugin test', () => {
                 }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledOnce(testTemplate.remove);
                 assert.calledOnce(testTemplateTag.remove);
                 assert.equal(reply.statusCode, 204);
@@ -647,9 +676,11 @@ describe('template plugin test', () => {
                 url: '/templates/screwdriver%2Fbuild/tags'
             };
 
-            templateTagFactoryMock.list.resolves(getTemplateMocks(testtemplatetags));
+            templateTagFactoryMock.list.resolves(
+                getTemplateMocks(testtemplatetags)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplatetags);
                 assert.calledWith(templateTagFactoryMock.list, {
@@ -665,9 +696,11 @@ describe('template plugin test', () => {
                 url: '/templates/screwdriver%2Fbuild/tags?count=30'
             };
 
-            templateTagFactoryMock.list.resolves(getTemplateMocks(testtemplatetags));
+            templateTagFactoryMock.list.resolves(
+                getTemplateMocks(testtemplatetags)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testtemplatetags);
                 assert.calledWith(templateTagFactoryMock.list, {
@@ -690,7 +723,7 @@ describe('template plugin test', () => {
 
             templateTagFactoryMock.list.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -703,7 +736,7 @@ describe('template plugin test', () => {
 
             templateTagFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
                 assert.calledWith(templateTagFactoryMock.list, {
@@ -737,9 +770,7 @@ describe('template plugin test', () => {
                         KEYNAME: 'value'
                     },
                     image: 'node:6',
-                    secrets: [
-                        'NPM_TOKEN'
-                    ],
+                    secrets: ['NPM_TOKEN'],
                     steps: [
                         {
                             install: 'npm install'
@@ -768,7 +799,7 @@ describe('template plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -776,7 +807,7 @@ describe('template plugin test', () => {
         it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -784,7 +815,7 @@ describe('template plugin test', () => {
         it('creates template if template does not exist yet', () => {
             templateFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -793,7 +824,10 @@ describe('template plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, testtemplate);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
                         name: 'template_namespace/nodejs_main'
@@ -809,7 +843,7 @@ describe('template plugin test', () => {
             expected.version = '1.2';
             templateFactoryMock.list.resolves([templateMock]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -818,7 +852,10 @@ describe('template plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, testtemplate);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
                         name: 'template_namespace/nodejs_main'
@@ -839,7 +876,7 @@ describe('template plugin test', () => {
             templateFactoryMock.list.resolves([templateMock]);
             templateFactoryMock.create.resolves(templateMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -848,7 +885,10 @@ describe('template plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, testTemplateWithNamespace);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(templateFactoryMock.list, {
                     params: {
                         name: 'nodejs_main',
@@ -865,7 +905,7 @@ describe('template plugin test', () => {
 
             templateFactoryMock.list.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -875,7 +915,7 @@ describe('template plugin test', () => {
 
             templateFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -884,7 +924,7 @@ describe('template plugin test', () => {
             options.payload = TEMPLATE_INVALID;
             templateFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
             });
         });
@@ -923,7 +963,7 @@ describe('template plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -931,7 +971,7 @@ describe('template plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             options.credentials.isPR = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -939,13 +979,13 @@ describe('template plugin test', () => {
         it('returns 404 when template tag does not exist', () => {
             templateTagFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('deletes template tag if has good permission and tag exists', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.calledOnce(testTemplateTag.remove);
                 assert.equal(reply.statusCode, 204);
             }));
@@ -982,7 +1022,7 @@ describe('template plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             templateMock.pipelineId = 8888;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -990,7 +1030,7 @@ describe('template plugin test', () => {
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -998,7 +1038,7 @@ describe('template plugin test', () => {
         it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1006,7 +1046,7 @@ describe('template plugin test', () => {
         it('creates template tag if has good permission and tag does not exist', () => {
             templateTagFactoryMock.create.resolves(testTemplateTag);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -1015,7 +1055,10 @@ describe('template plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(templateFactoryMock.get, {
                     name: 'testtemplate',
                     version: '1.2.0'
@@ -1034,13 +1077,16 @@ describe('template plugin test', () => {
         });
 
         it('update template tag if has good permission and tag exists', () => {
-            const template = hoek.merge({
-                update: sinon.stub().resolves(testTemplateTag)
-            }, testTemplateTag);
+            const template = hoek.merge(
+                {
+                    update: sinon.stub().resolves(testTemplateTag)
+                },
+                testTemplateTag
+            );
 
             templateTagFactoryMock.get.resolves(template);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(templateFactoryMock.get, {
                     name: 'testtemplate',
                     version: '1.2.0'
@@ -1060,7 +1106,7 @@ describe('template plugin test', () => {
 
             templateTagFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1099,12 +1145,13 @@ describe('template plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'Template template_namespace/nodejs_main does not exist'
+                message:
+                    'Template template_namespace/nodejs_main does not exist'
             };
 
             templateFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -1119,14 +1166,14 @@ describe('template plugin test', () => {
 
             options.credentials.scope = ['user'];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
 
         it('update to mark template trusted', () => {
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.calledOnce(testTemplate.update);
                 assert.equal(reply.statusCode, 204);
             });

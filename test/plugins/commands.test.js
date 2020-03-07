@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -22,17 +22,17 @@ const COMMAND_DESCRIPTION = [
     'Command for habitat git',
     'Executes git commands\n'
 ].join('\n');
-const BINARY_COMMAND_VALID = require('./data/binary-command-validator.input.json').yaml;
-const BINARY_COMMAND_INVALID = require('./data/binary-command-validator.missing-version.json').yaml;
-const BINARY_COMMAND_VALID_NEW_VERSION = require('./data/binary-command-create.input.json').yaml;
-const COMMAND_BINARY = [
-    '#!/bin/sh',
-    'echo "FooBar!"\n'
-].join('\n');
+const BINARY_COMMAND_VALID = require('./data/binary-command-validator.input.json')
+    .yaml;
+const BINARY_COMMAND_INVALID = require('./data/binary-command-validator.missing-version.json')
+    .yaml;
+const BINARY_COMMAND_VALID_NEW_VERSION = require('./data/binary-command-create.input.json')
+    .yaml;
+const COMMAND_BINARY = ['#!/bin/sh', 'echo "FooBar!"\n'].join('\n');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateObj = (obj) => {
+const decorateObj = obj => {
     const mock = hoek.clone(obj);
 
     mock.toJson = sinon.stub().returns(obj);
@@ -40,7 +40,7 @@ const decorateObj = (obj) => {
     return mock;
 };
 
-const getCommandMocks = (commands) => {
+const getCommandMocks = commands => {
     if (Array.isArray(commands)) {
         return commands.map(decorateObj);
     }
@@ -48,7 +48,7 @@ const getCommandMocks = (commands) => {
     return decorateObj(commands);
 };
 
-const getPipelineMocks = (pipelines) => {
+const getPipelineMocks = pipelines => {
     if (Array.isArray(pipelines)) {
         return pipelines.map(decorateObj);
     }
@@ -56,7 +56,7 @@ const getPipelineMocks = (pipelines) => {
     return decorateObj(pipelines);
 };
 
-const getUserMock = (user) => {
+const getUserMock = user => {
     const mock = hoek.clone(user);
 
     mock.getPermissions = sinon.stub();
@@ -80,7 +80,7 @@ describe('command plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         commandFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -118,17 +118,23 @@ describe('command plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin
-        }], done);
+        server.register(
+            [
+                {
+                    register: plugin
+                }
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -158,7 +164,7 @@ describe('command plugin test', () => {
         it('returns 200 and all commands', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -171,7 +177,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?namespace=foo';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -195,7 +201,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(namespaces);
             options.url = '/commands?distinct=namespace';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, namespaces);
                 assert.calledWith(commandFactoryMock.list, {
@@ -212,7 +218,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?sortBy=name';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -226,7 +232,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?search=nodejs';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -243,7 +249,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?compact=true';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -258,7 +264,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?search=nodejs&namespace=nodejs';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -276,7 +282,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves(getCommandMocks(testcommands));
             options.url = '/commands?count=30';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, '200');
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
@@ -292,7 +298,7 @@ describe('command plugin test', () => {
         it('returns 500 when datastore fails', () => {
             commandFactoryMock.list.rejects(new Error('fittoburst'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -311,9 +317,12 @@ describe('command plugin test', () => {
         it('returns 200 and a command when given the command name and version', () => {
             commandFactoryMock.getCommand.resolves(testcommand);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testcommand);
-                assert.calledWith(commandFactoryMock.getCommand, 'foo/bar@1.7.3');
+                assert.calledWith(
+                    commandFactoryMock.getCommand,
+                    'foo/bar@1.7.3'
+                );
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -325,9 +334,12 @@ describe('command plugin test', () => {
             };
             commandFactoryMock.getCommand.resolves(testcommand);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testcommand);
-                assert.calledWith(commandFactoryMock.getCommand, 'foo/bar@stable');
+                assert.calledWith(
+                    commandFactoryMock.getCommand,
+                    'foo/bar@stable'
+                );
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -335,7 +347,7 @@ describe('command plugin test', () => {
         it('returns 404 when command does not exist', () => {
             commandFactoryMock.getCommand.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -343,7 +355,7 @@ describe('command plugin test', () => {
         it('returns 500 when datastore fails', () => {
             commandFactoryMock.getCommand.rejects(new Error('some error'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -360,9 +372,11 @@ describe('command plugin test', () => {
         });
 
         it('returns 200 and all command versions for a command namespace/name', () => {
-            commandFactoryMock.list.resolves(getCommandMocks(testcommandVersions));
+            commandFactoryMock.list.resolves(
+                getCommandMocks(testcommandVersions)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommandVersions);
                 assert.calledWith(commandFactoryMock.list, {
@@ -376,10 +390,12 @@ describe('command plugin test', () => {
         });
 
         it('returns 200 and all command versions with pagination', () => {
-            commandFactoryMock.list.resolves(getCommandMocks(testcommandVersions));
+            commandFactoryMock.list.resolves(
+                getCommandMocks(testcommandVersions)
+            );
             options.url = '/commands/screwdriver/build?count=30';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommandVersions);
                 assert.calledWith(commandFactoryMock.list, {
@@ -399,7 +415,7 @@ describe('command plugin test', () => {
         it('returns 404 when command does not exist', () => {
             commandFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -441,7 +457,9 @@ describe('command plugin test', () => {
             });
 
             userMock = getUserMock({ username, scmContext });
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            userFactoryMock.get
+                .withArgs({ username, scmContext })
+                .resolves(userMock);
 
             pipeline = getPipelineMocks(testpipeline);
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipeline);
@@ -463,7 +481,7 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -473,12 +491,13 @@ describe('command plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User myself does not have admin access for this command'
+                message:
+                    'User myself does not have admin access for this command'
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
@@ -491,9 +510,11 @@ describe('command plugin test', () => {
                 message: 'User myself does not exist'
             };
 
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+            userFactoryMock.get
+                .withArgs({ username, scmContext })
+                .resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -508,7 +529,7 @@ describe('command plugin test', () => {
 
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -520,7 +541,7 @@ describe('command plugin test', () => {
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .reply(204, '');
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 204);
@@ -533,7 +554,7 @@ describe('command plugin test', () => {
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .reply(204, '');
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 204);
@@ -546,7 +567,7 @@ describe('command plugin test', () => {
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .reply(404, '');
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.notCalled(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 500);
@@ -559,7 +580,7 @@ describe('command plugin test', () => {
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .replyWithError({ message: 'request to the store is error' });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.notCalled(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 500);
@@ -584,7 +605,7 @@ describe('command plugin test', () => {
                 }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
@@ -610,7 +631,7 @@ describe('command plugin test', () => {
             };
             options.credentials.isPR = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
@@ -632,7 +653,7 @@ describe('command plugin test', () => {
                 }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 204);
@@ -686,7 +707,7 @@ describe('command plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -694,7 +715,7 @@ describe('command plugin test', () => {
         it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -702,7 +723,7 @@ describe('command plugin test', () => {
         it('creates command if command does not exist yet', () => {
             commandFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -711,7 +732,10 @@ describe('command plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, testcommand);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(commandFactoryMock.list, {
                     params: {
                         namespace: 'foo',
@@ -731,7 +755,7 @@ describe('command plugin test', () => {
                 .post('/v1/commands/bar/foo/1.0.1')
                 .reply(202, '');
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -740,7 +764,10 @@ describe('command plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, testcommand);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(commandFactoryMock.list, {
                     params: {
                         namespace: 'foo',
@@ -757,7 +784,7 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -767,7 +794,7 @@ describe('command plugin test', () => {
 
             commandFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -776,7 +803,7 @@ describe('command plugin test', () => {
             options.payload = COMMAND_INVALID;
             commandFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
             });
         });
@@ -812,10 +839,10 @@ describe('command plugin test', () => {
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 400);
                     });
                 });
@@ -828,10 +855,10 @@ describe('command plugin test', () => {
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 400);
                     });
                 });
@@ -844,33 +871,41 @@ describe('command plugin test', () => {
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 400);
                     });
                 });
             });
 
             it('returns 403 when pipelineId does not match', () => {
-                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authorization = 'AuthToken';
                 commandMock.pipelineId = 8888;
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 403);
                     });
                 });
             });
 
             it('creates command if command does not exist yet', () => {
-                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
@@ -880,10 +915,10 @@ describe('command plugin test', () => {
                     .post('/v1/commands/bar/foo/1.1.0')
                     .reply(202, '');
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         const expectedLocation = {
                             host: reply.request.headers.host,
                             port: reply.request.headers.port,
@@ -892,7 +927,10 @@ describe('command plugin test', () => {
                         };
 
                         assert.deepEqual(reply.result, testBinaryCommand);
-                        assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                        assert.strictEqual(
+                            reply.headers.location,
+                            urlLib.format(expectedLocation)
+                        );
                         assert.calledWith(commandFactoryMock.list, {
                             params: {
                                 namespace: 'bar',
@@ -907,7 +945,11 @@ describe('command plugin test', () => {
 
             it('creates command if has good permission and it is a new version', () => {
                 expected.version = '1.2';
-                formData.append('spec', BINARY_COMMAND_VALID_NEW_VERSION, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID_NEW_VERSION,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
@@ -917,10 +959,10 @@ describe('command plugin test', () => {
                     .post('/v1/commands/bar/foo/1.0.1')
                     .reply(202, '');
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         const expectedLocation = {
                             host: reply.request.headers.host,
                             port: reply.request.headers.port,
@@ -929,7 +971,10 @@ describe('command plugin test', () => {
                         };
 
                         assert.deepEqual(reply.result, testBinaryCommand);
-                        assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                        assert.strictEqual(
+                            reply.headers.location,
+                            urlLib.format(expectedLocation)
+                        );
                         assert.calledWith(commandFactoryMock.list, {
                             params: {
                                 namespace: 'bar',
@@ -945,17 +990,21 @@ describe('command plugin test', () => {
             it('returns 500 when the command model fails to get', () => {
                 const testError = new Error('commandModelGetError');
 
-                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.rejects(testError);
                 commandFactoryMock.list.resolves([]);
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                     });
                 });
@@ -964,41 +1013,53 @@ describe('command plugin test', () => {
             it('returns 500 when the command model fails to create', () => {
                 const testError = new Error('commandModelCreateError');
 
-                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves([]);
                 commandFactoryMock.create.rejects(testError);
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                     });
                 });
             });
 
             it('returns 400 when the command is invalid', () => {
-                formData.append('spec', BINARY_COMMAND_INVALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_INVALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves([]);
                 commandFactoryMock.list.resolves([]);
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 400);
                     });
                 });
             });
 
             it('returns 500 when request to the store is failed', () => {
-                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
@@ -1007,19 +1068,25 @@ describe('command plugin test', () => {
                 nock.cleanAll();
                 nock('http://store.example.com')
                     .post('/v1/commands/bar/foo/1.1.0')
-                    .replyWithError({ message: 'request to the store is error' });
+                    .replyWithError({
+                        message: 'request to the store is error'
+                    });
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                     });
                 });
             });
 
             it('returns 500 when the binary fails to store', () => {
-                formData.append('spec', BINARY_COMMAND_VALID, 'sd-command.yaml');
+                formData.append(
+                    'spec',
+                    BINARY_COMMAND_VALID,
+                    'sd-command.yaml'
+                );
                 formData.append('file', COMMAND_BINARY, 'foobar.sh');
                 options.headers = formData.getHeaders();
                 options.headers.Authoriztion = 'AuthToken';
@@ -1030,10 +1097,10 @@ describe('command plugin test', () => {
                     .post('/v1/commands/bar/foo/1.1.0')
                     .reply(500, '');
 
-                return streamToPromise(formData).then((payload) => {
+                return streamToPromise(formData).then(payload => {
                     options.payload = payload;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                     });
                 });
@@ -1048,9 +1115,11 @@ describe('command plugin test', () => {
                 url: '/commands/foo/bar/tags'
             };
 
-            commandTagFactoryMock.list.resolves(getCommandMocks(testcommandTags));
+            commandTagFactoryMock.list.resolves(
+                getCommandMocks(testcommandTags)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommandTags);
                 assert.calledWith(commandTagFactoryMock.list, {
@@ -1064,13 +1133,15 @@ describe('command plugin test', () => {
         });
 
         it('returns 200 and all commands tags with pagination', () => {
-            commandTagFactoryMock.list.resolves(getCommandMocks(testcommandTags));
+            commandTagFactoryMock.list.resolves(
+                getCommandMocks(testcommandTags)
+            );
             const options = {
                 method: 'GET',
                 url: '/commands/foo/bar/tags?count=30'
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testcommandTags);
                 assert.calledWith(commandTagFactoryMock.list, {
@@ -1096,7 +1167,7 @@ describe('command plugin test', () => {
 
             commandTagFactoryMock.list.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1109,7 +1180,7 @@ describe('command plugin test', () => {
 
             commandTagFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
                 assert.calledWith(commandTagFactoryMock.list, {
@@ -1157,7 +1228,7 @@ describe('command plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             commandMock.pipelineId = 8888;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1165,7 +1236,7 @@ describe('command plugin test', () => {
         it('returns 403 if it is a PR build', () => {
             options.credentials.isPR = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1173,7 +1244,7 @@ describe('command plugin test', () => {
         it('returns 404 when command does not exist', () => {
             commandFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1181,7 +1252,7 @@ describe('command plugin test', () => {
         it('creates a command tag if it has permission and tag does not exist', () => {
             commandTagFactoryMock.create.resolves(testCommandTag);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -1190,7 +1261,10 @@ describe('command plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(commandFactoryMock.get, {
                     namespace: 'screwdriver',
                     name: 'test',
@@ -1212,13 +1286,16 @@ describe('command plugin test', () => {
         });
 
         it('updates a command tag if it has permission and tag exists', () => {
-            const command = hoek.merge({
-                update: sinon.stub().resolves(testCommandTag)
-            }, testCommandTag);
+            const command = hoek.merge(
+                {
+                    update: sinon.stub().resolves(testCommandTag)
+                },
+                testCommandTag
+            );
 
             commandTagFactoryMock.get.resolves(command);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(commandFactoryMock.get, {
                     namespace: 'screwdriver',
                     name: 'test',
@@ -1242,7 +1319,7 @@ describe('command plugin test', () => {
 
             options.payload = payloadTag;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -1251,7 +1328,10 @@ describe('command plugin test', () => {
                 };
 
                 assert.deepEqual(reply.result, hoek.merge({ id: 1 }, payload));
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(commandFactoryMock.get, {
                     namespace: 'screwdriver',
                     name: 'test',
@@ -1274,14 +1354,17 @@ describe('command plugin test', () => {
         });
 
         it('updates a command tag with tag if it has permission and tag exists', () => {
-            const command = hoek.merge({
-                update: sinon.stub().resolves(testCommandTag)
-            }, testCommandTag);
+            const command = hoek.merge(
+                {
+                    update: sinon.stub().resolves(testCommandTag)
+                },
+                testCommandTag
+            );
 
             commandTagFactoryMock.get.resolves(command);
             options.payload = payloadTag;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(commandFactoryMock.get, {
                     namespace: 'screwdriver',
                     name: 'test',
@@ -1304,7 +1387,7 @@ describe('command plugin test', () => {
 
             commandTagFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1349,7 +1432,7 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -1364,14 +1447,14 @@ describe('command plugin test', () => {
 
             options.credentials.scope = ['user'];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
             });
         });
 
         it('update to mark command trusted', () => {
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.update);
                 assert.equal(reply.statusCode, 204);
             });

@@ -25,13 +25,18 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const { pipelineFactory, templateFactory, templateTagFactory } = request.server.app;
+            const {
+                pipelineFactory,
+                templateFactory,
+                templateTagFactory
+            } = request.server.app;
             const { pipelineId, isPR } = request.auth.credentials;
             const name = request.params.templateName;
             const tag = request.params.tagName;
 
-            return templateTagFactory.get({ name, tag })
-                .then((templateTag) => {
+            return templateTagFactory
+                .get({ name, tag })
+                .then(templateTag => {
                     if (!templateTag) {
                         throw boom.notFound('Template tag does not exist');
                     }
@@ -42,16 +47,17 @@ module.exports = () => ({
                             name,
                             version: templateTag.version
                         })
-                    ])
-                        .then(([pipeline, template]) => {
-                            // Check for permission
-                            if (pipeline.id !== template.pipelineId || isPR) {
-                                throw boom.forbidden('Not allowed to delete this template tag');
-                            }
+                    ]).then(([pipeline, template]) => {
+                        // Check for permission
+                        if (pipeline.id !== template.pipelineId || isPR) {
+                            throw boom.forbidden(
+                                'Not allowed to delete this template tag'
+                            );
+                        }
 
-                            // Remove the template tag, not the template
-                            return templateTag.remove();
-                        });
+                        // Remove the template tag, not the template
+                        return templateTag.remove();
+                    });
                 })
                 .then(() => reply().code(204))
                 .catch(err => reply(boom.boomify(err)));

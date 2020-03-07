@@ -9,8 +9,10 @@ module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/metrics',
     config: {
-        description: 'Get all template versions and metrics for a template name with pagination',
-        notes: 'Returns all template records and associated metrics for a given template name',
+        description:
+            'Get all template versions and metrics for a template name with pagination',
+        notes:
+            'Returns all template records and associated metrics for a given template name',
         tags: ['api', 'templates', 'versions'],
         auth: {
             strategies: ['token'],
@@ -37,8 +39,9 @@ module.exports = () => ({
                 };
             }
 
-            return factory.listWithMetrics(config)
-                .then((templates) => {
+            return factory
+                .listWithMetrics(config)
+                .then(templates => {
                     if (templates.length === 0) {
                         throw boom.notFound('Template does not exist');
                     }

@@ -24,48 +24,67 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const profile = request.auth.credentials;
-            const buildTimeout = request.payload.buildTimeout;
-            const buildFactory = request.server.app.buildFactory;
+            const { buildTimeout } = request.payload;
+            const { buildFactory } = request.server.app;
 
-            return buildFactory.get(request.params.id).then((build) => {
-                if (!build) {
-                    throw boom.notFound('Build does not exist');
-                }
+            return buildFactory
+                .get(request.params.id)
+                .then(build => {
+                    if (!build) {
+                        throw boom.notFound('Build does not exist');
+                    }
 
-                if (parseInt(request.params.id, 10) !== parseInt(profile.username, 10)) {
-                    throw boom.notFound('Build Id parameter and token does not match');
-                }
+                    if (
+                        parseInt(request.params.id, 10) !==
+                        parseInt(profile.username, 10)
+                    ) {
+                        throw boom.notFound(
+                            'Build Id parameter and token does not match'
+                        );
+                    }
 
-                if (isFinite(buildTimeout) === false && buildTimeout !== null) {
-                    throw boom.badRequest(`Invalid buildTimeout value: ${buildTimeout}`);
-                }
+                    if (
+                        Number.isFinite(Number(buildTimeout)) === false &&
+                        buildTimeout !== null
+                    ) {
+                        throw boom.badRequest(
+                            `Invalid buildTimeout value: ${buildTimeout}`
+                        );
+                    }
 
-                if (build.status !== 'QUEUED' && build.status !== 'BLOCKED') {
-                    throw boom.forbidden('Build is already running or finished.');
-                }
-                const jwtInfo = {
-                    isPR: profile.isPR,
-                    jobId: profile.jobId,
-                    eventId: profile.eventId,
-                    pipelineId: profile.pipelineId,
-                    configPipelineId: profile.configPipelineId
-                };
+                    if (
+                        build.status !== 'QUEUED' &&
+                        build.status !== 'BLOCKED'
+                    ) {
+                        throw boom.forbidden(
+                            'Build is already running or finished.'
+                        );
+                    }
+                    const jwtInfo = {
+                        isPR: profile.isPR,
+                        jobId: profile.jobId,
+                        eventId: profile.eventId,
+                        pipelineId: profile.pipelineId,
+                        configPipelineId: profile.configPipelineId
+                    };
 
-                if (profile.prParentJobId) {
-                    jwtInfo.prParentJobId = profile.prParentJobId;
-                }
+                    if (profile.prParentJobId) {
+                        jwtInfo.prParentJobId = profile.prParentJobId;
+                    }
 
-                const token = request.server.plugins.auth.generateToken(
-                    request.server.plugins.auth.generateProfile(
-                        profile.username,
-                        profile.scmContext,
-                        ['build'],
-                        jwtInfo
-                    ), parseInt(buildTimeout, 10)
-                );
+                    const token = request.server.plugins.auth.generateToken(
+                        request.server.plugins.auth.generateProfile(
+                            profile.username,
+                            profile.scmContext,
+                            ['build'],
+                            jwtInfo
+                        ),
+                        parseInt(buildTimeout, 10)
+                    );
 
-                return reply({ token });
-            }).catch(err => reply(boom.boomify(err)));
+                    return reply({ token });
+                })
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: authTokenSchema

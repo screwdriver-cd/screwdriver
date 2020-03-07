@@ -12,7 +12,7 @@ const updatedBuildCluster = require('./data/updatedBuildCluster.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateBuildClusterObject = (buildCluster) => {
+const decorateBuildClusterObject = buildCluster => {
     const decorated = hoek.clone(buildCluster);
 
     decorated.update = sinon.stub().resolves(updatedBuildCluster);
@@ -22,7 +22,7 @@ const decorateBuildClusterObject = (buildCluster) => {
     return decorated;
 };
 
-const getMockBuildClusters = (buildClusters) => {
+const getMockBuildClusters = buildClusters => {
     if (Array.isArray(buildClusters)) {
         return buildClusters.map(decorateBuildClusterObject);
     }
@@ -56,7 +56,7 @@ describe('buildCluster plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         buildClusterFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -86,18 +86,22 @@ describe('buildCluster plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
 
         bannerMock = {
             register: (s, o, next) => {
-                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+                s.expose(
+                    'screwdriverAdminDetails',
+                    screwdriverAdminDetailsMock
+                );
                 next();
             }
         };
@@ -114,20 +118,25 @@ describe('buildCluster plugin test', () => {
             name: 'auth'
         };
 
-        server.register([
-            bannerMock, authMock,
-            {
-                register: plugin,
-                options: {
-                    authConfig: {
-                        jwtPrivateKey: 'boo'
+        server.register(
+            [
+                bannerMock,
+                authMock,
+                {
+                    register: plugin,
+                    options: {
+                        authConfig: {
+                            jwtPrivateKey: 'boo'
+                        }
                     }
+                },
+                {
+                    // eslint-disable-next-line global-require
+                    register: require('../../plugins/pipelines')
                 }
-            }, {
-                // eslint-disable-next-line global-require
-                register: require('../../plugins/pipelines')
-            }
-        ], done);
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -157,9 +166,11 @@ describe('buildCluster plugin test', () => {
         });
 
         it('returns 200 and all build clusters', () => {
-            buildClusterFactoryMock.list.resolves(getMockBuildClusters(testBuildClusters));
+            buildClusterFactoryMock.list.resolves(
+                getMockBuildClusters(testBuildClusters)
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuildClusters);
             });
@@ -168,7 +179,7 @@ describe('buildCluster plugin test', () => {
         it('returns 500 when datastore fails', () => {
             buildClusterFactoryMock.list.rejects(new Error('fail'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -176,27 +187,32 @@ describe('buildCluster plugin test', () => {
 
     describe('GET /buildclusters/{name}', () => {
         it('returns 200 for a build cluster that exists', () => {
-            buildClusterFactoryMock.list.withArgs({ params: { name } })
+            buildClusterFactoryMock.list
+                .withArgs({ params: { name } })
                 .resolves(getMockBuildClusters(testBuildClusters));
 
-            return server.inject(`/buildclusters/${name}`).then((reply) => {
+            return server.inject(`/buildclusters/${name}`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuildCluster);
             });
         });
 
         it('returns 404 when build cluster does not exist', () => {
-            buildClusterFactoryMock.list.withArgs({ params: { name } }).resolves([]);
+            buildClusterFactoryMock.list
+                .withArgs({ params: { name } })
+                .resolves([]);
 
-            return server.inject(`/buildclusters/${name}`).then((reply) => {
+            return server.inject(`/buildclusters/${name}`).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 500 when datastore returns an error', () => {
-            buildClusterFactoryMock.list.withArgs({ params: { name } }).rejects(new Error('blah'));
+            buildClusterFactoryMock.list
+                .withArgs({ params: { name } })
+                .rejects(new Error('blah'));
 
-            return server.inject(`/buildclusters/${name}`).then((reply) => {
+            return server.inject(`/buildclusters/${name}`).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -281,7 +297,7 @@ describe('buildCluster plugin test', () => {
         it('returns 201 for a successful create for an external build cluster', () => {
             let expectedLocation;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -293,8 +309,14 @@ describe('buildCluster plugin test', () => {
                     id: buildClusterId,
                     other: 'dataToBeIncluded'
                 });
-                assert.calledWith(buildClusterFactoryMock.scm.getOrgPermissions, scmConfig);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(
+                    buildClusterFactoryMock.scm.getOrgPermissions,
+                    scmConfig
+                );
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(buildClusterFactoryMock.create, params);
             });
         });
@@ -305,7 +327,7 @@ describe('buildCluster plugin test', () => {
             options.payload = internalPayload;
             params = internalParams;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -318,7 +340,10 @@ describe('buildCluster plugin test', () => {
                     other: 'dataToBeIncluded'
                 });
                 assert.notCalled(buildClusterFactoryMock.scm.getOrgPermissions);
-                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.strictEqual(
+                    reply.headers.location,
+                    urlLib.format(expectedLocation)
+                );
                 assert.calledWith(buildClusterFactoryMock.create, params);
             });
         });
@@ -326,7 +351,7 @@ describe('buildCluster plugin test', () => {
         it('returns 422 when the no scm orgs provided for an external cluster', () => {
             options.payload.scmOrganizations = [];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 422);
                 assert.notCalled(buildClusterFactoryMock.scm.getOrgPermissions);
                 assert.notCalled(buildClusterFactoryMock.create);
@@ -339,9 +364,12 @@ describe('buildCluster plugin test', () => {
                 member: true
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
-                assert.calledWith(buildClusterFactoryMock.scm.getOrgPermissions, scmConfig);
+                assert.calledWith(
+                    buildClusterFactoryMock.scm.getOrgPermissions,
+                    scmConfig
+                );
                 assert.notCalled(buildClusterFactoryMock.create);
             });
         });
@@ -351,7 +379,7 @@ describe('buildCluster plugin test', () => {
             params = internalParams;
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.notCalled(buildClusterFactoryMock.scm.getOrgPermissions);
                 assert.notCalled(buildClusterFactoryMock.create);
@@ -363,7 +391,7 @@ describe('buildCluster plugin test', () => {
 
             buildClusterFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -375,7 +403,7 @@ describe('buildCluster plugin test', () => {
             params = internalParams;
             buildClusterFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -415,17 +443,16 @@ describe('buildCluster plugin test', () => {
         });
 
         it('returns 200 and correct build cluster data', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, updatedBuildCluster);
                 assert.calledOnce(buildClustersMock[0].update);
                 assert.equal(reply.statusCode, 200);
-            })
-        );
+            }));
 
         it('returns 200 when update managedByScrewdriver with cluster admin permissions', () => {
             options.payload.managedByScrewdriver = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, updatedBuildCluster);
                 assert.calledOnce(buildClustersMock[0].update);
                 assert.equal(reply.statusCode, 200);
@@ -436,7 +463,7 @@ describe('buildCluster plugin test', () => {
             options.payload.managedByScrewdriver = true;
             buildClusterFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -444,7 +471,7 @@ describe('buildCluster plugin test', () => {
         it('returns 404 when the build cluster name is not found', () => {
             buildClusterFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -453,7 +480,7 @@ describe('buildCluster plugin test', () => {
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
             options.payload.managedByScrewdriver = true;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -464,7 +491,7 @@ describe('buildCluster plugin test', () => {
                 member: true
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.notCalled(buildClusterFactoryMock.create);
             });
@@ -477,7 +504,7 @@ describe('buildCluster plugin test', () => {
             });
             buildClusterFactoryMock.list.resolves({});
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 422);
             });
         });
@@ -485,7 +512,7 @@ describe('buildCluster plugin test', () => {
         it('returns 422 when the no scm orgs provided for an external cluster', () => {
             options.payload.scmOrganizations = [];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 422);
                 assert.notCalled(buildClusterFactoryMock.create);
             });
@@ -496,7 +523,7 @@ describe('buildCluster plugin test', () => {
 
             buildClusterFactoryMock.list.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -506,7 +533,7 @@ describe('buildCluster plugin test', () => {
 
             buildClustersMock[0].update.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -535,16 +562,15 @@ describe('buildCluster plugin test', () => {
         });
 
         it('returns 204 when delete is successful', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(buildClustersMock[0].remove);
-            })
-        );
+            }));
 
         it('returns 403 when user does not have permission', () => {
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -552,23 +578,27 @@ describe('buildCluster plugin test', () => {
         it('returns 404 when build cluster does not exist', () => {
             buildClusterFactoryMock.list.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 404 when user does not exist', () => {
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+            userFactoryMock.get
+                .withArgs({ username, scmContext })
+                .resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 500 when call returns error', () => {
-            buildClustersMock[0].remove.rejects(new Error('collectionRemoveError'));
+            buildClustersMock[0].remove.rejects(
+                new Error('collectionRemoveError')
+            );
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });

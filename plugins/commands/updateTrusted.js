@@ -35,14 +35,19 @@ module.exports = () => ({
             });
 
             if (commands.length === 0) {
-                throw boom.notFound(`Command ${namespace}/${name} does not exist`);
+                throw boom.notFound(
+                    `Command ${namespace}/${name} does not exist`
+                );
             }
 
             const command = commands[0];
 
             command.trusted = trusted;
 
-            return command.update().then(() => reply().code(204), err => reply(boom.boomify(err)));
+            return command.update().then(
+                () => reply().code(204),
+                err => reply(boom.boomify(err))
+            );
         },
         validate: {
             params: {

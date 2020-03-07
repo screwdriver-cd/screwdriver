@@ -23,25 +23,28 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const secretFactory = request.server.app.secretFactory;
-            const credentials = request.auth.credentials;
-            const canAccess = request.server.plugins.secrets.canAccess;
+            const { secretFactory } = request.server.app;
+            const { credentials } = request.auth;
+            const { canAccess } = request.server.plugins.secrets;
 
-            return secretFactory.get(request.params.id)
-                .then((secret) => {
+            return secretFactory
+                .get(request.params.id)
+                .then(secret => {
                     if (!secret) {
                         throw boom.notFound('Secret does not exist');
                     }
 
-                    return canAccess(credentials, secret, 'push').then((showSecret) => {
-                        const output = secret.toJson();
+                    return canAccess(credentials, secret, 'push').then(
+                        showSecret => {
+                            const output = secret.toJson();
 
-                        if (!showSecret) {
-                            delete output.value;
+                            if (!showSecret) {
+                                delete output.value;
+                            }
+
+                            return reply(output);
                         }
-
-                        return reply(output);
-                    });
+                    );
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

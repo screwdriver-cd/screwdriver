@@ -21,18 +21,19 @@ function getUrl({
     statusColor,
     encodeBadgeSubject,
     buildsStatus = [],
-    subject = 'pipeline' }) {
+    subject = 'pipeline'
+}) {
     const counts = {};
     const parts = [];
     let worst = 'lightgrey';
 
     const levels = Object.keys(statusColor);
 
-    buildsStatus.forEach((status) => {
+    buildsStatus.forEach(status => {
         counts[status] = (counts[status] || 0) + 1;
     });
 
-    levels.forEach((status) => {
+    levels.forEach(status => {
         if (counts[status]) {
             parts.push(`${counts[status]} ${status}`);
             worst = statusColor[status];
@@ -72,7 +73,7 @@ function dfs(workflowGraph, start, prNum) {
 
     let visited = new Set(nextJobs);
 
-    nextJobs.forEach((job) => {
+    nextJobs.forEach(job => {
         const subJobs = dfs(workflowGraph, job);
 
         visited = new Set([...visited, ...subJobs]);
@@ -91,7 +92,7 @@ module.exports = config => ({
         handler: (request, reply) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;
-            const encodeBadgeSubject = request.server.plugins.pipelines.encodeBadgeSubject;
+            const { encodeBadgeSubject } = request.server.plugins.pipelines;
             const { statusColor } = config;
             const badgeConfig = {
                 badgeService,
@@ -99,49 +100,67 @@ module.exports = config => ({
                 encodeBadgeSubject
             };
 
-            return factory.get(request.params.id)
-                .then((pipeline) => {
+            return factory
+                .get(request.params.id)
+                .then(pipeline => {
                     if (!pipeline) {
                         return reply.redirect(getUrl(badgeConfig));
                     }
 
-                    return pipeline.getEvents({ sort: 'ascending' }).then((allEvents) => {
-                        const getLastEffectiveEvent = (events) => {
-                            const lastEvent = events.pop();
+                    return pipeline
+                        .getEvents({ sort: 'ascending' })
+                        .then(allEvents => {
+                            const getLastEffectiveEvent = events => {
+                                const lastEvent = events.pop();
 
-                            if (!lastEvent) {
-                                return reply.redirect(getUrl(badgeConfig));
-                            }
-
-                            return lastEvent.getBuilds().then((builds) => {
-                                if (!builds || builds.length < 1) {
-                                    return getLastEffectiveEvent(events);
+                                if (!lastEvent) {
+                                    return reply.redirect(getUrl(badgeConfig));
                                 }
 
-                                const buildsStatus = builds.reverse()
-                                    .map(build => build.status.toLowerCase());
+                                return lastEvent.getBuilds().then(builds => {
+                                    if (!builds || builds.length < 1) {
+                                        return getLastEffectiveEvent(events);
+                                    }
 
-                                let workflowLength = 0;
+                                    const buildsStatus = builds
+                                        .reverse()
+                                        .map(build =>
+                                            build.status.toLowerCase()
+                                        );
 
-                                if (lastEvent.workflowGraph) {
-                                    const nextJobs = dfs(lastEvent.workflowGraph,
-                                        lastEvent.startFrom,
-                                        lastEvent.prNum);
+                                    let workflowLength = 0;
 
-                                    workflowLength = nextJobs.size;
-                                }
+                                    if (lastEvent.workflowGraph) {
+                                        const nextJobs = dfs(
+                                            lastEvent.workflowGraph,
+                                            lastEvent.startFrom,
+                                            lastEvent.prNum
+                                        );
 
-                                for (let i = builds.length; i < workflowLength; i += 1) {
-                                    buildsStatus[i] = 'unknown';
-                                }
+                                        workflowLength = nextJobs.size;
+                                    }
 
-                                return reply.redirect(getUrl(Object.assign(
-                                    badgeConfig, { buildsStatus, subject: pipeline.name })));
-                            });
-                        };
+                                    for (
+                                        let i = builds.length;
+                                        i < workflowLength;
+                                        i += 1
+                                    ) {
+                                        buildsStatus[i] = 'unknown';
+                                    }
 
-                        return getLastEffectiveEvent(allEvents);
-                    });
+                                    return reply.redirect(
+                                        getUrl(
+                                            Object.assign(badgeConfig, {
+                                                buildsStatus,
+                                                subject: pipeline.name
+                                            })
+                                        )
+                                    );
+                                });
+                            };
+
+                            return getLastEffectiveEvent(allEvents);
+                        });
                 })
                 .catch(() => reply.redirect(getUrl(badgeConfig)));
         },

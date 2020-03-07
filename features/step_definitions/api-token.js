@@ -2,9 +2,9 @@
 
 const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
+const { Before, Given, When, Then } = require('cucumber');
 const request = require('../support/request');
 const sdapi = require('../support/sdapi');
-const { Before, Given, When, Then } = require('cucumber');
 
 Before('@apitoken', function hook() {
     this.loginResponse = null;
@@ -22,7 +22,9 @@ Given(/^"calvin" does not own a token named "([^"]*)"$/, function step(token) {
     });
 });
 
-When(/^a new API token named "([^"]*)" is generated$/, function step(tokenName) {
+When(/^a new API token named "([^"]*)" is generated$/, function step(
+    tokenName
+) {
     return request({
         uri: `${this.instance}/${this.namespace}/tokens`,
         method: 'POST',
@@ -33,7 +35,7 @@ When(/^a new API token named "([^"]*)" is generated$/, function step(tokenName) 
             name: tokenName
         },
         json: true
-    }).then((response) => {
+    }).then(response => {
         Assert.strictEqual(response.statusCode, 201);
         Assert.strictEqual(response.body.lastUsed, '');
         // Check that it's a base64 value of the right length to be a token
@@ -55,7 +57,9 @@ Then(/^a valid JWT is received that represents "calvin"$/, function step() {
     Assert.strictEqual(decodedToken.username, this.username);
 });
 
-Then(/^the "([^"]*)" token's 'last used' property is updated$/, function step(tokenName) {
+Then(/^the "([^"]*)" token's 'last used' property is updated$/, function step(
+    tokenName
+) {
     return request({
         uri: `${this.instance}/${this.namespace}/tokens`,
         method: 'GET',
@@ -63,16 +67,18 @@ Then(/^the "([^"]*)" token's 'last used' property is updated$/, function step(to
             bearer: this.jwt
         },
         json: true
-    }).then((response) => {
-        const lastUsed = response.body
-            .find(token => token.name === tokenName)
-            .lastUsed;
+    }).then(response => {
+        const { lastUsed } = response.body.find(
+            token => token.name === tokenName
+        );
 
         Assert.notEqual(lastUsed, '');
     });
 });
 
-Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tokenName) {
+Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(
+    tokenName
+) {
     return request({
         uri: `${this.instance}/${this.namespace}/tokens`,
         method: 'POST',
@@ -83,7 +89,7 @@ Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tok
             name: tokenName
         },
         json: true
-    }).then((response) => {
+    }).then(response => {
         Assert.oneOf(response.statusCode, [409, 201]);
 
         if (response.statusCode === 201) {
@@ -99,11 +105,12 @@ Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tok
                 bearer: this.jwt
             },
             json: true
-        }).then((listResponse) => {
+        }).then(listResponse => {
             Assert.strictEqual(listResponse.statusCode, 200);
 
-            this.testToken = listResponse.body
-                .find(token => token.name === tokenName);
+            this.testToken = listResponse.body.find(
+                token => token.name === tokenName
+            );
         });
     });
 });
@@ -116,7 +123,7 @@ When(/^he lists all his tokens$/, function step() {
             bearer: this.jwt
         },
         json: true
-    }).then((response) => {
+    }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
 
         this.tokenList = response.body;
@@ -135,16 +142,17 @@ Then(/^his token is safely described$/, function step() {
     const expectedKeys = ['id', 'name', 'lastUsed'];
     const forbiddenKeys = ['hash', 'value'];
 
-    expectedKeys.forEach(property =>
-        Assert.property(this.testToken, property));
+    expectedKeys.forEach(property => Assert.property(this.testToken, property));
 
     forbiddenKeys.forEach(property =>
-        Assert.notProperty(this.testToken, property));
+        Assert.notProperty(this.testToken, property)
+    );
 });
 
 When(/^he changes the label associated with the token$/, function step() {
     // Make sure update is getting called with a value that isn't already there
-    this.newDescription = this.testToken.description === 'tiger' ? 'not tiger' : 'tiger';
+    this.newDescription =
+        this.testToken.description === 'tiger' ? 'not tiger' : 'tiger';
 
     return request({
         uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
@@ -156,7 +164,7 @@ When(/^he changes the label associated with the token$/, function step() {
             description: this.newDescription
         },
         json: true
-    }).then((response) => {
+    }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
 
         this.updatedToken = response.body;
@@ -193,7 +201,7 @@ When(/^he refreshes the token$/, function step() {
             bearer: this.jwt
         },
         json: true
-    }).then((response) => {
+    }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
 
         this.updatedToken = response.body;

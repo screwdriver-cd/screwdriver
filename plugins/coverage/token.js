@@ -21,7 +21,8 @@ module.exports = config => ({
         handler: (request, reply) => {
             const buildCredentials = request.auth.credentials;
 
-            return config.coveragePlugin.getAccessToken(buildCredentials)
+            return config.coveragePlugin
+                .getAccessToken(buildCredentials)
                 .then(reply)
                 .catch(err => reply(boom.boomify(err)));
         }

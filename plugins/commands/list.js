@@ -3,15 +3,22 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.command.get).label('List of commands');
-const distinctSchema = joi.string()
+const listSchema = joi
+    .array()
+    .items(schema.models.command.get)
+    .label('List of commands');
+const distinctSchema = joi
+    .string()
     .valid(Object.keys(schema.models.command.base.describe().children))
     .label('Field to return unique results by');
-const compactSchema = joi.string()
+const compactSchema = joi
+    .string()
     .valid(['', 'false', 'true'])
     .label('Flag to return compact data');
 const namespaceSchema = joi.reach(schema.models.command.base, 'namespace');
-const namespacesSchema = joi.array().items(joi.object().keys({ namespace: namespaceSchema }));
+const namespacesSchema = joi
+    .array()
+    .items(joi.object().keys({ namespace: namespaceSchema }));
 
 module.exports = () => ({
     method: 'GET',
@@ -62,7 +69,9 @@ module.exports = () => ({
 
                 // Remove from fields to search if namespace is already a param
                 if (config.params && config.params.namespace) {
-                    fieldsToSearch = fieldsToSearch.filter(e => e !== 'namespace');
+                    fieldsToSearch = fieldsToSearch.filter(
+                        e => e !== 'namespace'
+                    );
                 }
 
                 config.search = {
@@ -84,8 +93,9 @@ module.exports = () => ({
                 config.groupBy = ['namespace', 'name'];
             }
 
-            return factory.list(config)
-                .then((commands) => {
+            return factory
+                .list(config)
+                .then(commands => {
                     if (config.raw) {
                         return reply(commands);
                     }
@@ -98,11 +108,13 @@ module.exports = () => ({
             schema: joi.alternatives().try(listSchema, namespacesSchema)
         },
         validate: {
-            query: schema.api.pagination.concat(joi.object({
-                namespace: namespaceSchema,
-                distinct: distinctSchema,
-                compact: compactSchema
-            }))
+            query: schema.api.pagination.concat(
+                joi.object({
+                    namespace: namespaceSchema,
+                    distinct: distinctSchema,
+                    compact: compactSchema
+                })
+            )
         }
     }
 });

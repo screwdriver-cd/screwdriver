@@ -12,7 +12,8 @@ module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/{versionOrTag}',
     config: {
-        description: 'Get a single template given template name and version or tag',
+        description:
+            'Get a single template given template name and version or tag',
         notes: 'Returns a template record',
         tags: ['api', 'templates'],
         auth: {
@@ -25,13 +26,16 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const templateFactory = request.server.app.templateFactory;
+            const { templateFactory } = request.server.app;
             const { name, versionOrTag } = request.params;
 
-            return templateFactory.getTemplate(`${name}@${versionOrTag}`)
-                .then((template) => {
+            return templateFactory
+                .getTemplate(`${name}@${versionOrTag}`)
+                .then(template => {
                     if (!template) {
-                        throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
+                        throw boom.notFound(
+                            `Template ${name}@${versionOrTag} does not exist`
+                        );
                     }
 
                     return reply(template);
@@ -44,10 +48,7 @@ module.exports = () => ({
         validate: {
             params: {
                 name: nameSchema,
-                versionOrTag: joi.alternatives().try(
-                    versionSchema,
-                    tagSchema
-                )
+                versionOrTag: joi.alternatives().try(versionSchema, tagSchema)
             }
         }
     }
