@@ -332,6 +332,7 @@ async function createPREvents(options, request) {
             prNum,
             prTitle,
             prInfo: await eventFactory.scm.getPrInfo(scmConfig),
+            prSource,
             baseBranch: branch
         };
 
@@ -875,8 +876,9 @@ exports.register = (server, options, next) => {
                     }
 
                     // if skip ci then don't return
-                    if (ignoreUser && !skipMessage) {
-                        const commitAuthors = Array.isArray(parsed.commitAuthors) ?
+                    if (ignoreUser && ignoreUser.length !== 0 && !skipMessage) {
+                        const commitAuthors = (Array.isArray(parsed.commitAuthors)
+                            && parsed.commitAuthors.length !== 0) ?
                             parsed.commitAuthors : [username];
                         const validCommitAuthors = commitAuthors.filter(author =>
                             !ignoreUser.includes(author));
