@@ -1,7 +1,6 @@
 'use strict';
 
 const Joi = require('joi');
-
 const logger = require('screwdriver-logger');
 
 const tasks = {};

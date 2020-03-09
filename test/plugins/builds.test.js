@@ -1316,7 +1316,11 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    eventMock.pr = { ref: 'pull/15/merge' };
+                    eventMock.pr = {
+                        ref: 'pull/15/merge',
+                        prSource: 'branch',
+                        prInfo: { prBranchName: 'prBranchName' }
+                    };
 
                     jobMock.name = 'PR-15:main';
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
@@ -1341,8 +1345,8 @@ describe('build plugin test', () => {
                             scmContext,
                             eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                             configPipelineSha,
-                            prSource: '',
-                            prInfo: '',
+                            prSource: eventMock.pr.prSource,
+                            prInfo: eventMock.pr.prInfo,
                             prRef: eventMock.pr.ref,
                             start: true,
                             baseBranch: null
@@ -1619,12 +1623,22 @@ describe('build plugin test', () => {
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
-                    eventMock.pr = { ref: 'pull/15/merge' };
+                    eventMock.pr = {
+                        ref: 'pull/15/merge',
+                        prSource: 'branch',
+                        prInfo: {
+                            prBranchName: 'prBranchName'
+                        }
+                    };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
+                    jobBconfig.prSource = 'branch';
+                    jobBconfig.prInfo = { prBranchName: 'prBranchName' };
                     jobCconfig.prRef = 'pull/15/merge';
+                    jobCconfig.prSource = 'branch';
+                    jobCconfig.prInfo = { prBranchName: 'prBranchName' };
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -2070,7 +2084,7 @@ describe('build plugin test', () => {
                 it('triggers next next job when next job is external', () => {
                     const expectedEventArgs = {
                         pipelineId: '2',
-                        startFrom: 'a',
+                        startFrom: '~sd@123:a',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
                         parentBuildId: 12345,
@@ -2339,6 +2353,22 @@ describe('build plugin test', () => {
                         parentBuilds,
                         start: sinon.stub().resolves()
                     });
+                    const jobCConfig = {
+                        baseBranch: 'master',
+                        configPipelineSha: 'abc123',
+                        eventId: '8887',
+                        jobId: 3,
+                        parentBuildId: 12345,
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345 } },
+                            2: { eventId: '8888', jobs: { a: 12345 } }
+                        },
+                        prRef: '',
+                        scmContext: 'github:github.com',
+                        sha: '58393af682d61de87789fb4961645c42180cec5a',
+                        start: false,
+                        username: 12345
+                    };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
@@ -2383,6 +2413,7 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create, jobCConfig);
                         assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });
@@ -2998,6 +3029,21 @@ describe('build plugin test', () => {
                         },
                         start: sinon.stub().resolves()
                     });
+                    const createEventConfig = {
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345, c: 45678 } },
+                            2: { eventId: '8888', jobs: { a: 12345 } }
+                        },
+                        parentEventId: '8888',
+                        pipelineId: 123,
+                        scmContext: 'github:github.com',
+                        sha: 'sha',
+                        startFrom: '~sd@123:a',
+                        type: 'pipeline',
+                        username: 'foo'
+                    };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
@@ -3084,6 +3130,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create, createEventConfig);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);
