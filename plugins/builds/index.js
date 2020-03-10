@@ -2,7 +2,7 @@
 
 const logger = require('screwdriver-logger');
 const getRoute = require('./get');
-const getBuildStatusesRoute = require('./getBuildStatuses')
+const getBuildStatusesRoute = require('./getBuildStatuses');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');

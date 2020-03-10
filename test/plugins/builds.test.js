@@ -9,6 +9,7 @@ const hoek = require('hoek');
 const nock = require('nock');
 const testBuild = require('./data/build.json');
 const testBuildWithSteps = require('./data/buildWithSteps.json');
+const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const rewire = require('rewire');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
@@ -108,7 +109,8 @@ describe('build plugin test', () => {
             scm: {
                 getCommitSha: sinon.stub(),
                 getPrInfo: sinon.stub()
-            }
+            },
+            getBuildStatuses: sinon.stub()
         };
         stepFactoryMock = {
             get: sinon.stub(),
@@ -287,6 +289,48 @@ describe('build plugin test', () => {
             return server.inject(`/builds/${id}`).then((reply) => {
                 assert.equal(reply.statusCode, 500);
             });
+        });
+    });
+
+    describe('GET /builds/statuses?jobIds=&jobIds=&numBuilds=&offset=', () => {
+        it('returns 200 when build statuses exist', () => {
+            buildFactoryMock.getBuildStatuses.resolves(testBuildsStatuses);
+
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0')
+                .then((reply) => {
+                    assert.calledWith(
+                        buildFactoryMock.getBuildStatuses,
+                        { jobIds: [1, 2], numBuilds: 3, offset: 0 }
+                    );
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, testBuildsStatuses);
+                });
+        });
+
+        it('returns 404 when no build statuses exist', () => {
+            buildFactoryMock.getBuildStatuses.resolves([]);
+
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0')
+                .then((reply) => {
+                    assert.calledWith(
+                        buildFactoryMock.getBuildStatuses,
+                        { jobIds: [1, 2], numBuilds: 3, offset: 0 }
+                    );
+                    assert.equal(reply.statusCode, 404);
+                });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.getBuildStatuses.rejects(new Error('blah'));
+
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0')
+                .then((reply) => {
+                    assert.calledWith(
+                        buildFactoryMock.getBuildStatuses,
+                        { jobIds: [1, 2], numBuilds: 3, offset: 0 }
+                    );
+                    assert.equal(reply.statusCode, 500);
+                });
         });
     });
 

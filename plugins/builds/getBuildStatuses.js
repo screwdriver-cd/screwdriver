@@ -1,11 +1,9 @@
 'use strict';
 
 const boom = require('boom');
-const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const stringSchema = joi.string().regex(/^[0-9]+$/);
 const jobIdsSchema = joi.array().items(stringSchema);
-
 
 module.exports = () => ({
     method: 'GET',
@@ -31,17 +29,17 @@ module.exports = () => ({
                 jobIds: jobIds.map(jobId => parseInt(jobId, 10)),
                 numBuilds: parseInt(numBuilds, 10),
                 offset: parseInt(offset, 10)
-            };            
+            };
 
             return buildFactory.getBuildStatuses(payload)
-            .then((builds) => {
-                if (builds.length === 0) {
-                    throw boom.notFound('Builds do not exist');
-                }
+                .then((builds) => {
+                    if (builds.length === 0) {
+                        throw boom.notFound('Builds do not exist');
+                    }
 
-                reply(builds);
-            })
-            .catch(err => reply(boom.boomify(err)));
+                    reply(builds);
+                })
+                .catch(err => reply(boom.boomify(err)));
         },
         response: {
             schema: joi.array()
