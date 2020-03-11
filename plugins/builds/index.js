@@ -304,12 +304,13 @@ async function createExternalBuild(config) {
  * @param  {Number}   [config.parentBuildId]    Parent build ID
  * @param  {Number}   [config.eventId]          Event ID for build
  * @param  {Boolean}  [config.start]            Whether to start the build or not
+ * @param  {String}   [config.sha]              Build sha
  * @return {Promise}
  */
 async function createInternalBuild(config) {
     const { jobFactory, buildFactory, eventFactory, pipelineId, jobName,
         username, scmContext, build, parentBuilds, start, baseBranch, parentBuildId,
-        eventId } = config;
+        eventId, sha } = config;
     const event = await eventFactory.get(build.eventId);
     const job = await jobFactory.get({
         name: jobName,
@@ -318,7 +319,7 @@ async function createInternalBuild(config) {
     const prRef = event.pr.ref ? event.pr.ref : '';
     const internalBuildConfig = {
         jobId: job.id,
-        sha: build.sha,
+        sha: sha || build.sha,
         parentBuildId: parentBuildId || build.id,
         parentBuilds: parentBuilds || {},
         eventId: eventId || build.eventId,
@@ -1169,7 +1170,8 @@ exports.register = (server, options, next) => {
                                 parentBuilds,
                                 parentBuildId: build.id,
                                 start: false,
-                                eventId: externalEventId
+                                eventId: externalEventId,
+                                sha: externalEvent.sha
                             });
                         }
                     // If next build exists, update next build with parentBuilds info
