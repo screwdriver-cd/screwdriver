@@ -23,6 +23,7 @@ const removeToken = require('./tokens/remove');
 const removeAllTokens = require('./tokens/removeAll');
 const metricsRoute = require('./metrics');
 const latestBuild = require('./latestBuild');
+const getAdmin = require('./admins/get');
 
 /**
  * Pipeline API Plugin
@@ -80,7 +81,7 @@ exports.register = (server, options, next) => {
      */
     server.expose('isValidToken', (id, credentials) =>
         !credentials.scope.includes('pipeline') ||
-                parseInt(id, 10) === parseInt(credentials.pipelineId, 10)
+        parseInt(id, 10) === parseInt(credentials.pipelineId, 10)
     );
 
     server.route([
@@ -106,7 +107,8 @@ exports.register = (server, options, next) => {
         removeToken(),
         removeAllTokens(),
         metricsRoute(),
-        latestBuild()
+        latestBuild(),
+        getAdmin()
     ]);
 
     next();
