@@ -2063,7 +2063,9 @@ describe('pipeline plugin test', () => {
             };
             userMock = getUserMock({ username, scmContext });
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            userFactoryMock.get
+                .withArgs({ username, scmContext })
+                .resolves(userMock);
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.admin.resolves({
                 username: 'abc'
@@ -2072,25 +2074,24 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
         });
         it('returns 200 with admin info for a pipeline', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 const res = JSON.parse(reply.payload);
 
                 assert.equal(res.username, 'abc');
-            })
-        );
+            }));
         it('returns 500 when pipeline has  no admin', () => {
             pipelineMock.admin.rejects(new Error('Pipeline has no admin'));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
         it('returns 500 when datastore fails', () => {
             pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
