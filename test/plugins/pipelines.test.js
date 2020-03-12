@@ -88,6 +88,7 @@ const decoratePipelineMock = (pipeline) => {
     mock.getEvents = sinon.stub();
     mock.remove = sinon.stub();
     mock.admin = sinon.stub();
+    mock.getFirstAdmin = sinon.stub();
     mock.update = sinon.stub();
     mock.token = Promise.resolve('faketoken');
     mock.tokens = sinon.stub();
@@ -1922,7 +1923,7 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
             pipelineMock = getPipelineMocks(testPipeline);
-            pipelineMock.admin.resolves({
+            pipelineMock.getFirstAdmin.resolves({
                 username: 'abc'
             });
             pipelineMock.tokens = Promise.resolve(getTokenMocks([token]));
@@ -1937,7 +1938,7 @@ describe('pipeline plugin test', () => {
             })
         );
         it('returns 500 when pipeline has  no admin', () => {
-            pipelineMock.admin.rejects(new Error('Pipeline has no admin'));
+            pipelineMock.getFirstAdmin.rejects(new Error('Pipeline has no admin'));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
 
             return server.inject(options).then((reply) => {
