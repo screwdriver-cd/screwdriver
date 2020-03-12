@@ -107,6 +107,9 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/jobs?archived={boolean}`
 
+#### Get Pipeline Admin
+`GET /pipelines/{id}/admin`
+
 #### Get all triggers
 
 `GET /pipelines/{id}/triggers`

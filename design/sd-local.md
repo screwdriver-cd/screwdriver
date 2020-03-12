@@ -12,6 +12,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - December 3rd, 2019: Proposal submitted
 - December 6th, 2019: Added `SD_META_DIR`
 - December 18th, 2019: Updated `launcher` / `log-service`
+- March 4th, 2020: Added `src-url option`
 
 ## Proposal
 
@@ -136,6 +137,12 @@ $ sdlocal build [job-name] [options]
 - `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 - `--disable-image-pull` Disable `sd-local` from always pulling build image.
+
+###### src-url option
+- How to specify the URL
+  - The URL can be passed with either https or ssh schema
+  - To specify the branch, we can add a `#<branch>` suffix to the URL
+  - ex) `--src-url git@github.com:foo/bar#baz`
 
 #### Output
 
