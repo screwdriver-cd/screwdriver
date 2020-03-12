@@ -12,7 +12,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - December 3rd, 2019: Proposal submitted
 - December 6th, 2019: Added `SD_META_DIR`
 - December 18th, 2019: Updated `launcher` / `log-service`
-- March 4th, 2020: Added `src-url option`
+- March 4th, 2020: Added `src-url option` and updated env options
 
 ## Proposal
 
@@ -132,7 +132,8 @@ $ sdlocal build [job-name] [options]
 - `--meta-file [path]` Path to config file of `meta` (JSON)
 - `-e, --env [key=value]` Set `key` and `value` relationship which is set as environment variables of Build Container.
   - `secrets` is also set as environment variables.
-- `--env-file [path]` Path to config file of environment variables. (`.env`)
+  - When both `--env` and `--env-file` options are used, `--env` has priority about environment variables used in both options.
+- `--env-file [path]` Path to config file of environment variables. (`.env` format file can be used.)
 - `--artifacts-dir [path]` Path to the host side directory which is mounted into `$SD_ARTIFACTS_DIR`. (default: `./sd-artifacts`)
 - `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
