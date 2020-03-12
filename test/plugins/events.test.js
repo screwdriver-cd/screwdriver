@@ -1,19 +1,19 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
+const urlLib = require('url');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
 const testEvent = require('./data/events.json')[0];
 const testEventPr = require('./data/eventsPr.json')[0];
-const urlLib = require('url');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateBuildMock = (build) => {
+const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
     mock.update = sinon.stub().resolves();
@@ -23,7 +23,7 @@ const decorateBuildMock = (build) => {
     return mock;
 };
 
-const getBuildMocks = (builds) => {
+const getBuildMocks = builds => {
     if (Array.isArray(builds)) {
         return builds.map(decorateBuildMock);
     }
@@ -31,7 +31,7 @@ const getBuildMocks = (builds) => {
     return decorateBuildMock(builds);
 };
 
-const getEventMock = (event) => {
+const getEventMock = event => {
     const decorated = hoek.clone(event);
 
     decorated.getBuilds = sinon.stub();
@@ -58,7 +58,7 @@ describe('event plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
         eventFactoryMock = {
             get: sinon.stub(),
@@ -113,22 +113,30 @@ describe('event plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([bannerMock, {
-            register: plugin
-        }, {
-            // eslint-disable-next-line global-require
-            register: require('../../plugins/pipelines')
-        }], (err) => {
-            done(err);
-        });
+        server.register(
+            [
+                bannerMock,
+                {
+                    register: plugin
+                },
+                {
+                    // eslint-disable-next-line global-require
+                    register: require('../../plugins/pipelines')
+                }
+            ],
+            err => {
+                done(err);
+            }
+        );
     });
 
     afterEach(() => {
@@ -151,11 +159,10 @@ describe('event plugin test', () => {
         it('exposes a route for getting a event', () => {
             eventFactoryMock.get.withArgs(id).resolves(getEventMock(testEvent));
 
-            return server.inject('/events/12345')
-                .then((reply) => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, testEvent);
-                });
+            return server.inject('/events/12345').then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testEvent);
+            });
         });
 
         it('returns 404 when event does not exist', () => {
@@ -167,20 +174,18 @@ describe('event plugin test', () => {
 
             eventFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject('/events/12345')
-                .then((reply) => {
-                    assert.equal(reply.statusCode, 404);
-                    assert.deepEqual(reply.result, error);
-                });
+            return server.inject('/events/12345').then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
         });
 
         it('returns errors when datastore returns an error', () => {
             eventFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject('/events/12345')
-                .then((reply) => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject('/events/12345').then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
         });
     });
 
@@ -206,17 +211,16 @@ describe('event plugin test', () => {
         it('returns 404 if event does not exist', () => {
             eventFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 200 for getting builds', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBuilds);
-            })
-        );
+            }));
     });
 
     describe('POST /events', () => {
@@ -323,7 +327,7 @@ describe('event plugin test', () => {
             eventConfig.parentBuilds = parentBuilds;
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -339,8 +343,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates an event with ' +
-            'causeMessage and creator passed in', () => {
+        it('returns 201 when it successfully creates an event with causeMessage and creator passed in', () => {
             delete options.payload.parentBuildId;
             delete eventConfig.parentBuildId;
             eventConfig.causeMessage = 'Started by periodic build scheduler';
@@ -356,7 +359,7 @@ describe('event plugin test', () => {
                 }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -372,7 +375,7 @@ describe('event plugin test', () => {
         });
 
         it('returns 201 when it successfully creates an event', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -384,14 +387,13 @@ describe('event plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
-            })
-        );
+            }));
 
         it('returns 201 when it successfully creates an event without parentBuildId', () => {
             delete options.payload.parentBuildId;
             delete eventConfig.parentBuildId;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -413,7 +415,7 @@ describe('event plugin test', () => {
             eventConfig.baseBranch = 'master';
             options.payload.parentEventId = parentEventId;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -451,7 +453,7 @@ describe('event plugin test', () => {
             eventConfig.baseBranch = 'master';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -485,7 +487,7 @@ describe('event plugin test', () => {
             options.payload.parentEventId = parentEventId;
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -521,7 +523,7 @@ describe('event plugin test', () => {
             };
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -552,7 +554,7 @@ describe('event plugin test', () => {
 
             options.payload.startFrom = 'PR-1:main';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
@@ -579,7 +581,7 @@ describe('event plugin test', () => {
             options.payload.startFrom = 'PR-1:main';
             options.payload.prNum = '1';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
@@ -588,8 +590,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates a PR event when ' +
-            'PR author only has permission to run PR', () => {
+        it('returns 201 when it successfully creates a PR event when PR author only has permission to run PR', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
@@ -605,7 +606,7 @@ describe('event plugin test', () => {
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
@@ -614,28 +615,31 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 403 when it fails to creates a PR event when ' +
-            'PR author only has permission to run PR and restrictPR is on', () => {
-            eventConfig.startFrom = 'PR-1:main';
-            eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
-            eventConfig.type = 'pr';
-            eventConfig.chainPR = false;
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
-            eventConfig.changedFiles = ['screwdriver.yaml'];
-            options.payload.startFrom = 'PR-1:main';
-            userMock.getPermissions.resolves({ push: false });
-            pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
+        it(
+            'returns 403 when it fails to creates a PR event when ' +
+                'PR author only has permission to run PR and restrictPR is on',
+            () => {
+                eventConfig.startFrom = 'PR-1:main';
+                eventConfig.prNum = '1';
+                eventConfig.prRef = 'prref';
+                eventConfig.type = 'pr';
+                eventConfig.chainPR = false;
+                eventConfig.prInfo = {
+                    sha: testBuild.sha,
+                    ref: 'prref',
+                    url: 'https://github.com/screwdriver-cd/ui/pull/292',
+                    username: 'myself'
+                };
+                eventConfig.changedFiles = ['screwdriver.yaml'];
+                options.payload.startFrom = 'PR-1:main';
+                userMock.getPermissions.resolves({ push: false });
+                pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
 
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 403);
-            });
-        });
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                });
+            }
+        );
 
         it('returns 201 when it successfully creates a PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
@@ -659,7 +663,7 @@ describe('event plugin test', () => {
                 user: { value: 'adong' }
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -682,7 +686,7 @@ describe('event plugin test', () => {
                 scmContext,
                 pipelineId
             };
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -697,8 +701,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates an event and updates admins ' +
-            'with good permissions for a PR', () => {
+        it('returns 201 when it successfully creates an event and updates admins with good permissions for PR', () => {
             delete pipelineMock.admins.myself;
 
             eventConfig.startFrom = 'PR-1:main';
@@ -716,7 +719,7 @@ describe('event plugin test', () => {
 
             options.payload.startFrom = 'PR-1:main';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
@@ -730,7 +733,7 @@ describe('event plugin test', () => {
 
             eventFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -738,7 +741,7 @@ describe('event plugin test', () => {
         it('returns 403 forbidden error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.notCalled(eventFactoryMock.create);
             });
@@ -756,13 +759,12 @@ describe('event plugin test', () => {
 
             options.payload.startFrom = '~pr';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
             });
         });
 
-        it('returns 403 forbidden error when user does not have push permission ' +
-            'and is not author of PR', () => {
+        it('returns 403 forbidden error when user does not have push permission and is not author of PR', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
             eventConfig.prRef = 'prref';
@@ -783,7 +785,7 @@ describe('event plugin test', () => {
                 username: 'notmyself'
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.notCalled(eventFactoryMock.create);
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
@@ -792,11 +794,10 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 403 forbidden error when user\'s scm' +
-            ' and pipeline\'s scm are different', () => {
+        it("returns 403 forbidden error when user's scm and pipeline's scm are different", () => {
             options.credentials.scmContext = 'mygit:mygit.com';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -809,7 +810,7 @@ describe('event plugin test', () => {
                 pipelineId: pipelineId + 1
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
                 assert.notCalled(eventFactoryMock.create);
             });
@@ -819,7 +820,7 @@ describe('event plugin test', () => {
             testEvent.builds = null;
             eventFactoryMock.create.resolves(getEventMock(testEvent));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 delete testEvent.builds;
             });
@@ -879,74 +880,78 @@ describe('event plugin test', () => {
         });
 
         it('returns 200 and stops all event builds', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(event.getBuilds);
                 assert.notCalled(builds[0].update);
                 assert.notCalled(builds[1].update);
                 assert.calledOnce(builds[2].update);
                 assert.calledOnce(builds[3].update);
-            })
+            }));
+
+        it('returns 200 and stops all event builds when user has push permission and is not Screwdriver admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.calledOnce(builds[2].update);
+                assert.calledOnce(builds[3].update);
+            });
+        });
+
+        it(
+            'returns 200 and stops all event builds when user is PR owner' +
+                ' and does not have push permission and is not Screwdriver admin',
+            () => {
+                event = getEventMock(testEventPr);
+                eventFactoryMock.get.withArgs(id).resolves(event);
+                event.getBuilds.resolves(builds);
+                userMock = {
+                    username: 'imbatman',
+                    getPermissions: sinon.stub().resolves({ push: false })
+                };
+                options.credentials.username = 'imbatman';
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
+                userFactoryMock.get.resolves(userMock);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledOnce(event.getBuilds);
+                    assert.notCalled(builds[0].update);
+                    assert.notCalled(builds[1].update);
+                    assert.calledOnce(builds[2].update);
+                    assert.calledOnce(builds[3].update);
+                });
+            }
         );
 
-        it('returns 200 and stops all event builds when user has push permission' +
-            'and is not Screwdriver admin', () => {
-            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+        it(
+            'returns 403 forbidden error when user does not have push permission' +
+                ' and is not Screwdriver admin and is not PR owner',
+            () => {
+                const error = {
+                    statusCode: 403,
+                    error: 'Forbidden',
+                    message: 'User myself does not have push permission for this repo'
+                };
 
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledOnce(event.getBuilds);
-                assert.notCalled(builds[0].update);
-                assert.notCalled(builds[1].update);
-                assert.calledOnce(builds[2].update);
-                assert.calledOnce(builds[3].update);
-            });
-        });
+                userMock.getPermissions.resolves({ push: false });
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
 
-        it('returns 200 and stops all event builds when user is PR owner' +
-            ' and does not have push permission and is not Screwdriver admin', () => {
-            event = getEventMock(testEventPr);
-            eventFactoryMock.get.withArgs(id).resolves(event);
-            event.getBuilds.resolves(builds);
-            userMock = {
-                username: 'imbatman',
-                getPermissions: sinon.stub().resolves({ push: false })
-            };
-            options.credentials.username = 'imbatman';
-            screwdriverAdminDetailsMock.returns({ isAdmin: false });
-            userFactoryMock.get.resolves(userMock);
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.calledOnce(event.getBuilds);
-                assert.notCalled(builds[0].update);
-                assert.notCalled(builds[1].update);
-                assert.calledOnce(builds[2].update);
-                assert.calledOnce(builds[3].update);
-            });
-        });
-
-        it('returns 403 forbidden error when user does not have push permission' +
-            ' and is not Screwdriver admin and is not PR owner', () => {
-            const error = {
-                statusCode: 403,
-                error: 'Forbidden',
-                message: 'User myself does not have push permission for this repo'
-            };
-
-            userMock.getPermissions.resolves({ push: false });
-            screwdriverAdminDetailsMock.returns({ isAdmin: false });
-
-            return server.inject(options).then((reply) => {
-                assert.equal(reply.statusCode, 403);
-                assert.notCalled(event.getBuilds);
-                assert.notCalled(builds[0].update);
-                assert.notCalled(builds[1].update);
-                assert.notCalled(builds[2].update);
-                assert.notCalled(builds[3].update);
-                assert.deepEqual(reply.result, error);
-            });
-        });
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.notCalled(event.getBuilds);
+                    assert.notCalled(builds[0].update);
+                    assert.notCalled(builds[1].update);
+                    assert.notCalled(builds[2].update);
+                    assert.notCalled(builds[3].update);
+                    assert.deepEqual(reply.result, error);
+                });
+            }
+        );
 
         it('returns 200 when it successfully stops all event builds with pipeline token', () => {
             options.credentials = {
@@ -956,7 +961,7 @@ describe('event plugin test', () => {
                 pipelineId
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -987,7 +992,7 @@ describe('event plugin test', () => {
                 pipelineId: pipelineId + 1
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(reply.result, error);
             });
@@ -1002,7 +1007,7 @@ describe('event plugin test', () => {
 
             eventFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -1011,7 +1016,7 @@ describe('event plugin test', () => {
         it('returns 500 when datastore fails', () => {
             eventFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1025,7 +1030,7 @@ describe('event plugin test', () => {
         let startTime = '2019-01-29T01:47:27.863Z';
         let endTime = '2019-01-30T01:47:27.863Z';
         const dateNow = 1552597858211;
-        const nowTime = (new Date(dateNow)).toISOString();
+        const nowTime = new Date(dateNow).toISOString();
         let sandbox;
 
         beforeEach(() => {
@@ -1051,21 +1056,20 @@ describe('event plugin test', () => {
         });
 
         it('returns 200 and metrics for event', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(eventMock.getMetrics, {
                     startTime,
                     endTime
                 });
-            })
-        );
+            }));
 
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';
             endTime = '2019-01-29T01:47:27.863Z';
             options.url = `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.notCalled(eventMock.getMetrics);
                 assert.equal(reply.statusCode, 400);
             });
@@ -1074,7 +1078,7 @@ describe('event plugin test', () => {
         it('defaults time range if missing', () => {
             options.url = `/events/${id}/metrics`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(eventMock.getMetrics, {
                     endTime: nowTime,
                     startTime: '2018-09-15T21:10:58.211Z' // 6 months
@@ -1092,7 +1096,7 @@ describe('event plugin test', () => {
 
             eventFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -1101,7 +1105,7 @@ describe('event plugin test', () => {
         it('returns 500 when datastore fails', () => {
             eventFactoryMock.get.rejects(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });

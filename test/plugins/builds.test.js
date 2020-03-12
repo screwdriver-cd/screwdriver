@@ -1,23 +1,23 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('hoek');
 const nock = require('nock');
+const rewire = require('rewire');
 const testBuild = require('./data/build.json');
 const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testSecrets = require('./data/secrets.json');
-const rewire = require('rewire');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
 
 /* eslint-disable no-underscore-dangle */
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateSecretObject = (secret) => {
+const decorateSecretObject = secret => {
     const decorated = hoek.clone(secret);
 
     decorated.toJson = sinon.stub().returns(hoek.clone(secret));
@@ -25,9 +25,9 @@ const decorateSecretObject = (secret) => {
     return decorated;
 };
 
-const decorateBuildObject = (build) => {
+const decorateBuildObject = build => {
     const decorated = hoek.clone(build);
-    const noStepBuild = Object.assign({}, build);
+    const noStepBuild = { ...build };
     const updatedBuild = {
         toJson: sinon.stub().returns(build),
         toJsonWithSteps: sinon.stub().resolves(build),
@@ -52,7 +52,7 @@ const decorateBuildObject = (build) => {
     return decorated;
 };
 
-const getBuildMock = (buildsWithSteps) => {
+const getBuildMock = buildsWithSteps => {
     if (Array.isArray(buildsWithSteps)) {
         return buildsWithSteps.map(decorateBuildObject);
     }
@@ -60,7 +60,7 @@ const getBuildMock = (buildsWithSteps) => {
     return decorateBuildObject(buildsWithSteps);
 };
 
-const getStepMock = (step) => {
+const getStepMock = step => {
     const mock = hoek.clone(step);
 
     mock.update = sinon.stub();
@@ -100,7 +100,7 @@ describe('build plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         buildFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -170,11 +170,12 @@ describe('build plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
         server.auth.strategy('session', 'custom');
@@ -211,24 +212,30 @@ describe('build plugin test', () => {
             name: 'auth'
         };
 
-        server.register([
-            secretMock, bannerMock, authMock,
-            {
-                register: plugin,
-                options: {
-                    ecosystem: {
-                        store: logBaseUrl
-                    },
-                    authConfig: {
-                        jwtPrivateKey: 'boo'
-                    },
-                    externalJoin: false
+        server.register(
+            [
+                secretMock,
+                bannerMock,
+                authMock,
+                {
+                    register: plugin,
+                    options: {
+                        ecosystem: {
+                            store: logBaseUrl
+                        },
+                        authConfig: {
+                            jwtPrivateKey: 'boo'
+                        },
+                        externalJoin: false
+                    }
+                },
+                {
+                    // eslint-disable-next-line global-require
+                    register: require('../../plugins/pipelines')
                 }
-            }, {
-                // eslint-disable-next-line global-require
-                register: require('../../plugins/pipelines')
-            }
-        ], done);
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -253,7 +260,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}`).then((reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(buildMock.update);
                 assert.deepEqual(reply.result, testBuild);
@@ -266,7 +273,7 @@ describe('build plugin test', () => {
             buildMock.environment = [];
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(`/builds/${id}`).then((reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.notCalled(buildMock.update);
                 assert.deepEqual(reply.result, testBuild);
@@ -276,7 +283,7 @@ describe('build plugin test', () => {
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(`/builds/${id}`).then((reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -284,7 +291,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject(`/builds/${id}`).then((reply) => {
+            return server.inject(`/builds/${id}`).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -338,11 +345,7 @@ describe('build plugin test', () => {
                 pipelineId,
                 configPipelineSha,
                 workflowGraph: {
-                    nodes: [
-                        { name: '~pr' },
-                        { name: '~commit' },
-                        { name: 'main' }
-                    ],
+                    nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'main' }],
                     edges: [
                         { src: '~pr', dest: 'main' },
                         { src: '~commit', dest: 'main' }
@@ -383,11 +386,13 @@ describe('build plugin test', () => {
                 id: 1234,
                 name: 'main',
                 pipelineId,
-                permutations: [{
-                    settings: {
-                        email: 'foo@bar.com'
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
                     }
-                }]
+                ]
             };
             const userMock = {
                 username: id,
@@ -416,7 +421,7 @@ describe('build plugin test', () => {
 
             server.emit = sinon.stub().resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(server.emit, 'build_status', {
                     build: buildMock.toJson(),
                     buildLink: 'http://foo.bar/pipelines/123/builds/12345',
@@ -446,7 +451,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -465,7 +470,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.rejects(new Error('error'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -476,11 +481,13 @@ describe('build plugin test', () => {
                     id: 1234,
                     name: 'main',
                     pipelineId,
-                    permutations: [{
-                        settings: {
-                            email: 'foo@bar.com'
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
                         }
-                    }]
+                    ]
                 };
                 const userMock = {
                     username: id,
@@ -507,7 +514,7 @@ describe('build plugin test', () => {
                 jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.equal(buildMock.statusMessage, 'Aborted by test-user');
@@ -528,7 +535,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
                     assert.calledWith(buildFactoryMock.get, id);
                 });
@@ -546,7 +553,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 400);
                     assert.calledWith(buildFactoryMock.get, id);
                 });
@@ -557,11 +564,13 @@ describe('build plugin test', () => {
                     id: 1234,
                     name: 'main',
                     pipelineId,
-                    permutations: [{
-                        settings: {
-                            email: 'foo@bar.com'
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
                         }
-                    }]
+                    ]
                 };
                 const userMock = {
                     username: id,
@@ -589,7 +598,7 @@ describe('build plugin test', () => {
                 jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.equal(buildMock.statusMessage, 'some failure message');
@@ -610,7 +619,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 400);
                     assert.calledWith(buildFactoryMock.get, id);
                 });
@@ -629,9 +638,11 @@ describe('build plugin test', () => {
                     id: jobId,
                     name: 'main',
                     pipelineId,
-                    permutations: [{
-                        settings: {}
-                    }]
+                    permutations: [
+                        {
+                            settings: {}
+                        }
+                    ]
                 };
 
                 userMock = {
@@ -662,13 +673,12 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
-                    assert.match(buildMock.stats.blockedStartTime,
-                        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+                    assert.match(buildMock.stats.blockedStartTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
                     assert.isUndefined(buildMock.meta);
                     assert.isUndefined(buildMock.endTime);
                 });
@@ -692,13 +702,12 @@ describe('build plugin test', () => {
                     blockedStartTime: '2017-01-06T01:49:50.384359267Z'
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
-                    assert.strictEqual(buildMock.stats.blockedStartTime,
-                        '2017-01-06T01:49:50.384359267Z');
+                    assert.strictEqual(buildMock.stats.blockedStartTime, '2017-01-06T01:49:50.384359267Z');
                     assert.isUndefined(buildMock.meta);
                     assert.isUndefined(buildMock.endTime);
                 });
@@ -718,7 +727,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
@@ -742,7 +751,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
@@ -752,7 +761,8 @@ describe('build plugin test', () => {
                 });
             });
 
-            it('updates stats only', () => { // for coverage
+            it('updates stats only', () => {
+                // for coverage
                 buildMock.stats = {
                     queueEnterTime: '2017-01-06T01:49:50.384359267Z'
                 };
@@ -770,7 +780,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.deepEqual(buildMock.stats, {
@@ -803,7 +813,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.statusMessage, statusMessage);
@@ -846,7 +856,7 @@ describe('build plugin test', () => {
                     oldmeta: 'oldmetastuff'
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
@@ -880,7 +890,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
@@ -914,12 +924,14 @@ describe('build plugin test', () => {
                 });
 
                 initStepMock.update.resolves(null);
-                stepFactoryMock.get.withArgs({
-                    buildId: id,
-                    name: initStepName
-                }).resolves(initStepMock);
+                stepFactoryMock.get
+                    .withArgs({
+                        buildId: id,
+                        name: initStepName
+                    })
+                    .resolves(initStepMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(initStepMock.update);
@@ -955,12 +967,14 @@ describe('build plugin test', () => {
                 });
 
                 initStepMock.update.resolves(null);
-                stepFactoryMock.get.withArgs({
-                    buildId: id,
-                    name: initStepName
-                }).resolves(initStepMock);
+                stepFactoryMock.get
+                    .withArgs({
+                        buildId: id,
+                        name: initStepName
+                    })
+                    .resolves(initStepMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(initStepMock.update);
@@ -993,12 +1007,14 @@ describe('build plugin test', () => {
                 });
 
                 initStepMock.update.resolves(null);
-                stepFactoryMock.get.withArgs({
-                    buildId: id,
-                    name: initStepName
-                }).resolves(initStepMock);
+                stepFactoryMock.get
+                    .withArgs({
+                        buildId: id,
+                        name: initStepName
+                    })
+                    .resolves(initStepMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(initStepMock.update);
@@ -1021,7 +1037,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 400);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.notCalled(buildMock.update);
@@ -1042,7 +1058,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
                     assert.notCalled(buildFactoryMock.get);
                     assert.notCalled(buildMock.update);
@@ -1079,12 +1095,14 @@ describe('build plugin test', () => {
                     name: initStepName
                 });
 
-                stepFactoryMock.get.withArgs({
-                    buildId: id,
-                    name: initStepName
-                }).resolves(null);
+                stepFactoryMock.get
+                    .withArgs({
+                        buildId: id,
+                        name: initStepName
+                    })
+                    .resolves(null);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.strictEqual(buildMock.status, 'RUNNING');
                     assert.isNull(buildMock.statusMessage);
@@ -1118,7 +1136,7 @@ describe('build plugin test', () => {
                     }
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.strictEqual(buildMock.status, 'UNSTABLE');
                     assert.strictEqual(buildMock.statusMessage, 'hello');
@@ -1136,13 +1154,8 @@ describe('build plugin test', () => {
 
                 beforeEach(() => {
                     eventMock.workflowGraph = {
-                        nodes: [
-                            { name: 'main' },
-                            { name: 'publish' }
-                        ],
-                        edges: [
-                            { src: 'main', dest: 'publish' }
-                        ]
+                        nodes: [{ name: 'main' }, { name: 'publish' }],
+                        edges: [{ src: 'main', dest: 'publish' }]
                     };
                     buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
                 });
@@ -1164,70 +1177,72 @@ describe('build plugin test', () => {
                         host: 'localhost'
                     });
                     newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, reply) => reply.continue({
-                            credentials: {
-                                scope: ['user']
-                            }
-                        })
+                        authenticate: (request, reply) =>
+                            reply.continue({
+                                credentials: {
+                                    scope: ['user']
+                                }
+                            })
                     }));
                     newServer.auth.strategy('token', 'custom');
                     newServer.auth.strategy('session', 'custom');
                     newServer.event('build_status');
 
-                    return newServer.register({
-                        register: plugin,
-                        options: {
-                            ecosystem: {
-                                store: logBaseUrl
-                            },
-                            authConfig: {
-                                jwtPrivateKey: 'boo'
-                            },
-                            externalJoin: true
-                        }
-                    }).then(() => {
-                        const username = id;
-                        const status = 'SUCCESS';
-                        const options = {
-                            method: 'PUT',
-                            url: `/builds/${id}`,
-                            credentials: {
-                                username,
-                                scmContext,
-                                scope: ['build']
-                            },
-                            payload: {
-                                status
+                    return newServer
+                        .register({
+                            register: plugin,
+                            options: {
+                                ecosystem: {
+                                    store: logBaseUrl
+                                },
+                                authConfig: {
+                                    jwtPrivateKey: 'boo'
+                                },
+                                externalJoin: true
                             }
-                        };
-
-                        jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
-                            .resolves(publishJobMock);
-
-                        return newServer.inject(options).then((reply) => {
-                            assert.equal(reply.statusCode, 200);
-                            assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
-                            assert.calledWith(buildFactoryMock.create, {
-                                jobId: publishJobId,
-                                sha: testBuild.sha,
-                                parentBuildId: id,
-                                username,
-                                scmContext,
-                                eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
-                                configPipelineSha,
-                                prRef: '',
-                                start: true,
-                                baseBranch: null,
-                                parentBuilds: {
-                                    123: {
-                                        eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
-                                        jobs: { main: 12345 }
-                                    }
+                        })
+                        .then(() => {
+                            const username = id;
+                            const status = 'SUCCESS';
+                            const options = {
+                                method: 'PUT',
+                                url: `/builds/${id}`,
+                                credentials: {
+                                    username,
+                                    scmContext,
+                                    scope: ['build']
+                                },
+                                payload: {
+                                    status
                                 }
+                            };
+
+                            jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(publishJobMock);
+
+                            return newServer.inject(options).then(reply => {
+                                assert.equal(reply.statusCode, 200);
+                                assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
+                                assert.calledWith(buildFactoryMock.create, {
+                                    jobId: publishJobId,
+                                    sha: testBuild.sha,
+                                    parentBuildId: id,
+                                    username,
+                                    scmContext,
+                                    eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                                    configPipelineSha,
+                                    prRef: '',
+                                    start: true,
+                                    baseBranch: null,
+                                    parentBuilds: {
+                                        123: {
+                                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                                            jobs: { main: 12345 }
+                                        }
+                                    }
+                                });
+                                assert.notCalled(triggerFactoryMock.list);
                             });
-                            assert.notCalled(triggerFactoryMock.list);
                         });
-                    });
                 });
 
                 it('triggers next job in the pipeline workflow and external pipelines', () => {
@@ -1250,10 +1265,9 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
-                        .resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(publishJobMock);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.deepEqual(buildMock.meta, meta);
                         assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
@@ -1323,18 +1337,16 @@ describe('build plugin test', () => {
                     };
 
                     jobMock.name = 'PR-15:main';
-                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
-                        .resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
 
                     // flag should be true in chainPR events
                     pipelineMock.chainPR = true;
 
                     // Set no external pipeline
-                    triggerMocks = [
-                    ];
+                    triggerMocks = [];
                     triggerFactoryMock.list.resolves(triggerMocks);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
                         assert.calledWith(buildFactoryMock.create, {
@@ -1371,16 +1383,11 @@ describe('build plugin test', () => {
                     };
 
                     eventMock.workflowGraph = {
-                        nodes: [
-                            { name: '~commit' },
-                            { name: 'main' }
-                        ],
-                        edges: [
-                            { src: '~commit', dest: 'main' }
-                        ]
+                        nodes: [{ name: '~commit' }, { name: 'main' }],
+                        edges: [{ src: '~commit', dest: 'main' }]
                     };
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                     });
@@ -1401,13 +1408,12 @@ describe('build plugin test', () => {
                     };
 
                     jobMock.name = 'PR-15:main';
-                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' })
-                        .resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
 
                     // flag should be false in not-chainPR events
                     pipelineMock.chainPR = false;
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                     });
@@ -1434,10 +1440,9 @@ describe('build plugin test', () => {
 
                     publishJobMock.state = 'DISABLED';
 
-                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' })
-                        .resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(publishJobMock);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                     });
@@ -1462,7 +1467,7 @@ describe('build plugin test', () => {
                     pipelineId,
                     state: 'ENABLED'
                 };
-                const jobC = Object.assign({}, jobB, { id: 3 });
+                const jobC = { ...jobB, id: 3 };
                 let jobBconfig;
                 let jobCconfig;
                 let parentEventMock;
@@ -1519,7 +1524,7 @@ describe('build plugin test', () => {
                         prRef: '',
                         baseBranch: 'master'
                     };
-                    jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
+                    jobCconfig = { ...jobBconfig, jobId: 3 };
                 });
 
                 it('triggers if not a join', () => {
@@ -1568,19 +1573,24 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        }
+                    ]);
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -1607,19 +1617,24 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        }
+                    ]);
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
@@ -1669,13 +1684,16 @@ describe('build plugin test', () => {
                         remove: sinon.stub().resolves(null)
                     };
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'FAILURE'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, buildC
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        buildC
                     ]);
 
                     return server.inject(options).then(() => {
@@ -1704,11 +1722,13 @@ describe('build plugin test', () => {
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
                     parentEventMock.parentEventId = 789;
                     parentEventMock.startFrom = 'a';
-                    eventMock.getBuilds.resolves([{
-                        id: 5,
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 5,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        }
+                    ]);
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 6,
@@ -1831,10 +1851,12 @@ describe('build plugin test', () => {
                     ];
 
                     // job B is not done
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        }
+                    ]);
 
                     return server.inject(options).then(() => {
                         jobCconfig.start = false;
@@ -1843,7 +1865,7 @@ describe('build plugin test', () => {
                 });
 
                 it('update parent build IDs', () => {
-                    const updatedBuildC = Object.assign({}, buildMock);
+                    const updatedBuildC = { ...buildMock };
 
                     updatedBuildC.start = sinon.stub().resolves();
                     updatedBuildC.update = sinon.stub().resolves(updatedBuildC);
@@ -1862,15 +1884,19 @@ describe('build plugin test', () => {
                         { src: 'b', dest: 'c', join: true }
                     ];
 
-                    eventMock.getBuilds.resolves([{
-                        id: 111,
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        id: 222,
-                        jobId: 2,
-                        status: 'SUCCESS'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 111,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 222,
+                            jobId: 2,
+                            status: 'SUCCESS'
+                        },
+                        buildC
+                    ]);
 
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
@@ -1892,13 +1918,16 @@ describe('build plugin test', () => {
                     ];
 
                     // job B failed
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 2,
-                        status: 'FAILURE'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 2,
+                            status: 'FAILURE'
+                        }
+                    ]);
 
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
@@ -1925,36 +1954,42 @@ describe('build plugin test', () => {
                     pipelineId,
                     state: 'ENABLED'
                 };
-                const jobC = Object.assign({}, jobB, { id: 3 });
+                const jobC = { ...jobB, id: 3 };
                 const jobD = {
                     id: 3,
-                    getLatestBuild: sinon.stub().resolves(getBuildMock({
-                        id: 12345,
-                        status: 'CREATED',
-                        parentBuilds: {
-                            2: { eventId: 2, jobs: { a: 555 } },
-                            3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
-                        }
-                    }))
+                    getLatestBuild: sinon.stub().resolves(
+                        getBuildMock({
+                            id: 12345,
+                            status: 'CREATED',
+                            parentBuilds: {
+                                2: { eventId: 2, jobs: { a: 555 } },
+                                3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
+                            }
+                        })
+                    )
                 };
-                const externalEventBuilds = [{
-                    id: 555,
-                    jobId: 4,
-                    status: 'SUCCESS'
-                }, {
-                    id: 777,
-                    jobId: 7,
-                    status: 'ABORTED'
-                }, {
-                    id: 888,
-                    jobId: 1,
-                    status: 'ABORTED'
-                }];
+                const externalEventBuilds = [
+                    {
+                        id: 555,
+                        jobId: 4,
+                        status: 'SUCCESS'
+                    },
+                    {
+                        id: 777,
+                        jobId: 7,
+                        status: 'ABORTED'
+                    },
+                    {
+                        id: 888,
+                        jobId: 1,
+                        status: 'ABORTED'
+                    }
+                ];
                 let jobBconfig;
                 let jobCconfig;
                 let parentEventMock;
 
-                beforeEach((done) => {
+                beforeEach(done => {
                     parentEventMock = {
                         id: 456,
                         pipelineId,
@@ -1986,11 +2021,15 @@ describe('build plugin test', () => {
                     };
                     eventMock.baseBranch = 'master';
 
-                    pipelineFactoryMock.get.withArgs(123).resolves(Object.assign(pipelineMock, {
-                        getJobs: sinon.stub().resolves([{
-                            id: 3
-                        }])
-                    }));
+                    pipelineFactoryMock.get.withArgs(123).resolves(
+                        Object.assign(pipelineMock, {
+                            getJobs: sinon.stub().resolves([
+                                {
+                                    id: 3
+                                }
+                            ])
+                        })
+                    );
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs(3).resolves(jobD);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
@@ -2012,7 +2051,7 @@ describe('build plugin test', () => {
                         baseBranch: 'master',
                         parentBuilds: { 123: { jobs: { a: 12345 }, eventId: '8888' } }
                     };
-                    jobCconfig = Object.assign({}, jobBconfig, { jobId: 3 });
+                    jobCconfig = { ...jobBconfig, jobId: 3 };
 
                     newServer = new hapi.Server();
 
@@ -2030,28 +2069,32 @@ describe('build plugin test', () => {
                         host: 'localhost'
                     });
                     newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, reply) => reply.continue({
-                            credentials: {
-                                scope: ['user']
-                            }
-                        })
+                        authenticate: (request, reply) =>
+                            reply.continue({
+                                credentials: {
+                                    scope: ['user']
+                                }
+                            })
                     }));
                     newServer.auth.strategy('token', 'custom');
                     newServer.auth.strategy('session', 'custom');
                     newServer.event('build_status');
 
-                    newServer.register({
-                        register: plugin,
-                        options: {
-                            ecosystem: {
-                                store: logBaseUrl
-                            },
-                            authConfig: {
-                                jwtPrivateKey: 'boo'
-                            },
-                            externalJoin: true
-                        }
-                    }, done);
+                    newServer.register(
+                        {
+                            register: plugin,
+                            options: {
+                                ecosystem: {
+                                    store: logBaseUrl
+                                },
+                                authConfig: {
+                                    jwtPrivateKey: 'boo'
+                                },
+                                externalJoin: true
+                            }
+                        },
+                        done
+                    );
                 });
 
                 afterEach(() => {
@@ -2167,7 +2210,8 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: null, d: 5555 }
+                                eventId: '8888',
+                                jobs: { a: null, d: 5555 }
                             }
                         }
                     };
@@ -2179,27 +2223,35 @@ describe('build plugin test', () => {
                     });
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345 }
+                            eventId: '8888',
+                            jobs: { a: 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: null }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
                         }
                     };
 
@@ -2227,7 +2279,8 @@ describe('build plugin test', () => {
                             { src: '~commit', dest: 'a' },
                             { src: 'a', dest: '~sd@2:c' },
                             { src: '~sd@2:a', dest: 'a' }
-                        ] };
+                        ]
+                    };
                     buildMock.parentBuilds = {
                         2: { eventId: '8887', jobs: { a: 12345 } }
                     };
@@ -2236,20 +2289,24 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         parentBuilds: {
                             2: {
-                                eventId: '8887', jobs: { a: 888 }
+                                eventId: '8887',
+                                jobs: { a: 888 }
                             },
                             123: {
-                                eventId: null, jobs: { a: null }
+                                eventId: null,
+                                jobs: { a: null }
                             }
                         }
                     };
                     const updatedBuildC = Object.assign(buildC, {
                         parentBuilds: {
                             2: {
-                                eventId: '8887', jobs: { a: 888 }
+                                eventId: '8887',
+                                jobs: { a: 888 }
                             },
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -2259,56 +2316,71 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
-                        builds: [{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }, buildC],
-                        getBuilds: sinon.stub().resolves([{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }, buildC]),
-                        workflowGraph: { nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'sd@123:a', id: 4 }
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            },
+                            buildC
                         ],
-                        edges: [
-                            { src: '~pr', dest: 'a' },
-                            { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'sd@123:a' },
-                            { src: 'a', dest: 'c', join: true },
-                            { src: 'sd@123:a', dest: 'c', join: true }
-                        ] } };
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            },
+                            buildC
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
 
-                    externalEventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC]);
+                    externalEventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345 }
+                            eventId: '8888',
+                            jobs: { a: 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: null }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
                         }
                     };
 
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
@@ -2323,19 +2395,21 @@ describe('build plugin test', () => {
                     // For a pipeline like this:
                     //  ~sd@2:a -> a -> sd@2:c
                     // If user is at `a`, it should trigger `sd@2:c`
-                    eventMock.workflowGraph = { nodes: [
-                        { name: '~pr' },
-                        { name: '~commit' },
-                        { name: 'a', id: 1 },
-                        { name: '~sd@2:a', id: 4 },
-                        { name: 'sd@2:c', id: 6 }
-                    ],
-                    edges: [
-                        { src: '~pr', dest: 'a' },
-                        { src: '~commit', dest: 'a' },
-                        { src: '~sd@2:a', dest: 'a' },
-                        { src: 'a', dest: 'sd@2:c' }
-                    ] };
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: '~sd@2:a', id: 4 },
+                            { name: 'sd@2:c', id: 6 }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: '~sd@2:a', dest: 'a' },
+                            { src: 'a', dest: 'sd@2:c' }
+                        ]
+                    };
                     buildMock.parentBuilds = {
                         2: { eventId: '8887', jobs: { a: 12345 } }
                     };
@@ -2374,16 +2448,20 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
-                        builds: [{
-                            id: 888,
-                            jobId: 4,
-                            status: 'SUCCESS'
-                        }],
-                        getBuilds: sinon.stub().resolves([{
-                            id: 888,
-                            jobId: 4,
-                            status: 'SUCCESS'
-                        }]),
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 4,
+                                status: 'SUCCESS'
+                            }
+                        ],
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 4,
+                                status: 'SUCCESS'
+                            }
+                        ]),
                         workflowGraph: {
                             nodes: [
                                 { name: '~pr' },
@@ -2397,15 +2475,18 @@ describe('build plugin test', () => {
                                 { src: '~commit', dest: 'a' },
                                 { src: 'a', dest: '~sd@123:c' },
                                 { src: '~sd@123:c', dest: 'c' }
-                            ] } };
+                            ]
+                        }
+                    };
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 3,
-                        status: 'SUCCESS'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 3,
+                            status: 'SUCCESS'
+                        }
+                    ]);
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
                     buildFactoryMock.create.onCall(0).resolves(buildC);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -2425,21 +2506,23 @@ describe('build plugin test', () => {
                     //    a
                     //      -> sd@2:b, sd@2:a
                     // If user is at `a`, it should trigger both `sd@2:a` and `sd@2:b` in one event
-                    eventMock.workflowGraph = { nodes: [
-                        { name: '~pr' },
-                        { name: '~commit' },
-                        { name: 'a', id: 1 },
-                        { name: 'b', id: 2 },
-                        { name: 'sd@2:a', id: 4 },
-                        { name: 'sd@2:c', id: 6 }
-                    ],
-                    edges: [
-                        { src: '~pr', dest: 'a' },
-                        { src: '~commit', dest: 'a' },
-                        { src: 'a', dest: 'sd@2:a' },
-                        { src: 'a', dest: 'sd@2:c' },
-                        { src: 'a', dest: 'b' }
-                    ] };
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: 'b', id: 2 },
+                            { name: 'sd@2:a', id: 4 },
+                            { name: 'sd@2:c', id: 6 }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: 'a', dest: 'sd@2:a' },
+                            { src: 'a', dest: 'sd@2:c' },
+                            { src: 'a', dest: 'b' }
+                        ]
+                    };
                     const parentBuilds = {
                         123: { eventId: '8888', jobs: { a: 12345 } }
                     };
@@ -2473,7 +2556,9 @@ describe('build plugin test', () => {
                                 { src: '~commit', dest: 'a' },
                                 { src: '~sd@123:a', dest: 'a' },
                                 { src: '~sd@123:a', dest: 'c' }
-                            ] } };
+                            ]
+                        }
+                    };
                     const eventConfig = {
                         causeMessage: 'Triggered by sd@123:a',
                         parentBuildId: 12345,
@@ -2488,8 +2573,7 @@ describe('build plugin test', () => {
                     };
 
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
@@ -2517,7 +2601,8 @@ describe('build plugin test', () => {
                             { src: '~commit', dest: 'a' },
                             { src: 'a', dest: '~sd@2:c' },
                             { src: '~sd@2:a', dest: 'a' }
-                        ] };
+                        ]
+                    };
                     buildMock.parentBuilds = {
                         2: { eventId: '8887', jobs: { a: 12345 } }
                     };
@@ -2526,7 +2611,8 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -2534,7 +2620,8 @@ describe('build plugin test', () => {
                     const updatedBuildC = Object.assign(buildC, {
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -2544,59 +2631,73 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
-                        builds: [{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }],
-                        getBuilds: sinon.stub().resolves([{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }]),
-                        workflowGraph: { nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'sd@123:a', id: 4 }
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
                         ],
-                        edges: [
-                            { src: '~pr', dest: 'a' },
-                            { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'sd@123:a' },
-                            { src: 'a', dest: 'c', join: true },
-                            { src: 'sd@123:a', dest: 'c', join: true }
-                        ] } };
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345 }
+                            eventId: '8888',
+                            jobs: { a: 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: null }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
                         }
                     };
 
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
                     buildFactoryMock.create.onCall(0).resolves(buildC);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -2623,7 +2724,8 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { 'PR-15:a': null, 'PR-15:d': 5555 }
+                                eventId: '8888',
+                                jobs: { 'PR-15:a': null, 'PR-15:d': 5555 }
                             }
                         }
                     };
@@ -2637,19 +2739,25 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ]);
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
@@ -2661,12 +2769,14 @@ describe('build plugin test', () => {
                     jobCconfig.prRef = 'pull/15/merge';
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { 'PR-15:a': 12345 }
+                            eventId: '8888',
+                            jobs: { 'PR-15:a': 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { 'PR-15:a': 12345, 'PR-15:d': null }
+                            eventId: '8888',
+                            jobs: { 'PR-15:a': 12345, 'PR-15:d': null }
                         }
                     };
 
@@ -2697,13 +2807,16 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'FAILURE'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, buildC
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        buildC
                     ]);
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'FAILURE' });
@@ -2724,7 +2837,8 @@ describe('build plugin test', () => {
                     // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
                     const parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: 4 }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: 4 }
                         }
                     };
                     const buildC = {
@@ -2732,7 +2846,8 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -2744,59 +2859,73 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
-                        builds: [{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }],
-                        getBuilds: sinon.stub().resolves([{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }]),
-                        workflowGraph: { nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'sd@123:a', id: 4 }
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
                         ],
-                        edges: [
-                            { src: '~pr', dest: 'a' },
-                            { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'sd@123:a' },
-                            { src: 'a', dest: 'c', join: true },
-                            { src: 'sd@123:a', dest: 'c', join: true }
-                        ] } };
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345 }
+                            eventId: '8888',
+                            jobs: { a: 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: null }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
                         }
                     };
 
                     eventFactoryMock.get.withArgs('456').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '455' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455' })]);
 
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
@@ -2808,11 +2937,13 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-                    eventMock.getBuilds.resolves([{
-                        id: 5,
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 5,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        }
+                    ]);
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 1,
@@ -2853,7 +2984,8 @@ describe('build plugin test', () => {
                         status: 'SUCCESS',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -2863,14 +2995,16 @@ describe('build plugin test', () => {
                         status: 'SUCCESS',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
                     };
                     const parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: 4 }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: 4 }
                         }
                     };
                     const updatedBuildC = Object.assign(buildC, {
@@ -2880,63 +3014,78 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
-                        builds: [{
-                            id: 888,
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
+                        ],
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            },
+                            {
+                                id: 889,
+                                jobId: 4,
+                                status: 'SUCCESS'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
+
+                    eventMock.getBuilds.resolves([
+                        {
                             jobId: 1,
                             status: 'SUCCESS'
-                        }],
-                        getBuilds: sinon.stub().resolves([{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }, {
-                            id: 889,
+                        },
+                        {
                             jobId: 4,
                             status: 'SUCCESS'
-                        }]),
-                        workflowGraph: { nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'sd@123:a', id: 4 }
-                        ],
-                        edges: [
-                            { src: '~pr', dest: 'a' },
-                            { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'sd@123:a' },
-                            { src: 'a', dest: 'c', join: true },
-                            { src: 'sd@123:a', dest: 'c', join: true }
-                        ] } };
-
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildD]);
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildD
+                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345 }
+                            eventId: '8888',
+                            jobs: { a: 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: 4 }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: 4 }
                         }
                     };
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     eventFactoryMock.get.withArgs('456').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '455' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455' })]);
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
                     eventMock.workflowGraph.edges = [
@@ -2947,11 +3096,13 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-                    eventMock.getBuilds.resolves([{
-                        id: 5,
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 5,
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        }
+                    ]);
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 1,
@@ -3001,7 +3152,8 @@ describe('build plugin test', () => {
                             { src: '~commit', dest: 'a' },
                             { src: 'a', dest: '~sd@2:c' },
                             { src: '~sd@2:a', dest: 'a' }
-                        ] };
+                        ]
+                    };
                     buildMock.parentBuilds = {
                         2: { eventId: '8887', jobs: { a: 12345 } }
                     };
@@ -3010,10 +3162,12 @@ describe('build plugin test', () => {
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             },
                             2: {
-                                eventId: '8889', jobs: { a: 12345 }
+                                eventId: '8889',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -3021,10 +3175,12 @@ describe('build plugin test', () => {
                     const updatedBuildC = Object.assign(buildC, {
                         parentBuilds: {
                             123: {
-                                eventId: '8888', jobs: { a: 12345 }
+                                eventId: '8888',
+                                jobs: { a: 12345 }
                             },
                             2: {
-                                eventId: '8889', jobs: { a: 12345 }
+                                eventId: '8889',
+                                jobs: { a: 12345 }
                             }
                         },
                         start: sinon.stub().resolves()
@@ -3049,82 +3205,104 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
-                        builds: [{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }],
-                        getBuilds: sinon.stub().resolves([{
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        }, {
-                            id: 999,
-                            parentBuilds: {
-                                123: {
-                                    eventId: '8888', jobs: { a: 12345, c: 45678 }
-                                }
-                            },
-                            jobId: 3,
-                            status: 'FAILED'
-                        }]),
-                        workflowGraph: { nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'sd@123:a', id: 4 }
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
                         ],
-                        edges: [
-                            { src: '~pr', dest: 'a' },
-                            { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'sd@123:a' },
-                            { src: 'a', dest: 'c', join: true },
-                            { src: 'sd@123:a', dest: 'c', join: true }
-                        ] } };
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            },
+                            {
+                                id: 999,
+                                parentBuilds: {
+                                    123: {
+                                        eventId: '8888',
+                                        jobs: { a: 12345, c: 45678 }
+                                    }
+                                },
+                                jobId: 3,
+                                status: 'FAILED'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
 
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC]);
-                    eventMock.builds = [{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 4,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 5,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 6,
-                        status: 'ABORTED'
-                    }, buildC];
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ]);
+                    eventMock.builds = [
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 6,
+                            status: 'ABORTED'
+                        },
+                        buildC
+                    ];
                     jobBconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345 }
+                            eventId: '8888',
+                            jobs: { a: 12345 }
                         }
                     };
                     jobCconfig.parentBuilds = {
                         123: {
-                            eventId: '8888', jobs: { a: 12345, d: null }
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
                         }
                     };
 
                     eventFactoryMock.create.resolves(eventMock);
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([
-                        Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
                     buildFactoryMock.create.onCall(0).resolves(buildC);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -3220,13 +3398,17 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
                     // job B is not done
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 2,
-                        status: 'RUNNING'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 2,
+                            status: 'RUNNING'
+                        },
+                        buildC
+                    ]);
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'RUNNING' });
 
@@ -3258,13 +3440,17 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
                     // job B failed
-                    eventMock.getBuilds.resolves([{
-                        jobId: 1,
-                        status: 'SUCCESS'
-                    }, {
-                        jobId: 2,
-                        status: 'FAILURE'
-                    }, buildC]);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 2,
+                            status: 'FAILURE'
+                        },
+                        buildC
+                    ]);
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'FAILURE' }); // d is done
 
@@ -3392,7 +3578,7 @@ describe('build plugin test', () => {
                 prNum: 15
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -3425,7 +3611,7 @@ describe('build plugin test', () => {
             eventConfig.startFrom = jobMock.name;
             params.meta = meta;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -3469,7 +3655,7 @@ describe('build plugin test', () => {
             eventConfig.type = 'pipeline';
             eventConfig.startFrom = jobMock.name;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -3502,7 +3688,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.create.withArgs(params).rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -3511,7 +3697,7 @@ describe('build plugin test', () => {
             userMock.getPermissions.resolves({ push: false });
             options.credentials.username = 'bar';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(pipelineMock.admins, { foo: true });
             });
@@ -3530,7 +3716,7 @@ describe('build plugin test', () => {
             jobMock.prNum = null;
             eventConfig.type = 'pipeline';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
             });
         });
@@ -3558,7 +3744,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.isArray(reply.result);
                 assert.equal(reply.result.length, 2);
@@ -3573,7 +3759,7 @@ describe('build plugin test', () => {
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             secretAccessMock.resolves(true);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.isArray(reply.result);
                 assert.equal(reply.result.length, 2);
@@ -3588,7 +3774,7 @@ describe('build plugin test', () => {
             buildMock.secrets = Promise.resolve([]);
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.isArray(reply.result);
                 assert.equal(reply.result.length, 0);
@@ -3598,7 +3784,7 @@ describe('build plugin test', () => {
         it('returns 404 when build does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -3628,16 +3814,15 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 for a step that exists', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testStep);
-            })
-        );
+            }));
 
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -3645,7 +3830,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore returns an error', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).rejects(new Error('blah'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -3664,15 +3849,17 @@ describe('build plugin test', () => {
         const stepsMock = testBuildWithSteps.steps.map(step => getStepMock(step));
 
         beforeEach(() => {
-            stepFactoryMock.list.withArgs({
-                params: { buildId: id },
-                sortBy: 'id',
-                sort: 'ascending'
-            }).resolves(stepsMock);
+            stepFactoryMock.list
+                .withArgs({
+                    params: { buildId: id },
+                    sortBy: 'id',
+                    sort: 'ascending'
+                })
+                .resolves(stepsMock);
         });
 
         it('returns 200 when there is an active step', () => {
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, [testBuildWithSteps.steps[2]]);
             });
@@ -3681,7 +3868,7 @@ describe('build plugin test', () => {
         it('returns 200 with all steps when no status is present', () => {
             options.url = `/builds/${id}/steps`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, [].concat(testBuildWithSteps.steps));
             });
@@ -3691,7 +3878,7 @@ describe('build plugin test', () => {
             options.url = `/builds/${id}/steps?status=active`;
             stepsMock[2].endTime = new Date().toISOString();
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, []);
             });
@@ -3700,32 +3887,36 @@ describe('build plugin test', () => {
         it('returns 200 and list of completed steps for status success', () => {
             options.url = `/builds/${id}/steps?status=success`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, [testBuildWithSteps.steps[0]]);
             });
         });
 
         it('returns 404 when build id does not exist', () => {
-            stepFactoryMock.list.withArgs({
-                params: { buildId: id },
-                sortBy: 'id',
-                sort: 'ascending'
-            }).resolves([]);
+            stepFactoryMock.list
+                .withArgs({
+                    params: { buildId: id },
+                    sortBy: 'id',
+                    sort: 'ascending'
+                })
+                .resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 500 when datastore returns an error', () => {
-            stepFactoryMock.list.withArgs({
-                params: { buildId: id },
-                sortBy: 'id',
-                sort: 'ascending'
-            }).rejects(new Error('blah'));
+            stepFactoryMock.list
+                .withArgs({
+                    params: { buildId: id },
+                    sortBy: 'id',
+                    sort: 'ascending'
+                })
+                .rejects(new Error('blah'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -3733,7 +3924,7 @@ describe('build plugin test', () => {
         it('returns 200 and failed steps when status is failure', () => {
             options.url = `/builds/${id}/steps?status=failure`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, [testBuildWithSteps.steps[1]]);
             });
@@ -3744,7 +3935,7 @@ describe('build plugin test', () => {
             options.credentials.scope = ['temporal'];
             options.credentials.username = '999';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -3784,20 +3975,19 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating the code/endTime when the step model exists', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
                 assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
-            })
-        );
+            }));
 
         it('returns 200 when updating the code without endTime when the step model exists', () => {
             delete options.payload.startTime;
             delete options.payload.endTime;
             delete testStep.startTime;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
@@ -3811,7 +4001,7 @@ describe('build plugin test', () => {
             delete testStep.code;
             delete testStep.endTime;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.notDeepProperty(reply.result, 'code');
@@ -3827,7 +4017,7 @@ describe('build plugin test', () => {
             delete testStep.code;
             delete testStep.endTime;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.notDeepProperty(reply.result, 'code');
@@ -3843,7 +4033,7 @@ describe('build plugin test', () => {
             options.payload.lines = 100;
             testStep.lines = 100;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'lines', options.payload.lines);
             });
@@ -3852,7 +4042,7 @@ describe('build plugin test', () => {
         it('returns 403 for a the wrong build permission', () => {
             options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -3860,7 +4050,7 @@ describe('build plugin test', () => {
         it('returns 200 when updating with temporal token of same build', () => {
             options.credentials.scope = ['temporal'];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepProperty(reply.result, 'name', 'test');
                 assert.deepProperty(reply.result, 'code', 0);
@@ -3872,7 +4062,7 @@ describe('build plugin test', () => {
             options.credentials.scope = ['temporal'];
             options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -3881,7 +4071,7 @@ describe('build plugin test', () => {
             options.url = `/builds/${id}/steps/fail`;
             stepFactoryMock.get.withArgs({ buildId: id, name: 'fail' }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -3889,7 +4079,7 @@ describe('build plugin test', () => {
         it('returns 500 when build update returns an error', () => {
             stepMock.update.rejects(new Error('blah'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -3941,16 +4131,18 @@ describe('build plugin test', () => {
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, logs);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, logs);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns logs for a step that is split across pages', () => {
@@ -3962,16 +4154,18 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 102);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 102);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns logs for a step that is split across pages in descending order', () => {
@@ -3983,16 +4177,18 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 1002);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 1002);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns logs for a step that is split across pages with 1000 lines per file', () => {
@@ -4004,16 +4200,18 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 1002);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 1002);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns logs for a step that is split across max pages', () => {
@@ -4021,11 +4219,13 @@ describe('build plugin test', () => {
                 const lines = [];
 
                 for (let j = 0; j < 100; j += 1) {
-                    lines.push(JSON.stringify({
-                        t: Date.now(),
-                        m: 'Random message here',
-                        n: (100 * i) + j
-                    }));
+                    lines.push(
+                        JSON.stringify({
+                            t: Date.now(),
+                            m: 'Random message here',
+                            n: 100 * i + j
+                        })
+                    );
                 }
 
                 if (i === 0) {
@@ -4040,16 +4240,18 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 1000);
-                assert.propertyVal(reply.headers, 'x-more-data', 'true');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 1000);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
+                });
         });
 
         it('returns logs for a step that is split across extended max pages', () => {
@@ -4059,11 +4261,13 @@ describe('build plugin test', () => {
                 const lines = [];
 
                 for (let j = 0; j < 100; j += 1) {
-                    lines.push(JSON.stringify({
-                        t: Date.now(),
-                        m: 'Random message here',
-                        n: (100 * i) + j
-                    }));
+                    lines.push(
+                        JSON.stringify({
+                            t: Date.now(),
+                            m: 'Random message here',
+                            n: 100 * i + j
+                        })
+                    );
                 }
 
                 if (i === 0) {
@@ -4078,16 +4282,18 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 10000);
-                assert.propertyVal(reply.headers, 'x-more-data', 'true');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 10000);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
+                });
         });
 
         it('returns logs for a step that is split across max pages with 1000 maxLines', () => {
@@ -4097,11 +4303,13 @@ describe('build plugin test', () => {
                 const lines = [];
 
                 for (let j = 0; j < 1000; j += 1) {
-                    lines.push(JSON.stringify({
-                        t: Date.now(),
-                        m: 'Random message here',
-                        n: (1000 * i) + j
-                    }));
+                    lines.push(
+                        JSON.stringify({
+                            t: Date.now(),
+                            m: 'Random message here',
+                            n: 1000 * i + j
+                        })
+                    );
                 }
 
                 if (i === 0) {
@@ -4116,29 +4324,33 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 20000);
-                assert.propertyVal(reply.headers, 'x-more-data', 'true');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 20000);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
+                });
         });
 
         it('returns logs for a step that ends at max pages', () => {
             for (let i = 0; i < 10; i += 1) {
                 const lines = [];
-                const maxLines = (i === 9) ? 50 : 100;
+                const maxLines = i === 9 ? 50 : 100;
 
                 for (let j = 0; j < maxLines; j += 1) {
-                    lines.push(JSON.stringify({
-                        t: Date.now(),
-                        m: 'Random message here',
-                        n: (100 * i) + j
-                    }));
+                    lines.push(
+                        JSON.stringify({
+                            t: Date.now(),
+                            m: 'Random message here',
+                            n: 100 * i + j
+                        })
+                    );
                 }
 
                 if (i === 0) {
@@ -4153,16 +4365,18 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 950);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 950);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns logs for a step that ends at extended max pages', () => {
@@ -4170,14 +4384,16 @@ describe('build plugin test', () => {
 
             for (let i = 0; i < maxPages; i += 1) {
                 const lines = [];
-                const maxLines = (i === maxPages - 1) ? 50 : 100;
+                const maxLines = i === maxPages - 1 ? 50 : 100;
 
                 for (let j = 0; j < maxLines; j += 1) {
-                    lines.push(JSON.stringify({
-                        t: Date.now(),
-                        m: 'Random message here',
-                        n: (100 * i) + j
-                    }));
+                    lines.push(
+                        JSON.stringify({
+                            t: Date.now(),
+                            m: 'Random message here',
+                            n: 100 * i + j
+                        })
+                    );
                 }
 
                 if (i === 0) {
@@ -4192,16 +4408,18 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, (100 * maxPages) - 50);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 100 * maxPages - 50);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns from second page', () => {
@@ -4212,16 +4430,18 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?from=100`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 2);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?from=100`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 2);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns from second empty page', () => {
@@ -4232,16 +4452,18 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .reply(200, '');
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?from=100`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.equal(reply.result.length, 0);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?from=100`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.equal(reply.result.length, 0);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns correct lines after a given line', () => {
@@ -4253,16 +4475,18 @@ describe('build plugin test', () => {
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs?from=2`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, logs.slice(2));
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?from=2`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, logs.slice(2));
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns false more-data for a step that is not started', () => {
@@ -4275,16 +4499,18 @@ describe('build plugin test', () => {
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server.inject({
-                url: `/builds/${id}/steps/publish/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, []);
-                assert.propertyVal(reply.headers, 'x-more-data', 'false');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/publish/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, []);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
         });
 
         it('returns empty array on invalid data', () => {
@@ -4298,42 +4524,48 @@ describe('build plugin test', () => {
                 .twice()
                 .reply(200, '<invalid JSON>\n<more bad JSON>');
 
-            return server.inject({
-                url: `/builds/${id}/steps/test/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, []);
-                assert.propertyVal(reply.headers, 'x-more-data', 'true');
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/test/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, []);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
+                });
         });
 
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 404);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 404);
+                });
         });
 
         it('returns 500 when datastore returns an error', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).rejects(new Error('blah'));
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 500);
+                });
         });
 
         it('returns 500 when build logs returns an error for page 0', () => {
@@ -4341,14 +4573,16 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 500);
+                });
         });
 
         it('returns 500 when build logs returns an error for page 1', () => {
@@ -4360,14 +4594,16 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
 
-            return server.inject({
-                url: `/builds/${id}/steps/${step}/logs`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 500);
+                });
         });
     });
 
@@ -4379,58 +4615,66 @@ describe('build plugin test', () => {
         it('redirects to store for an artifact request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
-            return server.inject({
-                url: `/builds/${id}/artifacts/${artifact}`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${artifact}`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 302);
+                    assert.deepEqual(reply.headers.location, url);
+                });
         });
 
         it('redirects to store for an multi-byte artifact request', () => {
             const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
 
-            return server.inject({
-                url: `/builds/${id}/artifacts/${multiByteArtifact}`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${multiByteArtifact}`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 302);
+                    assert.deepEqual(reply.headers.location, url);
+                });
         });
 
         it('redirects to store for an artifact download request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=download`;
 
-            return server.inject({
-                url: `/builds/${id}/artifacts/${artifact}?type=download`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${artifact}?type=download`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 302);
+                    assert.deepEqual(reply.headers.location, url);
+                });
         });
 
         it('redirects to store for an artifact preview request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=preview`;
 
-            return server.inject({
-                url: `/builds/${id}/artifacts/${artifact}?type=preview`,
-                credentials: {
-                    scope: ['user']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
-            });
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${artifact}?type=preview`,
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 302);
+                    assert.deepEqual(reply.headers.location, url);
+                });
         });
     });
 
@@ -4458,10 +4702,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
             generateProfileMock.returns(profile);
-            generateTokenMock.withArgs(
-                generateProfileMock(),
-                buildTimeout
-            ).returns('sometoken');
+            generateTokenMock.withArgs(generateProfileMock(), buildTimeout).returns('sometoken');
 
             options = {
                 method: 'POST',
@@ -4483,69 +4724,68 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 for a build that exists and can get token', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(generateProfileMock,
-                    '12345',
-                    'github:github.com',
-                    ['build'], {
-                        isPR: false,
-                        jobId: 1234,
-                        pipelineId: 1,
-                        eventId: 777,
-                        configPipelineId: 123
-                    }
-                );
-                assert.calledWith(generateTokenMock, {
-                    username: '12345',
-                    scmContext: 'github:github.com',
-                    scope: ['build'],
+                assert.calledWith(generateProfileMock, '12345', 'github:github.com', ['build'], {
                     isPR: false,
                     jobId: 1234,
                     pipelineId: 1,
                     eventId: 777,
                     configPipelineId: 123
-                }, 50);
+                });
+                assert.calledWith(
+                    generateTokenMock,
+                    {
+                        username: '12345',
+                        scmContext: 'github:github.com',
+                        scope: ['build'],
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123
+                    },
+                    50
+                );
                 assert.equal(reply.result.token, 'sometoken');
-            })
-        );
+            }));
 
         it('includes prParentJobId', () => {
             profile.prParentJobId = 1000;
             options.credentials.prParentJobId = 1000;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(generateProfileMock,
-                    '12345',
-                    'github:github.com',
-                    ['build'], {
-                        isPR: false,
-                        jobId: 1234,
-                        pipelineId: 1,
-                        eventId: 777,
-                        configPipelineId: 123,
-                        prParentJobId: 1000
-                    }
-                );
-                assert.calledWith(generateTokenMock, {
-                    username: '12345',
-                    scmContext: 'github:github.com',
-                    scope: ['build'],
+                assert.calledWith(generateProfileMock, '12345', 'github:github.com', ['build'], {
                     isPR: false,
                     jobId: 1234,
                     pipelineId: 1,
                     eventId: 777,
                     configPipelineId: 123,
                     prParentJobId: 1000
-                }, 50);
+                });
+                assert.calledWith(
+                    generateTokenMock,
+                    {
+                        username: '12345',
+                        scmContext: 'github:github.com',
+                        scope: ['build'],
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123,
+                        prParentJobId: 1000
+                    },
+                    50
+                );
             });
         });
 
         it('returns 404 if a parameter of buildId does not exist', () => {
             buildFactoryMock.get.withArgs(id).resolves(false);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.equal(reply.result.message, 'Build does not exist');
             });
@@ -4554,7 +4794,7 @@ describe('build plugin test', () => {
         it('returns 404 if buildId between parameter and token is different', () => {
             options.credentials.username = 9999;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.equal(reply.result.message, 'Build Id parameter and token does not match');
             });
@@ -4563,7 +4803,7 @@ describe('build plugin test', () => {
         it('returns 400 if invalid payloads', () => {
             options.payload = 'aaa';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
                 assert.equal(reply.result.message, 'Invalid request payload JSON format');
             });
@@ -4572,18 +4812,16 @@ describe('build plugin test', () => {
         it('returns 400 if invalid buildTimeout', () => {
             options.payload.buildTimeout = 'notnumber';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
-                assert.equal(reply.result.message,
-                    `Invalid buildTimeout value: ${options.payload.buildTimeout}`
-                );
+                assert.equal(reply.result.message, `Invalid buildTimeout value: ${options.payload.buildTimeout}`);
             });
         });
 
         it('returns 403 if scope of token is insufficient', () => {
             options.credentials.scope = ['build'];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(reply.result.message, 'Insufficient scope');
             });
@@ -4595,7 +4833,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(reply.result.message, 'Build is already running or finished.');
             });
@@ -4607,7 +4845,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -4621,7 +4859,7 @@ describe('build plugin test', () => {
         let startTime = '2019-01-29T01:47:27.863Z';
         let endTime = '2019-01-30T01:47:27.863Z';
         const dateNow = 1552597858211;
-        const nowTime = (new Date(dateNow)).toISOString();
+        const nowTime = new Date(dateNow).toISOString();
         let sandbox;
 
         beforeEach(() => {
@@ -4647,21 +4885,20 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 and metrics for build', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(buildMock.getMetrics, {
                     startTime,
                     endTime
                 });
-            })
-        );
+            }));
 
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';
             endTime = '2019-01-29T01:47:27.863Z';
             options.url = `/builds/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.notCalled(buildMock.getMetrics);
                 assert.equal(reply.statusCode, 400);
             });
@@ -4670,7 +4907,7 @@ describe('build plugin test', () => {
         it('defaults time range if missing', () => {
             options.url = `/builds/${id}/metrics`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(buildMock.getMetrics, {
                     endTime: nowTime,
                     startTime: '2018-09-15T21:10:58.211Z' // 6 months
@@ -4688,7 +4925,7 @@ describe('build plugin test', () => {
 
             buildFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -4697,7 +4934,7 @@ describe('build plugin test', () => {
         it('returns 500 when datastore fails', () => {
             buildFactoryMock.get.rejects(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });

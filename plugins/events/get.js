@@ -25,8 +25,9 @@ module.exports = () => ({
         handler: (request, reply) => {
             const factory = request.server.app.eventFactory;
 
-            return factory.get(request.params.id)
-                .then((model) => {
+            return factory
+                .get(request.params.id)
+                .then(model => {
                     if (!model) {
                         throw boom.notFound('Event does not exist');
                     }

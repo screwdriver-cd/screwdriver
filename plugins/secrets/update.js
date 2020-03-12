@@ -23,11 +23,12 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.secretFactory;
-            const credentials = request.auth.credentials;
-            const canAccess = request.server.plugins.secrets.canAccess;
+            const { credentials } = request.auth;
+            const { canAccess } = request.server.plugins.secrets;
 
-            return factory.get(request.params.id)
-                .then((secret) => {
+            return factory
+                .get(request.params.id)
+                .then(secret => {
                     if (!secret) {
                         throw boom.notFound('Secret does not exist');
                     }
@@ -35,7 +36,7 @@ module.exports = () => ({
                     // Make sure that user has permission before updating
                     return canAccess(credentials, secret, 'admin')
                         .then(() => {
-                            Object.keys(request.payload).forEach((key) => {
+                            Object.keys(request.payload).forEach(key => {
                                 secret[key] = request.payload[key];
                             });
 

@@ -14,13 +14,7 @@ const updateRoute = require('./update');
  * @param  {Function} next                  Function to call when done
  */
 exports.register = (server, options, next) => {
-    server.route([
-        createRoute(),
-        getRoute(),
-        listRoute(),
-        removeRoute(),
-        updateRoute()
-    ]);
+    server.route([createRoute(), getRoute(), listRoute(), removeRoute(), updateRoute()]);
 
     next();
 };

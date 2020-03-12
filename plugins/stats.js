@@ -10,8 +10,8 @@ const schema = require('screwdriver-data-schema');
  * @param  {Function} next
  */
 exports.register = (server, options, next) => {
-    const executor = options.executor;
-    const scm = options.scm;
+    const { executor } = options;
+    const { scm } = options;
 
     server.route({
         method: 'GET',
@@ -24,10 +24,11 @@ exports.register = (server, options, next) => {
                 schema: schema.api.stats
             }
         },
-        handler: (request, reply) => reply({
-            executor: executor.stats(),
-            scm: scm.stats()
-        })
+        handler: (request, reply) =>
+            reply({
+                executor: executor.stats(),
+                scm: scm.stats()
+            })
     });
     next();
 };
