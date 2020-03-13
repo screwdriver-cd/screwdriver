@@ -1,8 +1,8 @@
 'use strict';
 
 const chai = require('chai');
-const assert = chai.assert;
-const expect = chai.expect;
+const { assert } = chai;
+const { expect } = chai;
 const hapi = require('hapi');
 const sinon = require('sinon');
 const fs = require('fs');
@@ -40,7 +40,7 @@ function getUserMock(user) {
  * @param {Object}      collection { userId, type, name, description }
  * @reutrn {Object}                Model with stubbed function(s)
  */
-const getCollectionMock = (collection) => {
+const getCollectionMock = collection => {
     const mock = hoek.clone(collection);
 
     mock.update = sinon.stub();
@@ -70,7 +70,7 @@ describe('auth plugin test', () => {
     const hashingPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
     const oauthRedirectUri = 'https://myhost.com/api';
 
-    beforeEach((done) => {
+    beforeEach(done => {
         scm = {
             getScmContexts: sinon.stub().returns(['github:github.com']),
             getDisplayName: sinon.stub().returns('github'),
@@ -79,11 +79,7 @@ describe('auth plugin test', () => {
                     clientId: 'abcdefg',
                     clientSecret: 'hijklmno',
                     provider: 'github',
-                    scope: [
-                        'admin:repo_hook',
-                        'read:org',
-                        'repo:status'
-                    ]
+                    scope: ['admin:repo_hook', 'read:org', 'repo:status']
                 }
             })
         };
@@ -124,21 +120,24 @@ describe('auth plugin test', () => {
             port: 1234
         });
 
-        server.register({
-            register: plugin,
-            options: {
-                cookiePassword,
-                encryptionPassword,
-                hashingPassword,
-                scm,
-                jwtPrivateKey,
-                jwtPublicKey,
-                allowGuestAccess: true,
-                https: false,
-                oauthRedirectUri,
-                sameSite: false
-            }
-        }, done);
+        server.register(
+            {
+                register: plugin,
+                options: {
+                    cookiePassword,
+                    encryptionPassword,
+                    hashingPassword,
+                    scm,
+                    jwtPrivateKey,
+                    jwtPublicKey,
+                    allowGuestAccess: true,
+                    https: false,
+                    oauthRedirectUri,
+                    sameSite: false
+                }
+            },
+            done
+        );
     });
 
     afterEach(() => {
@@ -164,19 +163,20 @@ describe('auth plugin test', () => {
                 port: 12345
             });
 
-            return badServer.register({
-                register: plugin,
-                options: {
-                    cookiePassword,
-                    encryptionPassword,
-                    hashingPassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    https: false,
-                    sameSite: false
-                }
-            })
+            return badServer
+                .register({
+                    register: plugin,
+                    options: {
+                        cookiePassword,
+                        encryptionPassword,
+                        hashingPassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        https: false,
+                        sameSite: false
+                    }
+                })
                 .then(() => Promise.reject(new Error('should not be here')))
                 .catch(err => assert.equal(err.message, 'Failure'));
         });
@@ -201,14 +201,17 @@ describe('auth plugin test', () => {
             port: 1234
         });
 
-        assert.isRejected(testServer.register({
-            register: plugin,
-            options: {}
-        }), /Invalid config for plugin-auth/);
+        assert.isRejected(
+            testServer.register({
+                register: plugin,
+                options: {}
+            }),
+            /Invalid config for plugin-auth/
+        );
     });
 
     describe('profiles', () => {
-        beforeEach((next) => {
+        beforeEach(next => {
             server = new hapi.Server();
             server.app.userFactory = userFactoryMock;
 
@@ -216,21 +219,23 @@ describe('auth plugin test', () => {
                 port: 1234
             });
 
-            server.register({
-                register: plugin,
-                options: {
-                    encryptionPassword,
-                    hashingPassword,
-                    cookiePassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    https: false,
-                    admins: ['github:batman', 'batman'],
-                    sameSite: false
-
-                }
-            }, next);
+            server.register(
+                {
+                    register: plugin,
+                    options: {
+                        encryptionPassword,
+                        hashingPassword,
+                        cookiePassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        https: false,
+                        admins: ['github:batman', 'batman'],
+                        sameSite: false
+                    }
+                },
+                next
+            );
         });
 
         it('adds environment', () => {
@@ -241,30 +246,30 @@ describe('auth plugin test', () => {
                 port: 1234
             });
 
-            return newServer.register({
-                register: plugin,
-                options: {
-                    cookiePassword,
-                    encryptionPassword,
-                    hashingPassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    jwtEnvironment: 'beta',
-                    https: false,
-                    sameSite: false
-                }
-            }).then(() => {
-                const profile = newServer.plugins.auth
-                    .generateProfile('batman', 'github:github.com', ['user'], {});
+            return newServer
+                .register({
+                    register: plugin,
+                    options: {
+                        cookiePassword,
+                        encryptionPassword,
+                        hashingPassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        jwtEnvironment: 'beta',
+                        https: false,
+                        sameSite: false
+                    }
+                })
+                .then(() => {
+                    const profile = newServer.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
 
-                expect(profile.environment).to.equal('beta');
-            });
+                    expect(profile.environment).to.equal('beta');
+                });
         });
 
         it('adds admin scope for admins', () => {
-            const profile = server.plugins.auth
-                .generateProfile('batman', 'github:github.com', ['user'], {});
+            const profile = server.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
 
             expect(profile.username).to.contain('batman');
             expect(profile.scmContext).to.contain('github:github.com');
@@ -274,8 +279,7 @@ describe('auth plugin test', () => {
         });
 
         it('does not add admin scope for non-admins', () => {
-            const profile = server.plugins.auth
-                .generateProfile('robin', 'github:mygithub.com', ['user'], {});
+            const profile = server.plugins.auth.generateProfile('robin', 'github:mygithub.com', ['user'], {});
 
             expect(profile.username).to.contain('robin');
             expect(profile.scmContext).to.contain('github:mygithub.com');
@@ -298,7 +302,7 @@ describe('auth plugin test', () => {
                 }
             });
 
-            return server.inject('/protected-route').then((reply) => {
+            return server.inject('/protected-route').then(reply => {
                 assert.equal(reply.statusCode, 401, 'Should be unauthorized');
             });
         });
@@ -320,28 +324,32 @@ describe('auth plugin test', () => {
                 }
             });
 
-            return server.inject({
-                url: '/auth/token',
-                credentials: {
-                    username: 'batman',
-                    scope: ['user'],
-                    token: sampleToken
-                }
-            }).then((reply) => {
-                const token = reply.result.token;
-
-                assert.ok(token, 'Did not return token');
-
-                return server.inject({
-                    url: '/protected-route2',
-                    headers: {
-                        Authorization: `Bearer ${token}`
+            return server
+                .inject({
+                    url: '/auth/token',
+                    credentials: {
+                        username: 'batman',
+                        scope: ['user'],
+                        token: sampleToken
                     }
-                }).then((reply2) => {
-                    assert.ok(reply2.statusCode, 200, 'Did not return correctly');
-                    assert.deepEqual(reply2.result, {}, 'Returned data');
+                })
+                .then(reply => {
+                    const { token } = reply.result;
+
+                    assert.ok(token, 'Did not return token');
+
+                    return server
+                        .inject({
+                            url: '/protected-route2',
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
+                        })
+                        .then(reply2 => {
+                            assert.ok(reply2.statusCode, 200, 'Did not return correctly');
+                            assert.deepEqual(reply2.result, {}, 'Returned data');
+                        });
                 });
-            });
         });
     });
 
@@ -351,25 +359,20 @@ describe('auth plugin test', () => {
         };
 
         describe('with guest access', () => {
-            it('exists', () => (
-                server.inject('/auth/login/guest').then((reply) => {
+            it('exists', () =>
+                server.inject('/auth/login/guest').then(reply => {
                     assert.equal(reply.statusCode, 302, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
-                })
-            ));
+                }));
 
             it('creates a user tries to close a window', () => {
                 const webOptions = hoek.clone(options);
 
                 webOptions.url = '/auth/login/guest/web';
 
-                return server.inject(webOptions).then((reply) => {
+                return server.inject(webOptions).then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login/web route should be available');
-                    assert.equal(
-                        reply.result,
-                        '<script>window.close();</script>',
-                        'add script to close window'
-                    );
+                    assert.equal(reply.result, '<script>window.close();</script>', 'add script to close window');
                 });
             });
         });
@@ -403,13 +406,14 @@ describe('auth plugin test', () => {
                 server = null;
             });
 
-            it('returns forbidden for guest', () => (
-                server.inject({
-                    url: '/auth/login/guest'
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 403, 'Login route should be available');
-                })
-            ));
+            it('returns forbidden for guest', () =>
+                server
+                    .inject({
+                        url: '/auth/login/guest'
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 403, 'Login route should be available');
+                    }));
         });
     });
 
@@ -438,7 +442,7 @@ describe('auth plugin test', () => {
             }
         };
 
-        const testDefaultCollection = Object.assign({}, testCollection, { type: 'default' });
+        const testDefaultCollection = { ...testCollection, type: 'default' };
         let userMock;
 
         beforeEach(() => {
@@ -447,44 +451,46 @@ describe('auth plugin test', () => {
             userMock.update.resolves(userMock);
             userFactoryMock.get.resolves(userMock);
             userFactoryMock.create.resolves(userMock);
-            collectionFactoryMock.list.withArgs({
-                params: {
-                    userId: id,
-                    type: 'default'
-                }
-            }).resolves([]);
-            collectionFactoryMock.create.withArgs({ userId: id, type, name, description })
+            collectionFactoryMock.list
+                .withArgs({
+                    params: {
+                        userId: id,
+                        type: 'default'
+                    }
+                })
+                .resolves([]);
+            collectionFactoryMock.create
+                .withArgs({ userId: id, type, name, description })
                 .resolves(getCollectionMock(testDefaultCollection));
         });
 
         describe('GET', () => {
-            it('exists', () => (
-                server.inject('/auth/login/github:github.com').then((reply) => {
+            it('exists', () =>
+                server.inject('/auth/login/github:github.com').then(reply => {
                     assert.notEqual(reply.statusCode, 404, 'Login route should be available');
-                    assert.isOk(reply.headers.location.match(/github.com/),
-                        'Oauth does not point to github.com');
-                })
-            ));
+                    assert.isOk(reply.headers.location.match(/github.com/), 'Oauth does not point to github.com');
+                }));
 
-            it('will return errors', () => (
-                server.inject({
-                    url: {
-                        pathname: '/auth/login/github:github.com',
-                        query: {
-                            code: 'fasdasd',
-                            state: 'asdasd',
-                            refresh: 1
+            it('will return errors', () =>
+                server
+                    .inject({
+                        url: {
+                            pathname: '/auth/login/github:github.com',
+                            query: {
+                                code: 'fasdasd',
+                                state: 'asdasd',
+                                refresh: 1
+                            }
                         }
-                    }
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 401, 'Unauthorized Warning');
-                })
-            ));
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 401, 'Unauthorized Warning');
+                    }));
 
             it('creates a user with a default collection and returns token', () => {
                 userFactoryMock.get.resolves(null);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 302, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
                     assert.calledWith(userFactoryMock.get, { username, scmContext });
@@ -514,13 +520,9 @@ describe('auth plugin test', () => {
 
                 webOptions.url = '/auth/login/github:github.com/web';
 
-                return server.inject(webOptions).then((reply) => {
+                return server.inject(webOptions).then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login/web route should be available');
-                    assert.equal(
-                        reply.result,
-                        '<script>window.close();</script>',
-                        'add script to close window'
-                    );
+                    assert.equal(reply.result, '<script>window.close();</script>', 'add script to close window');
                     assert.calledWith(userFactoryMock.get, { username, scmContext });
                     assert.calledWith(userFactoryMock.create, {
                         username,
@@ -534,7 +536,7 @@ describe('auth plugin test', () => {
                 userFactoryMock.get.resolves(null);
                 userFactoryMock.create.rejects(new Error('createError'));
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
                     assert.calledOnce(userFactoryMock.create);
                 });
@@ -545,23 +547,22 @@ describe('auth plugin test', () => {
 
                 userMock.update.rejects(err);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
                     assert.calledOnce(userMock.update);
                     assert.notCalled(userFactoryMock.create);
                 });
             });
 
-            it('updates user if the user exists', () => (
-                server.inject(options).then((reply) => {
+            it('updates user if the user exists', () =>
+                server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 302, 'Login route should be available');
                     assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
                     assert.calledOnce(userMock.sealToken);
                     assert.calledWith(userMock.sealToken, token);
                     assert.calledOnce(userMock.update);
                     assert.notCalled(userFactoryMock.create);
-                })
-            ));
+                }));
 
             describe('with whitelist', () => {
                 beforeEach(() => {
@@ -593,27 +594,27 @@ describe('auth plugin test', () => {
                     server = null;
                 });
 
-                it('returns forbidden for non-whitelisted user', () => (
-                    server.inject({
-                        url: '/auth/login/github:github.com',
-                        credentials: {
-                            profile: {
-                                username: 'dne'
+                it('returns forbidden for non-whitelisted user', () =>
+                    server
+                        .inject({
+                            url: '/auth/login/github:github.com',
+                            credentials: {
+                                profile: {
+                                    username: 'dne'
+                                }
                             }
-                        }
-                    }).then((reply) => {
-                        assert.equal(reply.statusCode, 403, 'Login route should be available');
-                        assert.notOk(reply.result.token, 'Token not returned');
-                    })
-                ));
+                        })
+                        .then(reply => {
+                            assert.equal(reply.statusCode, 403, 'Login route should be available');
+                            assert.notOk(reply.result.token, 'Token not returned');
+                        }));
 
                 it('returns 200 for whitelisted user', () => {
                     userFactoryMock.get.resolves(null);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 302, 'Login route should be available');
-                        assert.isOk(reply.headers.location.match(/auth\/token/),
-                            'Redirects to token');
+                        assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
                         assert.calledWith(userFactoryMock.get, { username, scmContext });
                         assert.calledWith(userFactoryMock.create, {
                             username,
@@ -659,156 +660,167 @@ describe('auth plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('returns user signed token', () => (
-            server.inject({
-                url: '/auth/token',
-                credentials: {
-                    username: 'robin',
-                    scope: ['user'],
-                    token: jwt.sign({
-                        username: 'robin',
-                        scope: ['user']
-                    }, jwtPrivateKey, {
-                        algorithm: 'RS256',
-                        expiresIn: '2h',
-                        jwtid: 'abc'
-                    })
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Login route should be available');
-                assert.ok(reply.result.token, 'Token not returned');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('username', 'robin');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('scope')
-                    .with.lengthOf(1);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.deep.property('scope[0]', 'user');
-            })
-        ));
-
-        it('returns user signed token', () => (
-            server.inject({
-                url: '/auth/token',
-                credentials: {
-                    username: 'robin',
-                    scope: ['user'],
-                    token: jwt.sign({
+        it('returns user signed token', () =>
+            server
+                .inject({
+                    url: '/auth/token',
+                    credentials: {
                         username: 'robin',
                         scope: ['user'],
-                        environment: 'beta'
-                    }, jwtPrivateKey, {
-                        algorithm: 'RS256',
-                        expiresIn: '2h',
-                        jwtid: 'abc'
-                    })
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Login route should be available');
-                assert.ok(reply.result.token, 'Token not returned');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('username', 'robin');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('scope')
-                    .with.lengthOf(1);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.deep.property('scope[0]', 'user');
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('environment', 'beta');
-            })
-        ));
+                        token: jwt.sign(
+                            {
+                                username: 'robin',
+                                scope: ['user']
+                            },
+                            jwtPrivateKey,
+                            {
+                                algorithm: 'RS256',
+                                expiresIn: '2h',
+                                jwtid: 'abc'
+                            }
+                        )
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Login route should be available');
+                    assert.ok(reply.result.token, 'Token not returned');
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
+                    expect(reply.result.token)
+                        .to.be.a.jwt.and.have.property('scope')
+                        .with.lengthOf(1);
+                    expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[0]', 'user');
+                }));
+
+        it('returns user signed token', () =>
+            server
+                .inject({
+                    url: '/auth/token',
+                    credentials: {
+                        username: 'robin',
+                        scope: ['user'],
+                        token: jwt.sign(
+                            {
+                                username: 'robin',
+                                scope: ['user'],
+                                environment: 'beta'
+                            },
+                            jwtPrivateKey,
+                            {
+                                algorithm: 'RS256',
+                                expiresIn: '2h',
+                                jwtid: 'abc'
+                            }
+                        )
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Login route should be available');
+                    assert.ok(reply.result.token, 'Token not returned');
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
+                    expect(reply.result.token)
+                        .to.be.a.jwt.and.have.property('scope')
+                        .with.lengthOf(1);
+                    expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[0]', 'user');
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('environment', 'beta');
+                }));
 
         it('returns user signed token given an API access token', () => {
             tokenMock.userId = id;
-            server.inject({
-                url: `/auth/token?api_token=${apiKey}`
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Login route should be available');
-                assert.ok(reply.result.token, 'Token not returned');
-                assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('username', username);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('scope')
-                    .with.lengthOf(1);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.deep.property('scope[0]', 'user');
-            });
+            server
+                .inject({
+                    url: `/auth/token?api_token=${apiKey}`
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Login route should be available');
+                    assert.ok(reply.result.token, 'Token not returned');
+                    assert.calledWith(tokenFactoryMock.get, { value: apiKey });
+                    assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', username);
+                    expect(reply.result.token)
+                        .to.be.a.jwt.and.have.property('scope')
+                        .with.lengthOf(1);
+                    expect(reply.result.token).to.be.a.jwt.and.have.deep.property('scope[0]', 'user');
+                });
         });
 
         it('returns pipeline signed token given an API access token', () => {
             tokenMock.pipelineId = pipelineId;
 
-            server.inject({
-                url: `/auth/token?api_token=${apiKey}`
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Login route should be available');
-                assert.ok(reply.result.token, 'Token not returned');
-                assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('username', username);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('pipelineId', pipelineId);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.property('scope')
-                    .with.lengthOf(1);
-                expect(reply.result.token).to.be.a.jwt
-                    .and.have.deep.property('scope[0]', 'pipeline');
-            });
+            server
+                .inject({
+                    url: `/auth/token?api_token=${apiKey}`
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Login route should be available');
+                    assert.ok(reply.result.token, 'Token not returned');
+                    assert.calledWith(tokenFactoryMock.get, { value: apiKey });
+                    assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', username);
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('pipelineId', pipelineId);
+                    expect(reply.result.token)
+                        .to.be.a.jwt.and.have.property('scope')
+                        .with.lengthOf(1);
+                    expect(reply.result.token).to.be.a.jwt.and.have.deep.property('scope[0]', 'pipeline');
+                });
         });
 
         it('fails to issue a jwt given an invalid application auth token', () => {
             tokenFactoryMock.get.resolves(null);
 
-            return server.inject({
-                url: '/auth/token?api_token=openSaysMe'
-            }).then((reply) => {
-                assert.calledWith(tokenFactoryMock.get, { value: 'openSaysMe' });
-                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
-                assert.notOk(reply.result.token, 'Token should not be issued');
-            });
+            return server
+                .inject({
+                    url: '/auth/token?api_token=openSaysMe'
+                })
+                .then(reply => {
+                    assert.calledWith(tokenFactoryMock.get, { value: 'openSaysMe' });
+                    assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                    assert.notOk(reply.result.token, 'Token should not be issued');
+                });
         });
 
         it('fails to issue a jwt given an token which have neither userId and pipelineId', () =>
-            server.inject({
-                url: `/auth/token?api_token=${apiKey}`
-            }).then((reply) => {
-                assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
-                assert.notOk(reply.result.token, 'Token should not be issued');
-            })
-        );
+            server
+                .inject({
+                    url: `/auth/token?api_token=${apiKey}`
+                })
+                .then(reply => {
+                    assert.calledWith(tokenFactoryMock.get, { value: apiKey });
+                    assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                    assert.notOk(reply.result.token, 'Token should not be issued');
+                }));
 
         it('fails to issue a jwt when user does not found by userId in given token', () => {
             tokenMock.userId = id;
             userFactoryMock.get.resolves(null);
 
-            return server.inject({
-                url: `/auth/token?api_token=${apiKey}`
-            }).then((reply) => {
-                assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
-                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
-                assert.notOk(reply.result.token, 'Token should not be issued');
-            });
+            return server
+                .inject({
+                    url: `/auth/token?api_token=${apiKey}`
+                })
+                .then(reply => {
+                    assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
+                    assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                    assert.notOk(reply.result.token, 'Token should not be issued');
+                });
         });
 
         it('fails to issue a jwt when pipeline does not found by pipelineId in given token', () => {
             tokenMock.pipelineId = pipelineId;
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject({
-                url: `/auth/token?api_token=${apiKey}`
-            }).then((reply) => {
-                assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
-                assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
-                assert.notOk(reply.result.token, 'Token should not be issued');
-            });
+            return server
+                .inject({
+                    url: `/auth/token?api_token=${apiKey}`
+                })
+                .then(reply => {
+                    assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
+                    assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
+                    assert.notOk(reply.result.token, 'Token should not be issued');
+                });
         });
 
         describe('with admins', () => {
-            beforeEach((next) => {
+            beforeEach(next => {
                 pipelineMock = {
                     scmContext
                 };
@@ -827,90 +839,97 @@ describe('auth plugin test', () => {
                     port: 1234
                 });
 
-                server.register({
-                    register: plugin,
-                    options: {
-                        cookiePassword,
-                        encryptionPassword,
-                        hashingPassword,
-                        scm,
-                        jwtPrivateKey,
-                        jwtPublicKey,
-                        https: false,
-                        admins: ['batman'],
-                        sameSite: false
-                    }
-                }, next);
+                server.register(
+                    {
+                        register: plugin,
+                        options: {
+                            cookiePassword,
+                            encryptionPassword,
+                            hashingPassword,
+                            scm,
+                            jwtPrivateKey,
+                            jwtPublicKey,
+                            https: false,
+                            admins: ['batman'],
+                            sameSite: false
+                        }
+                    },
+                    next
+                );
             });
 
-            it('returns admin impersonated build token', () => (
-                server.inject({
-                    url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
-                    credentials: {
-                        username: 'batman',
-                        scmContext,
-                        scope: ['user', 'admin']
-                    }
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 200, 'Login route should be available');
-                    assert.ok(reply.result.token, 'Token not returned');
-                    assert.notCalled(userFactoryMock.get);
-                    assert.notCalled(userMock.update);
+            it('returns admin impersonated build token', () =>
+                server
+                    .inject({
+                        url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
+                        credentials: {
+                            username: 'batman',
+                            scmContext,
+                            scope: ['user', 'admin']
+                        }
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 200, 'Login route should be available');
+                        assert.ok(reply.result.token, 'Token not returned');
+                        assert.notCalled(userFactoryMock.get);
+                        assert.notCalled(userMock.update);
 
-                    expect(reply.result.token).to.be.a.jwt
-                        .and.have.property('username',
-                            '474ee9ee179b0ecf0bc27408079a0b15eda4c99d');
-                    expect(reply.result.token).to.be.a.jwt
-                        .and.have.property('scope')
-                        .with.lengthOf(2);
-                    expect(reply.result.token).to.be.a.jwt
-                        .and.deep.property('scope[0]', 'build');
-                    expect(reply.result.token).to.be.a.jwt
-                        .and.deep.property('scope[1]', 'impersonated');
-                })
-            ));
+                        expect(reply.result.token).to.be.a.jwt.and.have.property(
+                            'username',
+                            '474ee9ee179b0ecf0bc27408079a0b15eda4c99d'
+                        );
+                        expect(reply.result.token)
+                            .to.be.a.jwt.and.have.property('scope')
+                            .with.lengthOf(2);
+                        expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[0]', 'build');
+                        expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[1]', 'impersonated');
+                    }));
 
-            it('returns forbidden for non-admin attempting to impersonate', () => (
-                server.inject({
-                    url: '/auth/token/batman',
-                    credentials: {
-                        username: 'robin',
-                        scope: ['user']
-                    }
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 403, 'Login route should be available');
-                    assert.notOk(reply.result.token, 'Token not returned');
-                })
-            ));
+            it('returns forbidden for non-admin attempting to impersonate', () =>
+                server
+                    .inject({
+                        url: '/auth/token/batman',
+                        credentials: {
+                            username: 'robin',
+                            scope: ['user']
+                        }
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 403, 'Login route should be available');
+                        assert.notOk(reply.result.token, 'Token not returned');
+                    }));
 
             it('catch err if buildFactory throws err', () => {
                 buildFactoryMock.get.rejects(new Error('build not found'));
 
-                server.inject({
-                    url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
-                    credentials: {
-                        username: 'batman',
-                        scmContext,
-                        scope: ['user', 'admin']
-                    }
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 500, 'build not found');
-                    assert.notOk(reply.result.token, 'Token not returned');
-                });
+                server
+                    .inject({
+                        url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
+                        credentials: {
+                            username: 'batman',
+                            scmContext,
+                            scope: ['user', 'admin']
+                        }
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 500, 'build not found');
+                        assert.notOk(reply.result.token, 'Token not returned');
+                    });
             });
         });
     });
 
     describe('GET /auth/key', () => {
-        it('returns the public key', () => (
-            server.inject({
-                url: '/auth/key'
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Login route should be available');
-                assert.ok(reply.result.key, 'Token not returned');
-                assert.equal(reply.result.key, jwtPublicKey);
-            })
-        ));
+        it('returns the public key', () =>
+            server
+                .inject({
+                    url: '/auth/key'
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Login route should be available');
+                    assert.ok(reply.result.key, 'Token not returned');
+                    assert.equal(reply.result.key, jwtPublicKey);
+                }));
     });
 
     describe('GET /auth/crumb', () => {
@@ -919,17 +938,19 @@ describe('auth plugin test', () => {
 
             sinon.stub(server.plugins.crumb, 'generate').callsFake(() => mockReturn);
 
-            return server.inject({
-                url: '/auth/crumb'
-            }).then((reply) => {
-                server.plugins.crumb.generate.restore();
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result.crumb, mockReturn);
-            });
+            return server
+                .inject({
+                    url: '/auth/crumb'
+                })
+                .then(reply => {
+                    server.plugins.crumb.generate.restore();
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result.crumb, mockReturn);
+                });
         });
 
         describe('POST /webhooks/dummy', () => {
-            it('doesn\'t validate a crumb', () => {
+            it("doesn't validate a crumb", () => {
                 server.route({
                     method: 'POST',
                     path: '/webhooks/dummy',
@@ -940,13 +961,15 @@ describe('auth plugin test', () => {
                     }
                 });
 
-                return server.inject({
-                    url: '/webhooks/dummy',
-                    method: 'POST'
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, true);
-                });
+                return server
+                    .inject({
+                        url: '/webhooks/dummy',
+                        method: 'POST'
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.deepEqual(reply.result, true);
+                    });
             });
         });
 
@@ -962,15 +985,17 @@ describe('auth plugin test', () => {
                     }
                 });
 
-                return server.inject({
-                    url: '/non-webhooks',
-                    method: 'POST'
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 403);
-                });
+                return server
+                    .inject({
+                        url: '/non-webhooks',
+                        method: 'POST'
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 403);
+                    });
             });
 
-            it('doesn\'t validate a crumb if jwt is used', () => {
+            it("doesn't validate a crumb if jwt is used", () => {
                 server.route({
                     method: 'POST',
                     path: '/non-webhooks',
@@ -981,74 +1006,78 @@ describe('auth plugin test', () => {
                     }
                 });
 
-                return server.inject({
-                    url: '/non-webhooks',
-                    method: 'POST',
-                    headers: {
-                        authorization: 'Bearer token'
-                    }
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, true);
-                });
+                return server
+                    .inject({
+                        url: '/non-webhooks',
+                        method: 'POST',
+                        headers: {
+                            authorization: 'Bearer token'
+                        }
+                    })
+                    .then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.deepEqual(reply.result, true);
+                    });
             });
         });
     });
 
     describe('POST /auth/logout', () => {
-        it('exists', () => (
-            server.inject({
-                method: 'POST',
-                url: '/auth/logout'
-            }).then((reply) => {
-                assert.notEqual(reply.statusCode, 404, 'Logout route should be available');
-            })
-        ));
+        it('exists', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/auth/logout'
+                })
+                .then(reply => {
+                    assert.notEqual(reply.statusCode, 404, 'Logout route should be available');
+                }));
 
-        it('returns 200', () => (
-            server.inject({
-                method: 'POST',
-                url: '/auth/logout',
-                credentials: {
-                    profile: {
-                        username: 'batman'
+        it('returns 200', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/auth/logout',
+                    credentials: {
+                        profile: {
+                            username: 'batman'
+                        }
                     }
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Logout route returns wrong status');
-                assert.deepEqual(reply.result, {}, 'Logout returns data');
-            })
-        ));
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Logout route returns wrong status');
+                    assert.deepEqual(reply.result, {}, 'Logout returns data');
+                }));
     });
 
     describe('GET /auth/contexts', () => {
         beforeEach(() => {
-            scm.getScmContexts.returns([
-                'github:github.com',
-                'github:mygithub.com'
-            ]);
+            scm.getScmContexts.returns(['github:github.com', 'github:mygithub.com']);
             scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('github');
             scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
         });
 
-        it('lists the contexts', () => (
-            server.inject({
-                method: 'GET',
-                url: '/auth/contexts'
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200, 'Contexts should be available');
-                assert.deepEqual(reply.result, [
-                    { context: 'github:github.com', displayName: 'github' },
-                    { context: 'github:mygithub.com', displayName: 'mygithub' },
-                    { context: 'guest', displayName: 'Guest Access' }
-                ], 'Contexts returns data');
-            })
-        ));
+        it('lists the contexts', () =>
+            server
+                .inject({
+                    method: 'GET',
+                    url: '/auth/contexts'
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Contexts should be available');
+                    assert.deepEqual(
+                        reply.result,
+                        [
+                            { context: 'github:github.com', displayName: 'github' },
+                            { context: 'github:mygithub.com', displayName: 'mygithub' },
+                            { context: 'guest', displayName: 'Guest Access' }
+                        ],
+                        'Contexts returns data'
+                    );
+                }));
 
         it('lists the contexts (without guest)', () => {
-            scm.getScmContexts.returns([
-                'github:github.com'
-            ]);
+            scm.getScmContexts.returns(['github:github.com']);
             server = new hapi.Server();
             server.app.userFactory = userFactoryMock;
 
@@ -1056,29 +1085,35 @@ describe('auth plugin test', () => {
                 port: 1234
             });
 
-            return server.register({
-                register: plugin,
-                options: {
-                    cookiePassword,
-                    encryptionPassword,
-                    hashingPassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    https: false,
-                    sameSite: false
-                }
-            }).then(() => (
-                server.inject({
-                    method: 'GET',
-                    url: '/auth/contexts'
-                }).then((reply) => {
-                    assert.equal(reply.statusCode, 200, 'Contexts should be available');
-                    assert.deepEqual(reply.result, [
-                        { context: 'github:github.com', displayName: 'github' }
-                    ], 'Contexts returns data');
+            return server
+                .register({
+                    register: plugin,
+                    options: {
+                        cookiePassword,
+                        encryptionPassword,
+                        hashingPassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        https: false,
+                        sameSite: false
+                    }
                 })
-            ));
+                .then(() =>
+                    server
+                        .inject({
+                            method: 'GET',
+                            url: '/auth/contexts'
+                        })
+                        .then(reply => {
+                            assert.equal(reply.statusCode, 200, 'Contexts should be available');
+                            assert.deepEqual(
+                                reply.result,
+                                [{ context: 'github:github.com', displayName: 'github' }],
+                                'Contexts returns data'
+                            );
+                        })
+                );
         });
     });
 });

@@ -37,8 +37,9 @@ module.exports = () => ({
                 };
             }
 
-            return factory.listWithMetrics(config)
-                .then((templates) => {
+            return factory
+                .listWithMetrics(config)
+                .then(templates => {
                     if (templates.length === 0) {
                         throw boom.notFound('Template does not exist');
                     }

@@ -2,9 +2,9 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
-const schema = require('screwdriver-data-schema');
 const jobMetricListSchema = joi.array().items(joi.object());
 const jobIdSchema = joi.reach(schema.models.job.base, 'id');
 
@@ -34,8 +34,9 @@ module.exports = () => ({
                 ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
             }
 
-            return factory.get(id)
-                .then((job) => {
+            return factory
+                .get(id)
+                .then(job => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }
