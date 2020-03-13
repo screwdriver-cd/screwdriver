@@ -455,7 +455,7 @@ describe('event plugin test', () => {
             eventConfig.baseBranch = 'master';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
