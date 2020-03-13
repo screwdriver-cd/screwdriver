@@ -34,7 +34,7 @@ function register(task) {
 function promiseTimeout(fn, timeout) {
     return Promise.race([
         Promise.resolve(fn),
-        new Promise((resolve) => {
+        new Promise(resolve => {
             setTimeout(() => {
                 resolve(`Promise timed out after ${timeout} ms`);
             }, timeout);
@@ -51,12 +51,14 @@ function promiseTimeout(fn, timeout) {
 exports.register = (server, options, next) => {
     const taskHandler = async () => {
         try {
-            await Promise.all(Object.keys(tasks).map(async (key) => {
-                logger.info(`executing task ${key}`);
-                const item = tasks[key];
+            await Promise.all(
+                Object.keys(tasks).map(async key => {
+                    logger.info(`executing task ${key}`);
+                    const item = tasks[key];
 
-                await item.task();
-            }));
+                    await item.task();
+                })
+            );
 
             return Promise.resolve();
         } catch (err) {

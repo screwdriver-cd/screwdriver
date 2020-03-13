@@ -25,8 +25,7 @@ exports.register = (server, options, next) => {
             handler: (request, reply) => {
                 const commandString = request.payload.yaml;
 
-                return validator(commandString)
-                    .then(reply, err => reply(boom.badRequest(err.toString())));
+                return validator(commandString).then(reply, err => reply(boom.badRequest(err.toString())));
             },
             validate: {
                 payload: commandSchema.input

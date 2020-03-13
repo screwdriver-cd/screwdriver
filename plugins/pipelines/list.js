@@ -4,7 +4,10 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = joi.reach(schema.models.pipeline.base, 'id');
-const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
+const listSchema = joi
+    .array()
+    .items(schema.models.pipeline.get)
+    .label('List of Pipelines');
 
 module.exports = () => ({
     method: 'GET',
@@ -27,7 +30,7 @@ module.exports = () => ({
             const scmContexts = factory.scm.getScmContexts();
             let pipelineArray = [];
 
-            scmContexts.forEach((scmContext) => {
+            scmContexts.forEach(scmContext => {
                 const config = {
                     params: { scmContext },
                     sort: request.query.sort
@@ -71,9 +74,11 @@ module.exports = () => ({
             schema: listSchema
         },
         validate: {
-            query: schema.api.pagination.concat(joi.object({
-                configPipelineId: idSchema
-            }))
+            query: schema.api.pagination.concat(
+                joi.object({
+                    configPipelineId: idSchema
+                })
+            )
         }
     }
 });

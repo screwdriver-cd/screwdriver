@@ -25,11 +25,12 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const templateFactory = request.server.app.templateFactory;
+            const { templateFactory } = request.server.app;
             const { name, versionOrTag } = request.params;
 
-            return templateFactory.getTemplate(`${name}@${versionOrTag}`)
-                .then((template) => {
+            return templateFactory
+                .getTemplate(`${name}@${versionOrTag}`)
+                .then(template => {
                     if (!template) {
                         throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
                     }
@@ -44,10 +45,7 @@ module.exports = () => ({
         validate: {
             params: {
                 name: nameSchema,
-                versionOrTag: joi.alternatives().try(
-                    versionSchema,
-                    tagSchema
-                )
+                versionOrTag: joi.alternatives().try(versionSchema, tagSchema)
             }
         }
     }

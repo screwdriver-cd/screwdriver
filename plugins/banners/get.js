@@ -14,11 +14,12 @@ module.exports = () => ({
         notes: 'Return a banner record',
         tags: ['api', 'banners'],
         handler: (request, reply) => {
-            const bannerFactory = request.server.app.bannerFactory;
-            const id = request.params.id;
+            const { bannerFactory } = request.server.app;
+            const { id } = request.params;
 
-            return bannerFactory.get(id)
-                .then((banner) => {
+            return bannerFactory
+                .get(id)
+                .then(banner => {
                     if (!banner) {
                         throw boom.notFound(`Banner ${id} does not exist`);
                     }

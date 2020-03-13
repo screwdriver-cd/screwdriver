@@ -22,12 +22,13 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const tokenFactory = request.server.app.tokenFactory;
-            const credentials = request.auth.credentials;
-            const canAccess = request.server.plugins.tokens.canAccess;
+            const { tokenFactory } = request.server.app;
+            const { credentials } = request.auth;
+            const { canAccess } = request.server.plugins.tokens;
 
-            return tokenFactory.get(request.params.id)
-                .then((token) => {
+            return tokenFactory
+                .get(request.params.id)
+                .then(token => {
                     if (!token) {
                         throw boom.notFound('Token does not exist');
                     }

@@ -26,8 +26,9 @@ function publishFileToStore(commandFactory, config, file, storeUrl, authToken) {
     const searchVersion = minor ? `${major}${minor}` : major;
     let publishVersion;
 
-    return commandFactory.getCommand(`${config.namespace}/${config.name}@${searchVersion}`)
-        .then((latest) => {
+    return commandFactory
+        .getCommand(`${config.namespace}/${config.name}@${searchVersion}`)
+        .then(latest => {
             if (!latest) {
                 publishVersion = minor ? `${major}${minor}.0` : `${major}.0.0`;
             } else {
@@ -39,7 +40,8 @@ function publishFileToStore(commandFactory, config, file, storeUrl, authToken) {
             }
 
             return publishVersion;
-        }).then((version) => {
+        })
+        .then(version => {
             const options = {
                 url: `${storeUrl}/v1/commands/${config.namespace}/${config.name}/${version}`,
                 method: 'POST',
@@ -59,10 +61,10 @@ function publishFileToStore(commandFactory, config, file, storeUrl, authToken) {
                     return resolve(response);
                 });
             });
-        }).then((response) => {
+        })
+        .then(response => {
             if (response.statusCode !== 202) {
-                throw new Error('An error occurred when '
-                    + `posting file to the store:${response.body.message}`);
+                throw new Error(`An error occurred when posting file to the store:${response.body.message}`);
             }
 
             return commandFactory.create(config);
@@ -126,7 +128,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const data = request.payload;
-            const isPR = request.auth.credentials.isPR;
+            const { isPR } = request.auth.credentials;
             let commandSpec;
             let commandBin;
             let multipartCheckResult = { valid: false };
@@ -146,16 +148,17 @@ module.exports = () => ({
             }
 
             return validator(commandSpec)
-                .then((config) => {
+                .then(config => {
                     if (config.errors.length > 0) {
                         throw boom.badRequest(
                             `Command has invalid format: ${config.errors.length} error(s).`,
-                            config.errors);
+                            config.errors
+                        );
                     }
 
-                    const commandFactory = request.server.app.commandFactory;
-                    const pipelineFactory = request.server.app.pipelineFactory;
-                    const pipelineId = request.auth.credentials.pipelineId;
+                    const { commandFactory } = request.server.app;
+                    const { pipelineFactory } = request.server.app;
+                    const { pipelineId } = request.auth.credentials;
 
                     return Promise.all([
                         pipelineFactory.get(pipelineId),
@@ -172,8 +175,7 @@ module.exports = () => ({
 
                         // If command name exists, but this build's pipelineId is not the same as command's pipelineId
                         // Then this build does not have permission to publish
-                        if (isPR ||
-                                (commands.length !== 0 && pipeline.id !== commands[0].pipelineId)) {
+                        if (isPR || (commands.length !== 0 && pipeline.id !== commands[0].pipelineId)) {
                             throw boom.forbidden('Not allowed to publish this command');
                         }
 
@@ -182,13 +184,16 @@ module.exports = () => ({
                         // If command format is binary or habitat local mode, binary file also has to be posted to the store
                         return !multipartCheckResult.valid
                             ? commandFactory.create(commandConfig)
-                            : publishFileToStore(commandFactory,
-                                commandConfig,
-                                commandBin,
-                                request.server.app.ecosystem.store,
-                                request.headers.authorization);
+                            : publishFileToStore(
+                                  commandFactory,
+                                  commandConfig,
+                                  commandBin,
+                                  request.server.app.ecosystem.store,
+                                  request.headers.authorization
+                              );
                     });
-                }).then((command) => {
+                })
+                .then(command => {
                     const location = urlLib.format({
                         host: request.headers.host,
                         port: request.headers.port,
@@ -196,8 +201,11 @@ module.exports = () => ({
                         pathname: `${request.path}/${command.id}`
                     });
 
-                    return reply(command.toJson()).header('Location', location).code(201);
-                }).catch(err => reply(boom.boomify(err)));
+                    return reply(command.toJson())
+                        .header('Location', location)
+                        .code(201);
+                })
+                .catch(err => reply(boom.boomify(err)));
         }
     }
 });

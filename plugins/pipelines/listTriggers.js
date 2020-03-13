@@ -6,10 +6,15 @@ const schema = require('screwdriver-data-schema');
 const { JOB_NAME } = schema.config.regex;
 const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 const destSchema = joi.reach(schema.models.trigger.base, 'dest');
-const triggerListSchema = joi.array().items(joi.object({
-    jobName: JOB_NAME,
-    triggers: joi.array().items(destSchema)
-})).label('List of triggers');
+const triggerListSchema = joi
+    .array()
+    .items(
+        joi.object({
+            jobName: JOB_NAME,
+            triggers: joi.array().items(destSchema)
+        })
+    )
+    .label('List of triggers');
 
 module.exports = () => ({
     method: 'GET',
@@ -31,8 +36,9 @@ module.exports = () => ({
             const { pipelineFactory, triggerFactory } = request.server.app;
             const pipelineId = request.params.id;
 
-            return pipelineFactory.get(pipelineId)
-                .then((pipeline) => {
+            return pipelineFactory
+                .get(pipelineId)
+                .then(pipeline => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
                     }
