@@ -3,11 +3,16 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.template.get).label('List of templates');
-const distinctSchema = joi.string()
+const listSchema = joi
+    .array()
+    .items(schema.models.template.get)
+    .label('List of templates');
+const distinctSchema = joi
+    .string()
     .valid(Object.keys(schema.models.template.base.describe().children))
     .label('Field to return unique results by');
-const compactSchema = joi.string()
+const compactSchema = joi
+    .string()
     .valid(['', 'false', 'true'])
     .label('Flag to return compact data');
 const namespaceSchema = joi.reach(schema.models.template.base, 'namespace');
@@ -31,16 +36,7 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.templateFactory;
-            const {
-                count,
-                distinct,
-                compact,
-                namespace,
-                page,
-                search,
-                sort,
-                sortBy
-            } = request.query;
+            const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
             const config = { sort };
 
             // Return distinct rows for that column name
@@ -86,7 +82,7 @@ module.exports = () => ({
 
             return factory
                 .list(config)
-                .then((templates) => {
+                .then(templates => {
                     if (config.raw) {
                         return reply(templates);
                     }

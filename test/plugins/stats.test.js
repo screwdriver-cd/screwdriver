@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -20,7 +20,7 @@ describe('stats plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         mockExecutorStats = {
             stats: sinon.stub()
         };
@@ -37,15 +37,20 @@ describe('stats plugin test', () => {
             port: 1234
         });
 
-        server.register([{
-            register: plugin,
-            options: {
-                executor: mockExecutorStats,
-                scm: mockScmStats
+        server.register(
+            [
+                {
+                    register: plugin,
+                    options: {
+                        executor: mockExecutorStats,
+                        scm: mockScmStats
+                    }
+                }
+            ],
+            err => {
+                done(err);
             }
-        }], (err) => {
-            done(err);
-        });
+        );
     });
 
     afterEach(() => {
@@ -82,15 +87,17 @@ describe('stats plugin test', () => {
             mockExecutorStats.stats.returns(mockExecutorReturn);
             mockScmStats.stats.returns(mockScmReturn);
 
-            return server.inject({
-                url: '/stats'
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, {
-                    executor: mockExecutorReturn,
-                    scm: mockScmReturn
+            return server
+                .inject({
+                    url: '/stats'
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, {
+                        executor: mockExecutorReturn,
+                        scm: mockScmReturn
+                    });
                 });
-            });
         });
     });
 });

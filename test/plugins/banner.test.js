@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -11,8 +11,8 @@ const updatedBanner = require('./data/updatedBanner.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const getMock = (obj) => {
-    const mock = Object.assign({}, obj);
+const getMock = obj => {
+    const mock = { ...obj };
 
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(obj);
@@ -21,7 +21,7 @@ const getMock = (obj) => {
     return mock;
 };
 
-const getBannerMock = (banner) => {
+const getBannerMock = banner => {
     if (Array.isArray(banner)) {
         return banner.map(getMock);
     }
@@ -43,7 +43,7 @@ describe('banner plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         scm = {
             getScmContexts: sinon.stub().returns(['github:github.com']),
             getDisplayName: sinon.stub().returns('github'),
@@ -52,11 +52,7 @@ describe('banner plugin test', () => {
                     clientId: 'abcdefg',
                     clientSecret: 'hijklmno',
                     provider: 'github',
-                    scope: [
-                        'admin:repo_hook',
-                        'read:org',
-                        'repo:status'
-                    ]
+                    scope: ['admin:repo_hook', 'read:org', 'repo:status']
                 }
             })
         };
@@ -85,20 +81,26 @@ describe('banner plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                admins: ['github:jimgrund', 'github:batman']
-            }
-        }], done);
+        server.register(
+            [
+                {
+                    register: plugin,
+                    options: {
+                        admins: ['github:jimgrund', 'github:batman']
+                    }
+                }
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -142,21 +144,20 @@ describe('banner plugin test', () => {
         });
 
         it('returns 201 and creates a banner', () =>
-            server.inject(options).then((reply) => {
-                const expected = Object.assign({}, options.payload);
+            server.inject(options).then(reply => {
+                const expected = { ...options.payload };
 
                 expected.createdBy = options.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testBanner);
-            })
-        );
+            }));
 
         it('returns 201 and creates a banner using default type', () => {
             delete options.payload.type;
 
-            return server.inject(options).then((reply) => {
-                const expected = Object.assign({}, options.payload);
+            return server.inject(options).then(reply => {
+                const expected = { ...options.payload };
 
                 expected.createdBy = options.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
@@ -168,8 +169,8 @@ describe('banner plugin test', () => {
         it('returns 201 and creates a banner using default isActive', () => {
             delete options.payload.isActive;
 
-            return server.inject(options).then((reply) => {
-                const expected = Object.assign({}, options.payload);
+            return server.inject(options).then(reply => {
+                const expected = { ...options.payload };
 
                 expected.createdBy = options.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
@@ -181,7 +182,7 @@ describe('banner plugin test', () => {
         it('returns 403 for non-admin user', () => {
             options.credentials.username = 'batman123';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -191,7 +192,7 @@ describe('banner plugin test', () => {
 
             bannerFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -210,7 +211,7 @@ describe('banner plugin test', () => {
         it('returns 200 for listing banners', () => {
             bannerFactoryMock.list.resolves(getBannerMock(testBanners));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBanners);
             });
@@ -220,7 +221,7 @@ describe('banner plugin test', () => {
             options.url = '/banners?isActive=true';
             bannerFactoryMock.list.resolves(getBannerMock(testBannersActive));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testBannersActive);
             });
@@ -248,8 +249,8 @@ describe('banner plugin test', () => {
         it('returns 200 for get banner', () => {
             bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
 
-            return server.inject(options).then((reply) => {
-                const expected = Object.assign({}, testBanner);
+            return server.inject(options).then(reply => {
+                const expected = { ...testBanner };
 
                 delete expected.id;
                 delete expected.createdBy;
@@ -262,7 +263,7 @@ describe('banner plugin test', () => {
         it('returns 404 when banner does not exist', () => {
             bannerFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -297,17 +298,16 @@ describe('banner plugin test', () => {
         });
 
         it('returns 200 updating banner by admin user', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, updatedBanner);
                 assert.calledOnce(bannerMock.update);
                 assert.equal(reply.statusCode, 200);
-            })
-        );
+            }));
 
         it('returns 404 when banner id does not exist', () => {
             bannerFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -315,7 +315,7 @@ describe('banner plugin test', () => {
         it('returns 403 updating banner by non-admin user', () => {
             options.credentials.username = 'batman123';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -341,16 +341,15 @@ describe('banner plugin test', () => {
         });
 
         it('returns 204 when delete is success', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(bannerMock.remove);
-            })
-        );
+            }));
 
         it('returns 403 deleting banner by non-admin user', () => {
             options.credentials.username = 'batman123';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -358,7 +357,7 @@ describe('banner plugin test', () => {
         it('returns 404 when banner id does not exist', () => {
             bannerFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });

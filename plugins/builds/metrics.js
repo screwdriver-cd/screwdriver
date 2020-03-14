@@ -33,8 +33,9 @@ module.exports = () => ({
                 ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
             }
 
-            return factory.get(id)
-                .then((build) => {
+            return factory
+                .get(id)
+                .then(build => {
                     if (!build) {
                         throw boom.notFound('Build does not exist');
                     }

@@ -39,21 +39,22 @@ exports.register = (server, options, next) => {
             return Promise.resolve(true);
         }
 
-        return pipelineFactory.get(command.pipelineId).then((pipeline) => {
+        return pipelineFactory.get(command.pipelineId).then(pipeline => {
             if (!pipeline) {
                 throw boom.notFound(`Pipeline ${command.pipelineId} does not exist`);
             }
 
             if (scope.includes('user')) {
-                return userFactory.get({ username, scmContext }).then((user) => {
+                return userFactory.get({ username, scmContext }).then(user => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
+                    return user.getPermissions(pipeline.scmUri).then(permissions => {
                         if (!permissions[permission]) {
-                            throw boom.forbidden(`User ${username} does not have ` +
-                                `${permission} access for this command`);
+                            throw boom.forbidden(
+                                `User ${username} does not have ${permission} access for this command`
+                            );
                         }
 
                         return true;

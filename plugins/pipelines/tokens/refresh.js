@@ -23,13 +23,13 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const tokenFactory = request.server.app.tokenFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
-            const pipelineId = request.params.pipelineId;
-            const tokenId = request.params.tokenId;
+            const { pipelineFactory } = request.server.app;
+            const { userFactory } = request.server.app;
+            const { tokenFactory } = request.server.app;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
+            const { pipelineId } = request.params;
+            const { tokenId } = request.params;
 
             return Promise.all([
                 pipelineFactory.get(pipelineId),
@@ -49,20 +49,18 @@ module.exports = () => ({
                         throw boom.notFound('User does not exist');
                     }
 
-                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
+                    return user.getPermissions(pipeline.scmUri).then(permissions => {
                         if (!permissions.admin) {
-                            throw boom.forbidden(`User ${username} `
-                                + 'is not an admin of this repo');
+                            throw boom.forbidden(`User ${username} is not an admin of this repo`);
                         }
 
                         if (token.pipelineId !== pipeline.id) {
                             throw boom.forbidden('Pipeline does not own token');
                         }
 
-                        return token.refresh()
-                            .then((refreshed) => {
-                                reply(refreshed.toJson()).code(200);
-                            });
+                        return token.refresh().then(refreshed => {
+                            reply(refreshed.toJson()).code(200);
+                        });
                     });
                 })
                 .catch(err => reply(boom.boomify(err)));
