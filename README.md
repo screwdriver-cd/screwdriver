@@ -24,19 +24,24 @@ For more information about Screwdriver, check out our [homepage](http://screwdri
 
 ### Plugins
 
-This API comes preloaded with 11 (eleven) resources:
+This API comes preloaded with 16 (sixteen) resources:
 
  - [auth](plugins/auth/README.md)
  - [banners](plugins/banners/README.md)
  - [builds](plugins/builds/README.md)
+ - [buildClusters](plugins/buildClusters/README.md)
  - [collections](plugins/collections/README.md)
+ - [commands](plugins/commands/README.md)
  - [coverage](plugins/coverage/README.md) - optional
  - [events](plugins/events/README.md)
  - [jobs](plugins/jobs/README.md)
  - [pipelines](plugins/pipelines/README.md)
  - [secrets](plugins/secrets/README.md)
+ - [templates](plugins/templates/README.md)
  - [tokens](plugins/tokens/README.md)
  - [webhooks](plugins/webhooks/README.md)
+ - [stats](plugins/stats.js)
+ - [isAdmin](plugins/isAdmin.js)
 
 Three (3) option for datastores:
  - Postgres, MySQL, and Sqlite (`sequelize`)
