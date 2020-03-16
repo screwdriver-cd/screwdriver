@@ -5,24 +5,24 @@ const hapi = require('hapi');
 const mockery = require('mockery');
 const { PassThrough } = require('stream');
 const sinon = require('sinon');
-const suppressAPITokens = require('../../plugins/tokens/filter');
 const urlLib = require('url');
+const suppressAPITokens = require('../../plugins/tokens/filter');
 
 const testToken = require('./data/token.json');
 const testValue = '1234123412341234123412341234123412341234123';
-const testTokenWithValue = Object.assign({}, testToken, { value: testValue });
+const testTokenWithValue = { ...testToken, value: testValue };
 
 delete testTokenWithValue.hash;
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const getTokenMock = (token) => {
-    const mock = Object.assign({}, token);
+const getTokenMock = token => {
+    const mock = { ...token };
 
     mock.update = sinon.stub();
     mock.refresh = sinon.stub();
     mock.toJson = sinon.stub().callsFake(() => {
-        const output = Object.assign({}, token);
+        const output = { ...token };
 
         delete output.hash;
 
@@ -33,8 +33,8 @@ const getTokenMock = (token) => {
     return mock;
 };
 
-const getUserMock = (user) => {
-    const mock = Object.assign({}, user);
+const getUserMock = user => {
+    const mock = { ...user };
 
     mock.tokens = sinon.stub();
 
@@ -46,7 +46,7 @@ const tokensGetterMock = tokens => Promise.resolve(tokens);
 describe('token plugin test', () => {
     const username = 'ifox';
     const scmContext = 'github:github.com';
-    const userId = testToken.userId;
+    const { userId } = testToken;
     const tokenId = testToken.id;
     let tokenFactoryMock;
     let userFactoryMock;
@@ -62,7 +62,7 @@ describe('token plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         tokenFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub()
@@ -74,7 +74,7 @@ describe('token plugin test', () => {
         tokenMock = getTokenMock(testToken);
         tokenMock.remove.resolves(null);
         tokenMock.update.resolves(tokenMock);
-        tokenMock.refresh.resolves(Object.assign({}, tokenMock, { value: 'newValue' }));
+        tokenMock.refresh.resolves({ ...tokenMock, value: 'newValue' });
         tokenFactoryMock.create.resolves(tokenMock);
         tokenFactoryMock.get.resolves(tokenMock);
 
@@ -102,9 +102,14 @@ describe('token plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        return server.register([{
-            register: plugin
-        }], done);
+        return server.register(
+            [
+                {
+                    register: plugin
+                }
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -124,8 +129,8 @@ describe('token plugin test', () => {
 
     describe('POST /tokens', () => {
         let options;
-        const name = testToken.name;
-        const description = testToken.description;
+        const { name } = testToken;
+        const { description } = testToken;
 
         beforeEach(() => {
             options = {
@@ -149,7 +154,7 @@ describe('token plugin test', () => {
             tokenMock = getTokenMock(testTokenWithValue);
             tokenFactoryMock.create.resolves(tokenMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -160,25 +165,23 @@ describe('token plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testTokenWithValue);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-                assert.calledWith(tokenFactoryMock.create,
-                    Object.assign({}, options.payload, { userId }));
+                assert.calledWith(tokenFactoryMock.create, { ...options.payload, userId });
             });
         });
 
         it('returns 409 when a token with the same name already exists', () => {
             userMock.tokens = tokensGetterMock([{ name }]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
-                assert.strictEqual(reply.result.message,
-                    `Token with name ${testToken.name} already exists`);
+                assert.strictEqual(reply.result.message, `Token with name ${testToken.name} already exists`);
             });
         });
 
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -188,7 +191,7 @@ describe('token plugin test', () => {
 
             tokenFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -210,14 +213,16 @@ describe('token plugin test', () => {
         });
 
         it('correctly returns a list of tokens', () => {
-            const expected = [{
-                name: testToken.name,
-                description: testToken.description,
-                id: testToken.id,
-                lastUsed: testToken.lastUsed
-            }];
+            const expected = [
+                {
+                    name: testToken.name,
+                    description: testToken.description,
+                    id: testToken.id,
+                    lastUsed: testToken.lastUsed
+                }
+            ];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(JSON.parse(reply.payload), expected);
             });
@@ -226,7 +231,7 @@ describe('token plugin test', () => {
         it('returns an empty array if the user has no tokens', () => {
             userMock.tokens = tokensGetterMock([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(JSON.parse(reply.payload), []);
             });
@@ -235,7 +240,7 @@ describe('token plugin test', () => {
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -263,7 +268,7 @@ describe('token plugin test', () => {
         it('returns 404 when the token does not exist', () => {
             tokenFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -271,7 +276,7 @@ describe('token plugin test', () => {
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -279,23 +284,20 @@ describe('token plugin test', () => {
         it('returns 409 when a token with the same name already exists', () => {
             options.url = `/tokens/${tokenId + 1}`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
-                assert.strictEqual(reply.result.message,
-                    `Token with name ${testToken.name} already exists`);
+                assert.strictEqual(reply.result.message, `Token with name ${testToken.name} already exists`);
             });
         });
 
         it('returns 200 if update successfully', () => {
-            const expected = Object.assign({}, testToken, {
-                description: 'a new description'
-            });
+            const expected = { ...testToken, description: 'a new description' };
 
             delete expected.hash;
 
-            tokenMock.toJson.returns(Object.assign({}, tokenMock.toJson(), expected));
+            tokenMock.toJson.returns({ ...tokenMock.toJson(), ...expected });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(tokenMock.update);
                 assert.deepEqual(reply.result, expected);
@@ -307,7 +309,7 @@ describe('token plugin test', () => {
                 id: testToken.userId + 1
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -317,7 +319,7 @@ describe('token plugin test', () => {
 
             tokenMock.update.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -341,7 +343,7 @@ describe('token plugin test', () => {
         it('returns 404 when the token does not exist', () => {
             tokenFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -349,17 +351,17 @@ describe('token plugin test', () => {
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 200 if refreshed successfully', () => {
-            const expected = Object.assign({}, testTokenWithValue, { value: 'newValue' });
+            const expected = { ...testTokenWithValue, value: 'newValue' };
 
-            tokenMock.toJson.returns(Object.assign({}, tokenMock.toJson(), expected));
+            tokenMock.toJson.returns({ ...tokenMock.toJson(), ...expected });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(tokenMock.refresh);
                 assert.deepEqual(reply.result, expected);
@@ -371,7 +373,7 @@ describe('token plugin test', () => {
                 id: testToken.userId + 1
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -381,7 +383,7 @@ describe('token plugin test', () => {
 
             tokenMock.refresh.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -405,7 +407,7 @@ describe('token plugin test', () => {
         it('returns 404 when the token does not exist', () => {
             tokenFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -413,24 +415,23 @@ describe('token plugin test', () => {
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 204 if remove successfully', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(tokenMock.remove);
-            })
-        );
+            }));
 
         it('returns 403 when the user does not own the token', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves({
                 id: testToken.userId + 1
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -440,14 +441,14 @@ describe('token plugin test', () => {
 
             tokenMock.remove.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
     });
 
     describe('Logging suppresses API tokens', () => {
-        it('does not print API tokens in GET /auth/token', (done) => {
+        it('does not print API tokens in GET /auth/token', done => {
             const source = new PassThrough({ objectMode: true });
             const result = new PassThrough({ objectMode: true });
 
@@ -455,7 +456,7 @@ describe('token plugin test', () => {
 
             source.pipe(suppressAPITokens).pipe(result);
 
-            result.on('data', (chunk) => {
+            result.on('data', chunk => {
                 assert.equal(chunk, 'GET /v4/auth/token {} (200)');
                 done();
             });
