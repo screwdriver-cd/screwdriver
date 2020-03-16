@@ -115,6 +115,7 @@ test
 
 ### Prerequisites
 - Docker runtime
+  - Have docker runtime execute permission (or you can use `--sudo` option)
 
 ### Start build
 
@@ -136,7 +137,7 @@ $ sdlocal build [job-name] [options]
 - `--artifacts-dir [path]` Path to the host side directory which is mounted into `$SD_ARTIFACTS_DIR`. (default: `./sd-artifacts`)
 - `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
-- `--sudo` Use `sudo` command to execute container runtime.
+- `--sudo` Use `sudo` command to execute docker runtime.
 
 ###### src-url option
 - How to specify the URL
