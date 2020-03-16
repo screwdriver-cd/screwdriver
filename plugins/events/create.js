@@ -94,6 +94,11 @@ module.exports = () => ({
                         payload.creator = creator;
                     }
 
+                    // Check for startFrom
+                    if (!startFrom) {
+                        throw boom.badRequest('Missing "startFrom" trigger');
+                    }
+
                     // Trigger "~pr" needs to have PR number given
                     // Note: To kick start builds for all jobs under a PR,
                     // you need both the prNum and the trigger "~pr" as startFrom
