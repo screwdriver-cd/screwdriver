@@ -12,7 +12,8 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - December 3rd, 2019: Proposal submitted
 - December 6th, 2019: Added `SD_META_DIR`
 - December 18th, 2019: Updated `launcher` / `log-service`
-- March 4th, 2020: Added `src-url option` and updated env options
+- March 4th, 2020: Added `src-url` option and updated env options
+- March 16th, 2020: Added `sudo` option
 
 ## Proposal
 
@@ -115,7 +116,7 @@ test
 
 ### Prerequisites
 - Docker runtime
-  - Have docker runtime execute permission (or you can use `--sudo` option)
+  - Permission for docker runtime (or you can use `--sudo` option)
 
 ### Start build
 
