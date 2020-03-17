@@ -2979,17 +2979,6 @@ describe('build plugin test', () => {
                     //      c
                     // d ->
                     // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
-                    const buildD = {
-                        jobId: 4,
-                        status: 'SUCCESS',
-                        parentBuilds: {
-                            123: {
-                                eventId: '8888',
-                                jobs: { a: 12345 }
-                            }
-                        },
-                        start: sinon.stub().resolves()
-                    };
                     const buildC = {
                         jobId: 4,
                         status: 'SUCCESS',
@@ -3014,6 +3003,7 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
+                        groupEventId: 5,
                         builds: [
                             {
                                 id: 888,
@@ -3052,25 +3042,6 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    eventMock.getBuilds.resolves([
-                        {
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 4,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 5,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 6,
-                            status: 'ABORTED'
-                        },
-                        buildD
-                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
                             eventId: '8888',
@@ -3080,12 +3051,13 @@ describe('build plugin test', () => {
                     jobCconfig.parentBuilds = {
                         123: {
                             eventId: '8888',
-                            jobs: { a: 12345, d: 4 }
+                            jobs: { a: 12345, d: 889 }
                         }
                     };
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     eventFactoryMock.get.withArgs('456').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455', pipelineId: 555 })]);
+                    eventMock.groupEventId = 5;
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
                     eventMock.workflowGraph.edges = [
@@ -3323,6 +3295,53 @@ describe('build plugin test', () => {
                     //  a        -> d
                     //     -> c
                     // if user restarts from job `a`, it should ignore `c`'s parent event status when `b` finishes
+                    const externalEventMock = {
+                        id: 2,
+                        pipelineId: 123,
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
+                        ],
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            },
+                            {
+                                id: 999,
+                                parentBuilds: {
+                                    123: {
+                                        eventId: '8888',
+                                        jobs: { a: 12345, c: 45678 }
+                                    }
+                                },
+                                jobId: 3,
+                                status: 'FAILED'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
+
                     jobMock.name = 'b';
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
@@ -3335,7 +3354,6 @@ describe('build plugin test', () => {
                         { src: 'c', dest: 'd', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-
                     eventMock.getBuilds.resolves([
                         {
                             id: 5,
@@ -3348,7 +3366,6 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
-
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 1,
@@ -3371,6 +3388,9 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
+                    eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
+                    jobFactoryMock.get.resolves(jobMock);
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);

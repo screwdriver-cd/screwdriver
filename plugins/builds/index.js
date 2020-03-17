@@ -550,15 +550,38 @@ function parseJobInfo({ joinObj, currentJobName, nextJobName, pipelineId, build 
 
 /**
  * Get finished builds in all parent events
- * @param  {Event}      event           Current event
- * @param  {Factory}    eventFactory    Event Factory
- * @return {Promise}                    All finished builds
+ * @param  {Event}      event                   Current event
+ * @param  {Number}     [event.parentEventId]   Parent event ID
+ * @param  {Number}     [event.groupEventId]    Group parent event ID
+ * @param  {Factory}    eventFactory            Event Factory
+ * @return {Promise}                            All finished builds
  */
 async function getFinishedBuilds(event, eventFactory) {
     if (!event.parentEventId) {
         return event.getBuilds();
     }
 
+    // New logic to use groupEventId
+    if (event.groupEventId) {
+        const parentEvents = await eventFactory.list({
+            params: {
+                groupEventId: event.groupEventId
+            }
+        });
+        let parentBuilds = [];
+
+        await Promise.all(
+            parentEvents.map(async pe => {
+                const parentBuild = await pe.getBuilds();
+
+                parentBuilds = parentBuilds.concat(parentBuild);
+            })
+        );
+
+        return parentBuilds;
+    }
+
+    // Old logic to recursively find parent builds
     // If parent event id, merge parent build status data recursively and
     // rerun all builds in the path of the startFrom
     const parentEvent = await eventFactory.get({ id: event.parentEventId });
@@ -682,20 +705,33 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
 
 /**
  * Get all builds with same parent event id
- * @param  {Factory}    eventFactory  Event factory
- * @param  {Number}     parentEventId Parent event ID
- * @param  {Number}     pipelineId    Pipeline ID
- * @return {Promise}                  Array of builds with same parent event ID
+ * @param  {Factory}    eventFactory    Event factory
+ * @param  {Numnber}    [groupEventId]  Group parent event ID
+ * @param  {Number}     parentEventId   Parent event ID
+ * @param  {Number}     pipelineId      Pipeline ID
+ * @return {Promise}                    Array of builds with same parent event ID
  */
-async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
-    let parallelEvents = await eventFactory.list({
-        params: {
-            parentEventId
-        }
-    });
+async function getParallelBuilds({ eventFactory, parentEventId, pipelineId, groupEventId }) {
+    let parallelEvents;
+
+    // Get all events with same groupEventId
+    if (groupEventId) {
+        parallelEvents = await eventFactory.list({
+            params: {
+                groupEventId
+            }
+        });
+        // Get all events with same parentEventId
+    } else {
+        parallelEvents = await eventFactory.list({
+            params: {
+                parentEventId
+            }
+        });
+    }
 
     // Remove previous events from same pipeline
-    parallelEvents = parallelEvents.filter(pe => pe.pipelineId !== pipelineId);
+    parallelEvents = parallelEvents ? parallelEvents.filter(pe => pe.pipelineId !== pipelineId) : [];
 
     let parallelBuilds = [];
 
@@ -820,7 +856,8 @@ async function createOrRunNextBuild({
             const parallelBuilds = await getParallelBuilds({
                 eventFactory,
                 parentEventId: event.parentEventId,
-                pipelineId
+                pipelineId,
+                groupEventId: event.groupEventId
             });
 
             finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
@@ -1171,7 +1208,8 @@ exports.register = (server, options, next) => {
                         const parallelBuilds = await getParallelBuilds({
                             eventFactory,
                             parentEventId: externalEventId,
-                            pipelineId: externalEvent.pipelineId
+                            pipelineId: externalEvent.pipelineId,
+                            groupEventId: externalEvent.groupEventId
                         });
 
                         finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
