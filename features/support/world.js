@@ -5,7 +5,7 @@ const path = require('path');
 const env = require('node-env-file');
 const requestretry = require('requestretry');
 const { setWorldConstructor } = require('cucumber');
-const request = require('../support/request');
+const request = require('./request');
 
 /**
  * Retry until the build has finished
