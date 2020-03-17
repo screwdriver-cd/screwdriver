@@ -3,6 +3,7 @@
 const logger = require('screwdriver-logger');
 const getRoute = require('./get');
 const getBuildStatusesRoute = require('./getBuildStatuses');
+const getLatestBuildRoute = require('./getLatestBuild');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
@@ -1284,6 +1285,7 @@ exports.register = (server, options, next) => {
     server.route([
         getRoute(),
         getBuildStatusesRoute(),
+        getLatestBuildRoute(),
         updateRoute(options),
         createRoute(),
         // Steps
