@@ -791,6 +791,14 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 400 bad request error when missing startFrom', () => {
+            delete options.payload.startFrom;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
         it('returns 400 bad request error missing prNum for "~pr"', () => {
             eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
