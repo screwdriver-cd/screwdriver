@@ -1893,6 +1893,66 @@ describe('pipeline plugin test', () => {
         });
     });
 
+    describe('GET /pipelines/{id}/admin', () => {
+        const id = 123;
+        const username = 'myself';
+        const scmUri = 'github.com:12345:branchName';
+        const token = {
+            id: 12345,
+            name: 'pipelinetoken',
+            description: 'this is a test token',
+            pipelineId: id,
+            lastUsed: '2018-06-13T05:58:04.296Z'
+        };
+        let options;
+        let pipelineMock;
+        let userMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/admin`,
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            userMock = getUserMock({ username, scmContext });
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.admin.resolves({
+                username: 'abc'
+            });
+            pipelineMock.tokens = Promise.resolve(getTokenMocks([token]));
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+        });
+        it('returns 200 with admin info for a pipeline', () =>
+            server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 200);
+                const res = JSON.parse(reply.payload);
+
+                assert.equal(res.username, 'abc');
+            })
+        );
+        it('returns 500 when pipeline has  no admin', () => {
+            pipelineMock.admin.rejects(new Error('Pipeline has no admin'));
+            pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+        it('returns 500 when datastore fails', () => {
+            pipelineFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+
+            return server.inject(options).then((reply) => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('GET /pipelines/{id}/tokens', () => {
         const id = 123;
         const username = 'myself';
