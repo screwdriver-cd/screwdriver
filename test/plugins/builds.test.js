@@ -3185,8 +3185,9 @@ describe('build plugin test', () => {
                         },
                         start: sinon.stub().resolves()
                     });
-                    const createEventConfig = {
+                    const eventConfig = {
                         causeMessage: 'Triggered by sd@123:a',
+                        groupEventId: '8888',
                         parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345, c: 45678 } },
@@ -3308,7 +3309,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(eventFactoryMock.create);
-                        assert.calledWith(eventFactoryMock.create, createEventConfig);
+                        assert.calledWith(eventFactoryMock.create, eventConfig);
                         assert.calledTwice(externalEventMock.getBuilds);
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);

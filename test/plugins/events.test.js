@@ -323,6 +323,7 @@ describe('event plugin test', () => {
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 888;
             eventConfig.baseBranch = 'master';
             eventConfig.parentBuilds = parentBuilds;
             eventFactoryMock.get.resolves(getEventMock(testEvent));
@@ -450,6 +451,49 @@ describe('event plugin test', () => {
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 888;
+            eventConfig.baseBranch = 'master';
+            eventFactoryMock.get.resolves(getEventMock(testEvent));
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.calledWith(buildFactoryMock.get, 1234);
+                assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with groupEventId', () => {
+            options.payload = {
+                buildId: 1234,
+                meta,
+                parentBuilds,
+                groupEventId: 2
+            };
+            buildFactoryMock.get.resolves({
+                id: 1234,
+                jobId: 222,
+                parentBuildId,
+                eventId: 888
+            });
+            jobFactoryMock.get.resolves({
+                pipelineId,
+                name: 'main'
+            });
+            eventConfig.parentBuilds = parentBuilds;
+            eventConfig.startFrom = 'main';
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.parentEventId = 888;
+            eventConfig.groupEventId = 2;
             eventConfig.baseBranch = 'master';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 

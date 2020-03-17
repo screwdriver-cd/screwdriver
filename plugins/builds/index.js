@@ -206,11 +206,13 @@ function handleNextBuild({ buildConfig, joinList, finishedBuilds, jobId }) {
  * @param {Object}  config                  Configuration object
  * @param {Factory} config.pipelineFactory  Pipeline Factory
  * @param {Factory} config.eventFactory     Event Factory
- * @param {String}  config.pipelineId       Pipeline to be rebuilt
+ * @param {Number}  config.pipelineId       Pipeline to be rebuilt
  * @param {String}  config.startFrom        Job to be rebuilt
  * @param {String}  config.causeMessage     Caused message, e.g. triggered by 1234(buildId)
  * @param {String}  config.parentBuildId    ID of the build that triggers this event
- * @param {Object} [config.parentBuilds]    Builds that triggered this build
+ * @param {Object}  [config.parentBuilds]   Builds that triggered this build
+ * @param {Number}  [config.parentEventId]  Parent event ID
+ * @param {Number}  [config.groupEventId]   Group parent event ID
  * @return {Promise}                        Resolves to the newly created event
  */
 async function createEvent(config) {
@@ -222,7 +224,8 @@ async function createEvent(config) {
         causeMessage,
         parentBuildId,
         parentBuilds,
-        parentEventId
+        parentEventId,
+        groupEventId
     } = config;
     const { scm } = eventFactory;
 
@@ -241,6 +244,10 @@ async function createEvent(config) {
     // for backward compatibility, this field is optional
     if (parentBuilds) {
         payload.parentBuilds = parentBuilds;
+    }
+
+    if (groupEventId) {
+        payload.groupEventId = groupEventId;
     }
 
     const pipeline = await pipelineFactory.get(pipelineId);
@@ -267,17 +274,18 @@ async function createEvent(config) {
 }
 
 /**
- * Create external build
+ * Create external build (returns event with `builds` field)
  * @method createExternalBuild
  * @param  {Object}   config                    Configuration object
  * @param  {Factory}  config.pipelineFactory    Pipeline Factory
  * @param  {Factory}  config.eventFactory       Event Factory
- * @param  {String}   config.externalPipelineId External pipelineId
+ * @param  {Number}   config.externalPipelineId External pipeline ID
  * @param  {String}   config.startFrom          External trigger to start from
- * @param  {Number}   config.parentBuildId      Parent Build Id
+ * @param  {Number}   config.parentBuildId      Parent Build ID
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {String}   config.causeMessage       Cause message of this event
- * @param  {Boolean}  [config.start]            Whether to start the build after creating
+ * @param  {Number}   [config.parentEventId]    Parent event ID
+ * @param  {Number}   [config.groupEventId]     Group parent event ID
  * @return {Promise}
  */
 async function createExternalBuild(config) {
@@ -289,7 +297,8 @@ async function createExternalBuild(config) {
         parentBuildId,
         parentBuilds,
         causeMessage,
-        parentEventId
+        parentEventId,
+        groupEventId
     } = config;
 
     const createEventConfig = {
@@ -304,6 +313,10 @@ async function createExternalBuild(config) {
 
     if (parentEventId) {
         createEventConfig.parentEventId = parentEventId;
+    }
+
+    if (groupEventId) {
+        createEventConfig.groupEventId = groupEventId;
     }
 
     return createEvent(createEventConfig);
@@ -1206,7 +1219,8 @@ exports.register = (server, options, next) => {
                                 parentBuilds: deepmerge.all([parentBuildsForJoin, parentBuilds]),
                                 causeMessage: `Triggered by ${triggerName}`,
                                 parentEventId: event.id,
-                                start: false
+                                start: false,
+                                groupEventId: event.groupEventId || event.id
                             });
 
                             newBuild = newEvent.builds.filter(b => b.jobId === jobId)[0];
