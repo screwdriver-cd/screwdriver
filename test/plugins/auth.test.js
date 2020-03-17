@@ -60,6 +60,7 @@ describe('auth plugin test', () => {
     let scm;
     const jwtPrivateKey = fs.readFileSync(`${__dirname}/data/jwt.private.key`).toString();
     const jwtPublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
+    const jwtQueueServicePublicKey = fs.readFileSync(`${__dirname}/data/jwt.public.key`).toString();
     const sampleToken = jwt.sign({}, jwtPrivateKey, {
         algorithm: 'RS256',
         expiresIn: '2h',
@@ -130,6 +131,7 @@ describe('auth plugin test', () => {
                     scm,
                     jwtPrivateKey,
                     jwtPublicKey,
+                    jwtQueueServicePublicKey,
                     allowGuestAccess: true,
                     https: false,
                     oauthRedirectUri,
@@ -173,6 +175,7 @@ describe('auth plugin test', () => {
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
+                        jwtQueueServicePublicKey,
                         https: false,
                         sameSite: false
                     }
@@ -229,6 +232,7 @@ describe('auth plugin test', () => {
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
+                        jwtQueueServicePublicKey,
                         https: false,
                         admins: ['github:batman', 'batman'],
                         sameSite: false
@@ -256,6 +260,7 @@ describe('auth plugin test', () => {
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
+                        jwtQueueServicePublicKey,
                         jwtEnvironment: 'beta',
                         https: false,
                         sameSite: false
@@ -395,6 +400,7 @@ describe('auth plugin test', () => {
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
+                        jwtQueueServicePublicKey,
                         https: false,
                         allowGuestAccess: false,
                         sameSite: false
@@ -583,6 +589,7 @@ describe('auth plugin test', () => {
                             scm,
                             jwtPrivateKey,
                             jwtPublicKey,
+                            jwtQueueServicePublicKey,
                             https: false,
                             whitelist: ['github:batman'],
                             sameSite: false
@@ -849,6 +856,7 @@ describe('auth plugin test', () => {
                             scm,
                             jwtPrivateKey,
                             jwtPublicKey,
+                            jwtQueueServicePublicKey,
                             https: false,
                             admins: ['batman'],
                             sameSite: false
@@ -1095,6 +1103,7 @@ describe('auth plugin test', () => {
                         scm,
                         jwtPrivateKey,
                         jwtPublicKey,
+                        jwtQueueServicePublicKey,
                         https: false,
                         sameSite: false
                     }
