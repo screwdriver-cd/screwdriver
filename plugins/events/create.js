@@ -110,7 +110,7 @@ module.exports = () => ({
                         if (creator) {
                             payload.creator = creator;
                         }
-                      
+
                         // Check for startFrom
                         if (!startFrom) {
                             throw boom.badRequest('Missing "startFrom" field');
