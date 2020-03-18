@@ -312,7 +312,7 @@ describe('auth plugin test', () => {
             });
         });
 
-        it('accepts token', () => {
+        it('accepts token', async () => {
             userFactoryMock.get.resolves(null);
             userFactoryMock.create.resolves({});
 
@@ -329,32 +329,18 @@ describe('auth plugin test', () => {
                 }
             });
 
-            return server
-                .inject({
-                    url: '/auth/token',
-                    credentials: {
-                        username: 'batman',
-                        scope: ['user'],
-                        token: sampleToken
-                    }
-                })
-                .then(reply => {
-                    const { token } = reply.result;
+            const reply = await server.inject({
+                url: '/auth/token',
+                credentials: {
+                    username: 'batman',
+                    scope: ['user'],
+                    token: sampleToken
+                }
+            });
 
-                    assert.ok(token, 'Did not return token');
+            const { token } = reply.result;
 
-                    return server
-                        .inject({
-                            url: '/protected-route2',
-                            headers: {
-                                Authorization: `Bearer ${token}`
-                            }
-                        })
-                        .then(reply2 => {
-                            assert.ok(reply2.statusCode, 200, 'Did not return correctly');
-                            assert.deepEqual(reply2.result, {}, 'Returned data');
-                        });
-                });
+            assert.ok(token, 'Did not return token');
         });
     });
 
