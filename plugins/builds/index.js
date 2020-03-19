@@ -1337,17 +1337,16 @@ exports.register = (server, options, next) => {
         const nextJobNames = Object.keys(joinObj);
 
         // Start each build sequentially
-        // FIXME:: Remove eslint disable after upgrading eslint rules
-        /* eslint-disable */
         for (const nextJobName of nextJobNames) {
             try {
                 await processNextJob(nextJobName);
             } catch (err) {
-                logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` +
-                    ` event:${event.id} `, err);
+                logger.error(
+                    `Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` + ` event:${event.id} `,
+                    err
+                );
             }
         }
-        /* eslint-enable */
 
         return null;
     });
