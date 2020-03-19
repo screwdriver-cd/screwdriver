@@ -1341,10 +1341,7 @@ exports.register = (server, options, next) => {
             try {
                 await processNextJob(nextJobName);
             } catch (err) {
-                logger.error(
-                    `Error in processNextJob - pipeline:${pipelineId}-${nextJobName}` + ` event:${event.id} `,
-                    err
-                );
+                logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName} event:${event.id} `, err);
             }
         }
 
