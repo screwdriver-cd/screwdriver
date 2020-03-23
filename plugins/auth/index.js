@@ -59,6 +59,7 @@ exports.register = (server, options, next) => {
             allowGuestAccess: JOI_BOOLEAN.default(false),
             jwtPrivateKey: joi.string().required(),
             jwtPublicKey: joi.string().required(),
+            jwtQueueServicePublicKey: joi.string().required(),
             whitelist: joi.array().default([]),
             admins: joi.array().default([]),
             scm: joi.object().required(),
@@ -165,7 +166,7 @@ exports.register = (server, options, next) => {
             });
 
             server.auth.strategy('token', 'jwt', {
-                key: pluginOptions.jwtPublicKey,
+                key: [pluginOptions.jwtPublicKey, pluginOptions.jwtQueueServicePublicKey],
                 verifyOptions: {
                     algorithms: [ALGORITHM]
                 },
