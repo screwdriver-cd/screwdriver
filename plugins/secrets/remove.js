@@ -14,7 +14,7 @@ module.exports = () => ({
         tags: ['api', 'secrets'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['user', '!guest', 'pipeline']
         },
         plugins: {
             'hapi-swagger': {
