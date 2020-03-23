@@ -141,6 +141,7 @@ $ sdlocal build [job-name] [options]
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 - `--disable-image-pull` Disable `sd-local` from always pulling build image.
 - `--sudo` Use `sudo` command to execute docker runtime.
+- `--local` Use `.sdlocal/config` in current directory as a config file of sd-local.
 
 ###### src-url option
 - How to specify the URL
