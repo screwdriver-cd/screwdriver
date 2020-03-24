@@ -14,6 +14,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - December 18th, 2019: Updated `launcher` / `log-service`
 - March 4th, 2020: Added `src-url` option and updated env options
 - March 16th, 2020: Added `sudo` option
+- March 24th, 2020: Added `--local` option
 
 ## Proposal
 
@@ -141,6 +142,7 @@ $ sdlocal build [job-name] [options]
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 - `--disable-image-pull` Disable `sd-local` from always pulling build image.
 - `--sudo` Use `sudo` command to execute docker runtime.
+- `--local` Run command with .sdlocal/config file in current directory
 
 ###### src-url option
 - How to specify the URL
