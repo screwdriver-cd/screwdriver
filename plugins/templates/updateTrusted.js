@@ -42,7 +42,10 @@ module.exports = () => ({
 
             template.trusted = trusted;
 
-            return template.update().then(() => reply().code(204), err => reply(boom.boomify(err)));
+            return template.update().then(
+                () => reply().code(204),
+                err => reply(boom.boomify(err))
+            );
         },
         validate: {
             params: {

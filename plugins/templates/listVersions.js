@@ -3,7 +3,10 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.template.get).label('List of templates');
+const listSchema = joi
+    .array()
+    .items(schema.models.template.get)
+    .label('List of templates');
 const nameSchema = joi.reach(schema.models.template.base, 'name');
 
 module.exports = () => ({
@@ -38,8 +41,9 @@ module.exports = () => ({
                 };
             }
 
-            return factory.list(config)
-                .then((templates) => {
+            return factory
+                .list(config)
+                .then(templates => {
                     if (templates.length === 0) {
                         throw boom.notFound('Template does not exist');
                     }

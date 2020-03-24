@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -16,8 +16,8 @@ const updatedCollection = require('./data/updatedCollection.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const getMock = (obj) => {
-    const mock = Object.assign({}, obj);
+const getMock = obj => {
+    const mock = { ...obj };
 
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(obj);
@@ -27,7 +27,7 @@ const getMock = (obj) => {
     return mock;
 };
 
-const getCollectionsMock = (collections) => {
+const getCollectionsMock = collections => {
     if (Array.isArray(collections)) {
         return collections.map(getMock);
     }
@@ -36,10 +36,10 @@ const getCollectionsMock = (collections) => {
 };
 
 // Get the mock pipeline in testPipelines using the input id
-const getPipelineMockFromId = (id) => {
+const getPipelineMockFromId = id => {
     let result = null;
 
-    testPipelines.forEach((pipeline) => {
+    testPipelines.forEach(pipeline => {
         if (pipeline.id === id) {
             result = hoek.clone(pipeline);
 
@@ -53,7 +53,7 @@ const getPipelineMockFromId = (id) => {
     return Promise.resolve(result);
 };
 
-const getUserMock = (user) => {
+const getUserMock = user => {
     const mock = hoek.clone(user);
 
     return mock;
@@ -62,7 +62,7 @@ const getUserMock = (user) => {
 describe('collection plugin test', () => {
     const username = 'jsequeira';
     const scmContext = 'github:github.com';
-    const userId = testCollection.userId;
+    const { userId } = testCollection;
     const type = 'normal';
     let collectionFactoryMock;
     let eventFactoryMock;
@@ -81,7 +81,7 @@ describe('collection plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         collectionFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -134,9 +134,14 @@ describe('collection plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        return server.register([{
-            register: plugin
-        }], done);
+        return server.register(
+            [
+                {
+                    register: plugin
+                }
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -180,14 +185,14 @@ describe('collection plugin test', () => {
         });
 
         it('returns 201 and correct collection data', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testCollection.id}`
                 };
-                const expected = Object.assign({}, testCollection);
+                const expected = { ...testCollection };
 
                 delete expected.id;
 
@@ -199,12 +204,11 @@ describe('collection plugin test', () => {
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testCollection);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
-            })
-        );
+            }));
 
         it('returns 201 and creates a collection when no pipelineIds given', () => {
             delete options.payload.pipelineIds;
-            const resultCollection = Object.assign({}, testCollection);
+            const resultCollection = { ...testCollection };
             const newCollectionMock = getMock(resultCollection);
 
             // collectionFactoryMock will resolve a collection model with the pipelineIds
@@ -214,14 +218,14 @@ describe('collection plugin test', () => {
             newCollectionMock.update.resolves(newCollectionMock);
             collectionFactoryMock.create.resolves(newCollectionMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testCollection.id}`
                 };
-                const expectedInput = Object.assign({}, testCollection);
+                const expectedInput = { ...testCollection };
 
                 delete expectedInput.id;
                 delete expectedInput.pipelineIds;
@@ -241,14 +245,14 @@ describe('collection plugin test', () => {
             // Delete the collection type
             delete options.payload.type;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testCollection.id}`
                 };
-                const expected = Object.assign({}, testCollection);
+                const expected = { ...testCollection };
 
                 delete expected.id;
 
@@ -269,14 +273,14 @@ describe('collection plugin test', () => {
             // Add an invalid pipelineId
             options.payload.pipelineIds = [...testCollection.pipelineIds, 126];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 const expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
                     protocol: reply.request.server.info.protocol,
                     pathname: `${options.url}/${testCollection.id}`
                 };
-                const expected = Object.assign({}, testCollection);
+                const expected = { ...testCollection };
 
                 delete expected.id;
                 // It is expected that the invalid pipelineId will be removed from the
@@ -295,18 +299,17 @@ describe('collection plugin test', () => {
         it('makes sure that pipelineFactory calls the pipelineFactory get method', () => {
             pipelineFactoryMock.get = sinon.spy();
 
-            return server.inject(options)
-                .then(() => {
+            return server.inject(options).then(() => {
                 // This makes sure that the object that calls the get method of pipelineFactory
                 // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
-                    assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
-                });
+                assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
+            });
         });
 
         it('returns 403 when the collection type is default', () => {
             options.payload.type = 'default';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -314,7 +317,7 @@ describe('collection plugin test', () => {
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -322,7 +325,7 @@ describe('collection plugin test', () => {
         it('returns 409 when the user tries to create a duplicate collection', () => {
             collectionFactoryMock.get.resolves({ id: 1 });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
                 assert.equal(reply.result.message, 'Collection already exists with the ID: 1');
             });
@@ -333,7 +336,7 @@ describe('collection plugin test', () => {
 
             collectionFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -357,7 +360,7 @@ describe('collection plugin test', () => {
         it('returns 200 and all collections', () => {
             collectionFactoryMock.list.resolves(getCollectionsMock(testCollections));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollections);
                 assert.calledWith(collectionFactoryMock.list, {
@@ -371,7 +374,7 @@ describe('collection plugin test', () => {
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -379,14 +382,14 @@ describe('collection plugin test', () => {
         it('returns 500 when datastore fails', () => {
             collectionFactoryMock.list.rejects(new Error('fail'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
     });
 
     describe('GET /collections/{id}', () => {
-        const id = testCollectionResponse.id;
+        const { id } = testCollectionResponse;
         let buildsMock;
         let eventMock;
         let pipelineMock;
@@ -413,7 +416,7 @@ describe('collection plugin test', () => {
             // Mock getting PRs info for a pipeline
             pipelineMock = getMock(testPipelines[0]);
             pipelineMock.getJobs = () => {
-                const jobsMock = testPRJobs.map((job) => {
+                const jobsMock = testPRJobs.map(job => {
                     const mock = getMock(job);
 
                     return mock;
@@ -434,14 +437,13 @@ describe('collection plugin test', () => {
         });
 
         it('exposes a route for getting a collection', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollectionResponse);
-            })
-        );
+            }));
 
         it('returns a collection only with pipelines that exist', () => {
-            const newTestCollection = Object.assign({}, testCollection);
+            const newTestCollection = { ...testCollection };
 
             // Add a pipelineId which doesn't exist in testPipelines
             newTestCollection.pipelineIds.push(126);
@@ -451,14 +453,14 @@ describe('collection plugin test', () => {
 
             // Since there is no pipeline with id 126, it should only return
             // all the other pipelines
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollectionResponse);
             });
         });
 
         it('sets collection type to normal in response if the collection type is empty', () => {
-            const newTestCollection = Object.assign({}, testCollection);
+            const newTestCollection = { ...testCollection };
 
             // Delete the type field
             delete newTestCollection.type;
@@ -466,7 +468,7 @@ describe('collection plugin test', () => {
 
             collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testCollectionResponse);
             });
@@ -479,16 +481,18 @@ describe('collection plugin test', () => {
                 id: fakeUserId
             });
 
-            userFactoryMock.get.withArgs({
-                username,
-                scmContext
-            }).resolves(fakeUserMock);
+            userFactoryMock.get
+                .withArgs({
+                    username,
+                    scmContext
+                })
+                .resolves(fakeUserMock);
 
-            const newTestCollectionResponse = Object.assign({}, testCollectionResponse);
+            const newTestCollectionResponse = { ...testCollectionResponse };
 
             newTestCollectionResponse.type = 'shared';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, newTestCollectionResponse);
             });
@@ -496,11 +500,11 @@ describe('collection plugin test', () => {
 
         it('sets lastBuilds to an empty array in response if no builds', () => {
             eventMock.getBuilds = () => Promise.resolve([]);
-            const expected = Object.assign({}, testCollectionResponse);
+            const expected = { ...testCollectionResponse };
 
             expected.pipelines[0].lastBuilds = [];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
             });
@@ -509,7 +513,7 @@ describe('collection plugin test', () => {
         it('fails to get pr jobs for a pipeline', () => {
             pipelineMock.getJobs = () => Promise.reject(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 // The response should still be 200 but error should be logged
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(loggerMock.error);
@@ -517,13 +521,12 @@ describe('collection plugin test', () => {
         });
 
         it('fails to get last event for a pipeline', () => {
-            eventFactoryMock.get.withArgs(
-                testPipelines[0].lastEventId).rejects(new Error('Failed'));
-            const expected = Object.assign({}, testCollectionResponse);
+            eventFactoryMock.get.withArgs(testPipelines[0].lastEventId).rejects(new Error('Failed'));
+            const expected = { ...testCollectionResponse };
 
             expected.pipelines[0].lastBuilds = [];
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
                 assert.calledOnce(loggerMock.error);
@@ -539,7 +542,7 @@ describe('collection plugin test', () => {
 
             collectionFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -548,14 +551,14 @@ describe('collection plugin test', () => {
         it('throws error when call returns error', () => {
             collectionFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
     });
 
     describe('PUT /collections/{id}', () => {
-        const id = testCollection.id;
+        const { id } = testCollection;
         let options;
         let updatedCollectionMock;
 
@@ -582,23 +585,20 @@ describe('collection plugin test', () => {
         });
 
         it('returns 200 and correct collection data', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, updatedCollection);
                 assert.calledOnce(collectionMock.update);
                 assert.equal(reply.statusCode, 200);
-            })
-        );
+            }));
 
         it('returns 200 when no pipelineIds in payload', () => {
             // The pipelineIds field should not be changed
-            const expectedOutput = Object.assign({}, updatedCollection, {
-                pipelineIds: testCollection.pipelineIds
-            });
+            const expectedOutput = { ...updatedCollection, pipelineIds: testCollection.pipelineIds };
 
             updatedCollectionMock.toJson.returns(expectedOutput);
             delete options.payload.pipelineIds;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 // Make sure that the pipelineIds field is not modified in the model
                 assert.deepEqual(collectionMock.pipelineIds, testCollection.pipelineIds);
                 // Make sure that the output has the unmodified list of pipelineIds
@@ -611,21 +611,20 @@ describe('collection plugin test', () => {
         it('makes sure that pipelineFactory calls the pipelineFactory get method', () => {
             pipelineFactoryMock.get = sinon.spy();
 
-            return server.inject(options)
-                .then(() => {
+            return server.inject(options).then(() => {
                 // This makes sure that the object that calls the get method of pipelineFactory
                 // is infact pipelineFactory, so the `this` context is set to pipelineFactory.
-                    assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
-                });
+                assert.isTrue(pipelineFactoryMock.get.calledOn(pipelineFactoryMock));
+            });
         });
 
         it('returns 403 when the collection to be changed has type "default"', () => {
-            const defaultCollection = Object.assign({}, testCollection, { type: 'default' });
+            const defaultCollection = { ...testCollection, type: 'default' };
             const defaultCollectionMock = getMock(defaultCollection);
 
             collectionFactoryMock.get.withArgs({ id }).resolves(defaultCollectionMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -633,7 +632,7 @@ describe('collection plugin test', () => {
         it('returns 404 when the collection id is not found', () => {
             collectionFactoryMock.get.withArgs({ id }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -641,7 +640,7 @@ describe('collection plugin test', () => {
         it('returns 404 when the payload type is "default"', () => {
             options.payload.type = 'default';
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -655,7 +654,7 @@ describe('collection plugin test', () => {
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -665,7 +664,7 @@ describe('collection plugin test', () => {
 
             collectionFactoryMock.get.withArgs({ id }).rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -675,14 +674,14 @@ describe('collection plugin test', () => {
 
             collectionMock.update.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
     });
 
     describe('DELETE /collections/{id}', () => {
-        const id = testCollection.id;
+        const { id } = testCollection;
         let options;
 
         beforeEach(() => {
@@ -700,19 +699,18 @@ describe('collection plugin test', () => {
         });
 
         it('returns 204 when delete is successful', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(collectionMock.remove);
-            })
-        );
+            }));
 
         it('returns 403 when the collection to be deleted has type "default"', () => {
-            const defaultCollection = Object.assign({}, testCollection, { type: 'default' });
+            const defaultCollection = { ...testCollection, type: 'default' };
             const defaultCollectionMock = getMock(defaultCollection);
 
             collectionFactoryMock.get.withArgs(id).resolves(defaultCollectionMock);
 
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -726,7 +724,7 @@ describe('collection plugin test', () => {
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -734,7 +732,7 @@ describe('collection plugin test', () => {
         it('returns 404 when collection does not exist', () => {
             collectionFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -742,7 +740,7 @@ describe('collection plugin test', () => {
         it('returns 404 when user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -750,7 +748,7 @@ describe('collection plugin test', () => {
         it('returns 500 when call returns error', () => {
             collectionMock.remove.rejects('collectionRemoveError');
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });

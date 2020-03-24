@@ -22,37 +22,39 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const id = request.params.id;
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const userFactory = request.server.app.userFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
+            const { id } = request.params;
+            const { pipelineFactory } = request.server.app;
+            const { userFactory } = request.server.app;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
 
             // Fetch the pipeline and user models
-            return Promise.all([
-                pipelineFactory.get(id),
-                userFactory.get({ username, scmContext })
-            ]).then(([pipeline, user]) => {
-                if (!pipeline) {
-                    throw boom.notFound('Pipeline does not exist');
-                }
-                if (!user) {
-                    throw boom.notFound(`User ${username} does not exist`);
-                }
+            return Promise.all([pipelineFactory.get(id), userFactory.get({ username, scmContext })])
+                .then(([pipeline, user]) => {
+                    if (!pipeline) {
+                        throw boom.notFound('Pipeline does not exist');
+                    }
+                    if (!user) {
+                        throw boom.notFound(`User ${username} does not exist`);
+                    }
 
-                // ask the user for permissions on this repo
-                return user.getPermissions(pipeline.scmUri)
-                    // check if user has push access
-                    .then((permissions) => {
-                        if (!permissions.push) {
-                            throw boom.forbidden(`User ${username} `
-                                + 'does not have push permission for this repo');
-                        }
-                    })
-                    // user has good permissions, add or update webhooks
-                    .then(() => pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`))
-                    .then(() => reply().code(204));
-            })
+                    // ask the user for permissions on this repo
+                    return (
+                        user
+                            .getPermissions(pipeline.scmUri)
+                            // check if user has push access
+                            .then(permissions => {
+                                if (!permissions.push) {
+                                    throw boom.forbidden(
+                                        `User ${username} does not have push permission for this repo`
+                                    );
+                                }
+                            })
+                            // user has good permissions, add or update webhooks
+                            .then(() => pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`))
+                            .then(() => reply().code(204))
+                    );
+                })
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {

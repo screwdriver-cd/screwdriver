@@ -23,10 +23,11 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const buildFactory = request.server.app.buildFactory;
+            const { buildFactory } = request.server.app;
 
-            return buildFactory.get(request.params.id)
-                .then((buildModel) => {
+            return buildFactory
+                .get(request.params.id)
+                .then(buildModel => {
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
@@ -38,13 +39,12 @@ module.exports = () => ({
                     // convert environment obj to array
                     const env = [];
 
-                    Object.keys(buildModel.environment).forEach((name) => {
+                    Object.keys(buildModel.environment).forEach(name => {
                         env.push({ [name]: buildModel.environment[name] });
                     });
                     buildModel.environment = env;
 
-                    return buildModel.update().then(m =>
-                        reply(m.toJsonWithSteps()));
+                    return buildModel.update().then(m => reply(m.toJsonWithSteps()));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

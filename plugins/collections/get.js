@@ -20,18 +20,17 @@ function getPipelinePRInfo(pipeline) {
     };
 
     // Get all the PR jobs
-    return pipeline.getJobs({ type: 'pr' })
-        .then((prJobs) => {
+    return pipeline
+        .getJobs({ type: 'pr' })
+        .then(prJobs => {
             if (!prJobs) {
                 return prs;
             }
 
             // Return array of prJobs' builds
-            return Promise.all(prJobs.map(job =>
-                job.getBuilds()
-            ));
+            return Promise.all(prJobs.map(job => job.getBuilds()));
         })
-        .then((prJobsBuilds) => {
+        .then(prJobsBuilds => {
             if (!prJobsBuilds || !prJobsBuilds.length) {
                 return prs;
             }
@@ -40,7 +39,7 @@ function getPipelinePRInfo(pipeline) {
             // for one PR job.
             prs.open = prJobsBuilds.length;
 
-            prJobsBuilds.forEach((jobBuilds) => {
+            prJobsBuilds.forEach(jobBuilds => {
                 // Check the first element (last build) if pr job failed
                 if (jobBuilds[0].status === 'FAILURE') {
                     prs.failing += 1;
@@ -49,7 +48,7 @@ function getPipelinePRInfo(pipeline) {
 
             return prs;
         })
-        .catch((err) => {
+        .catch(err => {
             logger.error(err);
 
             return prs;
@@ -70,25 +69,24 @@ function getPipelineHealth(pipeline, eventFactory) {
         return lastBuilds;
     }
 
-    return eventFactory.get(pipeline.lastEventId)
-        .then((event) => {
+    return eventFactory
+        .get(pipeline.lastEventId)
+        .then(event => {
             if (!event) {
                 return lastBuilds;
             }
 
-            return event.getBuilds()
-                .then((builds) => {
-                    if (builds.length) {
-                        // The events are sorted by most recent first. Need to reverse the order
-                        // to allow for matching with workflow job on the UI
-                        lastBuilds = Promise.all(builds.map(b => b.toJsonWithSteps()))
-                            .then(bs => bs.reverse());
-                    }
+            return event.getBuilds().then(builds => {
+                if (builds.length) {
+                    // The events are sorted by most recent first. Need to reverse the order
+                    // to allow for matching with workflow job on the UI
+                    lastBuilds = Promise.all(builds.map(b => b.toJsonWithSteps())).then(bs => bs.reverse());
+                }
 
-                    return lastBuilds;
-                });
+                return lastBuilds;
+            });
         })
-        .catch((err) => {
+        .catch(err => {
             logger.error(err);
 
             return lastBuilds;
@@ -103,25 +101,24 @@ function getPipelineHealth(pipeline, eventFactory) {
  * @returns {Array}
  */
 function getPipelinesInfo(pipelines, eventFactory) {
-    return pipelines
-        // Filter out pipelines that don't exist
-        .filter(pipeline => !!pipeline)
-        .map(pipeline =>
-            // Get the PR Info and last builds for each pipeline
-            Promise.all([
-                getPipelinePRInfo(pipeline),
-                getPipelineHealth(pipeline, eventFactory)
-            ])
-                // Combine the PR Info and last builds and return the populated pipeline
-                .then(([pipelinePRInfo, pipelineHealth]) => {
-                    const result = Object.assign({}, pipeline.toJson());
+    return (
+        pipelines
+            // Filter out pipelines that don't exist
+            .filter(pipeline => !!pipeline)
+            .map(pipeline =>
+                // Get the PR Info and last builds for each pipeline
+                Promise.all([getPipelinePRInfo(pipeline), getPipelineHealth(pipeline, eventFactory)])
+                    // Combine the PR Info and last builds and return the populated pipeline
+                    .then(([pipelinePRInfo, pipelineHealth]) => {
+                        const result = { ...pipeline.toJson() };
 
-                    result.prs = pipelinePRInfo;
-                    result.lastBuilds = pipelineHealth;
+                        result.prs = pipelinePRInfo;
+                        result.lastBuilds = pipelineHealth;
 
-                    return result;
-                })
-        );
+                        return result;
+                    })
+            )
+    );
 }
 
 module.exports = () => ({
@@ -141,20 +138,16 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const { collectionFactory, pipelineFactory, eventFactory, userFactory }
-                = request.server.app;
+            const { collectionFactory, pipelineFactory, eventFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
-            return Promise.all([
-                collectionFactory.get(request.params.id),
-                userFactory.get({ username, scmContext })
-            ])
+            return Promise.all([collectionFactory.get(request.params.id), userFactory.get({ username, scmContext })])
                 .then(([collection, user]) => {
                     if (!collection) {
                         throw boom.notFound('Collection does not exist');
                     }
 
-                    const result = Object.assign({}, collection.toJson());
+                    const result = { ...collection.toJson() };
 
                     if (user.id !== result.userId) {
                         // If the user accessing this collection is not the owner, return shared as type
@@ -167,21 +160,23 @@ module.exports = () => ({
                     // Store promises from pipelineFactory fetch operations
                     const collectionPipelines = [];
 
-                    result.pipelineIds.forEach((id) => {
+                    result.pipelineIds.forEach(id => {
                         collectionPipelines.push(pipelineFactory.get(id));
                     });
 
-                    return Promise.all(collectionPipelines)
-                        // Populate pipelines with PR Info and then last builds
-                        .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
-                        .then((pipelinesWithInfo) => {
-                            result.pipelines = pipelinesWithInfo;
-                            // pipelineIds should only contain pipelines that exist
-                            result.pipelineIds = pipelinesWithInfo.map(p => p.id);
-                            delete result.userId;
+                    return (
+                        Promise.all(collectionPipelines)
+                            // Populate pipelines with PR Info and then last builds
+                            .then(pipelines => Promise.all(getPipelinesInfo(pipelines, eventFactory)))
+                            .then(pipelinesWithInfo => {
+                                result.pipelines = pipelinesWithInfo;
+                                // pipelineIds should only contain pipelines that exist
+                                result.pipelineIds = pipelinesWithInfo.map(p => p.id);
+                                delete result.userId;
 
-                            return reply(result);
-                        });
+                                return reply(result);
+                            })
+                    );
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

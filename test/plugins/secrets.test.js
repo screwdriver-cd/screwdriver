@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -11,7 +11,7 @@ const testSecret = require('./data/secret.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const getPipelineMock = (pipeline) => {
+const getPipelineMock = pipeline => {
     const mock = hoek.clone(pipeline);
 
     mock.sync = sinon.stub();
@@ -22,7 +22,7 @@ const getPipelineMock = (pipeline) => {
     return mock;
 };
 
-const getUserMock = (user) => {
+const getUserMock = user => {
     const mock = hoek.clone(user);
 
     mock.getPermissions = sinon.stub();
@@ -30,7 +30,7 @@ const getUserMock = (user) => {
     return mock;
 };
 
-const getSecretMock = (secret) => {
+const getSecretMock = secret => {
     const mock = hoek.clone(secret);
 
     mock.toJson = sinon.stub().returns(secret);
@@ -55,7 +55,7 @@ describe('secret plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         secretFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -82,24 +82,31 @@ describe('secret plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                password
-            }
-        }, {
-            /* eslint-disable global-require */
-            register: require('../../plugins/pipelines')
-            /* eslint-enable global-require */
-        }], done);
+        server.register(
+            [
+                {
+                    register: plugin,
+                    options: {
+                        password
+                    }
+                },
+                {
+                    /* eslint-disable global-require */
+                    register: require('../../plugins/pipelines')
+                    /* eslint-enable global-require */
+                }
+            ],
+            done
+        );
     });
 
     afterEach(() => {
@@ -162,7 +169,7 @@ describe('secret plugin test', () => {
         it('returns 201 and correct secret data', () => {
             let expectedLocation;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 expectedLocation = {
                     host: reply.request.headers.host,
                     port: reply.request.headers.port,
@@ -186,17 +193,16 @@ describe('secret plugin test', () => {
         it('returns 409 when the secret already exists', () => {
             secretFactoryMock.get.resolves(secretMock);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
-                assert.strictEqual(reply.result.message,
-                    `Secret already exists with the ID: ${secretMock.id}`);
+                assert.strictEqual(reply.result.message, `Secret already exists with the ID: ${secretMock.id}`);
             });
         });
 
         it('returns 404 when the user does not exist', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -204,7 +210,7 @@ describe('secret plugin test', () => {
         it('returns 404 when the pipeline does not exist', () => {
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -212,7 +218,7 @@ describe('secret plugin test', () => {
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -222,7 +228,7 @@ describe('secret plugin test', () => {
 
             secretFactoryMock.create.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -265,7 +271,7 @@ describe('secret plugin test', () => {
         it('returns 404 when the pipeline does not exist', () => {
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -273,22 +279,40 @@ describe('secret plugin test', () => {
         it('returns 404 when the secret does not exist', () => {
             secretFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 204 if remove successfully', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.calledOnce(secretMock.remove);
-            })
-        );
+            }));
+
+        it('returns 204 if remove successfully by pipeline token', () => {
+            options.credentials.pipelineId = pipelineId;
+            options.credentials.scope = ['pipeline'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(secretMock.remove);
+            });
+        });
 
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the pipeline token does not have permissions', () => {
+            options.credentials.pipelineId = 111;
+            options.credentials.scope = ['pipeline'];
+
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -298,7 +322,7 @@ describe('secret plugin test', () => {
 
             secretMock.remove.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -345,7 +369,7 @@ describe('secret plugin test', () => {
         it('returns 404 when the pipeline does not exist', () => {
             pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -353,7 +377,7 @@ describe('secret plugin test', () => {
         it('returns 404 when the secret does not exist', () => {
             secretFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -368,7 +392,26 @@ describe('secret plugin test', () => {
 
             secretMock.toJson.returns(hoek.applyToDefaults(expected, { value: 'encrypted' }));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(secretMock.update);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
+
+        it('returns 200 if update successfully by pipeline token', () => {
+            const expected = {
+                id: 1234,
+                pipelineId: 123,
+                name: 'NPM_TOKEN',
+                allowInPR: true
+            };
+
+            options.credentials.pipelineId = pipelineId;
+            options.credentials.scope = ['pipeline'];
+            secretMock.toJson.returns(hoek.applyToDefaults(expected, { value: 'encrypted' }));
+
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledOnce(secretMock.update);
                 assert.deepEqual(reply.result, expected);
@@ -378,7 +421,16 @@ describe('secret plugin test', () => {
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the pipeline token does not have admin permissions', () => {
+            options.credentials.pipelineId = 111;
+            options.credentials.scope = ['pipeline'];
+
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -388,7 +440,7 @@ describe('secret plugin test', () => {
 
             secretMock.update.rejects(testError);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -433,7 +485,7 @@ describe('secret plugin test', () => {
             it('returns 404 when the pipeline does not exist', () => {
                 pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 404);
                 });
             });
@@ -441,7 +493,7 @@ describe('secret plugin test', () => {
             it('returns 404 when the secret does not exist', () => {
                 secretFactoryMock.get.resolves(null);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 404);
                 });
             });
@@ -449,7 +501,7 @@ describe('secret plugin test', () => {
             it('returns 404 when the user does not exist', () => {
                 userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 404);
                 });
             });
@@ -457,7 +509,7 @@ describe('secret plugin test', () => {
             it('returns 403 when the user does not have push permissions', () => {
                 userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
                 });
             });
@@ -470,7 +522,7 @@ describe('secret plugin test', () => {
                     allowInPR: false
                 };
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(secretFactoryMock.get, secretId);
@@ -493,17 +545,16 @@ describe('secret plugin test', () => {
             });
 
             it('shows secret value if scope is build', () =>
-                server.inject(options).then((reply) => {
+                server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, testSecret);
                     assert.calledWith(secretFactoryMock.get, secretId);
-                })
-            );
+                }));
 
             it('returns 403 if build is not allowed to access secret', () => {
                 options.credentials.pipelineId = 124;
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
                 });
             });
@@ -511,7 +562,7 @@ describe('secret plugin test', () => {
             it('returns 403 if not allowed in PR and build is running a PR job', () => {
                 options.credentials.isPR = true;
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
                 });
             });
