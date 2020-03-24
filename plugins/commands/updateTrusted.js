@@ -42,7 +42,10 @@ module.exports = () => ({
 
             command.trusted = trusted;
 
-            return command.update().then(() => reply().code(204), err => reply(boom.boomify(err)));
+            return command.update().then(
+                () => reply().code(204),
+                err => reply(boom.boomify(err))
+            );
         },
         validate: {
             params: {

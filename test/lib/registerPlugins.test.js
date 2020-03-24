@@ -35,9 +35,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/stats',
         '../plugins/isAdmin'
     ];
-    const customPlugins = [
-        '../plugins/shutdown'
-    ];
+    const customPlugins = ['../plugins/shutdown'];
     const pluginLength = expectedPlugins.length + resourcePlugins.length + customPlugins.length;
     const mocks = {};
     const config = {};
@@ -57,17 +55,17 @@ describe('Register Unit Test Case', () => {
             on: sinon.stub()
         };
 
-        expectedPlugins.forEach((plugin) => {
+        expectedPlugins.forEach(plugin => {
             mocks[plugin] = sinon.stub();
             mockery.registerMock(plugin, mocks[plugin]);
         });
 
-        resourcePlugins.forEach((plugin) => {
+        resourcePlugins.forEach(plugin => {
             mocks[plugin] = sinon.stub();
             mockery.registerMock(plugin, mocks[plugin]);
         });
 
-        customPlugins.forEach((plugin) => {
+        customPlugins.forEach(plugin => {
             mocks[plugin] = sinon.stub();
             mockery.registerMock(plugin, mocks[plugin]);
         });
@@ -92,7 +90,7 @@ describe('Register Unit Test Case', () => {
 
         return main(serverMock, config).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
-            expectedPlugins.forEach((plugin) => {
+            expectedPlugins.forEach(plugin => {
                 Assert.calledWith(serverMock.register, mocks[plugin], {
                     routes: {
                         prefix: '/v4'
@@ -108,15 +106,19 @@ describe('Register Unit Test Case', () => {
         return main(serverMock, config).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
-            resourcePlugins.forEach((plugin) => {
-                Assert.calledWith(serverMock.register, {
-                    register: mocks[plugin],
-                    options: {}
-                }, {
-                    routes: {
-                        prefix: '/v4'
+            resourcePlugins.forEach(plugin => {
+                Assert.calledWith(
+                    serverMock.register,
+                    {
+                        register: mocks[plugin],
+                        options: {}
+                    },
+                    {
+                        routes: {
+                            prefix: '/v4'
+                        }
                     }
-                });
+                );
             });
         });
     });
@@ -127,11 +129,15 @@ describe('Register Unit Test Case', () => {
         return main(serverMock, config).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
-            customPlugins.forEach((plugin) => {
-                Assert.calledWith(serverMock.register, {
-                    register: mocks[plugin],
-                    options: { terminationGracePeriod: 30 }
-                }, {});
+            customPlugins.forEach(plugin => {
+                Assert.calledWith(
+                    serverMock.register,
+                    {
+                        register: mocks[plugin],
+                        options: { terminationGracePeriod: 30 }
+                    },
+                    {}
+                );
             });
         });
     });
@@ -150,12 +156,9 @@ describe('Register Unit Test Case', () => {
             }
         };
 
-        const notificationPlugins = [
-            'screwdriver-notifications-email',
-            'screwdriver-notifications-slack'
-        ];
+        const notificationPlugins = ['screwdriver-notifications-email', 'screwdriver-notifications-slack'];
 
-        notificationPlugins.forEach((plugin) => {
+        notificationPlugins.forEach(plugin => {
             mocks[plugin] = sinon.stub();
             mocks[plugin].prototype.events = ['build_status'];
             mocks[plugin].prototype.notify = sinon.stub();
@@ -163,9 +166,7 @@ describe('Register Unit Test Case', () => {
         });
 
         return main(serverMock, newConfig).then(() => {
-            notificationPlugins.forEach(() =>
-                Assert.calledTwice(serverMock.on)
-            );
+            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.on));
         });
     });
 
@@ -194,7 +195,7 @@ describe('Register Unit Test Case', () => {
             '@module/screwdriver-notifications-slack'
         ];
 
-        notificationPlugins.forEach((plugin) => {
+        notificationPlugins.forEach(plugin => {
             mocks[plugin] = sinon.stub();
             mocks[plugin].prototype.events = ['build_status'];
             mocks[plugin].prototype.notify = sinon.stub();
@@ -202,9 +203,7 @@ describe('Register Unit Test Case', () => {
         });
 
         return main(serverMock, newConfig).then(() => {
-            notificationPlugins.forEach(() =>
-                Assert.calledTwice(serverMock.on)
-            );
+            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.on));
         });
     });
 
@@ -222,15 +221,19 @@ describe('Register Unit Test Case', () => {
         }).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength + 1);
 
-            resourcePlugins.forEach((plugin) => {
-                Assert.calledWith(serverMock.register, {
-                    register: mocks[plugin],
-                    options: {}
-                }, {
-                    routes: {
-                        prefix: '/v4'
+            resourcePlugins.forEach(plugin => {
+                Assert.calledWith(
+                    serverMock.register,
+                    {
+                        register: mocks[plugin],
+                        options: {}
+                    },
+                    {
+                        routes: {
+                            prefix: '/v4'
+                        }
                     }
-                });
+                );
             });
         });
     });
@@ -242,7 +245,7 @@ describe('Register Unit Test Case', () => {
             .then(() => {
                 throw new Error('should not be here');
             })
-            .catch((err) => {
+            .catch(err => {
                 Assert.equal(err.message, 'failure loading');
             });
     });
@@ -257,16 +260,20 @@ describe('Register Unit Test Case', () => {
         }).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
-            Assert.calledWith(serverMock.register, {
-                register: mocks['../plugins/auth'],
-                options: {
-                    foo: 'bar'
+            Assert.calledWith(
+                serverMock.register,
+                {
+                    register: mocks['../plugins/auth'],
+                    options: {
+                        foo: 'bar'
+                    }
+                },
+                {
+                    routes: {
+                        prefix: '/v4'
+                    }
                 }
-            }, {
-                routes: {
-                    prefix: '/v4'
-                }
-            });
+            );
         });
     });
 });

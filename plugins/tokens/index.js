@@ -26,11 +26,11 @@ exports.register = (server, options, next) => {
      * @return {Boolean}
      */
     server.expose('canAccess', (credentials, token) => {
-        const userFactory = server.root.app.userFactory;
-        const username = credentials.username;
-        const scmContext = credentials.scmContext;
+        const { userFactory } = server.root.app;
+        const { username } = credentials;
+        const { scmContext } = credentials;
 
-        return userFactory.get({ username, scmContext }).then((user) => {
+        return userFactory.get({ username, scmContext }).then(user => {
             if (!user) {
                 throw boom.notFound(`User ${username} does not exist`);
             }
@@ -43,13 +43,7 @@ exports.register = (server, options, next) => {
         });
     });
 
-    server.route([
-        createRoute(),
-        listRoute(),
-        updateRoute(),
-        refreshRoute(),
-        removeRoute()
-    ]);
+    server.route([createRoute(), listRoute(), updateRoute(), refreshRoute(), removeRoute()]);
 
     next();
 };

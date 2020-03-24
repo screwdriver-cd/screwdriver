@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
-            scope: ['user', 'build', 'pipeline', 'temporal']
+            scope: ['user', 'pipeline', '!guest']
         },
         plugins: {
             'hapi-swagger': {
@@ -31,7 +31,7 @@ module.exports = () => ({
                     throw boom.notFound('Pipeline does not exist');
                 }
 
-                const admin = await pipeline.admin();
+                const admin = await pipeline.getFirstAdmin();
 
                 return reply(admin);
             } catch (err) {
