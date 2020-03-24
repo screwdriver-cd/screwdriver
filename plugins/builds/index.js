@@ -909,6 +909,70 @@ async function createOrRunNextBuild({
 }
 
 /**
+ * Finds unique pipeline IDs and filters them out to return duplicates
+ * @param  {Array} externalJobPipelineIds External job pipeline IDs
+ * @return {Array}                        Duplicate external job pipeline IDs
+ */
+function getDuplicatePipelineIds(externalJobPipelineIds) {
+    // Find uniq pipelineIds
+    const uniqPipelineIds = externalJobPipelineIds
+        .map(pid => ({ count: 1, pid }))
+        .reduce((a, b) => {
+            a[b.pid] = (a[b.pid] || 0) + b.count;
+
+            return a;
+        }, {});
+    const duplicatePipelineIds = Object.keys(uniqPipelineIds).filter(a => uniqPipelineIds[a] > 1);
+
+    return duplicatePipelineIds;
+}
+
+/**
+ * Parses join object to return duplicate pipeline IDs
+ * and a dict for easier data manipulation and lookup (e.g. below)
+ * {
+ *   123: {
+ *     full: ['sd@123:main', 'sd@234:test'],
+ *     short: ['main', 'test']
+ *   }
+ * }
+ * @param  {Object} joinObj Join object
+ * @return {Object}         Duplicate pipeline IDs and external triggers dict
+ */
+function parseJoinObj(joinObj) {
+    // Get all external job names that do not have a join in joinObj
+    const externalJobNamesWithNoJoinArr = Object.keys(joinObj).filter(
+        jName => EXTERNAL_TRIGGER_ALL.test(jName) && joinObj[jName].length === 0
+    );
+    // Get pipeline IDs only
+    const externalJobPipelineIds = externalJobNamesWithNoJoinArr.map(n => EXTERNAL_TRIGGER_ALL.exec(n)[1]);
+    const externalTriggersDict = {};
+
+    // Construct a dict for easier manipulation
+    externalJobNamesWithNoJoinArr.forEach(n => {
+        const [fullName, pId, jName] = EXTERNAL_TRIGGER_ALL.exec(n);
+
+        if (externalTriggersDict[pId]) {
+            externalTriggersDict[pId].full = externalTriggersDict[pId].full.concat([fullName]);
+            externalTriggersDict[pId].short = externalTriggersDict[pId].short.concat([jName]);
+        } else {
+            externalTriggersDict[pId] = {
+                full: [fullName],
+                short: [jName]
+            };
+        }
+    });
+
+    // Get duplicate pipeline IDs
+    const duplicatePipelineIds = getDuplicatePipelineIds(externalJobPipelineIds);
+
+    return {
+        duplicatePipelineIds,
+        externalTriggersDict
+    };
+}
+
+/**
  * Trigger single event for all external jobs with matching pipeline IDs
  * Also, remove the above job names from the joinObj
  * @param  {Object}   config
@@ -923,36 +987,19 @@ async function createOrRunNextBuild({
  */
 async function handleDuplicatePipelines(config) {
     const { joinObj, pipelineFactory, eventFactory, pipelineId, currentJobName, build, event } = config;
-    const newJoinObj = joinObj;
-    // Get all external job names that do not have a join in joinObj
-    const externalJobNamesWithNoJoinArr = Object.keys(joinObj).filter(
-        jName => EXTERNAL_TRIGGER_ALL.test(jName) && joinObj[jName].length === 0
-    );
-    // Get pipeline IDs only
-    const externalJobPipelineIds = externalJobNamesWithNoJoinArr.map(n => EXTERNAL_TRIGGER_ALL.exec(n)[1]);
-    // Find uniq pipelineIds
-    const uniqPipelineIds = externalJobPipelineIds
-        .map(pid => ({ count: 1, pid }))
-        .reduce((a, b) => {
-            a[b.pid] = (a[b.pid] || 0) + b.count;
-
-            return a;
-        }, {});
-    const duplicatePipelineIds = Object.keys(uniqPipelineIds).filter(a => uniqPipelineIds[a] > 1);
+    const { duplicatePipelineIds, externalTriggersDict } = parseJoinObj(joinObj);
     const pipelinesToStart = [];
 
     // Get pipeline's workflowGraph to make sure there is no join
     await Promise.all(
         duplicatePipelineIds.map(async id => {
-            const duplicateJobNames = externalJobNamesWithNoJoinArr.filter(jName => jName.indexOf(`sd@${id}:`) >= 0);
+            const duplicateJobNames = externalTriggersDict[id].short;
             const pipeline = await pipelineFactory.get(id);
 
             if (pipeline && pipeline.workflowGraph) {
-                const { workflowGraph } = pipeline;
                 // Check for join in workflowGraph
                 const containsJoin = duplicateJobNames.some(name => {
-                    const jobName = name.split(':')[1];
-                    const edge = workflowGraph.edges.filter(e => e.dest === jobName);
+                    const edge = pipeline.workflowGraph.edges.filter(e => e.dest === name);
 
                     return edge.some(e => e.join);
                 });
@@ -980,14 +1027,11 @@ async function handleDuplicatePipelines(config) {
     if (pipelinesToStart.length) {
         await Promise.all(
             pipelinesToStart.map(async pid => {
-                const externalJobNamesWithMatchingPipelineId = externalJobNamesWithNoJoinArr.filter(
-                    jName => EXTERNAL_TRIGGER_ALL.exec(jName)[1] === pid
-                );
-                const triggerName = `sd@${pipelineId}:${currentJobName}`;
+                const externalJobNamesWithMatchingPipelineId = externalTriggersDict[pid].full;
 
                 // Remove job names with duplicate pipeline IDs from joinObj
                 externalJobNamesWithMatchingPipelineId.forEach(name => {
-                    delete newJoinObj[name];
+                    delete joinObj[name];
                 });
 
                 // Start one event per duplicate pipelineId
@@ -995,17 +1039,17 @@ async function handleDuplicatePipelines(config) {
                     pipelineFactory,
                     eventFactory,
                     externalPipelineId: pid,
-                    startFrom: `~${triggerName}`,
+                    startFrom: `~sd@${pipelineId}:${currentJobName}`,
                     parentBuildId: build.id,
                     parentBuilds,
-                    causeMessage: `Triggered by ${triggerName}`,
+                    causeMessage: `Triggered by sd@${pipelineId}:${currentJobName}`,
                     parentEventId: event.id
                 });
             })
         );
     }
 
-    return newJoinObj;
+    return joinObj;
 }
 
 /**
