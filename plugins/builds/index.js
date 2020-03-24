@@ -228,7 +228,6 @@ async function createEvent(config) {
         groupEventId
     } = config;
     const { scm } = eventFactory;
-
     const payload = {
         pipelineId,
         startFrom,
@@ -665,6 +664,10 @@ async function handleNewBuild({ done, hasFailure, newBuild }) {
     if (done) {
         // Delete new build since previous build failed
         if (hasFailure) {
+            logger.info(
+                `Failure occurred in upstream job, removing new build - build:${newBuild.id}` +
+                    ` event:${newBuild.eventId} `
+            );
             await newBuild.remove();
 
             return null;
@@ -921,7 +924,7 @@ async function createOrRunNextBuild({
 async function handleDuplicatePipelines(config) {
     const { joinObj, pipelineFactory, eventFactory, pipelineId, currentJobName, build, event } = config;
     const newJoinObj = joinObj;
-    // Get all external job names that do not have a join
+    // Get all external job names that do not have a join in joinObj
     const externalJobNamesWithNoJoinArr = Object.keys(joinObj).filter(
         jName => EXTERNAL_TRIGGER_ALL.test(jName) && joinObj[jName].length === 0
     );
@@ -936,6 +939,31 @@ async function handleDuplicatePipelines(config) {
             return a;
         }, {});
     const duplicatePipelineIds = Object.keys(uniqPipelineIds).filter(a => uniqPipelineIds[a] > 1);
+    const pipelinesToStart = [];
+
+    // Get pipeline's workflowGraph to make sure there is no join
+    await Promise.all(
+        duplicatePipelineIds.map(async id => {
+            const duplicateJobNames = externalJobNamesWithNoJoinArr.filter(jName => jName.indexOf(`sd@${id}:`) >= 0);
+            const pipeline = await pipelineFactory.get(id);
+
+            if (pipeline && pipeline.workflowGraph) {
+                const { workflowGraph } = pipeline;
+                // Check for join in workflowGraph
+                const containsJoin = duplicateJobNames.some(name => {
+                    const jobName = name.split(':')[1];
+                    const edge = workflowGraph.edges.filter(e => e.dest === jobName);
+
+                    return edge.some(e => e.join);
+                });
+
+                // Add to array only if no join and not already in the list
+                if (!containsJoin && !pipelinesToStart.includes(id)) {
+                    pipelinesToStart.push(id);
+                }
+            }
+        })
+    );
 
     // Construct parent builds
     const currentJobParentBuilds = build.parentBuilds || {};
@@ -949,9 +977,9 @@ async function handleDuplicatePipelines(config) {
 
     // Handle external events
     // If no join array and external and pipeline the same, should be same event
-    if (duplicatePipelineIds.length) {
+    if (pipelinesToStart.length) {
         await Promise.all(
-            duplicatePipelineIds.map(async pid => {
+            pipelinesToStart.map(async pid => {
                 const externalJobNamesWithMatchingPipelineId = externalJobNamesWithNoJoinArr.filter(
                     jName => EXTERNAL_TRIGGER_ALL.exec(jName)[1] === pid
                 );
@@ -1210,11 +1238,14 @@ exports.register = (server, options, next) => {
                             parentBuildsForJoin = previousBuild.parentBuilds;
 
                             const triggerName = `sd@${pipelineId}:${currentJobName}`;
+                            const startFrom = parentWorkflowGraph.nodes.filter(n => n.name === `~${triggerName}`).length
+                                ? `~${triggerName}`
+                                : externalJobName;
                             const newEvent = await createExternalBuild({
                                 pipelineFactory,
                                 eventFactory,
                                 externalPipelineId: externalEvent.pipelineId,
-                                startFrom: `~${triggerName}`,
+                                startFrom,
                                 parentBuildId: build.id,
                                 parentBuilds: deepmerge.all([parentBuildsForJoin, parentBuilds]),
                                 causeMessage: `Triggered by ${triggerName}`,
