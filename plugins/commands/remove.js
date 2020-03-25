@@ -76,7 +76,6 @@ module.exports = () => ({
 
                     return canRemove(credentials, commands[0], 'admin')
                         .then(() => {
-                            // eslint-disable-next-line max-len
                             const commandPromises = commands.map(command =>
                                 removeCommand(command, storeUrl, authToken)
                             );
