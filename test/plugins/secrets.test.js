@@ -290,8 +290,27 @@ describe('secret plugin test', () => {
                 assert.calledOnce(secretMock.remove);
             }));
 
+        it('returns 204 if remove successfully by pipeline token', () => {
+            options.credentials.pipelineId = pipelineId;
+            options.credentials.scope = ['pipeline'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(secretMock.remove);
+            });
+        });
+
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the pipeline token does not have permissions', () => {
+            options.credentials.pipelineId = 111;
+            options.credentials.scope = ['pipeline'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -380,8 +399,36 @@ describe('secret plugin test', () => {
             });
         });
 
+        it('returns 200 if update successfully by pipeline token', () => {
+            const expected = {
+                id: 1234,
+                pipelineId: 123,
+                name: 'NPM_TOKEN',
+                allowInPR: true
+            };
+
+            options.credentials.pipelineId = pipelineId;
+            options.credentials.scope = ['pipeline'];
+            secretMock.toJson.returns(hoek.applyToDefaults(expected, { value: 'encrypted' }));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(secretMock.update);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
+
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when the pipeline token does not have admin permissions', () => {
+            options.credentials.pipelineId = 111;
+            options.credentials.scope = ['pipeline'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);

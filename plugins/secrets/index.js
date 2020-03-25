@@ -58,6 +58,10 @@ exports.register = (server, options, next) => {
                 });
             }
 
+            if (scope.includes('pipeline') && secret.pipelineId !== credentials.pipelineId) {
+                throw boom.forbidden('Token does not have permission to this secret');
+            }
+
             if (secret.pipelineId !== credentials.pipelineId && secret.pipelineId !== credentials.configPipelineId) {
                 throw boom.forbidden(`${username} is not allowed to access this secret`);
             }
