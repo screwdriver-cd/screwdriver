@@ -2027,7 +2027,23 @@ describe('build plugin test', () => {
                                 {
                                     id: 3
                                 }
-                            ])
+                            ]),
+                            workflowGraph: {
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'a', id: 1 },
+                                    { name: 'b', id: 2 },
+                                    { name: 'c', id: 3 },
+                                    { name: 'd', id: 4 }
+                                ],
+                                edges: [
+                                    { src: '~pr', dest: 'main' },
+                                    { src: '~commit', dest: 'main' },
+                                    { src: '~sd@123:a', dest: 'a' },
+                                    { src: '~sd@123:a', dest: 'c' }
+                                ]
+                            }
                         })
                     );
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
@@ -3169,7 +3185,7 @@ describe('build plugin test', () => {
                         pipelineId: 123,
                         scmContext: 'github:github.com',
                         sha: 'sha',
-                        startFrom: '~sd@123:a',
+                        startFrom: 'c',
                         type: 'pipeline',
                         username: 'foo'
                     };
