@@ -655,18 +655,19 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  *          if failure, delete new build
  *          if no failure, start new build
  * Otherwise, do nothing
- * @param  {Boolean} done       If the build is done or not
- * @param  {Boolean} hasFailure If the build has a failure or not
- * @param  {Build}   newBuild   Next build
- * @return {Promise}            The newly updated/created build
+ * @param  {Boolean} done           If the build is done or not
+ * @param  {Boolean} hasFailure     If the build has a failure or not
+ * @param  {Build}   newBuild       Next build
+ * @param  {String}  [jobName]      Job name
+ * @param  {String}  [pipelineId]   Pipeline ID
+ * @return {Promise}                The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild }) {
+async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId }) {
     if (done) {
         // Delete new build since previous build failed
         if (hasFailure) {
             logger.info(
-                `Failure occurred in upstream job, removing new build - build:${newBuild.id}` +
-                    ` event:${newBuild.eventId} `
+                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
             );
             await newBuild.remove();
 
@@ -905,7 +906,7 @@ async function createOrRunNextBuild({
             OTHERWISE -> START NEW BUILD
         IF ALL SUCCEEDED -> START NEW BUILD
     */
-    return handleNewBuild({ done, hasFailure, newBuild });
+    return handleNewBuild({ done, hasFailure, newBuild, jobName: nextJobName, pipelineId });
 }
 
 /**
@@ -1358,7 +1359,7 @@ exports.register = (server, options, next) => {
                             OTHERWISE -> START NEW BUILD
                         IF ALL SUCCEEDED -> START NEW BUILD
                     */
-                    return handleNewBuild({ done, hasFailure, newBuild });
+                    return handleNewBuild({ done, hasFailure, newBuild, jobName: externalJobName, pipelineId });
                 }
 
                 // Simply create an external event if external job is not join job
