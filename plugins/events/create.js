@@ -193,6 +193,7 @@ module.exports = () => ({
 
                                                         payload.prInfo = prInfo;
                                                         payload.prRef = prInfo.ref;
+                                                        payload.prSource = prInfo.prSource;
                                                         payload.chainPR = pipeline.chainPR;
                                                         let restrictPR = 'none';
 
