@@ -195,8 +195,11 @@ module.exports = config => ({
                                     buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
                                 });
 
+                                const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
+
                                 // Guard against triggering non-successful or unstable builds
-                                if (newBuild.status !== 'SUCCESS') {
+                                // Don't further trigger pipeline if intented to skip further jobs
+                                if (newBuild.status !== 'SUCCESS' || skipFurther) {
                                     return reply(newBuild.toJsonWithSteps()).code(200);
                                 }
 
