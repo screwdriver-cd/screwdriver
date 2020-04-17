@@ -137,6 +137,8 @@ executor:
         preferredNodeSelectors:
           __name: K8S_PREFERRED_NODE_SELECTORS
           __format: json
+        # supoprt for kata-containers-as-a-runtimeclass
+        runtimeClass: K8S_RUNTIME_CLASS
       # Launcher container tag to use
       launchVersion: LAUNCH_VERSION
       # Launcher image to use
