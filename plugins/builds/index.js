@@ -862,7 +862,7 @@ async function createOrRunNextBuild({
         // If next build is internal, look at the finished builds for this event
         const jobId = workflowGraph.nodes.find(node => node.name === trimJobName(nextJobName)).id;
 
-        nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId);
+        nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId && b.eventId === event.id);
     }
 
     let newBuild;

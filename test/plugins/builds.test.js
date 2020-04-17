@@ -2223,6 +2223,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
@@ -2242,18 +2243,22 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 4,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 5,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 6,
+                            eventId: '8888',
                             status: 'ABORTED'
                         },
                         buildC
@@ -2738,6 +2743,7 @@ describe('build plugin test', () => {
                     const buildC = {
                         jobId: 3,
                         status: 'CREATED',
+                        eventId: '8888',
                         parentBuilds: {
                             123: {
                                 eventId: '8888',
@@ -2758,18 +2764,22 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 4,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 5,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 6,
+                            eventId: '8888',
                             status: 'ABORTED'
                         },
                         buildC
@@ -2813,7 +2823,8 @@ describe('build plugin test', () => {
                     ];
 
                     const buildC = {
-                        jobId: 3, // job c was previously created
+                        jobId: 3, // job c was previously created,
+                        eventId: '8888',
                         remove: sinon.stub().resolves(null)
                     };
 
@@ -2826,10 +2837,12 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            eventId: '8888',
                             status: 'FAILURE'
                         },
                         {
                             jobId: 4,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         buildC
@@ -2859,6 +2872,7 @@ describe('build plugin test', () => {
                     };
                     const buildC = {
                         jobId: 3,
+                        eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: {
                             123: {
@@ -2879,6 +2893,7 @@ describe('build plugin test', () => {
                             {
                                 id: 888,
                                 jobId: 1,
+                                eventId: '8888',
                                 status: 'SUCCESS'
                             }
                         ],
@@ -2886,6 +2901,7 @@ describe('build plugin test', () => {
                             {
                                 id: 888,
                                 jobId: 1,
+                                eventId: '8888',
                                 status: 'SUCCESS'
                             }
                         ]),
@@ -2908,25 +2924,6 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    eventMock.getBuilds.resolves([
-                        {
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 4,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 5,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 6,
-                            status: 'ABORTED'
-                        },
-                        buildC
-                    ]);
                     jobBconfig.parentBuilds = {
                         123: {
                             eventId: '8888',
@@ -2957,6 +2954,7 @@ describe('build plugin test', () => {
                         {
                             id: 5,
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         }
                     ]);
@@ -2964,11 +2962,13 @@ describe('build plugin test', () => {
                         {
                             id: 1,
                             jobId: 1,
+                            eventId: '8888',
                             status: 'FAILURE'
                         },
                         {
                             id: 4,
                             jobId: 4,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         }
                     ]);
@@ -3071,18 +3071,22 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 4,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 5,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 6,
+                            eventId: '8888',
                             status: 'ABORTED'
                         },
                         buildD
@@ -3116,17 +3120,20 @@ describe('build plugin test', () => {
                         {
                             id: 5,
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         }
                     ]);
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 1,
+                            eventId: '8888',
                             jobId: 1,
                             status: 'FAILURE'
                         },
                         {
                             id: 4,
+                            eventId: '8888',
                             jobId: 4,
                             status: 'SUCCESS'
                         }
@@ -3403,6 +3410,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: { 123: { jobs: { a: null, b: 5555 }, eventId: '8888' } }
                     };
@@ -3418,10 +3426,12 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 2,
+                            eventId: '8888',
                             status: 'RUNNING'
                         },
                         buildC
@@ -3445,6 +3455,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: { 123: { jobs: { a: null, b: 5555 }, eventId: '8888' } }
                     };
@@ -3460,10 +3471,12 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 2,
+                            eventId: '8888',
                             status: 'FAILURE'
                         },
                         buildC
