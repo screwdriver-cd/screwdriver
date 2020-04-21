@@ -1935,7 +1935,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe('join new flow', () => {
+            describe.only('join new flow', () => {
                 let newServer;
                 const options = {
                     method: 'PUT',

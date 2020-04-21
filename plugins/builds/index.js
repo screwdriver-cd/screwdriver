@@ -424,7 +424,7 @@ function dfs(workflowGraph, start, builds, visited) {
  * @param  {Array}  config.builds         An array of all builds from the parent event
  * @param  {String} config.startFrom      Job name to start the event from
  * @param  {Object} config.parentEvent    The parent event model
- * @return {Array}                        An array of upstream builds to be rerun
+ * @return {Array}                        An array of upstream builds
  */
 function removeDownstreamBuilds(config) {
     const { builds, startFrom, parentEvent } = config;
@@ -567,15 +567,23 @@ async function getFinishedBuilds(event, eventFactory) {
                 groupEventId: event.groupEventId
             }
         });
-        let parentBuilds = [];
+        const builds = await event.getBuilds();
+        let parentBuilds = [].concat(builds);
 
         await Promise.all(
             parentEvents.map(async pe => {
-                const parentBuild = await pe.getBuilds();
+                const eventBuilds = await pe.getBuilds();
+                const upstreamBuilds = removeDownstreamBuilds({
+                    builds: eventBuilds,
+                    startFrom: event.startFrom,
+                    parentEvent: pe
+                });
 
-                parentBuilds = parentBuilds.concat(parentBuild);
+                parentBuilds = parentBuilds.concat(upstreamBuilds);
             })
         );
+
+        console.log('----------parentBuilds: ', parentBuilds);
 
         return parentBuilds;
     }
@@ -1147,6 +1155,8 @@ exports.register = (server, options, next) => {
             return obj;
         }, {});
 
+        console.log('------currentJobName: ', currentJobName);
+
         /* OLD FLOW
          * Use if external join flag is false
          */
@@ -1234,6 +1244,7 @@ exports.register = (server, options, next) => {
              *    joinList doesn't include sd@111:D, so start A
              */
             if (joinListNames.length === 0 || currentJobNotInJoinList) {
+                console.log('-------NO JOIN CASE-------');
                 // Next build is internal
                 if (!isExternal) {
                     const internalBuildConfig = {
@@ -1418,6 +1429,8 @@ exports.register = (server, options, next) => {
 
                 return createExternalBuild(externalBuildConfig);
             }
+
+            console.log('-------JOIN CASE-------');
 
             // Handle join case
             return createOrRunNextBuild({
