@@ -87,7 +87,7 @@ function getPipelineHealth(pipeline, eventFactory) {
             });
         })
         .catch(err => {
-            logger.error(err);
+            logger.error(err.message);
 
             return lastBuilds;
         });
