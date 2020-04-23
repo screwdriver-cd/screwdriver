@@ -24,15 +24,12 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const buildFactory = request.server.app.buildFactory;
+            const { buildFactory } = request.server.app;
             const { jobId, status } = request.query;
 
             const listConfig = {
                 params: {
                     jobId
-                },
-                paginate: {
-                    count: 0
                 }
             };
 
@@ -40,8 +37,9 @@ module.exports = () => ({
                 listConfig.params.status = status;
             }
 
-            return buildFactory.list(listConfig)
-                .then((builds) => {
+            return buildFactory
+                .list(listConfig)
+                .then(builds => {
                     if (builds.length === 0) {
                         throw boom.notFound('Build does not exist');
                     }

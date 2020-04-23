@@ -303,41 +303,78 @@ describe('build plugin test', () => {
         it('returns 200 when build statuses exist', () => {
             buildFactoryMock.getBuildStatuses.resolves(testBuildsStatuses);
 
-            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0')
-                .then((reply) => {
-                    assert.calledWith(
-                        buildFactoryMock.getBuildStatuses,
-                        { jobIds: [1, 2], numBuilds: 3, offset: 0 }
-                    );
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, testBuildsStatuses);
-                });
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuildsStatuses);
+            });
+        });
+
+        it('returns 200 when build statuses exist and given single jobId', () => {
+            buildFactoryMock.getBuildStatuses.resolves(testBuildsStatuses);
+
+            return server.inject('/builds/statuses?jobIds=1&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuildsStatuses);
+            });
         });
 
         it('returns 404 when no build statuses exist', () => {
             buildFactoryMock.getBuildStatuses.resolves([]);
 
-            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0')
-                .then((reply) => {
-                    assert.calledWith(
-                        buildFactoryMock.getBuildStatuses,
-                        { jobIds: [1, 2], numBuilds: 3, offset: 0 }
-                    );
-                    assert.equal(reply.statusCode, 404);
-                });
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 404);
+            });
         });
 
         it('returns 500 when datastore returns an error', () => {
             buildFactoryMock.getBuildStatuses.rejects(new Error('blah'));
 
-            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0')
-                .then((reply) => {
-                    assert.calledWith(
-                        buildFactoryMock.getBuildStatuses,
-                        { jobIds: [1, 2], numBuilds: 3, offset: 0 }
-                    );
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /builds/latest?jobId=&status=', () => {
+        it('returns 200 when build exist', () => {
+            const build = {
+                id: 1,
+                jobId: 1,
+                number: 1473900790309,
+                cause: 'test',
+                createTime: '2011-10-05T14:48:00.000Z',
+                status: 'SUCCESS'
+            };
+
+            buildFactoryMock.list.resolves([build]);
+
+            return server.inject('/builds/latest?jobId=1&status=SUCCESS').then(reply => {
+                assert.calledWith(buildFactoryMock.list, { params: { jobId: '1', status: 'SUCCESS' } });
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, build);
+            });
+        });
+
+        it('returns 404 when no build exist', () => {
+            buildFactoryMock.list.resolves([]);
+
+            return server.inject('/builds/latest?jobId=1&status=SUCCESS').then(reply => {
+                assert.calledWith(buildFactoryMock.list, { params: { jobId: '1', status: 'SUCCESS' } });
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.list.rejects(new Error('blah'));
+
+            return server.inject('/builds/latest?jobId=1&status=SUCCESS').then(reply => {
+                assert.calledWith(buildFactoryMock.list, { params: { jobId: '1', status: 'SUCCESS' } });
+                assert.equal(reply.statusCode, 500);
+            });
         });
     });
 
