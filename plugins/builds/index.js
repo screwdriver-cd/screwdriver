@@ -1059,7 +1059,7 @@ async function handleDuplicatePipelines(config) {
                         parentEventId: event.id
                     });
                 } catch (err) {
-                    logger.info(
+                    logger.error(
                         `Could not create external build - pipeline:${pid} startFrom:~sd@${pipelineId}:${currentJobName} `,
                         err
                     );
@@ -1250,7 +1250,7 @@ exports.register = (server, options, next) => {
                     const nextNode = parentWorkflowGraph.nodes.find(
                         node => node.name === trimJobName(externalJobName) || node.name.includes(nextJobName)
                     );
-                    const jobId = nextNode.id;
+                    const jobId = nextNode ? nextNode.id : null;
                     // Get next build
                     const nextBuild = finishedExternalBuilds.find(b => b.jobId === jobId && b.status === 'CREATED');
                     // The next build has been restarted and this was the original run
@@ -1285,8 +1285,12 @@ exports.register = (server, options, next) => {
                                     }
                                     const targetBuild = finishedInternalBuilds.find(b => b.jobId === joinJobId);
 
-                                    parentBuilds[pid].jobs[jName] = targetBuild.id;
-                                    parentBuilds[pid].eventId = targetBuild.eventId;
+                                    if (targetBuild) {
+                                        parentBuilds[pid].jobs[jName] = targetBuild.id;
+                                        parentBuilds[pid].eventId = targetBuild.eventId;
+                                    } else {
+                                        logger.warn(`Job ${jName}:${pid} not found in finishedInternalBuilds`);
+                                    }
                                 }
                             });
                         });
