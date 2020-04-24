@@ -2212,7 +2212,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers if all jobs in join are done', () => {
+                it.only('triggers if all jobs in join are done', () => {
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },

@@ -269,6 +269,8 @@ async function createEvent(config) {
 
     payload.sha = sha;
 
+    console.log(`------CREATING EXTERNAL BUILD FOR pipeline:${pipelineId} and startFrom:${startFrom}`);
+
     return eventFactory.create(payload);
 }
 
@@ -379,6 +381,8 @@ async function createInternalBuild(config) {
     };
 
     if (job.state === 'ENABLED') {
+        console.log('------CREATING INTERNAL BUILD for job: ', job.id);
+
         return buildFactory.create(internalBuildConfig);
     }
 
@@ -562,6 +566,7 @@ async function getFinishedBuilds(event, eventFactory) {
 
     // New logic to use groupEventId
     if (event.groupEventId) {
+        console.log('---------getting finished builds based on groupEventId');
         const parentEvents = await eventFactory.list({
             params: {
                 groupEventId: event.groupEventId
@@ -579,13 +584,46 @@ async function getFinishedBuilds(event, eventFactory) {
                     parentEvent: pe
                 });
 
+                console.log(
+                    '------eventBuilds: ',
+                    eventBuilds.map(e => e.id)
+                );
+
+                console.log(
+                    '------upstreamBuilds: ',
+                    upstreamBuilds.map(b => b.id)
+                );
+
                 parentBuilds = parentBuilds.concat(upstreamBuilds);
             })
         );
 
-        console.log('----------parentBuilds: ', parentBuilds);
+        const jobTimestamps = {};
 
-        return parentBuilds;
+        parentBuilds.sort((a, b) => b - a);
+
+        // Only keep the most recent build for each job if there are multiple builds
+        parentBuilds.forEach(b => {
+            if (typeof jobTimestamps[b.jobId] === 'undefined' || b.id > jobTimestamps[b.jobId].buildId) {
+                jobTimestamps[b.jobId] = { endTime: b.endTime, buildId: b.id };
+            }
+        });
+
+        console.log('------jobTimestamps: ', jobTimestamps);
+
+        console.log(
+            '------parentBuilds: ',
+            parentBuilds.map(b => b.id)
+        );
+
+        const result = parentBuilds.filter(pb => jobTimestamps[pb.jobId].buildId === pb.id);
+
+        console.log(
+            '------result: ',
+            result.map(b => b.id)
+        );
+
+        return result;
     }
 
     // Old logic to recursively find parent builds
@@ -718,32 +756,19 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
 /**
  * Get all builds with same parent event id
  * @param  {Factory}    eventFactory    Event factory
- * @param  {Numnber}    [groupEventId]  Group parent event ID
  * @param  {Number}     parentEventId   Parent event ID
  * @param  {Number}     pipelineId      Pipeline ID
  * @return {Promise}                    Array of builds with same parent event ID
  */
-async function getParallelBuilds({ eventFactory, parentEventId, pipelineId, groupEventId }) {
-    let parallelEvents;
-
-    // Get all events with same groupEventId
-    if (groupEventId) {
-        parallelEvents = await eventFactory.list({
-            params: {
-                groupEventId
-            }
-        });
-        // Get all events with same parentEventId
-    } else {
-        parallelEvents = await eventFactory.list({
-            params: {
-                parentEventId
-            }
-        });
-    }
+async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
+    let parallelEvents = await eventFactory.list({
+        params: {
+            parentEventId
+        }
+    });
 
     // Remove previous events from same pipeline
-    parallelEvents = parallelEvents ? parallelEvents.filter(pe => pe.pipelineId !== pipelineId) : [];
+    parallelEvents = parallelEvents.filter(pe => pe.pipelineId !== pipelineId);
 
     let parallelBuilds = [];
 
@@ -868,8 +893,7 @@ async function createOrRunNextBuild({
             const parallelBuilds = await getParallelBuilds({
                 eventFactory,
                 parentEventId: event.parentEventId,
-                pipelineId,
-                groupEventId: event.groupEventId
+                pipelineId
             });
 
             finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
@@ -907,13 +931,14 @@ async function createOrRunNextBuild({
         // If next build is internal, look at the finished builds for this event
         const jobId = workflowGraph.nodes.find(node => node.name === trimJobName(nextJobName)).id;
 
-        nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId);
+        nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId && b.eventId === event.id);
     }
 
     let newBuild;
 
     // Create next build
     if (!nextBuild) {
+        console.log('------NO NEXT BUILD------');
         if (isExternal) {
             externalBuildConfig.start = false;
             newBuild = await createExternalBuild(externalBuildConfig);
@@ -922,6 +947,7 @@ async function createOrRunNextBuild({
             newBuild = await createInternalBuild(internalBuildConfig);
         }
     } else {
+        console.log('------NEXT BUILD EXISTS, UPDATING PARENT BUILDS------');
         newBuild = await updateParentBuilds({
             joinParentBuilds: parentBuilds,
             currentJobParentBuilds,
