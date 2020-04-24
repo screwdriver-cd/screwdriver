@@ -230,7 +230,7 @@ $ sdlocal config view
        version: latest
        image: screwdrivercd/launcher
 ```
-The `*` shows which is current cluster.
+- The `*` shows which is current cluster.
 
 You can delete cluster config with the command below:
 
@@ -238,7 +238,7 @@ You can delete cluster config with the command below:
 sd-local config delete <config-name>
 ```
 
-You can not delete config which is current.
+- You can not delete config which is current.
 
 ## Design considerations
 
