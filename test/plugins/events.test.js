@@ -68,6 +68,7 @@ describe('event plugin test', () => {
                 getPrInfo: sinon.stub().resolves({
                     sha: testBuild.sha,
                     ref: 'prref',
+                    prSource: 'branch',
                     url: 'https://github.com/screwdriver-cd/ui/pull/292',
                     username: 'myself'
                 }),
@@ -254,6 +255,13 @@ describe('event plugin test', () => {
             }
         };
         const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
+        const prInfo = {
+            sha: testBuild.sha,
+            ref: 'prref',
+            prSource: 'branch',
+            url: 'https://github.com/screwdriver-cd/ui/pull/292',
+            username: 'myself'
+        };
 
         beforeEach(() => {
             userMock = {
@@ -585,17 +593,11 @@ describe('event plugin test', () => {
         it('returns 201 when it successfully creates a PR event', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
             eventConfig.chainPR = false;
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
+            eventConfig.prInfo = prInfo;
             eventConfig.changedFiles = ['screwdriver.yaml'];
-
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             options.payload.startFrom = 'PR-1:main';
 
             return server.inject(options).then(reply => {
@@ -610,18 +612,11 @@ describe('event plugin test', () => {
         it('returns 201 when it successfully creates a PR event for given prNum', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
             eventConfig.chainPR = false;
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
-
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             eventFactoryMock.scm.getChangedFiles.resolves([]);
-
             options.payload.startFrom = 'PR-1:main';
             options.payload.prNum = '1';
 
@@ -637,15 +632,10 @@ describe('event plugin test', () => {
         it('returns 201 when it successfully creates a PR event when PR author only has permission to run PR', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
             eventConfig.chainPR = false;
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             eventConfig.changedFiles = ['screwdriver.yaml'];
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
@@ -665,15 +655,10 @@ describe('event plugin test', () => {
             () => {
                 eventConfig.startFrom = 'PR-1:main';
                 eventConfig.prNum = '1';
-                eventConfig.prRef = 'prref';
                 eventConfig.type = 'pr';
                 eventConfig.chainPR = false;
-                eventConfig.prInfo = {
-                    sha: testBuild.sha,
-                    ref: 'prref',
-                    url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                    username: 'myself'
-                };
+                eventConfig.prInfo = prInfo;
+                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
                 eventConfig.changedFiles = ['screwdriver.yaml'];
                 options.payload.startFrom = 'PR-1:main';
                 userMock.getPermissions.resolves({ push: false });
@@ -690,17 +675,12 @@ describe('event plugin test', () => {
             eventConfig.sha = testBuild.sha;
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
             eventConfig.chainPR = false;
             options.payload.startFrom = 'PR-1:main';
             options.payload.parentEventId = parentEventId;
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             eventConfig.changedFiles = ['screwdriver.yaml'];
             eventConfig.baseBranch = 'master';
             eventConfig.meta.parameters = {
@@ -750,17 +730,11 @@ describe('event plugin test', () => {
 
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
             eventConfig.chainPR = false;
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             eventConfig.changedFiles = ['screwdriver.yaml'];
-
             options.payload.startFrom = 'PR-1:main';
 
             return server.inject(options).then(reply => {
@@ -800,15 +774,9 @@ describe('event plugin test', () => {
         });
 
         it('returns 400 bad request error missing prNum for "~pr"', () => {
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
-
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             options.payload.startFrom = '~pr';
 
             return server.inject(options).then(reply => {
@@ -819,20 +787,16 @@ describe('event plugin test', () => {
         it('returns 403 forbidden error when user does not have push permission and is not author of PR', () => {
             eventConfig.startFrom = 'PR-1:main';
             eventConfig.prNum = '1';
-            eventConfig.prRef = 'prref';
             eventConfig.type = 'pr';
-            eventConfig.prInfo = {
-                sha: testBuild.sha,
-                ref: 'prref',
-                url: 'https://github.com/screwdriver-cd/ui/pull/292',
-                username: 'myself'
-            };
+            eventConfig.prInfo = prInfo;
+            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             eventConfig.changedFiles = ['screwdriver.yaml'];
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
             eventFactoryMock.scm.getPrInfo.resolves({
                 sha: testBuild.sha,
                 ref: 'prref',
+                prSource: 'branch',
                 url: 'https://github.com/screwdriver-cd/ui/pull/292',
                 username: 'notmyself'
             });
