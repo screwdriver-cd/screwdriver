@@ -600,8 +600,6 @@ async function getFinishedBuilds(event, eventFactory) {
 
         const jobData = {};
 
-        parentBuilds.sort((a, b) => b.id - a.id);
-
         // Only keep the most recent build for each job if there are multiple builds
         parentBuilds.forEach(b => {
             if (typeof jobData[b.jobId] === 'undefined' || b.id > jobData[b.jobId].buildId) {
