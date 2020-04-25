@@ -309,6 +309,7 @@ describe('build plugin test', () => {
         };
         const configPipelineSha = 'abc123';
         let buildMock;
+        let jobMock;
         let pipelineMock;
         let eventMock;
         let triggerMocks;
@@ -339,6 +340,19 @@ describe('build plugin test', () => {
                 }),
                 toJson: sinon.stub().returns({ id: pipelineId })
             };
+            jobMock = {
+                id: 1234,
+                name: 'main',
+                pipelineId,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                pipeline: sinon.stub().resolves(pipelineMock)()
+            };
 
             eventMock = {
                 id: '8888',
@@ -359,6 +373,7 @@ describe('build plugin test', () => {
 
             eventFactoryMock.get.resolves(eventMock);
             eventMock.update.resolves(eventMock);
+            jobFactoryMock.get.resolves(jobMock);
 
             triggerMocks = [
                 {
@@ -382,18 +397,6 @@ describe('build plugin test', () => {
         });
 
         it('emits event build_status', () => {
-            const jobMock = {
-                id: 1234,
-                name: 'main',
-                pipelineId,
-                permutations: [
-                    {
-                        settings: {
-                            email: 'foo@bar.com'
-                        }
-                    }
-                ]
-            };
             const userMock = {
                 username: id,
                 getPermissions: sinon.stub().resolves({ push: true })
@@ -409,14 +412,12 @@ describe('build plugin test', () => {
                 }
             };
 
-            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
             buildMock.job = sinon.stub().resolves(jobMock)();
             buildMock.settings = {
                 email: 'foo@bar.com'
             };
             buildFactoryMock.get.resolves(buildMock);
             buildFactoryMock.uiUri = 'http://foo.bar';
-            jobFactoryMock.get.resolves(jobMock);
             userFactoryMock.get.resolves(userMock);
 
             server.emit = sinon.stub().resolves(null);
@@ -477,18 +478,6 @@ describe('build plugin test', () => {
 
         describe('user token', () => {
             it('returns 200 for updating a build that exists', () => {
-                const jobMock = {
-                    id: 1234,
-                    name: 'main',
-                    pipelineId,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
                 const userMock = {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
@@ -506,12 +495,10 @@ describe('build plugin test', () => {
                     }
                 };
 
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJson.returns(testBuild);
                 buildMock.toJsonWithSteps.resolves(expected);
-                jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
                 return server.inject(options).then(reply => {
@@ -560,18 +547,6 @@ describe('build plugin test', () => {
             });
 
             it('allow admin users to update build status to failure', () => {
-                const jobMock = {
-                    id: 1234,
-                    name: 'main',
-                    pipelineId,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
                 const userMock = {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
@@ -590,12 +565,10 @@ describe('build plugin test', () => {
                     }
                 };
 
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJsonWithSteps.resolves(expected);
                 buildMock.toJson.returns(testBuild);
-                jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
                 return server.inject(options).then(reply => {
@@ -630,7 +603,6 @@ describe('build plugin test', () => {
             const jobId = 1234;
             const publishJobId = 1235;
 
-            let jobMock;
             let userMock;
 
             beforeEach(() => {
@@ -642,17 +614,14 @@ describe('build plugin test', () => {
                         {
                             settings: {}
                         }
-                    ]
+                    ],
+                    pipeline: sinon.stub().resolves(pipelineMock)()
                 };
-
                 userMock = {
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
                 };
-
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
-
                 buildFactoryMock.create.resolves(buildMock);
                 pipelineFactoryMock.get.resolves(pipelineMock);
                 userFactoryMock.get.resolves(userMock);
@@ -1069,7 +1038,6 @@ describe('build plugin test', () => {
                 testBuild.status = 'BLOCKED';
                 testBuild.statusMessage = 'blocked';
                 buildMock = getBuildMock(testBuild);
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildMock.settings = {
                     email: 'foo@bar.com'
@@ -1115,7 +1083,6 @@ describe('build plugin test', () => {
                 testBuild.status = 'UNSTABLE';
                 testBuild.statusMessage = 'hello';
                 buildMock = getBuildMock(testBuild);
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildMock.settings = {
                     email: 'foo@bar.com'
@@ -3582,11 +3549,6 @@ describe('build plugin test', () => {
             };
 
             buildMock = getBuildMock({ id: buildId, other: 'dataToBeIncluded' });
-            jobMock = {
-                id: jobId,
-                pipelineId,
-                isPR: sinon.stub()
-            };
             pipelineMock = {
                 id: pipelineId,
                 checkoutUrl,
@@ -3599,6 +3561,12 @@ describe('build plugin test', () => {
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
                 })
+            };
+            jobMock = {
+                id: jobId,
+                pipelineId,
+                isPR: sinon.stub(),
+                pipeline: sinon.stub().resolves(pipelineMock)()
             };
             userMock = {
                 username,
@@ -3627,7 +3595,6 @@ describe('build plugin test', () => {
                 skipMessage: 'skip build creation'
             };
 
-            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
             userMock.getPermissions.resolves({ push: true });
             userMock.unsealToken.resolves('iamtoken');
             buildFactoryMock.create.resolves(buildMock);
