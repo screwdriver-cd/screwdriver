@@ -269,8 +269,6 @@ async function createEvent(config) {
 
     payload.sha = sha;
 
-    console.log(`------CREATING EXTERNAL BUILD FOR pipeline:${pipelineId} and startFrom:${startFrom}`);
-
     return eventFactory.create(payload);
 }
 
@@ -396,8 +394,6 @@ async function createInternalBuild(config) {
     };
 
     if (job.state === 'ENABLED') {
-        console.log('------CREATING INTERNAL BUILD for job: ', job.id);
-
         return buildFactory.create(internalBuildConfig);
     }
 
@@ -581,7 +577,6 @@ async function getFinishedBuilds(event, eventFactory) {
 
     // New logic to use groupEventId
     if (event.groupEventId) {
-        console.log('---------getting finished builds based on groupEventId');
         const parentEvents = await eventFactory.list({
             params: {
                 groupEventId: event.groupEventId
@@ -599,44 +594,22 @@ async function getFinishedBuilds(event, eventFactory) {
                     parentEvent: pe
                 });
 
-                console.log(
-                    '------eventBuilds: ',
-                    eventBuilds.map(e => e.id)
-                );
-
-                console.log(
-                    '------upstreamBuilds: ',
-                    upstreamBuilds.map(b => b.id)
-                );
-
                 parentBuilds = parentBuilds.concat(upstreamBuilds);
             })
         );
 
-        const jobTimestamps = {};
+        const jobData = {};
 
         parentBuilds.sort((a, b) => b - a);
 
         // Only keep the most recent build for each job if there are multiple builds
         parentBuilds.forEach(b => {
-            if (typeof jobTimestamps[b.jobId] === 'undefined' || b.id > jobTimestamps[b.jobId].buildId) {
-                jobTimestamps[b.jobId] = { endTime: b.endTime, buildId: b.id };
+            if (typeof jobData[b.jobId] === 'undefined' || b.id > jobData[b.jobId].buildId) {
+                jobData[b.jobId] = { endTime: b.endTime, buildId: b.id };
             }
         });
 
-        console.log('------jobTimestamps: ', jobTimestamps);
-
-        console.log(
-            '------parentBuilds: ',
-            parentBuilds.map(b => b.id)
-        );
-
-        const result = parentBuilds.filter(pb => jobTimestamps[pb.jobId].buildId === pb.id);
-
-        console.log(
-            '------result: ',
-            result.map(b => b.id)
-        );
+        const result = parentBuilds.filter(pb => jobData[pb.jobId].buildId === pb.id);
 
         return result;
     }
@@ -952,7 +925,6 @@ async function createOrRunNextBuild({
 
     // Create next build
     if (!nextBuild) {
-        console.log('------NO NEXT BUILD------');
         if (isExternal) {
             externalBuildConfig.start = false;
             newBuild = await createExternalBuild(externalBuildConfig);
@@ -961,7 +933,6 @@ async function createOrRunNextBuild({
             newBuild = await createInternalBuild(internalBuildConfig);
         }
     } else {
-        console.log('------NEXT BUILD EXISTS, UPDATING PARENT BUILDS------');
         newBuild = await updateParentBuilds({
             joinParentBuilds: parentBuilds,
             currentJobParentBuilds,
@@ -1202,8 +1173,6 @@ exports.register = (server, options, next) => {
             return obj;
         }, {});
 
-        console.log('------currentJobName: ', currentJobName);
-
         /* OLD FLOW
          * Use if external join flag is false
          */
@@ -1291,7 +1260,6 @@ exports.register = (server, options, next) => {
              *    joinList doesn't include sd@111:D, so start A
              */
             if (joinListNames.length === 0 || currentJobNotInJoinList) {
-                console.log('-------NO JOIN CASE-------');
                 // Next build is internal
                 if (!isExternal) {
                     const internalBuildConfig = {
@@ -1484,8 +1452,6 @@ exports.register = (server, options, next) => {
 
                 return createExternalBuild(externalBuildConfig);
             }
-
-            console.log('-------JOIN CASE-------');
 
             // Handle join case
             return createOrRunNextBuild({

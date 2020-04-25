@@ -1231,6 +1231,8 @@ describe('build plugin test', () => {
                                     eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                                     configPipelineSha,
                                     prRef: '',
+                                    prInfo: '',
+                                    prSource: '',
                                     start: true,
                                     baseBranch: null,
                                     parentBuilds: {
@@ -1935,7 +1937,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe.only('join new flow', () => {
+            describe('join new flow', () => {
                 let newServer;
                 const options = {
                     method: 'PUT',
@@ -3144,7 +3146,6 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledTwice(buildFactoryMock.create);
-                        console.log('jobBconfig: ', jobBconfig);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                         assert.calledOnce(buildC.start);
