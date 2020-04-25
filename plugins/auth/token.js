@@ -20,9 +20,7 @@ module.exports = () => ({
             scope: ['user', 'pipeline']
         },
         plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
+            'hapi-swagger': { security: [{ token: [] }] }
         },
         handler: (request, reply) => {
             let profile = request.auth.credentials;
