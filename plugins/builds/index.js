@@ -957,6 +957,8 @@ async function createOrRunNextBuild({
         });
     }
 
+    // console.log('newBuild: ', newBuild);
+
     if (!newBuild) {
         logger.error(`No build found for ${pipelineId}:${jobName}`);
 

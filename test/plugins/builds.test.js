@@ -2212,7 +2212,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('triggers if all jobs in join are done', () => {
+                it('triggers if all jobs in join are done', () => {
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },
                         { src: '~commit', dest: 'a' },
@@ -2272,11 +2272,12 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.create.resolves(buildC);
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledTwice(buildC.update);
+                        assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });
                 });
@@ -2797,6 +2798,7 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.create.resolves(buildC);
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
