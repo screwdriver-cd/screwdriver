@@ -2047,6 +2047,7 @@ describe('build plugin test', () => {
                         })
                     );
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
+                    eventFactoryMock.get.withArgs(8888).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs(6).resolves(jobC);
                     jobFactoryMock.get.withArgs(3).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
@@ -2065,6 +2066,8 @@ describe('build plugin test', () => {
                         scmContext: 'github:github.com',
                         configPipelineSha: 'abc123',
                         prRef: '',
+                        prSource: '',
+                        prInfo: '',
                         baseBranch: 'master',
                         parentBuilds: { 123: { jobs: { a: 12345 }, eventId: '8888' } }
                     };
@@ -2283,7 +2286,7 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledOnce(buildC.update);
+                        assert.calledTwice(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });
                 });
@@ -2461,6 +2464,8 @@ describe('build plugin test', () => {
                             2: { eventId: '8887', jobs: { a: 12345 } }
                         },
                         prRef: '',
+                        prSource: '',
+                        prInfo: '',
                         scmContext: 'github:github.com',
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
                         start: false,
@@ -3038,6 +3043,7 @@ describe('build plugin test', () => {
                             },
                             {
                                 id: 889,
+                                eventId: '8888',
                                 jobId: 4,
                                 status: 'SUCCESS'
                             }
@@ -3082,7 +3088,7 @@ describe('build plugin test', () => {
                             eventId: '8888',
                             status: 'ABORTED'
                         },
-                        buildD
+                        buildC
                     ]);
                     jobBconfig.parentBuilds = {
                         123: {
@@ -3138,6 +3144,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledTwice(buildFactoryMock.create);
+                        console.log('jobBconfig: ', jobBconfig);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                         assert.calledOnce(buildC.start);

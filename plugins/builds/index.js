@@ -365,6 +365,8 @@ async function createInternalBuild(config) {
     } = config;
     const event = await eventFactory.get(build.eventId);
     const prRef = event.pr.ref ? event.pr.ref : '';
+    const prSource = event.pr.prSource ? event.pr.prSource : '';
+    const prInfo = event.pr.prInfo ? event.pr.prInfo : '';
 
     let job = {};
 
@@ -387,6 +389,8 @@ async function createInternalBuild(config) {
         configPipelineSha: event.configPipelineSha,
         scmContext,
         prRef,
+        prSource,
+        prInfo,
         start: start !== false,
         baseBranch
     };
@@ -944,7 +948,6 @@ async function createOrRunNextBuild({
 
         nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId && b.eventId === event.id);
     }
-
     let newBuild;
 
     // Create next build
@@ -967,8 +970,6 @@ async function createOrRunNextBuild({
             build: externalBuild
         });
     }
-
-    // console.log('newBuild: ', newBuild);
 
     if (!newBuild) {
         logger.error(`No build found for ${pipelineId}:${jobName}`);
