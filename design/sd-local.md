@@ -15,6 +15,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - March 4th, 2020: Added `src-url` option and updated env options
 - March 16th, 2020: Added `sudo` option
 - March 24th, 2020: Added `--local` option
+- Apr 24th, 2020: Added multiple cluster config and dropped `--local` option
 
 ## Proposal
 
@@ -142,7 +143,6 @@ $ sdlocal build [job-name] [options]
 - `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
 - `--disable-image-pull` Disable `sd-local` from always pulling build image.
 - `--sudo` Use `sudo` command to execute docker runtime.
-- `--local` Run command with .sdlocal/config file in current directory
 
 ###### src-url option
 - How to specify the URL
@@ -156,6 +156,51 @@ $ sdlocal build [job-name] [options]
 - Artifacts which is output to `$SD_ARTIFACTS_DIR`.
 
 ### Configuration
+
+config support multiple Screwdriver cluster.  
+The config file as `$HOME/.sdlocal/config` with YAML format.  
+
+```yaml
+configs:
+  default:
+    api-url: <Screwdriver API URL>
+    store-url: <Screwdriver Store URL>
+    token: <Screwdriver API Token>
+    launcher:
+      version: <Launcher Version>
+      image: <Launcher image name>
+  yourConfigName:
+    api-url: <Screwdriver API URL>
+    store-url: <Screwdriver Store URL>
+    token: <Screwdriver API Token>
+    launcher:
+      version: <Launcher Version>
+      image: <Launcher image name>r
+current: default
+```
+
+- `default` is a special config which are created automatically when the first time the user use sd-local. However, default is not created if the user create a config explicitly with sd-local config create <config-name> in the first time, and, the specified name is used instead of default.
+
+- `current` points to default (or first created config) in the first time
+
+#### create
+You can create a cluster config with the command below:
+
+```bash
+$ sdlocal config create [config-name]
+```
+
+- You can not pass the name which is already exists.
+
+#### use
+You can change which cluster with the command below:
+
+```bash
+$ sdlocal config use [config-name]
+```
+
+#### set
+You can set current cluster config values with the command below:
 
 ```bash
 $ sdlocal config set [key] [value]
@@ -171,26 +216,36 @@ The chart below shows relationship between `key` and `value`.
 |launcher-version|Version of Launcher Image (default: stable)|
 |launcher-image|Name of Launcher Image (default: screwdrivercd/launcher)|
 
-Create config file as `$HOME/.sdlocal/config` with YAML format.
-
-```yaml
-api-url: <Screwdriver API URL>
-store-url: <Screwdriver Store URL>
-token: <Screwdriver API Token>
-launcher:
-  version: <Launcher Version>
-  image: <Launcher image name>
-```
-
+#### view
 Can confirm setting configurations with the command below:
 
 ```bash
 $ sdlocal config view
+* cluster1:
+    api-url: https://cluster1-api-screwdriver.com
+    store-url: https://cluster1-store-screwdriver.com
+    token: hoge
+    launcher:
+      version: latest
+      image: screwdrivercd/launcher
+  cluster2:
+    api-url: https://cluster2-another-api-screwdriver.com
+    store-url: https://cluster2-another-store-screwdriver.com
+    token: fuga
+    launcher:
+      version: latest
+      image: screwdrivercd/launcher
+```
+- The `*` shows which is current cluster.
+
+#### delete
+You can delete cluster config with the command below:
+
+```bash
+sd-local config delete <config-name>
 ```
 
-#### Options
-
-- `--local` Run command with `.sdlocal/config` file in current directory.
+- You can not delete config which is current.
 
 ## Design considerations
 
