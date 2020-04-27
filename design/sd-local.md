@@ -15,7 +15,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - March 4th, 2020: Added `src-url` option and updated env options
 - March 16th, 2020: Added `sudo` option
 - March 24th, 2020: Added `--local` option
-- Apr 24th, 2020: Added multiple cluster config
+- Apr 24th, 2020: Added multiple cluster config and droped `--local` option
 
 ## Proposal
 
@@ -183,18 +183,24 @@ current: default
 
 - `current` points to default (or first created config) in the first time
 
+#### create
 You can create a cluster config with the command below:
 
 ```bash
 $ sdlocal config create [config-name]
 ```
 
+note:
+`create` sub command should be error if it is passed the name which is already exists.
+
+#### use
 You can change which cluster with the command below:
 
 ```bash
 $ sdlocal config use [config-name]
 ```
 
+#### set
 You can set current cluster config values with the command below:
 
 ```bash
@@ -211,27 +217,29 @@ The chart below shows relationship between `key` and `value`.
 |launcher-version|Version of Launcher Image (default: stable)|
 |launcher-image|Name of Launcher Image (default: screwdrivercd/launcher)|
 
+#### view
 Can confirm setting configurations with the command below:
 
 ```bash
 $ sdlocal config view
-*  cluster1:
-      api-url: https://cluster1-api-screwdriver.com
-      store-url: https://cluster1-store-screwdriver.com
-      token: hoge
-      launcher:
-        version: latest
-        image: screwdrivercd/launcher
-   cluster2:
-     api-url: https://cluster2-another-api-screwdriver.com
-     store-url: https://cluster2-another-store-screwdriver.com
-     token: fuga
-     launcher:
-       version: latest
-       image: screwdrivercd/launcher
+* cluster1:
+    api-url: https://cluster1-api-screwdriver.com
+    store-url: https://cluster1-store-screwdriver.com
+    token: hoge
+    launcher:
+      version: latest
+      image: screwdrivercd/launcher
+  cluster2:
+    api-url: https://cluster2-another-api-screwdriver.com
+    store-url: https://cluster2-another-store-screwdriver.com
+    token: fuga
+    launcher:
+      version: latest
+      image: screwdrivercd/launcher
 ```
 - The `*` shows which is current cluster.
 
+#### delete
 You can delete cluster config with the command below:
 
 ```bash
