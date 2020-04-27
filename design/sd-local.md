@@ -190,8 +190,7 @@ You can create a cluster config with the command below:
 $ sdlocal config create [config-name]
 ```
 
-note:
-`create` sub command should be error if it is passed the name which is already exists.
+- You can not passed the name which is already exists.
 
 #### use
 You can change which cluster with the command below:
