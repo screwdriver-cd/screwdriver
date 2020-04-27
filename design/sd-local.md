@@ -15,7 +15,7 @@ As a result, User cannot confirm whether the result obtained on CI is the expect
 - March 4th, 2020: Added `src-url` option and updated env options
 - March 16th, 2020: Added `sudo` option
 - March 24th, 2020: Added `--local` option
-- Apr 24th, 2020: Added multiple cluster config and droped `--local` option
+- Apr 24th, 2020: Added multiple cluster config and dropped `--local` option
 
 ## Proposal
 
