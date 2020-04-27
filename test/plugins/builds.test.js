@@ -1954,8 +1954,8 @@ describe('build plugin test', () => {
                     pipelineId,
                     state: 'ENABLED'
                 };
-                const jobC = { ...jobB, id: 3 };
-                const jobD = {
+                const jobC = {
+                    ...jobB,
                     id: 3,
                     getLatestBuild: sinon.stub().resolves(
                         getBuildMock({
@@ -2047,7 +2047,8 @@ describe('build plugin test', () => {
                         })
                     );
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
-                    jobFactoryMock.get.withArgs(3).resolves(jobD);
+                    jobFactoryMock.get.withArgs(6).resolves(jobC);
+                    jobFactoryMock.get.withArgs(3).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
@@ -2456,7 +2457,7 @@ describe('build plugin test', () => {
                         parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
-                            2: { eventId: '8888', jobs: { a: 12345 } }
+                            2: { eventId: '8887', jobs: { a: 12345 } }
                         },
                         prRef: '',
                         scmContext: 'github:github.com',
@@ -3214,7 +3215,7 @@ describe('build plugin test', () => {
                         parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345, c: 45678 } },
-                            2: { eventId: '8888', jobs: { a: 12345 } }
+                            2: { eventId: '8887', jobs: { a: 12345 } }
                         },
                         parentEventId: '8888',
                         pipelineId: 123,
