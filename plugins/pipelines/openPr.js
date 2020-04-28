@@ -23,10 +23,7 @@ module.exports = () => ({
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
-            const { scmUri, files} = request.payload;
-
-            // TODO: decide which token to use
-            let token;
+            const { scmUri, files, title, message} = request.payload;
 
             return userFactory.get({ username, scmContext })
                 .then((user) => {
@@ -41,13 +38,16 @@ module.exports = () => ({
                                 throw boom.forbidden(`User ${username} does not have push permission for this repo`);
                             }
                         })
-                        .then(() => userFactory.scm.openPr({
+                        .then(() => user.unsealToken())
+                        .then(token => userFactory.scm.openPr({
                             scmUri,
                             files,
                             token,
-                            scmContext
+                            scmContext,
+                            title,
+                            message
                         }))
-                        .then(() => reply().code(204));
+                        .then()
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
@@ -56,10 +56,12 @@ module.exports = () => ({
                 scmUri: joi.string().required(),
                 files: Joi.array().items(
                     Joi.object().keys({
-                        fileName: Joi.string().required(),
-                        fileContent: Joi.string().required()
+                        name: Joi.string().required(),
+                        content: Joi.string().required()
                     })
-                ).min(1).required()
+                ).min(1).required(),
+                title: joi.string().required(),
+                message: joi.string().required()
             }
         }
     }
