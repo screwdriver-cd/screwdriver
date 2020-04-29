@@ -363,8 +363,8 @@ async function createInternalBuild(config) {
     } = config;
     const event = await eventFactory.get(build.eventId);
     const prRef = event.pr.ref ? event.pr.ref : '';
-    const prSource = event.pr.prSource ? event.pr.prSource : '';
-    const prInfo = event.pr.prInfo ? event.pr.prInfo : '';
+    const prSource = event.pr.prSource || '';
+    const prInfo = event.pr.prInfo || '';
 
     let job = {};
 
