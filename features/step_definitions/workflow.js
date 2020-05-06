@@ -42,7 +42,7 @@ Given(
                     if (response.statusCode === 201) {
                         this.pipelineId = response.body.id;
                     } else {
-                        this.pipelineId = response.body.message.split(/\s*:\s*/)[1];
+                        [, this.pipelineId] = response.body.message.split(/\s*:\s*/);
                     }
 
                     return this.getPipeline(this.pipelineId);

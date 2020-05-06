@@ -34,8 +34,7 @@ module.exports = config => ({
                 stepFactory
             } = request.server.app;
             const { id } = request.params;
-            const desiredStatus = request.payload.status;
-            const { statusMessage, stats } = request.payload;
+            const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
             const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;

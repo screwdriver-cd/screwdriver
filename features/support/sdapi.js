@@ -131,8 +131,7 @@ function findEventBuilds(config) {
  * @return {Promise}                            A build that fulfills the given criteria
  */
 function searchForBuild(config) {
-    const { instance, pipelineId, pullRequestNumber, desiredSha, desiredStatus,
-        jwt, parentBuildId } = config;
+    const { instance, pipelineId, pullRequestNumber, desiredSha, desiredStatus, jwt, parentBuildId } = config;
     const jobName = config.jobName || 'main';
 
     return findBuilds({
