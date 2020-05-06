@@ -13,7 +13,7 @@ const WAIT_TIME = 6;
  * @return {Promise}
  */
 function promiseToWait(timeToWait) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         setTimeout(() => resolve(), timeToWait * 1000);
     });
 }
@@ -34,10 +34,10 @@ function promiseToWait(timeToWait) {
  *                                              empty array is returned
  */
 function findBuilds(config) {
-    const instance = config.instance;
-    const pipelineId = config.pipelineId;
-    const pullRequestNumber = config.pullRequestNumber;
-    const jobName = config.jobName;
+    const { instance } = config;
+    const { pipelineId } = config;
+    const { pullRequestNumber } = config;
+    const { jobName } = config;
 
     return request({
         json: true,
@@ -46,32 +46,31 @@ function findBuilds(config) {
         auth: {
             bearer: config.jwt
         }
-    })
-        .then((response) => {
-            const jobData = response.body;
-            let result = [];
+    }).then(response => {
+        const jobData = response.body;
+        let result = [];
 
-            if (pullRequestNumber) {
-                result = jobData.filter(job => job.name.startsWith(`PR-${pullRequestNumber}`));
-            } else {
-                result = jobData.filter(job => job.name === jobName);
+        if (pullRequestNumber) {
+            result = jobData.filter(job => job.name.startsWith(`PR-${pullRequestNumber}`));
+        } else {
+            result = jobData.filter(job => job.name === jobName);
+        }
+
+        if (result.length === 0) {
+            return Promise.resolve(result);
+        }
+
+        const jobId = result[0].id;
+
+        return request({
+            json: true,
+            method: 'GET',
+            uri: `${instance}/v4/jobs/${jobId}/builds`,
+            auth: {
+                bearer: config.jwt
             }
-
-            if (result.length === 0) {
-                return Promise.resolve(result);
-            }
-
-            const jobId = result[0].id;
-
-            return request({
-                json: true,
-                method: 'GET',
-                uri: `${instance}/v4/jobs/${jobId}/builds`,
-                auth: {
-                    bearer: config.jwt
-                }
-            });
         });
+    });
 }
 
 /**
@@ -89,8 +88,8 @@ function findBuilds(config) {
  *                                      empty array is returned
  */
 function findEventBuilds(config) {
-    const instance = config.instance;
-    const eventId = config.eventId;
+    const { instance } = config;
+    const { eventId } = config;
 
     return request({
         json: true,
@@ -99,7 +98,7 @@ function findEventBuilds(config) {
         auth: {
             bearer: config.jwt
         }
-    }).then((response) => {
+    }).then(response => {
         const builds = response.body || [];
         const job = config.jobs.find(j => j.name === config.jobName);
         const build = builds.find(b => b.jobId === job.id);
@@ -142,7 +141,7 @@ function searchForBuild(config) {
         pullRequestNumber,
         jobName,
         jwt
-    }).then((buildData) => {
+    }).then(buildData => {
         let result = buildData.body || [];
 
         if (desiredSha) {
@@ -178,9 +177,9 @@ function searchForBuild(config) {
  * @return {Object}                       Build data
  */
 function waitForBuildStatus(config) {
-    const buildId = config.buildId;
-    const desiredStatus = config.desiredStatus;
-    const instance = config.instance;
+    const { buildId } = config;
+    const { desiredStatus } = config;
+    const { instance } = config;
 
     return request({
         json: true,
@@ -189,7 +188,7 @@ function waitForBuildStatus(config) {
         auth: {
             bearer: config.jwt
         }
-    }).then((response) => {
+    }).then(response => {
         const buildData = response.body;
 
         if (desiredStatus.includes(buildData.status)) {
@@ -212,9 +211,9 @@ function waitForBuildStatus(config) {
  */
 function cleanupToken(config) {
     const tokenName = config.token;
-    const instance = config.instance;
-    const namespace = config.namespace;
-    const jwt = config.jwt;
+    const { instance } = config;
+    const { namespace } = config;
+    const { jwt } = config;
 
     return request({
         uri: `${instance}/${namespace}/tokens`,
@@ -222,9 +221,8 @@ function cleanupToken(config) {
         auth: {
             bearer: jwt
         }
-    }).then((response) => {
-        const match = JSON.parse(response.body)
-            .find(token => token.name === tokenName);
+    }).then(response => {
+        const match = JSON.parse(response.body).find(token => token.name === tokenName);
 
         if (!match) return Promise.resolve();
 
@@ -249,10 +247,10 @@ function cleanupToken(config) {
  * @return {Promise}
  */
 function cleanupBuilds(config) {
-    const instance = config.instance;
-    const pipelineId = config.pipelineId;
-    const jwt = config.jwt;
-    const jobName = config.jobName;
+    const { instance } = config;
+    const { pipelineId } = config;
+    const { jwt } = config;
+    const { jobName } = config;
     const desiredStatus = ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'];
 
     return findBuilds({
@@ -260,22 +258,25 @@ function cleanupBuilds(config) {
         pipelineId,
         jobName,
         jwt
-    }).then((buildData) => {
+    }).then(buildData => {
         const result = buildData.body || [];
         const builds = result.filter(item => desiredStatus.includes(item.status));
 
-        return Promise.all(builds.map(build =>
-            request({
-                uri: `${instance}/v4/builds/${build.id}`,
-                method: 'PUT',
-                auth: {
-                    bearer: jwt
-                },
-                body: {
-                    status: 'ABORTED'
-                },
-                json: true
-            })));
+        return Promise.all(
+            builds.map(build =>
+                request({
+                    uri: `${instance}/v4/builds/${build.id}`,
+                    method: 'PUT',
+                    auth: {
+                        bearer: jwt
+                    },
+                    body: {
+                        status: 'ABORTED'
+                    },
+                    json: true
+                })
+            )
+        );
     });
 }
 

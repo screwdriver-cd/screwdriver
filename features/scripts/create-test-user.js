@@ -44,8 +44,9 @@ function createTestUser() {
     // Setup Datastore
     const datastoreConfig = config.get('datastore');
     const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
-    const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
-        (datastoreConfig[datastoreConfig.plugin] || {})));
+    const datastore = new DatastorePlugin(
+        hoek.applyToDefaults({ ecosystem }, datastoreConfig[datastoreConfig.plugin] || {})
+    );
 
     // Source Code Plugin
     const scmConfig = { scms: config.get('scms') };
@@ -67,9 +68,10 @@ function createTestUser() {
     });
 
     // Setup datastore and create test user
-    return datastore.setup()
+    return datastore
+        .setup()
         .then(() => userFactory.get({ username, scmContext }))
-        .then((model) => {
+        .then(model => {
             if (!model) {
                 return userFactory.create({
                     username,
@@ -78,17 +80,18 @@ function createTestUser() {
                 });
             }
 
-            return model.sealToken(gitToken)
-                .then((token) => {
-                    model.token = token;
+            return model.sealToken(gitToken).then(token => {
+                model.token = token;
 
-                    return model.update();
-                });
+                return model.update();
+            });
         })
-        .then(testUser => tokenFactory.create({
-            name: 'Functional test token',
-            userId: testUser.id
-        }))
+        .then(testUser =>
+            tokenFactory.create({
+                name: 'Functional test token',
+                userId: testUser.id
+            })
+        )
         .then(token => console.log(`Token created for user ${username}: ${token.value}`));
 }
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -19,7 +19,7 @@ describe('coverage plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         mockCoveragePlugin = {
             getAccessToken: sinon.stub().resolves('faketoken'),
             getInfo: sinon.stub()
@@ -35,22 +35,28 @@ describe('coverage plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['build']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['build']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin,
-            options: {
-                coveragePlugin: mockCoveragePlugin
+        server.register(
+            [
+                {
+                    register: plugin,
+                    options: {
+                        coveragePlugin: mockCoveragePlugin
+                    }
+                }
+            ],
+            err => {
+                done(err);
             }
-        }], (err) => {
-            done(err);
-        });
+        );
     });
 
     afterEach(() => {
@@ -68,29 +74,34 @@ describe('coverage plugin test', () => {
     });
 
     describe('GET /coverage/token', () => {
-        it('returns 200', () => server.inject({
-            url: '/coverage/token',
-            credentials: {
-                jobId: 123,
-                scope: ['build']
-            }
-        }).then((reply) => {
-            assert.equal(reply.statusCode, 200);
-            assert.deepEqual(reply.result, 'faketoken');
-        }));
+        it('returns 200', () =>
+            server
+                .inject({
+                    url: '/coverage/token',
+                    credentials: {
+                        jobId: 123,
+                        scope: ['build']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, 'faketoken');
+                }));
 
         it('returns 500 if failed to get access token', () => {
             mockCoveragePlugin.getAccessToken.rejects(new Error('oops!'));
 
-            return server.inject({
-                url: '/coverage/token',
-                credentials: {
-                    jobId: 123,
-                    scope: ['build']
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 500);
-            });
+            return server
+                .inject({
+                    url: '/coverage/token',
+                    credentials: {
+                        jobId: 123,
+                        scope: ['build']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 500);
+                });
         });
     });
 
@@ -118,7 +129,7 @@ describe('coverage plugin test', () => {
         it('returns 200', () => {
             mockCoveragePlugin.getInfo.withArgs(args).resolves(result);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, result);
             });
@@ -127,7 +138,7 @@ describe('coverage plugin test', () => {
         it('returns 500 if failed to get info', () => {
             mockCoveragePlugin.getInfo.withArgs(args).rejects(new Error('oops!'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });

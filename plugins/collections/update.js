@@ -32,10 +32,7 @@ module.exports = () => ({
             const { username, scmContext } = request.auth.credentials;
 
             // get the collection and user
-            return Promise.all([
-                collectionFactory.get({ id }),
-                userFactory.get({ username, scmContext })
-            ])
+            return Promise.all([collectionFactory.get({ id }), userFactory.get({ username, scmContext })])
                 .then(([oldCollection, user]) => {
                     if (!oldCollection) {
                         throw boom.notFound(`Collection ${id} does not exist`);
@@ -59,22 +56,23 @@ module.exports = () => ({
                     if (request.payload.pipelineIds) {
                         const { pipelineFactory } = request.server.app;
 
-                        return Promise.all(request.payload.pipelineIds.map(pipelineId =>
-                            pipelineFactory.get(pipelineId)))
-                            .then((pipelines) => {
-                                // If the pipeline exists, then add its id to the array of pipelineIds
-                                // in oldCollection
-                                oldCollection.pipelineIds = pipelines.filter(pipeline =>
-                                    pipeline).map(pipeline => pipeline.id);
+                        return Promise.all(
+                            request.payload.pipelineIds.map(pipelineId => pipelineFactory.get(pipelineId))
+                        ).then(pipelines => {
+                            // If the pipeline exists, then add its id to the array of pipelineIds
+                            // in oldCollection
+                            oldCollection.pipelineIds = pipelines
+                                .filter(pipeline => pipeline)
+                                .map(pipeline => pipeline.id);
 
-                                return oldCollection.update()
-                                    .then(updatedCollection =>
-                                        reply(updatedCollection.toJson()).code(200)
-                                    );
-                            });
+                            return oldCollection
+                                .update()
+                                .then(updatedCollection => reply(updatedCollection.toJson()).code(200));
+                        });
                     }
 
-                    return oldCollection.update()
+                    return oldCollection
+                        .update()
                         .then(updatedCollection => reply(updatedCollection.toJson()).code(200));
                 })
                 .catch(err => reply(boom.boomify(err)));

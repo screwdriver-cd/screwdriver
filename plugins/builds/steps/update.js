@@ -20,7 +20,7 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const stepFactory = request.server.app.stepFactory;
+            const { stepFactory } = request.server.app;
             const buildId = request.params.id;
             const stepName = request.params.name;
             const buildIdCred = request.auth.credentials.username;
@@ -29,11 +29,12 @@ module.exports = () => ({
                 return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
             }
 
-            const now = (new Date()).toISOString();
+            const now = new Date().toISOString();
 
             // Check if step model exists
-            return stepFactory.get({ buildId, name: stepName })
-                .then((step) => {
+            return stepFactory
+                .get({ buildId, name: stepName })
+                .then(step => {
                     if (!step) {
                         throw boom.notFound('Step does not exist');
                     }

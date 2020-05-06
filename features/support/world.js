@@ -4,8 +4,8 @@ const Assert = require('chai').assert;
 const path = require('path');
 const env = require('node-env-file');
 const requestretry = require('requestretry');
-const request = require('../support/request');
 const { setWorldConstructor } = require('cucumber');
+const request = require('./request');
 
 /**
  * Retry until the build has finished
@@ -26,7 +26,7 @@ function buildRetryStrategy(err, response, body) {
  * @return {Promise}
  */
 function promiseToWait(timeToWait) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
         setTimeout(() => resolve(), timeToWait * 1000);
     });
 }
@@ -49,12 +49,12 @@ function ensurePipelineExists(config) {
     const shouldNotDeletePipeline = config.shouldNotDeletePipeline || false;
 
     return this.getJwt(this.apiToken)
-        .then((response) => {
+        .then(response => {
             this.jwt = response.body.token;
 
             return this.createPipeline(config.repoName, branch);
         })
-        .then((response) => {
+        .then(response => {
             Assert.oneOf(response.statusCode, [409, 201]);
 
             if (response.statusCode === 201) {
@@ -70,10 +70,10 @@ function ensurePipelineExists(config) {
 
             if (!shouldNotDeletePipeline) {
                 // If pipeline already exists, deletes and re-creates
-                return this.deletePipeline(this[pipelineVarName]).then((resDel) => {
+                return this.deletePipeline(this[pipelineVarName]).then(resDel => {
                     Assert.equal(resDel.statusCode, 204);
 
-                    return this.createPipeline(config.repoName, branch).then((resCre) => {
+                    return this.createPipeline(config.repoName, branch).then(resCre => {
                         Assert.equal(resCre.statusCode, 201);
 
                         this[pipelineVarName] = resCre.body.id;
@@ -85,7 +85,7 @@ function ensurePipelineExists(config) {
 
             return this.getPipeline(this[pipelineVarName]);
         })
-        .then((response) => {
+        .then(response => {
             Assert.equal(response.statusCode, 200);
 
             this.jobs = response.body;
@@ -123,36 +123,36 @@ function ensurePipelineExists(config) {
                 const job = response.body[i];
 
                 switch (job.name) {
-                case 'publish': // for event test
-                case 'second': // for metadata and secret tests
-                    this.secondJobId = job.id;
-                    break;
-                case 'third':
-                    this.thirdJobId = job.id;
-                    break;
-                case 'success_A':
-                    this.success_AJobId = job.id;
-                    break;
-                case 'fail_A':
-                    this.fail_AJobId = job.id;
-                    break;
-                case 'success_B':
-                    this.success_BJobId = job.id;
-                    break;
-                case 'fail_B':
-                    this.fail_BJobId = job.id;
-                    break;
-                case 'parallel_A':
-                    this.parallel_AJobId = job.id;
-                    break;
-                case 'parallel_B1':
-                    this.parallel_B1JobId = job.id;
-                    break;
-                case 'parallel_B2':
-                    this.parallel_B2JobId = job.id;
-                    break;
-                default: // main job
-                    this.jobId = job.id;
+                    case 'publish': // for event test
+                    case 'second': // for metadata and secret tests
+                        this.secondJobId = job.id;
+                        break;
+                    case 'third':
+                        this.thirdJobId = job.id;
+                        break;
+                    case 'success_A':
+                        this.success_AJobId = job.id;
+                        break;
+                    case 'fail_A':
+                        this.fail_AJobId = job.id;
+                        break;
+                    case 'success_B':
+                        this.success_BJobId = job.id;
+                        break;
+                    case 'fail_B':
+                        this.fail_BJobId = job.id;
+                        break;
+                    case 'parallel_A':
+                        this.parallel_AJobId = job.id;
+                        break;
+                    case 'parallel_B1':
+                        this.parallel_B1JobId = job.id;
+                        break;
+                    case 'parallel_B2':
+                        this.parallel_B2JobId = job.id;
+                        break;
+                    default: // main job
+                        this.jobId = job.id;
                 }
             }
 
@@ -206,10 +206,12 @@ function CustomWorld({ attach, parameters }) {
             auth: {
                 bearer: this.jwt
             }
-        // Actual login is accomplished through getJwt
-        }).then(() => this.getJwt(apiToken).then((response) => {
-            this.loginResponse = response;
-        }));
+            // Actual login is accomplished through getJwt
+        }).then(() =>
+            this.getJwt(apiToken).then(response => {
+                this.loginResponse = response;
+            })
+        );
     this.getPipeline = pipelineId =>
         request({
             uri: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/jobs`,

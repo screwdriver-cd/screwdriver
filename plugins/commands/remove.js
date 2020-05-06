@@ -32,10 +32,9 @@ function removeCommand(command, storeUrl, authToken) {
 
             return resolve(response);
         });
-    }).then((response) => {
+    }).then(response => {
         if (response.statusCode !== 204) {
-            throw new Error('An error occured when '
-                + `trying to remove binary from the store:${response.body.message}`);
+            throw new Error(`An error occured when trying to remove binary from the store:${response.body.message}`);
         }
 
         return command.remove();
@@ -69,20 +68,24 @@ module.exports = () => ({
             return Promise.all([
                 commandFactory.list({ params: { namespace, name } }),
                 commandTagFactory.list({ params: { namespace, name } })
-            ]).then(([commands, tags]) => {
-                if (commands.length === 0) {
-                    throw boom.notFound(`Command ${namespace}/${name} does not exist`);
-                }
+            ])
+                .then(([commands, tags]) => {
+                    if (commands.length === 0) {
+                        throw boom.notFound(`Command ${namespace}/${name} does not exist`);
+                    }
 
-                return canRemove(credentials, commands[0], 'admin').then(() => {
-                    // eslint-disable-next-line max-len
-                    const commandPromises = commands.map(command => removeCommand(command, storeUrl, authToken));
-                    const tagPromises = tags.map(tag => tag.remove());
+                    return canRemove(credentials, commands[0], 'admin')
+                        .then(() => {
+                            // eslint-disable-next-line max-len
+                            const commandPromises = commands.map(command =>
+                                removeCommand(command, storeUrl, authToken)
+                            );
+                            const tagPromises = tags.map(tag => tag.remove());
 
-                    return Promise.all(commandPromises.concat(tagPromises));
+                            return Promise.all(commandPromises.concat(tagPromises));
+                        })
+                        .then(() => reply().code(204));
                 })
-                    .then(() => reply().code(204));
-            })
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
