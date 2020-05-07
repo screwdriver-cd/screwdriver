@@ -1,0 +1,44 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.14.1
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  SNYK-JS-LODASH-567746:
+    - async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - requestretry > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-executor-k8s > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-executor-k8s-vm > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-models > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-models > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-scm-router > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-datastore-sequelize > sequelize > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-executor-k8s > requestretry > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-executor-k8s-vm > requestretry > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-executor-queue > requestretry > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-coverage-sonar > request-promise-native > request-promise-core > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-coverage-sonar > screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-datastore-sequelize > screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-executor-queue > screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-models > screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-scm-github > screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
+    - screwdriver-scm-router > screwdriver-logger > winston > async > lodash:
+        patched: '2020-05-07T04:22:16.030Z'
