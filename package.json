@@ -11,7 +11,9 @@
     "profile": "node --prof ./bin/server",
     "functional": "cucumber-js --format=progress --tags 'not @ignore' --retry 2 --fail-fast --exit",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
-    "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png"
+    "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -117,7 +119,8 @@
     "tinytim": "^0.1.1",
     "uuid": "^3.4.0",
     "verror": "^1.6.1",
-    "vision": "^4.1.0"
+    "vision": "^4.1.0",
+    "snyk": "^1.319.1"
   },
   "devDependencies": {
     "@octokit/rest": "~16.33",
@@ -139,5 +142,6 @@
     "rewire": "^4.0.1",
     "sinon": "^7.4.2",
     "stream-to-promise": "^2.2.0"
-  }
+  },
+  "snyk": true
 }
