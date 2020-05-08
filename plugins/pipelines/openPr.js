@@ -2,6 +2,12 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const schema = require('screwdriver-data-schema');
+const helper = require('./helper');
+const pipelineCheckoutUrlSchema =
+    joi.reach(schema.models.pipeline.create, 'checkoutUrl').required();
+const scmRootDirSchema =
+    joi.reach(schema.core.scm, 'rootDir').required();
 
 module.exports = () => ({
     method: 'POST',
@@ -23,7 +29,9 @@ module.exports = () => ({
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
-            const { checkoutUrl, files, title, message} = request.payload;
+            const { files, title, message } = request.payload;
+            const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
+            const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
 
             return userFactory.get({ username, scmContext })
                 .then((user) => {
@@ -31,14 +39,21 @@ module.exports = () => ({
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user
-                        .getPermissions(checkoutUrl)
+                    return user.unsealToken()
+                        .then(token =>
+                            pipelineFactory.scm.parseUrl({
+                                scmContext,
+                                rootDir,
+                                checkoutUrl,
+                                token
+                            })
+                        )
+                        .then(scmUri => user.getPermissions(scmUri))
                         .then(permissions => {
                             if (!permissions.push) {
                                 throw boom.forbidden(`User ${username} does not have push permission for this repo`);
                             }
                         })
-                        .then(() => user.unsealToken())
                         .then(token => userFactory.scm.openPr({
                             checkoutUrl,
                             files,
@@ -53,7 +68,8 @@ module.exports = () => ({
         },
         validate: {
             payload: {
-                checkoutUrl: joi.string().required(),
+                checkoutUrl: pipelineCheckoutUrlSchema,
+                rootDir: scmRootDirSchema,
                 files: Joi.array().items(
                     Joi.object().keys({
                         name: Joi.string().required(),
