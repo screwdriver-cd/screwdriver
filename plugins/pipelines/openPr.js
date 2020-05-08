@@ -23,7 +23,7 @@ module.exports = () => ({
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
-            const { scmUri, files, title, message} = request.payload;
+            const { checkoutUrl, files, title, message} = request.payload;
 
             return userFactory.get({ username, scmContext })
                 .then((user) => {
@@ -32,7 +32,7 @@ module.exports = () => ({
                     }
 
                     return user
-                        .getPermissions(scmUri)
+                        .getPermissions(checkoutUrl)
                         .then(permissions => {
                             if (!permissions.push) {
                                 throw boom.forbidden(`User ${username} does not have push permission for this repo`);
@@ -40,20 +40,20 @@ module.exports = () => ({
                         })
                         .then(() => user.unsealToken())
                         .then(token => userFactory.scm.openPr({
-                            scmUri,
+                            checkoutUrl,
                             files,
                             token,
                             scmContext,
                             title,
                             message
                         }))
-                        .then()
+                        .then(pullrequest => reply(pullrequest.url).code(201));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             payload: {
-                scmUri: joi.string().required(),
+                checkoutUrl: joi.string().required(),
                 files: Joi.array().items(
                     Joi.object().keys({
                         name: Joi.string().required(),
