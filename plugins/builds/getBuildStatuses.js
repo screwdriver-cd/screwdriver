@@ -3,7 +3,7 @@
 const boom = require('boom');
 const joi = require('joi');
 const stringSchema = joi.string().regex(/^[0-9]+$/);
-const jobIdsSchema = joi.alternatives().try(joi.array().items(stringSchema), stringSchema);
+const jobIdsSchema = joi.alternatives().try(joi.array().items(stringSchema), stringSchema).required();
 
 module.exports = () => ({
     method: 'GET',
