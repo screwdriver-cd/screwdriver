@@ -26,12 +26,8 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             let profile = request.auth.credentials;
-            const { username } = profile;
-            const { scope } = profile;
-            const { token } = profile;
-            const { buildFactory } = request.server.app;
-            const { jobFactory } = request.server.app;
-            const { pipelineFactory } = request.server.app;
+            const { scope, token, username } = profile;
+            const { buildFactory, jobFactory, pipelineFactory } = request.server.app;
 
             // Check Build ID impersonate
             if (request.params.buildId) {
