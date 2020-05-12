@@ -4,7 +4,7 @@
   "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
-    "pretest": "eslint --max-warnings 440 .",
+    "pretest": "eslint --max-warnings 445 .",
     "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --recursive --timeout 4000 --retries 1 --exit --allow-uncaught true --color true",
     "start": "./bin/server",
     "debug": "node --nolazy --inspect-brk=9229 ./bin/server",
@@ -97,7 +97,7 @@
     "screwdriver-coverage-bookend": "^1.0.3",
     "screwdriver-coverage-sonar": "^1.0.29",
     "screwdriver-data-schema": "^19.5.0",
-    "screwdriver-datastore-sequelize": "^5.10.1",
+    "screwdriver-datastore-sequelize": "^6.0.0",
     "screwdriver-executor-base": "^7.5.0",
     "screwdriver-executor-docker": "^4.2.3",
     "screwdriver-executor-k8s": "^13.6.1",

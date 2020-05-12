@@ -5,6 +5,7 @@ const workflowParser = require('screwdriver-workflow-parser');
 const deepmerge = require('deepmerge');
 const schema = require('screwdriver-data-schema');
 const getRoute = require('./get');
+const getBuildStatusesRoute = require('./getBuildStatuses');
 const updateRoute = require('./update');
 const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
@@ -1452,6 +1453,7 @@ exports.register = (server, options, next) => {
 
     server.route([
         getRoute(),
+        getBuildStatusesRoute(),
         updateRoute(options),
         createRoute(),
         // Steps
