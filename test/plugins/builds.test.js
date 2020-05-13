@@ -110,6 +110,7 @@ describe('build plugin test', () => {
                 getCommitSha: sinon.stub(),
                 getPrInfo: sinon.stub()
             },
+            getLatestBuilds: sinon.stub(),
             getBuildStatuses: sinon.stub()
         };
         stepFactoryMock = {
@@ -351,6 +352,7 @@ describe('build plugin test', () => {
         };
         const configPipelineSha = 'abc123';
         let buildMock;
+        let jobMock;
         let pipelineMock;
         let eventMock;
         let triggerMocks;
@@ -381,6 +383,19 @@ describe('build plugin test', () => {
                 }),
                 toJson: sinon.stub().returns({ id: pipelineId })
             };
+            jobMock = {
+                id: 1234,
+                name: 'main',
+                pipelineId,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                pipeline: sinon.stub().resolves(pipelineMock)()
+            };
 
             eventMock = {
                 id: '8888',
@@ -401,6 +416,7 @@ describe('build plugin test', () => {
 
             eventFactoryMock.get.resolves(eventMock);
             eventMock.update.resolves(eventMock);
+            jobFactoryMock.get.resolves(jobMock);
 
             triggerMocks = [
                 {
@@ -424,18 +440,6 @@ describe('build plugin test', () => {
         });
 
         it('emits event build_status', () => {
-            const jobMock = {
-                id: 1234,
-                name: 'main',
-                pipelineId,
-                permutations: [
-                    {
-                        settings: {
-                            email: 'foo@bar.com'
-                        }
-                    }
-                ]
-            };
             const userMock = {
                 username: id,
                 getPermissions: sinon.stub().resolves({ push: true })
@@ -451,14 +455,12 @@ describe('build plugin test', () => {
                 }
             };
 
-            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
             buildMock.job = sinon.stub().resolves(jobMock)();
             buildMock.settings = {
                 email: 'foo@bar.com'
             };
             buildFactoryMock.get.resolves(buildMock);
             buildFactoryMock.uiUri = 'http://foo.bar';
-            jobFactoryMock.get.resolves(jobMock);
             userFactoryMock.get.resolves(userMock);
 
             server.emit = sinon.stub().resolves(null);
@@ -519,18 +521,6 @@ describe('build plugin test', () => {
 
         describe('user token', () => {
             it('returns 200 for updating a build that exists', () => {
-                const jobMock = {
-                    id: 1234,
-                    name: 'main',
-                    pipelineId,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
                 const userMock = {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
@@ -548,12 +538,10 @@ describe('build plugin test', () => {
                     }
                 };
 
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJson.returns(testBuild);
                 buildMock.toJsonWithSteps.resolves(expected);
-                jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
                 return server.inject(options).then(reply => {
@@ -602,18 +590,6 @@ describe('build plugin test', () => {
             });
 
             it('allow admin users to update build status to failure', () => {
-                const jobMock = {
-                    id: 1234,
-                    name: 'main',
-                    pipelineId,
-                    permutations: [
-                        {
-                            settings: {
-                                email: 'foo@bar.com'
-                            }
-                        }
-                    ]
-                };
                 const userMock = {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
@@ -632,12 +608,10 @@ describe('build plugin test', () => {
                     }
                 };
 
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildFactoryMock.get.resolves(buildMock);
                 buildMock.toJsonWithSteps.resolves(expected);
                 buildMock.toJson.returns(testBuild);
-                jobFactoryMock.get.resolves(jobMock);
                 userFactoryMock.get.resolves(userMock);
 
                 return server.inject(options).then(reply => {
@@ -672,7 +646,6 @@ describe('build plugin test', () => {
             const jobId = 1234;
             const publishJobId = 1235;
 
-            let jobMock;
             let userMock;
 
             beforeEach(() => {
@@ -684,17 +657,14 @@ describe('build plugin test', () => {
                         {
                             settings: {}
                         }
-                    ]
+                    ],
+                    pipeline: sinon.stub().resolves(pipelineMock)()
                 };
-
                 userMock = {
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
                 };
-
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
-
                 buildFactoryMock.create.resolves(buildMock);
                 pipelineFactoryMock.get.resolves(pipelineMock);
                 userFactoryMock.get.resolves(userMock);
@@ -1111,7 +1081,6 @@ describe('build plugin test', () => {
                 testBuild.status = 'BLOCKED';
                 testBuild.statusMessage = 'blocked';
                 buildMock = getBuildMock(testBuild);
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildMock.settings = {
                     email: 'foo@bar.com'
@@ -1157,7 +1126,6 @@ describe('build plugin test', () => {
                 testBuild.status = 'UNSTABLE';
                 testBuild.statusMessage = 'hello';
                 buildMock = getBuildMock(testBuild);
-                jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
                 buildMock.job = sinon.stub().resolves(jobMock)();
                 buildMock.settings = {
                     email: 'foo@bar.com'
@@ -1273,6 +1241,8 @@ describe('build plugin test', () => {
                                     eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
                                     configPipelineSha,
                                     prRef: '',
+                                    prInfo: '',
+                                    prSource: '',
                                     start: true,
                                     baseBranch: null,
                                     parentBuilds: {
@@ -2089,6 +2059,7 @@ describe('build plugin test', () => {
                         })
                     );
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
+                    eventFactoryMock.get.withArgs(8888).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs(6).resolves(jobC);
                     jobFactoryMock.get.withArgs(3).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
@@ -2107,6 +2078,8 @@ describe('build plugin test', () => {
                         scmContext: 'github:github.com',
                         configPipelineSha: 'abc123',
                         prRef: '',
+                        prSource: '',
+                        prInfo: '',
                         baseBranch: 'master',
                         parentBuilds: { 123: { jobs: { a: 12345 }, eventId: '8888' } }
                     };
@@ -2320,6 +2293,7 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.create.resolves(buildC);
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
@@ -2502,6 +2476,8 @@ describe('build plugin test', () => {
                             2: { eventId: '8887', jobs: { a: 12345 } }
                         },
                         prRef: '',
+                        prSource: '',
+                        prInfo: '',
                         scmContext: 'github:github.com',
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
                         start: false,
@@ -2850,6 +2826,7 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.create.resolves(buildC);
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
@@ -3038,17 +3015,6 @@ describe('build plugin test', () => {
                     //      c
                     // d ->
                     // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
-                    const buildD = {
-                        jobId: 4,
-                        status: 'SUCCESS',
-                        parentBuilds: {
-                            123: {
-                                eventId: '8888',
-                                jobs: { a: 12345 }
-                            }
-                        },
-                        start: sinon.stub().resolves()
-                    };
                     const buildC = {
                         jobId: 4,
                         status: 'SUCCESS',
@@ -3073,6 +3039,7 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
+                        groupEventId: 5,
                         builds: [
                             {
                                 id: 888,
@@ -3088,6 +3055,7 @@ describe('build plugin test', () => {
                             },
                             {
                                 id: 889,
+                                eventId: '8888',
                                 jobId: 4,
                                 status: 'SUCCESS'
                             }
@@ -3111,14 +3079,9 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    eventMock.getBuilds.resolves([
+                    buildFactoryMock.getLatestBuilds.resolves([
                         {
                             jobId: 1,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 4,
                             eventId: '8888',
                             status: 'SUCCESS'
                         },
@@ -3132,7 +3095,7 @@ describe('build plugin test', () => {
                             eventId: '8888',
                             status: 'ABORTED'
                         },
-                        buildD
+                        buildC
                     ]);
                     jobBconfig.parentBuilds = {
                         123: {
@@ -3143,12 +3106,13 @@ describe('build plugin test', () => {
                     jobCconfig.parentBuilds = {
                         123: {
                             eventId: '8888',
-                            jobs: { a: 12345, d: 4 }
+                            jobs: { a: 12345, d: 889 }
                         }
                     };
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     eventFactoryMock.get.withArgs('456').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455' })]);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '455', pipelineId: 555 })]);
+                    eventMock.groupEventId = 5;
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
                     eventMock.workflowGraph.edges = [
@@ -3389,6 +3353,53 @@ describe('build plugin test', () => {
                     //  a        -> d
                     //     -> c
                     // if user restarts from job `a`, it should ignore `c`'s parent event status when `b` finishes
+                    const externalEventMock = {
+                        id: 2,
+                        pipelineId: 123,
+                        builds: [
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            }
+                        ],
+                        getBuilds: sinon.stub().resolves([
+                            {
+                                id: 888,
+                                jobId: 1,
+                                status: 'SUCCESS'
+                            },
+                            {
+                                id: 999,
+                                parentBuilds: {
+                                    123: {
+                                        eventId: '8888',
+                                        jobs: { a: 12345, c: 45678 }
+                                    }
+                                },
+                                jobId: 3,
+                                status: 'FAILED'
+                            }
+                        ]),
+                        workflowGraph: {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@123:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'sd@123:a' },
+                                { src: 'a', dest: 'c', join: true },
+                                { src: 'sd@123:a', dest: 'c', join: true }
+                            ]
+                        }
+                    };
+
                     jobMock.name = 'b';
                     eventMock.parentEventId = 456;
                     eventMock.startFrom = 'a';
@@ -3401,7 +3412,6 @@ describe('build plugin test', () => {
                         { src: 'c', dest: 'd', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-
                     eventMock.getBuilds.resolves([
                         {
                             id: 5,
@@ -3414,7 +3424,6 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
-
                     parentEventMock.getBuilds.resolves([
                         {
                             id: 1,
@@ -3437,6 +3446,9 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
+                    eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
+                    jobFactoryMock.get.resolves(jobMock);
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
@@ -3575,11 +3587,6 @@ describe('build plugin test', () => {
             };
 
             buildMock = getBuildMock({ id: buildId, other: 'dataToBeIncluded' });
-            jobMock = {
-                id: jobId,
-                pipelineId,
-                isPR: sinon.stub()
-            };
             pipelineMock = {
                 id: pipelineId,
                 checkoutUrl,
@@ -3592,6 +3599,12 @@ describe('build plugin test', () => {
                     username: 'foo',
                     unsealToken: sinon.stub().resolves('token')
                 })
+            };
+            jobMock = {
+                id: jobId,
+                pipelineId,
+                isPR: sinon.stub(),
+                pipeline: sinon.stub().resolves(pipelineMock)()
             };
             userMock = {
                 username,
@@ -3620,7 +3633,6 @@ describe('build plugin test', () => {
                 skipMessage: 'skip build creation'
             };
 
-            jobMock.pipeline = sinon.stub().resolves(pipelineMock)();
             userMock.getPermissions.resolves({ push: true });
             userMock.unsealToken.resolves('iamtoken');
             buildFactoryMock.create.resolves(buildMock);

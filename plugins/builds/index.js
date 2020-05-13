@@ -364,6 +364,8 @@ async function createInternalBuild(config) {
     } = config;
     const event = await eventFactory.get(build.eventId);
     const prRef = event.pr.ref ? event.pr.ref : '';
+    const prSource = event.pr.prSource || '';
+    const prInfo = event.pr.prInfo || '';
 
     let job = {};
 
@@ -386,6 +388,8 @@ async function createInternalBuild(config) {
         configPipelineSha: event.configPipelineSha,
         scmContext,
         prRef,
+        prSource,
+        prInfo,
         start: start !== false,
         baseBranch
     };
@@ -436,7 +440,7 @@ function dfs(workflowGraph, start, builds, visited) {
  * @param  {Array}  config.builds         An array of all builds from the parent event
  * @param  {String} config.startFrom      Job name to start the event from
  * @param  {Object} config.parentEvent    The parent event model
- * @return {Array}                        An array of upstream builds to be rerun
+ * @return {Array}                        An array of upstream builds
  */
 function removeDownstreamBuilds(config) {
     const { builds, startFrom, parentEvent } = config;
@@ -561,19 +565,31 @@ function parseJobInfo({ joinObj, currentJobName, nextJobName, pipelineId, build 
 
 /**
  * Get finished builds in all parent events
- * @param  {Event}      event           Current event
- * @param  {Factory}    eventFactory    Event Factory
- * @return {Promise}                    All finished builds
+ * @param  {Event}      event                   Current event
+ * @param  {Number}     [event.parentEventId]   Parent event ID
+ * @param  {Number}     [event.groupEventId]    Group parent event ID
+ * @param  {Factory}    eventFactory            Event Factory
+ * @param  {Factory}    [buildFactory]          Build factory
+ * @return {Promise}                            All finished builds
  */
-async function getFinishedBuilds(event, eventFactory) {
+async function getFinishedBuilds(event, eventFactory, buildFactory) {
     if (!event.parentEventId) {
         return event.getBuilds();
     }
 
-    // If parent event id, merge parent build status data recursively and
-    // rerun all builds in the path of the startFrom
+    let parents;
     const parentEvent = await eventFactory.get({ id: event.parentEventId });
-    const parents = await getFinishedBuilds(parentEvent, eventFactory);
+
+    // New logic to use groupEventId
+    if (event.groupEventId && buildFactory) {
+        parents = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+    } else {
+        // Old logic to recursively find parent builds
+        // If parent event id, merge parent build status data recursively and
+        // rerun all builds in the path of the startFrom
+        parents = await getFinishedBuilds(parentEvent, eventFactory);
+    }
+
     const upstreamBuilds = removeDownstreamBuilds({
         builds: parents,
         startFrom: event.startFrom,
@@ -698,10 +714,10 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
 
 /**
  * Get all builds with same parent event id
- * @param  {Factory}    eventFactory  Event factory
- * @param  {Number}     parentEventId Parent event ID
- * @param  {Number}     pipelineId    Pipeline ID
- * @return {Promise}                  Array of builds with same parent event ID
+ * @param  {Factory}    eventFactory    Event factory
+ * @param  {Number}     parentEventId   Parent event ID
+ * @param  {Number}     pipelineId      Pipeline ID
+ * @return {Promise}                    Array of builds with same parent event ID
  */
 async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
     let parallelEvents = await eventFactory.list({
@@ -830,7 +846,7 @@ async function createOrRunNextBuild({
     } else {
         // Get finished internal builds from event
         logger.info(`Fetching finished builds for event ${event.id}`);
-        let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
+        let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory, buildFactory);
 
         if (event.parentEventId) {
             const parallelBuilds = await getParallelBuilds({
@@ -876,7 +892,6 @@ async function createOrRunNextBuild({
 
         nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId && b.eventId === event.id);
     }
-
     let newBuild;
 
     // Create next build
@@ -1259,14 +1274,15 @@ exports.register = (server, options, next) => {
                     const fullCurrentJobName = `sd@${pipelineId}:${currentJobName}`;
 
                     // Get finished internal builds from event
-                    let finishedInternalBuilds = await getFinishedBuilds(externalEvent, eventFactory);
+                    let finishedInternalBuilds = await getFinishedBuilds(externalEvent, eventFactory, buildFactory);
 
                     // Fill in missing parentBuilds info
                     if (externalEventId) {
                         const parallelBuilds = await getParallelBuilds({
                             eventFactory,
                             parentEventId: externalEventId,
-                            pipelineId: externalEvent.pipelineId
+                            pipelineId: externalEvent.pipelineId,
+                            groupEventId: externalEvent.groupEventId
                         });
 
                         finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
