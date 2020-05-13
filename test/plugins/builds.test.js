@@ -108,7 +108,8 @@ describe('build plugin test', () => {
             scm: {
                 getCommitSha: sinon.stub(),
                 getPrInfo: sinon.stub()
-            }
+            },
+            getLatestBuilds: sinon.stub()
         };
         stepFactoryMock = {
             get: sinon.stub(),
@@ -3036,14 +3037,9 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    eventMock.getBuilds.resolves([
+                    buildFactoryMock.getLatestBuilds.resolves([
                         {
                             jobId: 1,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 4,
                             eventId: '8888',
                             status: 'SUCCESS'
                         },

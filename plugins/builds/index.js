@@ -568,55 +568,27 @@ function parseJobInfo({ joinObj, currentJobName, nextJobName, pipelineId, build 
  * @param  {Number}     [event.parentEventId]   Parent event ID
  * @param  {Number}     [event.groupEventId]    Group parent event ID
  * @param  {Factory}    eventFactory            Event Factory
+ * @param  {Factory}    [buildFactory]          Build factory
  * @return {Promise}                            All finished builds
  */
-async function getFinishedBuilds(event, eventFactory) {
+async function getFinishedBuilds(event, eventFactory, buildFactory) {
     if (!event.parentEventId) {
         return event.getBuilds();
     }
 
+    let parents;
+    const parentEvent = await eventFactory.get({ id: event.parentEventId });
+
     // New logic to use groupEventId
-    if (event.groupEventId) {
-        const parentEvents = await eventFactory.list({
-            params: {
-                groupEventId: event.groupEventId
-            }
-        });
-        const builds = await event.getBuilds();
-        let parentBuilds = [].concat(builds);
-
-        await Promise.all(
-            parentEvents.map(async pe => {
-                const eventBuilds = await pe.getBuilds();
-                const upstreamBuilds = removeDownstreamBuilds({
-                    builds: eventBuilds,
-                    startFrom: event.startFrom,
-                    parentEvent: pe
-                });
-
-                parentBuilds = parentBuilds.concat(upstreamBuilds);
-            })
-        );
-
-        const jobData = {};
-
-        // Only keep the most recent build for each job if there are multiple builds
-        parentBuilds.forEach(b => {
-            if (typeof jobData[b.jobId] === 'undefined' || b.id > jobData[b.jobId].buildId) {
-                jobData[b.jobId] = { endTime: b.endTime, buildId: b.id };
-            }
-        });
-
-        const result = parentBuilds.filter(pb => jobData[pb.jobId].buildId === pb.id);
-
-        return result;
+    if (event.groupEventId && buildFactory) {
+        parents = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+    } else {
+        // Old logic to recursively find parent builds
+        // If parent event id, merge parent build status data recursively and
+        // rerun all builds in the path of the startFrom
+        parents = await getFinishedBuilds(parentEvent, eventFactory);
     }
 
-    // Old logic to recursively find parent builds
-    // If parent event id, merge parent build status data recursively and
-    // rerun all builds in the path of the startFrom
-    const parentEvent = await eventFactory.get({ id: event.parentEventId });
-    const parents = await getFinishedBuilds(parentEvent, eventFactory);
     const upstreamBuilds = removeDownstreamBuilds({
         builds: parents,
         startFrom: event.startFrom,
@@ -873,7 +845,7 @@ async function createOrRunNextBuild({
     } else {
         // Get finished internal builds from event
         logger.info(`Fetching finished builds for event ${event.id}`);
-        let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory);
+        let finishedInternalBuilds = await getFinishedBuilds(event, eventFactory, buildFactory);
 
         if (event.parentEventId) {
             const parallelBuilds = await getParallelBuilds({
@@ -1301,7 +1273,7 @@ exports.register = (server, options, next) => {
                     const fullCurrentJobName = `sd@${pipelineId}:${currentJobName}`;
 
                     // Get finished internal builds from event
-                    let finishedInternalBuilds = await getFinishedBuilds(externalEvent, eventFactory);
+                    let finishedInternalBuilds = await getFinishedBuilds(externalEvent, eventFactory, buildFactory);
 
                     // Fill in missing parentBuilds info
                     if (externalEventId) {
