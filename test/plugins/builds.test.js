@@ -10,6 +10,7 @@ const nock = require('nock');
 const rewire = require('rewire');
 const testBuild = require('./data/build.json');
 const testBuildWithSteps = require('./data/buildWithSteps.json');
+const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
 
@@ -109,7 +110,8 @@ describe('build plugin test', () => {
                 getCommitSha: sinon.stub(),
                 getPrInfo: sinon.stub()
             },
-            getLatestBuilds: sinon.stub()
+            getLatestBuilds: sinon.stub(),
+            getBuildStatuses: sinon.stub()
         };
         stepFactoryMock = {
             get: sinon.stub(),
@@ -293,6 +295,46 @@ describe('build plugin test', () => {
             buildFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
             return server.inject(`/builds/${id}`).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /builds/statuses?jobIds=&jobIds=&numBuilds=&offset=', () => {
+        it('returns 200 when build statuses exist', () => {
+            buildFactoryMock.getBuildStatuses.resolves(testBuildsStatuses);
+
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuildsStatuses);
+            });
+        });
+
+        it('returns 200 when build statuses exist and given single jobId', () => {
+            buildFactoryMock.getBuildStatuses.resolves(testBuildsStatuses);
+
+            return server.inject('/builds/statuses?jobIds=1&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testBuildsStatuses);
+            });
+        });
+
+        it('returns 404 when no build statuses exist', () => {
+            buildFactoryMock.getBuildStatuses.resolves([]);
+
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore returns an error', () => {
+            buildFactoryMock.getBuildStatuses.rejects(new Error('blah'));
+
+            return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
+                assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
                 assert.equal(reply.statusCode, 500);
             });
         });
