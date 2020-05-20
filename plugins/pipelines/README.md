@@ -97,7 +97,7 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
-`page`, `count`, `sort`, and `prNum` are optional  
+`page`, `count`, `sort`, and `prNum` are optional
 Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
@@ -159,6 +159,9 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 Can search by build status
 `GET /pipelines/{id}/jobs/{jobName}/latestBuild?status=SUCCESS`
+
+#### Open pull request
+`POST /pipelines/openPr`
 
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:

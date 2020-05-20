@@ -4,14 +4,14 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const helper = require('./helper');
-const pipelineCheckoutUrlSchema = joi.reach(schema.models.pipeline.create, 'checkoutUrl').required();
-const scmRootDirSchema = joi.reach(schema.core.scm, 'rootDir').required();
+const pipelineCheckoutUrlSchema = joi.reach(schema.models.pipeline.create, 'checkoutUrl');
+const pipelineRootDirSchema = joi.reach(schema.models.pipeline.create, 'rootDir');
 
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/openPr',
     config: {
-        description: 'Open a pull request for pipeline',
+        description: 'Open pull request for repository',
         notes: 'Open pull request',
         tags: ['api', 'pipelines'],
         auth: {
@@ -50,7 +50,7 @@ module.exports = () => ({
                         .then(scmUri => user.getPermissions(scmUri))
                         .then(permissions => {
                             if (!permissions.push) {
-                                throw boom.forbidden(`User ${username} does not have push permission for this repo`);
+                                throw boom.forbidden(`User ${username} does not have push access for this repo`);
                             }
                         })
                         .then(token =>
@@ -70,7 +70,7 @@ module.exports = () => ({
         validate: {
             payload: {
                 checkoutUrl: pipelineCheckoutUrlSchema,
-                rootDir: scmRootDirSchema,
+                rootDir: pipelineRootDirSchema,
                 files: joi
                     .array()
                     .items(
