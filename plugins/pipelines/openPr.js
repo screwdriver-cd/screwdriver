@@ -4,10 +4,8 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const helper = require('./helper');
-const pipelineCheckoutUrlSchema =
-    joi.reach(schema.models.pipeline.create, 'checkoutUrl').required();
-const scmRootDirSchema =
-    joi.reach(schema.core.scm, 'rootDir').required();
+const pipelineCheckoutUrlSchema = joi.reach(schema.models.pipeline.create, 'checkoutUrl').required();
+const scmRootDirSchema = joi.reach(schema.core.scm, 'rootDir').required();
 
 module.exports = () => ({
     method: 'POST',
@@ -27,21 +25,22 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const { userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { username, scmContext } = request.auth.credentials;
             const { files, title, message } = request.payload;
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
 
-            return userFactory.get({ username, scmContext })
-                .then((user) => {
+            return userFactory
+                .get({ username, scmContext })
+                .then(user => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user.unsealToken()
+                    return user
+                        .unsealToken()
                         .then(token =>
-                            pipelineFactory.scm.parseUrl({
+                            userFactory.scm.parseUrl({
                                 scmContext,
                                 rootDir,
                                 checkoutUrl,
@@ -54,15 +53,17 @@ module.exports = () => ({
                                 throw boom.forbidden(`User ${username} does not have push permission for this repo`);
                             }
                         })
-                        .then(token => userFactory.scm.openPr({
-                            checkoutUrl,
-                            files,
-                            token,
-                            scmContext,
-                            title,
-                            message
-                        }))
-                        .then(pullrequest => reply(pullrequest.url).code(201));
+                        .then(token =>
+                            userFactory.scm.openPr({
+                                checkoutUrl,
+                                files,
+                                token,
+                                scmContext,
+                                title,
+                                message
+                            })
+                        )
+                        .then(pullRequest => reply(pullRequest.data.url).code(201));
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
@@ -70,12 +71,16 @@ module.exports = () => ({
             payload: {
                 checkoutUrl: pipelineCheckoutUrlSchema,
                 rootDir: scmRootDirSchema,
-                files: Joi.array().items(
-                    Joi.object().keys({
-                        name: Joi.string().required(),
-                        content: Joi.string().required()
-                    })
-                ).min(1).required(),
+                files: joi
+                    .array()
+                    .items(
+                        joi.object().keys({
+                            name: joi.string().required(),
+                            content: joi.string().required()
+                        })
+                    )
+                    .min(1)
+                    .required(),
                 title: joi.string().required(),
                 message: joi.string().required()
             }
