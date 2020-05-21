@@ -84,7 +84,7 @@ describe('stats plugin test', () => {
             };
             const mockScmReturn = { 'github:github.com': mockExecutorReturn };
 
-            mockExecutorStats.stats.returns(mockExecutorReturn);
+            mockExecutorStats.stats.returns({ body: mockExecutorReturn });
             mockScmStats.stats.returns(mockScmReturn);
 
             return server
