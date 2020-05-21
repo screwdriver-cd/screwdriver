@@ -24,11 +24,15 @@ exports.register = (server, options, next) => {
                 schema: schema.api.stats
             }
         },
-        handler: (request, reply) =>
+        handler: async (request, reply) => {
+            const executorStatsresponse = await executor.stats({ token: '' });
+            const executorStats =  executorStatsresponse.body;
+
             reply({
-                executor: executor.stats(),
+                executor: executorStats,
                 scm: scm.stats()
-            })
+            });
+        }
     });
     next();
 };

@@ -33,7 +33,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/tokens',
         '../plugins/webhooks',
         '../plugins/stats',
-        '../plugins/isAdmin'
+        '../plugins/isAdmin',
+        '../plugins/caches'
     ];
     const customPlugins = ['../plugins/shutdown'];
     const pluginLength = expectedPlugins.length + resourcePlugins.length + customPlugins.length;
