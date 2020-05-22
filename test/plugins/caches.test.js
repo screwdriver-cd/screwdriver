@@ -201,5 +201,16 @@ describe('caches plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+
+        it('returns 400 when param validation fails', () => {
+            options = {
+                method: 'DELETE',
+                url: '/caches/pipelines/somevalue'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
     });
 });

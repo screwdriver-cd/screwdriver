@@ -33,8 +33,7 @@ async function invoke(request) {
         method,
         uri: `${store}${apiPath}`,
         headers: {
-            Authorization: `Bearer ${auth.token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${auth.token}`
         }
     };
 
