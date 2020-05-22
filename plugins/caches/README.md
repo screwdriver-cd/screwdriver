@@ -30,7 +30,7 @@ server.register({
 
 Params:
 
-* `scope` - Scope of the cache supporting values pipelines/jobs/builds
+* `scope` - Scope of the cache supporting values `pipelines|jobs|events`
 * `id` - The id of the cache - pipelinId/jobId/buildId
 
 ### Configuration - Reads the ecosystem
