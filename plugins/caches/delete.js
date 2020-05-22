@@ -18,7 +18,7 @@ module.exports = () => ({
     path: '/caches/{scope}/{id}',
     config: {
         description: 'API to delete cache using scope and id',
-        notes: 'Deletes the entire cache folder for pipeline, job or build using its id',
+        notes: 'Deletes the entire cache folder for pipeline, job or event using its id',
         tags: ['api', 'events', 'jobs', 'pipelines', 'cache'],
         auth: {
             strategies: ['token'],
