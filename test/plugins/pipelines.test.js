@@ -2928,7 +2928,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 501 when user does not exist', () => {
+        it('returns 501 when scm return null', () => {
             const error = {
                 statusCode: 501,
                 error: 'Not Implemented',
