@@ -2927,5 +2927,20 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, error);
             });
         });
+
+        it('returns 501 when user does not exist', () => {
+            const error = {
+                statusCode: 501,
+                error: 'Not Implemented',
+                message: 'openPr not implemented for gitlab'
+            };
+
+            userFactoryMock.scm.openPr.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 501);
+                assert.deepEqual(reply.result, error);
+            });
+        });
     });
 });

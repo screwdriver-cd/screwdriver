@@ -63,7 +63,13 @@ module.exports = () => ({
                                 message
                             })
                         )
-                        .then(pullRequest => reply(pullRequest.data.url).code(201));
+                        .then(pullRequest => {
+                            if (!pullRequest) {
+                                throw boom.notImplemented('openPr not implemented for gitlab');
+                            }
+
+                            return reply(pullRequest.data.url).code(201);
+                        });
                 })
                 .catch(err => reply(boom.boomify(err)));
         },
