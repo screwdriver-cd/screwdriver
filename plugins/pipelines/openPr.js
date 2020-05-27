@@ -4,12 +4,13 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const helper = require('./helper');
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 const pipelineCheckoutUrlSchema = joi.reach(schema.models.pipeline.create, 'checkoutUrl');
 const pipelineRootDirSchema = joi.reach(schema.models.pipeline.create, 'rootDir');
 
 module.exports = () => ({
     method: 'POST',
-    path: '/pipelines/openPr',
+    path: '/pipelines/{id}/openPr',
     config: {
         description: 'Open pull request for repository',
         notes: 'Open pull request',
@@ -74,6 +75,9 @@ module.exports = () => ({
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {
+            params: {
+                id: pipelineIdSchema
+            },
             payload: {
                 checkoutUrl: pipelineCheckoutUrlSchema,
                 rootDir: pipelineRootDirSchema,

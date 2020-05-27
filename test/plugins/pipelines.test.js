@@ -2790,7 +2790,8 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    describe('POST /pipelines/openPr', () => {
+    describe('POST /pipelines/{pipelineId}/openPr', () => {
+        const id = 123;
         const username = 'myself';
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
@@ -2815,7 +2816,7 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'POST',
-                url: '/pipelines/openPr',
+                url: `/pipelines/${id}/openPr`,
                 payload: {
                     checkoutUrl: unformattedCheckoutUrl,
                     files,
