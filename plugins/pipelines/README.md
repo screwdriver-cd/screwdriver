@@ -161,7 +161,7 @@ Can search by build status
 `GET /pipelines/{id}/jobs/{jobName}/latestBuild?status=SUCCESS`
 
 #### Open pull request
-`POST /pipelines/openPr`
+`POST /pipelines/{id}/openPr`
 
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:
