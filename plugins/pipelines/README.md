@@ -160,6 +160,27 @@ Only PR events of specified PR number will be searched when `prNum` is set
 Can search by build status
 `GET /pipelines/{id}/jobs/{jobName}/latestBuild?status=SUCCESS`
 
+#### Deletes cache for the given scope and cacheId for pipeline
+`DELETE /pipelines/${id}/caches?scope={scope}&cacheId={id}`
+
+Path Params:
+* `id` - The id of the pipeline
+
+Query Params:
+
+* `scope` - Scope of the cache supporting values `pipelines|jobs|events`
+* `cacheId` - The id of the cache - pipelinId/jobId/eventId
+
+### Configuration - Reads the ecosystem
+```
+    ecosystem:
+        store: 'https://store.screwdriver.cd'
+        queue: 'https://queue.screwdriver.cd'
+        cache:
+            strategy: 's3'
+```
+Route requests to queue service api if strategy is **disk** and to store api if strategy is **s3**
+
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:
 

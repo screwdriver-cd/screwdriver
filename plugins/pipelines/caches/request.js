@@ -2,8 +2,6 @@
 
 const logger = require('screwdriver-logger');
 const requestretry = require('requestretry');
-const config = require('config');
-const ecosystem = config.get('ecosystem');
 
 const RETRY_DELAY = 5;
 const RETRY_LIMIT = 3;
@@ -24,21 +22,21 @@ const retryStrategyFn = (err, response) => !!err || Math.floor(response.statusCo
  * @param {Object} request.headers
  */
 async function invoke(request) {
-    const { method, path, payload, auth, params } = request;
-    const { store, queue, cache } = ecosystem;
+    const { method, payload, auth, query, params } = request;
+    const pipelineId = params.id;
+    const { store, queue, cache } = request.server.app.ecosystem;
+    const { scope, cacheId } = query;
 
-    const apiPath = path.replace(/\/v4/, '/v1');
     const options = {
         json: true,
         method,
-        uri: `${store}${apiPath}`,
+        uri: `${store}/v1/caches/${scope}/${cacheId}`,
         headers: {
             Authorization: `Bearer ${auth.token}`
         }
     };
 
     if (cache.strategy === 'disk') {
-        const { scope, id } = params;
         const buildClusters = await request.server.app.buildClusterFactory.list();
 
         Object.assign(options, {
@@ -46,7 +44,7 @@ async function invoke(request) {
             uri: `${queue}/v1/queue/message?type=cache`,
             body: {
                 scope,
-                id,
+                id: cacheId,
                 buildClusters
             }
         });
@@ -68,16 +66,18 @@ async function invoke(request) {
         });
     }
 
-    logger.info(`${options.method} ${options.uri} Cache invalidation request for ${params.scope}:${params.id}`);
+    logger.info(
+        `${options.method} ${options.uri} Cache invalidation request for pipelineId:${pipelineId} ${query.scope}:${query.cacheId}`
+    );
 
     return new Promise((resolve, reject) => {
         requestretry(options, (err, res) => {
             if (!err) {
-                resolve(res);
+                return resolve(res);
             }
-
             logger.error('Error occured while clearing cache', err);
-            reject(err);
+
+            return reject(err);
         });
     });
 }
