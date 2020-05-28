@@ -24,6 +24,7 @@ const removeAllTokens = require('./tokens/removeAll');
 const metricsRoute = require('./metrics');
 const latestBuild = require('./latestBuild');
 const getAdmin = require('./admins/get');
+const openPrRoute = require('./openPr');
 
 /**
  * Pipeline API Plugin
@@ -109,7 +110,8 @@ exports.register = (server, options, next) => {
         removeAllTokens(),
         metricsRoute(),
         latestBuild(),
-        getAdmin()
+        getAdmin(),
+        openPrRoute()
     ]);
 
     next();
