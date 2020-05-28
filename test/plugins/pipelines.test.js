@@ -195,7 +195,11 @@ describe('pipeline plugin test', () => {
             }
         };
         userFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            scm: {
+                parseUrl: sinon.stub(),
+                openPr: sinon.stub()
+            }
         };
         collectionFactoryMock = {
             create: sinon.stub(),
@@ -2782,6 +2786,161 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('POST /pipelines/{pipelineId}/openPr', () => {
+        const id = 123;
+        const username = 'myself';
+        const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const scmUri = 'github.com:12345:master';
+        const token = 'secrettoken';
+        const title = 'update file';
+        const message = 'update file';
+        const files = [
+            {
+                name: 'fileName',
+                content: 'fileContent'
+            }
+        ];
+        let options;
+        let userMock;
+        const pullRequest = {
+            data: {
+                url: 'pullRequestUrl'
+            }
+        };
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: `/pipelines/${id}/openPr`,
+                payload: {
+                    checkoutUrl: unformattedCheckoutUrl,
+                    files,
+                    title,
+                    message
+                },
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                }
+            };
+            userMock = getUserMock({ username, scmContext });
+            userMock.unsealToken.resolves(token);
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: true });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+            userFactoryMock.scm.parseUrl.resolves(scmUri);
+            userFactoryMock.scm.openPr.resolves(pullRequest);
+        });
+
+        it('returns 201 and correct pipeline data', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.result, pullRequest.data.url);
+                assert.equal(reply.statusCode, 201);
+            }));
+
+        it('formats the checkout url correctly', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(userFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('formats the rootDir correctly', () => {
+            const scmUriWithRootDir = 'github.com:12345:master:src/app/component';
+
+            options.payload.rootDir = '/src/app/component/';
+            userFactoryMock.scm.parseUrl.resolves(scmUriWithRootDir);
+            userMock.getPermissions.withArgs(scmUriWithRootDir).resolves({ push: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(userFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'src/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUriWithRootDir);
+            });
+        });
+
+        it('formats the checkout url correctly', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(userFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('returns 500 when scm fail to create pull request', () => {
+            const testError = new Error('openPrError');
+
+            userFactoryMock.scm.openPr.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 403 when user does not have push access', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: `User ${username} does not have push access for this repo`
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User myself does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 501 when scm return null', () => {
+            const error = {
+                statusCode: 501,
+                error: 'Not Implemented',
+                message: 'openPr not implemented for gitlab'
+            };
+
+            userFactoryMock.scm.openPr.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 501);
+                assert.deepEqual(reply.result, error);
             });
         });
     });

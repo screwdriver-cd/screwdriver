@@ -25,6 +25,7 @@ const metricsRoute = require('./metrics');
 const latestBuild = require('./latestBuild');
 const getAdmin = require('./admins/get');
 const deleteCache = require('./caches/delete');
+const openPrRoute = require('./openPr');
 
 /**
  * Pipeline API Plugin
@@ -111,7 +112,8 @@ exports.register = (server, options, next) => {
         metricsRoute(),
         latestBuild(),
         getAdmin(),
-        deleteCache()
+        deleteCache(),
+        openPrRoute()
     ]);
 
     next();
