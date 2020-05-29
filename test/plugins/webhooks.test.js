@@ -493,6 +493,48 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 on success with non target rootDir from tag trigger', () => {
+                const tagWorkflowMock = {
+                    nodes: [{ name: '~tag' }, { name: 'main' }],
+                    edges: [{ src: '~tag', dest: 'main' }]
+                };
+
+                pipelineMock.scmUri = 'github.com:123456:master:root';
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+                parsed.changedFiles = changedFiles;
+                pipelineFactoryMock.scm.parseHook.resolves(parsed);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.list, {
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~tag',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles,
+                        meta: {
+                            sd: {
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+
             it('returns 204 and not create event when there is no job to trigger', () => {
                 const tagWorkflowMock = {
                     nodes: [{ name: '~commit' }, { name: 'main' }],
@@ -605,6 +647,54 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
+                        meta: {
+                            sd: {
+                                release: {
+                                    id: 123456,
+                                    name: 'release01',
+                                    author: 'testuser'
+                                },
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+
+            it('returns 201 on success with non target rootDir from release trigger', () => {
+                const releaseWorkflowMock = {
+                    nodes: [{ name: '~release' }, { name: 'main' }],
+                    edges: [{ src: '~release', dest: 'main' }]
+                };
+
+                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.scmUri = 'github.com:123456:master:root';
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+                parsed.changedFiles = changedFiles;
+                pipelineFactoryMock.scm.parseHook.resolves(parsed);
+                eventFactoryMock.create.resolves(eventMock);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.list, {
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~release',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles,
                         meta: {
                             sd: {
                                 release: {
