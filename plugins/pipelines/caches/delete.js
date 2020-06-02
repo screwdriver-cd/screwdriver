@@ -65,7 +65,9 @@ module.exports = () => ({
 
                 const res = await api.invoke(request);
 
-                return reply(res).code(res.statusCode);
+                const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
+
+                return reply(res).code(statusCode);
             } catch (err) {
                 return reply(boom.boomify(err));
             }

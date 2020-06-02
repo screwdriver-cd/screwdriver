@@ -71,6 +71,9 @@ describe('DELETE /pipelines/1234/caches', () => {
     let scope;
     let cacheId;
     let id;
+    let authMock;
+    let generateTokenMock;
+    let generateProfileMock;
 
     before(() => {
         mockery.enable({
@@ -116,7 +119,11 @@ describe('DELETE /pipelines/1234/caches', () => {
         buildClusterFactoryMock = {
             list: sinon.stub()
         };
+
         mockery.registerMock('requestretry', mockRequestRetry);
+
+        generateProfileMock = sinon.stub();
+        generateTokenMock = sinon.stub();
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -148,14 +155,29 @@ describe('DELETE /pipelines/1234/caches', () => {
         }));
         server.auth.strategy('token', 'custom');
 
+        authMock = {
+            register: (s, o, next) => {
+                s.expose('generateToken', generateTokenMock);
+                s.expose('generateProfile', generateProfileMock);
+                next();
+            }
+        };
+        authMock.register.attributes = {
+            name: 'auth'
+        };
+
         server.register(
             [
+                authMock,
                 {
                     register: plugin,
                     options: {
                         password,
                         scm: scmMock,
-                        admins: ['github:myself']
+                        admins: ['github:myself'],
+                        authConfig: {
+                            jwtPrivateKey: 'boo'
+                        }
                     }
                 }
             ],
@@ -182,6 +204,7 @@ describe('DELETE /pipelines/1234/caches', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
+                assert.calledOnce(mockRequestRetry);
             });
         });
 
@@ -238,7 +261,7 @@ describe('DELETE /pipelines/1234/caches', () => {
             mockRequestRetry.yieldsAsync(null, { statusCode: 200 });
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.statusCode, 204);
                 assert.calledOnce(mockRequestRetry);
             });
         });
@@ -262,7 +285,7 @@ describe('DELETE /pipelines/1234/caches', () => {
             });
         });
 
-        it('returns 403 when user does not ahve permissions', () => {
+        it('returns 403 when user does not have permissions', () => {
             userMock.getFullDisplayName.returns('testuser');
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);

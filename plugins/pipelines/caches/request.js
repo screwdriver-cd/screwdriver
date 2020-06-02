@@ -22,17 +22,26 @@ const retryStrategyFn = (err, response) => !!err || Math.floor(response.statusCo
  * @param {Object} request.headers
  */
 async function invoke(request) {
-    const { method, payload, auth, query, params } = request;
+    const { method, payload, query, auth, params } = request;
     const pipelineId = params.id;
     const { store, queue, cache } = request.server.app.ecosystem;
     const { scope, cacheId } = query;
+    const { username, scmContext } = auth.credentials;
+
+    console.log(username);
+
+    const token = request.server.plugins.auth.generateToken(
+        request.server.plugins.auth.generateProfile(username, scmContext, ['sdapi'], { pipelineId })
+    );
+
+    console.log(token);
 
     const options = {
         json: true,
         method,
         uri: `${store}/v1/caches/${scope}/${cacheId}`,
         headers: {
-            Authorization: `Bearer ${auth.token}`
+            Authorization: `Bearer ${token}`
         }
     };
 
