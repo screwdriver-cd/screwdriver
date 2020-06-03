@@ -25,9 +25,7 @@ exports.register = (server, options, next) => {
             }
         },
         handler: async (request, reply) => {
-            const executorStatsresponse = await executor.stats({ token: '' });
-            const executorStats = executorStatsresponse.body || executorStatsresponse;
-
+            const executorStats = await executor.stats({ token: '' });
             reply({
                 executor: executorStats,
                 scm: scm.stats()
