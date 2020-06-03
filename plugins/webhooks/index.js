@@ -258,7 +258,10 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
         }
     });
 
-    pipelinesOnCommitBranch = pipelinesOnCommitBranch.filter(p => hasChangesUnderRootDir(p, changedFiles));
+    // Build runs regardless of changedFiles when release/tag trigger
+    pipelinesOnCommitBranch = pipelinesOnCommitBranch.filter(
+        p => ['release', 'tag'].includes(action) || hasChangesUnderRootDir(p, changedFiles)
+    );
 
     pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p =>
         hasTriggeredJob(p, determineStartFrom(action, type, branch, null))
