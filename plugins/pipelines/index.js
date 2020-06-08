@@ -24,6 +24,7 @@ const removeAllTokens = require('./tokens/removeAll');
 const metricsRoute = require('./metrics');
 const latestBuild = require('./latestBuild');
 const getAdmin = require('./admins/get');
+const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
 
 /**
@@ -111,6 +112,7 @@ exports.register = (server, options, next) => {
         metricsRoute(),
         latestBuild(),
         getAdmin(),
+        deleteCache(),
         openPrRoute()
     ]);
 
