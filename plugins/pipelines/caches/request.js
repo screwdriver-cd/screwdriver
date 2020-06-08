@@ -28,13 +28,9 @@ async function invoke(request) {
     const { scope, cacheId } = query;
     const { username, scmContext } = auth.credentials;
 
-    console.log(username);
-
     const token = request.server.plugins.auth.generateToken(
         request.server.plugins.auth.generateProfile(username, scmContext, ['sdapi'], { pipelineId })
     );
-
-    console.log(token);
 
     const options = {
         json: true,
