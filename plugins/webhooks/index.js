@@ -330,7 +330,8 @@ async function createPREvents(options, request) {
                 }
             }
             const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
-                pipeline: p,
+                // Workaround for pipelines which has NULL value in `pipeline.annotations`
+                pipeline: !p.annotations ? { annotations: {}, ...p } : p,
                 prSource,
                 restrictPR,
                 chainPR
