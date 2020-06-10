@@ -2840,11 +2840,13 @@ describe('pipeline plugin test', () => {
         it('returns 201 and correct pipeline data', () =>
             server.inject(options).then(reply => {
                 const { prUrl } = reply.result;
+
                 assert.equal(prUrl, pullRequest.data.url);
                 assert.equal(reply.statusCode, 201);
             }));
 
-        it('formats the checkout url correctly', () => {https://github.com/screwdriver-cd/screwdriver/blob/b97c9123868a0f8c6985de43320d1efd7c2cd818/plugins/pipelines/latestBuild.js
+        it('formats the checkout url correctly', () => {
+            // github.com/screwdriver-cd/screwdriver/blob/b97c9123868a0f8c6985de43320d1efd7c2cd818/plugins/pipelines/latestBuild.js
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
 
             return server.inject(options).then(() => {
