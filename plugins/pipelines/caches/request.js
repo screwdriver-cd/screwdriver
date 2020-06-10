@@ -50,7 +50,8 @@ async function invoke(request) {
             body: {
                 scope,
                 id: cacheId,
-                buildClusters
+                buildClusters,
+                pipelineId
             }
         });
     }
