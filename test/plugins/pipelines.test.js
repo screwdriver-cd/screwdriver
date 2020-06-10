@@ -2809,7 +2809,7 @@ describe('pipeline plugin test', () => {
         let userMock;
         const pullRequest = {
             data: {
-                url: 'pullRequestUrl'
+                html_url: 'pullRequestUrl'
             }
         };
 
@@ -2839,7 +2839,9 @@ describe('pipeline plugin test', () => {
 
         it('returns 201 and correct pipeline data', () =>
             server.inject(options).then(reply => {
-                assert.equal(reply.result, pullRequest.data.url);
+                const { prUrl } = reply.result;
+
+                assert.equal(prUrl, pullRequest.data.html_url);
                 assert.equal(reply.statusCode, 201);
             }));
 
