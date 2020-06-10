@@ -15,6 +15,50 @@ const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const WAIT_FOR_CHANGEDFILES = 1.8;
 const DEFAULT_MAX_BYTES = 1048576;
 
+function getReleaseNameOrTagName(action, workflowGraph, releaseName, tagName) {
+    let releaseOrTagName = '';
+
+    workflowGraph.edges.forEach((edge) => {
+        const releaseOrTagRegExp = action === 'release' ? new RegExp('~(release):') : new RegExp('~(tag):');
+
+        if (releaseOrTagRegExp) {
+            if (edge.src.match(releaseOrTagRegExp)) {
+                const triggerRequirement = (edge.src.split(':'))[1];
+
+                if (triggerRequirement.slice(0, 1) === '/' && triggerRequirement.slice(-1) === '/') {
+                    // TODO  (/ regex /)
+                    const trimTriggerRequirement = triggerRequirement.split('/');
+                    const releaseOrTagTriggerRegExp = new RegExp(trimTriggerRequirement[1]);
+
+                    const isMatch = action === 'release' ? releaseName.match(releaseOrTagTriggerRegExp) : tagName.match(releaseOrTagTriggerRegExp);
+
+                    if (isMatch && action === 'release') {
+                        releaseOrTagName = releaseName;
+                    } else if (isMatch && action === 'tag') {
+                        releaseOrTagName = tagName;
+                    } else {
+                        releaseOrTagName = '';
+                    }
+                } else {
+                    const releaseOrTagTriggerRegExp = new RegExp(triggerRequirement);
+
+                    const isMatch = action === 'release' ? releaseName.match(releaseOrTagTriggerRegExp) : tagName.match(releaseOrTagTriggerRegExp);
+
+                    if (isMatch && action === 'release') {
+                        releaseOrTagName = releaseName;
+                    } else if (isMatch && action === 'tag') {
+                        releaseOrTagName = tagName;
+                    } else {
+                        releaseOrTagName = '';
+                    }
+                }
+            }
+        }
+    });
+
+    return releaseOrTagName;
+}
+
 /**
  * Determine "startFrom" with type, action and branches
  * @param {String} action          SCM webhook action type
@@ -23,7 +67,7 @@ const DEFAULT_MAX_BYTES = 1048576;
  * @param {String} pipelineBranch  The pipeline branch
  * @returns {String}               startFrom
  */
-function determineStartFrom(action, type, targetBranch, pipelineBranch) {
+function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName) {
     let startFrom;
 
     if (type && type === 'pr') {
@@ -31,9 +75,9 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch) {
     } else {
         switch (action) {
         case 'release':
-            return '~release';
+            return releaseNameOrTagName === '' ? '~release' : `~release:${releaseNameOrTagName}`;
         case 'tag':
-            return '~tag';
+            return releaseNameOrTagName === '' ? '~tag' : `~tag:${releaseNameOrTagName}`;
         default:
             startFrom = '~commit';
             break;
@@ -653,13 +697,18 @@ function createMeta(parsed) {
  */
 async function createEvents(eventFactory, userFactory, pipelineFactory,
     pipelines, parsed, skipMessage) {
-    const { action, branch, sha, username, scmContext, changedFiles, type } = parsed;
+    const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
     const events = [];
     const meta = createMeta(parsed);
 
     const pipelineTuples = await Promise.all(pipelines.map(async (p) => {
         const resolvedBranch = await p.branch;
-        const startFrom = determineStartFrom(action, type, branch, resolvedBranch);
+        const releaseNameOrTagName = '';
+
+        if (action === 'release' || action === 'tag') {
+            releaseNameOrTagName = getReleaseNameOrTagName(action, p.workflowGraph, releaseName, ref);
+        }
+        const startFrom = determineStartFrom(action, type, branch, resolvedBranch, releaseNameOrTagName);
         const tuple = { branch: resolvedBranch, pipeline: p, startFrom };
 
         return tuple;
@@ -678,7 +727,8 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
 
     const eventConfigs = await Promise.all(ignoreExtraTriggeredPipelines.map(async (pTuple) => {
         const pipelineBranch = pTuple.branch;
-        const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
+        const releaseNameOrTagName = getReleaseNameOrTagName(action, pTuple.pipeline.workflowGraph, releaseName, ref);
+        const startFrom = determineStartFrom(action, type, branch, pipelineBranch, releaseNameOrTagName);
         const token = await pTuple.pipeline.token;
         const scmConfig = {
             scmUri: pTuple.pipeline.scmUri,
