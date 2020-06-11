@@ -23,11 +23,11 @@ const DEFAULT_MAX_BYTES = 1048576;
  * @returns {String}              releaseNameOrTagName
  */
 function getReleaseNameOrTagName(action, workflowGraph, releaseName, tagName) {
-    let releaseOrTagName = '';
+    let releaseNameOrTagName = '';
     let releaseOrTagTriggerRegExp = '';
 
     workflowGraph.edges.forEach(edge => {
-        const releaseOrTagRegExp = action === 'release' ? new RegExp('~(release):') : new RegExp('~(tag):');
+        const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release):') : new RegExp('^~(tag):');
 
         if (releaseOrTagRegExp) {
             if (edge.src.match(releaseOrTagRegExp)) {
@@ -36,7 +36,7 @@ function getReleaseNameOrTagName(action, workflowGraph, releaseName, tagName) {
                 if (triggerRequirement.slice(0, 1) === '/' && triggerRequirement.slice(-1) === '/') {
                     const trimTriggerRequirement = triggerRequirement.slice(1).slice(0, -1);
 
-                    releaseOrTagTriggerRegExp = new RegExp(trimTriggerRequirement[1]);
+                    releaseOrTagTriggerRegExp = new RegExp(trimTriggerRequirement);
                 } else {
                     releaseOrTagTriggerRegExp = new RegExp(triggerRequirement);
                 }
@@ -46,17 +46,15 @@ function getReleaseNameOrTagName(action, workflowGraph, releaseName, tagName) {
                         : tagName.match(releaseOrTagTriggerRegExp);
 
                 if (isMatch && action === 'release') {
-                    releaseOrTagName = releaseName;
+                    releaseNameOrTagName = releaseName;
                 } else if (isMatch && action === 'tag') {
-                    releaseOrTagName = tagName;
-                } else {
-                    releaseOrTagName = '';
+                    releaseNameOrTagName = tagName;
                 }
             }
         }
     });
 
-    return releaseOrTagName;
+    return releaseNameOrTagName;
 }
 /**
  * Determine "startFrom" with type, action and branches
