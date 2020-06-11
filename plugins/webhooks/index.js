@@ -26,26 +26,24 @@ function getReleaseNameOrTagName(action, workflowGraph, releaseName, tagName) {
     let releaseOrTagName = '';
     let releaseOrTagTriggerRegExp = '';
 
-    workflowGraph.edges.forEach((edge) => {
-        const releaseOrTagRegExp = action === 'release'
-            ? new RegExp('~(release):')
-            : new RegExp('~(tag):');
+    workflowGraph.edges.forEach(edge => {
+        const releaseOrTagRegExp = action === 'release' ? new RegExp('~(release):') : new RegExp('~(tag):');
 
         if (releaseOrTagRegExp) {
             if (edge.src.match(releaseOrTagRegExp)) {
-                const triggerRequirement = (edge.src.split(':'))[1];
+                const triggerRequirement = edge.src.split(':')[1];
 
-                if (triggerRequirement.slice(0, 1) === '/'
-                    && triggerRequirement.slice(-1) === '/') {
-                    const trimTriggerRequirement = (triggerRequirement.slice(1)).slice(0, -1);
+                if (triggerRequirement.slice(0, 1) === '/' && triggerRequirement.slice(-1) === '/') {
+                    const trimTriggerRequirement = triggerRequirement.slice(1).slice(0, -1);
 
                     releaseOrTagTriggerRegExp = new RegExp(trimTriggerRequirement[1]);
                 } else {
                     releaseOrTagTriggerRegExp = new RegExp(triggerRequirement);
                 }
-                const isMatch = action === 'release'
-                    ? releaseName.match(releaseOrTagTriggerRegExp)
-                    : tagName.match(releaseOrTagTriggerRegExp);
+                const isMatch =
+                    action === 'release'
+                        ? releaseName.match(releaseOrTagTriggerRegExp)
+                        : tagName.match(releaseOrTagTriggerRegExp);
 
                 if (isMatch && action === 'release') {
                     releaseOrTagName = releaseName;
@@ -75,13 +73,13 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
         startFrom = '~pr';
     } else {
         switch (action) {
-        case 'release':
-            return releaseNameOrTagName === '' ? '~release' : `~release:${releaseNameOrTagName}`;
-        case 'tag':
-            return releaseNameOrTagName === '' ? '~tag' : `~tag:${releaseNameOrTagName}`;
-        default:
-            startFrom = '~commit';
-            break;
+            case 'release':
+                return releaseNameOrTagName === '' ? '~release' : `~release:${releaseNameOrTagName}`;
+            case 'tag':
+                return releaseNameOrTagName === '' ? '~tag' : `~tag:${releaseNameOrTagName}`;
+            default:
+                startFrom = '~commit';
+                break;
         }
     }
 
@@ -725,27 +723,24 @@ function createMeta(parsed) {
  * @param   {String}            [skipMessage]       Message to skip starting builds
  * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(eventFactory, userFactory, pipelineFactory,
-    pipelines, parsed, skipMessage) {
-    const { action, branch, sha, username,
-        scmContext, changedFiles, type, releaseName, ref } = parsed;
+async function createEvents(eventFactory, userFactory, pipelineFactory, pipelines, parsed, skipMessage) {
+    const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
     const events = [];
     const meta = createMeta(parsed);
 
-    const pipelineTuples = await Promise.all(pipelines.map(async (p) => {
-        const resolvedBranch = await p.branch;
-        let releaseNameOrTagName = '';
+    const pipelineTuples = await Promise.all(
+        pipelines.map(async p => {
+            const resolvedBranch = await p.branch;
+            let releaseNameOrTagName = '';
 
-        if (action === 'release' || action === 'tag') {
-            releaseNameOrTagName =
-              getReleaseNameOrTagName(action, p.workflowGraph, releaseName, ref);
-        }
-        const startFrom =
-          determineStartFrom(action, type, branch, resolvedBranch, releaseNameOrTagName);
-        const tuple = { branch: resolvedBranch, pipeline: p, startFrom };
-         
-        return tuple;  
-      })
+            if (action === 'release' || action === 'tag') {
+                releaseNameOrTagName = getReleaseNameOrTagName(action, p.workflowGraph, releaseName, ref);
+            }
+            const startFrom = determineStartFrom(action, type, branch, resolvedBranch, releaseNameOrTagName);
+            const tuple = { branch: resolvedBranch, pipeline: p, startFrom };
+
+            return tuple;
+        })
     );
 
     const ignoreExtraTriggeredPipelines = pipelineTuples.filter(t => {
@@ -759,30 +754,34 @@ async function createEvents(eventFactory, userFactory, pipelineFactory,
         return true;
     });
 
-    const eventConfigs = await Promise.all(ignoreExtraTriggeredPipelines.map(async (pTuple) => {
-        const pipelineBranch = pTuple.branch;
-        const releaseNameOrTagName =
-          getReleaseNameOrTagName(action, pTuple.pipeline.workflowGraph, releaseName, ref);
-        const startFrom =
-          determineStartFrom(action, type, branch, pipelineBranch, releaseNameOrTagName);
-        const token = await pTuple.pipeline.token;
-        const scmConfig = {
-            scmUri: pTuple.pipeline.scmUri,
-            token,
-            scmContext
-        };
-        // obtain pipeline's latest commit sha for branch specific job
-        let configPipelineSha = '';
+    const eventConfigs = await Promise.all(
+        ignoreExtraTriggeredPipelines.map(async pTuple => {
+            const pipelineBranch = pTuple.branch;
+            const releaseNameOrTagName = getReleaseNameOrTagName(
+                action,
+                pTuple.pipeline.workflowGraph,
+                releaseName,
+                ref
+            );
+            const startFrom = determineStartFrom(action, type, branch, pipelineBranch, releaseNameOrTagName);
+            const token = await pTuple.pipeline.token;
+            const scmConfig = {
+                scmUri: pTuple.pipeline.scmUri,
+                token,
+                scmContext
+            };
+            // obtain pipeline's latest commit sha for branch specific job
+            let configPipelineSha = '';
 
-        try {
-            configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-        } catch (err) {
-            if (err.status >= 500) {
-                throw err;
-             } else {
-                logger.info(`skip create event for branch: ${pipelineBranch}`);
-             }
-        }
+            try {
+                configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+            } catch (err) {
+                if (err.status >= 500) {
+                    throw err;
+                } else {
+                    logger.info(`skip create event for branch: ${pipelineBranch}`);
+                }
+            }
             const eventConfig = {
                 pipelineId: pTuple.pipeline.id,
                 type: 'pipeline',

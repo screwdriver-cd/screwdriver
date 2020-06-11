@@ -46,105 +46,79 @@ describe('webhooks.determineStartFrom', () => {
     });
 
     it('determines to "~commit" when action is "push"', () => {
-        assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
-            '~commit'
-        );
+        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~commit');
     });
 
     it('determines to "~commit:branch" when action is "push" and targetBranch is branch', () => {
         targetBranch = 'branch';
 
-            assert.equal(
-                determineStartFrom(action, type, targetBranch,
-                    pipelineBranch, releaseNameOrTagName),
-                '~commit:branch'
-            );
-        });
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            '~commit:branch'
+        );
+    });
 
     it('determines to "~pr" when type is "pr"', () => {
         type = 'pr';
 
-        assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
-            '~pr'
-        );
+        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~pr');
     });
 
     it('determines to "~pr:branch" when type is "pr" and targetBranch is branch', () => {
         type = 'pr';
         targetBranch = 'branch';
 
-            assert.equal(
-                determineStartFrom(action, type, targetBranch,
-                    pipelineBranch, releaseNameOrTagName),
-                '~pr:branch'
-            );
-        });
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            '~pr:branch'
+        );
+    });
 
     it('determines to "~release" when action is "release"', () => {
         action = 'release';
 
-        assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
-            '~release'
-        );
+        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~release');
     });
 
     it('determines to "~release" when action is "release" even targetBranch is branch', () => {
         action = 'release';
         targetBranch = 'branch';
 
-            assert.equal(
-                determineStartFrom(action, type, targetBranch,
-                    pipelineBranch, releaseNameOrTagName),
-                '~release'
-            );
-        });
+        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~release');
+    });
 
-    it('determines to "~release:releaseName" when filter the release trigger',
-        () => {
-            action = 'release';
-            releaseNameOrTagName = 'releaseName';
+    it('determines to "~release:releaseName" when filter the release trigger', () => {
+        action = 'release';
+        releaseNameOrTagName = 'releaseName';
 
-            assert.equal(
-                determineStartFrom(action, type, targetBranch,
-                    pipelineBranch, releaseNameOrTagName),
-                '~release:releaseName'
-            );
-        });
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            '~release:releaseName'
+        );
+    });
 
     it('determines to "~tag" when action is "tag"', () => {
         action = 'tag';
 
-        assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
-            '~tag'
-        );
+        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~tag');
     });
 
     it('determines to "~tag" when action is "tag" even targetBranch is branch', () => {
         action = 'tag';
         targetBranch = 'branch';
 
-            assert.equal(
-                determineStartFrom(action, type, targetBranch,
-                    pipelineBranch, releaseNameOrTagName),
-                '~tag'
-            );
-        });
+        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~tag');
+    });
 
-    it('determines to "~tag:tagName" when filter the tag trigger',
-        () => {
-            action = 'tag';
-            releaseNameOrTagName = 'tagName';
+    it('determines to "~tag:tagName" when filter the tag trigger', () => {
+        action = 'tag';
+        releaseNameOrTagName = 'tagName';
 
-            assert.equal(
-                determineStartFrom(action, type, targetBranch,
-                    pipelineBranch, releaseNameOrTagName),
-                '~tag:tagName'
-            );
-        });
+        assert.equal(
+            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            '~tag:tagName'
+        );
+    });
 });
 
 describe('webhooks plugin test', () => {
@@ -548,13 +522,8 @@ describe('webhooks plugin test', () => {
             });
             it('returns 201 on success on a regular expression', () => {
                 const tagWorkflowMock = {
-                    nodes: [
-                        { name: '~tag:/^tag-test-/' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~tag:/^tag-test-/', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~tag:/^tag-test-/' }, { name: 'main' }],
+                    edges: [{ src: '~tag:/^tag-test-/', dest: 'main' }]
                 };
 
                 parsed.ref = 'tag-test-1';
@@ -562,13 +531,13 @@ describe('webhooks plugin test', () => {
                 pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
-                        sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                     assert.calledWith(pipelineFactoryMock.list, {
-                        search: { field: 'scmUri', keyword: 'github.com:123456:%' } });
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -594,25 +563,20 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 on success on tag filteriig', () => {
                 const tagWorkflowMock = {
-                    nodes: [
-                        { name: '~tag:v0.0.1' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~tag:v0.0.1', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~tag:v0.0.1' }, { name: 'main' }],
+                    edges: [{ src: '~tag:v0.0.1', dest: 'main' }]
                 };
 
                 pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
-                        sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                     assert.calledWith(pipelineFactoryMock.list, {
-                        search: { field: 'scmUri', keyword: 'github.com:123456:%' } });
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -808,13 +772,8 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 on success on a regular expression', () => {
                 const releaseWorkflowMock = {
-                    nodes: [
-                        { name: '~release:/^release-test-/' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~release:/^release-test-/', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~release:/^release-test-/' }, { name: 'main' }],
+                    edges: [{ src: '~release:/^release-test-/', dest: 'main' }]
                 };
 
                 parsed.releaseName = 'release-test-1';
@@ -823,11 +782,10 @@ describe('webhooks plugin test', () => {
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
-                        sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -858,24 +816,18 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 on success on release filteriig', () => {
                 const releaseWorkflowMock = {
-                    nodes: [
-                        { name: '~release:release01' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~release:release01', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~release:release01' }, { name: 'main' }],
+                    edges: [{ src: '~release:release01', dest: 'main' }]
                 };
 
                 pipelineMock.workflowGraph = releaseWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
-                        sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
 
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
