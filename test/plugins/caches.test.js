@@ -257,7 +257,7 @@ describe('DELETE /pipelines/1234/caches', () => {
             };
         });
         it('successfully push cache delete message to queue', () => {
-            buildClusterFactoryMock.list.resolves(['q1', 'q2']);
+            buildClusterFactoryMock.list.resolves([{ name: 'q1' }, { name: 'q2' }]);
             mockRequestRetry.yieldsAsync(null, { statusCode: 200 });
 
             return server.inject(options).then(reply => {
@@ -267,6 +267,7 @@ describe('DELETE /pipelines/1234/caches', () => {
         });
 
         it('returns err when push message fails', () => {
+            buildClusterFactoryMock.list.resolves([{ name: 'q1' }, { name: 'q2' }]);
             mockRequestRetry.yieldsAsync(null, { statusCode: 500 });
 
             return server.inject(options).then(reply => {
