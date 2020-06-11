@@ -9,10 +9,10 @@ const schema = require('screwdriver-data-schema');
  *                                      or (ex: https://github.com/screwdriver-cd/screwdriver.git#branchName)
  * @return {String}                     Lowercase scm url with branch name
  */
-const formatCheckoutUrl = (checkoutUrl) => {
+const formatCheckoutUrl = checkoutUrl => {
     let result = checkoutUrl;
     const MATCH_COMPONENT_BRANCH_NAME = 4;
-    const matched = (schema.config.regex.CHECKOUT_URL).exec(result);
+    const matched = schema.config.regex.CHECKOUT_URL.exec(result);
     let branchName = matched[MATCH_COMPONENT_BRANCH_NAME];
 
     // Check if branch name exists
@@ -21,7 +21,10 @@ const formatCheckoutUrl = (checkoutUrl) => {
     }
 
     // Do not convert branch name to lowercase
-    result = result.split('#')[0].toLowerCase().concat(branchName);
+    result = result
+        .split('#')[0]
+        .toLowerCase()
+        .concat(branchName);
 
     return result;
 };

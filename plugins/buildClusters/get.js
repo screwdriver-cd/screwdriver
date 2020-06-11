@@ -23,7 +23,7 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const name = request.params.name;
+            const { name } = request.params;
             const factory = request.server.app.buildClusterFactory;
             const config = {
                 params: {
@@ -31,8 +31,9 @@ module.exports = () => ({
                 }
             };
 
-            return factory.list(config)
-                .then((buildClusters) => {
+            return factory
+                .list(config)
+                .then(buildClusters => {
                     if (buildClusters.length === 0) {
                         return reply(boom.notFound(`Build cluster ${name} does not exist`));
                     }

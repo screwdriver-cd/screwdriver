@@ -1,1 +1,270 @@
+## Context
+The build environment on Screwdriver.cd differs from the user execution environment in the following ways:
+- `sd-step` is available
+- Template is available
+- Metadata is available
+- Guarantee build reproducibillity
 
+Therefore, the build results may differ between the build environment on local and the build environment on Screwdriver.cd.
+As a result, User cannot confirm whether the result obtained on CI is the expected result until the build is actually run on Screwdriver.cd.
+
+## Status
+- December 3rd, 2019: Proposal submitted
+- December 6th, 2019: Added `SD_META_DIR`
+- December 18th, 2019: Updated `launcher` / `log-service`
+- March 4th, 2020: Added `src-url` option and updated env options
+- March 16th, 2020: Added `sudo` option
+- March 24th, 2020: Added `--local` option
+- Apr 24th, 2020: Added multiple cluster config and dropped `--local` option
+
+## Proposal
+
+Provide the function for users to run builds locally.
+
+A simple example is shown below
+
+```
+$ cat screwdriver.yaml
+jobs:
+  test:
+    image: centos7:latest
+    steps:
+      - echo: echo "test"
+$ sdlocal build test # start `test` job in screwdriver.yaml
+echo "test"
+test
+```
+
+## Details
+
+![image](./diagrams/sd-local-flow.puml.png)
+
+
+### Initialization
+
+1. Run `sdlocal build` command
+2. Get JWT from API
+3. Validate screwdriver.yaml
+   - Validate yaml
+   - Get Template/Step information
+   - Merge Template／Step information and Meta／Secrets from sd-local options
+   - Format in the same format as payload from `/v4/builds/{id}`. Specifically, it has the following JSON format. (ref: [type `Build` in launcher](https://github.com/screwdriver-cd/launcher/blob/master/screwdriver/screwdriver.go#L131-L140))
+     ```
+     {
+       "id": 0,
+       "environment": [
+         {}
+       ],
+       "eventId": 0,
+       "jobId": 0,
+       "parentBuildId": [
+         0
+       ],
+       "sha": "dummy",
+       "meta": {},
+       "steps": [
+         {
+           "name": "install",
+           "command": "npm install"
+         }
+       ]
+     }
+     ```
+4. Pull Launcher Image from Docker Hub
+5. Copy the binaries under `/opt/sd/` from Launcher Container to the common volume
+6. Pull Build Image from Docker Hub
+
+### Run Build
+1. Mount the following and run Build Container
+   - SSH-Agent Socket
+   - The common volume prepared in `Initialization` No.4
+   - Source Directory
+   - Artifacts Directory
+2. Run Local Mode Launcher on Build Container
+   - Run Launcher binary with `--local-mode` option in `local_run.sh`
+   - Config Build Environment Variables and Environment Variables by env option 
+   - Run Steps got in `Initialization` No.3
+   - Run `sd-cmd`
+     1. Get the binaries from Store
+     2. Run it
+3. Write Artifacts to Artifacts Directory
+4. Output logs to a file under Artifacts Directory
+
+### Build Environment Variables
+
+- SD_JOB_NAME: The value passed as a argument
+- SD_TEMPLATE_FULLNAME: The value got from validator API
+- SD_TEMPLATE_NAME: The value got from validator API
+- SD_TEMPLATE_NAMESPACE: The value got from validator API
+- SD_TEMPLATE_VERSION: The value got from validator API
+- SD_TOKEN: JWT got in `Initialization`
+- USER_SHELL_BIN: Set by user, otherwise Screwdriver.cd default
+- SD_META_DIR: `/sd/meta` (by default)
+- SD_META_PATH: `${SD_META_DIR}/meta.json`
+- SD_ROOT_DIR: `/sd/workspace` (by default)
+- SD_SOURCE_DIR: `${SD_ROOT_DIR}/src/<SCM hostname>/<organization>/<repository>`
+- SD_SOURCE_PATH: Generate from `screwdriver.yaml`
+- SD_ARTIFACTS_DIR: `${SD_ROOT_DIR}/artifacts`
+- SD_CONFIG_DIR: Not set (Need to be set when External Config is supported)
+- CONFIG_URL: Not set (Need to be set when External Config is supported)
+- SD_API_URL: The value got from config file
+- SD_STORE_URL: The value got from config file
+- CI: `false`
+- CONTINUOUS_INTEGRATION: `false`
+- SCREWDRIVER: `false`
+
+
+## Usage
+
+### Prerequisites
+- Docker runtime
+  - Permission for docker runtime (or you can use `--sudo` option)
+
+### Start build
+
+```bash
+$ sdlocal build [job-name] [options]
+```
+
+#### Input
+
+- `job-name` the job in `screwdriver.yaml` to be run locally (default: `./screwdriver.yaml`)
+
+##### Options
+
+- `--meta [json]` Set values of `meta` (JSON)
+- `--meta-file [path]` Path to config file of `meta` (JSON)
+- `-e, --env [key=value]` Set `key` and `value` relationship which is set as environment variables of Build Container.
+  - `secrets` is also set as environment variables.
+  - When both `--env` and `--env-file` options are used, `--env` has priority about environment variables used in both options.
+- `--env-file [path]` Path to config file of environment variables. (`.env` format file can be used.)
+- `--artifacts-dir [path]` Path to the host side directory which is mounted into `$SD_ARTIFACTS_DIR`. (default: `./sd-artifacts`)
+- `-m, --memory [size]` Set memory size which Build Container can use. Either b, k, m, g can be used as a size unit. (default: ?)
+- `--src-url [repository url]` Set repository URL which is to build when user use the remote repository without local files.
+- `--disable-image-pull` Disable `sd-local` from always pulling build image.
+- `--sudo` Use `sudo` command to execute docker runtime.
+
+###### src-url option
+- How to specify the URL
+  - The URL can be passed with either https or ssh schema
+  - To specify the branch, we can add a `#<branch>` suffix to the URL
+  - ex) `--src-url git@github.com:foo/bar#baz`
+
+#### Output
+
+- Logs of all executed steps in the job to `$SD_ARTIFACTS_DIR`.
+- Artifacts which is output to `$SD_ARTIFACTS_DIR`.
+
+### Configuration
+
+config support multiple Screwdriver cluster.  
+The config file as `$HOME/.sdlocal/config` with YAML format.  
+
+```yaml
+configs:
+  default:
+    api-url: <Screwdriver API URL>
+    store-url: <Screwdriver Store URL>
+    token: <Screwdriver API Token>
+    launcher:
+      version: <Launcher Version>
+      image: <Launcher image name>
+  yourConfigName:
+    api-url: <Screwdriver API URL>
+    store-url: <Screwdriver Store URL>
+    token: <Screwdriver API Token>
+    launcher:
+      version: <Launcher Version>
+      image: <Launcher image name>r
+current: default
+```
+
+- `default` is a special config which are created automatically when the first time the user use sd-local. However, default is not created if the user create a config explicitly with sd-local config create <config-name> in the first time, and, the specified name is used instead of default.
+
+- `current` points to default (or first created config) in the first time
+
+#### create
+You can create a cluster config with the command below:
+
+```bash
+$ sdlocal config create [config-name]
+```
+
+- You can not pass the name which is already exists.
+
+#### use
+You can change which cluster with the command below:
+
+```bash
+$ sdlocal config use [config-name]
+```
+
+#### set
+You can set current cluster config values with the command below:
+
+```bash
+$ sdlocal config set [key] [value]
+```
+
+The chart below shows relationship between `key` and `value`.
+
+|key|value|
+|:-:|:-:|
+|api-url|Screwdriver API URL|
+|store-url|Screwdriver Store URL|
+|token|Screwdriver API token|
+|launcher-version|Version of Launcher Image (default: stable)|
+|launcher-image|Name of Launcher Image (default: screwdrivercd/launcher)|
+
+#### view
+Can confirm setting configurations with the command below:
+
+```bash
+$ sdlocal config view
+* cluster1:
+    api-url: https://cluster1-api-screwdriver.com
+    store-url: https://cluster1-store-screwdriver.com
+    token: hoge
+    launcher:
+      version: latest
+      image: screwdrivercd/launcher
+  cluster2:
+    api-url: https://cluster2-another-api-screwdriver.com
+    store-url: https://cluster2-another-store-screwdriver.com
+    token: fuga
+    launcher:
+      version: latest
+      image: screwdrivercd/launcher
+```
+- The `*` shows which is current cluster.
+
+#### delete
+You can delete cluster config with the command below:
+
+```bash
+sd-local config delete <config-name>
+```
+
+- You can not delete config which is current.
+
+## Design considerations
+
+#### Implement Local Mode `launcher`.
+Need to be implement the following:
+- Add `--local-mode` option to run Launcher binary on Local Mode
+- Add `--local-build-json` option to pass JSON in the same format as payload from `/v4/builds/{id}`.
+- Add `--local-job-name` option to use job name
+- Not to call Screwdriver API on Local Mode
+- Use the steps information from the response of validator API in `Initialization`
+- Output the build logs by using local-mode `log-service`
+- Add `local_run.sh` to run Launcher binary on Local Mode
+
+#### Implement Local Mode `log-service`.
+Need to be implement the following:
+- Add `--local-mode` option to run `log-service` on local mode
+- Add `--build-log-file` option to set the output destination of local-mode `log-service` logs. (The option must be passed by sd-local.)
+- On local mode, output the build logs to a file under Artifacts Directory instead of Store.
+
+
+#### Others
+- `publish`/`promote` of any `sd-cmd` must not be executed from the `sdlocal` command.

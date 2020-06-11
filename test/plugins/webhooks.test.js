@@ -5,7 +5,7 @@ const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const rewire = require('rewire');
-const assert = chai.assert;
+const { assert } = chai;
 const hoek = require('hoek');
 
 chai.use(require('chai-as-promised'));
@@ -52,9 +52,8 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~commit:branch" when action is "push" and targetBranch is branch',
-        () => {
-            targetBranch = 'branch';
+    it('determines to "~commit:branch" when action is "push" and targetBranch is branch', () => {
+        targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch,
@@ -72,10 +71,9 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~pr:branch" when type is "pr" and targetBranch is branch',
-        () => {
-            type = 'pr';
-            targetBranch = 'branch';
+    it('determines to "~pr:branch" when type is "pr" and targetBranch is branch', () => {
+        type = 'pr';
+        targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch,
@@ -93,10 +91,9 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~release" when action is "release" even targetBranch is branch',
-        () => {
-            action = 'release';
-            targetBranch = 'branch';
+    it('determines to "~release" when action is "release" even targetBranch is branch', () => {
+        action = 'release';
+        targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch,
@@ -126,10 +123,9 @@ describe('webhooks.determineStartFrom', () => {
         );
     });
 
-    it('determines to "~tag" when action is "tag" even targetBranch is branch',
-        () => {
-            action = 'tag';
-            targetBranch = 'branch';
+    it('determines to "~tag" when action is "tag" even targetBranch is branch', () => {
+        action = 'tag';
+        targetBranch = 'branch';
 
             assert.equal(
                 determineStartFrom(action, type, targetBranch,
@@ -168,7 +164,7 @@ describe('webhooks plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         jobFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub()
@@ -199,8 +195,6 @@ describe('webhooks plugin test', () => {
         };
 
         plugin = rewire('../../plugins/webhooks');
-        // eslint-disable-next-line no-underscore-dangle
-        plugin.__set__('WAIT_FOR_CHANGEDFILES', 0);
 
         server = new hapi.Server();
         server.root.app = {
@@ -216,23 +210,28 @@ describe('webhooks plugin test', () => {
             uri: apiUri
         });
 
-        server.register([{
-            register: plugin,
-            options: {
-                username: 'sd-buildbot',
-                ignoreCommitsBy: ['batman', 'superman'],
-                restrictPR: 'fork',
-                chainPR: false
+        server.register(
+            [
+                {
+                    register: plugin,
+                    options: {
+                        username: 'sd-buildbot',
+                        ignoreCommitsBy: ['batman', 'superman'],
+                        restrictPR: 'fork',
+                        chainPR: false
+                    }
+                }
+            ],
+            err => {
+                server.app.buildFactory.apiUri = apiUri;
+                server.app.buildFactory.tokenGen = buildId =>
+                    JSON.stringify({
+                        username: buildId,
+                        scope: ['temporal']
+                    });
+                done(err);
             }
-        }], (err) => {
-            server.app.buildFactory.apiUri = apiUri;
-            server.app.buildFactory.tokenGen = buildId =>
-                JSON.stringify({
-                    username: buildId,
-                    scope: ['temporal']
-                });
-            done(err);
-        });
+        );
     });
 
     afterEach(() => {
@@ -247,8 +246,7 @@ describe('webhooks plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.webhooks);
-        assert.equal(server.app.buildFactory.tokenGen('12345'),
-            '{"username":"12345","scope":["temporal"]}');
+        assert.equal(server.app.buildFactory.tokenGen('12345'), '{"username":"12345","scope":["temporal"]}');
     });
 
     it('throws exception when config not passed', () => {
@@ -267,12 +265,17 @@ describe('webhooks plugin test', () => {
             uri: apiUri
         });
 
-        assert.isRejected(testServer.register([{
-            register: plugin,
-            options: {
-                username: ''
-            }
-        }]), /Invalid config for plugin-webhooks/);
+        assert.isRejected(
+            testServer.register([
+                {
+                    register: plugin,
+                    options: {
+                        username: ''
+                    }
+                }
+            ]),
+            /Invalid config for plugin-webhooks/
+        );
     });
 
     describe('resolveChainPR function', () => {
@@ -340,7 +343,7 @@ describe('webhooks plugin test', () => {
         let name;
         let scmConfig;
         let workflowGraph;
-        const decoratePipelineMock = (pipeline) => {
+        const decoratePipelineMock = pipeline => {
             const decorated = hoek.clone(pipeline);
 
             decorated.sync = sinon.stub();
@@ -351,7 +354,7 @@ describe('webhooks plugin test', () => {
 
             return decorated;
         };
-        const getPipelineMocks = (p) => {
+        const getPipelineMocks = p => {
             if (Array.isArray(p)) {
                 return p.map(decoratePipelineMock);
             }
@@ -393,11 +396,7 @@ describe('webhooks plugin test', () => {
                 getRunningBuilds: sinon.stub()
             };
             workflowGraph = {
-                nodes: [
-                    { name: '~pr' },
-                    { name: '~commit' },
-                    { name: 'main' }
-                ],
+                nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'main' }],
                 edges: [
                     { src: '~pr', dest: 'main' },
                     { src: '~commit', dest: 'main' }
@@ -448,7 +447,8 @@ describe('webhooks plugin test', () => {
             pipelineMock.sync.resolves(pipelineMock);
             pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
             pipelineFactoryMock.scm.parseUrl
-                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext }).resolves(scmUri);
+                .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
+                .resolves(scmUri);
             pipelineFactoryMock.scm.getChangedFiles.resolves(['README.md']);
             pipelineFactoryMock.scm.getCommitSha.resolves(latestSha);
             pipelineFactoryMock.scm.getCommitRefSha.resolves(sha);
@@ -473,7 +473,7 @@ describe('webhooks plugin test', () => {
                 payload: {}
             };
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
                 assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
             });
@@ -510,25 +510,20 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 on success', () => {
                 const tagWorkflowMock = {
-                    nodes: [
-                        { name: '~tag' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~tag', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~tag' }, { name: 'main' }],
+                    edges: [{ src: '~tag', dest: 'main' }]
                 };
 
                 pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
-                        sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                     assert.calledWith(pipelineFactoryMock.list, {
-                        search: { field: 'scmUri', keyword: 'github.com:123456:%' } });
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -641,22 +636,59 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 on success with non target rootDir from tag trigger', () => {
+                const tagWorkflowMock = {
+                    nodes: [{ name: '~tag' }, { name: 'main' }],
+                    edges: [{ src: '~tag', dest: 'main' }]
+                };
+
+                pipelineMock.scmUri = 'github.com:123456:master:root';
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+                parsed.changedFiles = changedFiles;
+                pipelineFactoryMock.scm.parseHook.resolves(parsed);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.list, {
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~tag',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles,
+                        meta: {
+                            sd: {
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+
             it('returns 204 and not create event when there is no job to trigger', () => {
                 const tagWorkflowMock = {
-                    nodes: [
-                        { name: '~commit' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~commit', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~commit' }, { name: 'main' }],
+                    edges: [{ src: '~commit', dest: 'main' }]
                 };
 
                 pipelineMock.workflowGraph = tagWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                     assert.notCalled(eventFactoryMock.create);
                 });
@@ -664,13 +696,8 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 with non target branch pipeline tag trigger', () => {
                 const tagWorkflowMock = {
-                    nodes: [
-                        { name: '~tag' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~tag', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~tag' }, { name: 'main' }],
+                    edges: [{ src: '~tag', dest: 'main' }]
                 };
 
                 mainJobMock.requires = '~tag';
@@ -680,7 +707,7 @@ describe('webhooks plugin test', () => {
                 pipelineMock.branch = 'branch';
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
@@ -739,24 +766,18 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 on success', () => {
                 const releaseWorkflowMock = {
-                    nodes: [
-                        { name: '~release' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~release', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~release' }, { name: 'main' }],
+                    edges: [{ src: '~release', dest: 'main' }]
                 };
 
                 pipelineMock.workflowGraph = releaseWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
-                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
-                        sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -855,6 +876,7 @@ describe('webhooks plugin test', () => {
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                     assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha,
                         sinon.match({ refType: 'tags' }));
+
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -885,20 +907,15 @@ describe('webhooks plugin test', () => {
 
             it('returns 204 and not create event when there is no job to trigger', () => {
                 const releaseWorkflowMock = {
-                    nodes: [
-                        { name: '~commit' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~commit', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~commit' }, { name: 'main' }],
+                    edges: [{ src: '~commit', dest: 'main' }]
                 };
 
                 pipelineMock.workflowGraph = releaseWorkflowMock;
                 pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                     assert.notCalled(eventFactoryMock.create);
                 });
@@ -906,13 +923,8 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 with release non target branch pipeline release trigger', () => {
                 const releaseWorkflowMock = {
-                    nodes: [
-                        { name: '~release' },
-                        { name: 'main' }
-                    ],
-                    edges: [
-                        { src: '~release', dest: 'main' }
-                    ]
+                    nodes: [{ name: '~release' }, { name: 'main' }],
+                    edges: [{ src: '~release', dest: 'main' }]
                 };
 
                 parsed.branch = 'branch';
@@ -923,7 +935,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.list.resolves([pipelineMock]);
                 pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
@@ -956,7 +968,7 @@ describe('webhooks plugin test', () => {
             it('returns 204 when getCommitRefSha() is rejected', () => {
                 pipelineFactoryMock.scm.getCommitRefSha.rejects(new Error('some error'));
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                     assert.notCalled(eventFactoryMock.create);
                 });
@@ -987,7 +999,7 @@ describe('webhooks plugin test', () => {
             });
 
             it('returns 201 on success', () =>
-                server.inject(options).then((reply) => {
+                server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                     assert.calledWith(eventFactoryMock.create, {
@@ -1004,27 +1016,18 @@ describe('webhooks plugin test', () => {
                         changedFiles,
                         meta: {}
                     });
-                })
-            );
+                }));
 
             it('returns 201 on success with branch trigger', () => {
                 const wMock1 = {
-                    nodes: [
-                        { name: '~commit:master' },
-                        { name: '~commit' },
-                        { name: 'main' }
-                    ],
+                    nodes: [{ name: '~commit:master' }, { name: '~commit' }, { name: 'main' }],
                     edges: [
                         { src: '~commit:master', dest: 'main' },
                         { src: '~commit', dest: 'main' }
                     ]
                 };
                 const wMock2 = {
-                    nodes: [
-                        { name: '~commit:/^.*$/' },
-                        { name: '~commit' },
-                        { name: 'main' }
-                    ],
+                    nodes: [{ name: '~commit:/^.*$/' }, { name: '~commit' }, { name: 'main' }],
                     edges: [
                         { src: '~commit:/^.*$/', dest: 'main' },
                         { src: '~commit', dest: 'main' }
@@ -1063,7 +1066,7 @@ describe('webhooks plugin test', () => {
 
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                     assert.calledWith(eventFactoryMock.create, {
@@ -1108,18 +1111,24 @@ describe('webhooks plugin test', () => {
                         changedFiles,
                         meta: {}
                     });
-                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                        pipelineId,
-                        type: 'pipeline',
-                        webhooks: true,
-                        startFrom: '~commit:master'
-                    }));
-                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                        pipelineId: pMock3.id,
-                        type: 'pipeline',
-                        webhooks: true,
-                        startFrom: '~commit:master'
-                    }));
+                    assert.neverCalledWith(
+                        eventFactoryMock.create,
+                        sinon.match({
+                            pipelineId,
+                            type: 'pipeline',
+                            webhooks: true,
+                            startFrom: '~commit:master'
+                        })
+                    );
+                    assert.neverCalledWith(
+                        eventFactoryMock.create,
+                        sinon.match({
+                            pipelineId: pMock3.id,
+                            type: 'pipeline',
+                            webhooks: true,
+                            startFrom: '~commit:master'
+                        })
+                    );
                 });
             });
 
@@ -1148,7 +1157,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
@@ -1178,12 +1187,15 @@ describe('webhooks plugin test', () => {
                         changedFiles: ['lib/test.js'],
                         meta: {}
                     });
-                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                        pipelineId: pMock2.id,
-                        type: 'pipeline',
-                        webhooks: true,
-                        startFrom: '~commit'
-                    }));
+                    assert.neverCalledWith(
+                        eventFactoryMock.create,
+                        sinon.match({
+                            pipelineId: pMock2.id,
+                            type: 'pipeline',
+                            webhooks: true,
+                            startFrom: '~commit'
+                        })
+                    );
                 });
             });
 
@@ -1202,7 +1214,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
@@ -1218,12 +1230,15 @@ describe('webhooks plugin test', () => {
                         changedFiles: ['lib/test.js'],
                         meta: {}
                     });
-                    assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                        pipelineId: pMock.id,
-                        type: 'pipeline',
-                        webhooks: true,
-                        startFrom: '~commit'
-                    }));
+                    assert.neverCalledWith(
+                        eventFactoryMock.create,
+                        sinon.match({
+                            pipelineId: pMock.id,
+                            type: 'pipeline',
+                            webhooks: true,
+                            startFrom: '~commit'
+                        })
+                    );
                 });
             });
 
@@ -1231,7 +1246,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.get.resolves(null);
                 pipelineFactoryMock.list.resolves([]);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                 });
             });
@@ -1240,7 +1255,7 @@ describe('webhooks plugin test', () => {
                 parsed.lastCommitMessage = 'foo[skip ci]bar';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
                         type: 'pipeline',
@@ -1263,7 +1278,7 @@ describe('webhooks plugin test', () => {
             it('returns 204 when commits sent by ignoreCommitsBy user', () => {
                 parsed.username = 'batman';
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                 });
             });
@@ -1271,7 +1286,7 @@ describe('webhooks plugin test', () => {
             it('returns 204 when commits made by ignoreCommitsBy user', () => {
                 parsed.commitAuthors = ['batman'];
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                 });
             });
@@ -1281,7 +1296,7 @@ describe('webhooks plugin test', () => {
                 parsed.commitAuthors = ['notbatman'];
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                 });
             });
@@ -1291,7 +1306,7 @@ describe('webhooks plugin test', () => {
                 parsed.lastCommitMessage = 'foo[skip ci]bar';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
@@ -1336,7 +1351,7 @@ describe('webhooks plugin test', () => {
                 userFactoryMock.get.resolves(userMock1);
                 pipelineFactoryMock.get.resolves(pMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                 });
             });
@@ -1370,7 +1385,7 @@ describe('webhooks plugin test', () => {
                 userFactoryMock.get.resolves(userMock1);
                 pipelineFactoryMock.get.resolves(pMock);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                 });
             });
@@ -1381,7 +1396,7 @@ describe('webhooks plugin test', () => {
                 err.status = 404;
                 pipelineFactoryMock.scm.getCommitSha.rejects(err);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                     assert.notCalled(eventFactoryMock.create);
                 });
@@ -1393,7 +1408,7 @@ describe('webhooks plugin test', () => {
                 err.status = 500;
                 pipelineFactoryMock.scm.getCommitSha.rejects(err);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
                     assert.notCalled(eventFactoryMock.create);
                 });
@@ -1401,21 +1416,22 @@ describe('webhooks plugin test', () => {
 
             it('handles checkouting when given a non-listed user on push event', () => {
                 userFactoryMock.get.resolves(null);
-                userFactoryMock.get.withArgs({
-                    username: 'sd-buildbot',
-                    scmContext: 'github:github.com'
-                }).resolves(userMock);
+                userFactoryMock.get
+                    .withArgs({
+                        username: 'sd-buildbot',
+                        scmContext: 'github:github.com'
+                    })
+                    .resolves(userMock);
 
-                return server.inject(options)
-                    .then((response) => {
-                        assert.equal(response.statusCode, 201);
-                    });
+                return server.inject(options).then(response => {
+                    assert.equal(response.statusCode, 201);
+                });
             });
 
             it('returns 500 when failed', () => {
                 eventFactoryMock.create.rejects(new Error('Failed to start'));
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
                 });
             });
@@ -1449,7 +1465,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.list.resolves([]);
                 options.payload = testPayloadOpen;
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                     assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
                 });
@@ -1459,7 +1475,7 @@ describe('webhooks plugin test', () => {
                 parsed.username = 'batman';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 204);
                 });
             });
@@ -1469,7 +1485,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.list.rejects(new Error('model error'));
                 options.payload = testPayloadOpen;
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
                 });
             });
@@ -1484,12 +1500,9 @@ describe('webhooks plugin test', () => {
                     parsed.action = 'opened';
                     options.payload = testPayloadOpen;
                     scmConfig.prNum = 2;
-                    eventFactoryMock.scm.getPrInfo.withArgs(scmConfig)
-                        .resolves(prInfo);
-                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
-                        .resolves(parsed);
-                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext })
-                        .returns(scmDisplayName);
+                    eventFactoryMock.scm.getPrInfo.withArgs(scmConfig).resolves(prInfo);
+                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload).resolves(parsed);
+                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
                     jobFactoryMock.create.resolves({
                         id: 3,
                         name,
@@ -1506,6 +1519,7 @@ describe('webhooks plugin test', () => {
                         prNum: 2,
                         prRef,
                         prTitle: 'Update the README with new information',
+                        prSource: 'branch',
                         scmContext,
                         sha,
                         startFrom: '~pr',
@@ -1517,7 +1531,7 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('returns 201 on success', () =>
-                    server.inject(options).then((reply) => {
+                    server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1531,6 +1545,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1538,27 +1553,18 @@ describe('webhooks plugin test', () => {
                         });
                         assert.equal(reply.statusCode, 201);
                         assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
-                    })
-                );
+                    }));
 
                 it('returns 201 on success with pr branch trigger', () => {
                     const wMock1 = {
-                        nodes: [
-                            { name: '~pr:master' },
-                            { name: '~pr' },
-                            { name: 'main' }
-                        ],
+                        nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
                         edges: [
                             { src: '~pr:master', dest: 'main' },
                             { src: '~pr', dest: 'main' }
                         ]
                     };
                     const wMock2 = {
-                        nodes: [
-                            { name: '~pr:/^.*$/' },
-                            { name: '~pr' },
-                            { name: 'main' }
-                        ],
+                        nodes: [{ name: '~pr:/^.*$/' }, { name: '~pr' }, { name: 'main' }],
                         edges: [
                             { src: '~pr:/^.*$/', dest: 'main' },
                             { src: '~pr', dest: 'main' }
@@ -1605,11 +1611,9 @@ describe('webhooks plugin test', () => {
                         branch: Promise.resolve('fix-1')
                     });
 
-                    pipelineFactoryMock.list.resolves([
-                        pipelineMock, pMock1, pMock2, pMock3, pMock4
-                    ]);
+                    pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3, pMock4]);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
@@ -1626,6 +1630,7 @@ describe('webhooks plugin test', () => {
                             prInfo,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
+                            prSource: 'branch',
                             changedFiles,
                             baseBranch: 'master'
                         });
@@ -1642,6 +1647,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -1660,23 +1666,30 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
                             baseBranch: 'master'
                         });
-                        assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                            pipelineId,
-                            type: 'pipeline',
-                            webhooks: true,
-                            startFrom: '~pr:master'
-                        }));
-                        assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                            pipelineId: pMock3.id,
-                            type: 'pipeline',
-                            webhooks: true,
-                            startFrom: '~pr:master'
-                        }));
+                        assert.neverCalledWith(
+                            eventFactoryMock.create,
+                            sinon.match({
+                                pipelineId,
+                                type: 'pipeline',
+                                webhooks: true,
+                                startFrom: '~pr:master'
+                            })
+                        );
+                        assert.neverCalledWith(
+                            eventFactoryMock.create,
+                            sinon.match({
+                                pipelineId: pMock3.id,
+                                type: 'pipeline',
+                                webhooks: true,
+                                startFrom: '~pr:master'
+                            })
+                        );
                     });
                 });
 
@@ -1685,7 +1698,7 @@ describe('webhooks plugin test', () => {
                     parsed.prNum = 2;
                     parsed.action = 'reopened';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1699,6 +1712,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Reopened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1711,7 +1725,7 @@ describe('webhooks plugin test', () => {
                 it('returns 201 when getCommitSha() is rejected', () => {
                     pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 201);
                         assert.notCalled(eventFactoryMock.create);
                     });
@@ -1719,31 +1733,33 @@ describe('webhooks plugin test', () => {
 
                 it('handles checkouting when given a non-listed user on pr event', () => {
                     userFactoryMock.get.resolves(null);
-                    userFactoryMock.get.withArgs({
-                        username: 'sd-buildbot',
-                        scmContext: 'github:github.com'
-                    }).resolves(userMock);
+                    userFactoryMock.get
+                        .withArgs({
+                            username: 'sd-buildbot',
+                            scmContext: 'github:github.com'
+                        })
+                        .resolves(userMock);
 
-                    return server.inject(options)
-                        .then((response) => {
-                            assert.equal(response.statusCode, 201);
-                        });
+                    return server.inject(options).then(response => {
+                        assert.equal(response.statusCode, 201);
+                    });
                 });
 
                 it('returns 500 when failed', () => {
                     eventFactoryMock.create.rejects(new Error('Failed to start'));
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                     });
                 });
 
                 it('creates empty event if pr from fork by default', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
-                    expected.skipMessage = 'Skipping build since pipeline is configured' +
-                    ' to restrict fork and PR is fork';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1765,16 +1781,17 @@ describe('webhooks plugin test', () => {
                         uri: apiUri
                     });
 
-                    testServer.register([{
-                        register: plugin,
-                        options: {
-                            username: 'testuser'
+                    testServer.register([
+                        {
+                            register: plugin,
+                            options: {
+                                username: 'testuser'
+                            }
                         }
-                    }]);
-
+                    ]);
                     parsed.prSource = 'fork';
 
-                    return testServer.inject(options).then((reply) => {
+                    return testServer.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1788,6 +1805,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1799,22 +1817,23 @@ describe('webhooks plugin test', () => {
 
                 it('creates empty event if restricting all', () => {
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
-                    expected.skipMessage = 'Skipping build since pipeline is configured' +
-                    ' to restrict all and PR is branch';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict all and PR is branch';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('creates empty event if pr from fork and restricting forks', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
-                    expected.skipMessage = 'Skipping build since pipeline is configured' +
-                    ' to restrict fork and PR is fork';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1824,7 +1843,7 @@ describe('webhooks plugin test', () => {
                     parsed.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1838,6 +1857,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1850,10 +1870,10 @@ describe('webhooks plugin test', () => {
                 it('creates empty event if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
-                    expected.skipMessage = 'Skipping build since pipeline is configured' +
-                    ' to restrict branch and PR is branch';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict branch and PR is branch';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
@@ -1863,7 +1883,7 @@ describe('webhooks plugin test', () => {
                     parsed.prSource = 'fork';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1877,6 +1897,7 @@ describe('webhooks plugin test', () => {
                             prNum: 2,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Opened by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -1888,15 +1909,16 @@ describe('webhooks plugin test', () => {
 
                 it('handles checkout when given a non-listed user', () => {
                     userFactoryMock.get.resolves(null);
-                    userFactoryMock.get.withArgs({
-                        username: 'sd-buildbot',
-                        scmContext: 'github:github.com'
-                    }).resolves(userMock);
+                    userFactoryMock.get
+                        .withArgs({
+                            username: 'sd-buildbot',
+                            scmContext: 'github:github.com'
+                        })
+                        .resolves(userMock);
 
-                    return server.inject(options)
-                        .then((response) => {
-                            assert.equal(response.statusCode, 201);
-                        });
+                    return server.inject(options).then(response => {
+                        assert.equal(response.statusCode, 201);
+                    });
                 });
             });
 
@@ -1945,17 +1967,14 @@ describe('webhooks plugin test', () => {
                     parsed.prTitle = 'Update the README with new information';
                     options.payload = testPayloadSync;
                     jobMock.getRunningBuilds.resolves([model1, model2]);
-                    eventFactoryMock.scm.getPrInfo.withArgs(scmConfig)
-                        .resolves(prInfo);
-                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
-                        .resolves(parsed);
-                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext })
-                        .returns(scmDisplayName);
+                    eventFactoryMock.scm.getPrInfo.withArgs(scmConfig).resolves(prInfo);
+                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload).resolves(parsed);
+                    pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
                     pipelineMock.getJobs.resolves([jobMock]);
                 });
 
                 it('returns 201 on success', () =>
-                    server.inject(options).then((reply) => {
+                    server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -1969,33 +1988,25 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
-                    })
-                );
+                    }));
 
                 it('returns 201 on success with pr branch trigger', () => {
                     const wMock1 = {
-                        nodes: [
-                            { name: '~pr:master' },
-                            { name: '~pr' },
-                            { name: 'main' }
-                        ],
+                        nodes: [{ name: '~pr:master' }, { name: '~pr' }, { name: 'main' }],
                         edges: [
                             { src: '~pr:master', dest: 'main' },
                             { src: '~pr', dest: 'main' }
                         ]
                     };
                     const wMock2 = {
-                        nodes: [
-                            { name: '~pr:/^.*$/' },
-                            { name: '~pr' },
-                            { name: 'main' }
-                        ],
+                        nodes: [{ name: '~pr:/^.*$/' }, { name: '~pr' }, { name: 'main' }],
                         edges: [
                             { src: '~pr:/^.*$/', dest: 'main' },
                             { src: '~pr', dest: 'main' }
@@ -2034,7 +2045,7 @@ describe('webhooks plugin test', () => {
 
                     pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
@@ -2049,6 +2060,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -2067,6 +2079,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
@@ -2085,30 +2098,37 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prTitle: 'Update the README with new information',
                             prInfo,
+                            prSource: 'branch',
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
                             changedFiles,
                             baseBranch: 'master'
                         });
-                        assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                            pipelineId,
-                            type: 'pipeline',
-                            webhooks: true,
-                            startFrom: '~pr:master'
-                        }));
-                        assert.neverCalledWith(eventFactoryMock.create, sinon.match({
-                            pipelineId: pMock3.id,
-                            type: 'pipeline',
-                            webhooks: true,
-                            startFrom: '~pr:master'
-                        }));
+                        assert.neverCalledWith(
+                            eventFactoryMock.create,
+                            sinon.match({
+                                pipelineId,
+                                type: 'pipeline',
+                                webhooks: true,
+                                startFrom: '~pr:master'
+                            })
+                        );
+                        assert.neverCalledWith(
+                            eventFactoryMock.create,
+                            sinon.match({
+                                pipelineId: pMock3.id,
+                                type: 'pipeline',
+                                webhooks: true,
+                                startFrom: '~pr:master'
+                            })
+                        );
                     });
                 });
 
                 it('has the workflow for stopping builds before starting a new one', () => {
                     const abortMsg = 'Aborted because new commit was pushed to PR#1';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
                         assert.calledWith(eventFactoryMock.create, {
@@ -2122,6 +2142,7 @@ describe('webhooks plugin test', () => {
                             prRef,
                             prNum: 1,
                             prTitle: 'Update the README with new information',
+                            prSource: 'branch',
                             type: 'pr',
                             webhooks: true,
                             changedFiles,
@@ -2142,41 +2163,44 @@ describe('webhooks plugin test', () => {
                 it('does not update if build finished running', () => {
                     model2.isDone.returns(true);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.notCalled(model2.update);
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('creates empty event if pr from fork by default', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
-                    expected.skipMessage = 'Skipping build since pipeline is ' +
-                    'configured to restrict fork and PR is fork';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('creates empty event if restricting all', () => {
+                    expected.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
-                    expected.skipMessage = 'Skipping build since pipeline is ' +
-                    'configured to restrict all and PR is branch';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict all and PR is branch';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
                 });
 
                 it('creates empty event if pr from fork and restricting forks', () => {
+                    expected.prSource = 'fork';
                     parsed.prSource = 'fork';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
-                    expected.skipMessage = 'Skipping build since pipeline is ' +
-                    'configured to restrict fork and PR is fork';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
@@ -2186,7 +2210,7 @@ describe('webhooks plugin test', () => {
                     parsed.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId,
                             type: 'pr',
@@ -2200,6 +2224,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'branch',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -2211,11 +2236,12 @@ describe('webhooks plugin test', () => {
 
                 it('skips creating if pr from branch and restricting branches', () => {
                     parsed.prSource = 'branch';
+                    expected.prSource = 'branch';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
-                    expected.skipMessage = 'Skipping build since pipeline is ' +
-                    'configured to restrict branch and PR is branch';
+                    expected.skipMessage =
+                        'Skipping build since pipeline is configured to restrict branch and PR is branch';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, expected);
                         assert.equal(reply.statusCode, 201);
                     });
@@ -2225,7 +2251,7 @@ describe('webhooks plugin test', () => {
                     parsed.prSource = 'fork';
                     pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'branch';
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -2239,6 +2265,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -2264,16 +2291,18 @@ describe('webhooks plugin test', () => {
                         uri: apiUri
                     });
 
-                    testServer.register([{
-                        register: plugin,
-                        options: {
-                            username: 'testuser'
+                    testServer.register([
+                        {
+                            register: plugin,
+                            options: {
+                                username: 'testuser'
+                            }
                         }
-                    }]);
+                    ]);
 
                     parsed.prSource = 'fork';
 
-                    return testServer.inject(options).then((reply) => {
+                    return testServer.inject(options).then(reply => {
                         assert.calledWith(eventFactoryMock.create, {
                             prInfo,
                             pipelineId,
@@ -2287,6 +2316,7 @@ describe('webhooks plugin test', () => {
                             prNum: 1,
                             prTitle: 'Update the README with new information',
                             prRef,
+                            prSource: 'fork',
                             changedFiles,
                             causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
                             chainPR: false,
@@ -2299,7 +2329,7 @@ describe('webhooks plugin test', () => {
                 it('returns 500 when failed', () => {
                     eventFactoryMock.create.rejects(new Error('Failed to create event'));
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                     });
                 });
@@ -2327,23 +2357,21 @@ describe('webhooks plugin test', () => {
                     reqHeaders['content-length'] = '21236';
                     options.payload = testPayloadClose;
                     jobMock.getRunningBuilds.resolves([model1, model2]);
-                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload)
-                        .resolves(parsed);
+                    pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload).resolves(parsed);
                 });
 
                 it('returns 200 on success', () =>
-                    server.inject(options).then((reply) => {
+                    server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'ENABLED');
                         assert.isTrue(jobMock.archived);
-                    })
-                );
+                    }));
 
                 it('returns 204 when pipeline to be closed does not exist', () => {
                     pipelineFactoryMock.list.resolves([]);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 204);
                     });
                 });
@@ -2356,13 +2384,12 @@ describe('webhooks plugin test', () => {
                         assert.strictEqual(model1.statusMessage, 'Aborted because PR#1 was closed');
                         assert.strictEqual(model2.status, 'ABORTED');
                         assert.strictEqual(model2.statusMessage, 'Aborted because PR#1 was closed');
-                    })
-                );
+                    }));
 
                 it('returns 500 when failed', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'ENABLED');
@@ -2375,7 +2402,7 @@ describe('webhooks plugin test', () => {
                     options.payload = testPayloadOther;
                     pipelineFactoryMock.scm.parseHook.resolves(null);
 
-                    return server.inject(options).then((reply) => {
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 204);
                         assert.equal(pipelineMock.sync.callCount, 0);
                         assert.equal(pipelineFactoryMock.get.callCount, 0);
@@ -2388,7 +2415,7 @@ describe('webhooks plugin test', () => {
             it('returns 500 when failed', () => {
                 pipelineFactoryMock.scm.parseHook.rejects(new Error('Invalid x-hub-signature'));
 
-                return server.inject(options).then((reply) => {
+                return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 500);
                 });
             });

@@ -10,6 +10,8 @@ auth:
   # Generate one by running
   # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
   jwtPublicKey: SECRET_JWT_PUBLIC_KEY
+  # The public key for queue service
+  jwtQueueServicePublicKey: SECRET_JWT_QUEUE_SVC_PUBLIC_KEY
   # Environment of the JWTs. For example: 'prod' or 'beta'
   jwtEnvironment: JWT_ENVIRONMENT
   # A password used for encrypting session data.
@@ -135,6 +137,8 @@ executor:
         preferredNodeSelectors:
           __name: K8S_PREFERRED_NODE_SELECTORS
           __format: json
+        # support for kata-containers-as-a-runtimeclass
+        runtimeClass: K8S_RUNTIME_CLASS
       # Launcher container tag to use
       launchVersion: LAUNCH_VERSION
       # Launcher image to use
@@ -262,11 +266,6 @@ executor:
           tls: QUEUE_REDIS_TLS_ENABLED
         database: QUEUE_REDIS_DATABASE
 
-# build cache strategies: s3, disk, with s3 as default option to store cache
-cache:
-  strategy: CACHE_STRATEGY
-  path: CACHE_PATH
-
 scms:
   __name: SCM_SETTINGS
   __format: json
@@ -366,6 +365,8 @@ ecosystem:
   ui: ECOSYSTEM_UI
   # Externally routable URL for the Artifact Store
   store: ECOSYSTEM_STORE
+  # Externally routable URL for the Queue Service
+  queue: ECOSYSTEM_QUEUE
   # Badge service (needs to add a status and color)
   badges: ECOSYSTEM_BADGES
   # Default registry to pull build containers from
@@ -374,8 +375,16 @@ ecosystem:
   allowCors:
     __name: ECOSYSTEM_ALLOW_CORS
     __format: json
+  # build cache strategies: s3, disk, with s3 as default option to store cache
+  cache:
+    strategy: CACHE_STRATEGY
+    path: CACHE_PATH
+    compress: CACHE_COMPRESS
+    md5check: CACHE_MD5CHECK
+    max_size_mb: CACHE_MAX_SIZE_MB
 
 build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json
+  externalJoin: EXTERNAL_JOIN

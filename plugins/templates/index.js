@@ -7,6 +7,7 @@ const getRoute = require('./get');
 const listRoute = require('./list');
 const listTagsRoute = require('./listTags');
 const listVersionsRoute = require('./listVersions');
+const listVersionsWithMetricsRouter = require('./listVersionsWithMetric');
 const removeRoute = require('./remove');
 const removeTagRoute = require('./removeTag');
 const updateTrustedRoute = require('./updateTrusted');
@@ -40,21 +41,22 @@ exports.register = (server, options, next) => {
             return Promise.resolve(true);
         }
 
-        return pipelineFactory.get(template.pipelineId).then((pipeline) => {
+        return pipelineFactory.get(template.pipelineId).then(pipeline => {
             if (!pipeline) {
                 throw boom.notFound(`Pipeline ${template.pipelineId} does not exist`);
             }
 
             if (scope.includes('user')) {
-                return userFactory.get({ username, scmContext }).then((user) => {
+                return userFactory.get({ username, scmContext }).then(user => {
                     if (!user) {
                         throw boom.notFound(`User ${username} does not exist`);
                     }
 
-                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
+                    return user.getPermissions(pipeline.scmUri).then(permissions => {
                         if (!permissions[permission]) {
-                            throw boom.forbidden(`User ${username} does not have ` +
-                                `${permission} access for this template`);
+                            throw boom.forbidden(
+                                `User ${username} does not have ${permission} access for this template`
+                            );
                         }
 
                         return true;
@@ -77,6 +79,7 @@ exports.register = (server, options, next) => {
         listRoute(),
         listTagsRoute(),
         listVersionsRoute(),
+        listVersionsWithMetricsRouter(),
         removeRoute(),
         removeTagRoute(),
         updateTrustedRoute()
