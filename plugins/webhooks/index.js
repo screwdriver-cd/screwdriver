@@ -58,11 +58,12 @@ function getReleaseNameOrTagName(action, workflowGraph, releaseName, tagName) {
 }
 /**
  * Determine "startFrom" with type, action and branches
- * @param {String} action          SCM webhook action type
- * @param {String} type            Triggered SCM event type ('pr' or 'repo')
- * @param {String} targetBranch    The branch against which commit is pushed
- * @param {String} pipelineBranch  The pipeline branch
- * @returns {String}               startFrom
+ * @param {String} action                 SCM webhook action type
+ * @param {String} type                   Triggered SCM event type ('pr' or 'repo')
+ * @param {String} targetBranch           The branch against which commit is pushed
+ * @param {String} pipelineBranch         The pipeline branch
+ * @param {String} releaseNameOrTagName   Release name or tag name when release,tag filtering is enabled
+ * @returns {String}                      startFrom
  */
 function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName) {
     let startFrom;
