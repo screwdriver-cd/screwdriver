@@ -808,6 +808,7 @@ async function createOrRunNextBuild({
         parentBuilds
     };
     const triggerName = `sd@${pipelineId}:${externalJobName}`;
+
     const externalBuildConfig = {
         pipelineFactory,
         eventFactory,

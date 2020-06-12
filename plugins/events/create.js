@@ -38,7 +38,7 @@ module.exports = () => ({
                                 const restartConfig = {
                                     pipelineId: j.pipelineId,
                                     startFrom: j.name,
-                                    parentBuildId: b.parentBuildId,
+                                    parentBuildId: b.id,
                                     parentEventId: b.eventId,
                                     groupEventId: request.payload.groupEventId,
                                     parentBuilds: b.parentBuilds

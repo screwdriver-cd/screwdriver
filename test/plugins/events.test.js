@@ -333,6 +333,7 @@ describe('event plugin test', () => {
             eventConfig.parentEventId = 888;
             eventConfig.groupEventId = 888;
             eventConfig.baseBranch = 'master';
+            eventConfig.parentBuildId = 1234;
             eventConfig.parentBuilds = parentBuilds;
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
@@ -460,6 +461,7 @@ describe('event plugin test', () => {
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
             eventConfig.groupEventId = 888;
+            eventConfig.parentBuildId = 1234;
             eventConfig.baseBranch = 'master';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
 
@@ -501,6 +503,7 @@ describe('event plugin test', () => {
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
             eventConfig.sha = getEventMock(testEvent).sha;
             eventConfig.parentEventId = 888;
+            eventConfig.parentBuildId = 1234;
             eventConfig.groupEventId = 2;
             eventConfig.baseBranch = 'master';
             eventFactoryMock.get.resolves(getEventMock(testEvent));
