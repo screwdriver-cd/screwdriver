@@ -35,25 +35,48 @@ describe('webhooks.determineStartFrom', () => {
     let type;
     let targetBranch;
     let pipelineBranch;
-    let releaseNameOrTagName;
+    let releaseName;
+    let tagName;
+    let isReleaseOrTagFiltering;
 
     beforeEach(() => {
         action = 'push';
         type = 'repo';
         targetBranch = 'master';
         pipelineBranch = 'master';
-        releaseNameOrTagName = '';
+        releaseName = '';
+        tagName = '';
+        isReleaseOrTagFiltering = false;
     });
 
     it('determines to "~commit" when action is "push"', () => {
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~commit');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~commit'
+        );
     });
 
     it('determines to "~commit:branch" when action is "push" and targetBranch is branch', () => {
         targetBranch = 'branch';
 
         assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
             '~commit:branch'
         );
     });
@@ -61,7 +84,18 @@ describe('webhooks.determineStartFrom', () => {
     it('determines to "~pr" when type is "pr"', () => {
         type = 'pr';
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~pr');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~pr'
+        );
     });
 
     it('determines to "~pr:branch" when type is "pr" and targetBranch is branch', () => {
@@ -69,53 +103,127 @@ describe('webhooks.determineStartFrom', () => {
         targetBranch = 'branch';
 
         assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
             '~pr:branch'
         );
     });
 
     it('determines to "~release" when action is "release"', () => {
         action = 'release';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~release');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~release'
+        );
     });
 
     it('determines to "~release" when action is "release" even targetBranch is branch', () => {
         action = 'release';
         targetBranch = 'branch';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~release');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~release'
+        );
     });
 
     it('determines to "~release:releaseName" when filter the release trigger', () => {
         action = 'release';
-        releaseNameOrTagName = 'releaseName';
+        releaseName = 'releaseName';
+        isReleaseOrTagFiltering = true;
 
         assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
             '~release:releaseName'
         );
     });
 
     it('determines to "~tag" when action is "tag"', () => {
         action = 'tag';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~tag');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~tag'
+        );
     });
 
     it('determines to "~tag" when action is "tag" even targetBranch is branch', () => {
         action = 'tag';
         targetBranch = 'branch';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName), '~tag');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~tag'
+        );
     });
 
     it('determines to "~tag:tagName" when filter the tag trigger', () => {
         action = 'tag';
-        releaseNameOrTagName = 'tagName';
+        tagName = 'tagName';
+        isReleaseOrTagFiltering = true;
 
         assert.equal(
-            determineStartFrom(action, type, targetBranch, pipelineBranch, releaseNameOrTagName),
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
             '~tag:tagName'
         );
     });
