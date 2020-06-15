@@ -15,25 +15,25 @@ const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const DEFAULT_MAX_BYTES = 1048576;
 
 /**
- * Check if the tag or release filtering or not
+ * Check if tag or release filtering is enabled or not
  * @param {String}    action          SCM webhook action type
  * @param {Array}     workflowGraph   pipeline workflowGraph
- * @returns {Boolean} isFilterlingEnabled
+ * @returns {Boolean} isFilteringEnabled
  */
 function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
-    let isFilterlingEnabled = true;
+    let isFilteringEnabled = true;
 
     workflowGraph.edges.forEach(edge => {
         const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release)$') : new RegExp('^~(tag)$');
 
         if (releaseOrTagRegExp) {
             if (edge.src.match(releaseOrTagRegExp)) {
-                isFilterlingEnabled = false;
+                isFilteringEnabled = false;
             }
         }
     });
 
-    return isFilterlingEnabled;
+    return isFilteringEnabled;
 }
 /**
  * Determine "startFrom" with type, action and branches
@@ -43,7 +43,7 @@ function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
  * @param {String}   pipelineBranch            The pipeline branch
  * @param {String}   releaseName               SCM webhook release name
  * @param {String}   tagName                   SCM webhook tag name
- * @param {Boolean}  isReleaseOrTagFiltering   Check if the tag or release filtering or not
+ * @param {Boolean}  isReleaseOrTagFiltering   If the tag or release filtering is enabled
  * @returns {String} startFrom
  */
 function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseName, tagName, isReleaseOrTagFiltering) {
