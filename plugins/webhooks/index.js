@@ -32,7 +32,6 @@ function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
             }
         }
     });
-    console.log(isFilterlingEnabled);
 
     return isFilterlingEnabled;
 }
