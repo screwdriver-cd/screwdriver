@@ -54,9 +54,21 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
     } else {
         switch (action) {
             case 'release':
-                return isReleaseOrTagFiltering && action === 'release' ? `~release:${releaseName}` : '~release';
+                if (releaseName === undefined) {
+                    logger.error('The releaseName of SCM Webhook is missing.');
+
+                    return '';
+                }
+
+                return isReleaseOrTagFiltering ? `~release:${releaseName}` : '~release';
             case 'tag':
-                return isReleaseOrTagFiltering && action === 'tag' ? `~tag:${tagName}` : '~tag';
+                if (tagName === undefined) {
+                    logger.error('The ref of SCM Webhook is missing.');
+
+                    return '';
+                }
+
+                return isReleaseOrTagFiltering ? `~tag:${tagName}` : '~tag';
             default:
                 startFrom = '~commit';
                 break;
@@ -298,9 +310,18 @@ async function triggeredPipelines(
         p => ['release', 'tag'].includes(action) || hasChangesUnderRootDir(p, changedFiles)
     );
 
-    pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p =>
-        hasTriggeredJob(p, determineStartFrom(action, type, branch, null, releaseName, tagName))
-    );
+    pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p => {
+        let isReleaseOrTagFiltering = '';
+
+        if (action === 'release' || action === 'tag') {
+            isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, p.workflowGraph);
+        }
+
+        return hasTriggeredJob(
+            p,
+            determineStartFrom(action, type, branch, null, releaseName, tagName, isReleaseOrTagFiltering)
+        );
+    });
 
     return pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
 }
