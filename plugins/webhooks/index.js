@@ -21,14 +21,14 @@ const DEFAULT_MAX_BYTES = 1048576;
  * @returns {Boolean} isFilterlingEnabled
  */
 function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
-    let isFilterlingEnabled = false;
+    let isFilterlingEnabled = true;
 
     workflowGraph.edges.forEach(edge => {
-        const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release):') : new RegExp('^~(tag):');
+        const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release)$') : new RegExp('^~(tag)$');
 
         if (releaseOrTagRegExp) {
             if (edge.src.match(releaseOrTagRegExp)) {
-                isFilterlingEnabled = true;
+                isFilterlingEnabled = false;
             }
         }
     });
@@ -823,7 +823,9 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
                 changedFiles,
                 baseBranch: branch,
                 causeMessage: `Merged by ${username}`,
-                meta
+                meta,
+                releaseName,
+                ref
             };
 
             if (skipMessage) {
