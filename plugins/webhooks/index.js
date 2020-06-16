@@ -15,14 +15,38 @@ const CHECKOUT_URL_SCHEMA_REGEXP = new RegExp(CHECKOUT_URL_SCHEMA);
 const DEFAULT_MAX_BYTES = 1048576;
 
 /**
- * Determine "startFrom" with type, action and branches
- * @param {String} action          SCM webhook action type
- * @param {String} type            Triggered SCM event type ('pr' or 'repo')
- * @param {String} targetBranch    The branch against which commit is pushed
- * @param {String} pipelineBranch  The pipeline branch
- * @returns {String}               startFrom
+ * Check if tag or release filtering is enabled or not
+ * @param {String}    action          SCM webhook action type
+ * @param {Array}     workflowGraph   pipeline workflowGraph
+ * @returns {Boolean} isFilteringEnabled
  */
-function determineStartFrom(action, type, targetBranch, pipelineBranch) {
+function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
+    let isFilteringEnabled = true;
+
+    workflowGraph.edges.forEach(edge => {
+        const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release)$') : new RegExp('^~(tag)$');
+
+        if (releaseOrTagRegExp) {
+            if (edge.src.match(releaseOrTagRegExp)) {
+                isFilteringEnabled = false;
+            }
+        }
+    });
+
+    return isFilteringEnabled;
+}
+/**
+ * Determine "startFrom" with type, action and branches
+ * @param {String}   action                    SCM webhook action type
+ * @param {String}   type                      Triggered SCM event type ('pr' or 'repo')
+ * @param {String}   targetBranch              The branch against which commit is pushed
+ * @param {String}   pipelineBranch            The pipeline branch
+ * @param {String}   releaseName               SCM webhook release name
+ * @param {String}   tagName                   SCM webhook tag name
+ * @param {Boolean}  isReleaseOrTagFiltering   If the tag or release filtering is enabled
+ * @returns {String} startFrom
+ */
+function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseName, tagName, isReleaseOrTagFiltering) {
     let startFrom;
 
     if (type && type === 'pr') {
@@ -30,9 +54,21 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch) {
     } else {
         switch (action) {
             case 'release':
-                return '~release';
+                if (releaseName === undefined) {
+                    logger.error('The releaseName of SCM Webhook is missing.');
+
+                    return '';
+                }
+
+                return isReleaseOrTagFiltering ? `~release:${releaseName}` : '~release';
             case 'tag':
-                return '~tag';
+                if (tagName === undefined) {
+                    logger.error('The ref of SCM Webhook is missing.');
+
+                    return '';
+                }
+
+                return isReleaseOrTagFiltering ? `~tag:${tagName}` : '~tag';
             default:
                 startFrom = '~commit';
                 break;
@@ -232,9 +268,20 @@ function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
  * @param   {String}            type            Triggered GitHub event type ('pr' or 'repo')
  * @param   {String}            action          Triggered GitHub event action
  * @param   {Array}            changedFiles     Changed files in this commit
+ * @param   {String}            releaseName     SCM webhook release name
+ * @param   {String}            tagName         SCM webhook tag name
  * @returns {Promise}                           Promise that resolves into triggered pipelines
  */
-async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles) {
+async function triggeredPipelines(
+    pipelineFactory,
+    scmConfig,
+    branch,
+    type,
+    action,
+    changedFiles,
+    releaseName,
+    tagName
+) {
     const { scmUri } = scmConfig;
     const splitUri = scmUri.split(':');
     const scmBranch = `${splitUri[0]}:${splitUri[1]}:${splitUri[2]}`;
@@ -263,9 +310,18 @@ async function triggeredPipelines(pipelineFactory, scmConfig, branch, type, acti
         p => ['release', 'tag'].includes(action) || hasChangesUnderRootDir(p, changedFiles)
     );
 
-    pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p =>
-        hasTriggeredJob(p, determineStartFrom(action, type, branch, null))
-    );
+    pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p => {
+        let isReleaseOrTagFiltering = '';
+
+        if (action === 'release' || action === 'tag') {
+            isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, p.workflowGraph);
+        }
+
+        return hasTriggeredJob(
+            p,
+            determineStartFrom(action, type, branch, null, releaseName, tagName, isReleaseOrTagFiltering)
+        );
+    });
 
     return pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
 }
@@ -562,7 +618,9 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
         username,
         scmContext,
         changedFiles,
-        type
+        type,
+        releaseName,
+        ref
     } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
@@ -583,7 +641,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
         .then(scmUri => {
             scmConfig.scmUri = scmUri;
 
-            return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles);
+            return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles, releaseName, ref);
         })
         .then(async pipelines => {
             if (!pipelines || pipelines.length === 0) {
@@ -680,14 +738,27 @@ function createMeta(parsed) {
  * @returns {Promise}                               Promise that resolves into events
  */
 async function createEvents(eventFactory, userFactory, pipelineFactory, pipelines, parsed, skipMessage) {
-    const { action, branch, sha, username, scmContext, changedFiles, type } = parsed;
+    const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
     const events = [];
     const meta = createMeta(parsed);
 
     const pipelineTuples = await Promise.all(
         pipelines.map(async p => {
             const resolvedBranch = await p.branch;
-            const startFrom = determineStartFrom(action, type, branch, resolvedBranch);
+            let isReleaseOrTagFiltering = '';
+
+            if (action === 'release' || action === 'tag') {
+                isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, p.workflowGraph);
+            }
+            const startFrom = determineStartFrom(
+                action,
+                type,
+                branch,
+                resolvedBranch,
+                releaseName,
+                ref,
+                isReleaseOrTagFiltering
+            );
             const tuple = { branch: resolvedBranch, pipeline: p, startFrom };
 
             return tuple;
@@ -708,7 +779,20 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
     const eventConfigs = await Promise.all(
         ignoreExtraTriggeredPipelines.map(async pTuple => {
             const pipelineBranch = pTuple.branch;
-            const startFrom = determineStartFrom(action, type, branch, pipelineBranch);
+            let isReleaseOrTagFiltering = '';
+
+            if (action === 'release' || action === 'tag') {
+                isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pTuple.pipeline.workflowGraph);
+            }
+            const startFrom = determineStartFrom(
+                action,
+                type,
+                branch,
+                pipelineBranch,
+                releaseName,
+                ref,
+                isReleaseOrTagFiltering
+            );
             const token = await pTuple.pipeline.token;
             const scmConfig = {
                 scmUri: pTuple.pipeline.scmUri,
@@ -739,7 +823,9 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
                 changedFiles,
                 baseBranch: branch,
                 causeMessage: `Merged by ${username}`,
-                meta
+                meta,
+                releaseName,
+                ref
             };
 
             if (skipMessage) {
@@ -777,7 +863,7 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
     const { eventFactory } = request.server.app;
     const { pipelineFactory } = request.server.app;
     const { userFactory } = request.server.app;
-    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles } = parsed;
+    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -795,7 +881,16 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
             scmContext
         });
 
-        const pipelines = await triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles);
+        const pipelines = await triggeredPipelines(
+            pipelineFactory,
+            scmConfig,
+            branch,
+            type,
+            action,
+            changedFiles,
+            releaseName,
+            ref
+        );
         let events = [];
 
         if (!pipelines || pipelines.length === 0) {
