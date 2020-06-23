@@ -54,7 +54,7 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
     } else {
         switch (action) {
             case 'release':
-                if (releaseName === undefined) {
+                if (!releaseName) {
                     logger.error('The releaseName of SCM Webhook is missing.');
 
                     return '';
@@ -62,7 +62,7 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
 
                 return isReleaseOrTagFiltering ? `~release:${releaseName}` : '~release';
             case 'tag':
-                if (tagName === undefined) {
+                if (!tagName) {
                     logger.error('The ref of SCM Webhook is missing.');
 
                     return '';
