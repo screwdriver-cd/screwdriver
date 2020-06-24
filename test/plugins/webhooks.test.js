@@ -45,7 +45,7 @@ describe('webhooks.determineStartFrom', () => {
         targetBranch = 'master';
         pipelineBranch = 'master';
         releaseName = '';
-        tagName = '';
+        tagName = 'v1';
         isReleaseOrTagFiltering = false;
     });
 

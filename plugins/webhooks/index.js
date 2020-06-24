@@ -26,10 +26,8 @@ function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
     workflowGraph.edges.forEach(edge => {
         const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release)$') : new RegExp('^~(tag)$');
 
-        if (releaseOrTagRegExp) {
-            if (edge.src.match(releaseOrTagRegExp)) {
-                isFilteringEnabled = false;
-            }
+        if (edge.src.match(releaseOrTagRegExp)) {
+            isFilteringEnabled = false;
         }
     });
 
@@ -54,15 +52,9 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
     } else {
         switch (action) {
             case 'release':
-                if (releaseName === undefined) {
-                    logger.error('The releaseName of SCM Webhook is missing.');
-
-                    return '';
-                }
-
-                return isReleaseOrTagFiltering ? `~release:${releaseName}` : '~release';
+                return releaseName && isReleaseOrTagFiltering ? `~release:${releaseName}` : '~release';
             case 'tag':
-                if (tagName === undefined) {
+                if (!tagName) {
                     logger.error('The ref of SCM Webhook is missing.');
 
                     return '';
