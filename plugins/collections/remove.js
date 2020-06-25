@@ -26,28 +26,25 @@ module.exports = () => ({
             const { username, scmContext } = request.auth.credentials;
 
             // Fetch the collection and user models
-            return Promise.all([
-                collectionFactory.get(request.params.id),
-                userFactory.get({ username, scmContext })
-            ]).then(([collection, user]) => {
-                if (!collection) {
-                    throw boom.notFound('Collection does not exist');
-                }
-                if (!user) {
-                    throw boom.notFound(`User ${username} does not exist`);
-                }
-                if (collection.userId !== user.id) {
-                    throw boom.forbidden(`User ${username} does not own collection`);
-                }
-                if (collection.type === 'default') {
-                    throw boom.forbidden(`
+            return Promise.all([collectionFactory.get(request.params.id), userFactory.get({ username, scmContext })])
+                .then(([collection, user]) => {
+                    if (!collection) {
+                        throw boom.notFound('Collection does not exist');
+                    }
+                    if (!user) {
+                        throw boom.notFound(`User ${username} does not exist`);
+                    }
+                    if (collection.userId !== user.id) {
+                        throw boom.forbidden(`User ${username} does not own collection`);
+                    }
+                    if (collection.type === 'default') {
+                        throw boom.forbidden(`
                         Collection with type "default" cannot be deleted by user
                     `);
-                }
+                    }
 
-                return collection.remove()
-                    .then(() => reply().code(204));
-            })
+                    return collection.remove().then(() => reply().code(204));
+                })
                 .catch(err => reply(boom.boomify(err)));
         },
         validate: {

@@ -10,28 +10,7 @@
     "parameters": {},
     "stats": {},
     "environment": {
-      "FOO": "bar"
+        "FOO": "bar"
     },
-    "steps": [
-        {
-            "name": "sd-setup",
-            "code": 0,
-            "startTime": "2038-01-19T03:15:08.131Z",
-            "endTime": "2038-01-19T03:15:08.532Z"
-        },
-        {
-            "name": "install",
-            "code": 1,
-            "startTime": "2038-01-19T03:15:08.532Z",
-            "endTime": "2038-01-19T03:15:09.114Z"
-        },
-        {
-            "startTime": "2038-01-19T03:15:09.114Z",
-            "name": "test"
-        },
-        {
-            "name": "publish"
-        }
-    ],
     "status": "FAILURE"
 }

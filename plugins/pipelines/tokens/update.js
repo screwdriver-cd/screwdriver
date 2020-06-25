@@ -23,11 +23,11 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const tokenFactory = request.server.app.tokenFactory;
-            const userFactory = request.server.app.userFactory;
-            const pipelineFactory = request.server.app.pipelineFactory;
-            const username = request.auth.credentials.username;
-            const scmContext = request.auth.credentials.scmContext;
+            const { tokenFactory } = request.server.app;
+            const { userFactory } = request.server.app;
+            const { pipelineFactory } = request.server.app;
+            const { username } = request.auth.credentials;
+            const { scmContext } = request.auth.credentials;
 
             return Promise.all([
                 tokenFactory.get(request.params.tokenId),
@@ -47,36 +47,35 @@ module.exports = () => ({
                         throw boom.notFound('User does not exist');
                     }
 
-                    return user.getPermissions(pipeline.scmUri).then((permissions) => {
-                        if (!permissions.admin) {
-                            throw boom.forbidden(`User ${username} `
-                                + 'is not an admin of this repo');
-                        }
+                    return user
+                        .getPermissions(pipeline.scmUri)
+                        .then(permissions => {
+                            if (!permissions.admin) {
+                                throw boom.forbidden(`User ${username} is not an admin of this repo`);
+                            }
 
-                        return Promise.resolve();
-                    }).then(() => {
-                        if (token.pipelineId !== pipeline.id) {
-                            throw boom.forbidden('Pipeline does not own token');
-                        }
+                            return Promise.resolve();
+                        })
+                        .then(() => {
+                            if (token.pipelineId !== pipeline.id) {
+                                throw boom.forbidden('Pipeline does not own token');
+                            }
 
-                        return pipeline.tokens
-                            .then((tokens) => {
+                            return pipeline.tokens.then(tokens => {
                                 // Make sure it won't cause a name conflict
-                                const match = tokens && tokens.find(
-                                    t => t.name === request.payload.name);
+                                const match = tokens && tokens.find(t => t.name === request.payload.name);
 
                                 if (match && request.params.tokenId !== match.id) {
                                     throw boom.conflict(`Token ${match.name} already exists`);
                                 }
 
-                                Object.keys(request.payload).forEach((key) => {
+                                Object.keys(request.payload).forEach(key => {
                                     token[key] = request.payload[key];
                                 });
 
-                                return token.update()
-                                    .then(() => reply(token.toJson()).code(200));
+                                return token.update().then(() => reply(token.toJson()).code(200));
                             });
-                    });
+                        });
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

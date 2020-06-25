@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
@@ -21,7 +21,7 @@ describe('validator plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/validator');
         /* eslint-enable global-require */
@@ -31,11 +31,16 @@ describe('validator plugin test', () => {
             port: 1234
         });
 
-        server.register([{
-            register: plugin
-        }], (err) => {
-            done(err);
-        });
+        server.register(
+            [
+                {
+                    register: plugin
+                }
+            ],
+            err => {
+                done(err);
+            }
+        );
     });
 
     afterEach(() => {
@@ -54,30 +59,32 @@ describe('validator plugin test', () => {
 
     describe('POST /validator', () => {
         it('returns 200 for a successful yaml', () =>
-            server.inject({
-                method: 'POST',
-                url: '/validator',
-                payload: testInput
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, testOutput);
-            })
-        );
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/validator',
+                    payload: testInput
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, testOutput);
+                }));
 
         it('returns 200 and error yaml for bad yaml', () =>
-            server.inject({
-                method: 'POST',
-                url: '/validator',
-                payload: {
-                    yaml: 'jobs: [test]'
-                }
-            }).then((reply) => {
-                assert.equal(reply.statusCode, 200);
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/validator',
+                    payload: {
+                        yaml: 'jobs: [test]'
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
 
-                const payload = JSON.parse(reply.payload);
+                    const payload = JSON.parse(reply.payload);
 
-                assert.match(payload.jobs.main[0].commands[0].command, /"jobs" must be an object/);
-            })
-        );
+                    assert.match(payload.jobs.main[0].commands[0].command, /"jobs" must be an object/);
+                }));
     });
 });

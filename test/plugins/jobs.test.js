@@ -1,25 +1,25 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
 const testBuilds = require('./data/builds.json');
-const testBuild = require('./data/build.json');
+const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-const decorateBuildMock = (build) => {
+const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
-    mock.toJson = sinon.stub().returns(build);
+    mock.toJsonWithSteps = sinon.stub().resolves(build);
 
     return mock;
 };
 
-const getBuildMocks = (builds) => {
+const getBuildMocks = builds => {
     if (Array.isArray(builds)) {
         return builds.map(decorateBuildMock);
     }
@@ -27,7 +27,7 @@ const getBuildMocks = (builds) => {
     return decorateBuildMock(builds);
 };
 
-const decorateJobMock = (job) => {
+const decorateJobMock = job => {
     const decorated = hoek.clone(job);
 
     decorated.getBuilds = sinon.stub();
@@ -38,7 +38,7 @@ const decorateJobMock = (job) => {
     return decorated;
 };
 
-const getJobMocks = (jobs) => {
+const getJobMocks = jobs => {
     if (Array.isArray(jobs)) {
         return jobs.map(decorateJobMock);
     }
@@ -55,7 +55,7 @@ describe('job plugin test', () => {
     let plugin;
     let server;
     const dateNow = 1552597858211;
-    const nowTime = (new Date(dateNow)).toISOString();
+    const nowTime = new Date(dateNow).toISOString();
 
     before(() => {
         mockery.enable({
@@ -64,7 +64,7 @@ describe('job plugin test', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         pipelineMock = {
             scmUri: 'fakeScmUri'
         };
@@ -103,19 +103,30 @@ describe('job plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({
-                credentials: {
-                    scope: ['user']
-                }
-            })
+            authenticate: (request, reply) =>
+                reply.continue({
+                    credentials: {
+                        scope: ['user']
+                    }
+                })
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register([{
-            register: plugin
-        }], (err) => {
-            done(err);
-        });
+        server.register(
+            [
+                {
+                    register: plugin
+                },
+                {
+                    /* eslint-disable global-require */
+                    register: require('../../plugins/pipelines')
+                    /* eslint-enable global-require */
+                }
+            ],
+            err => {
+                done(err);
+            }
+        );
     });
 
     afterEach(() => {
@@ -138,7 +149,7 @@ describe('job plugin test', () => {
         it('exposes a route for getting a job', () => {
             jobFactoryMock.get.withArgs(id).resolves(getJobMocks(testJob));
 
-            return server.inject('/jobs/1234').then((reply) => {
+            return server.inject('/jobs/1234').then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testJob);
             });
@@ -153,7 +164,7 @@ describe('job plugin test', () => {
 
             jobFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject('/jobs/1234').then((reply) => {
+            return server.inject('/jobs/1234').then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -162,7 +173,7 @@ describe('job plugin test', () => {
         it('returns errors when datastore returns an error', () => {
             jobFactoryMock.get.withArgs(id).rejects(new Error('blah'));
 
-            return server.inject('/jobs/1234').then((reply) => {
+            return server.inject('/jobs/1234').then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -195,7 +206,7 @@ describe('job plugin test', () => {
 
             jobMock.toJson.returns({ id, state: 'ENABLED' });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {
                     id,
@@ -218,7 +229,7 @@ describe('job plugin test', () => {
 
             jobMock.update.rejects(new Error('error'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -237,7 +248,7 @@ describe('job plugin test', () => {
 
             jobFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -256,7 +267,7 @@ describe('job plugin test', () => {
 
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -277,14 +288,14 @@ describe('job plugin test', () => {
                 push: false
             });
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
             });
         });
     });
 
     describe('GET /jobs/{id}/builds', () => {
-        const id = '1234';
+        const id = 1234;
         let options;
         let job;
         let builds;
@@ -305,7 +316,7 @@ describe('job plugin test', () => {
         it('returns 404 if job does not exist', () => {
             jobFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -313,26 +324,25 @@ describe('job plugin test', () => {
         it('returns 400 for wrong query format', () => {
             options.url = `/jobs/${id}/builds?sort=blah`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 400);
             });
         });
 
         it('returns 200 for getting builds', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     sort: 'descending',
                     sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
-            })
-        );
+            }));
 
         it('pass in the correct params to getBuilds', () => {
             options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
@@ -349,7 +359,7 @@ describe('job plugin test', () => {
         it('pass in the correct params to getBuilds with all params', () => {
             options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending&sortBy=id`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
@@ -366,7 +376,7 @@ describe('job plugin test', () => {
         it('pass in the correct params when some values are missing', () => {
             options.url = `/jobs/${id}/builds?count=30`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     paginate: {
@@ -403,20 +413,19 @@ describe('job plugin test', () => {
         it('returns 404 if job does not exist', () => {
             jobFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 200 if found last build', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getLatestBuild, {
                     status: undefined
                 });
                 assert.deepEqual(reply.result, testBuild);
-            })
-        );
+            }));
 
         it('return 404 if there is no last build found', () => {
             const status = 'SUCCESS';
@@ -424,7 +433,7 @@ describe('job plugin test', () => {
             job.getLatestBuild.resolves({});
             options.url = `/jobs/${id}/latestBuild?status=${status}`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -452,13 +461,13 @@ describe('job plugin test', () => {
         it('returns 404 if job does not exist', () => {
             jobFactoryMock.get.withArgs(id).resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
             });
         });
 
         it('returns 200 for getting last successful meta', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     status: 'SUCCESS'
@@ -468,13 +477,12 @@ describe('job plugin test', () => {
                         test: 100
                     }
                 });
-            })
-        );
+            }));
 
         it('returns {} if there is no last successful meta', () => {
             job.getBuilds.resolves([]);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     status: 'SUCCESS'
@@ -516,21 +524,20 @@ describe('job plugin test', () => {
         });
 
         it('returns 200 and metrics for job', () =>
-            server.inject(options).then((reply) => {
+            server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(jobMock.getMetrics, {
                     startTime,
                     endTime
                 });
-            })
-        );
+            }));
 
         it('returns 400 if time range is too big', () => {
             startTime = '2018-01-29T01:47:27.863Z';
             endTime = '2019-01-29T01:47:27.863Z';
             options.url = `/jobs/${id}/metrics?startTime=${startTime}&endTime=${endTime}`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.notCalled(jobMock.getMetrics);
                 assert.equal(reply.statusCode, 400);
             });
@@ -539,7 +546,7 @@ describe('job plugin test', () => {
         it('defaults time range if missing', () => {
             options.url = `/jobs/${id}/metrics`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.calledWith(jobMock.getMetrics, {
                     endTime: nowTime,
                     startTime: '2018-09-15T21:10:58.211Z' // 6 months
@@ -549,12 +556,13 @@ describe('job plugin test', () => {
         });
 
         it('returns 400 when option is bad', () => {
-            const errorMsg = 'child "aggregateInterval" fails because ["aggregateInterval" ' +
+            const errorMsg =
+                'child "aggregateInterval" fails because ["aggregateInterval" ' +
                 'must be one of [none, day, week, month, year]]';
 
             options.url = `/jobs/${id}/metrics?aggregateInterval=biweekly`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result.message, errorMsg);
                 assert.equal(reply.statusCode, 400);
             });
@@ -563,7 +571,7 @@ describe('job plugin test', () => {
         it('passes in aggregation option', () => {
             options.url = `/jobs/${id}/metrics?aggregateInterval=week`;
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(jobMock.getMetrics, {
                     aggregateInterval: 'week',
@@ -582,7 +590,7 @@ describe('job plugin test', () => {
 
             jobFactoryMock.get.resolves(null);
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });
@@ -591,7 +599,7 @@ describe('job plugin test', () => {
         it('returns 500 when datastore fails', () => {
             jobFactoryMock.get.rejects(new Error('Failed'));
 
-            return server.inject(options).then((reply) => {
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
             });
         });

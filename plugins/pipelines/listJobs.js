@@ -3,7 +3,12 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.job.get).label('List of jobs');
+const jobListSchema = joi
+    .array()
+    .items(schema.models.job.get)
+    .label('List of jobs');
+const jobNameSchema = joi.reach(schema.models.job.base, 'name');
+const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
 
 module.exports = () => ({
     method: 'GET',
@@ -22,11 +27,12 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const pipelineFactory = request.server.app.pipelineFactory;
+            const { pipelineFactory } = request.server.app;
             const { page, count, jobName } = request.query;
 
-            return pipelineFactory.get(request.params.id)
-                .then((pipeline) => {
+            return pipelineFactory
+                .get(request.params.id)
+                .then(pipeline => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
                     }
@@ -50,13 +56,22 @@ module.exports = () => ({
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {
-            schema: listSchema
+            schema: jobListSchema
         },
         validate: {
-            query: schema.api.pagination.concat(joi.object({
-                archived: joi.boolean().truthy('true').falsy('false').default(false),
-                jobName: joi.reach(schema.models.job.base, 'name')
-            }))
+            params: {
+                id: pipelineIdSchema
+            },
+            query: schema.api.pagination.concat(
+                joi.object({
+                    archived: joi
+                        .boolean()
+                        .truthy('true')
+                        .falsy('false')
+                        .default(false),
+                    jobName: jobNameSchema
+                })
+            )
         }
     }
 });

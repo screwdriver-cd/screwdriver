@@ -23,23 +23,24 @@ module.exports = () => ({
             }
         },
         handler: (request, reply) => {
-            const jobFactory = request.server.app.jobFactory;
+            const { jobFactory } = request.server.app;
             const { status } = request.query || {};
 
-            return jobFactory.get(request.params.id)
-                .then((job) => {
+            return jobFactory
+                .get(request.params.id)
+                .then(job => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }
 
                     return job.getLatestBuild({ status });
                 })
-                .then((build) => {
+                .then(build => {
                     if (Object.keys(build).length === 0) {
                         throw boom.notFound('There is no such latest build');
                     }
 
-                    return reply(build.toJson());
+                    return reply(build.toJsonWithSteps());
                 })
                 .catch(err => reply(boom.boomify(err)));
         },

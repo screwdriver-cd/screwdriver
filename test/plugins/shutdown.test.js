@@ -1,7 +1,7 @@
 'use strict';
 
 const chai = require('chai');
-const assert = chai.assert;
+const { assert } = chai;
 const hapi = require('hapi');
 const mockery = require('mockery');
 const sinon = require('sinon');
@@ -19,7 +19,7 @@ describe('test shutdown plugin', () => {
         });
     });
 
-    beforeEach((done) => {
+    beforeEach(done => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/shutdown');
         /* eslint-enable global-require */
@@ -29,11 +29,16 @@ describe('test shutdown plugin', () => {
             port: 1234
         });
 
-        server.register([{
-            register: plugin
-        }], (err) => {
-            done(err);
-        });
+        server.register(
+            [
+                {
+                    register: plugin
+                }
+            ],
+            err => {
+                done(err);
+            }
+        );
     });
 
     afterEach(() => {
@@ -74,11 +79,15 @@ describe('test graceful shutdown', () => {
             port: 1234
         });
 
-        server.log = () => { };
-        server.root = { stop: () => { stopCalled = true; } };
+        server.log = () => {};
+        server.root = {
+            stop: () => {
+                stopCalled = true;
+            }
+        };
         server.expose = sinon.stub();
 
-        plugin.register(server, options, () => { });
+        plugin.register(server, options, () => {});
 
         process.exit(1);
         process.exit.callsFake(() => {

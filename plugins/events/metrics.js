@@ -2,8 +2,11 @@
 
 const boom = require('boom');
 const joi = require('joi');
+const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
+const eventIdSchema = joi.reach(schema.models.event.base, 'id');
+const eventMetricListSchema = joi.array().items(joi.object());
 
 module.exports = () => ({
     method: 'GET',
@@ -30,8 +33,9 @@ module.exports = () => ({
                 ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
             }
 
-            return factory.get(id)
-                .then((event) => {
+            return factory
+                .get(id)
+                .then(event => {
                     if (!event) {
                         throw boom.notFound('Event does not exist');
                     }
@@ -48,7 +52,13 @@ module.exports = () => ({
                 .then(metrics => reply(metrics))
                 .catch(err => reply(boom.boomify(err)));
         },
+        response: {
+            schema: eventMetricListSchema
+        },
         validate: {
+            params: {
+                id: eventIdSchema
+            },
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate()

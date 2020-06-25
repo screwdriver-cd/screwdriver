@@ -97,7 +97,7 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
-`page`, `count`, `sort`, and `prNum` are optional  
+`page`, `count`, `sort`, and `prNum` are optional
 Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
@@ -106,6 +106,9 @@ Only PR events of specified PR number will be searched when `prNum` is set
 `archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
 
 `GET /pipelines/{id}/jobs?archived={boolean}`
+
+#### Get Pipeline Admin
+`GET /pipelines/{id}/admin`
 
 #### Get all triggers
 
@@ -156,6 +159,30 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 Can search by build status
 `GET /pipelines/{id}/jobs/{jobName}/latestBuild?status=SUCCESS`
+
+#### Deletes cache for the given scope and cacheId for pipeline
+`DELETE /pipelines/${id}/caches?scope={scope}&cacheId={id}`
+
+Path Params:
+* `id` - The id of the pipeline
+
+Query Params:
+
+* `scope` - Scope of the cache supporting values `pipelines|jobs|events`
+* `cacheId` - The id of the cache - pipelinId/jobId/eventId
+
+### Configuration - Reads the ecosystem
+```
+    ecosystem:
+        store: 'https://store.screwdriver.cd'
+        queue: 'https://queue.screwdriver.cd'
+        cache:
+            strategy: 's3'
+```
+Route requests to queue service api if strategy is **disk** and to store api if strategy is **s3**
+
+#### Open pull request
+`POST /pipelines/{id}/openPr`
 
 ### Access to Factory methods
 The server supplies factories to plugins in the form of server settings:

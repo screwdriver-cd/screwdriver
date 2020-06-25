@@ -14,13 +14,7 @@ const removeRoute = require('./remove');
  * @param  {Function}  next            Function to call when done
  */
 exports.register = (server, options, next) => {
-    server.route([
-        createRoute(),
-        getRoute(),
-        listRoute(),
-        updateRoute(),
-        removeRoute()
-    ]);
+    server.route([createRoute(), getRoute(), listRoute(), updateRoute(), removeRoute()]);
 
     next();
 };
