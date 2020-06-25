@@ -41,8 +41,10 @@ function getPipelinePRInfo(pipeline) {
 
             prJobsBuilds.forEach(jobBuilds => {
                 // Check the first element (last build) if pr job failed
-                if (jobBuilds[0].status === 'FAILURE') {
-                    prs.failing += 1;
+                if (jobBuilds[0] !== undefined) {
+                    if (jobBuilds[0].status === 'FAILURE') {
+                        prs.failing += 1;
+                    }
                 }
             });
 
