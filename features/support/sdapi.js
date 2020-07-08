@@ -103,6 +103,8 @@ function findEventBuilds(config) {
         const job = config.jobs.find(j => j.name === config.jobName);
         const build = builds.find(b => b.jobId === job.id);
 
+        builds.map(build => console.log(build.jobId))
+
         if (build) {
             return builds;
         }

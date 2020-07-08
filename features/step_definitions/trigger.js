@@ -35,8 +35,16 @@ Given(
     function step(branch, table) {
         let pipelineVarName = 'pipelineIdA';
 
-        if (branch === 'pipelineB') {
-            pipelineVarName = 'pipelineIdB';
+        switch (branch) {
+            case 'pipelineB':
+                pipelineVarName = 'pipelineIdB';
+                break
+            case 'remote1':
+                pipelineVarName = 'remote1';
+                break
+            case 'remote2':
+                pipelineVarName = 'remote2';
+                break
         }
 
         return this.ensurePipelineExists({
@@ -105,23 +113,68 @@ Then(
 );
 
 Then(
-    /^the "(.*)" build's parentBuildId is that "(.*)" build's buildId$/,
+    /^the "(.*)" build's parentBuildId on branch "(.*)" is that "(.*)" build's buildId$/,
     {
         timeout: TIMEOUT
     },
-    function step(jobName1, jobName2) {
+    function step(jobName1, externalBranchName, jobName2) {
         const buildVarName = jobName2 ? `${jobName2}BuildId` : 'buildId';
+
+        let pipelineId = this.pipelineIdB
+
+        switch (externalBranchName) {
+            case 'remote1':
+                pipelineId = this['remote1'];
+                break
+            case 'remote2':
+                pipelineId = this['remote2'];
+                break
+        }
 
         return sdapi
             .searchForBuild({
                 instance: this.instance,
-                pipelineId: this.pipelineIdB,
+                pipelineId,
                 desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
                 jobName: jobName1,
                 jwt: this.jwt,
                 parentBuildId: this[buildVarName]
             })
-            .then(resultBuild => Assert.ok(resultBuild));
+            .then(resultBuild => {
+                this[`${externalBranchName}-eventId`] = resultBuild.eventId;
+
+                Assert.ok(resultBuild)
+                this.buildId = resultBuild.id;
+            });
+    }
+);
+
+When(
+    /^the "(.*)" job is triggered on branch "(.*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName, branch) {
+        return sdapi
+            .searchForBuild({
+                instance: this.instance,
+                pipelineId: this[branch],
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName,
+                jwt: this.jwt
+            })
+            .then(build => {
+                this.eventId = build.eventId;
+                const job = this[`${branch}-jobs`].find(j => j.name === jobName);
+
+                console.log('\n*** after searchForBuild')
+                console.log('* job', job)
+
+                Assert.equal(build.jobId, job.id);
+
+                this.buildId = build.id;
+            });
     }
 );
 
@@ -155,6 +208,49 @@ Then(
 );
 
 Then(
+    /^the "(.*)" job is triggered from "([^"]*)" on branch "([^"]*)" and "([^"]*)" on branch "([^"]*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(joinJobName, parentJobName, parentBranchName, externalJobName, externalBranchName) {
+        return sdapi
+            .findEventBuilds({
+                instance: this.instance,
+                eventId: this.eventId,
+                jwt: this.jwt,
+                jobs: this[`${parentBranchName}-jobs`],
+                jobName: joinJobName
+            })
+            .then(builds => {
+                this.builds = builds;
+                const joinJob = this[`${parentBranchName}-jobs`].find(j => j.name === joinJobName);
+                const joinBuild = this.builds.find(b => b.jobId === joinJob.id);
+
+                const parentJob = this[`${parentBranchName}-jobs`].find(j => j.name === parentJobName);
+                const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
+
+                Assert.oneOf(parentBuild.id, joinBuild.parentBuildId);
+
+                return sdapi
+                    .findEventBuilds({
+                        instance: this.instance,
+                        eventId: this[`${externalBranchName}-eventId`],
+                        jwt: this.jwt,
+                        jobs: this[`${externalBranchName}-jobs`],
+                        jobName: externalJobName
+                    })
+                    .then(builds => {
+                        const externalJob = this[`${externalBranchName}-jobs`]
+                            .find(j => j.name === externalJobName);
+                        const externalBuild = builds.find(b => b.jobId === externalJob.id);
+
+                        Assert.oneOf(externalBuild.id, joinBuild.parentBuildId);
+                    })
+            })
+    }
+);
+
+Then(
     /^builds for "(.*)" and "(.*)" jobs are part of a single event$/,
     {
         timeout: TIMEOUT
@@ -171,5 +267,33 @@ Then(
                 Assert.deepEqual(result1.eventId, result2.eventId, 'Jobs triggered in separate events.');
             }
         );
+    }
+);
+
+
+Then(
+    /^that "(.*)" build uses the same SHA as the "(.*)" build on branch "(.*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName1, jobName2, branchName) {
+        return Promise.all([
+            sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this[branchName],
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: jobName1,
+                jwt: this.jwt
+            }),
+            sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this[branchName],
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: jobName2,
+                jwt: this.jwt
+            })
+        ]).then(([build1, build2]) => Assert.equal(build1.sha, build2.sha));
     }
 );

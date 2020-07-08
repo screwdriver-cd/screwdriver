@@ -90,6 +90,9 @@ function ensurePipelineExists(config) {
 
             this.jobs = response.body;
 
+            // jobs each branch
+            this[`${branch}-jobs`] = response.body;
+
             if (config.table) {
                 const expectedJobs = config.table.hashes();
 
@@ -151,6 +154,18 @@ function ensurePipelineExists(config) {
                         break;
                     case 'parallel_B2':
                         this.parallel_B2JobId = job.id;
+                        break;
+                    case 'simple':
+                        this.simple = job.id;
+                        break;
+                    case 'parallel':
+                        this.parallel = job.id;
+                        break;
+                    case 'external':
+                        this.external = job.id;
+                        break;
+                    case 'join':
+                        this.join = job.id;
                         break;
                     default:
                         // main job
