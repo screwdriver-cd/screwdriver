@@ -1289,24 +1289,28 @@ exports.register = (server, options, next) => {
 
                         Object.keys(parentBuilds).forEach(pid => {
                             Object.keys(parentBuilds[pid].jobs).forEach(jName => {
-                                let joinJobId;
+                                let joinJob;
 
                                 if (parentBuilds[pid].jobs[jName] === null) {
                                     if (parseInt(pid, 10) === pipelineId) {
-                                        joinJobId = workflowGraph.nodes.find(node => node.name === trimJobName(jName))
-                                            .id;
+                                        joinJob = workflowGraph.nodes.find(node => node.name === trimJobName(jName));
                                     } else {
-                                        joinJobId = workflowGraph.nodes.find(node =>
+                                        joinJob = workflowGraph.nodes.find(node =>
                                             node.name.includes(`sd@${pid}:${jName}`)
-                                        ).id;
+                                        );
                                     }
-                                    const targetBuild = finishedInternalBuilds.find(b => b.jobId === joinJobId);
 
-                                    if (targetBuild) {
-                                        parentBuilds[pid].jobs[jName] = targetBuild.id;
-                                        parentBuilds[pid].eventId = targetBuild.eventId;
+                                    if (!joinJob) {
+                                        logger.warn(`Job ${jName}:${pid} not found in workflowGraph`);
                                     } else {
-                                        logger.warn(`Job ${jName}:${pid} not found in finishedInternalBuilds`);
+                                        const targetBuild = finishedInternalBuilds.find(b => b.jobId === joinJob.id);
+
+                                        if (targetBuild) {
+                                            parentBuilds[pid].jobs[jName] = targetBuild.id;
+                                            parentBuilds[pid].eventId = targetBuild.eventId;
+                                        } else {
+                                            logger.warn(`Job ${jName}:${pid} not found in finishedInternalBuilds`);
+                                        }
                                     }
                                 }
                             });
