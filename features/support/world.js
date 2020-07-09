@@ -167,6 +167,18 @@ function ensurePipelineExists(config) {
                     case 'join':
                         this.join = job.id;
                         break;
+                    case 'trigger':
+                        this.trigger = job.id;
+                        break;
+                    case 'main':
+                        this.main = job.id;
+                        break;
+                    case 'parallel1':
+                        this.parallel1 = job.id;
+                        break;
+                    case 'parallel2':
+                        this.parallel2 = job.id;
+                        break;
                     default:
                         // main job
                         this.jobId = job.id;

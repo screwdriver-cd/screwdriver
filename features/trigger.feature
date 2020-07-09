@@ -77,3 +77,25 @@ Feature: Remote Trigger
         And the "external" build succeeded
         Then the "join" job is triggered from "parallel" on branch "remote1" and "external" on branch "remote2"
         And that "join" build uses the same SHA as the "simple" build on branch "remote1"
+
+    Scenario: Join Job from External Trigger
+        Given an existing pipeline on branch "remoteA" with the workflow jobs:
+            | job       | requires  |
+            | trigger   | ~commit   |
+        And an existing pipeline on branch "remoteB" with the workflow jobs:
+            | job       | requires              |
+            | main      | ~sd@?:trigger         |
+            | parallel1 | main                  |
+            | parallel2 | main                  |
+            | join      | parallel1, parallel2  |
+        When a new commit is pushed to "remoteA" branch
+        And the "trigger" job is triggered on branch "remoteA"
+        And the "trigger" build succeeded
+        And the "main" build's parentBuildId on branch "remoteB" is that "trigger" build's buildId
+        And the "main" build succeeded
+        And the "parallel1" build's parentBuildId on branch "remoteB" is that "main" build's buildId
+        And the "parallel1" build succeeded
+        And the "parallel2" build's parentBuildId on branch "remoteB" is that "main" build's buildId
+        And the "parallel2" build succeeded
+        Then the "join" job is triggered from "parallel1" and "parallel2" on branch "remoteB"
+        And that "join" build uses the same SHA as the "main" build on branch "remoteB"
