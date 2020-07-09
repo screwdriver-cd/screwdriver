@@ -20,31 +20,24 @@ module.exports = () => ({
             scope: ['user', 'pipeline']
         },
         plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
+            'hapi-swagger': { security: [{ token: [] }] }
         },
         handler: (request, reply) => {
             let profile = request.auth.credentials;
-            const username = profile.username;
-            const scope = profile.scope;
-            const token = profile.token;
-            const buildFactory = request.server.app.buildFactory;
-            const jobFactory = request.server.app.jobFactory;
-            const pipelineFactory = request.server.app.pipelineFactory;
+            const { scope, token, username } = profile;
+            const { buildFactory, jobFactory, pipelineFactory } = request.server.app;
 
             // Check Build ID impersonate
             if (request.params.buildId) {
                 if (!scope.includes('admin')) {
-                    return reply(boom.forbidden(
-                        `User ${username} is not an admin and cannot impersonate`
-                    ));
+                    return reply(boom.forbidden(`User ${username} is not an admin and cannot impersonate`));
                 }
 
-                return buildFactory.get(request.params.buildId)
+                return buildFactory
+                    .get(request.params.buildId)
                     .then(build => jobFactory.get(build.jobId))
                     .then(job => pipelineFactory.get(job.pipelineId))
-                    .then((pipeline) => {
+                    .then(pipeline => {
                         profile = request.server.plugins.auth.generateProfile(
                             request.params.buildId,
                             pipeline.scmContext,

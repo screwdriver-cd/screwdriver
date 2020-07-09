@@ -4,7 +4,10 @@ const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const jobIdSchema = joi.reach(schema.models.job.base, 'id');
-const buildListSchema = joi.array().items(schema.models.build.get).label('List of builds');
+const buildListSchema = joi
+    .array()
+    .items(schema.models.build.get)
+    .label('List of builds');
 
 module.exports = () => ({
     method: 'GET',
@@ -24,27 +27,23 @@ module.exports = () => ({
         },
         handler: (request, reply) => {
             const factory = request.server.app.jobFactory;
+            const { sort, sortBy, page, count } = request.query;
 
-            return factory.get(request.params.id)
-                .then((job) => {
+            return factory
+                .get(request.params.id)
+                .then(job => {
                     if (!job) {
                         throw boom.notFound('Job does not exist');
                     }
 
-                    const config = {
-                        sort: request.query.sort,
-                        sortBy: 'createTime'
-                    };
+                    const config = { sort, sortBy: 'createTime' };
 
-                    if (request.query.sortBy) {
-                        config.sortBy = request.query.sortBy;
+                    if (sortBy) {
+                        config.sortBy = sortBy;
                     }
 
-                    if (request.query.page || request.query.count) {
-                        config.paginate = {
-                            page: request.query.page,
-                            count: request.query.count
-                        };
+                    if (page || count) {
+                        config.paginate = { page, count };
                     }
 
                     return job.getBuilds(config);

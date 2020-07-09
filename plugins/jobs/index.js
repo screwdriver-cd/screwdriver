@@ -15,14 +15,7 @@ const metrics = require('./metrics');
  * @param  {Function} next              Function to call when done
  */
 exports.register = (server, options, next) => {
-    server.route([
-        getRoute(),
-        updateRoute(),
-        listBuildsRoute(),
-        lastSuccessfulMeta(),
-        metrics(),
-        latestBuild()
-    ]);
+    server.route([getRoute(), updateRoute(), listBuildsRoute(), lastSuccessfulMeta(), metrics(), latestBuild()]);
 
     next();
 };

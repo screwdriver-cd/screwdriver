@@ -14,8 +14,7 @@ module.exports = () => ({
             const { bannerFactory } = request.server.app;
 
             // list params defaults to empty object in models if undefined
-            return bannerFactory.list({ params: request.query })
-                .then(banners => reply(banners.map(c => c.toJson())));
+            return bannerFactory.list({ params: request.query }).then(banners => reply(banners.map(c => c.toJson())));
         },
         response: {
             schema: listSchema

@@ -33,8 +33,9 @@ module.exports = () => ({
                 ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
             }
 
-            return factory.get(id)
-                .then((event) => {
+            return factory
+                .get(id)
+                .then(event => {
                     if (!event) {
                         throw boom.notFound('Event does not exist');
                     }

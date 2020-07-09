@@ -1,0 +1,44 @@
+[
+    {
+        "jobId": 1,
+        "builds": [
+            {
+                "id": 1,
+                "jobId": 1,
+                "startTime": "2031-01-19T03:15:08.131Z",
+                "endTime": "2031-01-19T03:16:10.131Z",
+                "jobName": "job1",
+                "status": "FAILURE"
+            },
+            {
+                "id": 5,
+                "jobId": 1,
+                "startTime": "2035-01-19T03:15:08.131Z",
+                "endTime": "2036-01-19T03:16:10.131Z",
+                "jobName": "job1",
+                "status": "ABORTED"
+            },
+            {
+                "id": 2,
+                "jobId": 1,
+                "startTime": "2032-01-19T03:15:08.131Z",
+                "endTime": "2032-01-19T03:16:10.131Z",
+                "jobName": "job1",
+                "status": "SUCCESS"
+            }
+        ]
+    },
+    {
+        "jobId": 2,
+        "builds": [
+            {
+                "id": 3,
+                "jobId": 2,
+                "startTime": "2033-01-19T03:15:08.131Z",
+                "endTime": "2033-01-19T03:16:10.131Z",
+                "jobName": "job1",
+                "status": "FAILURE"
+            }
+        ]
+    }
+]

@@ -3,7 +3,10 @@
 const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi.array().items(schema.models.command.get).label('List of commands');
+const listSchema = joi
+    .array()
+    .items(schema.models.command.get)
+    .label('List of commands');
 const nameSchema = joi.reach(schema.models.command.base, 'name');
 const namespaceSchema = joi.reach(schema.models.command.base, 'namespace');
 
@@ -40,13 +43,15 @@ module.exports = () => ({
                 };
             }
 
-            return factory.list(config).then((commands) => {
-                if (commands.length === 0) {
-                    throw boom.notFound('Command does not exist');
-                }
+            return factory
+                .list(config)
+                .then(commands => {
+                    if (commands.length === 0) {
+                        throw boom.notFound('Command does not exist');
+                    }
 
-                reply(commands.map(p => p.toJson()));
-            })
+                    reply(commands.map(p => p.toJson()));
+                })
                 .catch(err => reply(boom.boomify(err)));
         },
         response: {

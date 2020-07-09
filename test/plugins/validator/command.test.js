@@ -1,14 +1,11 @@
 'use strict';
 
-const assert = require('chai').assert;
+const { assert } = require('chai');
 const hapi = require('hapi');
 
 const MISSING_VERSION_INPUT = require('../data/command-validator.missing-version.json');
 const TEST_INPUT = require('../data/command-validator.input.json');
-const TEST_INPUT_DESCRIPTION = [
-    'Command for habitat git',
-    'Executes git commands\n'
-].join('\n');
+const TEST_INPUT_DESCRIPTION = ['Command for habitat git', 'Executes git commands\n'].join('\n');
 
 describe('command validator plugin test', () => {
     let plugin;
@@ -25,9 +22,11 @@ describe('command validator plugin test', () => {
             port: 1234
         });
 
-        return server.register([{
-            register: plugin
-        }]);
+        return server.register([
+            {
+                register: plugin
+            }
+        ]);
     });
 
     it('registers', () => {
@@ -36,19 +35,49 @@ describe('command validator plugin test', () => {
 
     describe('POST /validator/command', () => {
         it('returns OK for a successful command yaml', () =>
-            server.inject({
-                method: 'POST',
-                url: '/validator/command',
-                payload: TEST_INPUT
-            }).then((reply) => {
-                assert.strictEqual(reply.statusCode, 200);
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/validator/command',
+                    payload: TEST_INPUT
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 200);
 
-                const payload = JSON.parse(reply.payload);
+                    const payload = JSON.parse(reply.payload);
 
-                assert.deepEqual(payload, {
-                    errors: [],
-                    command: {
-                        description: TEST_INPUT_DESCRIPTION,
+                    assert.deepEqual(payload, {
+                        errors: [],
+                        command: {
+                            description: TEST_INPUT_DESCRIPTION,
+                            format: 'habitat',
+                            habitat: {
+                                command: 'git',
+                                mode: 'remote',
+                                package: 'core/git/2.14.1'
+                            },
+                            maintainer: 'foo@bar.com',
+                            name: 'bar',
+                            namespace: 'foo',
+                            version: '1.1.2'
+                        }
+                    });
+                }));
+
+        it('returns OK and error yaml for bad yaml', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/validator/command',
+                    payload: MISSING_VERSION_INPUT
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 200);
+
+                    const payload = JSON.parse(reply.payload);
+
+                    assert.deepEqual(payload.command, {
+                        description: 'this is a command',
                         format: 'habitat',
                         habitat: {
                             command: 'git',
@@ -57,78 +86,52 @@ describe('command validator plugin test', () => {
                         },
                         maintainer: 'foo@bar.com',
                         name: 'bar',
-                        namespace: 'foo',
-                        version: '1.1.2'
-                    }
-                });
-            })
-        );
+                        namespace: 'foo'
+                    });
 
-        it('returns OK and error yaml for bad yaml', () =>
-            server.inject({
-                method: 'POST',
-                url: '/validator/command',
-                payload: MISSING_VERSION_INPUT
-            }).then((reply) => {
-                assert.strictEqual(reply.statusCode, 200);
-
-                const payload = JSON.parse(reply.payload);
-
-                assert.deepEqual(payload.command, {
-                    description: 'this is a command',
-                    format: 'habitat',
-                    habitat: {
-                        command: 'git',
-                        mode: 'remote',
-                        package: 'core/git/2.14.1'
-                    },
-                    maintainer: 'foo@bar.com',
-                    name: 'bar',
-                    namespace: 'foo'
-                });
-
-                assert.deepEqual(payload.errors, [
-                    {
-                        context: {
-                            key: 'version',
-                            label: 'version'
-                        },
-                        message: '"version" is required',
-                        path: ['version'],
-                        type: 'any.required'
-                    }
-                ]);
-            })
-        );
+                    assert.deepEqual(payload.errors, [
+                        {
+                            context: {
+                                key: 'version',
+                                label: 'version'
+                            },
+                            message: '"version" is required',
+                            path: ['version'],
+                            type: 'any.required'
+                        }
+                    ]);
+                }));
 
         it('returns BAD REQUEST for command that cannot be parsed', () =>
-            server.inject({
-                method: 'POST',
-                url: '/validator/command',
-                payload: {
-                    yaml: 'error: :'
-                }
-            }).then((reply) => {
-                assert.strictEqual(reply.statusCode, 400);
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/validator/command',
+                    payload: {
+                        yaml: 'error: :'
+                    }
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 400);
 
-                const payload = JSON.parse(reply.payload);
+                    const payload = JSON.parse(reply.payload);
 
-                assert.match(payload.message, /YAMLException/);
-            })
-        );
+                    assert.match(payload.message, /YAMLException/);
+                }));
 
         it('returns BAD REQUEST for invalid API input', () =>
-            server.inject({
-                method: 'POST',
-                url: '/validator/command',
-                payload: { yaml: 1 }
-            }).then((reply) => {
-                assert.strictEqual(reply.statusCode, 400);
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/validator/command',
+                    payload: { yaml: 1 }
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 400);
 
-                const payload = JSON.parse(reply.payload);
+                    const payload = JSON.parse(reply.payload);
 
-                assert.match(payload.message, /"sd-command.yaml contents" must be a string/);
-            })
-        );
+                    assert.match(payload.message, /"sd-command.yaml contents" must be a string/);
+                }));
     });
 });

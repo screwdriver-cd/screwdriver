@@ -14,9 +14,10 @@ module.exports = () => ({
         description: 'Generate crumb',
         notes: 'Should return a crumb',
         tags: ['api', 'crumb', 'auth'],
-        handler: (request, reply) => reply({
-            crumb: request.server.plugins.crumb.generate(request, reply)
-        }),
+        handler: (request, reply) =>
+            reply({
+                crumb: request.server.plugins.crumb.generate(request, reply)
+            }),
         response: {
             schema: schema.api.auth.crumb
         }

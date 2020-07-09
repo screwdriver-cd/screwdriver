@@ -10,6 +10,8 @@ auth:
   # Generate one by running
   # $ openssl rsa -in jwt.pem -pubout -out jwt.pub
   jwtPublicKey: SECRET_JWT_PUBLIC_KEY
+  # The public key for queue service
+  jwtQueueServicePublicKey: SECRET_JWT_QUEUE_SVC_PUBLIC_KEY
   # Environment of the JWTs. For example: 'prod' or 'beta'
   jwtEnvironment: JWT_ENVIRONMENT
   # A password used for encrypting session data.
@@ -135,6 +137,8 @@ executor:
         preferredNodeSelectors:
           __name: K8S_PREFERRED_NODE_SELECTORS
           __format: json
+        # support for kata-containers-as-a-runtimeclass
+        runtimeClass: K8S_RUNTIME_CLASS
       # Launcher container tag to use
       launchVersion: LAUNCH_VERSION
       # Launcher image to use

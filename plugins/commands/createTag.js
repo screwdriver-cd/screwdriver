@@ -31,23 +31,23 @@ module.exports = () => ({
         handler: (request, reply) => {
             const { pipelineFactory, commandFactory, commandTagFactory } = request.server.app;
             const { pipelineId, isPR } = request.auth.credentials;
-            const namespace = request.params.namespace;
-            const name = request.params.name;
+            const { namespace } = request.params;
+            const { name } = request.params;
             const tag = request.params.tagName;
-            let version = request.payload.version;
+            let { version } = request.payload;
             const isVersion = VERSION_REGEX.exec(version);
 
-            return Promise.resolve().then(() => {
-                if (version && isVersion) {
-                    return Promise.all([
-                        pipelineFactory.get(pipelineId),
-                        commandFactory.get({ namespace, name, version }),
-                        commandTagFactory.get({ namespace, name, tag })
-                    ]);
-                }
+            return Promise.resolve()
+                .then(() => {
+                    if (version && isVersion) {
+                        return Promise.all([
+                            pipelineFactory.get(pipelineId),
+                            commandFactory.get({ namespace, name, version }),
+                            commandTagFactory.get({ namespace, name, tag })
+                        ]);
+                    }
 
-                return commandTagFactory.get({ namespace, name, tag: version })
-                    .then((targetCommandTag) => {
+                    return commandTagFactory.get({ namespace, name, tag: version }).then(targetCommandTag => {
                         version = targetCommandTag.version;
 
                         return Promise.all([
@@ -56,28 +56,28 @@ module.exports = () => ({
                             commandTagFactory.get({ namespace, name, tag })
                         ]);
                     });
-            }).then(([pipeline, command, commandTag]) => {
-                // If command doesn't exist, throw error
-                if (!command) {
-                    throw boom.notFound(`Command ${namespace}/${name}@${version} not found`);
-                }
+                })
+                .then(([pipeline, command, commandTag]) => {
+                    // If command doesn't exist, throw error
+                    if (!command) {
+                        throw boom.notFound(`Command ${namespace}/${name}@${version} not found`);
+                    }
 
-                // If command exists, but this build's pipelineId is not the same as command's pipelineId
-                // Then this build does not have permission to tag the command
-                if (pipeline.id !== command.pipelineId || isPR) {
-                    throw boom.forbidden('Not allowed to tag this command');
-                }
+                    // If command exists, but this build's pipelineId is not the same as command's pipelineId
+                    // Then this build does not have permission to tag the command
+                    if (pipeline.id !== command.pipelineId || isPR) {
+                        throw boom.forbidden('Not allowed to tag this command');
+                    }
 
-                // If command tag exists, then the only thing it can update is the version
-                if (commandTag) {
-                    commandTag.version = version;
+                    // If command tag exists, then the only thing it can update is the version
+                    if (commandTag) {
+                        commandTag.version = version;
 
-                    return commandTag.update().then(newTag => reply(newTag.toJson()).code(200));
-                }
+                        return commandTag.update().then(newTag => reply(newTag.toJson()).code(200));
+                    }
 
-                // If command exists, then create the tag
-                return commandTagFactory.create({ namespace, name, tag, version })
-                    .then((newTag) => {
+                    // If command exists, then create the tag
+                    return commandTagFactory.create({ namespace, name, tag, version }).then(newTag => {
                         const location = urlLib.format({
                             host: request.headers.host,
                             port: request.headers.port,
@@ -85,9 +85,12 @@ module.exports = () => ({
                             pathname: `${request.path}/${newTag.id}`
                         });
 
-                        return reply(newTag.toJson()).header('Location', location).code(201);
+                        return reply(newTag.toJson())
+                            .header('Location', location)
+                            .code(201);
                     });
-            }).catch(err => reply(boom.boomify(err)));
+                })
+                .catch(err => reply(boom.boomify(err)));
         },
         validate: {
             params: {
@@ -96,10 +99,7 @@ module.exports = () => ({
                 tagName: joi.reach(baseSchema, 'tag')
             },
             payload: {
-                version: joi.alternatives().try(
-                    exactVersionSchema,
-                    tagSchema
-                )
+                version: joi.alternatives().try(exactVersionSchema, tagSchema)
             }
         }
     }
