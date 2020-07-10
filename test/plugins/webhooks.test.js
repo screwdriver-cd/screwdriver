@@ -35,61 +35,197 @@ describe('webhooks.determineStartFrom', () => {
     let type;
     let targetBranch;
     let pipelineBranch;
+    let releaseName;
+    let tagName;
+    let isReleaseOrTagFiltering;
 
     beforeEach(() => {
         action = 'push';
         type = 'repo';
         targetBranch = 'master';
         pipelineBranch = 'master';
+        releaseName = '';
+        tagName = 'v1';
+        isReleaseOrTagFiltering = false;
     });
 
     it('determines to "~commit" when action is "push"', () => {
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~commit');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~commit'
+        );
     });
 
     it('determines to "~commit:branch" when action is "push" and targetBranch is branch', () => {
         targetBranch = 'branch';
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~commit:branch');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~commit:branch'
+        );
     });
 
     it('determines to "~pr" when type is "pr"', () => {
         type = 'pr';
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~pr');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~pr'
+        );
     });
 
     it('determines to "~pr:branch" when type is "pr" and targetBranch is branch', () => {
         type = 'pr';
         targetBranch = 'branch';
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~pr:branch');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~pr:branch'
+        );
     });
 
     it('determines to "~release" when action is "release"', () => {
         action = 'release';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~release');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~release'
+        );
     });
 
     it('determines to "~release" when action is "release" even targetBranch is branch', () => {
         action = 'release';
         targetBranch = 'branch';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~release');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~release'
+        );
+    });
+
+    it('determines to "~release:releaseName" when filter the release trigger', () => {
+        action = 'release';
+        releaseName = 'releaseName';
+        isReleaseOrTagFiltering = true;
+
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~release:releaseName'
+        );
     });
 
     it('determines to "~tag" when action is "tag"', () => {
         action = 'tag';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~tag');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~tag'
+        );
     });
 
     it('determines to "~tag" when action is "tag" even targetBranch is branch', () => {
         action = 'tag';
         targetBranch = 'branch';
+        isReleaseOrTagFiltering = false;
 
-        assert.equal(determineStartFrom(action, type, targetBranch, pipelineBranch), '~tag');
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~tag'
+        );
+    });
+
+    it('determines to "~tag:tagName" when filter the tag trigger', () => {
+        action = 'tag';
+        tagName = 'tagName';
+        isReleaseOrTagFiltering = true;
+
+        assert.equal(
+            determineStartFrom(
+                action,
+                type,
+                targetBranch,
+                pipelineBranch,
+                releaseName,
+                tagName,
+                isReleaseOrTagFiltering
+            ),
+            '~tag:tagName'
+        );
     });
 });
 
@@ -430,6 +566,7 @@ describe('webhooks plugin test', () => {
                 parsed.type = 'repo';
                 parsed.action = 'tag';
                 parsed.ref = 'v0.0.1';
+                parsed.releaseName = undefined;
                 parsed.branch = 'master';
                 delete parsed.sha;
                 mainJobMock.requires = '~tag';
@@ -482,6 +619,91 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
+                        ref: 'v0.0.1',
+                        releaseName: undefined,
+                        meta: {
+                            sd: {
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+            it('returns 201 on success on a regular expression', () => {
+                const tagWorkflowMock = {
+                    nodes: [{ name: '~tag:/^tag-test-/' }, { name: 'main' }],
+                    edges: [{ src: '~tag:/^tag-test-/', dest: 'main' }]
+                };
+
+                parsed.ref = 'tag-test-1';
+
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.list, {
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~tag:tag-test-1',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined,
+                        ref: 'tag-test-1',
+                        releaseName: undefined,
+                        meta: {
+                            sd: {
+                                tag: {
+                                    name: 'tag-test-1'
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+
+            it('returns 201 on success on tag filteriig', () => {
+                const tagWorkflowMock = {
+                    nodes: [{ name: '~tag:v0.0.1' }, { name: 'main' }],
+                    edges: [{ src: '~tag:v0.0.1', dest: 'main' }]
+                };
+
+                pipelineMock.workflowGraph = tagWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+                    assert.calledWith(pipelineFactoryMock.list, {
+                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~tag:v0.0.1',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined,
+                        ref: 'v0.0.1',
+                        releaseName: undefined,
                         meta: {
                             sd: {
                                 tag: {
@@ -524,6 +746,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
+                        ref: 'v0.0.1',
+                        releaseName: undefined,
                         meta: {
                             sd: {
                                 tag: {
@@ -578,6 +802,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
+                        ref: 'v0.0.1',
+                        releaseName: undefined,
                         meta: {
                             sd: {
                                 tag: {
@@ -647,6 +873,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
+                        releaseName: 'release01',
+                        ref: 'v0.0.1',
                         meta: {
                             sd: {
                                 release: {
@@ -663,26 +891,22 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 201 on success with non target rootDir from release trigger', () => {
+            it('returns 201 on success on a regular expression', () => {
                 const releaseWorkflowMock = {
-                    nodes: [{ name: '~release' }, { name: 'main' }],
-                    edges: [{ src: '~release', dest: 'main' }]
+                    nodes: [{ name: '~release:/^release-test-/' }, { name: 'main' }],
+                    edges: [{ src: '~release:/^release-test-/', dest: 'main' }]
                 };
 
+                parsed.releaseName = 'release-test-1';
+
                 pipelineMock.workflowGraph = releaseWorkflowMock;
-                pipelineMock.scmUri = 'github.com:123456:master:root';
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
-                parsed.changedFiles = changedFiles;
-                pipelineFactoryMock.scm.parseHook.resolves(parsed);
-                eventFactoryMock.create.resolves(eventMock);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                     assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
-                    assert.calledWith(pipelineFactoryMock.list, {
-                        search: { field: 'scmUri', keyword: 'github.com:123456:%' }
-                    });
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pipelineMock.id,
                         type: 'pipeline',
@@ -691,10 +915,57 @@ describe('webhooks plugin test', () => {
                         scmContext,
                         sha,
                         configPipelineSha: latestSha,
-                        startFrom: '~release',
+                        startFrom: '~release:release-test-1',
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles,
+                        changedFiles: undefined,
+                        releaseName: 'release-test-1',
+                        ref: 'v0.0.1',
+                        meta: {
+                            sd: {
+                                release: {
+                                    id: 123456,
+                                    name: 'release-test-1',
+                                    author: 'testuser'
+                                },
+                                tag: {
+                                    name: 'v0.0.1'
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+
+            it('returns 201 on success on release filteriig', () => {
+                const releaseWorkflowMock = {
+                    nodes: [{ name: '~release:release01' }, { name: 'main' }],
+                    edges: [{ src: '~release:release01', dest: 'main' }]
+                };
+
+                pipelineMock.workflowGraph = releaseWorkflowMock;
+                pipelineMock.jobs = Promise.resolve([mainJobMock]);
+                pipelineFactoryMock.list.resolves([pipelineMock]);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
+                    assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId: pipelineMock.id,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~release:release01',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles: undefined,
+                        releaseName: 'release01',
+                        ref: 'v0.0.1',
                         meta: {
                             sd: {
                                 release: {
@@ -755,6 +1026,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'branch',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: undefined,
+                        releaseName: 'release01',
+                        ref: 'v0.0.1',
                         meta: {
                             sd: {
                                 release: {
@@ -785,6 +1058,8 @@ describe('webhooks plugin test', () => {
             beforeEach(() => {
                 parsed.type = 'repo';
                 parsed.action = 'push';
+                parsed.releaseName = undefined;
+                parsed.ref = undefined;
                 reqHeaders['x-github-event'] = 'push';
                 reqHeaders['x-github-delivery'] = parsed.hookId;
                 reqHeaders['content-length'] = '6632';
@@ -820,6 +1095,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                 }));
@@ -887,6 +1164,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.calledWith(eventFactoryMock.create, {
@@ -901,6 +1180,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.calledWith(eventFactoryMock.create, {
@@ -915,6 +1196,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles,
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.neverCalledWith(
@@ -977,6 +1260,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.calledWith(eventFactoryMock.create, {
@@ -991,6 +1276,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.neverCalledWith(
@@ -1034,6 +1321,8 @@ describe('webhooks plugin test', () => {
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
                         changedFiles: ['lib/test.js'],
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.neverCalledWith(
@@ -1075,6 +1364,8 @@ describe('webhooks plugin test', () => {
                         changedFiles,
                         causeMessage: `Merged by ${username}`,
                         skipMessage: 'Skipping due to the commit message: [skip ci]',
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                     assert.equal(reply.statusCode, 201);
@@ -1127,6 +1418,8 @@ describe('webhooks plugin test', () => {
                         changedFiles,
                         causeMessage: 'Merged by batman',
                         skipMessage: 'Skipping due to the commit message: [skip ci]',
+                        releaseName: undefined,
+                        ref: undefined,
                         meta: {}
                     });
                 });

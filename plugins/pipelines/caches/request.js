@@ -42,7 +42,14 @@ async function invoke(request) {
     };
 
     if (cache.strategy === 'disk') {
-        const buildClusters = await request.server.app.buildClusterFactory.list();
+        const clusters = await request.server.app.buildClusterFactory.list();
+
+        if (!clusters || clusters.length === 0) {
+            logger.warn('No buildclusters found');
+        }
+        const buildClusters = clusters.map(cluster => cluster.name);
+
+        logger.info(`Processing invalidation request with buildClusters: ${buildClusters}`);
 
         Object.assign(options, {
             method: 'POST',
@@ -50,7 +57,8 @@ async function invoke(request) {
             body: {
                 scope,
                 id: cacheId,
-                buildClusters
+                buildClusters,
+                pipelineId
             }
         });
     }

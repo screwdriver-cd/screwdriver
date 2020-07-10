@@ -40,36 +40,39 @@ module.exports = () => ({
 
                     return user
                         .unsealToken()
-                        .then(token =>
-                            userFactory.scm.parseUrl({
-                                scmContext,
-                                rootDir,
-                                checkoutUrl,
-                                token
-                            })
-                        )
-                        .then(scmUri => user.getPermissions(scmUri))
-                        .then(permissions => {
-                            if (!permissions.push) {
-                                throw boom.forbidden(`User ${username} does not have push access for this repo`);
-                            }
+                        .then(token => {
+                            return userFactory.scm
+                                .parseUrl({
+                                    scmContext,
+                                    rootDir,
+                                    checkoutUrl,
+                                    token
+                                })
+                                .then(scmUri => user.getPermissions(scmUri))
+                                .then(permissions => {
+                                    if (!permissions.push) {
+                                        throw boom.forbidden(
+                                            `User ${username} does not have push access for this repo`
+                                        );
+                                    }
+                                })
+                                .then(() =>
+                                    userFactory.scm.openPr({
+                                        checkoutUrl,
+                                        files,
+                                        token,
+                                        scmContext,
+                                        title,
+                                        message
+                                    })
+                                );
                         })
-                        .then(token =>
-                            userFactory.scm.openPr({
-                                checkoutUrl,
-                                files,
-                                token,
-                                scmContext,
-                                title,
-                                message
-                            })
-                        )
                         .then(pullRequest => {
                             if (!pullRequest) {
                                 throw boom.notImplemented('openPr not implemented for gitlab');
                             }
 
-                            return reply(pullRequest.data.url).code(201);
+                            return reply({ prUrl: pullRequest.data.html_url }).code(201);
                         });
                 })
                 .catch(err => reply(boom.boomify(err)));
