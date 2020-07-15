@@ -353,8 +353,10 @@ coverage:
     sonarHost: COVERAGE_SONAR_HOST
     # Sonar admin token
     adminToken: COVERAGE_SONAR_ADMIN_TOKEN
-    # crewdriver UI url
+    # Screwdriver UI url
     sdUiUrl: ECOSYSTEM_UI
+    # Enterprise edition (true) or open source edition (false)
+    sonarEnterprise: COVERAGE_SONAR_ENTERPRISE
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
