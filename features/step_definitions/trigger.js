@@ -83,7 +83,6 @@ When(
     }
 );
 
-// When(/^the "(?:fail_A|success_A|parallel_A)" job on branch "([^"]*)" is started$/,
 When(
     /^the "(fail_A|success_A|parallel_A)" job on branch "(?:.*)" is started$/,
     {

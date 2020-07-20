@@ -58,50 +58,42 @@ function ensurePipelineExists(config) {
             Assert.oneOf(response.statusCode, [409, 201]);
 
             if (response.statusCode === 201) {
-                const pipelineId = response.body.id;
+                this.pipelineId = response.body.id;
 
-                this.pipelineId = pipelineId;
-
-                return this.getPipeline(pipelineId);
+                return this.getPipeline(this.pipelineId);
             }
 
             const str = response.body.message;
-            const pipelineId = str.split(': ')[1];
 
-            this.pipelineId = pipelineId;
+            this.pipelineId = str.split(': ')[1];
 
             if (!shouldNotDeletePipeline) {
                 // If pipeline already exists, deletes and re-creates
-                return this.deletePipeline(pipelineId).then(resDel => {
+                return this.deletePipeline(this.pipelineId).then(resDel => {
                     Assert.equal(resDel.statusCode, 204);
 
                     return this.createPipeline(config.repoName, branch).then(resCre => {
                         Assert.equal(resCre.statusCode, 201);
 
-                        const newPipelineId = resCre.body.id;
+                        this.pipelineId = resCre.body.id;
 
-                        this.pipelineId = newPipelineId;
-
-                        return this.getPipeline(newPipelineId);
+                        return this.getPipeline(this.pipelineId);
                     });
                 });
             }
 
-            return this.getPipeline(pipelineId);
+            return this.getPipeline(this.pipelineId);
         })
         .then(response => {
             Assert.equal(response.statusCode, 200);
 
-            const jobs = response.body;
-
-            this.jobs = jobs;
+            this.jobs = response.body;
 
             if (config.table) {
                 const expectedJobs = config.table.hashes();
 
                 for (let i = 0; i < expectedJobs.length; i += 1) {
-                    // TODO: jointest
-                    const job = jobs.find(j => j.name === expectedJobs[i].job);
+                    const job = this.jobs.find(j => j.name === expectedJobs[i].job);
 
                     Assert.ok(job, 'Given job does not exist on pipeline');
 
@@ -124,13 +116,11 @@ function ensurePipelineExists(config) {
             }
 
             if (config.jobName) {
-                // TODO: jointest
-                Assert.ok(jobs.some(j => j.name === config.jobName));
+                Assert.ok(this.jobs.some(j => j.name === config.jobName));
             }
 
-            // TODO: jointest
-            for (let i = 0; i < jobs.length; i += 1) {
-                const job = jobs[i];
+            for (let i = 0; i < this.jobs.length; i += 1) {
+                const job = this.jobs[i];
 
                 switch (job.name) {
                     case 'publish': // for event test
