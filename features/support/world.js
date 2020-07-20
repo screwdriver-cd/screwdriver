@@ -45,7 +45,7 @@ function promiseToWait(timeToWait) {
  */
 function ensurePipelineExists(config) {
     const branch = config.branch || 'master';
-    const pipelineVarName = config.pipelineVarName || 'pipelineId';
+
     const shouldNotDeletePipeline = config.shouldNotDeletePipeline || false;
 
     return this.getJwt(this.apiToken)
@@ -58,46 +58,50 @@ function ensurePipelineExists(config) {
             Assert.oneOf(response.statusCode, [409, 201]);
 
             if (response.statusCode === 201) {
-                this[pipelineVarName] = response.body.id;
+                const pipelineId = response.body.id;
 
-                return this.getPipeline(this[pipelineVarName]);
+                this.pipelineId = pipelineId
+
+                return this.getPipeline(pipelineId);
             }
 
             const str = response.body.message;
-            const id = str.split(': ')[1];
+            const pipelineId = str.split(': ')[1];
 
-            this[pipelineVarName] = id;
+            this.pipelineId = pipelineId;
 
             if (!shouldNotDeletePipeline) {
                 // If pipeline already exists, deletes and re-creates
-                return this.deletePipeline(this[pipelineVarName]).then(resDel => {
+                return this.deletePipeline(pipelineId).then(resDel => {
                     Assert.equal(resDel.statusCode, 204);
 
                     return this.createPipeline(config.repoName, branch).then(resCre => {
                         Assert.equal(resCre.statusCode, 201);
 
-                        this[pipelineVarName] = resCre.body.id;
+                        const newPipelineId = resCre.body.id;
 
-                        return this.getPipeline(this[pipelineVarName]);
+                        this.pipelineId = newPipelineId;
+
+                        return this.getPipeline(newPipelineId);
                     });
                 });
             }
 
-            return this.getPipeline(this[pipelineVarName]);
+            return this.getPipeline(pipelineId);
         })
         .then(response => {
             Assert.equal(response.statusCode, 200);
 
-            this.jobs = response.body;
+            const jobs = response.body;
 
-            // jobs each branch
-            this[`${branch}-jobs`] = response.body;
+            this.jobs = jobs;
 
             if (config.table) {
                 const expectedJobs = config.table.hashes();
 
                 for (let i = 0; i < expectedJobs.length; i += 1) {
-                    const job = this.jobs.find(j => j.name === expectedJobs[i].job);
+                    // TODO: jointest
+                    const job = jobs.find(j => j.name === expectedJobs[i].job);
 
                     Assert.ok(job, 'Given job does not exist on pipeline');
 
@@ -120,11 +124,13 @@ function ensurePipelineExists(config) {
             }
 
             if (config.jobName) {
-                Assert.ok(this.jobs.some(j => j.name === config.jobName));
+                // TODO: jointest
+                Assert.ok(jobs.some(j => j.name === config.jobName));
             }
 
-            for (let i = 0; i < this.jobs.length; i += 1) {
-                const job = response.body[i];
+            // TODO: jointest
+            for (let i = 0; i < jobs.length; i += 1) {
+                const job = jobs[i];
 
                 switch (job.name) {
                     case 'publish': // for event test
