@@ -293,6 +293,20 @@ function mergePullRequest(repoOwner, repoName, prNumber) {
     });
 }
 
+/**
+ * List all deploy keys for a given repository
+ * @method getDeployKeys
+ * @param  {String}     repoOwner          Owner of the repository
+ * @param  {String}     repoName           Name of the repository
+ * @return {Promise}
+ */
+function getDeployKeys(repoOwner, repoName) {
+    return octokit.repos.listDeployKeys({
+        owner: repoOwner,
+        repo: repoName
+    });
+}
+
 module.exports = {
     cleanUpRepository,
     closePullRequest,
@@ -303,5 +317,6 @@ module.exports = {
     createAnnotatedTag,
     createRelease,
     getStatus,
-    mergePullRequest
+    mergePullRequest,
+    getDeployKeys
 };
