@@ -16,28 +16,42 @@ module.exports = config => ({
         description: 'Get all auth contexts',
         notes: 'Get all auth contexts',
         tags: ['api', 'auth', 'context'],
-        handler: (request, reply) => {
+        handler: async (request, reply) => {
             const { scm } = request.server.app.userFactory;
+            const { pipelineFactory } = request.server.app;
             const scmContexts = scm.getScmContexts();
             const contexts = [];
+            const promises = [];
 
             scmContexts.forEach(scmContext => {
-                const context = {
-                    context: scmContext,
-                    displayName: scm.getDisplayName({ scmContext })
-                };
+                const promise = pipelineFactory.scm.checkAutoDeployKeyGeneration({
+                    scmContext
+                });
 
-                contexts.push(context);
+                promises.push(promise);
             });
 
-            if (config.allowGuestAccess) {
-                contexts.push({
-                    context: 'guest',
-                    displayName: 'Guest Access'
-                });
-            }
+            return Promise.all(promises).then(async autoDeployKeyGenerationList => {
+                scmContexts.forEach((scmContext, i) => {
+                    const context = {
+                        context: scmContext,
+                        displayName: scm.getDisplayName({ scmContext }),
+                        autoDeployKeyGeneration: autoDeployKeyGenerationList[i]
+                    };
 
-            return reply(contexts);
+                    contexts.push(context);
+                });
+
+                if (config.allowGuestAccess) {
+                    contexts.push({
+                        context: 'guest',
+                        displayName: 'Guest Access',
+                        autoDeployKeyGeneration: false
+                    });
+                }
+
+                return reply(contexts);
+            });
         },
         response: {
             schema: schema.api.auth.contexts

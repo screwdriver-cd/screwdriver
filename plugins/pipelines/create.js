@@ -24,9 +24,13 @@ module.exports = () => ({
         handler: (request, reply) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
+            const { autoKeysGeneration } = request.payload;
+            const { secretFactory } = request.server.app;
             const { pipelineFactory, userFactory, collectionFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
+            let pipelineToken = '';
+            const depKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
             return (
@@ -35,7 +39,13 @@ module.exports = () => ({
                     .then(user =>
                         user
                             .unsealToken()
+                            .then(token => {
+                                pipelineToken = token;
+
+                                return token;
+                            })
                             .then(token =>
+                                // pipelineToken = token;
                                 pipelineFactory.scm.parseUrl({
                                     scmContext,
                                     rootDir,
@@ -78,7 +88,7 @@ module.exports = () => ({
                                         return pipelineFactory.create(pipelineConfig);
                                     })
                                     // get the default collection for current user
-                                    .then(pipeline =>
+                                    .then(pipeline => {
                                         collectionFactory
                                             .list({
                                                 params: {
@@ -114,6 +124,41 @@ module.exports = () => ({
                                                 return defaultCollection.update();
                                             })
                                             .then(() => {
+                                                if (autoKeysGeneration) {
+                                                    pipelineFactory.scm
+                                                        .addDeployKey({
+                                                            scmContext,
+                                                            checkoutUrl,
+                                                            token: pipelineToken
+                                                        })
+                                                        .then(privateDepKey => {
+                                                            secretFactory
+                                                                .get({
+                                                                    pipelineId: pipeline.id,
+                                                                    name: depKeySecret
+                                                                })
+                                                                .then(secret => {
+                                                                    if (secret) {
+                                                                        throw boom.conflict(
+                                                                            `Secret already exists with the ID: ${secret.id}`
+                                                                        );
+                                                                    }
+
+                                                                    const privateDepKeyB64 = Buffer.from(
+                                                                        privateDepKey
+                                                                    ).toString('base64');
+
+                                                                    return secretFactory.create({
+                                                                        pipelineId: pipeline.id,
+                                                                        name: depKeySecret,
+                                                                        value: privateDepKeyB64,
+                                                                        allowInPR: false
+                                                                    });
+                                                                });
+                                                        });
+                                                }
+                                            })
+                                            .then(() => {
                                                 // TODO: decide to put this outside or inside
                                                 Promise.all([
                                                     pipeline.sync(),
@@ -130,8 +175,8 @@ module.exports = () => ({
                                                         .header('Location', location)
                                                         .code(201);
                                                 });
-                                            })
-                                    )
+                                            });
+                                    })
                             )
                     )
                     // something broke, respond with error
