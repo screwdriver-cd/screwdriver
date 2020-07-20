@@ -137,6 +137,16 @@ const getSecretsMocks = secrets => {
     return decorateJobMock(secrets);
 };
 
+// const getSecretMock = secret => {
+//     const mock = hoek.clone(secret);
+
+//     mock.toJson = sinon.stub().returns(secret);
+//     mock.remove = sinon.stub();
+//     mock.update = sinon.stub();
+
+//     return mock;
+// };
+
 const getUserMock = user => {
     const mock = hoek.clone(user);
 
@@ -166,6 +176,7 @@ describe('pipeline plugin test', () => {
     let tokenFactoryMock;
     let jobFactoryMock;
     let triggerFactoryMock;
+    let secretFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
@@ -191,7 +202,8 @@ describe('pipeline plugin test', () => {
                 getScmContexts: sinon.stub(),
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
-                getCommitSha: sinon.stub().resolves('sha')
+                getCommitSha: sinon.stub().resolves('sha'),
+                addDeployKey: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -218,6 +230,10 @@ describe('pipeline plugin test', () => {
         triggerFactoryMock = {
             getTriggers: sinon.stub()
         };
+        secretFactoryMock = {
+            create: sinon.stub(),
+            get: sinon.stub()
+        };
         bannerMock = {
             register: (s, o, next) => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
@@ -242,6 +258,7 @@ describe('pipeline plugin test', () => {
             userFactory: userFactoryMock,
             collectionFactory: collectionFactoryMock,
             tokenFactory: tokenFactoryMock,
+            secretFactory: secretFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
@@ -1385,6 +1402,8 @@ describe('pipeline plugin test', () => {
         const testId = '123';
         const username = 'd2lam';
         const userId = '34';
+        const privateKey = 'testkey';
+        const privateKeyB64 = Buffer.from(privateKey).toString('base64');
 
         beforeEach(() => {
             options = {
@@ -1415,12 +1434,16 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.create.resolves(pipelineMock);
 
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+            pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
+
+            secretFactoryMock.get.withArgs({ pipelineId: 123, name: 'DEPLOY_KEY' }).resolves(null);
         });
 
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
             const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
 
+            options.payload.autoKeysGeneration = true;
             collectionFactoryMock.list
                 .withArgs({
                     params: {
@@ -1451,6 +1474,13 @@ describe('pipeline plugin test', () => {
                         userId,
                         type: 'default'
                     }
+                });
+                assert.calledWith(secretFactoryMock.get, { pipelineId: 123, name: 'DEPLOY_KEY' });
+                assert.calledWith(secretFactoryMock.create, {
+                    pipelineId: 123,
+                    name: 'DEPLOY_KEY',
+                    value: privateKeyB64,
+                    allowInPR: false
                 });
                 assert.equal(reply.statusCode, 201);
             });

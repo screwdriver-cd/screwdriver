@@ -82,7 +82,8 @@ describe('auth plugin test', () => {
                     provider: 'github',
                     scope: ['admin:repo_hook', 'read:org', 'repo:status']
                 }
-            })
+            }),
+            checkAutoDeployKeyGeneration: sinon.stub().resolves(true)
         };
         userFactoryMock = {
             get: sinon.stub(),
@@ -1049,6 +1050,7 @@ describe('auth plugin test', () => {
             scm.getScmContexts.returns(['github:github.com', 'github:mygithub.com']);
             scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('github');
             scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
+            scm.checkAutoDeployKeyGeneration.resolves(true);
         });
 
         it('lists the contexts', () =>
@@ -1058,13 +1060,14 @@ describe('auth plugin test', () => {
                     url: '/auth/contexts'
                 })
                 .then(reply => {
+                    console.log(reply.result[0]);
                     assert.equal(reply.statusCode, 200, 'Contexts should be available');
                     assert.deepEqual(
                         reply.result,
                         [
-                            { context: 'github:github.com', displayName: 'github' },
-                            { context: 'github:mygithub.com', displayName: 'mygithub' },
-                            { context: 'guest', displayName: 'Guest Access' }
+                            { context: 'github:github.com', displayName: 'github', autoDeployKeyGeneration: true },
+                            { context: 'github:mygithub.com', displayName: 'mygithub', autoDeployKeyGeneration: true },
+                            { context: 'guest', displayName: 'Guest Access', autoDeployKeyGeneration: false }
                         ],
                         'Contexts returns data'
                     );
@@ -1074,6 +1077,8 @@ describe('auth plugin test', () => {
             scm.getScmContexts.returns(['github:github.com']);
             server = new hapi.Server();
             server.app.userFactory = userFactoryMock;
+            server.app.pipelineFactory = pipelineFactoryMock;
+            scm.checkAutoDeployKeyGeneration.resolves(true);
 
             server.connection({
                 port: 1234
@@ -1101,10 +1106,17 @@ describe('auth plugin test', () => {
                             url: '/auth/contexts'
                         })
                         .then(reply => {
+                            console.log(reply.result[0]);
                             assert.equal(reply.statusCode, 200, 'Contexts should be available');
                             assert.deepEqual(
                                 reply.result,
-                                [{ context: 'github:github.com', displayName: 'github' }],
+                                [
+                                    {
+                                        context: 'github:github.com',
+                                        displayName: 'github',
+                                        autoDeployKeyGeneration: true
+                                    }
+                                ],
                                 'Contexts returns data'
                             );
                         })
