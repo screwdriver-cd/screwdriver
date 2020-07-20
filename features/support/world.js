@@ -60,7 +60,7 @@ function ensurePipelineExists(config) {
             if (response.statusCode === 201) {
                 const pipelineId = response.body.id;
 
-                this.pipelineId = pipelineId
+                this.pipelineId = pipelineId;
 
                 return this.getPipeline(pipelineId);
             }

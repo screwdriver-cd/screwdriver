@@ -43,8 +43,8 @@ Given(
 
         this.pipelines[branchName] = {
             pipelineId: this.pipelineId,
-            jobs: this.jobs,
-        }
+            jobs: this.jobs
+        };
     }
 );
 
@@ -63,8 +63,8 @@ Given(
 
         this.pipelines[branchName] = {
             pipelineId: this.pipelineId,
-            jobs: this.jobs,
-        }
+            jobs: this.jobs
+        };
     }
 );
 
@@ -84,30 +84,33 @@ When(
 );
 
 // When(/^the "(?:fail_A|success_A|parallel_A)" job on branch "([^"]*)" is started$/,
-When(/^the "(fail_A|success_A|parallel_A)" job on branch "(?:.*)" is started$/,
-{
-    timeout: TIMEOUT
-}, function step(jobName) {
-    const jobId = jobName ? this[`${jobName}JobId`] : this.jobId;
-    const buildVarName = jobName ? `${jobName}BuildId` : 'buildId';
+When(
+    /^the "(fail_A|success_A|parallel_A)" job on branch "(?:.*)" is started$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
+        const jobId = jobName ? this[`${jobName}JobId`] : this.jobId;
+        const buildVarName = jobName ? `${jobName}BuildId` : 'buildId';
 
-    return request({
-        uri: `${this.instance}/${this.namespace}/builds`,
-        method: 'POST',
-        body: {
-            jobId
-        },
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
-    }).then(resp => {
-        Assert.equal(resp.statusCode, 201);
+        return request({
+            uri: `${this.instance}/${this.namespace}/builds`,
+            method: 'POST',
+            body: {
+                jobId
+            },
+            auth: {
+                bearer: this.jwt
+            },
+            json: true
+        }).then(resp => {
+            Assert.equal(resp.statusCode, 201);
 
-        this[buildVarName] = resp.body.id;
-        this.buildId = resp.body.id;
-    });
-});
+            this[buildVarName] = resp.body.id;
+            this.buildId = resp.body.id;
+        });
+    }
+);
 
 // no-op since the next test handles this case
 Then(
@@ -122,7 +125,7 @@ Then(
         timeout: TIMEOUT
     },
     async function step(jobName1, branchName, jobName2) {
-        const { pipelineId } = this.pipelines[branchName]
+        const { pipelineId } = this.pipelines[branchName];
         const buildVarName = jobName2 ? `${jobName2}BuildId` : 'buildId';
 
         const build = await sdapi.searchForBuild({
@@ -132,7 +135,7 @@ Then(
             jobName: jobName1,
             jwt: this.jwt,
             parentBuildId: this[buildVarName]
-        })
+        });
 
         this.buildId = build.id;
         this.pipelines[branchName].eventId = build.eventId;
@@ -174,14 +177,14 @@ Then(
         timeout: TIMEOUT
     },
     async function step(jobName, branchName) {
-        const { pipelineId } = this.pipelines[branchName]
+        const { pipelineId } = this.pipelines[branchName];
 
         const build = await sdapi.findBuilds({
             instance: this.instance,
             pipelineId,
             jobName,
             jwt: this.jwt
-        })
+        });
 
         let result = build.body || [];
 
@@ -241,19 +244,14 @@ Then(
         const buildVarName1 = `${jobName1}BuildId`;
         const buildVarName2 = `${jobName2}BuildId`;
 
-        return Promise.all([
-            this.waitForBuild(this[buildVarName1]),
-            this.waitForBuild(this[buildVarName2])
-        ]).then(([build1, build2]) => {
-            const result1 = build1.body || {};
-            const result2 = build2.body || {};
+        return Promise.all([this.waitForBuild(this[buildVarName1]), this.waitForBuild(this[buildVarName2])]).then(
+            ([build1, build2]) => {
+                const result1 = build1.body || {};
+                const result2 = build2.body || {};
 
-            Assert.deepEqual(
-                result1.eventId,
-                result2.eventId,
-                "Jobs triggered in separate events."
-            );
-        });
+                Assert.deepEqual(result1.eventId, result2.eventId, 'Jobs triggered in separate events.');
+            }
+        );
     }
 );
 
