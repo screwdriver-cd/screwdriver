@@ -199,7 +199,6 @@ Then(
         timeout: TIMEOUT
     },
     async function step(joinJobName, parentJobName, parentBranchName, externalJobName, externalBranchName) {
-        // parent pipeline
         const parentPipeline = this.pipelines[parentBranchName];
         const parentBuilds = await sdapi.findEventBuilds({
             instance: this.instance,
@@ -217,7 +216,6 @@ Then(
 
         Assert.oneOf(parentBuild.id, joinBuild.parentBuildId);
 
-        // external pipeline
         const externalPipeline = this.pipelines[externalBranchName];
         const externalBuilds = await sdapi.findEventBuilds({
             instance: this.instance,
