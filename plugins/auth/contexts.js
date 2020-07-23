@@ -24,7 +24,7 @@ module.exports = config => ({
             const promises = [];
 
             scmContexts.forEach(scmContext => {
-                const promise = pipelineFactory.scm.checkAutoDeployKeyGeneration({
+                const promise = pipelineFactory.scm.autoDeployKeyGenerationEnabled({
                     scmContext
                 });
 
