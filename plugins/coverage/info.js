@@ -19,10 +19,35 @@ module.exports = config => ({
             }
         },
         handler: (request, reply) => {
-            config.coveragePlugin
-                .getInfo(request.query)
-                .then(reply)
-                .catch(err => reply(boom.boomify(err)));
+            const { jobId, pipelineId, startTime, endTime, jobName, pipelineName, scope } = request.query;
+            const { jobFactory } = request.server.app;
+            const infoConfig = { jobId, pipelineId, startTime, endTime, jobName, pipelineName };
+
+            return Promise.resolve()
+                .then(() => {
+                    if (scope) {
+                        return { 'screwdriver.cd/coverageScope': request.query.scope };
+                    }
+                    if (!scope && jobId) {
+                        return jobFactory.get(jobId).then(job => {
+                            if (!job) {
+                                throw boom.notFound('Job does not exist');
+                            }
+
+                            return job.permutations[0].annotations;
+                        });
+                    }
+
+                    return {};
+                })
+                .then(annotations => {
+                    infoConfig.annotations = annotations;
+
+                    return config.coveragePlugin
+                        .getInfo(infoConfig)
+                        .then(reply)
+                        .catch(err => reply(boom.boomify(err)));
+                });
         }
     }
 });

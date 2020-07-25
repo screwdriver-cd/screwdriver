@@ -27,11 +27,11 @@ server.register({
 ### Routes
 
 #### Returns an access token to talk to coverage server
-`GET /coverage/token`
+`GET /coverage/token?scope=job`
 
 #### Get an object with coverage info
 
-`GET /coverage/info?buildId=1&jobId=123&startTime=2017-10-19T13%3A00%3A00%2B0200&endTime=2017-10-19T15%3A00%3A00%2B0200`
+`GET /coverage/info?pipelineId=1&jobId=123&startTime=2017-10-19T13%3A00%3A00%2B0200&endTime=2017-10-19T15%3A00%3A00%2B0200&jobName=main&pipelineName=d2lam%2Fmytest&scope=pipeline`
 
 Should resolve with something like
 ```javascript
