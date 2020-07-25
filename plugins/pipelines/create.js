@@ -25,10 +25,8 @@ module.exports = () => ({
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { autoKeysGeneration } = request.payload;
-            const { secretFactory } = request.server.app;
-            const { pipelineFactory, userFactory, collectionFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
             let pipelineToken = '';
             const depKeySecret = 'SD_SCM_DEPLOY_KEY';
 
