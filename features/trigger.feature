@@ -28,7 +28,7 @@ Feature: Remote Trigger
 
     Scenario: External builds are not triggered if required build is not successful.
         Given an existing pipeline on branch "pipelineA" with job "fail_A"
-        And an existing pipeline on branch "pipelineB" with the trigger jobs:
+        And an existing pipeline on branch "pipelineB" with the workflow jobs:
             | job       | requires      |
             | fail_B    | ~sd@?:fail_A  |
         When the "fail_A" job on branch "pipelineA" is started
@@ -37,7 +37,7 @@ Feature: Remote Trigger
 
     Scenario: External build is triggered after another build is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
-        And an existing pipeline on branch "pipelineB" with the trigger jobs:
+        And an existing pipeline on branch "pipelineB" with the workflow jobs:
             | job       | requires          |
             | success_B | ~sd@?:success_A   |
         When the "success_A" job on branch "pipelineA" is started
@@ -47,7 +47,7 @@ Feature: Remote Trigger
 
     Scenario: Fan-out. Multiple external builds are triggered in parallel as a result of a build's success.
         Given an existing pipeline on branch "pipelineA" with job "parallel_A"
-        And an existing pipeline on branch "pipelineB" with the trigger jobs:
+        And an existing pipeline on branch "pipelineB" with the workflow jobs:
             | job           | requires          |
             | parallel_B1   | ~sd@?:parallel_A  |
             | parallel_B2   | ~sd@?:parallel_A  |
@@ -60,12 +60,12 @@ Feature: Remote Trigger
         And builds for "parallel_B1" and "parallel_B2" jobs are part of a single event
 
     Scenario: Remote Join
-        Given an existing pipeline on branch "remote1" with the trigger jobs:
+        Given an existing pipeline on branch "remote1" with the workflow jobs:
             | job       | requires                  |
             | simple    | ~commit                   |
             | parallel  | simple                    |
             | join      | parallel, sd@?:external   |
-        And an existing pipeline on branch "remote2" with the trigger jobs:
+        And an existing pipeline on branch "remote2" with the workflow jobs:
             | job       | requires      |
             | external  | ~sd@?:simple  |
         When a new commit is pushed to "remote1" branch with the trigger jobs
@@ -79,10 +79,10 @@ Feature: Remote Trigger
         And that "join" build uses the same SHA as the "simple" build on branch "remote1"
 
     Scenario: Join Job from External Trigger
-        Given an existing pipeline on branch "remoteA" with the trigger jobs:
+        Given an existing pipeline on branch "remoteA" with the workflow jobs:
             | job       | requires  |
             | trigger   | ~commit   |
-        And an existing pipeline on branch "remoteB" with the trigger jobs:
+        And an existing pipeline on branch "remoteB" with the workflow jobs:
             | job       | requires              |
             | main      | ~sd@?:trigger         |
             | parallel1 | main                  |

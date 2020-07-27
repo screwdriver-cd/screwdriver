@@ -29,7 +29,7 @@ Before(
 );
 
 Given(
-    /^an existing pipeline on branch "([^"]*)" with the trigger jobs:$/,
+    /^an existing pipeline on branch "([^"]*)" with the workflow jobs:$/,
     {
         timeout: TIMEOUT
     },
