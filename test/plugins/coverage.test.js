@@ -249,6 +249,30 @@ describe('coverage plugin test', () => {
             });
         });
 
+        it('returns 200 when projectKey is passed in', () => {
+            coveragePlugin.getInfo.resolves(result);
+            options.url = `/coverage/info?startTime=${startTime}&endTime=${endTime}&projectKey=pipeline:${pipelineId}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, result);
+                assert.calledWith(coveragePlugin.getInfo, {
+                    startTime: args.startTime,
+                    endTime: args.endTime,
+                    coverageProjectKey: `pipeline:${pipelineId}`
+                });
+            });
+        });
+
+        it('returns 500 if failed to get info', () => {
+            coveragePlugin.getInfo.rejects(new Error('oops!'));
+            options.url = `/coverage/info?startTime=${startTime}&endTime=${endTime}&projectKey=pipeline:${pipelineId}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
         it('returns 200 when scope is passed in', () => {
             coveragePlugin.getInfo.resolves(result);
             // eslint-disable-next-line
