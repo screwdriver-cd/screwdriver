@@ -87,7 +87,7 @@ module.exports = () => ({
                                     })
                                     // get the default collection for current user
                                     .then(pipeline => {
-                                        collectionFactory
+                                        return collectionFactory
                                             .list({
                                                 params: {
                                                     userId: user.id,
@@ -123,14 +123,14 @@ module.exports = () => ({
                                             })
                                             .then(() => {
                                                 if (autoKeysGeneration) {
-                                                    pipelineFactory.scm
+                                                    return pipelineFactory.scm
                                                         .addDeployKey({
                                                             scmContext,
                                                             checkoutUrl,
                                                             token: pipelineToken
                                                         })
                                                         .then(privateDepKey => {
-                                                            secretFactory
+                                                            return secretFactory
                                                                 .get({
                                                                     pipelineId: pipeline.id,
                                                                     name: depKeySecret
