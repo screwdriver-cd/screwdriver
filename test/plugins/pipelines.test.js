@@ -137,16 +137,6 @@ const getSecretsMocks = secrets => {
     return decorateJobMock(secrets);
 };
 
-// const getSecretMock = secret => {
-//     const mock = hoek.clone(secret);
-
-//     mock.toJson = sinon.stub().returns(secret);
-//     mock.remove = sinon.stub();
-//     mock.update = sinon.stub();
-
-//     return mock;
-// };
-
 const getUserMock = user => {
     const mock = hoek.clone(user);
 
