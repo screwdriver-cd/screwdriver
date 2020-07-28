@@ -22,7 +22,6 @@ Before(
         this.parallel_AJobId = null;
         this.parallel_B1JobId = null;
         this.parallel_B2JobId = null;
-
         this.buildId = null;
         this.pipelines = {};
     }
