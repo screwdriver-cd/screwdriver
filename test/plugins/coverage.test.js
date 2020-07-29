@@ -7,7 +7,7 @@ const mockery = require('mockery');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe('coverage plugin test', () => {
+describe.only('coverage plugin test', () => {
     let plugin;
     let server;
     let coveragePlugin;
@@ -228,7 +228,8 @@ describe('coverage plugin test', () => {
                 endTime: '2017-10-19T15:00:00+0200',
                 jobName: 'main',
                 pipelineName: 'd2lam/mytest',
-                annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
+                annotations: { 'screwdriver.cd/coverageScope': 'pipeline' },
+                prNum: undefined
             };
             options = {
                 // eslint-disable-next-line
@@ -259,7 +260,8 @@ describe('coverage plugin test', () => {
                 assert.calledWith(coveragePlugin.getInfo, {
                     startTime: args.startTime,
                     endTime: args.endTime,
-                    coverageProjectKey: `pipeline:${pipelineId}`
+                    coverageProjectKey: `pipeline:${pipelineId}`,
+                    prNum: undefined
                 });
             });
         });

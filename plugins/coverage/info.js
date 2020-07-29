@@ -19,14 +19,24 @@ module.exports = config => ({
             }
         },
         handler: (request, reply) => {
-            const { jobId, pipelineId, startTime, endTime, jobName, pipelineName, scope, projectKey } = request.query;
+            const {
+                jobId,
+                pipelineId,
+                startTime,
+                endTime,
+                jobName,
+                pipelineName,
+                scope,
+                projectKey,
+                prNum
+            } = request.query;
             const { jobFactory } = request.server.app;
-            const infoConfig = { jobId, pipelineId, startTime, endTime, jobName, pipelineName };
+            const infoConfig = { jobId, pipelineId, startTime, endTime, jobName, pipelineName, prNum };
 
             // Short circuit to get coverage info
             if (projectKey && startTime && endTime) {
                 return config.coveragePlugin
-                    .getInfo({ startTime, endTime, coverageProjectKey: projectKey })
+                    .getInfo({ startTime, endTime, coverageProjectKey: projectKey, prNum })
                     .then(reply)
                     .catch(err => reply(boom.boomify(err)));
             }
