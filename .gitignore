@@ -12,4 +12,3 @@ package-lock.json
 docker-compose.yml
 mw-data
 .vscode
-.envrc
