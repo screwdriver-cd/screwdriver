@@ -45,7 +45,7 @@ function promiseToWait(timeToWait) {
  */
 function ensurePipelineExists(config) {
     const branch = config.branch || 'master';
-
+    const pipelineVarName = config.pipelineVarName || 'pipelineId';
     const shouldNotDeletePipeline = config.shouldNotDeletePipeline || false;
 
     return this.getJwt(this.apiToken)
@@ -58,31 +58,32 @@ function ensurePipelineExists(config) {
             Assert.oneOf(response.statusCode, [409, 201]);
 
             if (response.statusCode === 201) {
-                this.pipelineId = response.body.id;
+                this[pipelineVarName] = response.body.id;
 
-                return this.getPipeline(this.pipelineId);
+                return this.getPipeline(this[pipelineVarName]);
             }
 
             const str = response.body.message;
+            const id = str.split(': ')[1];
 
-            this.pipelineId = str.split(': ')[1];
+            this[pipelineVarName] = id;
 
             if (!shouldNotDeletePipeline) {
                 // If pipeline already exists, deletes and re-creates
-                return this.deletePipeline(this.pipelineId).then(resDel => {
+                return this.deletePipeline(this[pipelineVarName]).then(resDel => {
                     Assert.equal(resDel.statusCode, 204);
 
                     return this.createPipeline(config.repoName, branch).then(resCre => {
                         Assert.equal(resCre.statusCode, 201);
 
-                        this.pipelineId = resCre.body.id;
+                        this[pipelineVarName] = resCre.body.id;
 
-                        return this.getPipeline(this.pipelineId);
+                        return this.getPipeline(this[pipelineVarName]);
                     });
                 });
             }
 
-            return this.getPipeline(this.pipelineId);
+            return this.getPipeline(this[pipelineVarName]);
         })
         .then(response => {
             Assert.equal(response.statusCode, 200);
@@ -120,7 +121,7 @@ function ensurePipelineExists(config) {
             }
 
             for (let i = 0; i < this.jobs.length; i += 1) {
-                const job = this.jobs[i];
+                const job = response.body[i];
 
                 switch (job.name) {
                     case 'publish': // for event test
