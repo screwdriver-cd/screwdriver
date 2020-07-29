@@ -2208,6 +2208,111 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('triggers next next job when next job is external and in child pipeline', () => {
+                    const expectedEventArgs = {
+                        pipelineId: '2',
+                        configPipelineSha: 'sha',
+                        startFrom: '~sd@123:a',
+                        type: 'pipeline',
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentEventId: '8888',
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888',
+                                jobs: { a: 12345 }
+                            }
+                        },
+                        scmContext: 'github:github.com',
+                        username: 'foo',
+                        sha: 'sha'
+                    };
+                    const externalEventMock = {
+                        id: 2,
+                        builds: externalEventBuilds,
+                        getBuilds: sinon.stub().resolves(externalEventBuilds)
+                    };
+
+                    pipelineFactoryMock.get.withArgs(123).resolves(
+                        Object.assign(pipelineMock, {
+                            getJobs: sinon.stub().resolves([
+                                {
+                                    id: 3
+                                }
+                            ]),
+                            configPipelineId: '456',
+                            workflowGraph: {
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'a', id: 1 },
+                                    { name: 'b', id: 2 },
+                                    { name: 'c', id: 3 },
+                                    { name: 'd', id: 4 }
+                                ],
+                                edges: [
+                                    { src: '~pr', dest: 'main' },
+                                    { src: '~commit', dest: 'main' },
+                                    { src: '~sd@123:a', dest: 'a' },
+                                    { src: '~sd@123:a', dest: 'c' }
+                                ]
+                            }
+                        })
+                    );
+                    pipelineFactoryMock.get.withArgs(456).resolves(
+                        Object.assign(pipelineMock, {
+                            getJobs: sinon.stub().resolves([
+                                {
+                                    id: 3
+                                }
+                            ]),
+                            scmUri: 'github.com:6789:branchName',
+                            workflowGraph: {
+                                nodes: [
+                                    { name: '~pr' },
+                                    { name: '~commit' },
+                                    { name: 'a', id: 1 },
+                                    { name: 'b', id: 2 },
+                                    { name: 'c', id: 3 },
+                                    { name: 'd', id: 4 }
+                                ],
+                                edges: [
+                                    { src: '~pr', dest: 'main' },
+                                    { src: '~commit', dest: 'main' },
+                                    { src: '~sd@123:a', dest: 'a' },
+                                    { src: '~sd@123:a', dest: 'c' }
+                                ]
+                            }
+                        })
+                    );
+                    eventFactoryMock.create.resolves(externalEventMock);
+                    buildFactoryMock.get.withArgs(555).resolves({ id: 1234, status: 'SUCCESS' });
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: 'b', id: 2 },
+                            { name: 'c', id: 3 },
+                            { name: 'sd@2:a', id: 4 }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: 'a', dest: 'b' },
+                            { src: 'b', dest: 'c', join: true },
+                            { src: 'a', dest: 'sd@2:a' },
+                            { src: 'sd@2:a', dest: 'c', join: true }
+                        ]
+                    };
+
+                    return newServer.inject(options).then(() => {
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
+                    });
+                });
+
                 it('triggers if current job is not in the join list', () => {
                     eventMock.workflowGraph.edges = [
                         { src: '~pr', dest: 'a' },

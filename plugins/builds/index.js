@@ -270,6 +270,20 @@ async function createEvent(config) {
 
     payload.sha = sha;
 
+    // Set configPipelineSha for child pipeline
+    if (pipeline.configPipelineId) {
+        const configPipeline = await pipelineFactory.get(pipeline.configPipelineId);
+        const configAdmin = await configPipeline.admin;
+        const configToken = await configAdmin.unsealToken();
+        const configScmConfig = {
+            scmContext: configPipeline.scmContext,
+            scmUri: configPipeline.scmUri,
+            token: configToken
+        };
+
+        payload.configPipelineSha = await scm.getCommitSha(configScmConfig);
+    }
+
     return eventFactory.create(payload);
 }
 
