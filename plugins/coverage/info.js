@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const hoek = require('hoek');
 
 module.exports = config => ({
     method: 'GET',
@@ -30,8 +31,7 @@ module.exports = config => ({
                 projectKey,
                 prNum
             } = request.query;
-            const { jobFactory } = request.server.app;
-            const infoConfig = { jobId, pipelineId, startTime, endTime, jobName, pipelineName, prNum };
+            let infoConfig = { jobId, pipelineId, startTime, endTime, jobName, pipelineName, prNum };
 
             // Short circuit to get coverage info
             if (projectKey && startTime && endTime) {
@@ -41,34 +41,14 @@ module.exports = config => ({
                     .catch(err => reply(boom.boomify(err)));
             }
 
-            return (
-                Promise.resolve()
-                    // Get scope
-                    .then(() => {
-                        if (scope) {
-                            return { 'screwdriver.cd/coverageScope': request.query.scope };
-                        }
-                        if (!scope && jobId) {
-                            return jobFactory.get(jobId).then(job => {
-                                if (!job) {
-                                    throw boom.notFound('Job does not exist');
-                                }
+            return request.server.plugins.coverage.getCoverageConfig({ jobId, prNum, scope }).then(coverageConfig => {
+                infoConfig = hoek.merge(infoConfig, coverageConfig, { nullOverride: false });
 
-                                return job.permutations[0].annotations;
-                            });
-                        }
-
-                        return {};
-                    })
-                    .then(annotations => {
-                        infoConfig.annotations = annotations;
-
-                        return config.coveragePlugin
-                            .getInfo(infoConfig)
-                            .then(reply)
-                            .catch(err => reply(boom.boomify(err)));
-                    })
-            );
+                return config.coveragePlugin
+                    .getInfo(infoConfig)
+                    .then(reply)
+                    .catch(err => reply(boom.boomify(err)));
+            });
         }
     }
 });

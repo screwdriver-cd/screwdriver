@@ -7,7 +7,7 @@ const mockery = require('mockery');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe.only('coverage plugin test', () => {
+describe('coverage plugin test', () => {
     let plugin;
     let server;
     let coveragePlugin;
@@ -88,7 +88,8 @@ describe.only('coverage plugin test', () => {
                         annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
                     }
                 ],
-                name: 'main'
+                name: 'main',
+                isPR: sinon.stub().returns(false)
             });
         });
 
@@ -109,7 +110,9 @@ describe.only('coverage plugin test', () => {
                         buildCredentials: {
                             jobId: 123,
                             scope: ['build']
-                        }
+                        },
+                        jobId: 123,
+                        prNum: undefined
                     });
                 });
         });
@@ -117,7 +120,8 @@ describe.only('coverage plugin test', () => {
         it('returns 200 with default annotations', () => {
             jobFactoryMock.get.resolves({
                 permutations: [{}],
-                name: 'main'
+                name: 'main',
+                isPR: sinon.stub().returns(false)
             });
 
             return server
@@ -136,7 +140,9 @@ describe.only('coverage plugin test', () => {
                         buildCredentials: {
                             jobId: 123,
                             scope: ['build']
-                        }
+                        },
+                        jobId: 123,
+                        prNum: undefined
                     });
                 });
         });
@@ -160,7 +166,76 @@ describe.only('coverage plugin test', () => {
                         buildCredentials: {
                             jobId: 123,
                             scope: ['build']
-                        }
+                        },
+                        jobId: 123,
+                        prNum: undefined
+                    });
+                });
+        });
+
+        it('returns 200 with coverage scope query param for PR', () => {
+            jobFactoryMock.get.resolves({
+                permutations: [{}],
+                name: 'PR-234:main',
+                prParentJobId: '123',
+                isPR: sinon.stub().returns(true)
+            });
+
+            return server
+                .inject({
+                    url: '/coverage/token?scope=job',
+                    credentials: {
+                        jobId: 555,
+                        scope: ['build']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, 'faketoken');
+                    assert.calledWith(coveragePlugin.getAccessToken, {
+                        annotations: {
+                            'screwdriver.cd/coverageScope': 'job'
+                        },
+                        buildCredentials: {
+                            jobId: 555,
+                            scope: ['build']
+                        },
+                        jobId: '123',
+                        jobName: 'main',
+                        prNum: '234'
+                    });
+                });
+        });
+
+        it('returns 200 with coverage scope pipeline for PR', () => {
+            jobFactoryMock.get.resolves({
+                permutations: [{ annotations: { 'screwdriver.cd/coverageScope': 'pipeline' } }],
+                name: 'PR-234:main',
+                prParentJobId: '123',
+                isPR: sinon.stub().returns(true)
+            });
+
+            return server
+                .inject({
+                    url: '/coverage/token',
+                    credentials: {
+                        jobId: 555,
+                        scope: ['build']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, 'faketoken');
+                    assert.calledWith(coveragePlugin.getAccessToken, {
+                        annotations: {
+                            'screwdriver.cd/coverageScope': 'pipeline'
+                        },
+                        buildCredentials: {
+                            jobId: 555,
+                            scope: ['build']
+                        },
+                        jobId: 555,
+                        prNum: '234'
                     });
                 });
         });
@@ -202,6 +277,7 @@ describe.only('coverage plugin test', () => {
         const pipelineId = 1;
         const jobId = 123;
         const jobName = 'main';
+        const prNum = 555;
         const pipelineName = 'd2lam/mytest';
         const startTime = '2017-10-19T13%3A00%3A00%2B0200';
         const endTime = '2017-10-19T15%3A00%3A00%2B0200';
@@ -219,7 +295,8 @@ describe.only('coverage plugin test', () => {
                         annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
                     }
                 ],
-                name: 'main'
+                name: 'main',
+                isPR: sinon.stub().returns(false)
             });
             args = {
                 pipelineId: '1',
@@ -288,7 +365,60 @@ describe.only('coverage plugin test', () => {
             });
         });
 
+        it('returns 200 when job scope and PR', () => {
+            jobFactoryMock.get.resolves({
+                permutations: [
+                    {
+                        annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
+                    }
+                ],
+                name: 'PR-555:main',
+                isPR: sinon.stub().returns(true),
+                prParentJobId: 123
+            });
+            coveragePlugin.getInfo.resolves(result);
+            // eslint-disable-next-line
+            options.url = `/coverage/info?pipelineId=${pipelineId}&jobId=456&startTime=${startTime}&endTime=${endTime}&jobName=${jobName}&pipelineName=${pipelineName}&scope=job&prNum=${prNum}`;
+            args.annotations['screwdriver.cd/coverageScope'] = 'job';
+            args.prNum = '555';
+            args.jobId = 123;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, result);
+                assert.calledWith(coveragePlugin.getInfo, args);
+            });
+        });
+
+        it('returns 200 when pipeline scope and PR', () => {
+            jobFactoryMock.get.resolves({
+                permutations: [
+                    {
+                        annotations: { 'screwdriver.cd/coverageScope': 'pipeline' }
+                    }
+                ],
+                name: 'PR-555:main',
+                isPR: sinon.stub().returns(true),
+                prParentJobId: 123
+            });
+            coveragePlugin.getInfo.resolves(result);
+            // eslint-disable-next-line
+            options.url = `/coverage/info?pipelineId=${pipelineId}&jobId=${jobId}&startTime=${startTime}&endTime=${endTime}&jobName=${jobName}&pipelineName=${pipelineName}&scope=pipeline&prNum=${prNum}`;
+            args.prNum = '555';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, result);
+                assert.calledWith(coveragePlugin.getInfo, args);
+            });
+        });
+
         it('returns 200 with default annotations', () => {
+            jobFactoryMock.get.resolves({
+                permutations: [{}],
+                name: 'main',
+                isPR: sinon.stub().returns(false)
+            });
             coveragePlugin.getInfo.resolves(result);
             // eslint-disable-next-line
             options.url = `/coverage/info?pipelineId=${pipelineId}&startTime=${startTime}&endTime=${endTime}&jobName=${jobName}&pipelineName=${pipelineName}`;

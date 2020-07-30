@@ -18,32 +18,21 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, reply) => {
             const buildCredentials = request.auth.credentials;
-            const { jobFactory } = request.server.app;
             const { jobId } = buildCredentials;
-            const { scope } = request.query;
+            const { scope, prNum } = request.query;
+            let tokenConfig;
 
-            return Promise.resolve()
-                .then(() => {
-                    if (scope) {
-                        return { 'screwdriver.cd/coverageScope': scope };
-                    }
+            return request.server.plugins.coverage.getCoverageConfig({ jobId, prNum, scope }).then(coverageConfig => {
+                tokenConfig = coverageConfig;
+                tokenConfig.buildCredentials = buildCredentials;
 
-                    return jobFactory.get(jobId).then(job => {
-                        if (!job) {
-                            throw boom.notFound('Job does not exist');
-                        }
-
-                        return job.permutations[0].annotations || {};
-                    });
-                })
-                .then(annotations => {
-                    return config.coveragePlugin
-                        .getAccessToken({ buildCredentials, annotations })
-                        .then(reply)
-                        .catch(err => reply(boom.boomify(err)));
-                });
+                return config.coveragePlugin
+                    .getAccessToken(tokenConfig)
+                    .then(reply)
+                    .catch(err => reply(boom.boomify(err)));
+            });
         }
     }
 });
