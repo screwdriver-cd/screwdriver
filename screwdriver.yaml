@@ -10,7 +10,7 @@ jobs:
             - ~pr
             - ~commit
             - ~sd@73:publish #artifact-bookend https://cd.screwdriver.cd/pipelines/73
-            - ~sd@9:publish  #models https://cd.screwdriver.cd/pipelines/9         
+            - ~sd@9:publish  #models https://cd.screwdriver.cd/pipelines/9
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install: npm install
@@ -51,7 +51,7 @@ jobs:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
-            - test: npm install && npm run functional
+            - test: npm install && npm run functional-beta
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
