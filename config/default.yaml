@@ -41,6 +41,9 @@ auth:
   # SameSite Cookie Option
   sameSite: Strict
 
+shutdown:
+  terminationGracePeriod: TERMINATION_GRACE_PERIOD
+
 httpd:
   # Port to listen on
   port: 80

@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const createRoute = require('./create');
 const getRoute = require('./get');
 const listBuildsRoute = require('./listBuilds');

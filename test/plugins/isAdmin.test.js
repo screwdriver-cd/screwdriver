@@ -2,7 +2,7 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const hoek = require('hoek');
 const mockery = require('mockery');
 const pipelineMock = require('./data/pipeline.json');

@@ -1,6 +1,6 @@
 'use strict';
 
-const joi = require('joi');
+const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
 const workflowParser = require('screwdriver-workflow-parser');
 const tinytim = require('tinytim');

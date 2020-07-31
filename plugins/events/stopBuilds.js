@@ -1,8 +1,8 @@
 'use strict';
 
-const boom = require('boom');
-const hoek = require('hoek');
-const joi = require('joi');
+const boom = require('@hapi/boom');
+const hoek = require('@hapi/hoek');
+const joi = require('@hapi/joi');
 const urlLib = require('url');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;

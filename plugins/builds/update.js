@@ -1,8 +1,8 @@
 'use strict';
 
-const boom = require('boom');
-const hoek = require('hoek');
-const joi = require('joi');
+const boom = require('@hapi/boom');
+const hoek = require('@hapi/hoek');
+const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
 const idSchema = joi.reach(schema.models.job.base, 'id');

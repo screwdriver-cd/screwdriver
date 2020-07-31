@@ -2,10 +2,10 @@
 
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const validator = require('screwdriver-command-validator');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const urlLib = require('url');
 const req = require('request');
 const VERSION_REGEX = schema.config.regex.VERSION;

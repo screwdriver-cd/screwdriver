@@ -1,7 +1,7 @@
 'use strict';
 
 const { assert } = require('chai');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 
 const MISSING_VERSION_INPUT = require('../data/template-validator.missing-version.json');
 const TEST_INPUT = require('../data/template-validator.input.json');

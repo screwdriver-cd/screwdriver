@@ -3,7 +3,7 @@
 const chai = require('chai');
 const { assert } = chai;
 const { expect } = chai;
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const sinon = require('sinon');
 const fs = require('fs');
 const hoek = require('hoek');

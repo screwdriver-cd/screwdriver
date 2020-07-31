@@ -5,7 +5,7 @@
 /* eslint-disable import/no-dynamic-require */
 const config = require('config');
 const server = require('../');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const { Bookend } = require('screwdriver-build-bookend');
 const logger = require('screwdriver-logger');
 
@@ -14,6 +14,8 @@ const authConfig = config.get('auth');
 
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
+
+const shutdownConfig = config.get('shutdown');
 
 // Setup Webhooks
 const webhooksConfig = config.get('webhooks');
@@ -194,6 +196,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled)
         auth: authConfig,
         webhooks: webhooksConfig,
         notifications: notificationConfig,
+        shutdown: shutdownConfig,
         coverage,
         ecosystem,
         commandFactory,

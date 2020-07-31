@@ -3,7 +3,7 @@
 
 ## Usage
 ```javascript
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const server = new Hapi.Server();
 const buildsPlugin = require('./');
 

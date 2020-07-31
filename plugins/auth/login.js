@@ -1,7 +1,7 @@
 'use strict';
 
-const boom = require('boom');
-const uuid = require('uuid/v4');
+const boom = require('@hapi/boom');
+const uuid = require('uuid').v4();
 
 /**
  * Add a guest route for those who want to be in read-only mode

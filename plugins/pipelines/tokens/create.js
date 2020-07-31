@@ -1,7 +1,7 @@
 'use strict';
 
-const joi = require('joi');
-const boom = require('boom');
+const joi = require('@hapi/joi');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');

@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const hoek = require('hoek');
 

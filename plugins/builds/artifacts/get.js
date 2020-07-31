@@ -1,7 +1,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
-const joi = require('joi');
+const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
 const uuid = require('uuid/v4');
 

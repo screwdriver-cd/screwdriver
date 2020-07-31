@@ -1,6 +1,6 @@
 'use strict';
 
-const good = require('good');
+const good = require('@hapi/good');
 const suppressAPITokens = require('./tokens/filter');
 
 module.exports = {

@@ -1,7 +1,7 @@
 'use strict';
 
-const boom = require('boom');
-const joi = require('joi');
+const boom = require('@hapi/boom');
+const joi = require('@hapi/joi');
 const stringSchema = joi.string().regex(/^[0-9]+$/);
 const jobIdsSchema = joi
     .alternatives()

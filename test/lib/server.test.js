@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const mockery = require('mockery');
 const sinon = require('sinon');
 

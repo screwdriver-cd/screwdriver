@@ -13,12 +13,11 @@ const updateRoute = require('./update');
  * @param  {Object}   options               Configuration
  * @param  {Function} next                  Function to call when done
  */
-exports.register = (server, options, next) => {
-    server.route([createRoute(), getRoute(), listRoute(), removeRoute(), updateRoute()]);
-
-    next();
+const buildClustersPlugin = {
+    name: 'buildClusters',
+    async register(server, options) {
+        server.route([createRoute(), getRoute(), listRoute(), removeRoute(), updateRoute()]);
+    }
 };
 
-exports.register.attributes = {
-    name: 'buildClusters'
-};
+module.exports = buildClustersPlugin

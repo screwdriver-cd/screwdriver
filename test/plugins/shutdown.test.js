@@ -2,7 +2,7 @@
 
 const chai = require('chai');
 const { assert } = chai;
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const sinon = require('sinon');
 
