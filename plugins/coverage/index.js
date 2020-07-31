@@ -4,6 +4,7 @@ const boom = require('boom');
 const infoRoute = require('./info');
 const tokenRoute = require('./token');
 const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
+const PR_REGEX = /^PR-(\d+)(?::([\w-]+))?$/;
 
 /**
  * Coverage API Plugin
@@ -33,7 +34,6 @@ exports.register = (server, options, next) => {
             annotations: scope ? { [COVERAGE_SCOPE_ANNOTATION]: scope || null } : {},
             prNum
         };
-        const prRegex = /^PR-(\d+)(?::([\w-]+))?$/;
 
         if (jobId) {
             // Get job, scope, and PR info
@@ -51,15 +51,15 @@ exports.register = (server, options, next) => {
 
                 // If scope is job and job is pull request, set jobId and jobName
                 if (coverageConfig.annotations[COVERAGE_SCOPE_ANNOTATION] === 'job' && isPR) {
-                    const prNameMatch = job.name.match(prRegex);
+                    const prNameMatch = job.name.match(PR_REGEX);
 
-                    coverageConfig.jobId = job.prParentJobId;
+                    coverageConfig.prParentJobId = job.prParentJobId;
                     coverageConfig.jobName = prNameMatch && prNameMatch.length > 1 ? prNameMatch[2] : job.name;
                     coverageConfig.prNum = prNameMatch && prNameMatch.length > 1 ? prNameMatch[1] : prNum;
                 }
 
                 if (coverageConfig.annotations[COVERAGE_SCOPE_ANNOTATION] === 'pipeline' && isPR) {
-                    const prNameMatch = job.name.match(prRegex);
+                    const prNameMatch = job.name.match(PR_REGEX);
 
                     coverageConfig.prNum = prNameMatch && prNameMatch.length > 1 ? prNameMatch[1] : prNum;
                 }

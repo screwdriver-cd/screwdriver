@@ -81,7 +81,16 @@ describe('coverage plugin test', () => {
     });
 
     describe('GET /coverage/token', () => {
+        let options;
+
         beforeEach(() => {
+            options = {
+                url: '/coverage/token',
+                credentials: {
+                    jobId: 123,
+                    scope: ['build']
+                }
+            };
             jobFactoryMock.get.resolves({
                 permutations: [
                     {
@@ -94,27 +103,17 @@ describe('coverage plugin test', () => {
         });
 
         it('returns 200', () => {
-            return server
-                .inject({
-                    url: '/coverage/token',
-                    credentials: {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(coveragePlugin.getAccessToken, {
+                    annotations: { 'screwdriver.cd/coverageScope': 'pipeline' },
+                    buildCredentials: {
                         jobId: 123,
                         scope: ['build']
                     }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, 'faketoken');
-                    assert.calledWith(coveragePlugin.getAccessToken, {
-                        annotations: { 'screwdriver.cd/coverageScope': 'pipeline' },
-                        buildCredentials: {
-                            jobId: 123,
-                            scope: ['build']
-                        },
-                        jobId: 123,
-                        prNum: undefined
-                    });
                 });
+            });
         });
 
         it('returns 200 with default annotations', () => {
@@ -124,53 +123,35 @@ describe('coverage plugin test', () => {
                 isPR: sinon.stub().returns(false)
             });
 
-            return server
-                .inject({
-                    url: '/coverage/token',
-                    credentials: {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(coveragePlugin.getAccessToken, {
+                    annotations: {},
+                    buildCredentials: {
                         jobId: 123,
                         scope: ['build']
                     }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, 'faketoken');
-                    assert.calledWith(coveragePlugin.getAccessToken, {
-                        annotations: {},
-                        buildCredentials: {
-                            jobId: 123,
-                            scope: ['build']
-                        },
-                        jobId: 123,
-                        prNum: undefined
-                    });
                 });
+            });
         });
 
         it('returns 200 with coverage scope query param', () => {
-            return server
-                .inject({
-                    url: '/coverage/token?scope=job',
-                    credentials: {
+            options.url = '/coverage/token?scope=job';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(coveragePlugin.getAccessToken, {
+                    annotations: {
+                        'screwdriver.cd/coverageScope': 'job'
+                    },
+                    buildCredentials: {
                         jobId: 123,
                         scope: ['build']
                     }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, 'faketoken');
-                    assert.calledWith(coveragePlugin.getAccessToken, {
-                        annotations: {
-                            'screwdriver.cd/coverageScope': 'job'
-                        },
-                        buildCredentials: {
-                            jobId: 123,
-                            scope: ['build']
-                        },
-                        jobId: 123,
-                        prNum: undefined
-                    });
                 });
+            });
         });
 
         it('returns 200 with coverage scope query param for PR', () => {
@@ -180,31 +161,24 @@ describe('coverage plugin test', () => {
                 prParentJobId: '123',
                 isPR: sinon.stub().returns(true)
             });
+            options.url = '/coverage/token?scope=job';
+            options.credentials.jobId = 555;
+            options.credentials.prParentJobId = 123;
 
-            return server
-                .inject({
-                    url: '/coverage/token?scope=job',
-                    credentials: {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(coveragePlugin.getAccessToken, {
+                    annotations: {
+                        'screwdriver.cd/coverageScope': 'job'
+                    },
+                    buildCredentials: {
                         jobId: 555,
-                        scope: ['build']
+                        scope: ['build'],
+                        prParentJobId: 123
                     }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, 'faketoken');
-                    assert.calledWith(coveragePlugin.getAccessToken, {
-                        annotations: {
-                            'screwdriver.cd/coverageScope': 'job'
-                        },
-                        buildCredentials: {
-                            jobId: 555,
-                            scope: ['build']
-                        },
-                        jobId: '123',
-                        jobName: 'main',
-                        prNum: '234'
-                    });
                 });
+            });
         });
 
         it('returns 200 with coverage scope pipeline for PR', () => {
@@ -233,9 +207,7 @@ describe('coverage plugin test', () => {
                         buildCredentials: {
                             jobId: 555,
                             scope: ['build']
-                        },
-                        jobId: 555,
-                        prNum: '234'
+                        }
                     });
                 });
         });
@@ -243,33 +215,26 @@ describe('coverage plugin test', () => {
         it('returns 404 when job does not exist', () => {
             jobFactoryMock.get.resolves(null);
 
-            return server
-                .inject({
-                    url: '/coverage/token',
-                    credentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
         });
 
         it('returns 500 if failed to get access token', () => {
             coveragePlugin.getAccessToken.rejects(new Error('oops!'));
 
-            return server
-                .inject({
-                    url: '/coverage/token',
-                    credentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 if failed to get access token with scope', () => {
+            options.url = '/coverage/token?scope=job';
+            coveragePlugin.getAccessToken.rejects(new Error('oops!'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
         });
     });
 
@@ -381,7 +346,8 @@ describe('coverage plugin test', () => {
             options.url = `/coverage/info?pipelineId=${pipelineId}&jobId=456&startTime=${startTime}&endTime=${endTime}&jobName=${jobName}&pipelineName=${pipelineName}&scope=job&prNum=${prNum}`;
             args.annotations['screwdriver.cd/coverageScope'] = 'job';
             args.prNum = '555';
-            args.jobId = 123;
+            args.jobId = '456';
+            args.prParentJobId = 123;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);

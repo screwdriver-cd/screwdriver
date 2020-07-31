@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 module.exports = config => ({
     method: 'GET',
@@ -19,20 +20,40 @@ module.exports = config => ({
             }
         },
         handler: async (request, reply) => {
+            const { jobFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId } = buildCredentials;
-            const { scope, prNum } = request.query;
-            let tokenConfig;
+            const { scope } = request.query;
+            const tokenConfig = {
+                buildCredentials,
+                annotations: scope ? { [COVERAGE_SCOPE_ANNOTATION]: scope || null } : {}
+            };
 
-            return request.server.plugins.coverage.getCoverageConfig({ jobId, prNum, scope }).then(coverageConfig => {
-                tokenConfig = coverageConfig;
-                tokenConfig.buildCredentials = buildCredentials;
+            if (jobId && !scope) {
+                // Get job scope
+                return jobFactory.get(jobId).then(job => {
+                    if (!job) {
+                        throw boom.notFound(`Job ${jobId} does not exist`);
+                    }
 
-                return config.coveragePlugin
-                    .getAccessToken(tokenConfig)
-                    .then(reply)
-                    .catch(err => reply(boom.boomify(err)));
-            });
+                    if (!scope) {
+                        tokenConfig.annotations =
+                            job.permutations[0] && job.permutations[0].annotations
+                                ? job.permutations[0].annotations
+                                : {};
+                    }
+
+                    return config.coveragePlugin
+                        .getAccessToken(tokenConfig)
+                        .then(reply)
+                        .catch(err => reply(boom.boomify(err)));
+                });
+            }
+
+            return config.coveragePlugin
+                .getAccessToken(tokenConfig)
+                .then(reply)
+                .catch(err => reply(boom.boomify(err)));
         }
     }
 });
