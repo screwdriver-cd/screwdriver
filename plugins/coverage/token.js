@@ -26,22 +26,20 @@ module.exports = config => ({
             const { scope } = request.query;
             const tokenConfig = {
                 buildCredentials,
-                annotations: scope ? { [COVERAGE_SCOPE_ANNOTATION]: scope || null } : {}
+                scope
             };
 
+            // Get job scope
             if (jobId && !scope) {
-                // Get job scope
                 return jobFactory.get(jobId).then(job => {
                     if (!job) {
                         throw boom.notFound(`Job ${jobId} does not exist`);
                     }
 
-                    if (!scope) {
-                        tokenConfig.annotations =
-                            job.permutations[0] && job.permutations[0].annotations
-                                ? job.permutations[0].annotations
-                                : {};
-                    }
+                    tokenConfig.scope =
+                        job.permutations[0] && job.permutations[0].annotations
+                            ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
+                            : null;
 
                     return config.coveragePlugin
                         .getAccessToken(tokenConfig)
