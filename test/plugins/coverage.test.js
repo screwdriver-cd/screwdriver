@@ -116,6 +116,24 @@ describe.only('coverage plugin test', () => {
             });
         });
 
+        it('returns 200 with projectKey and username', () => {
+            options.url = '/coverage/token?projectKey=job:123&username=user-job-123&scope=job';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(coveragePlugin.getAccessToken, {
+                    scope: 'job',
+                    buildCredentials: {
+                        jobId: 123,
+                        scope: ['build']
+                    },
+                    projectKey: 'job:123',
+                    username: 'user-job-123'
+                });
+            });
+        });
+
         it('returns 200 with default scope', () => {
             jobFactoryMock.get.resolves({
                 permutations: [{}],

@@ -23,11 +23,19 @@ module.exports = config => ({
             const { jobFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId } = buildCredentials;
-            const { scope } = request.query;
+            const { scope, projectKey, username } = request.query;
             const tokenConfig = {
                 buildCredentials,
                 scope
             };
+
+            if (projectKey) {
+                tokenConfig.projectKey = projectKey;
+            }
+
+            if (username) {
+                tokenConfig.username = username;
+            }
 
             // Get job scope
             if (jobId && !scope) {
