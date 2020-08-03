@@ -7,7 +7,7 @@ const mockery = require('mockery');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe.only('coverage plugin test', () => {
+describe('coverage plugin test', () => {
     let plugin;
     let server;
     let coveragePlugin;
