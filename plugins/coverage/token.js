@@ -1,6 +1,7 @@
 'use strict';
 
 const boom = require('boom');
+const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 module.exports = config => ({
     method: 'GET',
@@ -18,32 +19,47 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            const buildCredentials = request.auth.credentials;
+        handler: async (request, reply) => {
             const { jobFactory } = request.server.app;
+            const buildCredentials = request.auth.credentials;
             const { jobId } = buildCredentials;
-            const { scope } = request.query;
+            const { scope, projectKey, username } = request.query;
+            const tokenConfig = {
+                buildCredentials,
+                scope
+            };
 
-            return Promise.resolve()
-                .then(() => {
-                    if (scope) {
-                        return { 'screwdriver.cd/coverageScope': scope };
+            if (projectKey) {
+                tokenConfig.projectKey = projectKey;
+            }
+
+            if (username) {
+                tokenConfig.username = username;
+            }
+
+            // Get job scope
+            if (jobId && !scope) {
+                return jobFactory.get(jobId).then(job => {
+                    if (!job) {
+                        throw boom.notFound(`Job ${jobId} does not exist`);
                     }
 
-                    return jobFactory.get(jobId).then(job => {
-                        if (!job) {
-                            throw boom.notFound('Job does not exist');
-                        }
+                    tokenConfig.scope =
+                        job.permutations[0] && job.permutations[0].annotations
+                            ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
+                            : null;
 
-                        return job.permutations[0].annotations || {};
-                    });
-                })
-                .then(annotations => {
                     return config.coveragePlugin
-                        .getAccessToken({ buildCredentials, annotations })
+                        .getAccessToken(tokenConfig)
                         .then(reply)
                         .catch(err => reply(boom.boomify(err)));
                 });
+            }
+
+            return config.coveragePlugin
+                .getAccessToken(tokenConfig)
+                .then(reply)
+                .catch(err => reply(boom.boomify(err)));
         }
     }
 });
