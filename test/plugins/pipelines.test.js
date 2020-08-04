@@ -1465,10 +1465,10 @@ describe('pipeline plugin test', () => {
                         type: 'default'
                     }
                 });
-                assert.calledWith(secretFactoryMock.get, { pipelineId: 123, name: 'DEPLOY_KEY' });
+                assert.calledWith(secretFactoryMock.get, { pipelineId: 123, name: 'SD_SCM_DEPLOY_KEY' });
                 assert.calledWith(secretFactoryMock.create, {
                     pipelineId: 123,
-                    name: 'DEPLOY_KEY',
+                    name: 'SD_SCM_DEPLOY_KEY',
                     value: privateKeyB64,
                     allowInPR: false
                 });
