@@ -16,42 +16,32 @@ module.exports = config => ({
         description: 'Get all auth contexts',
         notes: 'Get all auth contexts',
         tags: ['api', 'auth', 'context'],
-        handler: async (request, reply) => {
-            const { scm } = request.server.app.userFactory;
-            const { pipelineFactory } = request.server.app;
-            const scmContexts = scm.getScmContexts();
+        handler: (request, reply) => {
+            const { pipelineFactory, userFactory } = request.server.app;
+            const scmContexts = userFactory.scm.getScmContexts();
             const contexts = [];
-            const promises = [];
 
             scmContexts.forEach(scmContext => {
-                const promise = pipelineFactory.scm.autoDeployKeyGenerationEnabled({
-                    scmContext
-                });
+                const context = {
+                    context: scmContext,
+                    displayName: userFactory.scm.getDisplayName({ scmContext }),
+                    autoDeployKeyGeneration: pipelineFactory.scm.autoDeployKeyGenerationEnabled({
+                        scmContext
+                    })
+                };
 
-                promises.push(promise);
+                contexts.push(context);
             });
 
-            return Promise.all(promises).then(async autoDeployKeyGenerationList => {
-                scmContexts.forEach((scmContext, i) => {
-                    const context = {
-                        context: scmContext,
-                        displayName: scm.getDisplayName({ scmContext }),
-                        autoDeployKeyGeneration: autoDeployKeyGenerationList[i]
-                    };
-
-                    contexts.push(context);
+            if (config.allowGuestAccess) {
+                contexts.push({
+                    context: 'guest',
+                    displayName: 'Guest Access',
+                    autoDeployKeyGeneration: false
                 });
+            }
 
-                if (config.allowGuestAccess) {
-                    contexts.push({
-                        context: 'guest',
-                        displayName: 'Guest Access',
-                        autoDeployKeyGeneration: false
-                    });
-                }
-
-                return reply(contexts);
-            });
+            return reply(contexts);
         },
         response: {
             schema: schema.api.auth.contexts

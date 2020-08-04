@@ -83,7 +83,7 @@ describe('auth plugin test', () => {
                     scope: ['admin:repo_hook', 'read:org', 'repo:status']
                 }
             }),
-            autoDeployKeyGenerationEnabled: sinon.stub().resolves(true)
+            autoDeployKeyGenerationEnabled: sinon.stub().returns(true)
         };
         userFactoryMock = {
             get: sinon.stub(),
@@ -1050,7 +1050,7 @@ describe('auth plugin test', () => {
             scm.getScmContexts.returns(['github:github.com', 'github:mygithub.com']);
             scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('github');
             scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
-            scm.autoDeployKeyGenerationEnabled.resolves(true);
+            scm.autoDeployKeyGenerationEnabled.withArgs({ scmContext: 'github:mygithub.com' }).returns(true);
         });
 
         it('lists the contexts', () =>
@@ -1078,7 +1078,7 @@ describe('auth plugin test', () => {
             server = new hapi.Server();
             server.app.userFactory = userFactoryMock;
             server.app.pipelineFactory = pipelineFactoryMock;
-            scm.autoDeployKeyGenerationEnabled.resolves(true);
+            scm.autoDeployKeyGenerationEnabled.withArgs({ scmContext: 'github:mygithub.com' }).returns(true);
 
             server.connection({
                 port: 1234
