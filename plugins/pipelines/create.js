@@ -155,6 +155,8 @@ module.exports = () => ({
                                                                 });
                                                         });
                                                 }
+
+                                                return null;
                                             })
                                             .then(() => {
                                                 // TODO: decide to put this outside or inside
