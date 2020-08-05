@@ -139,8 +139,7 @@ module.exports = () => ({
                                                                 value: privateDeployKeyB64,
                                                                 allowInPR: false
                                                             });
-                                                        })
-                                                        .catch(err => reply(boom.boomify(err)));
+                                                        });
                                                 }
 
                                                 return null;
