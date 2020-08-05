@@ -1060,7 +1060,6 @@ describe('auth plugin test', () => {
                     url: '/auth/contexts'
                 })
                 .then(reply => {
-                    console.log(reply.result[0]);
                     assert.equal(reply.statusCode, 200, 'Contexts should be available');
                     assert.deepEqual(
                         reply.result,
