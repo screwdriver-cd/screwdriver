@@ -17,15 +17,15 @@ module.exports = config => ({
         notes: 'Get all auth contexts',
         tags: ['api', 'auth', 'context'],
         handler: (request, reply) => {
-            const { pipelineFactory, userFactory } = request.server.app;
-            const scmContexts = userFactory.scm.getScmContexts();
+            const { scm } = request.server.app.userFactory;
+            const scmContexts = scm.getScmContexts();
             const contexts = [];
 
             scmContexts.forEach(scmContext => {
                 const context = {
                     context: scmContext,
-                    displayName: userFactory.scm.getDisplayName({ scmContext }),
-                    autoDeployKeyGeneration: pipelineFactory.scm.autoDeployKeyGenerationEnabled({
+                    displayName: scm.getDisplayName({ scmContext }),
+                    autoDeployKeyGeneration: scm.autoDeployKeyGenerationEnabled({
                         scmContext
                     })
                 };
