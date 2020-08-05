@@ -129,12 +129,6 @@ module.exports = () => ({
                                                             token: pipelineToken
                                                         })
                                                         .then(privateDeployKey => {
-                                                            if (!privateDeployKey) {
-                                                                throw boom.notImplemented(
-                                                                    'addDeployKey not implemented for gitlab and bitbucket'
-                                                                );
-                                                            }
-
                                                             const privateDeployKeyB64 = Buffer.from(
                                                                 privateDeployKey
                                                             ).toString('base64');
@@ -145,7 +139,8 @@ module.exports = () => ({
                                                                 value: privateDeployKeyB64,
                                                                 allowInPR: false
                                                             });
-                                                        });
+                                                        })
+                                                        .catch(err => reply(boom.boomify(err)));
                                                 }
 
                                                 return null;
