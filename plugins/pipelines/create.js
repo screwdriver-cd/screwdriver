@@ -28,7 +28,7 @@ module.exports = () => ({
             const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             let pipelineToken = '';
-            const depKeySecret = 'SD_SCM_DEPLOY_KEY';
+            const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
             return (
@@ -43,7 +43,6 @@ module.exports = () => ({
                                 return token;
                             })
                             .then(token =>
-                                // pipelineToken = token;
                                 pipelineFactory.scm.parseUrl({
                                     scmContext,
                                     rootDir,
@@ -129,30 +128,23 @@ module.exports = () => ({
                                                             checkoutUrl,
                                                             token: pipelineToken
                                                         })
-                                                        .then(privateDepKey => {
-                                                            return secretFactory
-                                                                .get({
-                                                                    pipelineId: pipeline.id,
-                                                                    name: depKeySecret
-                                                                })
-                                                                .then(secret => {
-                                                                    if (secret) {
-                                                                        throw boom.conflict(
-                                                                            `Secret already exists with the ID: ${secret.id}`
-                                                                        );
-                                                                    }
+                                                        .then(privateDeployKey => {
+                                                            if (!privateDeployKey) {
+                                                                throw boom.notImplemented(
+                                                                    'addDeployKey not implemented for gitlab and bitbucket'
+                                                                );
+                                                            }
 
-                                                                    const privateDepKeyB64 = Buffer.from(
-                                                                        privateDepKey
-                                                                    ).toString('base64');
+                                                            const privateDeployKeyB64 = Buffer.from(
+                                                                privateDeployKey
+                                                            ).toString('base64');
 
-                                                                    return secretFactory.create({
-                                                                        pipelineId: pipeline.id,
-                                                                        name: depKeySecret,
-                                                                        value: privateDepKeyB64,
-                                                                        allowInPR: false
-                                                                    });
-                                                                });
+                                                            return secretFactory.create({
+                                                                pipelineId: pipeline.id,
+                                                                name: deployKeySecret,
+                                                                value: privateDeployKeyB64,
+                                                                allowInPR: false
+                                                            });
                                                         });
                                                 }
 
