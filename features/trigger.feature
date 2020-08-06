@@ -59,7 +59,7 @@ Feature: Remote Trigger
         And the "parallel_B2" build's parentBuildId on branch "pipelineB" is that "parallel_A" build's buildId
         And builds for "parallel_B1" and "parallel_B2" jobs are part of a single event
 
-    @beta
+    @beta @ignore
     Scenario: Remote Join
         Given an existing pipeline on branch "beta-remote_join1" with the workflow jobs:
             | job       | requires                  |
