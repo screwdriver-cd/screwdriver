@@ -24,9 +24,11 @@ module.exports = () => ({
         handler: (request, reply) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
-            const { pipelineFactory, userFactory, collectionFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { autoKeysGeneration } = request.payload;
+            const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
+            let pipelineToken = '';
+            const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
             return (
@@ -35,6 +37,11 @@ module.exports = () => ({
                     .then(user =>
                         user
                             .unsealToken()
+                            .then(token => {
+                                pipelineToken = token;
+
+                                return token;
+                            })
                             .then(token =>
                                 pipelineFactory.scm.parseUrl({
                                     scmContext,
@@ -78,8 +85,8 @@ module.exports = () => ({
                                         return pipelineFactory.create(pipelineConfig);
                                     })
                                     // get the default collection for current user
-                                    .then(pipeline =>
-                                        collectionFactory
+                                    .then(pipeline => {
+                                        return collectionFactory
                                             .list({
                                                 params: {
                                                     userId: user.id,
@@ -114,6 +121,30 @@ module.exports = () => ({
                                                 return defaultCollection.update();
                                             })
                                             .then(() => {
+                                                if (autoKeysGeneration) {
+                                                    return pipelineFactory.scm
+                                                        .addDeployKey({
+                                                            scmContext,
+                                                            checkoutUrl,
+                                                            token: pipelineToken
+                                                        })
+                                                        .then(privateDeployKey => {
+                                                            const privateDeployKeyB64 = Buffer.from(
+                                                                privateDeployKey
+                                                            ).toString('base64');
+
+                                                            return secretFactory.create({
+                                                                pipelineId: pipeline.id,
+                                                                name: deployKeySecret,
+                                                                value: privateDeployKeyB64,
+                                                                allowInPR: false
+                                                            });
+                                                        });
+                                                }
+
+                                                return null;
+                                            })
+                                            .then(() => {
                                                 // TODO: decide to put this outside or inside
                                                 Promise.all([
                                                     pipeline.sync(),
@@ -130,8 +161,8 @@ module.exports = () => ({
                                                         .header('Location', location)
                                                         .code(201);
                                                 });
-                                            })
-                                    )
+                                            });
+                                    })
                             )
                     )
                     // something broke, respond with error
