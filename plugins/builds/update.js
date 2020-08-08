@@ -2,10 +2,10 @@
 
 const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
-const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
+const joi = require('joi');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
-const idSchema = joi.reach(schema.models.job.base, 'id');
+const idSchema = schema.models.job.base.extract('id');
 
 module.exports = config => ({
     method: 'PUT',
@@ -23,7 +23,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             // eslint-disable-next-line max-len
             const {
                 buildFactory,
@@ -41,7 +41,7 @@ module.exports = config => ({
             const externalJoin = config.externalJoin || false;
 
             if (isBuild && username !== id) {
-                return reply(boom.forbidden(`Credential only valid for ${username}`));
+                return h.response(boom.forbidden(`Credential only valid for ${username}`));
             }
 
             return buildFactory
@@ -199,7 +199,7 @@ module.exports = config => ({
                                 // Guard against triggering non-successful or unstable builds
                                 // Don't further trigger pipeline if intented to skip further jobs
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
-                                    return reply(newBuild.toJsonWithSteps()).code(200);
+                                    return h.response(newBuild.toJsonWithSteps()).code(200);
                                 }
 
                                 return triggerNextJobs({
@@ -212,7 +212,7 @@ module.exports = config => ({
                                 }).then(() => {
                                     // if external join is allowed, then triggerNextJobs will take care of external OR already
                                     if (externalJoin) {
-                                        return reply(newBuild.toJsonWithSteps()).code(200);
+                                        return h.response(newBuild.toJsonWithSteps()).code(200);
                                     }
 
                                     const src = `~sd@${pipeline.id}:${job.name}`;
@@ -244,17 +244,17 @@ module.exports = config => ({
                                                 )
                                             )
                                         )
-                                        .then(() => reply(newBuild.toJsonWithSteps()).code(200));
+                                        .then(() => h.response(newBuild.toJsonWithSteps()).code(200));
                                 });
                             })
-                            .catch(err => reply(boom.boomify(err)))
+                            .catch(err => h.response(boom.boomify(err)))
                     )
                 );
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.build.update
         }
     }

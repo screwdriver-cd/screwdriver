@@ -1,10 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
+const joi = require('joi');
 const getSchema = schema.models.buildCluster.get;
-const nameSchema = joi.reach(schema.models.buildCluster.base, 'name');
+const nameSchema = schema.models.buildCluster.base.extract('name');
 
 module.exports = () => ({
     method: 'GET',
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { name } = request.params;
             const factory = request.server.app.buildClusterFactory;
             const config = {
@@ -35,20 +35,20 @@ module.exports = () => ({
                 .list(config)
                 .then(buildClusters => {
                     if (buildClusters.length === 0) {
-                        return reply(boom.notFound(`Build cluster ${name} does not exist`));
+                        return h.response(boom.notFound(`Build cluster ${name} does not exist`));
                     }
 
-                    return reply(buildClusters[0].toJson());
+                    return h.response(buildClusters[0].toJson());
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 name: nameSchema
-            }
+            })
         }
     }
 });

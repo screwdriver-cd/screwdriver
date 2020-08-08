@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -57,12 +57,13 @@ module.exports = () => ({
                             pathname: `${request.path}/${token.id}`
                         });
 
-                        return reply(token.toJson())
+                        return h
+                            .response(token.toJson())
                             .header('Location', location)
                             .code(201);
                     })
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => h.response(boom.boomify(err)))
             );
         },
         validate: {

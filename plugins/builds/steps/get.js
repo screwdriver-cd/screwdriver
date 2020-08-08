@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { stepFactory } = request.server.app;
 
             return stepFactory
@@ -30,9 +30,9 @@ module.exports = () => ({
                         throw boom.notFound('Step does not exist');
                     }
 
-                    return reply(stepModel);
+                    return h.response(stepModel);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema

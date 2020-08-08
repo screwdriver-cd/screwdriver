@@ -5,7 +5,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplatetags = require('./data/templateTags.json');
@@ -107,8 +107,8 @@ describe('template plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }

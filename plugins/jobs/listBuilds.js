@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const jobIdSchema = joi.reach(schema.models.job.base, 'id');
+const jobIdSchema = schema.models.job.base.extract('id');
 const buildListSchema = joi
     .array()
     .items(schema.models.build.get)
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.jobFactory;
             const { sort, sortBy, page, count } = request.query;
 
@@ -48,16 +48,16 @@ module.exports = () => ({
 
                     return job.getBuilds(config);
                 })
-                .then(builds => reply(Promise.all(builds.map(b => b.toJsonWithSteps()))))
-                .catch(err => reply(boom.boomify(err)));
+                .then(builds => h.response(Promise.all(builds.map(b => b.toJsonWithSteps()))))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: buildListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: jobIdSchema
-            },
+            }),
             query: schema.api.pagination
         }
     }

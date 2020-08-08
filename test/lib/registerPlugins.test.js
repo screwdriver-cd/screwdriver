@@ -8,8 +8,8 @@ sinon.assert.expose(Assert, { prefix: '' });
 
 describe('Register Unit Test Case', () => {
     const expectedPlugins = [
-        'inert',
-        'vision',
+        '@hapi/inert',
+        '@hapi/vision',
         '../plugins/status',
         '../plugins/versions',
         '../plugins/logging',

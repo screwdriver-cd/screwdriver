@@ -98,7 +98,7 @@ describe('token plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({})
+            authenticate: (request, h) => h.authenticated({})
         }));
         server.auth.strategy('token', 'custom');
 

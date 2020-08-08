@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
     .array()
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { buildClusterFactory } = request.server.app;
             const config = {
                 sort: request.query.sort
@@ -32,8 +32,8 @@ module.exports = () => ({
 
             return buildClusterFactory
                 .list(config)
-                .then(buildClusters => reply(buildClusters.map(c => c.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(buildClusters => h.response(buildClusters.map(c => c.toJson())))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: listSchema

@@ -1,14 +1,14 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const eventListSchema = joi
     .array()
     .items(schema.models.event.get)
     .label('List of events');
-const prNumSchema = joi.reach(schema.models.event.base, 'prNum');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const prNumSchema = schema.models.event.base.extract('prNum');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -26,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.pipelineFactory;
 
             return factory
@@ -53,16 +53,16 @@ module.exports = () => ({
 
                     return pipeline.getEvents(config);
                 })
-                .then(events => reply(events.map(e => e.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(events => h.response(events.map(e => e.toJson())))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: eventListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
+            }),
             query: schema.api.pagination.concat(
                 joi.object({
                     type: joi.string(),

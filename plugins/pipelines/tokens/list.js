@@ -1,10 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = joi.array().items(schema.models.token.get);
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -47,7 +47,7 @@ module.exports = () => ({
                     });
                 })
                 .then(tokens =>
-                    reply(
+                    h.response(
                         tokens.map(token => {
                             const output = token.toJson();
 
@@ -58,15 +58,15 @@ module.exports = () => ({
                         })
                     )
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            }
+            })
         }
     }
 });

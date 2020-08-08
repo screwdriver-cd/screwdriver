@@ -81,8 +81,8 @@ describe('banner plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }

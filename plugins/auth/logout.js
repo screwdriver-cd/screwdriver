@@ -15,10 +15,10 @@ module.exports = () => ({
         auth: {
             strategies: ['token', 'session']
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             request.cookieAuth.clear();
 
-            return reply({});
+            return h.response({});
         }
     }
 });

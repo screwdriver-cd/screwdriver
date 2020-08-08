@@ -23,7 +23,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) =>
+        handler: (request, h) =>
             validator(request.payload.yaml)
                 .then(config => {
                     if (config.errors.length > 0) {
@@ -74,11 +74,12 @@ module.exports = () => ({
                         pathname: `${request.path}/${template.id}`
                     });
 
-                    return reply(template.toJson())
+                    return h
+                        .response(template.toJson())
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => reply(boom.boomify(err))),
+                .catch(err => h.response(boom.boomify(err))),
         validate: {
             payload: templateSchema.input
         }

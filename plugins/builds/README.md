@@ -94,7 +94,7 @@ The server supplies factories to plugins in the form of server app values:
 
 ```js
 // handler in buildsPlugin.js
-handler: (request, reply) => {
+handler: (request, h) => {
     const factory = request.server.app.buildFactory;
 
     // ...

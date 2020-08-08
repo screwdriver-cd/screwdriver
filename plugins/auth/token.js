@@ -22,7 +22,7 @@ module.exports = () => ({
         plugins: {
             'hapi-swagger': { security: [{ token: [] }] }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             let profile = request.auth.credentials;
             const { scope, token, username } = profile;
             const { buildFactory, jobFactory, pipelineFactory } = request.server.app;
@@ -30,7 +30,7 @@ module.exports = () => ({
             // Check Build ID impersonate
             if (request.params.buildId) {
                 if (!scope.includes('admin')) {
-                    return reply(boom.forbidden(`User ${username} is not an admin and cannot impersonate`));
+                    return h.response(boom.forbidden(`User ${username} is not an admin and cannot impersonate`));
                 }
 
                 return buildFactory
@@ -47,12 +47,12 @@ module.exports = () => ({
 
                         request.cookieAuth.set(profile);
 
-                        return reply({ token: profile.token });
+                        return h.response({ token: profile.token });
                     })
-                    .catch(err => reply(boom.boomify(err)));
+                    .catch(err => h.response(boom.boomify(err)));
             }
 
-            return reply({ token });
+            return h.response({ token });
         },
         response: {
             schema: schema.api.auth.token

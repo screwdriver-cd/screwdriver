@@ -1,10 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.job.base, 'id');
-const statusSchema = joi.reach(schema.models.build.base, 'status');
+const idSchema = schema.models.job.base.extract('id');
+const statusSchema = schema.models.build.base.extract('status');
 
 module.exports = () => ({
     method: 'GET',
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { jobFactory } = request.server.app;
             const { status } = request.query || {};
 
@@ -40,20 +40,20 @@ module.exports = () => ({
                         throw boom.notFound('There is no such latest build');
                     }
 
-                    return reply(build.toJsonWithSteps());
+                    return h.response(build.toJsonWithSteps());
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: joi.object()
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
-            query: {
+            }),
+            query: joi.object({
                 status: statusSchema
-            }
+            })
         }
     }
 });

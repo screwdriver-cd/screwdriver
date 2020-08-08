@@ -5,7 +5,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const nock = require('nock');
 const streamToPromise = require('stream-to-promise');
 const FormData = require('form-data');
@@ -112,8 +112,8 @@ describe('command plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -518,7 +518,7 @@ describe('command plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(204, '');
+                .h.response(204, '');
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
@@ -531,7 +531,7 @@ describe('command plugin test', () => {
             options.credentials.scope.push('admin');
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(204, '');
+                .h.response(204, '');
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
@@ -544,7 +544,7 @@ describe('command plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(404, '');
+                .h.response(404, '');
 
             return server.inject(options).then(reply => {
                 assert.notCalled(testCommand.remove);
@@ -619,7 +619,7 @@ describe('command plugin test', () => {
         it('deletes command if build credentials provided and pipelineIds match', () => {
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(204, '');
+                .h.response(204, '');
 
             options = {
                 method: 'DELETE',
@@ -729,7 +729,7 @@ describe('command plugin test', () => {
             commandFactoryMock.list.resolves([commandMock]);
             nock('http://store.example.com')
                 .post('/v1/commands/bar/foo/1.0.1')
-                .reply(202, '');
+                .h.response(202, '');
 
             return server.inject(options).then(reply => {
                 const expectedLocation = {
@@ -878,7 +878,7 @@ describe('command plugin test', () => {
                 commandFactoryMock.list.resolves([]);
                 nock('http://store.example.com')
                     .post('/v1/commands/bar/foo/1.1.0')
-                    .reply(202, '');
+                    .h.response(202, '');
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;
@@ -915,7 +915,7 @@ describe('command plugin test', () => {
                 commandFactoryMock.list.resolves([commandMock]);
                 nock('http://store.example.com')
                     .post('/v1/commands/bar/foo/1.0.1')
-                    .reply(202, '');
+                    .h.response(202, '');
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;
@@ -1028,7 +1028,7 @@ describe('command plugin test', () => {
                 nock.cleanAll();
                 nock('http://store.example.com')
                     .post('/v1/commands/bar/foo/1.1.0')
-                    .reply(500, '');
+                    .h.response(500, '');
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;

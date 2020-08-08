@@ -1286,7 +1286,9 @@ const buildsPlugin = {
                         // Get next build
                         const nextBuild = finishedExternalBuilds.find(b => b.jobId === jobId && b.status === 'CREATED');
                         // The next build has been restarted and this was the original run
-                        const previousBuild = finishedExternalBuilds.find(b => b.jobId === jobId && b.status !== 'CREATED');
+                        const previousBuild = finishedExternalBuilds.find(
+                            b => b.jobId === jobId && b.status !== 'CREATED'
+                        );
                         const fullCurrentJobName = `sd@${pipelineId}:${currentJobName}`;
 
                         // Get finished internal builds from event
@@ -1309,7 +1311,9 @@ const buildsPlugin = {
 
                                     if (parentBuilds[pid].jobs[jName] === null) {
                                         if (parseInt(pid, 10) === pipelineId) {
-                                            joinJob = workflowGraph.nodes.find(node => node.name === trimJobName(jName));
+                                            joinJob = workflowGraph.nodes.find(
+                                                node => node.name === trimJobName(jName)
+                                            );
                                         } else {
                                             joinJob = workflowGraph.nodes.find(node =>
                                                 node.name.includes(`sd@${pid}:${jName}`)
@@ -1319,7 +1323,9 @@ const buildsPlugin = {
                                         if (!joinJob) {
                                             logger.warn(`Job ${jName}:${pid} not found in workflowGraph`);
                                         } else {
-                                            const targetBuild = finishedInternalBuilds.find(b => b.jobId === joinJob.id);
+                                            const targetBuild = finishedInternalBuilds.find(
+                                                b => b.jobId === joinJob.id
+                                            );
 
                                             if (targetBuild) {
                                                 parentBuilds[pid].jobs[jName] = targetBuild.id;
@@ -1345,7 +1351,8 @@ const buildsPlugin = {
                                 parentBuildsForJoin = previousBuild.parentBuilds;
 
                                 const triggerName = `sd@${pipelineId}:${currentJobName}`;
-                                const startFrom = parentWorkflowGraph.nodes.filter(n => n.name === `~${triggerName}`).length
+                                const startFrom = parentWorkflowGraph.nodes.filter(n => n.name === `~${triggerName}`)
+                                    .length
                                     ? `~${triggerName}`
                                     : externalJobName;
                                 const newEvent = await createExternalBuild({
@@ -1480,7 +1487,10 @@ const buildsPlugin = {
                 try {
                     await processNextJob(nextJobName);
                 } catch (err) {
-                    logger.error(`Error in processNextJob - pipeline:${pipelineId}-${nextJobName} event:${event.id} `, err);
+                    logger.error(
+                        `Error in processNextJob - pipeline:${pipelineId}-${nextJobName} event:${event.id} `,
+                        err
+                    );
                 }
             }
 
@@ -1504,7 +1514,6 @@ const buildsPlugin = {
             artifactGetRoute(options)
         ]);
     }
-}
+};
 
 module.exports = buildsPlugin;
-

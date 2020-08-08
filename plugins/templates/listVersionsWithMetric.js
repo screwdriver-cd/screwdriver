@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const nameSchema = joi.reach(schema.models.template.base, 'name');
+const nameSchema = schema.models.template.base.extract('name');
 
 module.exports = () => ({
     method: 'GET',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.templateFactory;
             const config = {
                 params: {
@@ -44,17 +44,18 @@ module.exports = () => ({
                         throw boom.notFound('Template does not exist');
                     }
 
-                    reply(templates);
+                    h.response(templates);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
+        // maybe
         response: {
             schema: joi.array()
         },
         validate: {
-            params: {
+            params: joi.object({
                 name: nameSchema
-            },
+            }),
             query: schema.api.pagination
         }
     }

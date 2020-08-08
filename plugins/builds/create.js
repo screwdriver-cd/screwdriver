@@ -21,7 +21,7 @@ module.exports = () => ({
                 deprecated: true
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { jobFactory } = request.server.app;
             const { buildFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -151,12 +151,13 @@ module.exports = () => ({
                             pathname: `${request.path}/${build.id}`
                         });
 
-                        return reply(build.toJsonWithSteps())
+                        return h
+                            .response(build.toJsonWithSteps())
                             .header('Location', location)
                             .code(201);
                     })
                     // something was botched
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => h.response(boom.boomify(err)))
             );
         },
         validate: {

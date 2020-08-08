@@ -1,13 +1,13 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const buildListSchema = joi
     .array()
     .items(schema.models.build.get)
     .label('List of builds');
-const eventIdSchema = joi.reach(schema.models.event.base, 'id');
+const eventIdSchema = schema.models.event.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { eventFactory } = request.server.app;
 
             return eventFactory
@@ -37,16 +37,18 @@ module.exports = () => ({
 
                     return event.getBuilds();
                 })
-                .then(buildsModel => reply(Promise.all(buildsModel.map(buildModel => buildModel.toJsonWithSteps()))))
-                .catch(err => reply(boom.boomify(err)));
+                .then(buildsModel =>
+                    h.response(Promise.all(buildsModel.map(buildModel => buildModel.toJsonWithSteps())))
+                )
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: buildListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: eventIdSchema
-            }
+            })
         }
     }
 });

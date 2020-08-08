@@ -1,10 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const Joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.build.get;
-const idSchema = joi.reach(schema.models.build.base, 'id');
+const idSchema = schema.models.build.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { buildFactory } = request.server.app;
 
             return buildFactory
@@ -33,7 +33,7 @@ module.exports = () => ({
                     }
 
                     if (Array.isArray(buildModel.environment)) {
-                        return reply(buildModel.toJsonWithSteps());
+                        return h.response(buildModel.toJsonWithSteps());
                     }
 
                     // convert environment obj to array
@@ -44,17 +44,17 @@ module.exports = () => ({
                     });
                     buildModel.environment = env;
 
-                    return buildModel.update().then(m => reply(m.toJsonWithSteps()));
+                    return buildModel.update().then(m => h.response(m.toJsonWithSteps()));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: Joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
     .array()
@@ -24,14 +24,14 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { stepFactory } = request.server.app;
             const buildIdCred = request.auth.credentials.username && request.auth.credentials.username.toString();
             const buildId = request.params.id && request.params.id.toString();
             const { status } = request.query;
 
             if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
-                return reply(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
+                return h.response(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
             }
 
             return stepFactory
@@ -60,9 +60,9 @@ module.exports = () => ({
                             stepModel = [].concat(steps);
                     }
 
-                    return reply(stepModel.map(step => step.toJson()));
+                    return h.response(stepModel.map(step => step.toJson()));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: listSchema

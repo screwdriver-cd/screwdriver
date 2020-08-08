@@ -1,13 +1,14 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const Joi = require('joi');
 const buildListSchema = joi
     .array()
     .items(schema.models.secret.get)
     .label('List of secrets');
-const buildIdSchema = joi.reach(schema.models.build.base, 'id');
+const buildIdSchema = schema.models.build.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -25,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.buildFactory;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -41,11 +42,11 @@ module.exports = () => ({
                 })
                 .then(secrets => {
                     if (secrets.length === 0) {
-                        return reply([]);
+                        return h.response([]);
                     }
 
                     return canAccess(credentials, secrets[0], 'push').then(showSecret =>
-                        reply(
+                        h.response(
                             secrets.map(s => {
                                 const output = s.toJson();
 
@@ -58,15 +59,15 @@ module.exports = () => ({
                         )
                     );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: buildListSchema
         },
         validate: {
-            params: {
+            params: Joi.object({
                 id: buildIdSchema
-            }
+            })
         }
     }
 });

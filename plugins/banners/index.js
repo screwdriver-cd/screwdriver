@@ -52,4 +52,4 @@ const bannerPlugin = {
     }
 };
 
-module.exports = bannerPlugin
+module.exports = bannerPlugin;

@@ -78,7 +78,7 @@ The server supplies factories to plugins in the form of server settings:
 
 ```js
 // handler tokenPlugin.js
-handler: (request, reply) => {
+handler: (request, h) => {
     const factory = request.server.app.tokenFactory;
 
     // ...

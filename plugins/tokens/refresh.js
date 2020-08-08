@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.token.base, 'id');
+const idSchema = schema.models.token.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { tokenFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.tokens;
@@ -35,14 +35,14 @@ module.exports = () => ({
 
                     return canAccess(credentials, token)
                         .then(() => token.refresh())
-                        .then(() => reply(token.toJson()).code(200));
+                        .then(() => h.response(token.toJson()).code(200));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

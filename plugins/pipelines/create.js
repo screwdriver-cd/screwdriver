@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { pipelineFactory, userFactory, collectionFactory } = request.server.app;
@@ -126,7 +126,8 @@ module.exports = () => ({
                                                         pathname: `${request.path}/${pipeline.id}`
                                                     });
 
-                                                    return reply(results[0].toJson())
+                                                    return h
+                                                        .response(results[0].toJson())
                                                         .header('Location', location)
                                                         .code(201);
                                                 });
@@ -135,7 +136,7 @@ module.exports = () => ({
                             )
                     )
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => h.response(boom.boomify(err)))
             );
         },
         validate: {

@@ -1,11 +1,11 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
 
 module.exports = () => ({
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
             const { aggregateInterval, page, count, sort } = request.query;
@@ -59,16 +59,16 @@ module.exports = () => ({
 
                     return pipeline.getMetrics(config);
                 })
-                .then(metrics => reply(metrics))
-                .catch(err => reply(boom.boomify(err)));
+                .then(metrics => h.response(metrics))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: pipelineMetricListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
+            }),
             query: schema.api.pagination.concat(
                 joi.object({
                     startTime: joi.string().isoDate(),

@@ -1,14 +1,14 @@
 'use strict';
 
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const api = require('./request');
 
-const SCHEMA_SCOPE_PIPELINE_ID = joi.reach(schema.models.pipeline.base, 'id');
+const SCHEMA_SCOPE_PIPELINE_ID = schema.models.pipeline.base.extract('id');
 const SCHEMA_SCOPE_NAME = joi
     .string()
-    .valid(['events', 'jobs', 'pipelines'])
+    .valid('events', 'jobs', 'pipelines')
     .label('Scope Name');
 const SCHEMA_SCOPE_CACHE_ID = joi
     .number()
@@ -32,7 +32,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: async (request, reply) => {
+        handler: async (request, h) => {
             try {
                 const { pipelineFactory, userFactory } = request.server.app;
                 const { username, scmContext } = request.auth.credentials;
@@ -67,19 +67,19 @@ module.exports = () => ({
 
                 const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
 
-                return reply(res).code(statusCode);
+                return h.response(res).code(statusCode);
             } catch (err) {
-                return reply(boom.boomify(err));
+                return h.response(boom.boomify(err));
             }
         },
         validate: {
-            query: {
+            query: joi.object({
                 scope: SCHEMA_SCOPE_NAME,
                 cacheId: SCHEMA_SCOPE_CACHE_ID
-            },
-            params: {
+            }),
+            params: joi.object({
                 id: SCHEMA_SCOPE_PIPELINE_ID
-            }
+            })
         }
     }
 });

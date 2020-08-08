@@ -16,8 +16,8 @@ module.exports = options => ({
         description: 'Get jwt public key',
         notes: 'Public Key for verifying JSON Web Tokens',
         tags: ['api', 'auth', 'key'],
-        handler: (request, reply) =>
-            reply({
+        handler: (request, h) =>
+            h.response({
                 key: options.jwtPublicKey
             }),
         response: {

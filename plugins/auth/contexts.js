@@ -16,7 +16,7 @@ module.exports = config => ({
         description: 'Get all auth contexts',
         notes: 'Get all auth contexts',
         tags: ['api', 'auth', 'context'],
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { scm } = request.server.app.userFactory;
             const scmContexts = scm.getScmContexts();
             const contexts = [];
@@ -37,7 +37,7 @@ module.exports = config => ({
                 });
             }
 
-            return reply(contexts);
+            return h.response(contexts);
         },
         response: {
             schema: schema.api.auth.contexts

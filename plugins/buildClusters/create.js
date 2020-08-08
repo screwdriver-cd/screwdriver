@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { buildClusterFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
@@ -44,7 +44,7 @@ module.exports = () => ({
                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
 
                 if (!adminDetails.isAdmin) {
-                    return reply(
+                    return h.response(
                         boom.forbidden(
                             `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
@@ -64,17 +64,18 @@ module.exports = () => ({
                                 pathname: `${request.path}/${buildCluster.id}`
                             });
 
-                            return reply(buildCluster.toJson())
+                            return h
+                                .response(buildCluster.toJson())
                                 .header('Location', location)
                                 .code(201);
                         })
                         // something was botched
-                        .catch(err => reply(boom.boomify(err)))
+                        .catch(err => h.response(boom.boomify(err)))
                 );
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return reply(
+                return h.response(
                     boom.boomify(boom.badData(`No scmOrganizations provided for build cluster ${payload.name}.`))
                 );
             }
@@ -116,12 +117,13 @@ module.exports = () => ({
                             pathname: `${request.path}/${buildCluster.id}`
                         });
 
-                        return reply(buildCluster.toJson())
+                        return h
+                            .response(buildCluster.toJson())
                             .header('Location', location)
                             .code(201);
                     })
                     // something was botched
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => h.response(boom.boomify(err)))
             );
         },
         validate: {

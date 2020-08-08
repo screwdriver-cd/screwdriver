@@ -1,6 +1,6 @@
 'use strict';
 
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const uuid = require('uuid').v4();
 const contextsRoute = require('./contexts');
@@ -17,83 +17,90 @@ const JOI_BOOLEAN = joi
     .truthy('true')
     .falsy('false');
 
-function _validateFunc(tokenValue, cb) {
+/**
+ * @param {object} server
+ * @param {string} tokenValue
+ */
+async function _validateFunc(server, tokenValue) {
     // Token is an API token
     // using function syntax makes 'this' the request
     const request = this;
-    const { tokenFactory } = request.server.app;
-    const { userFactory } = request.server.app;
-    const { pipelineFactory } = request.server.app;
-    const { collectionFactory } = request.server.app;
 
-    return tokenFactory
-        .get({ value: tokenValue })
-        .then(token => {
-            if (!token) {
+    try {
+        const { tokenFactory } = request.server.app;
+        const { userFactory } = request.server.app;
+        const { pipelineFactory } = request.server.app;
+        const { collectionFactory } = request.server.app;
+
+        const token = await tokenFactory.get({ value: tokenValue });
+
+        if (!token) {
+            return Promise.reject();
+        }
+        let profile;
+
+        if (token.userId) {
+            // if token has userId then the token is for user
+            const user = await userFactory.get({ accessToken: tokenValue });
+
+            if (!user) {
                 return Promise.reject();
             }
-            if (token.userId) {
-                // if token has userId then the token is for user
-                return userFactory.get({ accessToken: tokenValue }).then(user => {
-                    if (!user) {
-                        return Promise.reject();
-                    }
 
-                    const description = `The default collection for ${user.username}`;
+            const description = `The default collection for ${user.username}`;
 
-                    collectionFactory
-                        .list({
-                            params: {
-                                userId: user.id,
-                                type: 'default'
-                            }
-                        })
-                        .then(collections => {
-                            if (!collections[0]) {
-                                collectionFactory.create({
-                                    userId: user.id,
-                                    name: 'My Pipelines',
-                                    description,
-                                    type: 'default'
-                                });
-                            }
-                        });
+            const collections = await collectionFactory.list({
+                params: {
+                    userId: user.id,
+                    type: 'default'
+                }
+            });
 
-                    return {
-                        username: user.username,
-                        scmContext: user.scmContext,
-                        scope: ['user']
-                    };
-                });
-            }
-            if (token.pipelineId) {
-                // if token has pipelineId then the token is for pipeline
-                return pipelineFactory.get({ accessToken: tokenValue }).then(pipeline => {
-                    if (!pipeline) {
-                        return Promise.reject();
-                    }
-
-                    return pipeline.admin.then(admin => ({
-                        username: admin.username,
-                        scmContext: pipeline.scmContext,
-                        pipelineId: token.pipelineId,
-                        scope: ['pipeline']
-                    }));
+            if (!collections[0]) {
+                await collectionFactory.create({
+                    userId: user.id,
+                    name: 'My Pipelines',
+                    description,
+                    type: 'default'
                 });
             }
 
+            profile = {
+                username: user.username,
+                scmContext: user.scmContext,
+                scope: ['user']
+            };
+        }
+        if (token.pipelineId) {
+            // if token has pipelineId then the token is for pipeline
+            const pipeline = await pipelineFactory.get({ accessToken: tokenValue });
+
+            if (!pipeline) {
+                return Promise.reject();
+            }
+
+            const admin = await pipeline.admin;
+
+            profile = {
+                username: admin.username,
+                scmContext: pipeline.scmContext,
+                pipelineId: token.pipelineId,
+                scope: ['pipeline']
+            };
+        }
+        if (!profile) {
             return Promise.reject();
-        })
-        .then(profile => {
-            request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
-            profile.token = server.plugins.auth.generateToken(profile);
+        }
 
-            return cb(null, true, profile);
-        })
-        .catch(err => {
-            request.log(['auth', 'error'], err);
-            cb(null, false, {});
-        });
+        request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
+        profile.token = server.plugins.auth.generateToken(profile);
+
+        return { isValid: true, profile };
+    } catch (err) {
+        request.log(['auth', 'error'], err);
+
+        return { isValid: false };
+    }
 }
 
 /**
@@ -115,146 +122,157 @@ function _validateFunc(tokenValue, cb) {
 const authPlugin = {
     name: 'auth',
     async register(server, options) {
-        try {
-            const pluginOptions = joi.attempt(
-                options,
-                joi.object().keys({
-                    jwtEnvironment: joi.string().default(''),
-                    https: JOI_BOOLEAN.required(),
-                    cookiePassword: joi
-                        .string()
-                        .min(32)
-                        .required(),
-                    encryptionPassword: joi
-                        .string()
-                        .min(32)
-                        .required(),
-                    hashingPassword: joi
-                        .string()
-                        .min(32)
-                        .required(),
-                    allowGuestAccess: JOI_BOOLEAN.default(false),
-                    jwtPrivateKey: joi.string().required(),
-                    jwtPublicKey: joi.string().required(),
-                    jwtQueueServicePublicKey: joi.string().required(),
-                    whitelist: joi.array().default([]),
-                    admins: joi.array().default([]),
-                    scm: joi.object().required(),
-                    sessionTimeout: joi
-                        .number()
-                        .integer()
-                        .positive()
-                        .default(120),
-                    oauthRedirectUri: joi.string().optional(),
-                    sameSite: joi
-                        .alternatives()
-                        .try(JOI_BOOLEAN, joi.string())
-                        .required()
-                }),
-                'Invalid config for plugin-auth'
-            );
+        const pluginOptions = joi.attempt(
+            options,
+            joi.object().keys({
+                jwtEnvironment: joi.string().default(''),
+                https: JOI_BOOLEAN.required(),
+                cookiePassword: joi
+                    .string()
+                    .min(32)
+                    .required(),
+                encryptionPassword: joi
+                    .string()
+                    .min(32)
+                    .required(),
+                hashingPassword: joi
+                    .string()
+                    .min(32)
+                    .required(),
+                allowGuestAccess: JOI_BOOLEAN.default(false),
+                jwtPrivateKey: joi.string().required(),
+                jwtPublicKey: joi.string().required(),
+                jwtQueueServicePublicKey: joi.string().required(),
+                whitelist: joi.array().default([]),
+                admins: joi.array().default([]),
+                bell: joi.object().required(),
+                scm: joi.object().required(),
+                sessionTimeout: joi
+                    .number()
+                    .integer()
+                    .positive()
+                    .default(120),
+                oauthRedirectUri: joi.string().optional(),
+                sameSite: joi
+                    .alternatives()
+                    .try(JOI_BOOLEAN, joi.string())
+                    .required()
+            }),
+            'Invalid config for plugin-auth'
+        );
 
-            /**
-             * Generates a profile for storage in cookie and jwt
-             * @method generateProfile
-             * @param  {String}        username   Username of the person
-             * @param  {String}        scmContext Scm to which the person logged in belongs
-             * @param  {Array}         scope      Scope for this profile (usually build or user)
-             * @param  {Object}        metadata   Additonal information to tag along with the login
-             * @return {Object}                   The profile to be stored in jwt and/or cookie
-             */
-            server.expose('generateProfile', (username, scmContext, scope, metadata) => {
-                const profile = { username, scmContext, scope, ...(metadata || {}) };
+        /**
+         * Generates a profile for storage in cookie and jwt
+         * @method generateProfile
+         * @param  {String}        username   Username of the person
+         * @param  {String}        scmContext Scm to which the person logged in belongs
+         * @param  {Array}         scope      Scope for this profile (usually build or user)
+         * @param  {Object}        metadata   Additonal information to tag along with the login
+         * @return {Object}                   The profile to be stored in jwt and/or cookie
+         */
+        server.expose('generateProfile', async (username, scmContext, scope, metadata) => {
+            const profile = { username, scmContext, scope, ...(metadata || {}) };
 
-                if (pluginOptions.jwtEnvironment) {
-                    profile.environment = pluginOptions.jwtEnvironment;
+            if (pluginOptions.jwtEnvironment) {
+                profile.environment = pluginOptions.jwtEnvironment;
+            }
+
+            if (scmContext) {
+                const { scm } = pluginOptions;
+                const scmDisplayName = await scm.getDisplayName({ scmContext });
+                const userDisplayName = `${scmDisplayName}:${username}`;
+
+                // Check admin
+                if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(userDisplayName)) {
+                    profile.scope.push('admin');
                 }
+            }
 
-                if (scmContext) {
-                    const { scm } = server.root.app.userFactory;
-                    const scmDisplayName = scm.getDisplayName({ scmContext });
-                    const userDisplayName = `${scmDisplayName}:${username}`;
+            return profile;
+        });
 
-                    // Check admin
-                    if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(userDisplayName)) {
-                        profile.scope.push('admin');
-                    }
-                }
+        /**
+         * Generates a jwt that is signed and has a lifespan (default:2h)
+         * @method generateToken
+         * @param  {Object}  profile        Object from generateProfile
+         * @param  {Integer} buildTimeout   JWT Expires time (must be minutes)
+         * @return {String}                 Signed jwt that includes that profile
+         */
+        server.expose('generateToken', (profile, buildTimeout = DEFAULT_TIMEOUT) =>
+            jwt.sign(profile, pluginOptions.jwtPrivateKey, {
+                algorithm: ALGORITHM,
+                expiresIn: buildTimeout * 60, // must be in second
+                jwtid: uuid()
+            })
+        );
 
-                return profile;
-            });
+        const bellConfigs = pluginOptions.bell;
 
-            /**
-             * Generates a jwt that is signed and has a lifespan (default:2h)
-             * @method generateToken
-             * @param  {Object}  profile        Object from generateProfile
-             * @param  {Integer} buildTimeout   JWT Expires time (must be minutes)
-             * @return {String}                 Signed jwt that includes that profile
-             */
-            server.expose('generateToken', (profile, buildTimeout = DEFAULT_TIMEOUT) =>
-                jwt.sign(profile, pluginOptions.jwtPrivateKey, {
-                    algorithm: ALGORITHM,
-                    expiresIn: buildTimeout * 60, // must be in second
-                    jwtid: uuid()
-                })
-            );
+        Object.keys(bellConfigs).forEach(scmContext => {
+            const bellConfig = bellConfigs[scmContext];
 
-            const bellConfigs = await pluginOptions.scm.getBellConfiguration();
+            bellConfig.password = pluginOptions.cookiePassword;
+            bellConfig.isSecure = pluginOptions.https;
+            bellConfig.forceHttps = pluginOptions.https;
 
-            Object.keys(bellConfigs).forEach(scmContext => {
-                const bellConfig = bellConfigs[scmContext];
+            if (pluginOptions.oauthRedirectUri) {
+                bellConfig.location = pluginOptions.oauthRedirectUri;
+            }
 
-                bellConfig.password = pluginOptions.cookiePassword;
-                bellConfig.isSecure = pluginOptions.https;
-                bellConfig.forceHttps = pluginOptions.https;
+            // The oauth strategy differs between the scm modules
+            server.auth.strategy(`oauth_${scmContext}`, 'bell', bellConfig);
+        });
 
-                if (pluginOptions.oauthRedirectUri) {
-                    bellConfig.location = pluginOptions.oauthRedirectUri;
-                }
-
-                // The oauth strategy differs between the scm modules
-                server.auth.strategy(`oauth_${scmContext}`, 'bell', bellConfig);
-            });
-
-            server.auth.strategy('session', 'cookie', {
-                cookie: 'sid',
+        server.auth.strategy('session', 'cookie', {
+            cookie: {
+                name: 'sid',
                 ttl: pluginOptions.sessionTimeout * 60 * 1000,
                 password: pluginOptions.cookiePassword,
                 isSecure: pluginOptions.https,
                 isSameSite: pluginOptions.sameSite
-            });
+            }
+        });
 
-            server.auth.strategy('token', 'jwt', {
-                key: [pluginOptions.jwtPublicKey, pluginOptions.jwtQueueServicePublicKey],
-                verifyOptions: {
-                    algorithms: [ALGORITHM]
-                },
-                // This function is run once the Token has been decoded with signature
-                validateFunc(decoded, request, cb) {
-                    // TODO: figure out what to do here
-                    cb(null, true);
+        server.auth.strategy('token', 'jwt', {
+            key: [pluginOptions.jwtPublicKey, pluginOptions.jwtQueueServicePublicKey],
+            verifyOptions: {
+                algorithms: [ALGORITHM]
+            },
+            validate: async () => {
+                // The _decoded token signature is validated by jwt.veriry so we can return true
+                return { isValid: true };
+            }
+        });
+
+        server.auth.strategy('auth_token', 'bearer-access-token', {
+            accessTokenName: 'api_token',
+            allowCookieToken: false,
+            allowQueryToken: true,
+            validate: tokenValue => {
+                return _validateFunc(server, tokenValue);
+            }
+        });
+
+        server.auth.scheme('custom', () => {
+            return {
+                authenticate: (_, h) => {
+                    return h.authenticated();
                 }
-            });
+            };
+        });
+        server.auth.strategy('default', 'custom');
 
-            server.auth.strategy('auth_token', 'bearer-access-token', {
-                accessTokenName: 'api_token',
-                allowCookieToken: false,
-                allowQueryToken: true,
-                validateFunc: _validateFunc
-            });
-            server.route(
-                loginRoute(server, pluginOptions).concat([
-                    logoutRoute(),
-                    tokenRoute(),
-                    crumbRoute(),
-                    keyRoute(pluginOptions),
-                    contextsRoute(pluginOptions)
-                ])
-            );
-        }
-        catch (err) {
-            throw err;
-        }
+        const loginRoutes = loginRoute(server, pluginOptions);
+
+        server.route(
+            loginRoutes.concat([
+                logoutRoute(),
+                tokenRoute(),
+                crumbRoute(),
+                keyRoute(pluginOptions),
+                contextsRoute(pluginOptions)
+            ])
+        );
     }
 };
 

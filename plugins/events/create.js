@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
             const { buildId, causeMessage, creator, meta } = request.payload;
             const { scmContext, username } = request.auth.credentials;
@@ -260,7 +260,7 @@ module.exports = () => ({
                             })
                             .then(event => {
                                 if (event.builds === null) {
-                                    return reply(boom.notFound('No jobs to start.'));
+                                    return h.response(boom.notFound('No jobs to start.'));
                                 }
                                 // everything succeeded, inform the user
                                 const location = urlLib.format({
@@ -270,13 +270,14 @@ module.exports = () => ({
                                     pathname: `${request.path}/${event.id}`
                                 });
 
-                                return reply(event.toJson())
+                                return h
+                                    .response(event.toJson())
                                     .header('Location', location)
                                     .code(201);
                             });
                     }
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
             payload: validationSchema.models.event.create

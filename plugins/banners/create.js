@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { bannerFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -31,7 +31,7 @@ module.exports = () => ({
             // verify user is authorized to create banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
-                return reply(
+                return h.response(
                     boom.forbidden(
                         `User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges.`
                     )
@@ -51,11 +51,12 @@ module.exports = () => ({
                         pathname: `${request.path}/${banner.id}`
                     });
 
-                    return reply(banner.toJson())
+                    return h
+                        .response(banner.toJson())
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
             payload: schema.models.banner.create

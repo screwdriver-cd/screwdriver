@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.templateTag.base;
 const urlLib = require('url');
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { templateFactory } = request.server.app;
             const { templateTagFactory } = request.server.app;
@@ -56,7 +56,7 @@ module.exports = () => ({
                     if (templateTag) {
                         templateTag.version = version;
 
-                        return templateTag.update().then(newTag => reply(newTag.toJson()).code(200));
+                        return templateTag.update().then(newTag => h.response(newTag.toJson()).code(200));
                     }
 
                     // If template exists, then create the tag
@@ -68,21 +68,22 @@ module.exports = () => ({
                             pathname: `${request.path}/${newTag.id}`
                         });
 
-                        return reply(newTag.toJson())
+                        return h
+                            .response(newTag.toJson())
                             .header('Location', location)
                             .code(201);
                     });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
-                templateName: joi.reach(baseSchema, 'name'),
-                tagName: joi.reach(baseSchema, 'tag')
-            },
-            payload: {
-                version: joi.reach(baseSchema, 'version')
-            }
+            params: joi.object({
+                templateName: baseSchema.extract('name'),
+                tagName: baseSchema.extract('tag')
+            }),
+            payload: joi.object({
+                version: baseSchema.extract('version')
+            })
         }
     }
 });

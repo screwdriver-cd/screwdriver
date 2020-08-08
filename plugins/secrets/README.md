@@ -82,7 +82,7 @@ The server supplies factories to plugins in the form of server settings:
 
 ```js
 // handler secretPlugin.js
-handler: (request, reply) => {
+handler: (request, h) => {
     const factory = request.server.app.secretFactory;
 
     // ...

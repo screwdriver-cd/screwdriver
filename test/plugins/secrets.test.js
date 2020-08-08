@@ -5,7 +5,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
 const testSecret = require('./data/secret.json');
 
@@ -82,8 +82,8 @@ describe('secret plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }

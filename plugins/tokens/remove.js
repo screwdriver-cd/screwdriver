@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.token.base, 'id');
+const idSchema = schema.models.token.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { tokenFactory } = request.server.app;
             const { canAccess } = request.server.plugins.tokens;
             const { credentials } = request.auth;
@@ -37,13 +37,13 @@ module.exports = () => ({
                     // Check that the user is deleting their own token
                     return canAccess(credentials, token).then(() => token.remove());
                 })
-                .then(() => reply().code(204))
-                .catch(err => reply(boom.boomify(err)));
+                .then(() => h.response().code(204))
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

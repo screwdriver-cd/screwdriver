@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.collection.base, 'id');
+const joi = require('joi');
+const idSchema = schema.models.collection.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { collectionFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
@@ -43,14 +43,14 @@ module.exports = () => ({
                     `);
                     }
 
-                    return collection.remove().then(() => reply().code(204));
+                    return collection.remove().then(() => h.response().code(204));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

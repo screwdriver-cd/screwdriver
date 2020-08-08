@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { userFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { secretFactory } = request.server.app;
@@ -81,14 +81,15 @@ module.exports = () => ({
 
                                     delete output.value;
 
-                                    return reply(output)
+                                    return h
+                                        .response(output)
                                         .header('Location', location)
                                         .code(201);
                                 })
                         );
                     })
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => h.response(boom.boomify(err)))
             );
         },
         validate: {

@@ -88,8 +88,8 @@ const bookend = new Bookend({
     'screwdriver-coverage-bookend': coverage,
     'screwdriver-cache-bookend': cache
 },
-bookends.setup || [], // plugins required for the setup- steps
-bookends.teardown || [] // plugins required for the teardown-steps
+    bookends.setup || [], // plugins required for the setup- steps
+    bookends.teardown || [] // plugins required for the teardown-steps
 );
 
 // Setup Pipeline Factory for Executor

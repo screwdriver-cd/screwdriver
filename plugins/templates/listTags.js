@@ -1,13 +1,13 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
     .array()
     .items(schema.models.templateTag.base)
     .label('List of templates');
-const nameSchema = joi.reach(schema.models.templateTag.base, 'name');
+const nameSchema = schema.models.templateTag.base.extract('name');
 
 module.exports = () => ({
     method: 'GET',
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.templateTagFactory;
             const config = {
                 params: {
@@ -43,16 +43,16 @@ module.exports = () => ({
 
             return factory
                 .list(config)
-                .then(tags => reply(tags.map(p => p.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(tags => h.response(tags.map(p => p.toJson())))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: listSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 name: nameSchema
-            },
+            }),
             query: schema.api.pagination
         }
     }

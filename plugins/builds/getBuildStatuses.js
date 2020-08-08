@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const stringSchema = joi.string().regex(/^[0-9]+$/);
 const jobIdsSchema = joi
     .alternatives()
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { buildFactory } = request.server.app;
             const { jobIds, numBuilds, offset } = request.query;
 
@@ -41,19 +41,19 @@ module.exports = () => ({
                         throw boom.notFound('Builds do not exist');
                     }
 
-                    reply(builds);
+                    h.response(builds);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: joi.array()
         },
         validate: {
-            query: {
+            query: joi.object({
                 jobIds: jobIdsSchema,
                 numBuilds: stringSchema,
                 offset: stringSchema
-            }
+            })
         }
     }
 });

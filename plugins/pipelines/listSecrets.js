@@ -1,13 +1,13 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const secretListSchema = joi
     .array()
     .items(schema.models.secret.get)
     .label('List of secrets');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -41,11 +41,11 @@ module.exports = () => ({
                 })
                 .then(secrets => {
                     if (secrets.length === 0) {
-                        return reply([]);
+                        return h.response([]);
                     }
 
                     return canAccess(credentials, secrets[0], 'push').then(() =>
-                        reply(
+                        h.response(
                             secrets.map(s => {
                                 const output = s.toJson();
 
@@ -56,15 +56,15 @@ module.exports = () => ({
                         )
                     );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: secretListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            }
+            })
         }
     }
 });

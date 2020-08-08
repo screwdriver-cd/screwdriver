@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = joi.array().items(schema.models.token.get);
 
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -36,7 +36,7 @@ module.exports = () => ({
                     return user.tokens;
                 })
                 .then(tokens =>
-                    reply(
+                    h.response(
                         tokens.map(token => {
                             const output = token.toJson();
 
@@ -47,7 +47,7 @@ module.exports = () => ({
                         })
                     )
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema

@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.command.base;
 
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: async (request, reply) => {
+        handler: async (request, h) => {
             const { name, namespace } = request.params;
             const { commandFactory } = request.server.app;
             const { trusted } = request.payload;
@@ -43,18 +43,18 @@ module.exports = () => ({
             command.trusted = trusted;
 
             return command.update().then(
-                () => reply().code(204),
-                err => reply(boom.boomify(err))
+                () => h.response().code(204),
+                err => h.response(boom.boomify(err))
             );
         },
         validate: {
-            params: {
-                namespace: joi.reach(baseSchema, 'namespace'),
-                name: joi.reach(baseSchema, 'name')
-            },
-            payload: {
-                trusted: joi.reach(baseSchema, 'trusted')
-            }
+            params: joi.object({
+                namespace: baseSchema.extract('namespace'),
+                name: baseSchema.extract('name')
+            }),
+            payload: joi.object({
+                trusted: baseSchema.extract('trusted')
+            })
         }
     }
 });

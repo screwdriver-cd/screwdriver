@@ -18,13 +18,13 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const buildCredentials = request.auth.credentials;
 
             return config.coveragePlugin
                 .getAccessToken(buildCredentials)
-                .then(reply)
-                .catch(err => reply(boom.boomify(err)));
+                .then(h)
+                .catch(err => h.response(boom.boomify(err)));
         }
     }
 });

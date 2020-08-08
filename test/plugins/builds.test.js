@@ -5,7 +5,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const nock = require('nock');
 const rewire = require('rewire');
 const testBuild = require('./data/build.json');
@@ -173,8 +173,8 @@ describe('build plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -1187,8 +1187,8 @@ describe('build plugin test', () => {
                         host: 'localhost'
                     });
                     newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, reply) =>
-                            reply.continue({
+                        authenticate: (request, h) =>
+                            h.authenticated({
                                 credentials: {
                                     scope: ['user']
                                 }
@@ -2101,8 +2101,8 @@ describe('build plugin test', () => {
                         host: 'localhost'
                     });
                     newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, reply) =>
-                            reply.continue({
+                        authenticate: (request, h) =>
+                            h.authenticated({
                                 credentials: {
                                     scope: ['user']
                                 }
@@ -4422,11 +4422,11 @@ describe('build plugin test', () => {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
                         .twice()
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 } else {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 }
             }
 
@@ -4464,11 +4464,11 @@ describe('build plugin test', () => {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
                         .twice()
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 } else {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 }
             }
 
@@ -4506,11 +4506,11 @@ describe('build plugin test', () => {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
                         .twice()
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 } else {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 }
             }
 
@@ -4547,11 +4547,11 @@ describe('build plugin test', () => {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
                         .twice()
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 } else {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 }
             }
 
@@ -4590,11 +4590,11 @@ describe('build plugin test', () => {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
                         .twice()
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 } else {
                     nock('https://store.screwdriver.cd')
                         .get(`/v1/builds/${id}/${step}/log.${i}`)
-                        .reply(200, lines.join('\n'));
+                        .h.response(200, lines.join('\n'));
                 }
             }
 
@@ -4640,7 +4640,7 @@ describe('build plugin test', () => {
                 .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
-                .reply(200, '');
+                .h.response(200, '');
 
             return server
                 .inject({
@@ -4712,7 +4712,7 @@ describe('build plugin test', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/test/log.0`)
                 .twice()
-                .reply(200, '<invalid JSON>\n<more bad JSON>');
+                .h.response(200, '<invalid JSON>\n<more bad JSON>');
 
             return server
                 .inject({

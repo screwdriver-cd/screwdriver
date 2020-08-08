@@ -71,7 +71,7 @@ The server supplies factories to plugins in the form of server app values:
 
 ```js
 // handler jobsPlugin.js
-handler: (request, reply) => {
+handler: (request, h) => {
     const factory = request.server.app.jobFactory;
 
     // ...

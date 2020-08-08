@@ -1,13 +1,14 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const uuid = require('uuid/v4');
+const Joi = require('joi');
+const uuid = require('uuid').v4();
 
-const idSchema = joi.reach(schema.models.build.base, 'id');
+const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
-const typeSchema = joi.string().valid(['', 'download', 'preview']).label('Flag to trigger type either to download or preview');
+const typeSchema = joi.string().valid('', 'download', 'preview').label('Flag to trigger type either to download or preview');
 
 module.exports = config => ({
     method: 'GET',
@@ -25,7 +26,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const artifact = request.params.name;
             const buildId = request.params.id;
 
@@ -46,16 +47,16 @@ module.exports = config => ({
                 baseUrl += `&type=${request.query.type}`;
             }
 
-            return reply().redirect().location(baseUrl);
+            return h.response().redirect().location(baseUrl);
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema,
                 name: artifactSchema
-            },
-            query: {
+            }),
+            query: joi.object({
                 type: typeSchema
-            }
+            })
         }
     }
 });

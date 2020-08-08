@@ -1,10 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.job.get;
-const idSchema = joi.reach(schema.models.job.base, 'id');
+const idSchema = schema.models.job.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.jobFactory;
 
             return factory
@@ -32,17 +32,17 @@ module.exports = () => ({
                         throw boom.notFound('Job does not exist');
                     }
 
-                    return reply(job.toJson());
+                    return h.response(job.toJson());
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

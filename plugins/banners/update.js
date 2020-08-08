@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.banner.base, 'id');
+const Joi = require('joi');
+const idSchema = schema.models.banner.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params; // id of banner to update
             const { username } = request.auth.credentials;
@@ -33,7 +33,7 @@ module.exports = () => ({
             // verify user is authorized to update banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
-                return reply(
+                return h.response(
                     boom.forbidden(
                         `User ${adminDetails.userDisplayName}
                     does not have Screwdriver administrative privileges.`
@@ -50,14 +50,14 @@ module.exports = () => ({
 
                     Object.assign(banner, request.payload);
 
-                    return banner.update().then(updatedBanner => reply(updatedBanner.toJson()).code(200));
+                    return banner.update().then(updatedBanner => h.response(updatedBanner.toJson()).code(200));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: Joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.banner.update
         }
     }

@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const mockery = require('mockery');
 const pipelineMock = require('./data/pipeline.json');
 
@@ -82,8 +82,8 @@ describe('isAdmin plugin test', () => {
             port: 1234
         });
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['build']
                     }

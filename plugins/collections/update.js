@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.collection.base, 'id');
+const idSchema = schema.models.collection.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
@@ -21,10 +21,10 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             // Check if the collection is to be updated as a default collection
             if (request.payload.type === 'default') {
-                return reply(boom.forbidden('Collection can not be updated to type "default"'));
+                return h.response(boom.forbidden('Collection can not be updated to type "default"'));
             }
 
             const { id } = request.params;
@@ -67,20 +67,20 @@ module.exports = () => ({
 
                             return oldCollection
                                 .update()
-                                .then(updatedCollection => reply(updatedCollection.toJson()).code(200));
+                                .then(updatedCollection => h.response(updatedCollection.toJson()).code(200));
                         });
                     }
 
                     return oldCollection
                         .update()
-                        .then(updatedCollection => reply(updatedCollection.toJson()).code(200));
+                        .then(updatedCollection => h.response(updatedCollection.toJson()).code(200));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.collection.update
         }
     }

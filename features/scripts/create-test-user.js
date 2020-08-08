@@ -28,7 +28,7 @@ function createTestUser() {
     const gitToken = process.argv[3];
 
     const config = require('config');
-    const hoek = require('hoek');
+    const hoek = require('@hapi/hoek');
 
     // Setup Authentication
     const authConfig = config.get('auth');

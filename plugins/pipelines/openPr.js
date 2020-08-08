@@ -1,12 +1,12 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const helper = require('./helper');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
-const pipelineCheckoutUrlSchema = joi.reach(schema.models.pipeline.create, 'checkoutUrl');
-const pipelineRootDirSchema = joi.reach(schema.models.pipeline.create, 'rootDir');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
+const pipelineCheckoutUrlSchema = schema.models.pipeline.create.extract('checkoutUrl');
+const pipelineRootDirSchema = schema.models.pipeline.create.extract('rootDir');
 
 module.exports = () => ({
     method: 'POST',
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { files, title, message } = request.payload;
@@ -72,16 +72,16 @@ module.exports = () => ({
                                 throw boom.notImplemented('openPr not implemented for gitlab');
                             }
 
-                            return reply({ prUrl: pullRequest.data.html_url }).code(201);
+                            return h.response({ prUrl: pullRequest.data.html_url }).code(201);
                         });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
-            payload: {
+            }),
+            payload: joi.object({
                 checkoutUrl: pipelineCheckoutUrlSchema,
                 rootDir: pipelineRootDirSchema,
                 files: joi
@@ -96,7 +96,7 @@ module.exports = () => ({
                     .required(),
                 title: joi.string().required(),
                 message: joi.string().required()
-            }
+            })
         }
     }
 });

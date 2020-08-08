@@ -19,14 +19,14 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { stepFactory } = request.server.app;
             const buildId = request.params.id;
             const stepName = request.params.name;
             const buildIdCred = request.auth.credentials.username;
 
             if (buildId !== buildIdCred) {
-                return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
+                return h.response(boom.forbidden(`Credential only valid for ${buildIdCred}`));
             }
 
             const now = new Date().toISOString();
@@ -50,8 +50,8 @@ module.exports = () => ({
 
                     return step.update();
                 })
-                .then(updatedStep => reply(updatedStep).code(200))
-                .catch(err => reply(boom.boomify(err)));
+                .then(updatedStep => h.response(updatedStep).code(200))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: schema.models.build.getStep

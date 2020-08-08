@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const testBuilds = require('./data/builds.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
@@ -103,8 +103,8 @@ describe('job plugin test', () => {
         });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }

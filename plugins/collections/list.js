@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { userFactory, collectionFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
@@ -37,9 +37,11 @@ module.exports = () => ({
                         }
                     };
 
-                    return collectionFactory.list(config).then(collections => reply(collections.map(c => c.toJson())));
+                    return collectionFactory
+                        .list(config)
+                        .then(collections => h.response(collections.map(c => c.toJson())));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: listSchema

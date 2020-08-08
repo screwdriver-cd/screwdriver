@@ -152,7 +152,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (req, reply) => {
+        handler: (req, h) => {
             const { stepFactory } = req.server.app;
             const buildId = req.params.id;
             const stepName = req.params.name;
@@ -169,7 +169,7 @@ module.exports = config => ({
                     const output = [];
 
                     if (isNotStarted) {
-                        return reply(output).header('X-More-Data', 'false');
+                        return h.response(output).header('X-More-Data', 'false');
                     }
 
                     const isDone = stepModel.code !== undefined;
@@ -192,10 +192,10 @@ module.exports = config => ({
                             })
                         )
                         .then(([lines, morePages]) =>
-                            reply(lines).header('X-More-Data', (morePages || !isDone).toString())
+                            h.response(lines).header('X-More-Data', (morePages || !isDone).toString())
                         );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: schema.api.loglines.output

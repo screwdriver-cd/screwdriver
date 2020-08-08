@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.banner.base, 'id');
+const Joi = require('joi');
+const idSchema = schema.models.banner.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params; // id of banner to delete
 
@@ -34,7 +34,7 @@ module.exports = () => ({
             // verify user is authorized to remove banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
-                return reply(
+                return h.response(
                     boom.forbidden(
                         `User ${adminDetails.userDisplayName}
                     does not have Screwdriver administrative privileges.`
@@ -49,14 +49,14 @@ module.exports = () => ({
                         throw boom.notFound(`Banner ${id} does not exist`);
                     }
 
-                    return banner.remove().then(() => reply().code(204));
+                    return banner.remove().then(() => h.response().code(204));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: Joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

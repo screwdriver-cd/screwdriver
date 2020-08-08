@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 const helper = require('./helper');
 
 /**
@@ -45,7 +45,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { id } = request.params;
@@ -58,7 +58,7 @@ module.exports = () => ({
             let gitToken;
 
             if (!isValidToken(id, request.auth.credentials)) {
-                return reply(boom.unauthorized('Token does not have permission to this pipeline'));
+                return h.response(boom.unauthorized('Token does not have permission to this pipeline'));
             }
 
             return (
@@ -138,19 +138,19 @@ module.exports = () => ({
                                             return oldPipeline
                                                 .update()
                                                 .then(updatedPipeline => updatedPipeline.sync())
-                                                .then(syncedPipeline => reply(syncedPipeline.toJson()).code(200));
+                                                .then(syncedPipeline => h.response(syncedPipeline.toJson()).code(200));
                                         })
                                 )
                         );
                     })
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => h.response(boom.boomify(err)))
             );
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.pipeline.update
         }
     }

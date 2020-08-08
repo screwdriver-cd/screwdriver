@@ -1,9 +1,9 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
 const schema = require('screwdriver-data-schema');
-const nameSchema = joi.reach(schema.models.buildCluster.base, 'name');
+const Joi = require('joi');
+const nameSchema = schema.models.buildCluster.base.extract('name');
 
 module.exports = () => ({
     method: 'PUT',
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { buildClusterFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
@@ -36,7 +36,7 @@ module.exports = () => ({
                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
 
                 if (!adminDetails.isAdmin) {
-                    return reply(
+                    return h.response(
                         boom.forbidden(
                             `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
@@ -63,13 +63,15 @@ module.exports = () => ({
 
                         return buildClusters[0]
                             .update()
-                            .then(updatedBuildCluster => reply(updatedBuildCluster.toJson()).code(200));
+                            .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
                     })
-                    .catch(err => reply(boom.boomify(err)));
+                    .catch(err => h.response(boom.boomify(err)));
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return reply(boom.boomify(boom.badData(`No scmOrganizations provided for build cluster ${name}.`)));
+                return h.response(
+                    boom.boomify(boom.badData(`No scmOrganizations provided for build cluster ${name}.`))
+                );
             }
 
             // Must have admin permission on org(s) if updating org-specific build cluster
@@ -122,16 +124,16 @@ module.exports = () => ({
 
                             return buildCluster
                                 .update()
-                                .then(updatedBuildCluster => reply(updatedBuildCluster.toJson()).code(200));
+                                .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
                         });
                     })
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         validate: {
-            params: {
+            params: Joi.object({
                 name: nameSchema
-            },
+            }),
             payload: schema.models.buildCluster.update
         }
     }

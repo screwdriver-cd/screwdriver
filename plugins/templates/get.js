@@ -1,12 +1,12 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.template.get;
-const nameSchema = joi.reach(schema.models.template.base, 'name');
-const versionSchema = joi.reach(schema.models.template.base, 'version');
-const tagSchema = joi.reach(schema.models.templateTag.base, 'tag');
+const nameSchema = schema.models.template.base.extract('name');
+const versionSchema = schema.models.template.base.extract('version');
+const tagSchema = schema.models.templateTag.base.extract('tag');
 
 module.exports = () => ({
     method: 'GET',
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { templateFactory } = request.server.app;
             const { name, versionOrTag } = request.params;
 
@@ -35,18 +35,18 @@ module.exports = () => ({
                         throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
                     }
 
-                    return reply(template);
+                    return h.response(template);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 name: nameSchema,
                 versionOrTag: joi.alternatives().try(versionSchema, tagSchema)
-            }
+            })
         }
     }
 });

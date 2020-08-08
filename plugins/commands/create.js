@@ -126,7 +126,7 @@ module.exports = () => ({
             maxBytes: DEFAULT_BYTES,
             allow: ['multipart/form-data', 'application/json']
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const data = request.payload;
             const { isPR } = request.auth.credentials;
             let commandSpec;
@@ -141,7 +141,7 @@ module.exports = () => ({
                     commandSpec = data.spec;
                     commandBin = data.file;
                 } else {
-                    return reply(boom.badRequest(multipartCheckResult.message));
+                    return h.response(boom.badRequest(multipartCheckResult.message));
                 }
             } else {
                 commandSpec = data.yaml;
@@ -201,11 +201,12 @@ module.exports = () => ({
                         pathname: `${request.path}/${command.id}`
                     });
 
-                    return reply(command.toJson())
+                    return h
+                        .response(command.toJson())
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         }
     }
 });

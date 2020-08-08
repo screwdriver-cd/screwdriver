@@ -6,7 +6,7 @@ const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 
 chai.use(require('chai-as-promised'));
 

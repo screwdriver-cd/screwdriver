@@ -6,7 +6,7 @@ const { expect } = chai;
 const hapi = require('@hapi/hapi');
 const sinon = require('sinon');
 const fs = require('fs');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const jwt = require('jsonwebtoken');
 const testCollection = require('./data/collection.json');
 
@@ -185,7 +185,7 @@ describe('auth plugin test', () => {
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
-            assert.isOk(server.registrations['hapi-auth-cookie']);
+            assert.isOk(server.registrations['@hapi/cookie']);
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
@@ -303,7 +303,7 @@ describe('auth plugin test', () => {
                     // Use the 'session' auth strategy to only allow users
                     // with a session to use this route.
                     auth: 'session',
-                    handler: (request, reply) => reply('My Account')
+                    handler: (request, h) => h.response('My Account')
                 }
             });
 
@@ -325,7 +325,7 @@ describe('auth plugin test', () => {
                     auth: {
                         strategies: ['token', 'session']
                     },
-                    handler: (request, reply) => reply({})
+                    handler: (request, h) => h.response({})
                 }
             });
 
@@ -951,7 +951,7 @@ describe('auth plugin test', () => {
                     config: {
                         description: 'dummy route for crumb test',
                         tags: ['api', 'webhooks'],
-                        handler: (request, reply) => reply(true)
+                        handler: (request, h) => h.response(true)
                     }
                 });
 
@@ -975,7 +975,7 @@ describe('auth plugin test', () => {
                     config: {
                         description: 'non-webhooks route for crumb test',
                         tags: ['api'],
-                        handler: (request, reply) => reply(true)
+                        handler: (request, h) => h.response(true)
                     }
                 });
 
@@ -996,7 +996,7 @@ describe('auth plugin test', () => {
                     config: {
                         description: 'non-webhooks route for crumb test',
                         tags: ['api'],
-                        handler: (request, reply) => reply(true)
+                        handler: (request, h) => h.response(true)
                     }
                 });
 

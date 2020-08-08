@@ -15,9 +15,9 @@ const updateRoute = require('./update');
  */
 const buildClustersPlugin = {
     name: 'buildClusters',
-    async register(server, options) {
+    async register(server) {
         server.route([createRoute(), getRoute(), listRoute(), removeRoute(), updateRoute()]);
     }
 };
 
-module.exports = buildClustersPlugin
+module.exports = buildClustersPlugin;

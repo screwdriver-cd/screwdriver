@@ -1,10 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const Joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const authTokenSchema = schema.api.auth.token;
-const buildIdSchema = joi.reach(schema.models.build.base, 'id');
+const buildIdSchema = schema.models.build.base.extract('id');
 
 module.exports = () => ({
     method: 'POST',
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const profile = request.auth.credentials;
             const { buildTimeout } = request.payload;
             const { buildFactory } = request.server.app;
@@ -67,17 +67,17 @@ module.exports = () => ({
                         parseInt(buildTimeout, 10)
                     );
 
-                    return reply({ token });
+                    return h.response({ token });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: authTokenSchema
         },
         validate: {
-            params: {
+            params: Joi.object({
                 id: buildIdSchema
-            }
+            })
         }
     }
 });

@@ -2,11 +2,11 @@
 
 const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const urlLib = require('url');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
-const idSchema = joi.reach(schema.models.event.base, 'id');
+const idSchema = schema.models.event.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const { eventFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -109,20 +109,21 @@ module.exports = () => ({
                                 pathname: `${request.path}/${event.id}`
                             });
 
-                            return reply(event.toJson())
+                            return h
+                                .response(event.toJson())
                                 .header('Location', location)
                                 .code(200);
                         });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

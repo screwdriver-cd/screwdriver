@@ -18,11 +18,11 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             config.coveragePlugin
                 .getInfo(request.query)
-                .then(reply)
-                .catch(err => reply(boom.boomify(err)));
+                .then(h)
+                .catch(err => h.response(boom.boomify(err)));
         }
     }
 });

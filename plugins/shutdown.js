@@ -1,6 +1,6 @@
 'use strict';
 
-const Joi = require('@hapi/joi');
+const Joi = require('joi');
 const logger = require('screwdriver-logger');
 
 const tasks = {};
@@ -9,21 +9,6 @@ const taskSchema = Joi.object({
     task: Joi.func().required(),
     timeout: Joi.number().integer()
 });
-
-/**
- *
- * @param {object} task
- */
-function register(task) {
-    const res = taskSchema.validate(task);
-
-    if (res.error) {
-        return res.error;
-    }
-    tasks[task.taskname] = task;
-
-    return '';
-}
 
 /**
  * Function to return promise timeout or resolution
@@ -43,62 +28,75 @@ function promiseTimeout(fn, timeout) {
 }
 
 /**
- * Hapi interface for plugin to handle serve graceful shutdown
+ * Hapi plugin to handle serve graceful shutdown
  * @method register
  * @param  {Hapi.Server}    server
- * @param  {Object}         options
  */
-exports.register = (server, options, next) => {
-    const taskHandler = async () => {
-        try {
-            await Promise.all(
-                Object.keys(tasks).map(async key => {
-                    logger.info(`executing task ${key}`);
-                    const item = tasks[key];
+const shutdownPlugin = {
+    name: 'shutdown',
+    async register(server) {
+        const terminationGracePeriod = parseInt(process.env.TERMINATION_GRACE_PERIOD, 10) || 30;
 
-                    await item.task();
-                })
-            );
+        const taskHandler = async () => {
+            try {
+                await Promise.all(
+                    Object.keys(tasks).map(async key => {
+                        logger.info(`shutdown-> executing task ${key}`);
+                        const item = tasks[key];
 
-            return Promise.resolve();
-        } catch (err) {
-            logger.error(err);
-            throw err;
-        }
-    };
+                        await item.task();
+                    })
+                );
 
-    const gracefulStop = async () => {
-        try {
-            logger.info('gracefully shutting down server');
-            await server.root.stop({
-                timeout: 5000
-            });
-            process.exit(0);
-        } catch (err) {
-            logger.error(err);
-            process.exit(1);
-        }
-    };
-
-    const onSigterm = async () => {
-        try {
-            logger.info('got SIGTERM; running triggers before shutdown');
-            const res = await promiseTimeout(taskHandler(), options.terminationGracePeriod * 1000);
-
-            if (res) {
-                logger.error(res);
+                return Promise.resolve();
+            } catch (err) {
+                logger.error('shutdown-> Error in taskHandler %s', err);
+                throw err;
             }
-            await gracefulStop();
-        } catch (err) {
-            logger.error(err);
-        }
-    };
+        };
 
-    process.on('SIGTERM', onSigterm);
-    server.expose('handler', register);
-    next();
+        const gracefulStop = async () => {
+            try {
+                logger.info('shutdown-> gracefully shutting down server');
+                await server.stop({
+                    timeout: 5000
+                });
+                process.exit(0);
+            } catch (err) {
+                logger.error('shutdown-> error in graceful shutdown %s', err);
+                process.exit(1);
+            }
+        };
+
+        const onSigterm = async () => {
+            try {
+                logger.info('shutdown-> got SIGTERM; running triggers before shutdown');
+                const res = await promiseTimeout(taskHandler(), terminationGracePeriod * 1000);
+
+                if (res) {
+                    logger.error(res);
+                }
+                await gracefulStop();
+            } catch (err) {
+                logger.error('shutdown-> Error in plugin %s', err);
+                process.exit(1);
+            }
+        };
+
+        // catch sigterm signal
+        process.on('SIGTERM', onSigterm);
+
+        server.expose('handler', task => {
+            const res = taskSchema.validate(task);
+
+            if (res.error) {
+                return res.error;
+            }
+            tasks[task.taskname] = task;
+
+            return '';
+        });
+    }
 };
 
-exports.register.attributes = {
-    name: 'shutdown'
-};
+module.exports = shutdownPlugin;

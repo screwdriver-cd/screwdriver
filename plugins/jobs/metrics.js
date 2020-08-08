@@ -1,12 +1,12 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
 const jobMetricListSchema = joi.array().items(joi.object());
-const jobIdSchema = joi.reach(schema.models.job.base, 'id');
+const jobIdSchema = schema.models.job.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: (request, h) => {
             const factory = request.server.app.jobFactory;
             const { id } = request.params;
             const { aggregateInterval } = request.query;
@@ -53,16 +53,16 @@ module.exports = () => ({
 
                     return job.getMetrics(config);
                 })
-                .then(metrics => reply(metrics))
-                .catch(err => reply(boom.boomify(err)));
+                .then(metrics => h.response(metrics))
+                .catch(err => h.response(boom.boomify(err)));
         },
         response: {
             schema: jobMetricListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: jobIdSchema
-            },
+            }),
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),

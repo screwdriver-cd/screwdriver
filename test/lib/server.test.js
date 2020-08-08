@@ -78,7 +78,7 @@ describe('server case', () => {
             server.route({
                 method: 'GET',
                 path: '/v1/status',
-                handler: (request, reply) => reply('OK')
+                handler: (request, h) => h.response('OK')
             });
 
             Assert.notOk(error);
@@ -165,32 +165,32 @@ describe('server case', () => {
                 server.route({
                     method: 'GET',
                     path: '/yes',
-                    handler: (request, reply) => reply('OK')
+                    handler: (request, h) => h.response('OK')
                 });
                 server.route({
                     method: 'GET',
                     path: '/no',
-                    handler: (request, reply) => reply(new Error('Not OK'))
+                    handler: (request, h) => h.response(new Error('Not OK'))
                 });
                 server.route({
                     method: 'GET',
                     path: '/noStack',
-                    handler: (request, reply) => {
+                    handler: (request, h) => {
                         const response = boom.boomify(new Error('whatStackTrace'));
 
                         delete response.stack;
 
-                        return reply(response);
+                        return h.response(response);
                     }
                 });
 
                 server.route({
                     method: 'GET',
                     path: '/noWithResponse',
-                    handler: (request, reply) => {
+                    handler: (request, h) => {
                         const response = boom.boomify(boom.conflict('conflict', { conflictOn: 1 }));
 
-                        return reply(response);
+                        return h.response(response);
                     }
                 });
 

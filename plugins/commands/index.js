@@ -17,73 +17,72 @@ const updateTrustedRoute = require('./updateTrusted');
  * @param  {Object}   options           Configuration
  * @param  {Function} next              Function to call when done
  */
-exports.register = (server, options, next) => {
-    /**
-     * Throws error if a credential does not have permission to remove command
-     * If credential has access, resolves to true
-     * @method canRemove
-     * @param {Object}  credentials              Credential object from Hapi
-     * @param {String}  credentials.username     Username of the person logged in (or build ID)
-     * @param {String}  credentials.scmContext   Scm of the person logged in (or build ID)
-     * @param {Array}   credentials.scope        Scope of the credential (user, build, admin)
-     * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
-     * @param {Object}  command                  Target command object
-     * @param {String}  permission               Required permission level
-     * @return {Promise}
-     */
-    server.expose('canRemove', (credentials, command, permission) => {
-        const { username, scmContext, scope, isPR } = credentials;
-        const { userFactory, pipelineFactory } = server.root.app;
+const commandsPlugin = {
+    name: 'commands',
+    async register(server) {
+        /**
+         * Throws error if a credential does not have permission to remove command
+         * If credential has access, resolves to true
+         * @method canRemove
+         * @param {Object}  credentials              Credential object from Hapi
+         * @param {String}  credentials.username     Username of the person logged in (or build ID)
+         * @param {String}  credentials.scmContext   Scm of the person logged in (or build ID)
+         * @param {Array}   credentials.scope        Scope of the credential (user, build, admin)
+         * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
+         * @param {Object}  command                  Target command object
+         * @param {String}  permission               Required permission level
+         * @return {Promise}
+         */
+        server.expose('canRemove', (credentials, command, permission) => {
+            const { username, scmContext, scope, isPR } = credentials;
+            const { userFactory, pipelineFactory } = server.root.app;
 
-        if (credentials.scope.includes('admin')) {
-            return Promise.resolve(true);
-        }
-
-        return pipelineFactory.get(command.pipelineId).then(pipeline => {
-            if (!pipeline) {
-                throw boom.notFound(`Pipeline ${command.pipelineId} does not exist`);
+            if (credentials.scope.includes('admin')) {
+                return Promise.resolve(true);
             }
 
-            if (scope.includes('user')) {
-                return userFactory.get({ username, scmContext }).then(user => {
-                    if (!user) {
-                        throw boom.notFound(`User ${username} does not exist`);
-                    }
+            return pipelineFactory.get(command.pipelineId).then(pipeline => {
+                if (!pipeline) {
+                    throw boom.notFound(`Pipeline ${command.pipelineId} does not exist`);
+                }
 
-                    return user.getPermissions(pipeline.scmUri).then(permissions => {
-                        if (!permissions[permission]) {
-                            throw boom.forbidden(
-                                `User ${username} does not have ${permission} access for this command`
-                            );
+                if (scope.includes('user')) {
+                    return userFactory.get({ username, scmContext }).then(user => {
+                        if (!user) {
+                            throw boom.notFound(`User ${username} does not exist`);
                         }
 
-                        return true;
+                        return user.getPermissions(pipeline.scmUri).then(permissions => {
+                            if (!permissions[permission]) {
+                                throw boom.forbidden(
+                                    `User ${username} does not have ${permission} access for this command`
+                                );
+                            }
+
+                            return true;
+                        });
                     });
-                });
-            }
+                }
 
-            if (command.pipelineId !== credentials.pipelineId || isPR) {
-                throw boom.forbidden('Not allowed to remove this command');
-            }
+                if (command.pipelineId !== credentials.pipelineId || isPR) {
+                    throw boom.forbidden('Not allowed to remove this command');
+                }
 
-            return true;
+                return true;
+            });
         });
-    });
 
-    server.route([
-        createRoute(),
-        createTagRoute(),
-        getRoute(),
-        removeRoute(),
-        listRoute(),
-        listVersionsRoute(),
-        listTagsRoute(),
-        updateTrustedRoute()
-    ]);
-
-    next();
+        server.route([
+            createRoute(),
+            createTagRoute(),
+            getRoute(),
+            removeRoute(),
+            listRoute(),
+            listVersionsRoute(),
+            listTagsRoute(),
+            updateTrustedRoute()
+        ]);
+    }
 };
 
-exports.register.attributes = {
-    name: 'commands'
-};
+module.exports = commandsPlugin;

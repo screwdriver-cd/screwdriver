@@ -9,34 +9,33 @@ const schema = require('screwdriver-data-schema');
  * @param  {Object}         options
  * @param  {Function} next
  */
-exports.register = (server, options, next) => {
-    const { executor } = options;
-    const { scm } = options;
-
-    server.route({
-        method: 'GET',
-        path: '/stats',
-        config: {
-            description: 'API stats',
-            notes: 'Should return statistics for the entire system',
-            tags: ['api', 'stats'],
-            response: {
-                schema: schema.api.stats
-            }
-        },
-        handler: async (request, reply) => {
-            const executorStats = await executor.stats({ token: '' });
-
-            reply({
-                executor: executorStats,
-                scm: scm.stats()
-            });
-        }
-    });
-    next();
-};
-
-exports.register.attributes = {
+const statsPlugin = {
     name: 'stats',
-    version: '1.0.0'
+    async register(server, options) {
+        const { executor } = options;
+        const { scm } = options;
+
+        server.route({
+            method: 'GET',
+            path: '/stats',
+            config: {
+                description: 'API stats',
+                notes: 'Should return statistics for the entire system',
+                tags: ['api', 'stats'],
+                response: {
+                    schema: schema.api.stats
+                }
+            },
+            handler: async (request, h) => {
+                const executorStats = await executor.stats({ token: '' });
+
+                h.response({
+                    executor: executorStats,
+                    scm: scm.stats()
+                });
+            }
+        });
+    }
 };
+
+module.exports = statsPlugin;

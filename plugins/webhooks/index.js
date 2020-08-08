@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('@hapi/joi');
+const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
@@ -453,9 +453,9 @@ async function batchStopJobs({ pipelines, prNum, action, name }) {
  * @param  {String}       options.restrictPR    Restrict PR setting
  * @param  {Boolean}      options.chainPR       Chain PR flag
  * @param  {Hapi.request} request               Request from user
- * @param  {Hapi.reply}   reply                 Reply to user
+ * @param  {Hapi.h}       h                     Response toolkit
  */
-async function pullRequestOpened(options, request, reply) {
+async function pullRequestOpened(options, request, h) {
     const { hookId } = options;
 
     return createPREvents(options, request)
@@ -464,12 +464,12 @@ async function pullRequestOpened(options, request, reply) {
                 request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
             });
 
-            return reply().code(201);
+            return h.response().code(201);
         })
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return reply(boom.boomify(err));
+            return h.response(boom.boomify(err));
         });
 }
 
@@ -486,7 +486,7 @@ async function pullRequestOpened(options, request, reply) {
  * @param  {Hapi.request} request                   Request from user
  * @param  {Hapi.reply}   reply                     Reply to user
  */
-async function pullRequestClosed(options, request, reply) {
+async function pullRequestClosed(options, request, h) {
     const { pipelines, hookId, name, prNum, action } = options;
     const updatePRJobs = job =>
         stopJob({ job, prNum, action })
@@ -507,11 +507,11 @@ async function pullRequestClosed(options, request, reply) {
             })
         )
     )
-        .then(() => reply().code(200))
+        .then(() => h.response().code(200))
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return reply(boom.boomify(err));
+            return h.response(boom.boomify(err));
         });
 }
 
@@ -531,7 +531,7 @@ async function pullRequestClosed(options, request, reply) {
  * @param  {Hapi.request} request               Request from user
  * @param  {Hapi.reply}   reply                 Reply to user
  */
-async function pullRequestSync(options, request, reply) {
+async function pullRequestSync(options, request, h) {
     const { pipelines, hookId, name, prNum, action } = options;
 
     await batchStopJobs({ pipelines, name, prNum, action });
@@ -544,12 +544,12 @@ async function pullRequestSync(options, request, reply) {
                 request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
             });
 
-            return reply().code(201);
+            return h.response().code(201);
         })
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return reply(boom.boomify(err));
+            return h.response(boom.boomify(err));
         });
 }
 
@@ -594,7 +594,7 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
  * @param  {String}             token                     The token used to authenticate to the SCM
  * @param  {Object}             parsed
  */
-function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
+function pullRequestEvent(pluginOptions, request, h, parsed, token) {
     const { pipelineFactory } = request.server.app;
     const { userFactory } = request.server.app;
     const {
@@ -641,7 +641,7 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
 
                 request.log(['webhook', hookId], message);
 
-                return reply({ message }).code(204);
+                return h.response({ message }).code(204);
             }
 
             const options = {
@@ -668,18 +668,18 @@ function pullRequestEvent(pluginOptions, request, reply, parsed, token) {
             switch (action) {
                 case 'opened':
                 case 'reopened':
-                    return pullRequestOpened(options, request, reply);
+                    return pullRequestOpened(options, request, h);
                 case 'synchronized':
-                    return pullRequestSync(options, request, reply);
+                    return pullRequestSync(options, request, h);
                 case 'closed':
                 default:
-                    return pullRequestClosed(options, request, reply);
+                    return pullRequestClosed(options, request, h);
             }
         })
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return reply(boom.boomify(err));
+            return h.response(boom.boomify(err));
         });
 }
 
@@ -846,12 +846,12 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
  * @param  {Object}             pluginOptions
  * @param  {String}             pluginOptions.username Generic scm username
  * @param  {Hapi.request}       request                Request from user
- * @param  {Hapi.reply}         reply                  Reply to user
+ * @param  {Hapi.h}             h                      Response toolkit
  * @param  {Object}             parsed                 It has information to create event
  * @param  {String}             token                  The token used to authenticate to the SCM
  * @param  {String}             [skipMessage]          Message to skip starting builds
  */
-async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, token) {
+async function pushEvent(pluginOptions, request, h, parsed, skipMessage, token) {
     const { eventFactory } = request.server.app;
     const { pipelineFactory } = request.server.app;
     const { userFactory } = request.server.app;
@@ -894,18 +894,18 @@ async function pushEvent(pluginOptions, request, reply, parsed, skipMessage, tok
         const hasBuildEvents = events.filter(e => e.builds !== null);
 
         if (hasBuildEvents.length === 0) {
-            return reply({ message: 'No jobs to start' }).code(204);
+            return h.response({ message: 'No jobs to start' }).code(204);
         }
 
         hasBuildEvents.forEach(e => {
             request.log(['webhook', hookId, e.id], `Event ${e.id} started`);
         });
 
-        return reply().code(201);
+        return h.response().code(201);
     } catch (err) {
         logger.error(`[${hookId}]: ${err}`);
 
-        return reply(boom.boomify(err));
+        return h.response(boom.boomify(err));
     }
 }
 
@@ -949,135 +949,134 @@ async function getCommitRefSha({ scm, token, ref, refType, checkoutUrl, scmConte
  * @param  {Integer}    options.maxBytes        Upper limit on incoming uploads to builds
  * @param  {Function}   next                    Function to call when done
  */
-exports.register = (server, options, next) => {
-    const { scm } = server.root.app.pipelineFactory;
-    const pluginOptions = joi.attempt(
-        options,
-        joi.object().keys({
-            username: joi.string().required(),
-            ignoreCommitsBy: joi
-                .array()
-                .items(joi.string())
-                .optional(),
-            restrictPR: joi
-                .string()
-                .valid('all', 'none', 'branch', 'fork')
-                .optional(),
-            chainPR: joi.boolean().optional(),
-            maxBytes: joi
-                .number()
-                .integer()
-                .optional()
-        }),
-        'Invalid config for plugin-webhooks'
-    );
+const webhooksPlugin = {
+    name: 'webhooks',
+    async register(server, options) {
+        const pluginOptions = joi.attempt(
+            options,
+            joi.object().keys({
+                username: joi.string().required(),
+                ignoreCommitsBy: joi
+                    .array()
+                    .items(joi.string())
+                    .optional(),
+                restrictPR: joi
+                    .string()
+                    .valid('all', 'none', 'branch', 'fork')
+                    .optional(),
+                chainPR: joi.boolean().optional(),
+                maxBytes: joi
+                    .number()
+                    .integer()
+                    .optional()
+            }),
+            'Invalid config for plugin-webhooks'
+        );
 
-    server.route({
-        method: 'POST',
-        path: '/webhooks',
-        config: {
-            description: 'Handle webhook events',
-            notes: 'Acts on pull request, pushes, comments, etc.',
-            tags: ['api', 'webhook'],
-            payload: {
-                maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
-            },
-            handler: async (request, reply) => {
-                const { userFactory } = request.server.app;
-                const ignoreUser = pluginOptions.ignoreCommitsBy;
-                let message = 'Unable to process this kind of event';
-                let skipMessage;
-                let parsedHookId = '';
+        server.route({
+            method: 'POST',
+            path: '/webhooks',
+            config: {
+                description: 'Handle webhook events',
+                notes: 'Acts on pull request, pushes, comments, etc.',
+                tags: ['api', 'webhook'],
+                payload: {
+                    maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
+                },
+                handler: async (request, h) => {
+                    const { userFactory, pipelineFactory } = request.server.app;
+                    const { scm } = pipelineFactory;
+                    const ignoreUser = pluginOptions.ignoreCommitsBy;
+                    let message = 'Unable to process this kind of event';
+                    let skipMessage;
+                    let parsedHookId = '';
 
-                try {
-                    const parsed = await scm.parseHook(request.headers, request.payload);
+                    try {
+                        const parsed = await scm.parseHook(request.headers, request.payload);
 
-                    if (!parsed) {
-                        // for all non-matching events or actions
-                        return reply({ message }).code(204);
-                    }
-
-                    const { type, hookId, username, scmContext, ref, checkoutUrl, action, prNum } = parsed;
-
-                    parsedHookId = hookId;
-
-                    request.log(['webhook', hookId], `Received event type ${type}`);
-
-                    // skipping checks
-                    if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
-                        skipMessage = 'Skipping due to the commit message: [skip ci]';
-                    }
-
-                    // if skip ci then don't return
-                    if (ignoreUser && ignoreUser.length !== 0 && !skipMessage) {
-                        const commitAuthors =
-                            Array.isArray(parsed.commitAuthors) && parsed.commitAuthors.length !== 0
-                                ? parsed.commitAuthors
-                                : [username];
-                        const validCommitAuthors = commitAuthors.filter(author => !ignoreUser.includes(author));
-
-                        if (!validCommitAuthors.length) {
-                            message = `Skipping because user ${username} is ignored`;
-                            request.log(['webhook', hookId], message);
-
-                            return reply({ message }).code(204);
+                        if (!parsed) {
+                            // for all non-matching events or actions
+                            return h.response({ message }).code(204);
                         }
-                    }
 
-                    const token = await obtainScmToken(pluginOptions, userFactory, username, scmContext);
+                        const { type, hookId, username, scmContext, ref, checkoutUrl, action, prNum } = parsed;
 
-                    if (action !== 'release' && action !== 'tag') {
-                        let scmUri;
+                        parsedHookId = hookId;
+
+                        request.log(['webhook', hookId], `Received event type ${type}`);
+
+                        // skipping checks
+                        if (/\[(skip ci|ci skip)\]/.test(parsed.lastCommitMessage)) {
+                            skipMessage = 'Skipping due to the commit message: [skip ci]';
+                        }
+
+                        // if skip ci then don't return
+                        if (ignoreUser && ignoreUser.length !== 0 && !skipMessage) {
+                            const commitAuthors =
+                                Array.isArray(parsed.commitAuthors) && parsed.commitAuthors.length !== 0
+                                    ? parsed.commitAuthors
+                                    : [username];
+                            const validCommitAuthors = commitAuthors.filter(author => !ignoreUser.includes(author));
+
+                            if (!validCommitAuthors.length) {
+                                message = `Skipping because user ${username} is ignored`;
+                                request.log(['webhook', hookId], message);
+
+                                return h.response({ message }).code(204);
+                            }
+                        }
+
+                        const token = await obtainScmToken(pluginOptions, userFactory, username, scmContext);
+
+                        if (action !== 'release' && action !== 'tag') {
+                            let scmUri;
+
+                            if (type === 'pr') {
+                                scmUri = await scm.parseUrl({ checkoutUrl, token, scmContext });
+                            }
+                            parsed.changedFiles = await scm.getChangedFiles({
+                                payload: request.payload,
+                                type,
+                                token,
+                                scmContext,
+                                scmUri,
+                                prNum
+                            });
+                            request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
+                        } else {
+                            // The payload has no sha when webhook event is tag or release, so we need to get it.
+                            try {
+                                parsed.sha = await getCommitRefSha({
+                                    scm,
+                                    token,
+                                    ref,
+                                    refType: 'tags',
+                                    checkoutUrl,
+                                    scmContext
+                                });
+                            } catch (err) {
+                                request.log(['webhook', hookId, 'getCommitRefSha'], err);
+
+                                // there is a possibility of scm.getCommitRefSha() is not implemented yet
+                                return h.response({ message }).code(204);
+                            }
+                        }
 
                         if (type === 'pr') {
-                            scmUri = await scm.parseUrl({ checkoutUrl, token, scmContext });
+                            // disregard skip ci for pull request events
+                            return pullRequestEvent(pluginOptions, request, h, parsed, token);
                         }
-                        parsed.changedFiles = await scm.getChangedFiles({
-                            payload: request.payload,
-                            type,
-                            token,
-                            scmContext,
-                            scmUri,
-                            prNum
-                        });
-                        request.log(['webhook', hookId], `Changed files are ${parsed.changedFiles}`);
-                    } else {
-                        // The payload has no sha when webhook event is tag or release, so we need to get it.
-                        try {
-                            parsed.sha = await getCommitRefSha({
-                                scm,
-                                token,
-                                ref,
-                                refType: 'tags',
-                                checkoutUrl,
-                                scmContext
-                            });
-                        } catch (err) {
-                            request.log(['webhook', hookId, 'getCommitRefSha'], err);
 
-                            // there is a possibility of scm.getCommitRefSha() is not implemented yet
-                            return reply({ message }).code(204);
-                        }
+                        return pushEvent(pluginOptions, request, h, parsed, skipMessage, token);
+                    } catch (err) {
+                        logger.error(`[${parsedHookId}]: ${err}`);
+
+                        return h.response(boom.boomify(err));
                     }
-
-                    if (type === 'pr') {
-                        // disregard skip ci for pull request events
-                        return pullRequestEvent(pluginOptions, request, reply, parsed, token);
-                    }
-
-                    return pushEvent(pluginOptions, request, reply, parsed, skipMessage, token);
-                } catch (err) {
-                    logger.error(`[${parsedHookId}]: ${err}`);
-
-                    return reply(boom.boomify(err));
                 }
             }
-        }
-    });
-
-    next();
+        });
+    }
 };
 
-exports.register.attributes = {
-    name: 'webhooks'
-};
+module.exports = webhooksPlugin;
