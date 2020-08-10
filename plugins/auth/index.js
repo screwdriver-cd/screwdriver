@@ -2,7 +2,7 @@
 
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
-const uuid = require('uuid').v4();
+const uuid = require('uuid');
 const contextsRoute = require('./contexts');
 const crumbRoute = require('./crumb');
 const keyRoute = require('./key');
@@ -104,6 +104,17 @@ async function _validateFunc(server, tokenValue) {
 }
 
 /**
+ *
+ * @param {string} decoded
+ * @param {object} request
+ * @param {object} h
+ */
+const validate = async function() {
+    // The _decoded token signature is validated by jwt.veriry so we can return true
+    return { isValid: true };
+};
+
+/**
  * Auth API Plugin
  * @method register
  * @param  {Hapi}     server                         Hapi Server
@@ -170,7 +181,7 @@ const authPlugin = {
          * @param  {Object}        metadata   Additonal information to tag along with the login
          * @return {Object}                   The profile to be stored in jwt and/or cookie
          */
-        server.expose('generateProfile', async (username, scmContext, scope, metadata) => {
+        server.expose('generateProfile', (username, scmContext, scope, metadata) => {
             const profile = { username, scmContext, scope, ...(metadata || {}) };
 
             if (pluginOptions.jwtEnvironment) {
@@ -179,7 +190,7 @@ const authPlugin = {
 
             if (scmContext) {
                 const { scm } = pluginOptions;
-                const scmDisplayName = await scm.getDisplayName({ scmContext });
+                const scmDisplayName = scm.getDisplayName({ scmContext });
                 const userDisplayName = `${scmDisplayName}:${username}`;
 
                 // Check admin
@@ -202,7 +213,7 @@ const authPlugin = {
             jwt.sign(profile, pluginOptions.jwtPrivateKey, {
                 algorithm: ALGORITHM,
                 expiresIn: buildTimeout * 60, // must be in second
-                jwtid: uuid()
+                jwtid: uuid.v4()
             })
         );
 
@@ -238,34 +249,20 @@ const authPlugin = {
             verifyOptions: {
                 algorithms: [ALGORITHM]
             },
-            validate: async () => {
-                // The _decoded token signature is validated by jwt.veriry so we can return true
-                return { isValid: true };
-            }
+            validate
         });
 
         server.auth.strategy('auth_token', 'bearer-access-token', {
             accessTokenName: 'api_token',
             allowCookieToken: false,
             allowQueryToken: true,
-            validate: tokenValue => {
+            validate: async tokenValue => {
                 return _validateFunc(server, tokenValue);
             }
         });
 
-        server.auth.scheme('custom', () => {
-            return {
-                authenticate: (_, h) => {
-                    return h.authenticated();
-                }
-            };
-        });
-        server.auth.strategy('default', 'custom');
-
-        const loginRoutes = loginRoute(server, pluginOptions);
-
         server.route(
-            loginRoutes.concat([
+            loginRoute(server, pluginOptions).concat([
                 logoutRoute(),
                 tokenRoute(),
                 crumbRoute(),

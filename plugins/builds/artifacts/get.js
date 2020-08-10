@@ -3,8 +3,7 @@
 const jwt = require('jsonwebtoken');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const Joi = require('joi');
-const uuid = require('uuid').v4();
+const uuid = require('uuid');
 
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
@@ -37,7 +36,7 @@ module.exports = config => ({
             }, config.authConfig.jwtPrivateKey, {
                 algorithm: 'RS256',
                 expiresIn: '5s',
-                jwtid: uuid()
+                jwtid: uuid.v4()
             });
 
             let baseUrl = `${config.ecosystem.store}/v1/builds/`

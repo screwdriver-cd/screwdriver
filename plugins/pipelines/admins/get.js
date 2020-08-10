@@ -23,20 +23,16 @@ module.exports = () => ({
             }
         },
         handler: async (request, h) => {
-            try {
-                const factory = request.server.app.pipelineFactory;
-                const pipeline = await factory.get(request.params.id);
+            const factory = request.server.app.pipelineFactory;
+            const pipeline = await factory.get(request.params.id);
 
-                if (!pipeline) {
-                    throw boom.notFound('Pipeline does not exist');
-                }
-
-                const admin = await pipeline.getFirstAdmin();
-
-                return h.response(admin);
-            } catch (err) {
-                return h.response(boom.boomify(err));
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
             }
+
+            const admin = await pipeline.getFirstAdmin();
+
+            return h.response(admin);
         },
         response: {
             schema: getSchema

@@ -12,11 +12,11 @@ const schema = require('screwdriver-data-schema');
 module.exports = config => ({
     method: ['GET'],
     path: '/auth/contexts',
-    config: {
+    options: {
         description: 'Get all auth contexts',
         notes: 'Get all auth contexts',
         tags: ['api', 'auth', 'context'],
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { scm } = request.server.app.userFactory;
             const scmContexts = scm.getScmContexts();
             const contexts = [];
