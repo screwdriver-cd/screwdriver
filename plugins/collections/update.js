@@ -8,7 +8,7 @@ const idSchema = schema.models.collection.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/collections/{id}',
-    config: {
+    options: {
         description: 'Update a collection',
         notes: 'Update a specific collection',
         tags: ['api', 'collection'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             // Check if the collection is to be updated as a default collection
             if (request.payload.type === 'default') {
                 return h.response(boom.forbidden('Collection can not be updated to type "default"'));
@@ -75,7 +75,9 @@ module.exports = () => ({
                         .update()
                         .then(updatedCollection => h.response(updatedCollection.toJson()).code(200));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

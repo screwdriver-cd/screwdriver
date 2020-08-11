@@ -10,7 +10,7 @@ const isAdminPlugin = {
         server.route({
             method: 'GET',
             path: '/isAdmin',
-            config: {
+            options: {
                 description: 'Check if a user is admin of a pipeline, event, or job',
                 notes: 'Returns true or false',
                 tags: ['api'],
@@ -61,7 +61,9 @@ const isAdminPlugin = {
                                     .then(permissions => h.response(permissions.admin));
                             });
                         })
-                        .catch(err => h.response(boom.boomify(err))),
+                        .catch(err => {
+                            throw err;
+                        }),
                 validate: {
                     query: joi
                         .object()

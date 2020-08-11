@@ -11,7 +11,7 @@ const baseSchema = schema.models.templateTag.base;
 module.exports = () => ({
     method: 'DELETE',
     path: '/templates/{templateName}/tags/{tagName}',
-    config: {
+    options: {
         description: 'Delete a template tag',
         notes: 'Delete a specific template',
         tags: ['api', 'templates'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory, templateFactory, templateTagFactory } = request.server.app;
             const { pipelineId, isPR } = request.auth.credentials;
             const name = request.params.templateName;
@@ -54,7 +54,9 @@ module.exports = () => ({
                     });
                 })
                 .then(() => h.response().code(204))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

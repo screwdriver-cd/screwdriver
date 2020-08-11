@@ -18,7 +18,7 @@ const commandValidatorPlugin = {
         server.route({
             method: 'POST',
             path: '/validator/command',
-            config: {
+            options: {
                 description: 'Validate a given sd-command.yaml',
                 notes: 'returns the parsed config, validation errors, or both',
                 tags: ['api', 'validation', 'yaml'],

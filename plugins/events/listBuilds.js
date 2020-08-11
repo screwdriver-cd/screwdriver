@@ -12,7 +12,7 @@ const eventIdSchema = schema.models.event.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/events/{id}/builds',
-    config: {
+    options: {
         description: 'Get builds for a given event',
         notes: 'Returns builds for a given event',
         tags: ['api', 'events', 'builds'],
@@ -25,22 +25,19 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { eventFactory } = request.server.app;
+            const event = await eventFactory.get(request.params.id);
 
-            return eventFactory
-                .get(request.params.id)
-                .then(event => {
-                    if (!event) {
-                        throw boom.notFound('Event does not exist');
-                    }
+            if (!event) {
+                throw boom.notFound('Event does not exist');
+            }
 
-                    return event.getBuilds();
-                })
-                .then(buildsModel =>
-                    h.response(Promise.all(buildsModel.map(buildModel => buildModel.toJsonWithSteps())))
-                )
-                .catch(err => h.response(boom.boomify(err)));
+            const buildsModel = await event.getBuilds();
+
+            const data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJsonWithSteps()));
+
+            return h.response(data);
         },
         response: {
             schema: buildListSchema

@@ -11,7 +11,7 @@ const tagSchema = schema.models.templateTag.base.extract('tag');
 module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/{versionOrTag}',
-    config: {
+    options: {
         description: 'Get a single template given template name and version or tag',
         notes: 'Returns a template record',
         tags: ['api', 'templates'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { templateFactory } = request.server.app;
             const { name, versionOrTag } = request.params;
 
@@ -37,7 +37,9 @@ module.exports = () => ({
 
                     return h.response(template);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

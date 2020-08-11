@@ -10,7 +10,7 @@ const urlLib = require('url');
 module.exports = () => ({
     method: 'POST',
     path: '/templates',
-    config: {
+    options: {
         description: 'Create a new template',
         notes: 'Create a specific template',
         tags: ['api', 'templates'],
@@ -79,7 +79,9 @@ module.exports = () => ({
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => h.response(boom.boomify(err))),
+                .catch(err => {
+                    throw err;
+                }),
         validate: {
             payload: templateSchema.input
         }

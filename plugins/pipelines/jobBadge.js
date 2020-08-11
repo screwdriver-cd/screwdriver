@@ -34,11 +34,11 @@ function getUrl({ badgeService, statusColor, encodeBadgeSubject, builds = [], su
 module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/{jobName}/badge',
-    config: {
+    options: {
         description: 'Get a badge for a job',
         notes: 'Redirects to the badge service',
         tags: ['api', 'job', 'badge'],
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { id, jobName } = request.params;

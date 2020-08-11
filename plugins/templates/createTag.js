@@ -12,7 +12,7 @@ const urlLib = require('url');
 module.exports = () => ({
     method: 'PUT',
     path: '/templates/{templateName}/tags/{tagName}',
-    config: {
+    options: {
         description: 'Add or update a template tag',
         notes: 'Add or update a specific template',
         tags: ['api', 'templates'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { templateFactory } = request.server.app;
             const { templateTagFactory } = request.server.app;
@@ -74,7 +74,9 @@ module.exports = () => ({
                             .code(201);
                     });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

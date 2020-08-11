@@ -7,7 +7,7 @@ const urlLib = require('url');
 module.exports = () => ({
     method: 'POST',
     path: '/secrets',
-    config: {
+    options: {
         description: 'Create a new secret',
         notes: 'Create a specific secret',
         tags: ['api', 'secrets'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { userFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { secretFactory } = request.server.app;
@@ -89,7 +89,9 @@ module.exports = () => ({
                         );
                     })
                     // something broke, respond with error
-                    .catch(err => h.response(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

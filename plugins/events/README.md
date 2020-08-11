@@ -48,7 +48,7 @@ The server supplies factories to plugins in the form of server app values:
 
 ```js
 // handler eventsPlugin.js
-handler: (request, h) => {
+handler: async (request, h) => {
     const factory = request.server.app.eventFactory;
 
     // ...

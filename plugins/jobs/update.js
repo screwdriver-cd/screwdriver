@@ -8,7 +8,7 @@ const idSchema = schema.models.job.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/jobs/{id}',
-    config: {
+    options: {
         description: 'Update a job',
         notes: 'Update a specific job',
         tags: ['api', 'jobs'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { jobFactory, pipelineFactory, userFactory } = request.server.app;
             const { id } = request.params;
             const { username } = request.auth.credentials;
@@ -70,7 +70,9 @@ module.exports = () => ({
                     });
                 })
                 .then(job => h.response(job.toJson()).code(200))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

@@ -7,7 +7,7 @@ const urlLib = require('url');
 module.exports = () => ({
     method: 'POST',
     path: '/banners',
-    config: {
+    options: {
         description: 'Create a new banner',
         notes: 'Create a specific banner',
         tags: ['api', 'banners'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -56,7 +56,9 @@ module.exports = () => ({
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             payload: schema.models.banner.create

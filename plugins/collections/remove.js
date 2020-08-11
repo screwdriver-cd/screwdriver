@@ -8,7 +8,7 @@ const idSchema = schema.models.collection.base.extract('id');
 module.exports = () => ({
     method: 'DELETE',
     path: '/collections/{id}',
-    config: {
+    options: {
         description: 'Delete a single collection',
         notes: 'Returns null if successful',
         tags: ['api', 'collections'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { collectionFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
@@ -45,7 +45,9 @@ module.exports = () => ({
 
                     return collection.remove().then(() => h.response().code(204));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

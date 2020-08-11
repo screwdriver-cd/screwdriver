@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
@@ -12,7 +11,7 @@ const nameSchema = schema.models.templateTag.base.extract('name');
 module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/tags',
-    config: {
+    options: {
         description: 'Get all template tags for a given template name',
         notes: 'Returns all template tags for a given template name',
         tags: ['api', 'templates', 'tags'],
@@ -25,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.templateTagFactory;
             const config = {
                 params: {
@@ -44,7 +43,9 @@ module.exports = () => ({
             return factory
                 .list(config)
                 .then(tags => h.response(tags.map(p => p.toJson())))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

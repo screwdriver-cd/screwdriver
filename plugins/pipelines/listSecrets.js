@@ -12,7 +12,7 @@ const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/secrets',
-    config: {
+    options: {
         description: 'Get all secrets secrets for a given pipelines',
         notes: 'Returns all secrets for a given pipeline',
         tags: ['api', 'pipelines', 'secrets'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -56,7 +56,9 @@ module.exports = () => ({
                         )
                     );
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: secretListSchema

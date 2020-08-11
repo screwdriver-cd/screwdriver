@@ -13,7 +13,7 @@ const namespaceSchema = schema.models.command.base.extract('namespace');
 module.exports = () => ({
     method: 'GET',
     path: '/commands/{namespace}/{name}',
-    config: {
+    options: {
         description: 'Get all command versions for a given command namespace/name with pagination',
         notes: 'Returns all command records for a given command namespace/name',
         tags: ['api', 'commands', 'versions'],
@@ -26,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.commandFactory;
             const config = {
                 params: {
@@ -52,7 +52,9 @@ module.exports = () => ({
 
                     h.response(commands.map(p => p.toJson()));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

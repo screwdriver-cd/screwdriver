@@ -12,7 +12,7 @@ const buildListSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/builds',
-    config: {
+    options: {
         description: 'Get builds for a given job',
         notes: 'Returns builds for a given job',
         tags: ['api', 'jobs', 'builds'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
             const { sort, sortBy, page, count } = request.query;
 
@@ -49,7 +49,9 @@ module.exports = () => ({
                     return job.getBuilds(config);
                 })
                 .then(builds => h.response(Promise.all(builds.map(b => b.toJsonWithSteps()))))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: buildListSchema

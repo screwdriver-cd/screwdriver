@@ -32,7 +32,7 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
 module.exports = () => ({
     method: 'PUT',
     path: '/pipelines/{id}',
-    config: {
+    options: {
         description: 'Update a pipeline',
         notes: 'Update a specific pipeline',
         tags: ['api', 'pipelines'],
@@ -45,7 +45,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { id } = request.params;
@@ -144,7 +144,9 @@ module.exports = () => ({
                         );
                     })
                     // something broke, respond with error
-                    .catch(err => h.response(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

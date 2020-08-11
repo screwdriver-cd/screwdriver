@@ -7,7 +7,7 @@ const urlLib = require('url');
 module.exports = () => ({
     method: 'POST',
     path: '/collections',
-    config: {
+    options: {
         description: 'Create a new collection',
         notes: 'Creates a collection',
         tags: ['api', 'collections'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             // Check if the collection to be created has a type 'default'
             if (request.payload.type === 'default') {
                 return h.response(boom.forbidden('Collection with type "default" cannot be created by user'));
@@ -88,7 +88,9 @@ module.exports = () => ({
                             .code(201);
                     })
                     // something broke, respond with error
-                    .catch(err => h.response(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

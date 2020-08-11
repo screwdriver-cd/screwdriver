@@ -10,7 +10,7 @@ const idSchema = schema.models.job.base.extract('id');
 module.exports = config => ({
     method: 'PUT',
     path: '/builds/{id}',
-    config: {
+    options: {
         description: 'Update a build',
         notes: 'Update a specific build',
         tags: ['api', 'builds'],
@@ -23,7 +23,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             // eslint-disable-next-line max-len
             const {
                 buildFactory,
@@ -183,8 +183,8 @@ module.exports = config => ({
                 .then(([newBuild, newEvent]) =>
                     newBuild.job.then(job =>
                         job.pipeline
-                            .then(pipeline => {
-                                request.server.emit('build_status', {
+                            .then(async pipeline => {
+                                await request.server.events.emit('build_status', {
                                     settings: job.permutations[0].settings,
                                     status: newBuild.status,
                                     event: newEvent.toJson(),
@@ -199,7 +199,7 @@ module.exports = config => ({
                                 // Guard against triggering non-successful or unstable builds
                                 // Don't further trigger pipeline if intented to skip further jobs
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
-                                    return h.response(newBuild.toJsonWithSteps()).code(200);
+                                    return h.response(await newBuild.toJsonWithSteps()).code(200);
                                 }
 
                                 return triggerNextJobs({
@@ -209,10 +209,10 @@ module.exports = config => ({
                                     username,
                                     scmContext,
                                     externalJoin
-                                }).then(() => {
+                                }).then(async () => {
                                     // if external join is allowed, then triggerNextJobs will take care of external OR already
                                     if (externalJoin) {
-                                        return h.response(newBuild.toJsonWithSteps()).code(200);
+                                        return h.response(await newBuild.toJsonWithSteps()).code(200);
                                     }
 
                                     const src = `~sd@${pipeline.id}:${job.name}`;
@@ -244,10 +244,12 @@ module.exports = config => ({
                                                 )
                                             )
                                         )
-                                        .then(() => h.response(newBuild.toJsonWithSteps()).code(200));
+                                        .then(async () => h.response(await newBuild.toJsonWithSteps()).code(200));
                                 });
                             })
-                            .catch(err => h.response(boom.boomify(err)))
+                            .catch(err => {
+                                throw err;
+                            })
                     )
                 );
         },

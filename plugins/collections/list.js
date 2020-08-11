@@ -7,7 +7,7 @@ const listSchema = schema.models.collection.list;
 module.exports = () => ({
     method: 'GET',
     path: '/collections',
-    config: {
+    options: {
         description: 'Get collections for requesting user',
         notes: 'Returns all collection records belonging to the requesting user',
         tags: ['api', 'collections'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { userFactory, collectionFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
@@ -41,7 +41,9 @@ module.exports = () => ({
                         .list(config)
                         .then(collections => h.response(collections.map(c => c.toJson())));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

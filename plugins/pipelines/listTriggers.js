@@ -19,7 +19,7 @@ const triggerListSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/triggers',
-    config: {
+    options: {
         description: 'Get all jobs for a given pipeline',
         notes: 'Returns all jobs for a given pipeline',
         tags: ['api', 'pipelines', 'jobs'],
@@ -32,7 +32,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory, triggerFactory } = request.server.app;
             const pipelineId = request.params.id;
 
@@ -46,7 +46,9 @@ module.exports = () => ({
                     return triggerFactory.getTriggers({ pipelineId });
                 })
                 .then(triggers => h.response(triggers))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: triggerListSchema

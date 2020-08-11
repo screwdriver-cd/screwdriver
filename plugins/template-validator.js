@@ -19,7 +19,7 @@ const templateValidatorPlugin = {
         server.route({
             method: 'POST',
             path: '/validator/template',
-            config: {
+            options: {
                 description: 'Validate a given sd-template.yaml',
                 notes: 'returns the parsed config, validation errors, or both',
                 tags: ['api', 'validation', 'yaml'],

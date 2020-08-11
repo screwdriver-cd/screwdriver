@@ -9,7 +9,7 @@ const idSchema = schema.models.job.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}',
-    config: {
+    options: {
         description: 'Get a single job',
         notes: 'Returns a job record',
         tags: ['api', 'jobs'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
 
             return factory
@@ -34,7 +34,9 @@ module.exports = () => ({
 
                     return h.response(job.toJson());
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

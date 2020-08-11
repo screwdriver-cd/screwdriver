@@ -9,7 +9,7 @@ const idSchema = schema.models.event.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/events/{id}',
-    config: {
+    options: {
         description: 'Get a single event',
         notes: 'Returns a event record',
         tags: ['api', 'events'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.eventFactory;
 
             return factory
@@ -34,7 +34,9 @@ module.exports = () => ({
 
                     return h.response(model.toJson());
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

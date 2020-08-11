@@ -8,7 +8,7 @@ const nameSchema = schema.models.buildCluster.base.extract('name');
 module.exports = () => ({
     method: 'PUT',
     path: '/buildclusters/{name}',
-    config: {
+    options: {
         description: 'Update a build cluster',
         notes: 'Update a build cluster',
         tags: ['api', 'buildclusters'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { buildClusterFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
@@ -65,7 +65,9 @@ module.exports = () => ({
                             .update()
                             .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
                     })
-                    .catch(err => h.response(boom.boomify(err)));
+                    .catch(err => {
+                        throw err;
+                    });
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
@@ -128,7 +130,9 @@ module.exports = () => ({
                         });
                     })
                 )
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: Joi.object({

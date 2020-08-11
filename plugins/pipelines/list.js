@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
@@ -12,7 +11,7 @@ const listSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines',
-    config: {
+    options: {
         description: 'Get pipelines with pagination',
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
@@ -25,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const scmContexts = factory.scm.getScmContexts();
             let pipelineArray = [];
@@ -68,7 +67,9 @@ module.exports = () => ({
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
                 .then(allPipelines => h.response(allPipelines.map(p => p.toJson())))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

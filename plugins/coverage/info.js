@@ -1,11 +1,9 @@
 'use strict';
 
-const boom = require('@hapi/boom');
-
 module.exports = config => ({
     method: 'GET',
     path: '/coverage/info',
-    config: {
+    options: {
         description: 'Get coverage metadata',
         notes: 'Returns object with coverage info',
         tags: ['api', 'coverage', 'badge'],
@@ -18,11 +16,13 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             config.coveragePlugin
                 .getInfo(request.query)
-                .then(h)
-                .catch(err => h.response(boom.boomify(err)));
+                .then(data => h.response(data))
+                .catch(err => {
+                    throw err;
+                });
         }
     }
 });

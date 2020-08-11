@@ -13,7 +13,7 @@ const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/jobs',
-    config: {
+    options: {
         description: 'Get all jobs for a given pipeline',
         notes: 'Returns all jobs for a given pipeline',
         tags: ['api', 'pipelines', 'jobs'],
@@ -26,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { page, count, jobName } = request.query;
 
@@ -53,7 +53,9 @@ module.exports = () => ({
                     return pipeline.getJobs(config);
                 })
                 .then(jobs => h.response(jobs.map(j => j.toJson())))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: jobListSchema

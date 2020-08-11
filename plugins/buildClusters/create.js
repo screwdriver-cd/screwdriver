@@ -7,7 +7,7 @@ const validationSchema = require('screwdriver-data-schema');
 module.exports = () => ({
     method: 'POST',
     path: '/buildclusters',
-    config: {
+    options: {
         description: 'Create a build cluster',
         notes: 'Create a specific build cluster',
         tags: ['api', 'buildclusters'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { buildClusterFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
@@ -70,7 +70,9 @@ module.exports = () => ({
                                 .code(201);
                         })
                         // something was botched
-                        .catch(err => h.response(boom.boomify(err)))
+                        .catch(err => {
+                            throw err;
+                        })
                 );
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
@@ -123,7 +125,9 @@ module.exports = () => ({
                             .code(201);
                     })
                     // something was botched
-                    .catch(err => h.response(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

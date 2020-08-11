@@ -108,7 +108,7 @@ function checkValidMultipartPayload(data) {
 module.exports = () => ({
     method: 'POST',
     path: '/commands',
-    config: {
+    options: {
         description: 'Create a new command',
         notes: 'Create a specific command',
         tags: ['api', 'commands'],
@@ -126,7 +126,7 @@ module.exports = () => ({
             maxBytes: DEFAULT_BYTES,
             allow: ['multipart/form-data', 'application/json']
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const data = request.payload;
             const { isPR } = request.auth.credentials;
             let commandSpec;
@@ -206,7 +206,9 @@ module.exports = () => ({
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         }
     }
 });

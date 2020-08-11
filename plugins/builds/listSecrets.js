@@ -13,7 +13,7 @@ const buildIdSchema = schema.models.build.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/secrets',
-    config: {
+    options: {
         description: 'Get all secrets for a given build',
         notes: 'Returns all secrets for a given build',
         tags: ['api', 'builds', 'secrets'],
@@ -26,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.buildFactory;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -59,7 +59,9 @@ module.exports = () => ({
                         )
                     );
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: buildListSchema

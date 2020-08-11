@@ -18,7 +18,7 @@ const validatorTemplate = {
         server.route({
             method: 'POST',
             path: '/validator',
-            config: {
+            options: {
                 description: 'Validate a given screwdriver.yaml',
                 notes: 'Returns the parsed config or validation errors',
                 tags: ['api', 'validation', 'yaml'],

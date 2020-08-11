@@ -9,7 +9,7 @@ const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/pipelines/{pipelineId}/tokens/{tokenId}/refresh',
-    config: {
+    options: {
         description: 'Refresh a pipeline token',
         notes: 'Update the value of a token while preserving its other metadata',
         tags: ['api', 'tokens'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { tokenFactory } = request.server.app;
@@ -63,7 +63,9 @@ module.exports = () => ({
                         });
                     });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

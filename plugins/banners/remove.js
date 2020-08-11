@@ -8,7 +8,7 @@ const idSchema = schema.models.banner.base.extract('id');
 module.exports = () => ({
     method: 'DELETE',
     path: '/banners/{id}',
-    config: {
+    options: {
         description: 'Delete a banner',
         notes: 'Delete a specific banner and return null if success',
         tags: ['api', 'banners'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params; // id of banner to delete
 
@@ -51,7 +51,9 @@ module.exports = () => ({
 
                     return banner.remove().then(() => h.response().code(204));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: Joi.object({

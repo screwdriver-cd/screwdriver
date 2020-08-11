@@ -11,7 +11,7 @@ const jobIdsSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/builds/statuses',
-    config: {
+    options: {
         description: 'Get build statuses for jobs',
         notes: 'Returns id, jobId, and status for builds',
         tags: ['api', 'builds'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { buildFactory } = request.server.app;
             const { jobIds, numBuilds, offset } = request.query;
 
@@ -43,7 +43,9 @@ module.exports = () => ({
 
                     h.response(builds);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.array()

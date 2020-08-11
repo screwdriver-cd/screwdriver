@@ -29,7 +29,7 @@ const statsPlugin = {
             handler: async (request, h) => {
                 const executorStats = await executor.stats({ token: '' });
 
-                h.response({
+                return h.response({
                     executor: executorStats,
                     scm: scm.stats()
                 });

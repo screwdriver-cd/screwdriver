@@ -9,7 +9,7 @@ const nameSchema = schema.models.buildCluster.base.extract('name');
 module.exports = () => ({
     method: 'GET',
     path: '/buildclusters/{name}',
-    config: {
+    options: {
         description: 'Get a single build cluster',
         notes: 'Returns a build cluster record',
         tags: ['api', 'buildclusters'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { name } = request.params;
             const factory = request.server.app.buildClusterFactory;
             const config = {
@@ -40,7 +40,9 @@ module.exports = () => ({
 
                     return h.response(buildClusters[0].toJson());
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

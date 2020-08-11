@@ -8,7 +8,7 @@ const idSchema = schema.models.secret.base.extract('id');
 module.exports = () => ({
     method: 'DELETE',
     path: '/secrets/{id}',
-    config: {
+    options: {
         description: 'Remove a single secret',
         notes: 'Returns null if successful',
         tags: ['api', 'secrets'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { secretFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -39,7 +39,9 @@ module.exports = () => ({
                         .then(() => secret.remove())
                         .then(() => h.response().code(204));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

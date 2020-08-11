@@ -8,7 +8,7 @@ const idSchema = schema.models.banner.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/banners/{id}',
-    config: {
+    options: {
         description: 'Update a banner',
         notes: 'Update a banner',
         tags: ['api', 'banners'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params; // id of banner to update
             const { username } = request.auth.credentials;
@@ -52,7 +52,9 @@ module.exports = () => ({
 
                     return banner.update().then(updatedBanner => h.response(updatedBanner.toJson()).code(200));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: Joi.object({

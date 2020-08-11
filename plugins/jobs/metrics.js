@@ -11,7 +11,7 @@ const jobIdSchema = schema.models.job.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/metrics',
-    config: {
+    options: {
         description: 'Get build metrics for this job',
         notes: 'Returns list of build metrics for the given job',
         tags: ['api', 'jobs', 'metrics'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
             const { id } = request.params;
             const { aggregateInterval } = request.query;
@@ -54,7 +54,9 @@ module.exports = () => ({
                     return job.getMetrics(config);
                 })
                 .then(metrics => h.response(metrics))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: jobMetricListSchema

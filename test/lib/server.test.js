@@ -175,7 +175,7 @@ describe('server case', () => {
                 server.route({
                     method: 'GET',
                     path: '/noStack',
-                    handler: (request, h) => {
+                    handler: async (request, h) => {
                         const response = boom.boomify(new Error('whatStackTrace'));
 
                         delete response.stack;
@@ -187,7 +187,7 @@ describe('server case', () => {
                 server.route({
                     method: 'GET',
                     path: '/noWithResponse',
-                    handler: (request, h) => {
+                    handler: async (request, h) => {
                         const response = boom.boomify(boom.conflict('conflict', { conflictOn: 1 }));
 
                         return h.response(response);

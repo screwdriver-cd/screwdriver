@@ -8,7 +8,7 @@ const idSchema = schema.models.token.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/tokens/{id}/refresh',
-    config: {
+    options: {
         description: 'Refresh a token',
         notes: 'Update the value of a token while preserving its other metadata',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.tokens;
@@ -37,7 +37,9 @@ module.exports = () => ({
                         .then(() => token.refresh())
                         .then(() => h.response(token.toJson()).code(200));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

@@ -79,11 +79,11 @@ function dfs(workflowGraph, start, prNum) {
 module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/badge',
-    config: {
+    options: {
         description: 'Get a badge for the pipeline',
         notes: 'Redirects to the badge service',
         tags: ['api', 'pipelines', 'badge'],
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;
             const { encodeBadgeSubject } = request.server.plugins.pipelines;

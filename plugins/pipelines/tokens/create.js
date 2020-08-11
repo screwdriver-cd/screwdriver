@@ -10,7 +10,7 @@ const tokenCreateSchema = schema.models.token.create;
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/tokens',
-    config: {
+    options: {
         description: 'Create a new token for pipeline',
         notes: 'Create a specific token for pipeline',
         tags: ['api', 'tokens'],
@@ -23,7 +23,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
@@ -80,7 +80,9 @@ module.exports = () => ({
                                 .header('Location', location)
                                 .code(201);
                         })
-                        .catch(err => h.response(boom.boomify(err)));
+                        .catch(err => {
+                            throw err;
+                        });
                 }
             );
         },

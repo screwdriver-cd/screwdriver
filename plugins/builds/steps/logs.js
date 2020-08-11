@@ -139,7 +139,7 @@ async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort
 module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}/logs',
-    config: {
+    options: {
         description: 'Get the logs for a build step',
         notes: 'Returns the logs for a step',
         tags: ['api', 'builds', 'steps', 'log'],
@@ -195,7 +195,9 @@ module.exports = config => ({
                             h.response(lines).header('X-More-Data', (morePages || !isDone).toString())
                         );
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: schema.api.loglines.output

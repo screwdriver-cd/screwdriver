@@ -8,7 +8,7 @@ const idSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/startall',
-    config: {
+    options: {
         description: 'Start all child pipelines given a specific pipeline',
         notes: 'Start all child pipelines given a specific pipeline',
         tags: ['api', 'pipelines'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory, eventFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { id } = request.params;
@@ -76,7 +76,9 @@ module.exports = () => ({
                     )
                 )
                 .then(() => h.response().code(201))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

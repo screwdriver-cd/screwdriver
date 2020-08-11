@@ -7,7 +7,7 @@ const validationSchema = require('screwdriver-data-schema');
 module.exports = () => ({
     method: 'POST',
     path: '/builds',
-    config: {
+    options: {
         description: 'Create and start a build',
         notes: 'This api is depercated, use POST /events instead',
         tags: ['api', 'builds'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 deprecated: true
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { buildFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -157,7 +157,9 @@ module.exports = () => ({
                             .code(201);
                     })
                     // something was botched
-                    .catch(err => h.response(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

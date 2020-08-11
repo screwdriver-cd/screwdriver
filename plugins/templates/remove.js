@@ -8,7 +8,7 @@ const baseSchema = schema.models.template.base;
 module.exports = () => ({
     method: 'DELETE',
     path: '/templates/{name}',
-    config: {
+    options: {
         description: 'Delete a template',
         notes: 'Returns null if successful',
         tags: ['api', 'templates'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { name } = request.params;
             const { credentials } = request.auth;
             const { templateFactory, templateTagFactory } = request.server.app;
@@ -45,7 +45,9 @@ module.exports = () => ({
                         })
                         .then(() => h.response().code(204));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

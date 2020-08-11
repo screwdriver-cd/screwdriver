@@ -11,7 +11,7 @@ const buildMetricListSchema = joi.array().items(joi.object());
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/metrics',
-    config: {
+    options: {
         description: 'Get metrics for this build',
         notes: 'Returns list of metrics for the given build',
         tags: ['api', 'builds', 'metrics'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.buildFactory;
             const { id } = request.params;
             let { startTime, endTime } = request.query;
@@ -50,7 +50,9 @@ module.exports = () => ({
                     });
                 })
                 .then(metrics => h.response(metrics))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: buildMetricListSchema

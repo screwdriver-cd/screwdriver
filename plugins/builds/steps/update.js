@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}/steps/{name}',
-    config: {
+    options: {
         description: 'Update a step for a build',
         notes: 'Writes a step record',
         tags: ['api', 'builds', 'steps'],
@@ -19,7 +19,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { stepFactory } = request.server.app;
             const buildId = request.params.id;
             const stepName = request.params.name;
@@ -51,7 +51,9 @@ module.exports = () => ({
                     return step.update();
                 })
                 .then(updatedStep => h.response(updatedStep).code(200))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: schema.models.build.getStep

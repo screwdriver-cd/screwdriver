@@ -13,7 +13,7 @@ const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/events',
-    config: {
+    options: {
         description: 'Get pipeline type events for this pipeline',
         notes: 'Returns pipeline events for the given pipeline',
         tags: ['api', 'pipelines', 'events'],
@@ -26,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
 
             return factory
@@ -54,7 +54,9 @@ module.exports = () => ({
                     return pipeline.getEvents(config);
                 })
                 .then(events => h.response(events.map(e => e.toJson())))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: eventListSchema

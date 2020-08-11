@@ -1,11 +1,9 @@
 'use strict';
 
-const boom = require('@hapi/boom');
-
 module.exports = config => ({
     method: 'GET',
     path: '/coverage/token',
-    config: {
+    options: {
         description: 'Get an access token to talk to coverage server',
         notes: 'Returns a token string',
         tags: ['api', 'coverage'],
@@ -18,13 +16,15 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const buildCredentials = request.auth.credentials;
 
             return config.coveragePlugin
                 .getAccessToken(buildCredentials)
                 .then(h)
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         }
     }
 });

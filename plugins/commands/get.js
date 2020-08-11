@@ -12,7 +12,7 @@ const tagSchema = schema.models.commandTag.base.extract('tag');
 module.exports = () => ({
     method: 'GET',
     path: '/commands/{namespace}/{name}/{versionOrTag}',
-    config: {
+    options: {
         description: 'Get a single command given command namespace, name and version or tag',
         notes: 'Returns a command record',
         tags: ['api', 'commands'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { commandFactory } = request.server.app;
             const { namespace, name, versionOrTag } = request.params;
 
@@ -38,7 +38,9 @@ module.exports = () => ({
 
                     return h.response(command);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

@@ -11,7 +11,7 @@ const schema = require('screwdriver-data-schema');
 module.exports = () => ({
     method: ['GET'],
     path: '/auth/token/{buildId?}',
-    config: {
+    options: {
         description: 'Generate jwt',
         notes: 'Generate a JWT for use throughout Screwdriver',
         tags: ['api', 'auth', 'token'],

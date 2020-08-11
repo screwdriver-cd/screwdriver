@@ -15,7 +15,7 @@ const tagSchema = schema.models.commandTag.base.extract('tag');
 module.exports = () => ({
     method: 'PUT',
     path: '/commands/{namespace}/{name}/tags/{tagName}',
-    config: {
+    options: {
         description: 'Add or update a command tag',
         notes: 'Add or update a specific command',
         tags: ['api', 'commands'],
@@ -28,7 +28,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory, commandFactory, commandTagFactory } = request.server.app;
             const { pipelineId, isPR } = request.auth.credentials;
             const { namespace } = request.params;
@@ -91,7 +91,9 @@ module.exports = () => ({
                             .code(201);
                     });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

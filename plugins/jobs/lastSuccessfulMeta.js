@@ -8,7 +8,7 @@ const idSchema = schema.models.job.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/lastSuccessfulMeta',
-    config: {
+    options: {
         description: 'Get the last successful metadata for a given job',
         notes: 'If no successful builds found in the past 50 builds, will return {}',
         tags: ['api', 'jobs', 'builds'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
 
             return factory
@@ -40,7 +40,9 @@ module.exports = () => ({
 
                     return h.response(meta);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.object()

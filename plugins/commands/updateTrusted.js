@@ -8,7 +8,7 @@ const baseSchema = schema.models.command.base;
 module.exports = () => ({
     method: 'PUT',
     path: '/commands/{namespace}/{name}/trusted',
-    config: {
+    options: {
         description: "Update a command's trusted property",
         notes: 'Returns null if successful',
         tags: ['api', 'commands', 'trusted'],

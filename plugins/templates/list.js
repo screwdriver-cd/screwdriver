@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
@@ -21,7 +20,7 @@ const namespacesSchema = joi.array().items(joi.object().keys({ namespace: namesp
 module.exports = () => ({
     method: 'GET',
     path: '/templates',
-    config: {
+    options: {
         description: 'Get templates with pagination',
         notes: 'Returns all template records',
         tags: ['api', 'templates'],
@@ -34,7 +33,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.templateFactory;
             const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
             const config = { sort };
@@ -89,7 +88,9 @@ module.exports = () => ({
 
                     return h.response(templates.map(p => p.toJson()));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.alternatives().try(listSchema, namespacesSchema)

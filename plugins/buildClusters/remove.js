@@ -8,7 +8,7 @@ const nameSchema = schema.models.buildCluster.base.extract('name');
 module.exports = () => ({
     method: 'DELETE',
     path: '/buildclusters/{name}',
-    config: {
+    options: {
         description: 'Delete a single build cluster',
         notes: 'Returns null if successful',
         tags: ['api', 'buildclusters'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { buildClusterFactory, userFactory } = request.server.app;
             const { name } = request.params;
             const { username, scmContext } = request.auth.credentials;
@@ -62,7 +62,9 @@ module.exports = () => ({
 
                     return buildClusters[0].remove().then(() => h.response().code(204));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

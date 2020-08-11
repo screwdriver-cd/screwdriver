@@ -9,7 +9,7 @@ const buildIdSchema = schema.models.build.base.extract('id');
 module.exports = () => ({
     method: 'POST',
     path: '/builds/{id}/token',
-    config: {
+    options: {
         description: 'Generate a JWT for use throughout a given build',
         notes: 'Generate a JWT for build using temporal JWT which passed in',
         tags: ['api', 'builds', 'build_token'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const profile = request.auth.credentials;
             const { buildTimeout } = request.payload;
             const { buildFactory } = request.server.app;
@@ -69,7 +69,9 @@ module.exports = () => ({
 
                     return h.response({ token });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: authTokenSchema

@@ -976,7 +976,7 @@ const webhooksPlugin = {
         server.route({
             method: 'POST',
             path: '/webhooks',
-            config: {
+            options: {
                 description: 'Handle webhook events',
                 notes: 'Acts on pull request, pushes, comments, etc.',
                 tags: ['api', 'webhook'],

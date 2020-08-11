@@ -8,7 +8,7 @@ const idSchema = schema.models.token.base.extract('id');
 module.exports = () => ({
     method: 'DELETE',
     path: '/tokens/{id}',
-    config: {
+    options: {
         description: 'Remove a single token',
         notes: 'Returns null if successful',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { canAccess } = request.server.plugins.tokens;
             const { credentials } = request.auth;
@@ -38,7 +38,9 @@ module.exports = () => ({
                     return canAccess(credentials, token).then(() => token.remove());
                 })
                 .then(() => h.response().code(204))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

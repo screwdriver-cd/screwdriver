@@ -9,7 +9,7 @@ const idSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/admin',
-    config: {
+    options: {
         description: 'Get the pipeline admin',
         notes: 'Returns a pipeline admin record',
         tags: ['api', 'pipelines'],

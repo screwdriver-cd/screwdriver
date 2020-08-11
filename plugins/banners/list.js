@@ -6,11 +6,11 @@ const listSchema = schema.models.banner.list;
 module.exports = () => ({
     method: 'GET',
     path: '/banners',
-    config: {
+    options: {
         description: 'Get banners',
         notes: 'Returns all banner records',
         tags: ['api', 'banners'],
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
 
             // list params defaults to empty object in models if undefined

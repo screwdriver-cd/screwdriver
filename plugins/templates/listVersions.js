@@ -12,7 +12,7 @@ const nameSchema = schema.models.template.base.extract('name');
 module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}',
-    config: {
+    options: {
         description: 'Get all template versions for a given template name with pagination',
         notes: 'Returns all template records for a given template name',
         tags: ['api', 'templates', 'versions'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.templateFactory;
             const config = {
                 params: {
@@ -50,7 +50,9 @@ module.exports = () => ({
 
                     h.response(templates.map(p => p.toJson()));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

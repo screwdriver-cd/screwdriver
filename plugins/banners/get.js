@@ -13,7 +13,7 @@ module.exports = () => ({
         description: 'Get a single banner',
         notes: 'Return a banner record',
         tags: ['api', 'banners'],
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params;
 
@@ -26,7 +26,9 @@ module.exports = () => ({
 
                     return h.response(banner.toJson());
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

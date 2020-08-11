@@ -11,7 +11,7 @@ const pipelineRootDirSchema = schema.models.pipeline.create.extract('rootDir');
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/openPr',
-    config: {
+    options: {
         description: 'Open pull request for repository',
         notes: 'Open pull request',
         tags: ['api', 'pipelines'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { files, title, message } = request.payload;
@@ -75,7 +75,9 @@ module.exports = () => ({
                             return h.response({ prUrl: pullRequest.data.html_url }).code(201);
                         });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

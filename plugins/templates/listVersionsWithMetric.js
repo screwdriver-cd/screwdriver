@@ -8,7 +8,7 @@ const nameSchema = schema.models.template.base.extract('name');
 module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/metrics',
-    config: {
+    options: {
         description: 'Get all template versions and metrics for a template name with pagination',
         notes: 'Returns all template records and associated metrics for a given template name',
         tags: ['api', 'templates', 'versions'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.templateFactory;
             const config = {
                 params: {
@@ -46,7 +46,9 @@ module.exports = () => ({
 
                     h.response(templates);
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         // maybe
         response: {

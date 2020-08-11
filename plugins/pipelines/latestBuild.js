@@ -10,7 +10,7 @@ const statusSchema = schema.models.build.base.extract('status');
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/jobs/{jobName}/latestBuild',
-    config: {
+    options: {
         description: 'Get latest build for a given job',
         notes: 'Return latest build of status specified',
         tags: ['api', 'job', 'build'],
@@ -23,7 +23,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { status } = request.query || {};
 
@@ -46,7 +46,9 @@ module.exports = () => ({
 
                     return h.response(build.toJsonWithSteps());
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.object()

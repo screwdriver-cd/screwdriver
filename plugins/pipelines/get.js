@@ -9,7 +9,7 @@ const idSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}',
-    config: {
+    options: {
         description: 'Get a single pipeline',
         notes: 'Returns a pipeline record',
         tags: ['api', 'pipelines'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
 
             return factory
@@ -34,7 +34,9 @@ module.exports = () => ({
 
                     return h.response(pipeline.toJson());
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

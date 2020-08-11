@@ -8,7 +8,7 @@ const idSchema = schema.models.token.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/tokens/{id}',
-    config: {
+    options: {
         description: 'Update a token',
         notes: 'Update a specific token',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -56,7 +56,9 @@ module.exports = () => ({
                         return token.update().then(() => h.response(token.toJson()).code(200));
                     });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

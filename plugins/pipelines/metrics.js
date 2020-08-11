@@ -11,7 +11,7 @@ const pipelineMetricListSchema = joi.array().items(joi.object());
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/metrics',
-    config: {
+    options: {
         description: 'Get metrics for this pipeline',
         notes: 'Returns list of metrics for the given pipeline',
         tags: ['api', 'pipelines', 'metrics'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
             const { aggregateInterval, page, count, sort } = request.query;
@@ -60,7 +60,9 @@ module.exports = () => ({
                     return pipeline.getMetrics(config);
                 })
                 .then(metrics => h.response(metrics))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: pipelineMetricListSchema

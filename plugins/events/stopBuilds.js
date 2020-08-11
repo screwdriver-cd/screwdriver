@@ -11,7 +11,7 @@ const idSchema = schema.models.event.base.extract('id');
 module.exports = () => ({
     method: 'PUT',
     path: '/events/{id}/stop',
-    config: {
+    options: {
         description: 'Stop all builds in an event',
         notes: 'Stop all builds in a specific event',
         tags: ['api', 'events'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { eventFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -115,7 +115,9 @@ module.exports = () => ({
                                 .code(200);
                         });
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

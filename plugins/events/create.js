@@ -8,7 +8,7 @@ const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 module.exports = () => ({
     method: 'POST',
     path: '/events',
-    config: {
+    options: {
         description: 'Create and start a event',
         notes: 'Create and start a specific event',
         tags: ['api', 'events'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
             const { buildId, causeMessage, creator, meta } = request.payload;
             const { scmContext, username } = request.auth.credentials;
@@ -277,7 +277,9 @@ module.exports = () => ({
                             });
                     }
                 )
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             payload: validationSchema.models.event.create

@@ -19,7 +19,7 @@ const SCHEMA_SCOPE_CACHE_ID = joi
 module.exports = () => ({
     method: 'DELETE',
     path: '/pipelines/{id}/caches',
-    config: {
+    options: {
         description: 'API to delete cache using scope and id',
         notes: 'Deletes the entire cache folder for pipeline, job or event using its id',
         tags: ['api', 'events', 'jobs', 'pipelines', 'cache'],

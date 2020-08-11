@@ -7,7 +7,7 @@ const urlLib = require('url');
 module.exports = () => ({
     method: 'POST',
     path: '/tokens',
-    config: {
+    options: {
         description: 'Create a new token',
         notes: 'Create a specific token',
         tags: ['api', 'tokens'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -63,7 +63,9 @@ module.exports = () => ({
                             .code(201);
                     })
                     // something broke, respond with error
-                    .catch(err => h.response(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

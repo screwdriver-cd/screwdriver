@@ -12,7 +12,7 @@ const typeSchema = joi.string().valid('', 'download', 'preview').label('Flag to 
 module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/artifacts/{name*}',
-    config: {
+    options: {
         description: 'Get a single build artifact',
         notes: 'Redirects to store with proper token',
         tags: ['api', 'builds', 'artifacts'],
@@ -25,7 +25,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const artifact = request.params.name;
             const buildId = request.params.id;
 
@@ -46,7 +46,7 @@ module.exports = config => ({
                 baseUrl += `&type=${request.query.type}`;
             }
 
-            return h.response().redirect().location(baseUrl);
+            return h.redirect().location(baseUrl);
         },
         validate: {
             params: joi.object({

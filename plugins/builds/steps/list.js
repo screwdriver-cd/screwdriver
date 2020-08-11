@@ -11,7 +11,7 @@ const listSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/steps',
-    config: {
+    options: {
         description: 'Get a step for a build',
         notes: 'Returns a step record',
         tags: ['api', 'builds', 'steps'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { stepFactory } = request.server.app;
             const buildIdCred = request.auth.credentials.username && request.auth.credentials.username.toString();
             const buildId = request.params.id && request.params.id.toString();
@@ -62,7 +62,9 @@ module.exports = () => ({
 
                     return h.response(stepModel.map(step => step.toJson()));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

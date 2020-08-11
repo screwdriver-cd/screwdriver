@@ -126,7 +126,7 @@ function getPipelinesInfo(pipelines, eventFactory) {
 module.exports = () => ({
     method: 'GET',
     path: '/collections/{id}',
-    config: {
+    options: {
         description: 'Get a single collection',
         notes: 'Returns a collection record',
         tags: ['api', 'collections'],
@@ -139,7 +139,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { collectionFactory, pipelineFactory, eventFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
@@ -180,7 +180,9 @@ module.exports = () => ({
                             })
                     );
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

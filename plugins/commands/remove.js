@@ -44,7 +44,7 @@ function removeCommand(command, storeUrl, authToken) {
 module.exports = () => ({
     method: 'DELETE',
     path: '/commands/{namespace}/{name}',
-    config: {
+    options: {
         description: 'Delete a command',
         notes: 'Returns null if successful',
         tags: ['api', 'commands'],
@@ -57,7 +57,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { namespace, name } = request.params;
             const { credentials } = request.auth;
             const { commandFactory, commandTagFactory } = request.server.app;
@@ -85,7 +85,9 @@ module.exports = () => ({
                         })
                         .then(() => h.response().code(204));
                 })
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

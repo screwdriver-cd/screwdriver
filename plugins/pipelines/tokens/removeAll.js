@@ -8,7 +8,7 @@ const idSchema = schema.models.pipeline.base.extract('id');
 module.exports = () => ({
     method: 'DELETE',
     path: '/pipelines/{id}/tokens',
-    config: {
+    options: {
         description: 'Remove all tokens for a specific pipeline',
         notes: 'Returns null if successful',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -47,7 +47,9 @@ module.exports = () => ({
                         .then(() => pipeline.tokens.then(tokens => tokens.map(t => t.remove())));
                 })
                 .then(() => h.response().code(204))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

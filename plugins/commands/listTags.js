@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
@@ -13,7 +12,7 @@ const nameSchema = schema.models.commandTag.base.extract('name');
 module.exports = () => ({
     method: 'GET',
     path: '/commands/{namespace}/{name}/tags',
-    config: {
+    options: {
         description: 'Get all command tags for a given command namespace and name',
         notes: 'Returns all command tags for a given command namespace and name',
         tags: ['api', 'commands', 'tags'],
@@ -26,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const factory = request.server.app.commandTagFactory;
             const config = {
                 params: {
@@ -46,7 +45,9 @@ module.exports = () => ({
             return factory
                 .list(config)
                 .then(tags => h.response(tags.map(p => p.toJson())))
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

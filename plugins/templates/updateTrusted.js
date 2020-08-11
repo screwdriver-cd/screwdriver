@@ -8,7 +8,7 @@ const baseSchema = schema.models.template.base;
 module.exports = () => ({
     method: 'PUT',
     path: '/templates/{name}/trusted',
-    config: {
+    options: {
         description: "Update a template's trusted property",
         notes: 'Returns null if successful',
         tags: ['api', 'templates', 'trusted'],

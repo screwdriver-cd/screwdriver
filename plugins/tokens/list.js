@@ -8,7 +8,7 @@ const getSchema = joi.array().items(schema.models.token.get);
 module.exports = () => ({
     method: 'GET',
     path: '/tokens',
-    config: {
+    options: {
         description: 'Get tokens with pagination',
         notes: 'Returns all token records belonging to the current user',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, h) => {
+        handler: async (request, h) => {
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -47,7 +47,9 @@ module.exports = () => ({
                         })
                     )
                 )
-                .catch(err => h.response(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

@@ -91,9 +91,8 @@ function addOAuthRoutes(config) {
                 request.log(['auth'], `${userDisplayName} has logged in via OAuth`);
 
                 profile.token = request.server.plugins.auth.generateToken(profile, config.sessionTimeout);
-                request.cookieAuth.set(profile);
 
-                // request.auth.session.set(request.auth.credentials);
+                request.cookieAuth.set(profile);
 
                 let user;
                 const model = await userFactory.get({ username, scmContext });
