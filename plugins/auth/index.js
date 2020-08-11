@@ -242,8 +242,7 @@ const authPlugin = {
                 isSecure: pluginOptions.https,
                 isSameSite: pluginOptions.sameSite,
                 clearInvalid: false
-            },
-            keepAlive: true
+            }
         });
 
         server.auth.strategy('token', 'jwt', {
