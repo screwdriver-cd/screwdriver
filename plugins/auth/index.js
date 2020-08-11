@@ -109,7 +109,7 @@ async function _validateFunc(server, tokenValue) {
  * @param {object} request
  * @param {object} h
  */
-const validate = async function() {
+const validate = async function () {
     // The _decoded token signature is validated by jwt.veriry so we can return true
     return { isValid: true };
 };
@@ -128,7 +128,7 @@ const validate = async function() {
  * @param  {String}  [options.jwtEnvironment]        Environment for the JWTs. Example: 'prod' or 'beta'
  * @param  {Object}   options.scm                    SCM class to setup Authentication
  * @param  {Object}   options.sameSite               Cookie option for SameSite setting
- * @param  {Function} next                           Function to call when done
+ * @param  {Object}   options.path                   Cookie option for Path setting
  */
 const authPlugin = {
     name: 'auth',
@@ -167,7 +167,8 @@ const authPlugin = {
                 sameSite: joi
                     .alternatives()
                     .try(JOI_BOOLEAN, joi.string())
-                    .required()
+                    .required(),
+                path: joi.string().required()
             }),
             'Invalid config for plugin-auth'
         );
