@@ -34,6 +34,7 @@ module.exports = () => ({
 
                     if (Array.isArray(buildModel.environment)) {
                         const data = await buildModel.toJsonWithSteps();
+
                         return h.response(data);
                     }
 

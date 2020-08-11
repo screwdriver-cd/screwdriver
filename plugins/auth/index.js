@@ -109,7 +109,7 @@ async function _validateFunc(server, tokenValue) {
  * @param {object} request
  * @param {object} h
  */
-const validate = async function () {
+const validate = async function() {
     // The _decoded token signature is validated by jwt.veriry so we can return true
     return { isValid: true };
 };
