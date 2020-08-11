@@ -241,7 +241,7 @@ const authPlugin = {
                 password: pluginOptions.cookiePassword,
                 isSecure: pluginOptions.https,
                 isSameSite: pluginOptions.sameSite,
-                clearInvalid: false
+                path: pluginOptions.path,
             }
         });
 

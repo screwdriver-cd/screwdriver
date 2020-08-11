@@ -40,6 +40,8 @@ auth:
   sessionTimeout: 120
   # SameSite Cookie Option
   sameSite: Strict
+  # cookie path to access the cookie, set to '/'
+  path: /
 
 shutdown:
   terminationGracePeriod: TERMINATION_GRACE_PERIOD

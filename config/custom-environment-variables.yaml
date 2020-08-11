@@ -40,6 +40,8 @@ auth:
   oauthRedirectUri: OAUTH_REDIRECT_URI
   # SameSite Cookie Option
   sameSite: COOKIE_SAME_SITE
+  # cookie path to access the cookie https://github.com/hapijs/cookie/issues/209
+  path: COOKIE_PATH_VALUE
 
 shutdown:
   terminationGracePeriod: TERMINATION_GRACE_PERIOD
