@@ -2189,7 +2189,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it.only('passes in aggregation option', () => {
+        it('passes in aggregation option', () => {
             options.url = `/pipelines/${id}/metrics?aggregateInterval=week`;
 
             return server.inject(options).then(reply => {
