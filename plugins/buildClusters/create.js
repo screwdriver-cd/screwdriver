@@ -21,8 +21,7 @@ module.exports = () => ({
             }
         },
         handler: async (request, h) => {
-            const { buildClusterFactory } = request.server.app;
-            const { userFactory } = request.server.app;
+            const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -41,7 +40,8 @@ module.exports = () => ({
             // Check permissions
             // Must be Screwdriver admin to add Screwdriver build cluster
             if (payload.managedByScrewdriver) {
-                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
                 if (!adminDetails.isAdmin) {
                     return h.response(

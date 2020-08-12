@@ -74,7 +74,7 @@ module.exports = () => ({
                         throw boom.notFound(`Command ${namespace}/${name} does not exist`);
                     }
 
-                    return canRemove(credentials, commands[0], 'admin')
+                    return canRemove(credentials, commands[0], 'admin', request.server.app)
                         .then(() => {
                             const commandPromises = commands.map(command =>
                                 removeCommand(command, storeUrl, authToken)

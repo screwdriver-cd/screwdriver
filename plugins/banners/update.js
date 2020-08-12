@@ -26,9 +26,11 @@ module.exports = () => ({
             const { id } = request.params; // id of banner to update
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
+            const { scm } = bannerFactory;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
 
             // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
             // verify user is authorized to update banners
             // return unauthorized if not system admin

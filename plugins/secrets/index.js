@@ -27,11 +27,11 @@ const secretsPlugin = {
          * @param {String}  [credentials.isPR]       If credential is a build, this is true if a PR
          * @param {Object}  secret                   Secret object from Hapi
          * @param {String}  permission               Required permission level
+         * @param {String}  app                      Server app object
          * @return {Boolean}
          */
-        server.expose('canAccess', (credentials, secret, permission) => {
-            const { userFactory } = server.root.app;
-            const { pipelineFactory } = server.root.app;
+        server.expose('canAccess', (credentials, secret, permission, app) => {
+            const { userFactory, pipelineFactory } = app;
             const { username } = credentials;
             const { scmContext } = credentials;
             const { scope } = credentials;

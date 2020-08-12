@@ -44,7 +44,7 @@ module.exports = () => ({
                         return h.response([]);
                     }
 
-                    return canAccess(credentials, secrets[0], 'push').then(() =>
+                    return canAccess(credentials, secrets[0], 'push', request.server.app).then(() =>
                         h.response(
                             secrets.map(s => {
                                 const output = s.toJson();

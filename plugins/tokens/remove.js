@@ -35,7 +35,7 @@ module.exports = () => ({
                     }
 
                     // Check that the user is deleting their own token
-                    return canAccess(credentials, token).then(() => token.remove());
+                    return canAccess(credentials, token, request.server.app).then(() => token.remove());
                 })
                 .then(() => h.response().code(204))
                 .catch(err => {

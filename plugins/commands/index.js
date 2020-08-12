@@ -31,11 +31,12 @@ const commandsPlugin = {
          * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
          * @param {Object}  command                  Target command object
          * @param {String}  permission               Required permission level
+         * @param {String}  app                      Server app object
          * @return {Promise}
          */
-        server.expose('canRemove', (credentials, command, permission) => {
+        server.expose('canRemove', (credentials, command, permission, app) => {
             const { username, scmContext, scope, isPR } = credentials;
-            const { userFactory, pipelineFactory } = server.root.app;
+            const { userFactory, pipelineFactory } = app;
 
             if (credentials.scope.includes('admin')) {
                 return Promise.resolve(true);

@@ -34,7 +34,7 @@ module.exports = () => ({
                         throw boom.notFound('Secret does not exist');
                     }
 
-                    return canAccess(credentials, secret, 'push').then(showSecret => {
+                    return canAccess(credentials, secret, 'push', request.server.app).then(showSecret => {
                         const output = secret.toJson();
 
                         if (!showSecret) {

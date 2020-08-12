@@ -20,18 +20,16 @@ const bannerPlugin = {
          * Identifies userDisplayName and Screwdriver admin status of user
          * @method screwdriverAdminDetails
          * @param  {String}        username   Username of the person
-         * @param  {String}        scmContext Scm to which the person logged in belongs
+         * @param  {String}        scmDisplayName Scm display name of the person
          * @return {Object}                   Details including the display name and admin status of user
          */
-        server.expose('screwdriverAdminDetails', (username, scmContext) => {
+        server.expose('screwdriverAdminDetails', (username, scmDisplayName) => {
             // construct object with defaults to store details
             const adminDetails = {
                 isAdmin: false
             };
 
-            if (scmContext) {
-                const { scm } = server.root.app.bannerFactory;
-                const scmDisplayName = scm.getDisplayName({ scmContext });
+            if (scmDisplayName) {
                 const adminsList = options.admins;
 
                 // construct displayable username string

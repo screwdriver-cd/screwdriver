@@ -22,9 +22,10 @@ module.exports = () => ({
             }
         },
         handler: async (request, h) => {
-            const { buildClusterFactory, userFactory } = request.server.app;
+            const { buildClusterFactory, userFactory, bannerFactory } = request.server.app;
             const { name } = request.params;
             const { username, scmContext } = request.auth.credentials;
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
 
             // Fetch the buildCluster and user models
             return Promise.all([
@@ -49,7 +50,10 @@ module.exports = () => ({
                         return h.response(boom.notFound(`User ${username} does not exist`));
                     }
 
-                    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+                    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                        username,
+                        scmDisplayName
+                    );
 
                     if (!adminDetails.isAdmin) {
                         return h.response(

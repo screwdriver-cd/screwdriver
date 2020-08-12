@@ -33,7 +33,7 @@ module.exports = () => ({
                         throw boom.notFound('Token does not exist');
                     }
 
-                    return canAccess(credentials, token)
+                    return canAccess(credentials, token, request.server.app)
                         .then(() => token.refresh())
                         .then(() => h.response(token.toJson()).code(200));
                 })

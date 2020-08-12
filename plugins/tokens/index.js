@@ -26,8 +26,8 @@ const tokensPlugin = {
          * @param {Object}  token                    Token object
          * @return {Boolean}
          */
-        server.expose('canAccess', (credentials, token) => {
-            const { userFactory } = server.root.app;
+        server.expose('canAccess', (credentials, token, app) => {
+            const { userFactory } = app;
             const { username } = credentials;
             const { scmContext } = credentials;
 

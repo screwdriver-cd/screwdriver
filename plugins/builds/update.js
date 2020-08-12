@@ -31,7 +31,8 @@ module.exports = config => ({
                 jobFactory,
                 triggerFactory,
                 userFactory,
-                stepFactory
+                stepFactory,
+                bannerFactory
             } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
@@ -58,10 +59,11 @@ module.exports = config => ({
 
                     // Users can only mark a running or queued build as aborted
                     if (!isBuild) {
+                        const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
                         // Check if Screwdriver admin
                         const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                             username,
-                            scmContext
+                            scmDisplayName
                         );
 
                         // Check desired status
@@ -202,14 +204,17 @@ module.exports = config => ({
                                     return h.response(await newBuild.toJsonWithSteps()).code(200);
                                 }
 
-                                return triggerNextJobs({
-                                    pipeline,
-                                    job,
-                                    build: newBuild,
-                                    username,
-                                    scmContext,
-                                    externalJoin
-                                }).then(async () => {
+                                return triggerNextJobs(
+                                    {
+                                        pipeline,
+                                        job,
+                                        build: newBuild,
+                                        username,
+                                        scmContext,
+                                        externalJoin
+                                    },
+                                    request.server.app
+                                ).then(async () => {
                                     // if external join is allowed, then triggerNextJobs will take care of external OR already
                                     if (externalJoin) {
                                         return h.response(await newBuild.toJsonWithSteps()).code(200);
@@ -235,12 +240,15 @@ module.exports = config => ({
                                         .then(pipelineIds =>
                                             Promise.all(
                                                 pipelineIds.map(pipelineId =>
-                                                    triggerEvent({
-                                                        pipelineId: parseInt(pipelineId, 10),
-                                                        startFrom: src,
-                                                        causeMessage: `Triggered by build ${username}`,
-                                                        parentBuildId: newBuild.id
-                                                    })
+                                                    triggerEvent(
+                                                        {
+                                                            pipelineId: parseInt(pipelineId, 10),
+                                                            startFrom: src,
+                                                            causeMessage: `Triggered by build ${username}`,
+                                                            parentBuildId: newBuild.id
+                                                        },
+                                                        request.server.app
+                                                    )
                                                 )
                                             )
                                         )

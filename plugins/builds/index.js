@@ -1120,11 +1120,12 @@ const buildsPlugin = {
          * @param {String}  config.startFrom     Job to be rebuilt
          * @param {String}  config.causeMessage  Caused message, e.g. triggered by 1234(buildId)
          * @param {String}  config.parentBuildId ID of the build that triggers this event
+         * @param {String}  app                  Server app object
          * @return {Promise}                     Resolves to the newly created event
          */
-        server.expose('triggerEvent', config => {
-            config.eventFactory = server.root.app.eventFactory;
-            config.pipelineFactory = server.root.app.pipelineFactory;
+        server.expose('triggerEvent', (config, app) => {
+            config.eventFactory = app.eventFactory;
+            config.pipelineFactory = app.pipelineFactory;
 
             return createEvent(config);
         });
@@ -1139,11 +1140,12 @@ const buildsPlugin = {
          * @param {String}      config.username     Username
          * @param {String}      config.scmContext   Scm context
          * @param {Boolean}     config.externalJoin Flag to allow external join
+         * @param {String}  app                      Server app object
          * @return {Promise}                        Resolves to the newly created build or null
          */
-        server.expose('triggerNextJobs', async config => {
+        server.expose('triggerNextJobs', async (config, app) => {
             const { pipeline, job, build, username, scmContext, externalJoin } = config;
-            const { buildFactory, eventFactory, jobFactory, pipelineFactory } = server.root.app;
+            const { buildFactory, eventFactory, jobFactory, pipelineFactory } = app;
             const currentJobName = job.name;
             const pipelineId = pipeline.id;
             const event = await eventFactory.get({ id: build.eventId });

@@ -36,7 +36,7 @@ module.exports = () => ({
                         throw boom.notFound(`Template ${name} does not exist`);
                     }
 
-                    return canRemove(credentials, templates[0], 'admin')
+                    return canRemove(credentials, templates[0], 'admin', request.server.app)
                         .then(() => {
                             const templatePromises = templates.map(template => template.remove());
                             const tagPromises = tags.map(tag => tag.remove());

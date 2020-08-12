@@ -22,7 +22,7 @@ module.exports = () => ({
             }
         },
         handler: async (request, h) => {
-            const { pipelineFactory } = request.server.app;
+            const { pipelineFactory, bannerFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -56,10 +56,11 @@ module.exports = () => ({
                                 }
                             })
                             .catch(error => {
+                                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
                                 // Lookup whether user is admin
                                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                                     username,
-                                    scmContext
+                                    scmDisplayName
                                 );
 
                                 // Allow cluster admins to remove pipeline

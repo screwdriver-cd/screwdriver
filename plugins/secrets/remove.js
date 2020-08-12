@@ -35,7 +35,7 @@ module.exports = () => ({
                     }
 
                     // Make sure that user has permission before deleting
-                    return canAccess(credentials, secret, 'admin')
+                    return canAccess(credentials, secret, 'admin', request.server.app)
                         .then(() => secret.remove())
                         .then(() => h.response().code(204));
                 })

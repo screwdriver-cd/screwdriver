@@ -34,7 +34,7 @@ module.exports = () => ({
                     }
 
                     // Make sure that user has permission before updating
-                    return canAccess(credentials, secret, 'admin')
+                    return canAccess(credentials, secret, 'admin', request.server.app)
                         .then(() => {
                             Object.keys(request.payload).forEach(key => {
                                 secret[key] = request.payload[key];
