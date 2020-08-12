@@ -1425,8 +1425,6 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
             pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
-
-            secretFactoryMock.get.withArgs({ pipelineId: 123, name: 'SD_SCM_DEPLOY_KEY' }).resolves(null);
         });
 
         it('returns 201 and correct pipeline data', () => {
@@ -1469,7 +1467,7 @@ describe('pipeline plugin test', () => {
                     pipelineId: 123,
                     name: 'SD_SCM_DEPLOY_KEY',
                     value: privateKeyB64,
-                    allowInPR: false
+                    allowInPR: true
                 });
                 assert.equal(reply.statusCode, 201);
             });

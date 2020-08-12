@@ -137,7 +137,7 @@ module.exports = () => ({
                                                                 pipelineId: pipeline.id,
                                                                 name: deployKeySecret,
                                                                 value: privateDeployKeyB64,
-                                                                allowInPR: false
+                                                                allowInPR: true
                                                             });
                                                         });
                                                 }
