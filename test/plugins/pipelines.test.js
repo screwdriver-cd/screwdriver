@@ -2155,7 +2155,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                    startTime: '2019-03-13T21:10:58.211Z' // 1 day
                 });
                 assert.equal(reply.statusCode, 200);
             });
@@ -2195,7 +2195,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
-                    startTime: '2018-09-15T21:10:58.211Z',
+                    startTime: '2019-03-13T21:10:58.211Z',
                     endTime: nowTime,
                     aggregateInterval: 'week'
                 });
