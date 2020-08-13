@@ -41,7 +41,7 @@ module.exports = () => ({
                         throw boom.notFound('Builds do not exist');
                     }
 
-                    h.response(builds);
+                    return h.response(builds);
                 })
                 .catch(err => {
                     throw err;

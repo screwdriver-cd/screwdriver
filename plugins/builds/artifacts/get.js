@@ -46,7 +46,7 @@ module.exports = config => ({
                 baseUrl += `&type=${request.query.type}`;
             }
 
-            return h.redirect().location(baseUrl);
+            return h.redirect(baseUrl);
         },
         validate: {
             params: joi.object({

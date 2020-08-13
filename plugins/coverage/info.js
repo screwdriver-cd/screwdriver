@@ -17,12 +17,8 @@ module.exports = config => ({
             }
         },
         handler: async (request, h) => {
-            config.coveragePlugin
-                .getInfo(request.query)
-                .then(data => h.response(data))
-                .catch(err => {
-                    throw err;
-                });
+            const data = await config.coveragePlugin.getInfo(request.query)
+            return h.response(data);
         }
     }
 });
