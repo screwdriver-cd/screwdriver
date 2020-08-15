@@ -24,7 +24,10 @@ module.exports = config => ({
             scmContexts.forEach(scmContext => {
                 const context = {
                     context: scmContext,
-                    displayName: scm.getDisplayName({ scmContext })
+                    displayName: scm.getDisplayName({ scmContext }),
+                    autoDeployKeyGeneration: scm.autoDeployKeyGenerationEnabled({
+                        scmContext
+                    })
                 };
 
                 contexts.push(context);
@@ -33,7 +36,8 @@ module.exports = config => ({
             if (config.allowGuestAccess) {
                 contexts.push({
                     context: 'guest',
-                    displayName: 'Guest Access'
+                    displayName: 'Guest Access',
+                    autoDeployKeyGeneration: false
                 });
             }
 

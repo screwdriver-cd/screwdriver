@@ -19,7 +19,7 @@ module.exports = config => ({
             }
         },
         handler: (request, reply) => {
-            config.coveragePlugin
+            return config.coveragePlugin
                 .getInfo(request.query)
                 .then(reply)
                 .catch(err => reply(boom.boomify(err)));
