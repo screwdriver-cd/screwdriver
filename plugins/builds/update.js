@@ -7,6 +7,32 @@ const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
+/**
+ * Determine if this build is FIXED build or not.
+ * @method isFixedBuild
+ * @param  build
+ * @param  jobFactory
+ */
+function isFixedBuild(build, jobFactory) {
+    return jobFactory.get(build.jobId).then(job =>
+        job.getLatestBuild({ status: 'FAILURE' }).then(failureBuild =>
+            job.getLatestBuild({ status: 'SUCCESS' }).then(successBuild => {
+                if (!failureBuild) {
+                    return false;
+                }
+                if (failureBuild && !successBuild) {
+                    return true;
+                }
+                if (failureBuild.id > successBuild.id) {
+                    return true;
+                }
+
+                return false;
+            })
+        )
+    );
+}
+
 module.exports = config => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -178,12 +204,15 @@ module.exports = config => ({
                     }
 
                     // Only trigger next build on success
-                    return Promise.all([build.update(), event.update()]);
+                    return Promise.all([build.update(), event.update(), isFixedBuild(build, jobFactory)]);
                 })
-                .then(([newBuild, newEvent]) =>
+                .then(([newBuild, newEvent, isFixed]) =>
                     newBuild.job.then(job =>
                         job.pipeline
                             .then(pipeline => {
+                                if (newBuild.status === 'SUCCESS' && isFixed) {
+                                    newBuild.status = 'FIXED';
+                                }
                                 request.server.emit('build_status', {
                                     settings: job.permutations[0].settings,
                                     status: newBuild.status,
