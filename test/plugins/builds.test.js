@@ -122,7 +122,8 @@ describe('build plugin test', () => {
         jobFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            getLatestBuild: sinon.stub()
         };
         userFactoryMock = {
             get: sinon.stub(),
@@ -383,6 +384,7 @@ describe('build plugin test', () => {
                 }),
                 toJson: sinon.stub().returns({ id: pipelineId })
             };
+            pipelineFactoryMock.get.resolves(pipelineMock);
             jobMock = {
                 id: 1234,
                 name: 'main',
@@ -394,7 +396,8 @@ describe('build plugin test', () => {
                         }
                     }
                 ],
-                pipeline: sinon.stub().resolves(pipelineMock)()
+                pipeline: sinon.stub().resolves(pipelineMock)(),
+                getLatestBuild: sinon.stub().resolves(buildMock)
             };
 
             eventMock = {
@@ -475,7 +478,84 @@ describe('build plugin test', () => {
                     settings: {
                         email: 'foo@bar.com'
                     },
-                    status: 'ABORTED'
+                    status: 'ABORTED',
+                    isFixed: false
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('emits fixed build_status', () => {
+            const userMock = {
+                username: id,
+                getPermissions: sinon.stub().resolves({ push: true })
+            };
+            const options = {
+                method: 'PUT',
+                url: `/builds/${id}`,
+                payload: {
+                    status: 'SUCCESS'
+                },
+                credentials: {
+                    username: id,
+                    scmContext,
+                    scope: ['build']
+                }
+            };
+
+            const successBuild = getBuildMock({
+                id: 12345,
+                status: 'SUCCESS'
+            });
+            const failureBuild = getBuildMock({
+                id: 12346,
+                status: 'FAILURE'
+            });
+
+            const fixedJobMock = {
+                id: 2929,
+                name: 'main',
+                pipelineId,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                pipeline: sinon.stub().resolves(pipelineMock)(),
+
+                getLatestBuild: sinon.stub()
+            };
+
+            fixedJobMock.getLatestBuild.withArgs({ status: 'FAILURE' }).resolves(failureBuild);
+            fixedJobMock.getLatestBuild.withArgs({ status: 'SUCCESS' }).resolves(successBuild);
+
+            buildMock.job = sinon.stub().resolves(fixedJobMock)();
+            buildMock.settings = {
+                email: 'foo@bar.com'
+            };
+
+            jobFactoryMock.get.resolves(fixedJobMock);
+
+            buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+            userFactoryMock.get.resolves(userMock);
+
+            server.emit = sinon.stub().resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(server.emit, 'build_status', {
+                    build: buildMock.toJson(),
+                    buildLink: 'http://foo.bar/pipelines/123/builds/12345',
+                    jobName: 'main',
+                    event: { id: 123 },
+                    pipeline: { id: 123 },
+                    settings: {
+                        email: 'foo@bar.com'
+                    },
+                    status: 'SUCCESS',
+                    isFixed: true
                 });
                 assert.equal(reply.statusCode, 200);
             });

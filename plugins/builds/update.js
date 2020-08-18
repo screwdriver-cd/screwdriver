@@ -131,6 +131,7 @@ module.exports = config => ({
                 .then(({ build, event }) => {
                     // We can't merge from executor-k8s/k8s-vm side because executor doesn't have build object
                     // So we do merge logic here instead
+
                     if (stats) {
                         // need to do this so the field is dirty
                         build.stats = Object.assign(build.stats, stats);
@@ -210,9 +211,6 @@ module.exports = config => ({
                     newBuild.job.then(job =>
                         job.pipeline
                             .then(pipeline => {
-                                if (newBuild.status === 'SUCCESS' && isFixed) {
-                                    newBuild.status = 'FIXED';
-                                }
                                 request.server.emit('build_status', {
                                     settings: job.permutations[0].settings,
                                     status: newBuild.status,
@@ -220,13 +218,15 @@ module.exports = config => ({
                                     pipeline: pipeline.toJson(),
                                     jobName: job.name,
                                     build: newBuild.toJson(),
-                                    buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
+                                    buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`,
+                                    isFixed: isFixed || false
                                 });
 
                                 const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
                                 // Guard against triggering non-successful or unstable builds
                                 // Don't further trigger pipeline if intented to skip further jobs
+
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
                                     return reply(newBuild.toJsonWithSteps()).code(200);
                                 }
