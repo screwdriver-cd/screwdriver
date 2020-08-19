@@ -384,6 +384,7 @@ ecosystem:
     compress: CACHE_COMPRESS
     md5check: CACHE_MD5CHECK
     max_size_mb: CACHE_MAX_SIZE_MB
+    max_go_threads: CACHE_MAX_GO_THREADS
 
 build:
   environment:
