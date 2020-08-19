@@ -81,7 +81,7 @@ describe('collection plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         collectionFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -118,30 +118,22 @@ describe('collection plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/collections');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             collectionFactory: collectionFactoryMock,
             eventFactory: eventFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
             authenticate: (_, h) => h.authenticated()
         }));
         server.auth.strategy('token', 'custom');
 
-        return server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            done
-        );
+        await server.register({ plugin });
     });
 
     afterEach(() => {
@@ -173,10 +165,13 @@ describe('collection plugin test', () => {
                     pipelineIds,
                     type
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
                 }
             };
             collectionFactoryMock.get.resolves(null);
@@ -349,10 +344,13 @@ describe('collection plugin test', () => {
             options = {
                 method: 'GET',
                 url: '/collections',
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
                 }
             };
         });
@@ -399,10 +397,13 @@ describe('collection plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/collections/${id}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
                 }
             };
             eventMock = {
@@ -571,10 +572,13 @@ describe('collection plugin test', () => {
                     description: 'updated description',
                     pipelineIds: [123, 124]
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -688,10 +692,13 @@ describe('collection plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/collections/${id}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
                 }
             };
 

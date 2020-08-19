@@ -42,12 +42,10 @@ module.exports = () => ({
                         throw boom.badData('Build cluster list returned non-array.');
                     }
                     if (buildClusters.length === 0) {
-                        return h.response(
-                            boom.notFound(`Build cluster ${name}, scmContext ${scmContext} does not exist`)
-                        );
+                        return boom.notFound(`Build cluster ${name}, scmContext ${scmContext} does not exist`);
                     }
                     if (!user) {
-                        return h.response(boom.notFound(`User ${username} does not exist`));
+                        return boom.notFound(`User ${username} does not exist`);
                     }
 
                     const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
@@ -56,11 +54,9 @@ module.exports = () => ({
                     );
 
                     if (!adminDetails.isAdmin) {
-                        return h.response(
-                            boom.forbidden(
-                                `User ${adminDetails.userDisplayName}
+                        return boom.forbidden(
+                            `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                            )
                         );
                     }
 

@@ -18,92 +18,6 @@ const JOI_BOOLEAN = joi
     .falsy('false');
 
 /**
- * @param {object} server
- * @param {string} tokenValue
- */
-async function _validateFunc(server, tokenValue) {
-    // Token is an API token
-    // using function syntax makes 'this' the request
-    const request = this;
-
-    try {
-        const { tokenFactory } = request.server.app;
-        const { userFactory } = request.server.app;
-        const { pipelineFactory } = request.server.app;
-        const { collectionFactory } = request.server.app;
-
-        const token = await tokenFactory.get({ value: tokenValue });
-
-        if (!token) {
-            return Promise.reject();
-        }
-        let profile;
-
-        if (token.userId) {
-            // if token has userId then the token is for user
-            const user = await userFactory.get({ accessToken: tokenValue });
-
-            if (!user) {
-                return Promise.reject();
-            }
-
-            const description = `The default collection for ${user.username}`;
-
-            const collections = await collectionFactory.list({
-                params: {
-                    userId: user.id,
-                    type: 'default'
-                }
-            });
-
-            if (!collections[0]) {
-                await collectionFactory.create({
-                    userId: user.id,
-                    name: 'My Pipelines',
-                    description,
-                    type: 'default'
-                });
-            }
-
-            profile = {
-                username: user.username,
-                scmContext: user.scmContext,
-                scope: ['user']
-            };
-        }
-        if (token.pipelineId) {
-            // if token has pipelineId then the token is for pipeline
-            const pipeline = await pipelineFactory.get({ accessToken: tokenValue });
-
-            if (!pipeline) {
-                return Promise.reject();
-            }
-
-            const admin = await pipeline.admin;
-
-            profile = {
-                username: admin.username,
-                scmContext: pipeline.scmContext,
-                pipelineId: token.pipelineId,
-                scope: ['pipeline']
-            };
-        }
-        if (!profile) {
-            return Promise.reject();
-        }
-
-        request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
-        profile.token = server.plugins.auth.generateToken(profile);
-
-        return { isValid: true, profile };
-    } catch (err) {
-        request.log(['auth', 'error'], err);
-
-        return { isValid: false };
-    }
-}
-
-/**
  *
  * @param {string} decoded
  * @param {object} request
@@ -258,8 +172,86 @@ const authPlugin = {
             accessTokenName: 'api_token',
             allowCookieToken: false,
             allowQueryToken: true,
-            validate: async tokenValue => {
-                return _validateFunc(server, tokenValue);
+            validate: async function _validateFunc(tokenValue) {
+                // Token is an API token
+                // using function syntax makes 'this' the request
+                const request = this;
+
+                try {
+                    const { tokenFactory } = request.server.app;
+                    const { userFactory } = request.server.app;
+                    const { pipelineFactory } = request.server.app;
+                    const { collectionFactory } = request.server.app;
+
+                    const token = await tokenFactory.get({ value: tokenValue });
+
+                    if (!token) {
+                        return Promise.reject();
+                    }
+                    let profile;
+
+                    if (token.userId) {
+                        // if token has userId then the token is for user
+                        const user = await userFactory.get({ accessToken: tokenValue });
+
+                        if (!user) {
+                            return Promise.reject();
+                        }
+
+                        const description = `The default collection for ${user.username}`;
+
+                        const collections = await collectionFactory.list({
+                            params: {
+                                userId: user.id,
+                                type: 'default'
+                            }
+                        });
+
+                        if (!collections[0]) {
+                            await collectionFactory.create({
+                                userId: user.id,
+                                name: 'My Pipelines',
+                                description,
+                                type: 'default'
+                            });
+                        }
+
+                        profile = {
+                            username: user.username,
+                            scmContext: user.scmContext,
+                            scope: ['user']
+                        };
+                    }
+                    if (token.pipelineId) {
+                        // if token has pipelineId then the token is for pipeline
+                        const pipeline = await pipelineFactory.get({ accessToken: tokenValue });
+
+                        if (!pipeline) {
+                            return Promise.reject();
+                        }
+
+                        const admin = await pipeline.admin;
+
+                        profile = {
+                            username: admin.username,
+                            scmContext: pipeline.scmContext,
+                            pipelineId: token.pipelineId,
+                            scope: ['pipeline']
+                        };
+                    }
+                    if (!profile) {
+                        return Promise.reject();
+                    }
+
+                    // request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
+                    profile.token = server.plugins.auth.generateToken(profile);
+
+                    return { isValid: true, profile };
+                } catch (err) {
+                    // request.log(['auth', 'error'], err);
+
+                    return { isValid: false };
+                }
             }
         });
 

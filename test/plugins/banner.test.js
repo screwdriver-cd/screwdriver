@@ -43,7 +43,7 @@ describe('banner plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         scm = {
             getScmContexts: sinon.stub().returns(['github:github.com']),
             getDisplayName: sinon.stub().returns('github'),
@@ -72,13 +72,12 @@ describe('banner plugin test', () => {
         plugin = require('../../plugins/banners');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             bannerFactory: bannerFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -90,17 +89,12 @@ describe('banner plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin,
-                    options: {
-                        admins: ['github:jimgrund', 'github:batman']
-                    }
-                }
-            ],
-            done
-        );
+        await server.register({
+            plugin,
+            options: {
+                admins: ['github:jimgrund', 'github:batman']
+            }
+        });
     });
 
     afterEach(() => {
@@ -134,10 +128,13 @@ describe('banner plugin test', () => {
                     isActive,
                     type
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             bannerFactoryMock.get.resolves(null);
@@ -147,7 +144,7 @@ describe('banner plugin test', () => {
             server.inject(options).then(reply => {
                 const expected = { ...options.payload };
 
-                expected.createdBy = options.credentials.username;
+                expected.createdBy = options.auth.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testBanner);
@@ -159,7 +156,7 @@ describe('banner plugin test', () => {
             return server.inject(options).then(reply => {
                 const expected = { ...options.payload };
 
-                expected.createdBy = options.credentials.username;
+                expected.createdBy = options.auth.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testBanner);
@@ -172,7 +169,7 @@ describe('banner plugin test', () => {
             return server.inject(options).then(reply => {
                 const expected = { ...options.payload };
 
-                expected.createdBy = options.credentials.username;
+                expected.createdBy = options.auth.credentials.username;
                 assert.calledWith(bannerFactoryMock.create, expected);
                 assert.equal(reply.statusCode, 201);
                 assert.deepEqual(reply.result, testBanner);
@@ -180,7 +177,7 @@ describe('banner plugin test', () => {
         });
 
         it('returns 403 for non-admin user', () => {
-            options.credentials.username = 'batman123';
+            options.auth.credentials.username = 'batman123';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -238,10 +235,13 @@ describe('banner plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/banners/${id}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -285,10 +285,13 @@ describe('banner plugin test', () => {
                     isActive: true,
                     type: 'warn'
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             updatedBannerMock = getMock(updatedBanner);
@@ -313,7 +316,7 @@ describe('banner plugin test', () => {
         });
 
         it('returns 403 updating banner by non-admin user', () => {
-            options.credentials.username = 'batman123';
+            options.auth.credentials.username = 'batman123';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -331,10 +334,13 @@ describe('banner plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/banners/${id}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             bannerFactoryMock.get.withArgs(id).resolves(bannerMock);
@@ -347,7 +353,7 @@ describe('banner plugin test', () => {
             }));
 
         it('returns 403 deleting banner by non-admin user', () => {
-            options.credentials.username = 'batman123';
+            options.auth.credentials.username = 'batman123';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);

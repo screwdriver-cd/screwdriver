@@ -31,7 +31,7 @@ module.exports = () => ({
                 // Check Build ID impersonate
                 if (request.params.buildId) {
                     if (!scope.includes('admin')) {
-                        return h.response(boom.forbidden(`User ${username} is not an admin and cannot impersonate`));
+                        return boom.forbidden(`User ${username} is not an admin and cannot impersonate`);
                     }
 
                     const build = await buildFactory.get(request.params.buildId);
@@ -51,7 +51,7 @@ module.exports = () => ({
 
                 return h.response({ token });
             } catch (err) {
-                return h.response(boom.boomify(err));
+                return h.response(boom.boomify(err, { statusCode: 500 }));
             }
         },
         response: {

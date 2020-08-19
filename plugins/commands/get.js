@@ -29,18 +29,13 @@ module.exports = () => ({
             const { commandFactory } = request.server.app;
             const { namespace, name, versionOrTag } = request.params;
 
-            return commandFactory
-                .getCommand(`${namespace}/${name}@${versionOrTag}`)
-                .then(command => {
-                    if (!command) {
-                        throw boom.notFound(`Command ${namespace}/${name}@${versionOrTag} does not exist`);
-                    }
+            const command = await commandFactory.getCommand(`${namespace}/${name}@${versionOrTag}`);
 
-                    return h.response(command);
-                })
-                .catch(err => {
-                    throw err;
-                });
+            if (!command) {
+                throw boom.notFound(`Command ${namespace}/${name}@${versionOrTag} does not exist`);
+            }
+
+            return h.response(command);
         },
         response: {
             schema: getSchema

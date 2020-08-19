@@ -50,7 +50,7 @@ module.exports = () => ({
                         throw boom.notFound('Command does not exist');
                     }
 
-                    h.response(commands.map(p => p.toJson()));
+                    return h.response(commands.map(p => p.toJson()));
                 })
                 .catch(err => {
                     throw err;

@@ -35,7 +35,7 @@ module.exports = () => ({
                 .list(config)
                 .then(buildClusters => {
                     if (buildClusters.length === 0) {
-                        return h.response(boom.notFound(`Build cluster ${name} does not exist`));
+                        return boom.notFound(`Build cluster ${name} does not exist`);
                     }
 
                     return h.response(buildClusters[0].toJson());

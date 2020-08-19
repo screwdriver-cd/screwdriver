@@ -31,7 +31,7 @@ module.exports = () => ({
             const { status } = request.query;
 
             if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
-                return h.response(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
+                return boom.forbidden(`Credential only valid for build ${buildIdCred}`);
             }
 
             return stepFactory

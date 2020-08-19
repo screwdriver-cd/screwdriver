@@ -23,7 +23,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             // Check if the collection to be created has a type 'default'
             if (request.payload.type === 'default') {
-                return h.response(boom.forbidden('Collection with type "default" cannot be created by user'));
+                return boom.forbidden('Collection with type "default" cannot be created by user');
             }
 
             // if request.payload.type is either undefined or not part of allowed types,

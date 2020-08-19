@@ -142,7 +142,7 @@ module.exports = () => ({
                             );
                         })
                     )
-                    .then(build => {
+                    .then(async build => {
                         // everything succeeded, inform the user
                         const location = urlLib.format({
                             host: request.headers.host,
@@ -152,7 +152,7 @@ module.exports = () => ({
                         });
 
                         return h
-                            .response(build.toJsonWithSteps())
+                            .response(await build.toJsonWithSteps())
                             .header('Location', location)
                             .code(201);
                     })

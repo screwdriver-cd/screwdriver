@@ -26,7 +26,7 @@ module.exports = () => ({
             const buildIdCred = request.auth.credentials.username;
 
             if (buildId !== buildIdCred) {
-                return h.response(boom.forbidden(`Credential only valid for ${buildIdCred}`));
+                return boom.forbidden(`Credential only valid for ${buildIdCred}`);
             }
 
             const now = new Date().toISOString();

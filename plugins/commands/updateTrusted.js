@@ -42,10 +42,12 @@ module.exports = () => ({
 
             command.trusted = trusted;
 
-            return command.update().then(
-                () => h.response().code(204),
-                err => h.response(boom.boomify(err))
-            );
+            return command
+                .update()
+                .then(() => h.response().code(204))
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

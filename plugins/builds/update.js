@@ -42,7 +42,7 @@ module.exports = config => ({
             const externalJoin = config.externalJoin || false;
 
             if (isBuild && username !== id) {
-                return h.response(boom.forbidden(`Credential only valid for ${username}`));
+                return boom.forbidden(`Credential only valid for ${username}`);
             }
 
             return buildFactory

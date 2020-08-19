@@ -124,7 +124,8 @@ module.exports = () => ({
         payload: {
             parse: true,
             maxBytes: DEFAULT_BYTES,
-            allow: ['multipart/form-data', 'application/json']
+            allow: ['multipart/form-data', 'application/json'],
+            multipart: true
         },
         handler: async (request, h) => {
             const data = request.payload;
@@ -141,7 +142,7 @@ module.exports = () => ({
                     commandSpec = data.spec;
                     commandBin = data.file;
                 } else {
-                    return h.response(boom.badRequest(multipartCheckResult.message));
+                    return boom.badRequest(multipartCheckResult.message);
                 }
             } else {
                 commandSpec = data.yaml;

@@ -44,11 +44,9 @@ module.exports = () => ({
                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
                 if (!adminDetails.isAdmin) {
-                    return h.response(
-                        boom.forbidden(
-                            `User ${adminDetails.userDisplayName}
+                    return boom.forbidden(
+                        `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                        )
                     );
                 }
 
@@ -77,9 +75,7 @@ module.exports = () => ({
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return h.response(
-                    boom.boomify(boom.badData(`No scmOrganizations provided for build cluster ${payload.name}.`))
-                );
+                return boom.badData(`No scmOrganizations provided for build cluster ${payload.name}.`);
             }
 
             // Must have admin permission on org(s) if adding org-specific build cluster

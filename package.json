@@ -93,7 +93,7 @@
     "screwdriver-artifact-bookend": "^1.1.25",
     "screwdriver-build-bookend": "^2.3.2",
     "screwdriver-cache-bookend": "^1.0.7",
-    "screwdriver-command-validator": "^1.1.0",
+    "screwdriver-command-validator": "git://github.com/screwdriver-cd/command-validator.git#hapi-v19",
     "screwdriver-config-parser": "git://github.com/screwdriver-cd/config-parser.git#hapi-v19",
     "screwdriver-coverage-bookend": "^1.0.3",
     "screwdriver-coverage-sonar": "^1.1.2",

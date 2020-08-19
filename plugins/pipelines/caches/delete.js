@@ -33,44 +33,38 @@ module.exports = () => ({
             }
         },
         handler: async (request, h) => {
-            try {
-                const { pipelineFactory, userFactory } = request.server.app;
-                const { username, scmContext } = request.auth.credentials;
-                const pipelineId = request.params.id;
-                const { isValidToken } = request.server.plugins.pipelines;
+            const { pipelineFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
+            const pipelineId = request.params.id;
+            const { isValidToken } = request.server.plugins.pipelines;
 
-                if (!isValidToken(pipelineId, request.auth.credentials)) {
-                    throw boom.unauthorized('Token does not have permission to this pipeline');
-                }
-
-                const [pipeline, user] = await Promise.all([
-                    pipelineFactory.get(pipelineId),
-                    userFactory.get({ username, scmContext })
-                ]);
-
-                if (!pipeline) {
-                    throw boom.notFound('Pipeline does not exist');
-                }
-                if (!user) {
-                    throw boom.notFound(`User ${username} does not exist`);
-                }
-
-                const permissions = await user.getPermissions(pipeline.scmUri);
-
-                if (!permissions.admin) {
-                    throw boom.forbidden(
-                        `User ${user.getFullDisplayName()} does not have permission to delete this cache`
-                    );
-                }
-
-                const res = await api.invoke(request);
-
-                const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
-
-                return h.response(res).code(statusCode);
-            } catch (err) {
-                return h.response(boom.boomify(err));
+            if (!isValidToken(pipelineId, request.auth.credentials)) {
+                throw boom.unauthorized('Token does not have permission to this pipeline');
             }
+
+            const [pipeline, user] = await Promise.all([
+                pipelineFactory.get(pipelineId),
+                userFactory.get({ username, scmContext })
+            ]);
+
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
+
+            const permissions = await user.getPermissions(pipeline.scmUri);
+
+            if (!permissions.admin) {
+                throw boom.forbidden(`User ${user.getFullDisplayName()} does not have permission to delete this cache`);
+            }
+
+            const res = await api.invoke(request);
+
+            const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
+
+            return h.response(res).code(statusCode);
         },
         validate: {
             query: joi.object({

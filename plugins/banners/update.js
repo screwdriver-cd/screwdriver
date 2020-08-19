@@ -35,11 +35,9 @@ module.exports = () => ({
             // verify user is authorized to update banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
-                return h.response(
-                    boom.forbidden(
-                        `User ${adminDetails.userDisplayName}
+                return boom.forbidden(
+                    `User ${adminDetails.userDisplayName}
                     does not have Screwdriver administrative privileges.`
-                    )
                 );
             }
 
