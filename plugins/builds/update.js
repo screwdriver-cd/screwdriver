@@ -14,8 +14,9 @@ const idSchema = joi.reach(schema.models.job.base, 'id');
  * @param  jobFactory
  */
 async function isFixedBuild(build, jobFactory) {
-    const failureBuild = await jobFactory.get(build.jobId).then(job => job.getLatestBuild({ status: 'FAILURE' }));
-    const successBuild = await jobFactory.get(build.jobId).then(job => job.getLatestBuild({ status: 'SUCCESS' }));
+    const job = await jobFactory.get(build.jobId);
+    const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
+    const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
 
     if (!failureBuild) {
         return false;
