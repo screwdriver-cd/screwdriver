@@ -13,24 +13,21 @@ const idSchema = joi.reach(schema.models.job.base, 'id');
  * @param  build
  * @param  jobFactory
  */
-function isFixedBuild(build, jobFactory) {
-    return jobFactory.get(build.jobId).then(job =>
-        job.getLatestBuild({ status: 'FAILURE' }).then(failureBuild =>
-            job.getLatestBuild({ status: 'SUCCESS' }).then(successBuild => {
-                if (!failureBuild) {
-                    return false;
-                }
-                if (failureBuild && !successBuild) {
-                    return true;
-                }
-                if (failureBuild.id > successBuild.id) {
-                    return true;
-                }
+async function isFixedBuild(build, jobFactory) {
+    const failureBuild = await jobFactory.get(build.jobId).then(job => job.getLatestBuild({ status: 'FAILURE' }));
+    const successBuild = await jobFactory.get(build.jobId).then(job => job.getLatestBuild({ status: 'SUCCESS' }));
 
-                return false;
-            })
-        )
-    );
+    if (!failureBuild) {
+        return false;
+    }
+    if (failureBuild && !successBuild) {
+        return true;
+    }
+    if (failureBuild.id > successBuild.id) {
+        return true;
+    }
+
+    return false;
 }
 
 module.exports = config => ({
