@@ -7,6 +7,34 @@ const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
 const idSchema = joi.reach(schema.models.job.base, 'id');
 
+/**
+ * Determine if this build is FIXED build or not.
+ * @method isFixedBuild
+ * @param  build         Build Object
+ * @param  jobFactory    Job Factory instance
+ */
+async function isFixedBuild(build, jobFactory) {
+    if (build.status !== 'SUCCESS') {
+        return false;
+    }
+
+    const job = await jobFactory.get(build.jobId);
+    const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
+    const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
+
+    if (!failureBuild) {
+        return false;
+    }
+    if (failureBuild && !successBuild) {
+        return true;
+    }
+    if (failureBuild.id > successBuild.id) {
+        return true;
+    }
+
+    return false;
+}
+
 module.exports = config => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -105,6 +133,7 @@ module.exports = config => ({
                 .then(({ build, event }) => {
                     // We can't merge from executor-k8s/k8s-vm side because executor doesn't have build object
                     // So we do merge logic here instead
+
                     if (stats) {
                         // need to do this so the field is dirty
                         build.stats = Object.assign(build.stats, stats);
@@ -178,9 +207,9 @@ module.exports = config => ({
                     }
 
                     // Only trigger next build on success
-                    return Promise.all([build.update(), event.update()]);
+                    return Promise.all([build.update(), event.update(), isFixedBuild(build, jobFactory)]);
                 })
-                .then(([newBuild, newEvent]) =>
+                .then(([newBuild, newEvent, isFixed]) =>
                     newBuild.job.then(job =>
                         job.pipeline
                             .then(pipeline => {
@@ -191,13 +220,15 @@ module.exports = config => ({
                                     pipeline: pipeline.toJson(),
                                     jobName: job.name,
                                     build: newBuild.toJson(),
-                                    buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`
+                                    buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`,
+                                    isFixed: isFixed || false
                                 });
 
                                 const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
                                 // Guard against triggering non-successful or unstable builds
                                 // Don't further trigger pipeline if intented to skip further jobs
+
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
                                     return reply(newBuild.toJsonWithSteps()).code(200);
                                 }
