@@ -10,10 +10,14 @@ const idSchema = joi.reach(schema.models.job.base, 'id');
 /**
  * Determine if this build is FIXED build or not.
  * @method isFixedBuild
- * @param  build
- * @param  jobFactory
+ * @param  build         Build Object
+ * @param  jobFactory    Job Factory instance
  */
 async function isFixedBuild(build, jobFactory) {
+    if (build.status !== 'SUCCESS') {
+        return false;
+    }
+
     const job = await jobFactory.get(build.jobId);
     const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
     const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
