@@ -89,7 +89,6 @@ const decoratePipelineMock = pipeline => {
     mock.remove = sinon.stub();
     mock.admin = sinon.stub();
     mock.getFirstAdmin = sinon.stub();
-    mock.update = sinon.stub();
     mock.token = Promise.resolve('faketoken');
     mock.tokens = sinon.stub();
 
@@ -1425,8 +1424,6 @@ describe('pipeline plugin test', () => {
 
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
             pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
-
-            secretFactoryMock.get.withArgs({ pipelineId: 123, name: 'SD_SCM_DEPLOY_KEY' }).resolves(null);
         });
 
         it('returns 201 and correct pipeline data', () => {
@@ -1469,7 +1466,7 @@ describe('pipeline plugin test', () => {
                     pipelineId: 123,
                     name: 'SD_SCM_DEPLOY_KEY',
                     value: privateKeyB64,
-                    allowInPR: false
+                    allowInPR: true
                 });
                 assert.equal(reply.statusCode, 201);
             });
@@ -1665,6 +1662,7 @@ describe('pipeline plugin test', () => {
 
             pipelineMock = getPipelineMocks(testPipeline);
             updatedPipelineMock = hoek.clone(pipelineMock);
+            updatedPipelineMock.addWebhook.resolves(null);
 
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
@@ -1679,6 +1677,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 and correct pipeline data', () =>
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 200);
             }));
 
@@ -1692,6 +1691,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1748,6 +1748,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).resolves(null);
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1756,6 +1757,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1764,6 +1766,7 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1772,6 +1775,7 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1784,6 +1788,7 @@ describe('pipeline plugin test', () => {
                 // Only call once to get permissions on the new repo
                 assert.calledOnce(userMock.getPermissions);
                 assert.calledWith(userMock.getPermissions, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1796,6 +1801,7 @@ describe('pipeline plugin test', () => {
                 // Only call once to get permissions on the new repo
                 assert.calledOnce(userMock.getPermissions);
                 assert.calledWith(userMock.getPermissions, scmUri);
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1809,6 +1815,7 @@ describe('pipeline plugin test', () => {
             };
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 401);
             });
         });
@@ -1818,6 +1825,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.strictEqual(reply.result.message, `Pipeline already exists with the ID: ${pipelineMock.id}`);
             });
         });
@@ -1828,6 +1836,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).rejects(testError);
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1838,6 +1847,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.update.rejects(testError);
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1848,6 +1858,18 @@ describe('pipeline plugin test', () => {
             pipelineMock.sync.rejects(testError);
 
             return server.inject(options).then(reply => {
+                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the pipeline model fails to add webhooks during create', () => {
+            const testError = new Error('pipelineModelAddWebhookError');
+
+            updatedPipelineMock.addWebhook.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -2157,7 +2179,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                    startTime: '2019-03-13T21:10:58.211Z' // 1 day
                 });
                 assert.equal(reply.statusCode, 200);
             });
@@ -2197,7 +2219,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
-                    startTime: '2018-09-15T21:10:58.211Z',
+                    startTime: '2019-03-13T21:10:58.211Z',
                     endTime: nowTime,
                     aggregateInterval: 'week'
                 });

@@ -135,10 +135,12 @@ module.exports = () => ({
                                             oldPipeline.name = scmRepo.name;
 
                                             // update pipeline with new scmRepo and branch
-                                            return oldPipeline
-                                                .update()
-                                                .then(updatedPipeline => updatedPipeline.sync())
-                                                .then(syncedPipeline => reply(syncedPipeline.toJson()).code(200));
+                                            return oldPipeline.update().then(updatedPipeline => {
+                                                return Promise.all([
+                                                    updatedPipeline.sync(),
+                                                    updatedPipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
+                                                ]).then(results => reply(results[0].toJson()).code(200));
+                                            });
                                         })
                                 )
                         );

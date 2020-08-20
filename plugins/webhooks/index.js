@@ -770,68 +770,74 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
 
     const eventConfigs = await Promise.all(
         ignoreExtraTriggeredPipelines.map(async pTuple => {
-            const pipelineBranch = pTuple.branch;
-            let isReleaseOrTagFiltering = '';
-
-            if (action === 'release' || action === 'tag') {
-                isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pTuple.pipeline.workflowGraph);
-            }
-            const startFrom = determineStartFrom(
-                action,
-                type,
-                branch,
-                pipelineBranch,
-                releaseName,
-                ref,
-                isReleaseOrTagFiltering
-            );
-            const token = await pTuple.pipeline.token;
-            const scmConfig = {
-                scmUri: pTuple.pipeline.scmUri,
-                token,
-                scmContext
-            };
-            // obtain pipeline's latest commit sha for branch specific job
-            let configPipelineSha = '';
-
             try {
-                configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-            } catch (err) {
-                if (err.status >= 500) {
-                    throw err;
-                } else {
-                    logger.info(`skip create event for branch: ${pipelineBranch}`);
+                const pipelineBranch = pTuple.branch;
+                let isReleaseOrTagFiltering = '';
+
+                if (action === 'release' || action === 'tag') {
+                    isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pTuple.pipeline.workflowGraph);
                 }
+                const startFrom = determineStartFrom(
+                    action,
+                    type,
+                    branch,
+                    pipelineBranch,
+                    releaseName,
+                    ref,
+                    isReleaseOrTagFiltering
+                );
+                const token = await pTuple.pipeline.token;
+                const scmConfig = {
+                    scmUri: pTuple.pipeline.scmUri,
+                    token,
+                    scmContext
+                };
+                // obtain pipeline's latest commit sha for branch specific job
+                let configPipelineSha = '';
+
+                try {
+                    configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+                } catch (err) {
+                    if (err.status >= 500) {
+                        throw err;
+                    } else {
+                        logger.info(`skip create event for branch: ${pipelineBranch}`);
+                    }
+                }
+                const eventConfig = {
+                    pipelineId: pTuple.pipeline.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext,
+                    startFrom,
+                    sha,
+                    configPipelineSha,
+                    changedFiles,
+                    baseBranch: branch,
+                    causeMessage: `Merged by ${username}`,
+                    meta,
+                    releaseName,
+                    ref
+                };
+
+                if (skipMessage) {
+                    eventConfig.skipMessage = skipMessage;
+                }
+
+                await updateAdmins(userFactory, username, scmContext, pTuple.pipeline);
+
+                return eventConfig;
+            } catch (err) {
+                logger.warn(`pipeline:${pTuple.pipeline.id} error in starting event`, err);
+
+                return null;
             }
-            const eventConfig = {
-                pipelineId: pTuple.pipeline.id,
-                type: 'pipeline',
-                webhooks: true,
-                username,
-                scmContext,
-                startFrom,
-                sha,
-                configPipelineSha,
-                changedFiles,
-                baseBranch: branch,
-                causeMessage: `Merged by ${username}`,
-                meta,
-                releaseName,
-                ref
-            };
-
-            if (skipMessage) {
-                eventConfig.skipMessage = skipMessage;
-            }
-
-            await updateAdmins(userFactory, username, scmContext, pTuple.pipeline);
-
-            return eventConfig;
         })
     );
 
     eventConfigs.forEach(eventConfig => {
-        if (eventConfig.configPipelineSha) {
+        if (eventConfig && eventConfig.configPipelineSha) {
             events.push(eventFactory.create(eventConfig));
         }
     });

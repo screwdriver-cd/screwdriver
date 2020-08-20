@@ -59,7 +59,7 @@ Feature: Remote Trigger
         And the "parallel_B2" build's parentBuildId on branch "pipelineB" is that "parallel_A" build's buildId
         And builds for "parallel_B1" and "parallel_B2" jobs are part of a single event
 
-    @beta
+    @beta @ignore
     Scenario: Remote Join
         Given an existing pipeline on branch "beta-remote_join1" with the workflow jobs:
             | job       | requires                  |
@@ -99,6 +99,7 @@ Feature: Remote Trigger
         Then the "join" job is triggered from "parallel" on branch "remote_join1" and "external" on branch "remote_join2"
         And that "join" build uses the same SHA as the "simple" build on branch "remote_join1"
 
+    @prod
     Scenario: Join Job from External Trigger
         Given an existing pipeline on branch "external_trigger1" with the workflow jobs:
             | job       | requires  |
