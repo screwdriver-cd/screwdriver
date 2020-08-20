@@ -58,7 +58,7 @@ describe('event plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
         eventFactoryMock = {
             get: sinon.stub(),
@@ -88,20 +88,19 @@ describe('event plugin test', () => {
             get: sinon.stub()
         };
         bannerMock = {
-            register: (s, o, next) => {
+            name: 'banners',
+            register: s => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
-                next();
             }
-        };
-        bannerMock.register.attributes = {
-            name: 'banners'
         };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/events');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
@@ -109,9 +108,6 @@ describe('event plugin test', () => {
             buildFactory: buildFactoryMock,
             jobFactory: jobFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -123,21 +119,14 @@ describe('event plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                bannerMock,
-                {
-                    register: plugin
-                },
-                {
-                    // eslint-disable-next-line global-require
-                    register: require('../../plugins/pipelines')
-                }
-            ],
-            err => {
-                done(err);
+        await server.register([
+            { plugin: bannerMock },
+            { plugin },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/pipelines')
             }
-        );
+        ]);
     });
 
     afterEach(() => {
@@ -288,10 +277,13 @@ describe('event plugin test', () => {
                     startFrom: '~commit',
                     meta
                 },
-                credentials: {
-                    scope: ['user'],
-                    username,
-                    scmContext
+                auth: {
+                    credentials: {
+                        scope: ['user'],
+                        username,
+                        scmContext
+                    },
+                    strategy: ['token']
                 }
             };
             eventConfig = {
@@ -704,7 +696,7 @@ describe('event plugin test', () => {
         });
 
         it('returns 201 when it successfully creates an event with pipeline token', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 scope: ['pipeline'],
                 username,
                 scmContext,
@@ -811,7 +803,7 @@ describe('event plugin test', () => {
         });
 
         it("returns 403 forbidden error when user's scm and pipeline's scm are different", () => {
-            options.credentials.scmContext = 'mygit:mygit.com';
+            options.auth.credentials.scmContext = 'mygit:mygit.com';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -819,7 +811,7 @@ describe('event plugin test', () => {
         });
 
         it('returns unauthorized error when the token has no permission for pipeline', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 scope: ['pipeline'],
                 username,
                 scmContext,
@@ -877,10 +869,13 @@ describe('event plugin test', () => {
             options = {
                 method: 'PUT',
                 url: `/events/${id}/stop`,
-                credentials: {
-                    scope: ['user'],
-                    username,
-                    scmContext
+                auth: {
+                    credentials: {
+                        scope: ['user'],
+                        username,
+                        scmContext
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -929,7 +924,7 @@ describe('event plugin test', () => {
                     username: 'imbatman',
                     getPermissions: sinon.stub().resolves({ push: false })
                 };
-                options.credentials.username = 'imbatman';
+                options.auth.credentials.username = 'imbatman';
                 screwdriverAdminDetailsMock.returns({ isAdmin: false });
                 userFactoryMock.get.resolves(userMock);
 
@@ -970,7 +965,7 @@ describe('event plugin test', () => {
         );
 
         it('returns 200 when it successfully stops all event builds with pipeline token', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 scope: ['pipeline'],
                 username,
                 scmContext,
@@ -1001,7 +996,7 @@ describe('event plugin test', () => {
                 message: 'Token does not have permission to this pipeline'
             };
 
-            options.credentials = {
+            options.auth.credentials = {
                 scope: ['pipeline'],
                 username,
                 scmContext,
@@ -1057,9 +1052,12 @@ describe('event plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/events/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             eventMock = getEventMock(testEvent);

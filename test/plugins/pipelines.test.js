@@ -164,6 +164,7 @@ describe('pipeline plugin test', () => {
     let collectionFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let bannerFactoryMock;
     let jobFactoryMock;
     let triggerFactoryMock;
     let bannerMock;
@@ -173,6 +174,7 @@ describe('pipeline plugin test', () => {
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const scmContext = 'github:github.com';
+    const scmDisplayName = 'github';
 
     before(() => {
         mockery.enable({
@@ -181,7 +183,7 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         pipelineFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -218,22 +220,25 @@ describe('pipeline plugin test', () => {
         triggerFactoryMock = {
             getTriggers: sinon.stub()
         };
-        bannerMock = {
-            register: (s, o, next) => {
-                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
-                next();
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub().returns()
             }
         };
-        bannerMock.register.attributes = {
-            name: 'banners'
+        bannerMock = {
+            name: 'banners',
+            register: s => {
+                s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
+            }
         };
-
         screwdriverAdminDetailsMock = sinon.stub();
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             eventFactory: eventFactoryMock,
             jobFactory: jobFactoryMock,
@@ -242,13 +247,11 @@ describe('pipeline plugin test', () => {
             userFactory: userFactoryMock,
             collectionFactory: collectionFactoryMock,
             tokenFactory: tokenFactoryMock,
+            bannerFactory: bannerFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -260,27 +263,24 @@ describe('pipeline plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                bannerMock,
-                {
-                    register: plugin,
-                    options: {
-                        password,
-                        scm: scmMock,
-                        admins: ['github:myself']
-                    }
-                },
-                {
-                    // eslint-disable-next-line global-require
-                    register: require('../../plugins/secrets'),
-                    options: {
-                        password
-                    }
+        server.register([
+            { plugin: bannerMock },
+            {
+                plugin,
+                options: {
+                    password,
+                    scm: scmMock,
+                    admins: ['github:myself']
                 }
-            ],
-            done
-        );
+            },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/secrets'),
+                options: {
+                    password
+                }
+            }
+        ]);
     });
 
     afterEach(() => {
@@ -551,10 +551,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${id}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -565,6 +568,7 @@ describe('pipeline plugin test', () => {
             pipeline = getPipelineMocks(testPipeline);
             pipeline.remove.resolves(null);
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         afterEach(() => {
@@ -596,7 +600,7 @@ describe('pipeline plugin test', () => {
             };
 
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
-            options.credentials.username = 'd2lam';
+            options.auth.credentials.username = 'd2lam';
             userMock = getUserMock({ username: 'd2lam', scmContext });
             userFactoryMock.get.withArgs({ username: 'd2lam', scmContext }).resolves(userMock);
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -970,10 +974,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${pipelineId}/secrets`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             pipelineMock = getPipelineMocks(testPipeline);
@@ -1111,10 +1118,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/sync`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1135,7 +1145,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 204 with pipeline token', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 scmContext,
                 pipelineId: id,
@@ -1169,7 +1179,7 @@ describe('pipeline plugin test', () => {
                 message: 'Token does not have permission to this pipeline'
             };
 
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 pipelineId: '999',
                 scope: 'pipeline'
@@ -1225,10 +1235,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/sync/webhooks`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1305,10 +1318,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/sync/pullrequests`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1393,10 +1409,13 @@ describe('pipeline plugin test', () => {
                 payload: {
                     checkoutUrl: unformattedCheckoutUrl
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1587,6 +1606,16 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when the pipeline model fails to sync during create', () => {
             const testError = new Error('pipelineModelSyncError');
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
+
+            collectionFactoryMock.list
+                .withArgs({
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
+                })
+                .resolves([getCollectionMock(testDefaultCollection)]);
 
             pipelineMock.sync.rejects(testError);
 
@@ -1597,6 +1626,16 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when the pipeline model fails to add webhooks during create', () => {
             const testError = new Error('pipelineModelAddWebhookError');
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
+
+            collectionFactoryMock.list
+                .withArgs({
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
+                })
+                .resolves([getCollectionMock(testDefaultCollection)]);
 
             pipelineMock.addWebhook.rejects(testError);
 
@@ -1631,10 +1670,13 @@ describe('pipeline plugin test', () => {
                 payload: {
                     checkoutUrl: unformattedCheckoutUrl
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1664,7 +1706,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 with pipeline token', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 scmContext,
                 pipelineId: id,
@@ -1782,7 +1824,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 401 when the pipeline token does not have permission', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 scmContext,
                 pipelineId: '999',
@@ -1846,10 +1888,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/startall`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1926,10 +1971,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/admin`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -1985,10 +2033,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/tokens`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2081,10 +2132,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             pipelineMock = getPipelineMocks(testPipeline);
@@ -2160,9 +2214,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 400 when option is bad', () => {
-            const errorMsg =
-                'child "aggregateInterval" fails because ["aggregateInterval" ' +
-                'must be one of [none, day, week, month, year]]';
+            const errorMsg = 'Invalid request query input';
 
             options.url = `/pipelines/${id}/metrics?aggregateInterval=biweekly`;
 
@@ -2212,10 +2264,13 @@ describe('pipeline plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2324,10 +2379,13 @@ describe('pipeline plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2464,10 +2522,13 @@ describe('pipeline plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2593,10 +2654,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${pipelineId}/tokens/${tokenId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2714,10 +2778,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${id}/tokens`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2823,10 +2890,13 @@ describe('pipeline plugin test', () => {
                     title,
                     message
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2837,13 +2907,14 @@ describe('pipeline plugin test', () => {
             userFactoryMock.scm.openPr.resolves(pullRequest);
         });
 
-        it('returns 201 and correct pipeline data', () =>
+        it('returns 201 and correct pipeline data', () => {
             server.inject(options).then(reply => {
                 const { prUrl } = reply.result;
 
                 assert.equal(prUrl, pullRequest.data.html_url);
                 assert.equal(reply.statusCode, 201);
-            }));
+            });
+        });
 
         it('formats the checkout url correctly', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });

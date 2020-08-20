@@ -59,7 +59,7 @@ module.exports = () => ({
                         }
 
                         return token.refresh().then(refreshed => {
-                            h.response(refreshed.toJson()).code(200);
+                            return h.response(refreshed.toJson()).code(200);
                         });
                     });
                 })

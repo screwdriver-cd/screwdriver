@@ -14,7 +14,7 @@ describe('versions plugin test', () => {
      * @param  {Function}       initFunction Function to set license-checker to use
      * @return {HapiServer}                  Hapi Server to use
      */
-    function registerServer(initFunction) {
+    async function registerServer(initFunction) {
         const mockChecker = {
             init: initFunction
         };
@@ -29,21 +29,15 @@ describe('versions plugin test', () => {
         const plugin = require('../../plugins/versions');
         /* eslint-enable global-require */
 
-        const server = new hapi.Server();
-
-        server.connection({
+        const server = new hapi.Server({
             port: 1234
         });
 
         mockFs.existsSync.returns(false);
 
-        return server
-            .register([
-                {
-                    register: plugin
-                }
-            ])
-            .then(() => server);
+        await server.register({ plugin });
+
+        return server;
     }
 
     before(() => {
@@ -63,8 +57,8 @@ describe('versions plugin test', () => {
     });
 
     describe('GET /versions', () => {
-        it('returns 200 for a successful yaml', () =>
-            registerServer(
+        it('returns 200 for a successful yaml', async () => {
+            const server = await registerServer(
                 sinon.stub().yieldsAsync(null, {
                     'screwdriver-foo@0.1.2': {
                         repository: 'bar',
@@ -81,29 +75,25 @@ describe('versions plugin test', () => {
                         licenses: 'bark4'
                     }
                 })
-            ).then(server =>
-                server
-                    .inject({
-                        url: '/versions'
-                    })
-                    .then(reply => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.equal(JSON.stringify(reply.result.versions), JSON.stringify(['screwdriver-foo@0.1.2']));
-                        assert.equal(
-                            JSON.stringify(reply.result.licenses),
-                            JSON.stringify([
-                                { name: 'screwdriver-foo', repository: 'bar', licenses: 'baz' },
-                                { name: 'fake1', repository: 'bark1', licenses: 'UNKNOWN' },
-                                { name: 'fake2', repository: 'UNKNOWN', licenses: 'bark2' },
-                                { name: 'fake3', repository: 'bark3', licenses: 'bark4' }
-                            ])
-                        );
-                    })
-            ));
+            );
+            const reply = await server.inject({ url: '/versions' });
+
+            assert.equal(reply.statusCode, 200);
+            assert.equal(JSON.stringify(reply.result.versions), JSON.stringify(['screwdriver-foo@0.1.2']));
+            assert.equal(
+                JSON.stringify(reply.result.licenses),
+                JSON.stringify([
+                    { name: 'screwdriver-foo', repository: 'bar', licenses: 'baz' },
+                    { name: 'fake1', repository: 'bark1', licenses: 'UNKNOWN' },
+                    { name: 'fake2', repository: 'UNKNOWN', licenses: 'bark2' },
+                    { name: 'fake3', repository: 'bark3', licenses: 'bark4' }
+                ])
+            );
+        });
 
         it('returns 500 for being unable to parse the package.json', () =>
-            registerServer(sinon.stub().yieldsAsync(new Error('foobar'))).catch(error =>
-                assert.match(error.toString(), /Unable to load package dependencies: foobar/)
-            ));
+            registerServer(sinon.stub().yieldsAsync(new Error('foobar'))).catch(error => {
+                assert.match(error.toString(), /Unable to load package dependencies: foobar/);
+            }));
     });
 });

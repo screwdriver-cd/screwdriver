@@ -31,39 +31,38 @@ const versionsTemplate = {
             },
             (err, json) => {
                 if (err) {
-                    throw new VError(err, 'Unable to load package dependencies');
-                } else {
-                    const depArray = Object.keys(json).map(key => ({ name: key, ...json[key] }));
-                    const depDisplay = depArray.map(dep => ({
-                        name: dep.name
-                            .split('@')
-                            .slice(0, -1)
-                            .join('@'),
-                        repository: dep.repository || 'UNKNOWN',
-                        licenses: dep.licenses || 'UNKNOWN'
-                    }));
-                    const sdVersions = depArray.filter(dep => SD_REGEX.test(dep.name)).map(dep => dep.name);
-
-                    server.route({
-                        method: 'GET',
-                        path: '/versions',
-                        handler: (request, h) =>
-                            h.response({
-                                // List of Screwdriver package versions
-                                versions: sdVersions,
-                                // List of licenses for third-party dependencies
-                                licenses: depDisplay
-                            }),
-                        config: {
-                            description: 'API Package Versions',
-                            notes: 'Returns list of Screwdriver package versions and third-party dependencies',
-                            tags: ['api'],
-                            response: {
-                                schema: schema.api.versions
-                            }
-                        }
-                    });
+                    return new VError(err, 'Unable to load package dependencies');
                 }
+                const depArray = Object.keys(json).map(key => ({ name: key, ...json[key] }));
+                const depDisplay = depArray.map(dep => ({
+                    name: dep.name
+                        .split('@')
+                        .slice(0, -1)
+                        .join('@'),
+                    repository: dep.repository || 'UNKNOWN',
+                    licenses: dep.licenses || 'UNKNOWN'
+                }));
+                const sdVersions = depArray.filter(dep => SD_REGEX.test(dep.name)).map(dep => dep.name);
+
+                return server.route({
+                    method: 'GET',
+                    path: '/versions',
+                    handler: (request, h) =>
+                        h.response({
+                            // List of Screwdriver package versions
+                            versions: sdVersions,
+                            // List of licenses for third-party dependencies
+                            licenses: depDisplay
+                        }),
+                    config: {
+                        description: 'API Package Versions',
+                        notes: 'Returns list of Screwdriver package versions and third-party dependencies',
+                        tags: ['api'],
+                        response: {
+                            schema: schema.api.versions
+                        }
+                    }
+                });
             }
         );
     }

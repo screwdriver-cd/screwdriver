@@ -23,9 +23,15 @@ const commandValidatorPlugin = {
                 notes: 'returns the parsed config, validation errors, or both',
                 tags: ['api', 'validation', 'yaml'],
                 handler: async (request, h) => {
-                    const commandString = request.payload.yaml;
+                    try {
+                        const commandString = request.payload.yaml;
 
-                    return validator(commandString).then(h, err => h.response(boom.badRequest(err.toString())));
+                        const result = await validator(commandString);
+
+                        return h.response(result);
+                    } catch (err) {
+                        throw boom.badRequest(err.toString());
+                    }
                 },
                 validate: {
                     payload: commandSchema.input

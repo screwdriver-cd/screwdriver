@@ -64,7 +64,7 @@ describe('job plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         pipelineMock = {
             scmUri: 'fakeScmUri'
         };
@@ -92,15 +92,14 @@ describe('job plugin test', () => {
         plugin = require('../../plugins/jobs');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             jobFactory: jobFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -112,21 +111,16 @@ describe('job plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin
-                },
-                {
-                    /* eslint-disable global-require */
-                    register: require('../../plugins/pipelines')
-                    /* eslint-enable global-require */
-                }
-            ],
-            err => {
-                done(err);
+        server.register([
+            {
+                plugin
+            },
+            {
+                /* eslint-disable global-require */
+                plugin: require('../../plugins/pipelines')
+                /* eslint-enable global-require */
             }
-        );
+        ]);
     });
 
     afterEach(() => {
@@ -199,8 +193,11 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'ENABLED'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -222,8 +219,11 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -241,8 +241,11 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -260,8 +263,11 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -279,8 +285,11 @@ describe('job plugin test', () => {
                 payload: {
                     state: 'DISABLED'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -509,9 +518,12 @@ describe('job plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/jobs/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             jobMock = decorateJobMock(testJob);
@@ -556,15 +568,13 @@ describe('job plugin test', () => {
         });
 
         it('returns 400 when option is bad', () => {
-            const errorMsg =
-                'child "aggregateInterval" fails because ["aggregateInterval" ' +
-                'must be one of [none, day, week, month, year]]';
+            const errorMsg = 'Invalid request query input';
 
             options.url = `/jobs/${id}/metrics?aggregateInterval=biweekly`;
 
             return server.inject(options).then(reply => {
-                assert.deepEqual(reply.result.message, errorMsg);
                 assert.equal(reply.statusCode, 400);
+                assert.deepEqual(reply.result.message, errorMsg);
             });
         });
 

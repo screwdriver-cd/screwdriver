@@ -44,7 +44,7 @@ module.exports = () => ({
                                 throw boom.forbidden(`User ${username} is not an admin of this repo`);
                             }
                         })
-                        .then(() => pipeline.tokens.then(tokens => tokens.map(t => t.remove())));
+                        .then(() => pipeline.tokens.then(tokens => tokens && tokens.map(t => t.remove())));
                 })
                 .then(() => h.response().code(204))
                 .catch(err => {

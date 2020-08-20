@@ -44,7 +44,7 @@ module.exports = () => ({
                         throw boom.notFound('Template does not exist');
                     }
 
-                    h.response(templates);
+                    return h.response(templates);
                 })
                 .catch(err => {
                     throw err;

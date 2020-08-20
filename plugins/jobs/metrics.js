@@ -68,7 +68,12 @@ module.exports = () => ({
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
-                aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                aggregateInterval: joi
+                    .string()
+                    .valid('none', 'day', 'week', 'month', 'year')
+                    .messages({
+                        'any.only': '{{#label}} fails because it must be one of none, day, week, month, year'
+                    })
             })
         }
     }

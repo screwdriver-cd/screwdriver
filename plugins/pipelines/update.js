@@ -58,7 +58,7 @@ module.exports = () => ({
             let gitToken;
 
             if (!isValidToken(id, request.auth.credentials)) {
-                return h.response(boom.unauthorized('Token does not have permission to this pipeline'));
+                return boom.unauthorized('Token does not have permission to this pipeline');
             }
 
             return (

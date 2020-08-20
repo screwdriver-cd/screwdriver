@@ -19,7 +19,7 @@ describe('coverage plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         mockCoveragePlugin = {
             getAccessToken: sinon.stub().resolves('faketoken'),
             getInfo: sinon.stub()
@@ -29,8 +29,7 @@ describe('coverage plugin test', () => {
         plugin = require('../../plugins/coverage');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-        server.connection({
+        server = new hapi.Server({
             port: 1234
         });
 
@@ -44,19 +43,12 @@ describe('coverage plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin,
-                    options: {
-                        coveragePlugin: mockCoveragePlugin
-                    }
-                }
-            ],
-            err => {
-                done(err);
+        await server.register({
+            plugin,
+            options: {
+                coveragePlugin: mockCoveragePlugin
             }
-        );
+        });
     });
 
     afterEach(() => {
@@ -78,9 +70,12 @@ describe('coverage plugin test', () => {
             server
                 .inject({
                     url: '/coverage/token',
-                    credentials: {
-                        jobId: 123,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            jobId: 123,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -94,9 +89,12 @@ describe('coverage plugin test', () => {
             return server
                 .inject({
                     url: '/coverage/token',
-                    credentials: {
-                        jobId: 123,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            jobId: 123,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -117,8 +115,11 @@ describe('coverage plugin test', () => {
         const options = {
             // eslint-disable-next-line
             url: `/coverage/info?buildId=1&jobId=123&startTime=${startTime}&endTime=${endTime}`,
-            credentials: {
-                scope: ['user']
+            auth: {
+                credentials: {
+                    scope: ['user']
+                },
+                strategy: ['token']
             }
         };
         const result = {

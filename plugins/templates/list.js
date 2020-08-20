@@ -8,7 +8,7 @@ const listSchema = joi
     .label('List of templates');
 const distinctSchema = joi
     .string()
-    .valid(schema.models.template.base.describe().keys)
+    .valid(...Object.keys(schema.models.template.base.describe().keys))
     .label('Field to return unique results by');
 const compactSchema = joi
     .string()

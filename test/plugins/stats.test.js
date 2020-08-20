@@ -20,7 +20,7 @@ describe('stats plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         mockExecutorStats = {
             stats: sinon.stub()
         };
@@ -32,25 +32,19 @@ describe('stats plugin test', () => {
         plugin = require('../../plugins/stats');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-        server.connection({
+        server = new hapi.Server({
             port: 1234
         });
 
-        server.register(
-            [
-                {
-                    register: plugin,
-                    options: {
-                        executor: mockExecutorStats,
-                        scm: mockScmStats
-                    }
+        await server.register([
+            {
+                plugin,
+                options: {
+                    executor: mockExecutorStats,
+                    scm: mockScmStats
                 }
-            ],
-            err => {
-                done(err);
             }
-        );
+        ]);
     });
 
     afterEach(() => {

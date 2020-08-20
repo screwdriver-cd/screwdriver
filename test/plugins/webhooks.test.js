@@ -246,7 +246,7 @@ describe('webhooks plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         jobFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub()
@@ -278,42 +278,34 @@ describe('webhooks plugin test', () => {
 
         plugin = rewire('../../plugins/webhooks');
 
-        server = new hapi.Server();
-        server.root.app = {
+        server = new hapi.Server({
+            host: 'localhost',
+            port: 12345,
+            uri: apiUri
+        });
+        server.app = {
             jobFactory: jobFactoryMock,
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock
         };
-        server.connection({
-            host: 'localhost',
-            port: 12345,
-            uri: apiUri
-        });
 
-        server.register(
-            [
-                {
-                    register: plugin,
-                    options: {
-                        username: 'sd-buildbot',
-                        ignoreCommitsBy: ['batman', 'superman'],
-                        restrictPR: 'fork',
-                        chainPR: false
-                    }
-                }
-            ],
-            err => {
-                server.app.buildFactory.apiUri = apiUri;
-                server.app.buildFactory.tokenGen = buildId =>
-                    JSON.stringify({
-                        username: buildId,
-                        scope: ['temporal']
-                    });
-                done(err);
+        await server.register({
+            plugin,
+            options: {
+                username: 'sd-buildbot',
+                ignoreCommitsBy: ['batman', 'superman'],
+                restrictPR: 'fork',
+                chainPR: false
             }
-        );
+        });
+        server.app.buildFactory.apiUri = apiUri;
+        server.app.buildFactory.tokenGen = buildId =>
+            JSON.stringify({
+                username: buildId,
+                scope: ['temporal']
+            });
     });
 
     afterEach(() => {
@@ -551,7 +543,7 @@ describe('webhooks plugin test', () => {
                     'x-github-event': 'notSupported',
                     'x-github-delivery': 'bar'
                 },
-                credentials: {},
+                auth: { credentials: {} },
                 payload: {}
             };
 
@@ -582,7 +574,7 @@ describe('webhooks plugin test', () => {
                         'x-github-delivery': parsed.hookId
                     },
                     payload,
-                    credentials: {}
+                    auth: { credentials: {} }
                 };
 
                 pipelineMock.workflowGraph = workflowGraph;
@@ -838,7 +830,7 @@ describe('webhooks plugin test', () => {
                         'x-github-delivery': parsed.hookId
                     },
                     payload,
-                    credentials: {}
+                    auth: { credentials: {} }
                 };
 
                 pipelineMock.workflowGraph = workflowGraph;
@@ -1072,7 +1064,7 @@ describe('webhooks plugin test', () => {
                         'x-github-delivery': parsed.hookId
                     },
                     payload,
-                    credentials: {}
+                    auth: { credentials: {} }
                 };
                 name = 'main';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
@@ -1551,7 +1543,7 @@ describe('webhooks plugin test', () => {
                         'x-github-event': 'pull_request',
                         'x-github-delivery': parsed.hookId
                     },
-                    credentials: {},
+                    auth: { credentials: {} },
                     payload
                 };
                 name = 'PR-1';

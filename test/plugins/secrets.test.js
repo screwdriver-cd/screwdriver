@@ -55,7 +55,7 @@ describe('secret plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         secretFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -71,15 +71,14 @@ describe('secret plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/secrets');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             secretFactory: secretFactoryMock,
             userFactory: userFactoryMock,
             pipelineFactory: pipelineFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -91,22 +90,19 @@ describe('secret plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin,
-                    options: {
-                        password
-                    }
-                },
-                {
-                    /* eslint-disable global-require */
-                    register: require('../../plugins/pipelines')
-                    /* eslint-enable global-require */
+        await server.register([
+            {
+                plugin,
+                options: {
+                    password
                 }
-            ],
-            done
-        );
+            },
+            {
+                /* eslint-disable global-require */
+                plugin: require('../../plugins/pipelines')
+                /* eslint-enable global-require */
+            }
+        ]);
     });
 
     afterEach(() => {
@@ -148,10 +144,13 @@ describe('secret plugin test', () => {
                     value,
                     allowInPR
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -249,10 +248,13 @@ describe('secret plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/secrets/${secretId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -291,8 +293,8 @@ describe('secret plugin test', () => {
             }));
 
         it('returns 204 if remove successfully by pipeline token', () => {
-            options.credentials.pipelineId = pipelineId;
-            options.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = pipelineId;
+            options.auth.credentials.scope = ['pipeline'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
@@ -309,8 +311,8 @@ describe('secret plugin test', () => {
         });
 
         it('returns 403 when the pipeline token does not have permissions', () => {
-            options.credentials.pipelineId = 111;
-            options.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = 111;
+            options.auth.credentials.scope = ['pipeline'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -343,10 +345,13 @@ describe('secret plugin test', () => {
             options = {
                 method: 'PUT',
                 url: `/secrets/${secretId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 },
                 payload: {
                     value: 'newValue',
@@ -407,8 +412,8 @@ describe('secret plugin test', () => {
                 allowInPR: true
             };
 
-            options.credentials.pipelineId = pipelineId;
-            options.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = pipelineId;
+            options.auth.credentials.scope = ['pipeline'];
             secretMock.toJson.returns(hoek.applyToDefaults(expected, { value: 'encrypted' }));
 
             return server.inject(options).then(reply => {
@@ -427,8 +432,8 @@ describe('secret plugin test', () => {
         });
 
         it('returns 403 when the pipeline token does not have admin permissions', () => {
-            options.credentials.pipelineId = 111;
-            options.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = 111;
+            options.auth.credentials.scope = ['pipeline'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -474,10 +479,13 @@ describe('secret plugin test', () => {
                 options = {
                     method: 'GET',
                     url: `/secrets/${secretId}`,
-                    credentials: {
-                        username,
-                        scmContext,
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 };
             });
@@ -535,11 +543,14 @@ describe('secret plugin test', () => {
                 options = {
                     method: 'GET',
                     url: `/secrets/${secretId}`,
-                    credentials: {
-                        username,
-                        scmContext,
-                        pipelineId: 123,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username,
+                            scmContext,
+                            pipelineId: 123,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     }
                 };
             });
@@ -552,7 +563,7 @@ describe('secret plugin test', () => {
                 }));
 
             it('returns 403 if build is not allowed to access secret', () => {
-                options.credentials.pipelineId = 124;
+                options.auth.credentials.pipelineId = 124;
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);
@@ -560,7 +571,7 @@ describe('secret plugin test', () => {
             });
 
             it('returns 403 if not allowed in PR and build is running a PR job', () => {
-                options.credentials.isPR = true;
+                options.auth.credentials.isPR = true;
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 403);

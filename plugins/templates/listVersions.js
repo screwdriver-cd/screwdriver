@@ -48,7 +48,7 @@ module.exports = () => ({
                         throw boom.notFound('Template does not exist');
                     }
 
-                    h.response(templates.map(p => p.toJson()));
+                    return h.response(templates.map(p => p.toJson()));
                 })
                 .catch(err => {
                     throw err;

@@ -29,117 +29,90 @@ module.exports = () => ({
             const { scmContext } = request.auth.credentials;
 
             // fetch the user
-            return (
-                userFactory
-                    .get({ username, scmContext })
-                    .then(user =>
-                        user
-                            .unsealToken()
-                            .then(token =>
-                                pipelineFactory.scm.parseUrl({
-                                    scmContext,
-                                    rootDir,
-                                    checkoutUrl,
-                                    token
-                                })
-                            )
-                            // get the user permissions for the repo
-                            .then(scmUri =>
-                                user
-                                    .getPermissions(scmUri)
-                                    // if the user isn't an admin, reject
-                                    .then(permissions => {
-                                        if (!permissions.admin) {
-                                            throw boom.forbidden(
-                                                `User ${user.getFullDisplayName()} is not an admin of this repo`
-                                            );
-                                        }
-                                    })
-                                    // see if there is already a pipeline
-                                    .then(() => pipelineFactory.get({ scmUri }))
-                                    // if there is already a pipeline for the checkoutUrl, reject
-                                    .then(pipeline => {
-                                        if (pipeline) {
-                                            throw boom.conflict(`Pipeline already exists with the ID: ${pipeline.id}`, {
-                                                existingId: pipeline.id
-                                            });
-                                        }
-                                    })
-                                    // set up pipeline admins, and create a new pipeline
-                                    .then(() => {
-                                        const pipelineConfig = {
-                                            admins: {
-                                                [username]: true
-                                            },
-                                            scmContext,
-                                            scmUri
-                                        };
+            const user = await userFactory.get({ username, scmContext });
+            const token = await user.unsealToken();
+            const scmUri = await pipelineFactory.scm.parseUrl({
+                scmContext,
+                rootDir,
+                checkoutUrl,
+                token
+            });
+            // get the user permissions for the repo
 
-                                        return pipelineFactory.create(pipelineConfig);
-                                    })
-                                    // get the default collection for current user
-                                    .then(pipeline =>
-                                        collectionFactory
-                                            .list({
-                                                params: {
-                                                    userId: user.id,
-                                                    type: 'default'
-                                                }
-                                            })
-                                            .then(collections => {
-                                                const defaultCollection = collections[0];
+            const permissions = await user.getPermissions(scmUri);
+            // if the user isn't an admin, reject
 
-                                                if (!defaultCollection) {
-                                                    return collectionFactory.create({
-                                                        userId: user.id,
-                                                        name: 'My Pipelines',
-                                                        description: `The default collection for ${user.username}`,
-                                                        type: 'default'
-                                                    });
-                                                }
+            if (!permissions.admin) {
+                throw boom.forbidden(`User ${user.getFullDisplayName()} is not an admin of this repo`);
+            }
+            // see if there is already a pipeline
+            let pipeline = await pipelineFactory.get({ scmUri });
+            // if there is already a pipeline for the checkoutUrl, reject
 
-                                                return defaultCollection;
-                                            })
-                                            .then(defaultCollection => {
-                                                // Check if the pipeline exists in the default collection
-                                                // to prevent the situation where a pipeline is deleted and then created right away with the same id
-                                                if (defaultCollection.pipelineIds.includes(pipeline.id)) {
-                                                    return defaultCollection;
-                                                }
+            if (pipeline) {
+                throw boom.conflict(`Pipeline already exists with the ID: ${pipeline.id}`, {
+                    existingId: pipeline.id
+                });
+            }
+            // set up pipeline admins, and create a new pipeline
+            const pipelineConfig = {
+                admins: {
+                    [username]: true
+                },
+                scmContext,
+                scmUri
+            };
 
-                                                Object.assign(defaultCollection, {
-                                                    pipelineIds: [...defaultCollection.pipelineIds, pipeline.id]
-                                                });
+            pipeline = await pipelineFactory.create(pipelineConfig);
 
-                                                return defaultCollection.update();
-                                            })
-                                            .then(() => {
-                                                // TODO: decide to put this outside or inside
-                                                Promise.all([
-                                                    pipeline.sync(),
-                                                    pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-                                                ]).then(results => {
-                                                    const location = urlLib.format({
-                                                        host: request.headers.host,
-                                                        port: request.headers.port,
-                                                        protocol: request.server.info.protocol,
-                                                        pathname: `${request.path}/${pipeline.id}`
-                                                    });
+            const collections = await collectionFactory.list({
+                params: {
+                    userId: user.id,
+                    type: 'default'
+                }
+            });
+            let defaultCollection;
 
-                                                    return h
-                                                        .response(results[0].toJson())
-                                                        .header('Location', location)
-                                                        .code(201);
-                                                });
-                                            })
-                                    )
-                            )
-                    )
-                    // something broke, respond with error
-                    .catch(err => {
-                        throw err;
-                    })
-            );
+            if (collections && collections.length > 0) {
+                defaultCollection = collections[0];
+            }
+
+            if (!defaultCollection) {
+                defaultCollection = await collectionFactory.create({
+                    userId: user.id,
+                    name: 'My Pipelines',
+                    description: `The default collection for ${user.username}`,
+                    type: 'default'
+                });
+            }
+
+            // Check if the pipeline exists in the default collection
+            // to prevent the situation where a pipeline is deleted and then created right away with the same id
+            if (!defaultCollection.pipelineIds.includes(pipeline.id)) {
+                Object.assign(defaultCollection, {
+                    pipelineIds: [...defaultCollection.pipelineIds, pipeline.id]
+                });
+
+                await defaultCollection.update();
+            }
+
+            const results = await Promise.all([
+                pipeline.sync(),
+                pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
+            ]);
+
+            const location = urlLib.format({
+                host: request.headers.host,
+                port: request.headers.port,
+                protocol: request.server.info.protocol,
+                pathname: `${request.path}/${pipeline.id}`
+            });
+            const data = await results[0].toJson();
+
+            return h
+                .response(data)
+                .header('Location', location)
+                .code(201);
         },
         validate: {
             payload: schema.models.pipeline.create

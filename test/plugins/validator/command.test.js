@@ -16,17 +16,11 @@ describe('command validator plugin test', () => {
         plugin = require('../../../plugins/command-validator');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-
-        server.connection({
+        server = new hapi.Server({
             port: 1234
         });
 
-        return server.register([
-            {
-                register: plugin
-            }
-        ]);
+        return server.register({ plugin });
     });
 
     it('registers', () => {
@@ -131,7 +125,7 @@ describe('command validator plugin test', () => {
 
                     const payload = JSON.parse(reply.payload);
 
-                    assert.match(payload.message, /"sd-command.yaml contents" must be a string/);
+                    assert.match(payload.message, /Invalid request payload input/);
                 }));
     });
 });

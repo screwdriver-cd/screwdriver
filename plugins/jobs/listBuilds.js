@@ -48,7 +48,11 @@ module.exports = () => ({
 
                     return job.getBuilds(config);
                 })
-                .then(builds => h.response(Promise.all(builds.map(b => b.toJsonWithSteps()))))
+                .then(async builds => {
+                    const data = await Promise.all(builds.map(b => b.toJsonWithSteps()));
+
+                    return h.response(data);
+                })
                 .catch(err => {
                     throw err;
                 });

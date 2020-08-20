@@ -39,12 +39,12 @@ module.exports = () => ({
 
                     return job.getLatestBuild({ status });
                 })
-                .then(build => {
+                .then(async build => {
                     if (Object.keys(build).length === 0) {
                         throw boom.notFound('There is no such latest build');
                     }
 
-                    return h.response(build.toJsonWithSteps());
+                    return h.response(await build.toJsonWithSteps());
                 })
                 .catch(err => {
                     throw err;

@@ -27,9 +27,11 @@ const templateValidatorPlugin = {
                     try {
                         const templateString = request.payload.yaml;
 
-                        return validator(templateString);
+                        const result = await validator(templateString);
+
+                        return h.response(result);
                     } catch (err) {
-                        return h.response(boom.badRequest(err.toString()));
+                        throw boom.badRequest(err.toString());
                     }
                 },
                 validate: {

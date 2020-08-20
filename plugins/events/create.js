@@ -260,7 +260,7 @@ module.exports = () => ({
                             })
                             .then(event => {
                                 if (event.builds === null) {
-                                    return h.response(boom.notFound('No jobs to start.'));
+                                    return boom.notFound('No jobs to start.');
                                 }
                                 // everything succeeded, inform the user
                                 const location = urlLib.format({

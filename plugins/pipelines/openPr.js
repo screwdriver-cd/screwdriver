@@ -67,12 +67,13 @@ module.exports = () => ({
                                     })
                                 );
                         })
-                        .then(pullRequest => {
+                        .then(async pullRequest => {
                             if (!pullRequest) {
                                 throw boom.notImplemented('openPr not implemented for gitlab');
                             }
+                            const html = await pullRequest.data.html_url;
 
-                            return h.response({ prUrl: pullRequest.data.html_url }).code(201);
+                            return h.response({ prUrl: html }).code(201);
                         });
                 })
                 .catch(err => {
