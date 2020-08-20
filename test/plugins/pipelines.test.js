@@ -1385,7 +1385,7 @@ describe('pipeline plugin test', () => {
         let userMock;
 
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
@@ -1625,7 +1625,7 @@ describe('pipeline plugin test', () => {
     describe('PUT /pipelines/{id}', () => {
         let options;
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const oldScmUri = 'github.com:12345:branchName';
         const id = 123;
@@ -2835,7 +2835,7 @@ describe('pipeline plugin test', () => {
         const id = 123;
         const username = 'myself';
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const title = 'update file';
@@ -2884,7 +2884,34 @@ describe('pipeline plugin test', () => {
 
                 assert.equal(prUrl, pullRequest.data.html_url);
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userFactoryMock.scm.openPr, {
+                    checkoutUrl: 'git@github.com:screwdriver-cd/data-model.git#master',
+                    files: [{ content: 'fileContent', name: 'fileName' }],
+                    message: 'update file',
+                    scmContext,
+                    title: 'update file',
+                    token
+                });
             }));
+
+        it('formats the checkout url correctly with branch', () => {
+            options.payload.checkoutUrl = `${unformattedCheckoutUrl}#branchName`;
+
+            return server.inject(options).then(reply => {
+                const { prUrl } = reply.result;
+
+                assert.equal(prUrl, pullRequest.data.html_url);
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userFactoryMock.scm.openPr, {
+                    checkoutUrl: 'git@github.com:screwdriver-cd/data-model.git#branchName',
+                    files: [{ content: 'fileContent', name: 'fileName' }],
+                    message: 'update file',
+                    scmContext,
+                    title: 'update file',
+                    token
+                });
+            });
+        });
 
         it('formats the checkout url correctly', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
