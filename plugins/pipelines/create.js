@@ -113,10 +113,9 @@ module.exports = () => ({
                 });
             }
 
-            const results = await Promise.all([
-                pipeline.sync(),
-                pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-            ]);
+            const results = await pipeline.sync();
+
+            await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
             const location = urlLib.format({
                 host: request.headers.host,
