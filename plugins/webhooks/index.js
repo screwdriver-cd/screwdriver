@@ -1,3 +1,6 @@
+/* eslint-disable max-lines-per-function */
+/* eslint-disable max-params */
+
 'use strict';
 
 const joi = require('joi');
@@ -278,8 +281,11 @@ async function triggeredPipelines(
     const scmBranch = `${splitUri[0]}:${splitUri[1]}:${splitUri[2]}`;
     const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
     const listConfig = { search: { field: 'scmUri', keyword: `${scmRepoId}:%` } };
+    const externalRepoSearchConfig = { params: { contains: { subscribedScmUrls: scmUri } } };
 
     const pipelines = await pipelineFactory.list(listConfig);
+
+    const pipelinesWithSubscribedExtRepos = await pipelineFactory.list(externalRepoSearchConfig);
 
     let pipelinesOnCommitBranch = [];
     let pipelinesOnOtherBranch = [];
@@ -314,7 +320,9 @@ async function triggeredPipelines(
         );
     });
 
-    return pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
+    const currentRepoPipelines = pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
+
+    return currentRepoPipelines.concat(pipelinesWithSubscribedExtRepos);
 }
 
 /**
@@ -376,6 +384,7 @@ async function createPREvents(options, request) {
                     logger.info(`skip create event for branch: ${b}`);
                 }
             }
+
             const { skipMessage, resolvedChainPR } = getSkipMessageAndChainPR({
                 // Workaround for pipelines which has NULL value in `pipeline.annotations`
                 pipeline: !p.annotations ? { annotations: {}, ...p } : p,
@@ -383,6 +392,15 @@ async function createPREvents(options, request) {
                 restrictPR,
                 chainPR
             });
+
+            let subscribedEvent = false;
+            let subscribedScmConfig = {};
+
+            // Check is the webhook event is from a subscribed repo
+            if (scmConfig.scmUri !== p.scmUri) {
+                subscribedEvent = true;
+                subscribedScmConfig = scmConfig;
+            }
 
             const eventConfig = {
                 pipelineId: p.id,
@@ -401,7 +419,9 @@ async function createPREvents(options, request) {
                 prTitle,
                 prInfo: await eventFactory.scm.getPrInfo(scmConfig),
                 prSource,
-                baseBranch: branch
+                baseBranch: branch,
+                subscribedEvent,
+                subscribedScmConfig
             };
 
             if (skipMessage) {
