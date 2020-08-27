@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
@@ -469,7 +468,7 @@ async function pullRequestOpened(options, request, h) {
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return h.response(boom.boomify(err));
+            throw err;
         });
 }
 
@@ -511,7 +510,7 @@ async function pullRequestClosed(options, request, h) {
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return h.response(boom.boomify(err));
+            throw err;
         });
 }
 
@@ -549,7 +548,7 @@ async function pullRequestSync(options, request, h) {
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return h.response(boom.boomify(err));
+            throw err;
         });
 }
 
@@ -679,7 +678,7 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
         .catch(err => {
             logger.error(`[${hookId}]: ${err}`);
 
-            return h.response(boom.boomify(err));
+            throw err;
         });
 }
 
@@ -849,15 +848,13 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
  * Act on a Push event
  *  - Should start a new main job
  * @method pushEvent
- * @param  {Object}             pluginOptions
- * @param  {String}             pluginOptions.username Generic scm username
  * @param  {Hapi.request}       request                Request from user
  * @param  {Hapi.h}             h                      Response toolkit
  * @param  {Object}             parsed                 It has information to create event
  * @param  {String}             token                  The token used to authenticate to the SCM
  * @param  {String}             [skipMessage]          Message to skip starting builds
  */
-async function pushEvent(pluginOptions, request, h, parsed, skipMessage, token) {
+async function pushEvent(request, h, parsed, skipMessage, token) {
     const { eventFactory } = request.server.app;
     const { pipelineFactory } = request.server.app;
     const { userFactory } = request.server.app;
@@ -911,7 +908,7 @@ async function pushEvent(pluginOptions, request, h, parsed, skipMessage, token) 
     } catch (err) {
         logger.error(`[${hookId}]: ${err}`);
 
-        return h.response(boom.boomify(err));
+        throw err;
     }
 }
 
@@ -1073,11 +1070,11 @@ const webhooksPlugin = {
                             return pullRequestEvent(pluginOptions, request, h, parsed, token);
                         }
 
-                        return pushEvent(pluginOptions, request, h, parsed, skipMessage, token);
+                        return pushEvent(request, h, parsed, skipMessage, token);
                     } catch (err) {
                         logger.error(`[${parsedHookId}]: ${err}`);
 
-                        return h.response(boom.boomify(err));
+                        throw err;
                     }
                 }
             }

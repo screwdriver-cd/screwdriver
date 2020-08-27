@@ -51,7 +51,7 @@ module.exports = () => ({
 
                 return h.response({ token });
             } catch (err) {
-                return h.response(boom.boomify(err, { statusCode: 500 }));
+                throw boom.boomify(err, { statusCode: 500 });
             }
         },
         response: {

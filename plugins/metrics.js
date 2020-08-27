@@ -9,14 +9,14 @@ const { getSummary } = require('@promster/hapi');
  * @param  {Object}         options
  * @param  {Function} next
  */
-module.exports.attributesPlugin = {
+module.exports = {
     name: 'metrics',
-    async register = (server, options) => {
+    async register(server) {
         // Add the status route
         server.route({
             method: 'GET',
             path: '/metrics',
-            handler: (request, h) => h.response(getSummary()),
+            handler: (_, h) => h.response(getSummary()),
             config: {
                 description: 'application metrics',
                 notes: 'Expose application metrics',
@@ -25,4 +25,3 @@ module.exports.attributesPlugin = {
         });
     }
 };
-

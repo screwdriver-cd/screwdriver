@@ -496,10 +496,13 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'SUCCESS'
                 },
-                credentials: {
-                    username: id,
-                    scmContext,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        username: id,
+                        scmContext,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -542,10 +545,12 @@ describe('build plugin test', () => {
             buildFactoryMock.uiUri = 'http://foo.bar';
             userFactoryMock.get.resolves(userMock);
 
-            server.emit = sinon.stub().resolves(null);
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
 
             return server.inject(options).then(reply => {
-                assert.calledWith(server.emit, 'build_status', {
+                assert.calledWith(server.events.emit, 'build_status', {
                     build: buildMock.toJson(),
                     buildLink: 'http://foo.bar/pipelines/123/builds/12345',
                     jobName: 'main',

@@ -324,25 +324,24 @@ describe('webhooks plugin test', () => {
     });
 
     it('throws exception when config not passed', () => {
-        const testServer = new hapi.Server();
+        const testServer = new hapi.Server({
+            host: 'localhost',
+            port: 12345,
+            uri: apiUri
+        });
 
-        testServer.root.app = {
+        testServer.app = {
             jobFactory: jobFactoryMock,
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock
         };
-        testServer.connection({
-            host: 'localhost',
-            port: 12345,
-            uri: apiUri
-        });
 
         assert.isRejected(
             testServer.register([
                 {
-                    register: plugin,
+                    plugin,
                     options: {
                         username: ''
                     }
@@ -543,7 +542,7 @@ describe('webhooks plugin test', () => {
                     'x-github-event': 'notSupported',
                     'x-github-delivery': 'bar'
                 },
-                auth: { credentials: {} },
+                auth: { credentials: {}, strategy: 'token' },
                 payload: {}
             };
 
@@ -574,7 +573,7 @@ describe('webhooks plugin test', () => {
                         'x-github-delivery': parsed.hookId
                     },
                     payload,
-                    auth: { credentials: {} }
+                    auth: { credentials: {}, strategy: 'token' }
                 };
 
                 pipelineMock.workflowGraph = workflowGraph;
@@ -830,7 +829,7 @@ describe('webhooks plugin test', () => {
                         'x-github-delivery': parsed.hookId
                     },
                     payload,
-                    auth: { credentials: {} }
+                    auth: { credentials: {}, strategy: 'token' }
                 };
 
                 pipelineMock.workflowGraph = workflowGraph;
@@ -1064,7 +1063,7 @@ describe('webhooks plugin test', () => {
                         'x-github-delivery': parsed.hookId
                     },
                     payload,
-                    auth: { credentials: {} }
+                    auth: { credentials: {}, strategy: 'token' }
                 };
                 name = 'main';
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
@@ -1543,7 +1542,7 @@ describe('webhooks plugin test', () => {
                         'x-github-event': 'pull_request',
                         'x-github-delivery': parsed.hookId
                     },
-                    auth: { credentials: {} },
+                    auth: { credentials: {}, strategy: 'token' },
                     payload
                 };
                 name = 'PR-1';
@@ -1857,24 +1856,23 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('use cluster level restrictPR setting', () => {
-                    const testServer = new hapi.Server();
+                    const testServer = new hapi.Server({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
 
-                    testServer.root.app = {
+                    testServer.app = {
                         jobFactory: jobFactoryMock,
                         buildFactory: buildFactoryMock,
                         pipelineFactory: pipelineFactoryMock,
                         userFactory: userFactoryMock,
                         eventFactory: eventFactoryMock
                     };
-                    testServer.connection({
-                        host: 'localhost',
-                        port: 12345,
-                        uri: apiUri
-                    });
 
                     testServer.register([
                         {
-                            register: plugin,
+                            plugin,
                             options: {
                                 username: 'testuser'
                             }
@@ -2367,24 +2365,23 @@ describe('webhooks plugin test', () => {
                 });
 
                 it('use cluster level restrictPR setting', () => {
-                    const testServer = new hapi.Server();
+                    const testServer = new hapi.Server({
+                        host: 'localhost',
+                        port: 12345,
+                        uri: apiUri
+                    });
 
-                    testServer.root.app = {
+                    testServer.app = {
                         jobFactory: jobFactoryMock,
                         buildFactory: buildFactoryMock,
                         pipelineFactory: pipelineFactoryMock,
                         userFactory: userFactoryMock,
                         eventFactory: eventFactoryMock
                     };
-                    testServer.connection({
-                        host: 'localhost',
-                        port: 12345,
-                        uri: apiUri
-                    });
 
                     testServer.register([
                         {
-                            register: plugin,
+                            plugin,
                             options: {
                                 username: 'testuser'
                             }

@@ -73,7 +73,7 @@ module.exports = () => ({
                         if (oldPipeline.configPipelineId) {
                             throw boom.forbidden(
                                 'Child pipeline checkoutUrl can only be modified by' +
-                                ` config pipeline ${oldPipeline.configPipelineId}`
+                                    ` config pipeline ${oldPipeline.configPipelineId}`
                             );
                         }
 
@@ -137,11 +137,15 @@ module.exports = () => ({
                                             // update pipeline with new scmRepo and branch
                                             return oldPipeline
                                                 .update()
-                                                .then(updatedPipeline => Promise.all([
-                                                    updatedPipeline.sync(),
-                                                    updatedPipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-                                                ]))
-                                                    .then(syncedPipeline => h.response(syncedPipeline.toJson()).code(200));
+                                                .then(updatedPipeline =>
+                                                    Promise.all([
+                                                        updatedPipeline.sync(),
+                                                        updatedPipeline.addWebhook(
+                                                            `${request.server.info.uri}/v4/webhooks`
+                                                        )
+                                                    ])
+                                                )
+                                                .then(results => h.response(results[0].toJson()).code(200));
                                         })
                                 )
                         );

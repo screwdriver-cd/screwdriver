@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 module.exports = config => ({
@@ -37,33 +37,29 @@ module.exports = config => ({
                 tokenConfig.username = username;
             }
 
+            let data;
             // Get job scope
+
             if (jobId && !scope) {
-                return jobFactory.get(jobId).then(job => {
-                    if (!job) {
-                        throw boom.notFound(`Job ${jobId} does not exist`);
-                    }
+                const job = await jobFactory.get(jobId);
 
-                    tokenConfig.scope =
-                        job.permutations[0] && job.permutations[0].annotations
-                            ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
-                            : null;
+                if (!job) {
+                    throw boom.notFound(`Job ${jobId} does not exist`);
+                }
 
-                    return config.coveragePlugin
-                        .getAccessToken(tokenConfig)
-                        .then(h)
-                        .catch(err => {
-                            throw err;
-                        });
-                });
+                tokenConfig.scope =
+                    job.permutations[0] && job.permutations[0].annotations
+                        ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
+                        : null;
+
+                data = await config.coveragePlugin.getAccessToken(tokenConfig);
+
+                return h.response(data);
             }
 
-            return config.coveragePlugin
-                .getAccessToken(buildCredentials)
-                .then(h)
-                .catch(err => {
-                    throw err;
-                });
+            data = await config.coveragePlugin.getAccessToken(tokenConfig);
+
+            return h.response(data);
         }
     }
 });

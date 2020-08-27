@@ -57,7 +57,7 @@ describe('Register Unit Test Case', () => {
 
     beforeEach(() => {
         serverMock = {
-            register: sinon.stub().resolves(),
+            register: sinon.stub(),
             on: sinon.stub(),
             events: {
                 on: sinon.stub()
@@ -236,15 +236,15 @@ describe('Register Unit Test Case', () => {
     });
 
     it.skip('bubbles failures up', async () => {
-        serverMock.register.rejects(new Error('failure loading'));
+        serverMock.register.yieldsAsync(new Error('failure loading'));
 
-        try {
-            await main(serverMock, config);
-
-            throw new Error('should not be here');
-        } catch (err) {
-            Assert.equal(err.message, 'failure loading');
-        }
+        return main(serverMock, config)
+            .then(() => {
+                throw new Error('should not be here');
+            })
+            .catch(err => {
+                Assert.equal(err.message, 'failure loading');
+            });
     });
 
     it('registers data for plugin when specified in the config object', () => {

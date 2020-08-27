@@ -27,7 +27,7 @@ module.exports = () => ({
             const { autoKeysGeneration } = request.payload;
             const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
-            let pipelineToken = '';
+            const pipelineToken = '';
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
@@ -96,24 +96,21 @@ module.exports = () => ({
                 });
 
                 await defaultCollection.update();
+            }
+            if (autoKeysGeneration) {
+                const privateDeployKey = await pipelineFactory.scm.addDeployKey({
+                    scmContext,
+                    checkoutUrl,
+                    token: pipelineToken
+                });
+                const privateDeployKeyB64 = Buffer.from(privateDeployKey).toString('base64');
 
-                if (autoKeysGeneration) {
-                    const privateDeployKey = pipelineFactory.scm.addDeployKey({
-                        scmContext,
-                        checkoutUrl,
-                        token: pipelineToken
-                    })
-                    const privateDeployKeyB64 = Buffer.from(
-                        privateDeployKey
-                    ).toString('base64');
-
-                    await secretFactory.create({
-                        pipelineId: pipeline.id,
-                        name: deployKeySecret,
-                        value: privateDeployKeyB64,
-                        allowInPR: true
-                    })
-                }
+                await secretFactory.create({
+                    pipelineId: pipeline.id,
+                    name: deployKeySecret,
+                    value: privateDeployKeyB64,
+                    allowInPR: true
+                });
             }
 
             const results = await Promise.all([
