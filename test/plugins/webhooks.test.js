@@ -390,6 +390,7 @@ describe('webhooks plugin test', () => {
         const checkoutUrl = 'git@github.com:baxterthehacker/public-repo.git';
         const fullCheckoutUrl = 'git@github.com:baxterthehacker/public-repo.git#master';
         const scmUri = 'github.com:123456:master';
+        const scmRepoId = `github.com:123456`;
         const pipelineId = 'pipelineHash';
         const jobId = 2;
         const buildId = 'buildHash';
@@ -579,6 +580,9 @@ describe('webhooks plugin test', () => {
                 pipelineMock.workflowGraph = workflowGraph;
                 pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
+                pipelineFactoryMock.list
+                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                    .resolves([pipelineMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
             });
 
@@ -1139,6 +1143,9 @@ describe('webhooks plugin test', () => {
                 });
 
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
+                pipelineFactoryMock.list
+                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                    .resolves([]);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
@@ -1236,6 +1243,9 @@ describe('webhooks plugin test', () => {
 
                 pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2]);
+                pipelineFactoryMock.list
+                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                    .resolves([]);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
@@ -1325,6 +1335,43 @@ describe('webhooks plugin test', () => {
                             startFrom: '~commit'
                         })
                     );
+                });
+            });
+
+            it('returns 201 when the hook source triggers subscribed event', () => {
+                pipelineFactoryMock.scm.parseUrl
+                    .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
+                    .resolves('github.com:789123:master');
+                pipelineFactoryMock.list.resolves([]);
+                pipelineFactoryMock.list
+                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: '%github.com:789123:%' } })
+                    .resolves([pipelineMock]);
+                const scmConfigSubscribe = {
+                    scmUri: 'github.com:789123:master',
+                    token,
+                    scmContext
+                };
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~commit',
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        changedFiles,
+                        releaseName: undefined,
+                        ref: undefined,
+                        meta: {},
+                        subscribedEvent: true,
+                        subscribedScmConfig: scmConfigSubscribe
+                    });
                 });
             });
 
@@ -1812,6 +1859,47 @@ describe('webhooks plugin test', () => {
                     });
                 });
 
+                it('returns 201 when the hook source triggers subscribed event', () => {
+                    pipelineFactoryMock.scm.parseUrl
+                        .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
+                        .resolves('github.com:789123:master');
+                    pipelineFactoryMock.list.resolves([]);
+                    pipelineFactoryMock.list
+                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: '%github.com:789123:%' } })
+                        .resolves([pipelineMock]);
+                    const scmConfigSubscribe = {
+                        scmUri: 'github.com:789123:master',
+                        token,
+                        scmContext,
+                        prNum: 2
+                    };
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 201);
+                        assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            configPipelineSha: latestSha,
+                            startFrom: '~pr',
+                            prNum: 2,
+                            prTitle: 'Update the README with new information',
+                            prRef,
+                            prSource: 'branch',
+                            changedFiles,
+                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
+                            chainPR: false,
+                            baseBranch: 'master',
+                            subscribedEvent: true,
+                            subscribedScmConfig: scmConfigSubscribe
+                        });
+                    });
+                });
+
                 it('returns 201 when getCommitSha() is rejected', () => {
                     pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
 
@@ -2217,6 +2305,10 @@ describe('webhooks plugin test', () => {
                 it('has the workflow for stopping builds before starting a new one', () => {
                     const abortMsg = 'Aborted because new commit was pushed to PR#1';
 
+                    pipelineFactoryMock.list
+                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .resolves([]);
+
                     return server.inject(options).then(reply => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
@@ -2448,13 +2540,18 @@ describe('webhooks plugin test', () => {
                     pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, options.payload).resolves(parsed);
                 });
 
-                it('returns 200 on success', () =>
-                    server.inject(options).then(reply => {
+                it('returns 200 on success', () => {
+                    pipelineFactoryMock.list
+                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .resolves([]);
+
+                    return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledOnce(jobMock.update);
                         assert.strictEqual(jobMock.state, 'ENABLED');
                         assert.isTrue(jobMock.archived);
-                    }));
+                    });
+                });
 
                 it('returns 204 when pipeline to be closed does not exist', () => {
                     pipelineFactoryMock.list.resolves([]);
@@ -2464,18 +2561,26 @@ describe('webhooks plugin test', () => {
                     });
                 });
 
-                it('stops running builds', () =>
-                    server.inject(options).then(() => {
+                it('stops running builds', () => {
+                    pipelineFactoryMock.list
+                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .resolves([]);
+
+                    return server.inject(options).then(() => {
                         assert.calledOnce(model1.update);
                         assert.calledOnce(model2.update);
                         assert.strictEqual(model1.status, 'ABORTED');
                         assert.strictEqual(model1.statusMessage, 'Aborted because PR#1 was closed');
                         assert.strictEqual(model2.status, 'ABORTED');
                         assert.strictEqual(model2.statusMessage, 'Aborted because PR#1 was closed');
-                    }));
+                    });
+                });
 
                 it('returns 500 when failed', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
+                    pipelineFactoryMock.list
+                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .resolves([]);
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 500);

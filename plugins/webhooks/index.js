@@ -253,6 +253,14 @@ function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
     return result;
 }
 
+const uriTrimmer = uri => {
+    const uriToArray = uri.split(':');
+
+    while (uriToArray.length > 2) uriToArray.pop();
+
+    return uriToArray.join(':');
+};
+
 /**
  * Get all pipelines which has triggered job
  * @method  triggeredPipelines
@@ -281,11 +289,11 @@ async function triggeredPipelines(
     const scmBranch = `${splitUri[0]}:${splitUri[1]}:${splitUri[2]}`;
     const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
     const listConfig = { search: { field: 'scmUri', keyword: `${scmRepoId}:%` } };
-    const externalRepoSearchConfig = { params: { contains: { subscribedScmUrls: scmUri } } };
+    const externalRepoSearchConfig = { search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } };
 
     const pipelines = await pipelineFactory.list(listConfig);
 
-    const pipelinesWithSubscribedExtRepos = await pipelineFactory.list(externalRepoSearchConfig);
+    const pipelinesWithSubscribedRepos = await pipelineFactory.list(externalRepoSearchConfig);
 
     let pipelinesOnCommitBranch = [];
     let pipelinesOnOtherBranch = [];
@@ -322,7 +330,7 @@ async function triggeredPipelines(
 
     const currentRepoPipelines = pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
 
-    return currentRepoPipelines.concat(pipelinesWithSubscribedExtRepos);
+    return currentRepoPipelines.concat(pipelinesWithSubscribedRepos);
 }
 
 /**
@@ -393,15 +401,6 @@ async function createPREvents(options, request) {
                 chainPR
             });
 
-            let subscribedEvent = false;
-            let subscribedScmConfig = {};
-
-            // Check is the webhook event is from a subscribed repo
-            if (scmConfig.scmUri !== p.scmUri) {
-                subscribedEvent = true;
-                subscribedScmConfig = scmConfig;
-            }
-
             const eventConfig = {
                 pipelineId: p.id,
                 type: 'pr',
@@ -419,10 +418,14 @@ async function createPREvents(options, request) {
                 prTitle,
                 prInfo: await eventFactory.scm.getPrInfo(scmConfig),
                 prSource,
-                baseBranch: branch,
-                subscribedEvent,
-                subscribedScmConfig
+                baseBranch: branch
             };
+
+            // Check is the webhook event is from a subscribed repo
+            if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
+                eventConfig.subscribedEvent = true;
+                eventConfig.subscribedScmConfig = scmConfig;
+            }
 
             if (skipMessage) {
                 eventConfig.skipMessage = skipMessage;
@@ -748,7 +751,15 @@ function createMeta(parsed) {
  * @param   {String}            [skipMessage]       Message to skip starting builds
  * @returns {Promise}                               Promise that resolves into events
  */
-async function createEvents(eventFactory, userFactory, pipelineFactory, pipelines, parsed, skipMessage) {
+async function createEvents(
+    eventFactory,
+    userFactory,
+    pipelineFactory,
+    pipelines,
+    parsed,
+    skipMessage,
+    scmConfigFromHook
+) {
     const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
     const events = [];
     const meta = createMeta(parsed);
@@ -840,6 +851,12 @@ async function createEvents(eventFactory, userFactory, pipelineFactory, pipeline
                     ref
                 };
 
+                // Check is the webhook event is from a subscribed repo
+                if (uriTrimmer(scmConfigFromHook.scmUri) !== uriTrimmer(pTuple.pipeline.scmUri)) {
+                    eventConfig.subscribedEvent = true;
+                    eventConfig.subscribedScmConfig = scmConfigFromHook;
+                }
+
                 if (skipMessage) {
                     eventConfig.skipMessage = skipMessage;
                 }
@@ -911,7 +928,15 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
         if (!pipelines || pipelines.length === 0) {
             request.log(['webhook', hookId], `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
         } else {
-            events = await createEvents(eventFactory, userFactory, pipelineFactory, pipelines, parsed, skipMessage);
+            events = await createEvents(
+                eventFactory,
+                userFactory,
+                pipelineFactory,
+                pipelines,
+                parsed,
+                skipMessage,
+                scmConfig
+            );
         }
 
         const hasBuildEvents = events.filter(e => e.builds !== null);
