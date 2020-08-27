@@ -48,23 +48,33 @@ module.exports = () => ({
                                     checkoutUrl,
                                     token
                                 })
-                                .then(scmUri => user.getPermissions(scmUri))
-                                .then(permissions => {
-                                    if (!permissions.push) {
-                                        throw boom.forbidden(
-                                            `User ${username} does not have push access for this repo`
-                                        );
-                                    }
-                                })
-                                .then(() =>
-                                    userFactory.scm.openPr({
-                                        checkoutUrl,
-                                        files,
-                                        token,
-                                        scmContext,
-                                        title,
-                                        message
-                                    })
+                                .then(scmUri =>
+                                    user
+                                        .getPermissions(scmUri)
+                                        .then(permissions => {
+                                            if (!permissions.push) {
+                                                throw boom.forbidden(
+                                                    `User ${username} does not have push access for this repo`
+                                                );
+                                            }
+                                        })
+                                        .then(() => {
+                                            let scmUrl = checkoutUrl;
+
+                                            // Set branch if missing
+                                            if (checkoutUrl.split('#').length === 1) {
+                                                scmUrl = scmUrl.concat(`#${scmUri.split(':')[2]}`);
+                                            }
+
+                                            return userFactory.scm.openPr({
+                                                checkoutUrl: scmUrl,
+                                                files,
+                                                token,
+                                                scmContext,
+                                                title,
+                                                message
+                                            });
+                                        })
                                 );
                         })
                         .then(async pullRequest => {

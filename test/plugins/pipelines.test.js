@@ -89,7 +89,6 @@ const decoratePipelineMock = pipeline => {
     mock.remove = sinon.stub();
     mock.admin = sinon.stub();
     mock.getFirstAdmin = sinon.stub();
-    mock.update = sinon.stub();
     mock.token = Promise.resolve('faketoken');
     mock.tokens = sinon.stub();
 
@@ -167,6 +166,7 @@ describe('pipeline plugin test', () => {
     let bannerFactoryMock;
     let jobFactoryMock;
     let triggerFactoryMock;
+    let secretFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
@@ -193,7 +193,8 @@ describe('pipeline plugin test', () => {
                 getScmContexts: sinon.stub(),
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
-                getCommitSha: sinon.stub().resolves('sha')
+                getCommitSha: sinon.stub().resolves('sha'),
+                addDeployKey: sinon.stub()
             }
         };
         userFactoryMock = {
@@ -225,6 +226,10 @@ describe('pipeline plugin test', () => {
                 getDisplayName: sinon.stub().returns()
             }
         };
+        secretFactoryMock = {
+            create: sinon.stub(),
+            get: sinon.stub()
+        };
         bannerMock = {
             name: 'banners',
             register: s => {
@@ -248,6 +253,7 @@ describe('pipeline plugin test', () => {
             collectionFactory: collectionFactoryMock,
             tokenFactory: tokenFactoryMock,
             bannerFactory: bannerFactoryMock,
+            secretFactory: secretFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
@@ -1395,12 +1401,14 @@ describe('pipeline plugin test', () => {
         let userMock;
 
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
         const username = 'd2lam';
         const userId = '34';
+        const privateKey = 'testkey';
+        const privateKeyB64 = Buffer.from(privateKey).toString('base64');
 
         beforeEach(() => {
             options = {
@@ -1434,12 +1442,14 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.create.resolves(pipelineMock);
 
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
+            pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
         });
 
         it('returns 201 and correct pipeline data', () => {
             let expectedLocation;
             const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
 
+            options.payload.autoKeysGeneration = true;
             collectionFactoryMock.list
                 .withArgs({
                     params: {
@@ -1470,6 +1480,12 @@ describe('pipeline plugin test', () => {
                         userId,
                         type: 'default'
                     }
+                });
+                assert.calledWith(secretFactoryMock.create, {
+                    pipelineId: 123,
+                    name: 'SD_SCM_DEPLOY_KEY',
+                    value: privateKeyB64,
+                    allowInPR: true
                 });
                 assert.equal(reply.statusCode, 201);
             });
@@ -1648,7 +1664,7 @@ describe('pipeline plugin test', () => {
     describe('PUT /pipelines/{id}', () => {
         let options;
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const oldScmUri = 'github.com:12345:branchName';
         const id = 123;
@@ -1688,6 +1704,7 @@ describe('pipeline plugin test', () => {
 
             pipelineMock = getPipelineMocks(testPipeline);
             updatedPipelineMock = hoek.clone(pipelineMock);
+            updatedPipelineMock.addWebhook.resolves(null);
 
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
@@ -1702,6 +1719,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 and correct pipeline data', () =>
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 200);
             }));
 
@@ -1715,6 +1733,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1771,6 +1790,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).resolves(null);
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1779,6 +1799,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1787,6 +1808,7 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1795,6 +1817,7 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1807,6 +1830,7 @@ describe('pipeline plugin test', () => {
                 // Only call once to get permissions on the new repo
                 assert.calledOnce(userMock.getPermissions);
                 assert.calledWith(userMock.getPermissions, scmUri);
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1819,6 +1843,7 @@ describe('pipeline plugin test', () => {
                 // Only call once to get permissions on the new repo
                 assert.calledOnce(userMock.getPermissions);
                 assert.calledWith(userMock.getPermissions, scmUri);
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1832,6 +1857,7 @@ describe('pipeline plugin test', () => {
             };
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 401);
             });
         });
@@ -1841,6 +1867,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.strictEqual(reply.result.message, `Pipeline already exists with the ID: ${pipelineMock.id}`);
             });
         });
@@ -1851,6 +1878,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).rejects(testError);
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1861,6 +1889,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.update.rejects(testError);
 
             return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1871,6 +1900,18 @@ describe('pipeline plugin test', () => {
             pipelineMock.sync.rejects(testError);
 
             return server.inject(options).then(reply => {
+                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the pipeline model fails to add webhooks during create', () => {
+            const testError = new Error('pipelineModelAddWebhookError');
+
+            updatedPipelineMock.addWebhook.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(updatedPipelineMock.addWebhook);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -2192,7 +2233,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineMock.getMetrics, {
                     endTime: nowTime,
-                    startTime: '2018-09-15T21:10:58.211Z' // 6 months
+                    startTime: '2019-03-13T21:10:58.211Z' // 1 day
                 });
                 assert.equal(reply.statusCode, 200);
             });
@@ -2230,7 +2271,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(pipelineMock.getMetrics, {
-                    startTime: '2018-09-15T21:10:58.211Z',
+                    startTime: '2019-03-13T21:10:58.211Z',
                     endTime: nowTime,
                     aggregateInterval: 'week'
                 });
@@ -2861,7 +2902,7 @@ describe('pipeline plugin test', () => {
         const id = 123;
         const username = 'myself';
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const title = 'update file';
@@ -2913,6 +2954,33 @@ describe('pipeline plugin test', () => {
 
                 assert.equal(prUrl, pullRequest.data.html_url);
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userFactoryMock.scm.openPr, {
+                    checkoutUrl: 'git@github.com:screwdriver-cd/data-model.git#master',
+                    files: [{ content: 'fileContent', name: 'fileName' }],
+                    message: 'update file',
+                    scmContext,
+                    title: 'update file',
+                    token
+                });
+            });
+        });
+
+        it('formats the checkout url correctly with branch', () => {
+            options.payload.checkoutUrl = `${unformattedCheckoutUrl}#branchName`;
+
+            return server.inject(options).then(reply => {
+                const { prUrl } = reply.result;
+
+                assert.equal(prUrl, pullRequest.data.html_url);
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userFactoryMock.scm.openPr, {
+                    checkoutUrl: 'git@github.com:screwdriver-cd/data-model.git#branchName',
+                    files: [{ content: 'fileContent', name: 'fileName' }],
+                    message: 'update file',
+                    scmContext,
+                    title: 'update file',
+                    token
+                });
             });
         });
 

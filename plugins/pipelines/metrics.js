@@ -43,7 +43,8 @@ module.exports = () => ({
                     // check whether startTime and endTime are valid
                     if (!page && !count) {
                         if (!startTime || !endTime) {
-                            ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, MAX_DAYS));
+                            // return 1 day if no parameters are specified
+                            ({ startTime, endTime } = setDefaultTimeRange(startTime, endTime, 1));
                         }
 
                         if (!validTimeRange(startTime, endTime, MAX_DAYS)) {
