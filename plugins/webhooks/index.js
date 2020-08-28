@@ -421,18 +421,20 @@ async function createPREvents(options, request) {
                 baseBranch: branch
             };
 
-            // Check is the webhook event is from a subscribed repo
-            if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
-                eventConfig.subscribedEvent = true;
-                eventConfig.subscribedScmConfig = scmConfig;
-            }
-
             if (skipMessage) {
                 eventConfig.skipMessage = skipMessage;
             }
 
             if (b === branch) {
                 eventConfig.startFrom = '~pr';
+            }
+
+            // Check is the webhook event is from a subscribed repo and
+            // set the jobs entrypoint from ~startfrom
+            if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
+                eventConfig.subscribedEvent = true;
+                eventConfig.subscribedScmConfig = scmConfig;
+                eventConfig.startFrom = '~subscribe';
             }
 
             return eventConfig;
@@ -851,10 +853,12 @@ async function createEvents(
                     ref
                 };
 
-                // Check is the webhook event is from a subscribed repo
+                // Check is the webhook event is from a subscribed repo and
+                // set the jobs entry point to ~subscribe
                 if (uriTrimmer(scmConfigFromHook.scmUri) !== uriTrimmer(pTuple.pipeline.scmUri)) {
                     eventConfig.subscribedEvent = true;
                     eventConfig.subscribedScmConfig = scmConfigFromHook;
+                    eventConfig.startFrom = '~subscribe';
                 }
 
                 if (skipMessage) {
