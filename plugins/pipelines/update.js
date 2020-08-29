@@ -45,7 +45,14 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
+<<<<<<< HEAD
         handler: async (request, h) => {
+=======
+        // eslint-disable-next-line max-statements
+        // eslint-disable-next-line max-lines-per-function
+        // eslint-disable-next-line max-statements
+        handler: (request, reply) => {
+>>>>>>> 85389c2... fix(1415): Fix update-sync sequence in update pipeline
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { id } = request.params;
@@ -64,6 +71,7 @@ module.exports = () => ({
             return (
                 Promise.all([pipelineFactory.get({ id }), userFactory.get({ username, scmContext })])
                     // get the pipeline given its ID and the user
+                    // eslint-disable-next-line max-lines-per-function
                     .then(([oldPipeline, user]) => {
                         // if the pipeline ID is invalid, reject
                         if (!oldPipeline) {
@@ -135,17 +143,15 @@ module.exports = () => ({
                                             oldPipeline.name = scmRepo.name;
 
                                             // update pipeline with new scmRepo and branch
-                                            return oldPipeline
-                                                .update()
-                                                .then(updatedPipeline =>
-                                                    Promise.all([
-                                                        updatedPipeline.sync(),
-                                                        updatedPipeline.addWebhook(
-                                                            `${request.server.info.uri}/v4/webhooks`
-                                                        )
-                                                    ])
-                                                )
-                                                .then(results => h.response(results[0].toJson()).code(200));
+                                            return oldPipeline.update().then(async updatedPipeline => {
+                                                await updatedPipeline.addWebhooks(
+                                                    `${request.server.info.uri}/v4/webhooks`
+                                                );
+
+                                                const result = await updatedPipeline.sync();
+
+                                                return reply(result.toJson()).code(200);
+                                            });
                                         })
                                 )
                         );
