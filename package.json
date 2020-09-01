@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
