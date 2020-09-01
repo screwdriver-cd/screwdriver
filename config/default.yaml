@@ -252,6 +252,7 @@ coverage:
   #   adminToken: your-sonar-admin-token
   #   sdUiUrl: https://cd.screwdriver.cd
   #   sonarEnterprise: false
+  #   sonarGitAppName: "Screwdriver Sonar PR Checks"
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
