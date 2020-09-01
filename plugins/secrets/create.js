@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',
     path: '/secrets',
-    config: {
+    options: {
         description: 'Create a new secret',
         notes: 'Create a specific secret',
         tags: ['api', 'secrets'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { userFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { secretFactory } = request.server.app;
@@ -81,14 +81,17 @@ module.exports = () => ({
 
                                     delete output.value;
 
-                                    return reply(output)
+                                    return h
+                                        .response(output)
                                         .header('Location', location)
                                         .code(201);
                                 })
                         );
                     })
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

@@ -1,18 +1,18 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const buildListSchema = joi
     .array()
     .items(schema.models.secret.get)
     .label('List of secrets');
-const buildIdSchema = joi.reach(schema.models.build.base, 'id');
+const buildIdSchema = schema.models.build.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/secrets',
-    config: {
+    options: {
         description: 'Get all secrets for a given build',
         notes: 'Returns all secrets for a given build',
         tags: ['api', 'builds', 'secrets'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.buildFactory;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -41,11 +41,11 @@ module.exports = () => ({
                 })
                 .then(secrets => {
                     if (secrets.length === 0) {
-                        return reply([]);
+                        return h.response([]);
                     }
 
-                    return canAccess(credentials, secrets[0], 'push').then(showSecret =>
-                        reply(
+                    return canAccess(credentials, secrets[0], 'push', request.server.app).then(showSecret =>
+                        h.response(
                             secrets.map(s => {
                                 const output = s.toJson();
 
@@ -58,15 +58,17 @@ module.exports = () => ({
                         )
                     );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: buildListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: buildIdSchema
-            }
+            })
         }
     }
 });

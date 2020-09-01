@@ -11,15 +11,12 @@ const metrics = require('./metrics');
  * Job API Plugin
  * @method register
  * @param  {Hapi}     server            Hapi Server
- * @param  {Object}   options           Configuration
- * @param  {Function} next              Function to call when done
  */
-exports.register = (server, options, next) => {
-    server.route([getRoute(), updateRoute(), listBuildsRoute(), lastSuccessfulMeta(), metrics(), latestBuild()]);
-
-    next();
+const jobsPlugin = {
+    name: 'jobs',
+    async register(server) {
+        server.route([getRoute(), updateRoute(), listBuildsRoute(), lastSuccessfulMeta(), metrics(), latestBuild()]);
+    }
 };
 
-exports.register.attributes = {
-    name: 'jobs'
-};
+module.exports = jobsPlugin;

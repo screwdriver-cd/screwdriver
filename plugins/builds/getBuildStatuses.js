@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const stringSchema = joi.string().regex(/^[0-9]+$/);
 const jobIdsSchema = joi
@@ -11,7 +11,7 @@ const jobIdsSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/builds/statuses',
-    config: {
+    options: {
         description: 'Get build statuses for jobs',
         notes: 'Returns id, jobId, and status for builds',
         tags: ['api', 'builds'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { buildFactory } = request.server.app;
             const { jobIds, numBuilds, offset } = request.query;
 
@@ -41,19 +41,21 @@ module.exports = () => ({
                         throw boom.notFound('Builds do not exist');
                     }
 
-                    reply(builds);
+                    return h.response(builds);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.array()
         },
         validate: {
-            query: {
+            query: joi.object({
                 jobIds: jobIdsSchema,
                 numBuilds: stringSchema,
                 offset: stringSchema
-            }
+            })
         }
     }
 });

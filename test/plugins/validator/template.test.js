@@ -1,7 +1,7 @@
 'use strict';
 
 const { assert } = require('chai');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 
 const MISSING_VERSION_INPUT = require('../data/template-validator.missing-version.json');
 const TEST_INPUT = require('../data/template-validator.input.json');
@@ -18,17 +18,11 @@ describe('template validator plugin test', () => {
         plugin = require('../../../plugins/template-validator');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-
-        server.connection({
+        server = new hapi.Server({
             port: 1234
         });
 
-        return server.register([
-            {
-                register: plugin
-            }
-        ]);
+        return server.register({ plugin });
     });
 
     it('registers', () => {
@@ -149,7 +143,7 @@ describe('template validator plugin test', () => {
 
                     const payload = JSON.parse(reply.payload);
 
-                    assert.match(payload.message, /"sd-template.yaml contents" must be a string/);
+                    assert.match(payload.message, /Invalid request payload input/);
                 }));
     });
 });

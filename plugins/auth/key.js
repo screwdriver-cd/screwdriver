@@ -12,12 +12,12 @@ const schema = require('screwdriver-data-schema');
 module.exports = options => ({
     method: ['GET'],
     path: '/auth/key',
-    config: {
+    options: {
         description: 'Get jwt public key',
         notes: 'Public Key for verifying JSON Web Tokens',
         tags: ['api', 'auth', 'key'],
-        handler: (request, reply) =>
-            reply({
+        handler: async (request, h) =>
+            h.response({
                 key: options.jwtPublicKey
             }),
         response: {

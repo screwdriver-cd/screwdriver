@@ -3,7 +3,7 @@
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const tinytim = require('tinytim');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 /**
  * Generate Badge URL
@@ -34,11 +34,11 @@ function getUrl({ badgeService, statusColor, encodeBadgeSubject, builds = [], su
 module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/{jobName}/badge',
-    config: {
+    options: {
         description: 'Get a badge for a job',
         notes: 'Redirects to the badge service',
         tags: ['api', 'job', 'badge'],
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { id, jobName } = request.params;
@@ -60,11 +60,11 @@ module.exports = config => ({
             ])
                 .then(([job, pipeline]) => {
                     if (!job) {
-                        return reply.redirect(getUrl(badgeConfig));
+                        return h.redirect(getUrl(badgeConfig));
                     }
 
                     if (job.state === 'DISABLED') {
-                        return reply.redirect(
+                        return h.redirect(
                             getUrl(
                                 Object.assign(badgeConfig, {
                                     builds: [
@@ -86,7 +86,7 @@ module.exports = config => ({
                     };
 
                     return job.getBuilds(listConfig).then(builds =>
-                        reply.redirect(
+                        h.redirect(
                             getUrl(
                                 Object.assign(badgeConfig, {
                                     builds,
@@ -96,13 +96,13 @@ module.exports = config => ({
                         )
                     );
                 })
-                .catch(() => reply.redirect(getUrl(badgeConfig)));
+                .catch(() => h.redirect(getUrl(badgeConfig)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema,
-                jobName: joi.reach(schema.models.job.base, 'name')
-            }
+                jobName: schema.models.job.base.extract('name')
+            })
         }
     }
 });

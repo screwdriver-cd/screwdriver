@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const request = require('request');
 const ndjson = require('ndjson');
@@ -139,7 +139,7 @@ async function loadLines({ baseUrl, linesFrom, authToken, pagesToLoad = 10, sort
 module.exports = config => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}/logs',
-    config: {
+    options: {
         description: 'Get the logs for a build step',
         notes: 'Returns the logs for a step',
         tags: ['api', 'builds', 'steps', 'log'],
@@ -152,7 +152,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (req, reply) => {
+        handler: (req, h) => {
             const { stepFactory } = req.server.app;
             const buildId = req.params.id;
             const stepName = req.params.name;
@@ -169,7 +169,7 @@ module.exports = config => ({
                     const output = [];
 
                     if (isNotStarted) {
-                        return reply(output).header('X-More-Data', 'false');
+                        return h.response(output).header('X-More-Data', 'false');
                     }
 
                     const isDone = stepModel.code !== undefined;
@@ -192,10 +192,12 @@ module.exports = config => ({
                             })
                         )
                         .then(([lines, morePages]) =>
-                            reply(lines).header('X-More-Data', (morePages || !isDone).toString())
+                            h.response(lines).header('X-More-Data', (morePages || !isDone).toString())
                         );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: schema.api.loglines.output

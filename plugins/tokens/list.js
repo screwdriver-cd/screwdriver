@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = joi.array().items(schema.models.token.get);
@@ -8,7 +8,7 @@ const getSchema = joi.array().items(schema.models.token.get);
 module.exports = () => ({
     method: 'GET',
     path: '/tokens',
-    config: {
+    options: {
         description: 'Get tokens with pagination',
         notes: 'Returns all token records belonging to the current user',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -36,7 +36,7 @@ module.exports = () => ({
                     return user.tokens;
                 })
                 .then(tokens =>
-                    reply(
+                    h.response(
                         tokens.map(token => {
                             const output = token.toJson();
 
@@ -47,7 +47,9 @@ module.exports = () => ({
                         })
                     )
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

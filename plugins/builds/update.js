@@ -1,11 +1,11 @@
 'use strict';
 
-const boom = require('boom');
-const hoek = require('hoek');
-const joi = require('joi');
+const boom = require('@hapi/boom');
+const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
+const joi = require('joi');
 const { EXTERNAL_TRIGGER } = schema.config.regex;
-const idSchema = joi.reach(schema.models.job.base, 'id');
+const idSchema = schema.models.job.base.extract('id');
 
 /**
  * Determine if this build is FIXED build or not.
@@ -38,7 +38,7 @@ async function isFixedBuild(build, jobFactory) {
 module.exports = config => ({
     method: 'PUT',
     path: '/builds/{id}',
-    config: {
+    options: {
         description: 'Update a build',
         notes: 'Update a specific build',
         tags: ['api', 'builds'],
@@ -51,7 +51,7 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             // eslint-disable-next-line max-len
             const {
                 buildFactory,
@@ -59,7 +59,8 @@ module.exports = config => ({
                 jobFactory,
                 triggerFactory,
                 userFactory,
-                stepFactory
+                stepFactory,
+                bannerFactory
             } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
@@ -69,7 +70,7 @@ module.exports = config => ({
             const externalJoin = config.externalJoin || false;
 
             if (isBuild && username !== id) {
-                return reply(boom.forbidden(`Credential only valid for ${username}`));
+                return boom.forbidden(`Credential only valid for ${username}`);
             }
 
             return buildFactory
@@ -86,10 +87,11 @@ module.exports = config => ({
 
                     // Users can only mark a running or queued build as aborted
                     if (!isBuild) {
+                        const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
                         // Check if Screwdriver admin
                         const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                             username,
-                            scmContext
+                            scmDisplayName
                         );
 
                         // Check desired status
@@ -212,8 +214,8 @@ module.exports = config => ({
                 .then(([newBuild, newEvent, isFixed]) =>
                     newBuild.job.then(job =>
                         job.pipeline
-                            .then(pipeline => {
-                                request.server.emit('build_status', {
+                            .then(async pipeline => {
+                                await request.server.events.emit('build_status', {
                                     settings: job.permutations[0].settings,
                                     status: newBuild.status,
                                     event: newEvent.toJson(),
@@ -230,20 +232,23 @@ module.exports = config => ({
                                 // Don't further trigger pipeline if intented to skip further jobs
 
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
-                                    return reply(newBuild.toJsonWithSteps()).code(200);
+                                    return h.response(await newBuild.toJsonWithSteps()).code(200);
                                 }
 
-                                return triggerNextJobs({
-                                    pipeline,
-                                    job,
-                                    build: newBuild,
-                                    username,
-                                    scmContext,
-                                    externalJoin
-                                }).then(() => {
+                                return triggerNextJobs(
+                                    {
+                                        pipeline,
+                                        job,
+                                        build: newBuild,
+                                        username,
+                                        scmContext,
+                                        externalJoin
+                                    },
+                                    request.server.app
+                                ).then(async () => {
                                     // if external join is allowed, then triggerNextJobs will take care of external OR already
                                     if (externalJoin) {
-                                        return reply(newBuild.toJsonWithSteps()).code(200);
+                                        return h.response(await newBuild.toJsonWithSteps()).code(200);
                                     }
 
                                     const src = `~sd@${pipeline.id}:${job.name}`;
@@ -266,26 +271,31 @@ module.exports = config => ({
                                         .then(pipelineIds =>
                                             Promise.all(
                                                 pipelineIds.map(pipelineId =>
-                                                    triggerEvent({
-                                                        pipelineId: parseInt(pipelineId, 10),
-                                                        startFrom: src,
-                                                        causeMessage: `Triggered by build ${username}`,
-                                                        parentBuildId: newBuild.id
-                                                    })
+                                                    triggerEvent(
+                                                        {
+                                                            pipelineId: parseInt(pipelineId, 10),
+                                                            startFrom: src,
+                                                            causeMessage: `Triggered by build ${username}`,
+                                                            parentBuildId: newBuild.id
+                                                        },
+                                                        request.server.app
+                                                    )
                                                 )
                                             )
                                         )
-                                        .then(() => reply(newBuild.toJsonWithSteps()).code(200));
+                                        .then(async () => h.response(await newBuild.toJsonWithSteps()).code(200));
                                 });
                             })
-                            .catch(err => reply(boom.boomify(err)))
+                            .catch(err => {
+                                throw err;
+                            })
                     )
                 );
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.build.update
         }
     }

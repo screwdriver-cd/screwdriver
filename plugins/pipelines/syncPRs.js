@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/sync/pullrequests',
-    config: {
+    options: {
         description: 'Add or update pull request of a pipeline',
         notes: 'Add or update pull request jobs',
         tags: ['api', 'pipelines'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { id } = request.params;
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -45,14 +45,16 @@ module.exports = () => ({
                             }
                         })
                         .then(() => pipeline.syncPRs())
-                        .then(() => reply().code(204));
+                        .then(() => h.response().code(204));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.job.base, 'id');
+const idSchema = schema.models.job.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/lastSuccessfulMeta',
-    config: {
+    options: {
         description: 'Get the last successful metadata for a given job',
         notes: 'If no successful builds found in the past 50 builds, will return {}',
         tags: ['api', 'jobs', 'builds'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
 
             return factory
@@ -38,17 +38,19 @@ module.exports = () => ({
                 .then(builds => {
                     const meta = builds[0] ? builds[0].meta : {};
 
-                    return reply(meta);
+                    return h.response(meta);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.object()
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

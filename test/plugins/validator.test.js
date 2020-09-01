@@ -2,7 +2,7 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 
 const testInput = require('./data/validator.input.json');
@@ -21,26 +21,16 @@ describe('validator plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/validator');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-        server.connection({
+        server = new hapi.Server({
             port: 1234
         });
 
-        server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            err => {
-                done(err);
-            }
-        );
+        await server.register(plugin);
     });
 
     afterEach(() => {
@@ -84,7 +74,7 @@ describe('validator plugin test', () => {
 
                     const payload = JSON.parse(reply.payload);
 
-                    assert.match(payload.jobs.main[0].commands[0].command, /"jobs" must be an object/);
+                    assert.match(payload.jobs.main[0].commands[0].command, /"jobs" must be of type object/);
                 }));
     });
 });

@@ -1,17 +1,17 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
 
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/metrics',
-    config: {
+    options: {
         description: 'Get metrics for this pipeline',
         notes: 'Returns list of metrics for the given pipeline',
         tags: ['api', 'pipelines', 'metrics'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
             const { aggregateInterval, page, count, sort } = request.query;
@@ -60,16 +60,18 @@ module.exports = () => ({
 
                     return pipeline.getMetrics(config);
                 })
-                .then(metrics => reply(metrics))
-                .catch(err => reply(boom.boomify(err)));
+                .then(metrics => h.response(metrics))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: pipelineMetricListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
+            }),
             query: schema.api.pagination.concat(
                 joi.object({
                     startTime: joi.string().isoDate(),

@@ -6,7 +6,7 @@
 ### Register plugin
 
 ```javascript
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const server = new Hapi.Server();
 const pipelinesPlugin = require('./');
 
@@ -189,7 +189,7 @@ The server supplies factories to plugins in the form of server settings:
 
 ```js
 // handler pipelinePlugin.js
-handler: (request, reply) => {
+handler: async (request, h) => {
     const factory = request.server.app.pipelineFactory;
 
     // ...

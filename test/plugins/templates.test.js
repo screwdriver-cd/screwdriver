@@ -2,10 +2,10 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');
 const testtemplatetags = require('./data/templateTags.json');
@@ -71,7 +71,7 @@ describe('template plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         templateFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -95,20 +95,19 @@ describe('template plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/templates');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             templateFactory: templateFactoryMock,
             templateTagFactory: templateTagFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -116,14 +115,7 @@ describe('template plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            done
-        );
+        await server.register({ plugin });
     });
 
     afterEach(() => {
@@ -459,10 +451,13 @@ describe('template plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/templates/testtemplate',
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user', '!guest']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user', '!guest']
+                    },
+                    strategy: ['token']
                 }
             };
             testTemplate = decorateObj({
@@ -564,10 +559,13 @@ describe('template plugin test', () => {
                 .inject({
                     method: 'DELETE',
                     url: '/templates/testtemplate',
-                    credentials: {
-                        username,
-                        scmContext,
-                        scope: ['user', 'admin', '!guest']
+                    auth: {
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['user', 'admin', '!guest']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -586,11 +584,14 @@ describe('template plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/templates/testtemplate',
-                credentials: {
-                    username,
-                    scmContext,
-                    pipelineId: 1337,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId: 1337,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -610,12 +611,15 @@ describe('template plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/templates/testtemplate',
-                credentials: {
-                    username,
-                    scmContext,
-                    pipelineId: 1337,
-                    isPR: true,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId: 1337,
+                        isPR: true,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -629,11 +633,14 @@ describe('template plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/templates/testtemplate',
-                credentials: {
-                    username,
-                    scmContext,
-                    pipelineId,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -731,8 +738,11 @@ describe('template plugin test', () => {
                 method: 'POST',
                 url: '/templates',
                 payload: TEMPLATE_VALID,
-                credentials: {
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        scope: ['build']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -777,7 +787,7 @@ describe('template plugin test', () => {
         });
 
         it('returns 403 if it is a PR build', () => {
-            options.credentials.isPR = true;
+            options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -909,8 +919,11 @@ describe('template plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/templates/testtemplate/tags/stable',
-                credentials: {
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        scope: ['build']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -932,7 +945,7 @@ describe('template plugin test', () => {
         });
 
         it('returns 403 when pipelineId does not match', () => {
-            options.credentials.isPR = true;
+            options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -968,8 +981,11 @@ describe('template plugin test', () => {
                 method: 'PUT',
                 url: '/templates/testtemplate/tags/stable',
                 payload,
-                credentials: {
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        scope: ['build']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -999,7 +1015,7 @@ describe('template plugin test', () => {
         });
 
         it('returns 403 if it is a PR build', () => {
-            options.credentials.isPR = true;
+            options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -1086,8 +1102,11 @@ describe('template plugin test', () => {
                 method: 'PUT',
                 url: '/templates/template_namespace%2Fnodejs_main/trusted',
                 payload,
-                credentials: {
-                    scope: ['admin']
+                auth: {
+                    credentials: {
+                        scope: ['admin']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1123,7 +1142,7 @@ describe('template plugin test', () => {
                 message: 'Insufficient scope'
             };
 
-            options.credentials.scope = ['user'];
+            options.auth.credentials.scope = ['user'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);

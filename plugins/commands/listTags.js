@@ -1,19 +1,18 @@
 'use strict';
 
-const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
     .array()
     .items(schema.models.commandTag.base)
     .label('List of command tags');
-const namespaceSchema = joi.reach(schema.models.commandTag.base, 'namespace');
-const nameSchema = joi.reach(schema.models.commandTag.base, 'name');
+const namespaceSchema = schema.models.commandTag.base.extract('namespace');
+const nameSchema = schema.models.commandTag.base.extract('name');
 
 module.exports = () => ({
     method: 'GET',
     path: '/commands/{namespace}/{name}/tags',
-    config: {
+    options: {
         description: 'Get all command tags for a given command namespace and name',
         notes: 'Returns all command tags for a given command namespace and name',
         tags: ['api', 'commands', 'tags'],
@@ -26,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.commandTagFactory;
             const config = {
                 params: {
@@ -45,17 +44,19 @@ module.exports = () => ({
 
             return factory
                 .list(config)
-                .then(tags => reply(tags.map(p => p.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(tags => h.response(tags.map(p => p.toJson())))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 namespace: namespaceSchema,
                 name: nameSchema
-            },
+            }),
             query: schema.api.pagination
         }
     }

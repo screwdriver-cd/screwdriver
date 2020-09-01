@@ -2,8 +2,8 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
-const hoek = require('hoek');
+const hapi = require('@hapi/hapi');
+const hoek = require('@hapi/hoek');
 const mockery = require('mockery');
 const pipelineMock = require('./data/pipeline.json');
 
@@ -38,7 +38,7 @@ describe('isAdmin plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         // eslint-disable-next-line global-require
         plugin = require('../../plugins/isAdmin');
 
@@ -70,7 +70,9 @@ describe('isAdmin plugin test', () => {
         userMock = getUserMock({ username, scmContext });
         userMock.getPermissions.withArgs(pipelineMock.scmUri).resolves({ admin: true });
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             pipelineFactory: pipelineFactoryMock,
             eventFactory: eventFactoryMock,
@@ -78,12 +80,9 @@ describe('isAdmin plugin test', () => {
             userFactory: userFactoryMock
         };
 
-        server.connection({
-            port: 1234
-        });
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['build']
                     }
@@ -91,16 +90,11 @@ describe('isAdmin plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            err => {
-                done(err);
+        await server.register([
+            {
+                plugin
             }
-        );
+        ]);
     });
 
     afterEach(() => {
@@ -124,10 +118,13 @@ describe('isAdmin plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/isAdmin?pipelineId=${pipelineId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -173,10 +170,13 @@ describe('isAdmin plugin test', () => {
                 .inject({
                     method: 'GET',
                     url: `/isAdmin?eventId=${eventId}`,
-                    credentials: {
-                        username,
-                        scmContext,
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -191,10 +191,13 @@ describe('isAdmin plugin test', () => {
                 .inject({
                     method: 'GET',
                     url: `/isAdmin?jobId=${jobId}`,
-                    credentials: {
-                        username,
-                        scmContext,
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -209,10 +212,13 @@ describe('isAdmin plugin test', () => {
                 .inject({
                     method: 'GET',
                     url: `/isAdmin?pipelineId=999&jobId=${jobId}`,
-                    credentials: {
-                        username,
-                        scmContext,
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            username,
+                            scmContext,
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {

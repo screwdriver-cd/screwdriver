@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const authTokenSchema = schema.api.auth.token;
-const buildIdSchema = joi.reach(schema.models.build.base, 'id');
+const buildIdSchema = schema.models.build.base.extract('id');
 
 module.exports = () => ({
     method: 'POST',
     path: '/builds/{id}/token',
-    config: {
+    options: {
         description: 'Generate a JWT for use throughout a given build',
         notes: 'Generate a JWT for build using temporal JWT which passed in',
         tags: ['api', 'builds', 'build_token'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const profile = request.auth.credentials;
             const { buildTimeout } = request.payload;
             const { buildFactory } = request.server.app;
@@ -67,17 +67,19 @@ module.exports = () => ({
                         parseInt(buildTimeout, 10)
                     );
 
-                    return reply({ token });
+                    return h.response({ token });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: authTokenSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: buildIdSchema
-            }
+            })
         }
     }
 });

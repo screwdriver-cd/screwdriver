@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const tokenIdSchema = joi.reach(schema.models.token.base, 'id');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const tokenIdSchema = schema.models.token.base.extract('id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/pipelines/{pipelineId}/tokens/{tokenId}',
-    config: {
+    options: {
         description: 'Update a token for pipeline',
         notes: 'Update a specific token for pipeline',
         tags: ['api', 'tokens'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
@@ -73,17 +73,19 @@ module.exports = () => ({
                                     token[key] = request.payload[key];
                                 });
 
-                                return token.update().then(() => reply(token.toJson()).code(200));
+                                return token.update().then(() => h.response(token.toJson()).code(200));
                             });
                         });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 pipelineId: pipelineIdSchema,
                 tokenId: tokenIdSchema
-            },
+            }),
             payload: schema.models.token.update
         }
     }

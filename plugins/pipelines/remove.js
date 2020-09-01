@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
     path: '/pipelines/{id}',
-    config: {
+    options: {
         description: 'Delete a single pipeline',
         notes: 'Returns null if successful',
         tags: ['api', 'pipelines'],
@@ -21,8 +21,8 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            const { pipelineFactory } = request.server.app;
+        handler: async (request, h) => {
+            const { pipelineFactory, bannerFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -56,10 +56,11 @@ module.exports = () => ({
                                 }
                             })
                             .catch(error => {
+                                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
                                 // Lookup whether user is admin
                                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                                     username,
-                                    scmContext
+                                    scmDisplayName
                                 );
 
                                 // Allow cluster admins to remove pipeline
@@ -71,15 +72,17 @@ module.exports = () => ({
                             })
                             // user has good permissions, remove the pipeline
                             .then(() => pipeline.remove())
-                            .then(() => reply().code(204))
+                            .then(() => h.response().code(204))
                     );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

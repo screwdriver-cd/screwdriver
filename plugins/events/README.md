@@ -4,7 +4,7 @@
 ## Usage
 
 ```javascript
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const server = new Hapi.Server();
 const eventsPlugin = require('./');
 
@@ -48,7 +48,7 @@ The server supplies factories to plugins in the form of server app values:
 
 ```js
 // handler eventsPlugin.js
-handler: (request, reply) => {
+handler: async (request, h) => {
     const factory = request.server.app.eventFactory;
 
     // ...

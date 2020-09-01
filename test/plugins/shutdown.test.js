@@ -2,7 +2,7 @@
 
 const chai = require('chai');
 const { assert } = chai;
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const sinon = require('sinon');
 
@@ -19,26 +19,16 @@ describe('test shutdown plugin', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/shutdown');
         /* eslint-enable global-require */
 
-        server = new hapi.Server();
-        server.connection({
+        server = new hapi.Server({
             port: 1234
         });
 
-        server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            err => {
-                done(err);
-            }
-        );
+        await server.register({ plugin });
     });
 
     afterEach(() => {
@@ -73,9 +63,7 @@ describe('test graceful shutdown', () => {
             terminationGracePeriod: 30
         };
         let stopCalled = false;
-        const server = new hapi.Server();
-
-        server.connection({
+        const server = new hapi.Server({
             port: 1234
         });
 

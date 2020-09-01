@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
-const joi = require('joi');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.token.base, 'id');
+const joi = require('joi');
+const idSchema = schema.models.token.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/tokens/{id}',
-    config: {
+    options: {
         description: 'Update a token',
         notes: 'Update a specific token',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -53,15 +53,17 @@ module.exports = () => ({
                             token[key] = request.payload[key];
                         });
 
-                        return token.update().then(() => reply(token.toJson()).code(200));
+                        return token.update().then(() => h.response(token.toJson()).code(200));
                     });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.token.update
         }
     }

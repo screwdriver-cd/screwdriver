@@ -10,14 +10,13 @@ const tokenRoute = require('./token');
  * @param  {Object}    options         Configuration
  * @param  {Function}  next            Function to call when done
  */
-exports.register = (server, options, next) => {
-    const { coveragePlugin } = options;
+const coverageAPIPlugin = {
+    name: 'coverage',
+    async register(server, options) {
+        const { coveragePlugin } = options;
 
-    server.route([infoRoute({ coveragePlugin }), tokenRoute({ coveragePlugin })]);
-
-    next();
+        server.route([infoRoute({ coveragePlugin }), tokenRoute({ coveragePlugin })]);
+    }
 };
 
-exports.register.attributes = {
-    name: 'coverage'
-};
+module.exports = coverageAPIPlugin;

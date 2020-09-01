@@ -1,9 +1,9 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const jobIdSchema = joi.reach(schema.models.job.base, 'id');
+const jobIdSchema = schema.models.job.base.extract('id');
 const buildListSchema = joi
     .array()
     .items(schema.models.build.get)
@@ -12,7 +12,7 @@ const buildListSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/builds',
-    config: {
+    options: {
         description: 'Get builds for a given job',
         notes: 'Returns builds for a given job',
         tags: ['api', 'jobs', 'builds'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
             const { sort, sortBy, page, count } = request.query;
 
@@ -48,16 +48,22 @@ module.exports = () => ({
 
                     return job.getBuilds(config);
                 })
-                .then(builds => reply(Promise.all(builds.map(b => b.toJsonWithSteps()))))
-                .catch(err => reply(boom.boomify(err)));
+                .then(async builds => {
+                    const data = await Promise.all(builds.map(b => b.toJsonWithSteps()));
+
+                    return h.response(data);
+                })
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: buildListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: jobIdSchema
-            },
+            }),
             query: schema.api.pagination
         }
     }

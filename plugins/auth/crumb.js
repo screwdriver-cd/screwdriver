@@ -10,13 +10,13 @@ const schema = require('screwdriver-data-schema');
 module.exports = () => ({
     method: 'GET',
     path: '/auth/crumb',
-    config: {
+    options: {
         description: 'Generate crumb',
         notes: 'Should return a crumb',
         tags: ['api', 'crumb', 'auth'],
-        handler: (request, reply) =>
-            reply({
-                crumb: request.server.plugins.crumb.generate(request, reply)
+        handler: async (request, h) =>
+            h.response({
+                crumb: request.server.plugins.crumb.generate(request, h)
             }),
         response: {
             schema: schema.api.auth.crumb

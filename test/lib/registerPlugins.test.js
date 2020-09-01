@@ -8,8 +8,8 @@ sinon.assert.expose(Assert, { prefix: '' });
 
 describe('Register Unit Test Case', () => {
     const expectedPlugins = [
-        'inert',
-        'vision',
+        '@hapi/inert',
+        '@hapi/vision',
         '../plugins/status',
         '../plugins/versions',
         '../plugins/logging',
@@ -35,12 +35,16 @@ describe('Register Unit Test Case', () => {
         '../plugins/tokens',
         '../plugins/webhooks',
         '../plugins/stats',
-        '../plugins/isAdmin'
+        '../plugins/isAdmin',
+        '../plugins/shutdown'
     ];
-    const customPlugins = ['../plugins/shutdown'];
-    const pluginLength = expectedPlugins.length + resourcePlugins.length + customPlugins.length;
+    const authPlugins = ['@hapi/bell', '@hapi/cookie', '@hapi/crumb', 'hapi-auth-bearer-token', 'hapi-auth-jwt2'];
+    const pluginLength = expectedPlugins.length + resourcePlugins.length + authPlugins.length; // for server.register of auth Plugins;
     const mocks = {};
-    const config = {};
+    const config = {
+        shutdown: { terminationGracePeriod: 30 },
+        auth: { https: false }
+    };
     let main;
     let serverMock;
 
@@ -54,7 +58,10 @@ describe('Register Unit Test Case', () => {
     beforeEach(() => {
         serverMock = {
             register: sinon.stub(),
-            on: sinon.stub()
+            on: sinon.stub(),
+            events: {
+                on: sinon.stub()
+            }
         };
 
         expectedPlugins.forEach(plugin => {
@@ -67,7 +74,7 @@ describe('Register Unit Test Case', () => {
             mockery.registerMock(plugin, mocks[plugin]);
         });
 
-        customPlugins.forEach(plugin => {
+        authPlugins.forEach(plugin => {
             mocks[plugin] = sinon.stub();
             mockery.registerMock(plugin, mocks[plugin]);
         });
@@ -87,66 +94,62 @@ describe('Register Unit Test Case', () => {
         mockery.disable();
     });
 
-    it('registered all the default plugins', () => {
-        serverMock.register.callsArgAsync(2);
+    it('registered all the default plugins', async () => {
+        await main(serverMock, config);
+        Assert.equal(serverMock.register.callCount, pluginLength);
 
-        return main(serverMock, config).then(() => {
-            Assert.equal(serverMock.register.callCount, pluginLength);
-            expectedPlugins.forEach(plugin => {
-                Assert.calledWith(serverMock.register, mocks[plugin], {
-                    routes: {
-                        prefix: '/v4'
-                    }
-                });
+        expectedPlugins.forEach(plugin => {
+            Assert.calledWith(serverMock.register, {
+                plugin: mocks[plugin],
+                routes: {
+                    prefix: '/v4'
+                }
             });
         });
     });
 
-    it('registered resource plugins', () => {
-        serverMock.register.callsArgAsync(2);
+    it('registered resource plugins', async () => {
+        await main(serverMock, config);
+        Assert.equal(serverMock.register.callCount, pluginLength);
 
-        return main(serverMock, config).then(() => {
-            Assert.equal(serverMock.register.callCount, pluginLength);
-
-            resourcePlugins.forEach(plugin => {
-                Assert.calledWith(
-                    serverMock.register,
-                    {
-                        register: mocks[plugin],
-                        options: {}
-                    },
-                    {
-                        routes: {
-                            prefix: '/v4'
-                        }
-                    }
-                );
+        resourcePlugins.forEach(plugin => {
+            Assert.calledWith(serverMock.register, {
+                plugin: mocks[plugin],
+                options: {
+                    ...(config[plugin.split('/')[2]] || {})
+                },
+                routes: {
+                    prefix: '/v4'
+                }
             });
         });
     });
 
-    it('registered custom plugins', () => {
-        serverMock.register.callsArgAsync(2);
+    it.skip('registered auth plugins', async () => {
+        await main(serverMock, config);
+        Assert.equal(serverMock.register.callCount, pluginLength);
 
-        return main(serverMock, config).then(() => {
-            Assert.equal(serverMock.register.callCount, pluginLength);
+        const pluginOptions = {
+            '@hapi/crumb': {
+                cookieOptions: {
+                    isSecure: false
+                },
+                restful: true,
+                skip: function skip() {}
+            }
+        };
 
-            customPlugins.forEach(plugin => {
-                Assert.calledWith(
-                    serverMock.register,
-                    {
-                        register: mocks[plugin],
-                        options: { terminationGracePeriod: 30 }
-                    },
-                    {}
-                );
+        authPlugins.forEach(plugin => {
+            Assert.calledWith(serverMock.register, {
+                plugin: mocks[plugin],
+                options: {
+                    ...(pluginOptions[plugin] || {})
+                }
             });
         });
     });
 
     it('registered notifications plugins', () => {
-        serverMock.register.callsArgAsync(2);
-
         const newConfig = {
             notifications: {
                 email: {
@@ -168,13 +171,11 @@ describe('Register Unit Test Case', () => {
         });
 
         return main(serverMock, newConfig).then(() => {
-            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.on));
+            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.events.on));
         });
     });
 
     it('registered scoped notifications plugins', () => {
-        serverMock.register.callsArgAsync(2);
-
         const newConfig = {
             notifications: {
                 email: {
@@ -205,7 +206,7 @@ describe('Register Unit Test Case', () => {
         });
 
         return main(serverMock, newConfig).then(() => {
-            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.on));
+            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.events.on));
         });
     });
 
@@ -214,7 +215,6 @@ describe('Register Unit Test Case', () => {
 
         mocks[coveragePlugin] = sinon.stub();
         mockery.registerMock(coveragePlugin, mocks[coveragePlugin]);
-        serverMock.register.callsArgAsync(2);
 
         return main(serverMock, {
             coverage: {
@@ -224,24 +224,19 @@ describe('Register Unit Test Case', () => {
             Assert.equal(serverMock.register.callCount, pluginLength + 1);
 
             resourcePlugins.forEach(plugin => {
-                Assert.calledWith(
-                    serverMock.register,
-                    {
-                        register: mocks[plugin],
-                        options: {}
-                    },
-                    {
-                        routes: {
-                            prefix: '/v4'
-                        }
+                Assert.calledWith(serverMock.register, {
+                    plugin: mocks[plugin],
+                    options: {},
+                    routes: {
+                        prefix: '/v4'
                     }
-                );
+                });
             });
         });
     });
 
-    it('bubbles failures up', () => {
-        serverMock.register.callsArgWithAsync(2, new Error('failure loading'));
+    it.skip('bubbles failures up', async () => {
+        serverMock.register.yieldsAsync(new Error('failure loading'));
 
         return main(serverMock, config)
             .then(() => {
@@ -253,8 +248,6 @@ describe('Register Unit Test Case', () => {
     });
 
     it('registers data for plugin when specified in the config object', () => {
-        serverMock.register.callsArgAsync(2);
-
         return main(serverMock, {
             auth: {
                 foo: 'bar'
@@ -262,20 +255,15 @@ describe('Register Unit Test Case', () => {
         }).then(() => {
             Assert.equal(serverMock.register.callCount, pluginLength);
 
-            Assert.calledWith(
-                serverMock.register,
-                {
-                    register: mocks['../plugins/auth'],
-                    options: {
-                        foo: 'bar'
-                    }
+            Assert.calledWith(serverMock.register, {
+                plugin: mocks['../plugins/auth'],
+                options: {
+                    foo: 'bar'
                 },
-                {
-                    routes: {
-                        prefix: '/v4'
-                    }
+                routes: {
+                    prefix: '/v4'
                 }
-            );
+            });
         });
     });
 });

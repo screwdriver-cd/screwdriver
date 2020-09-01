@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const mockery = require('mockery');
 const sinon = require('sinon');
 
@@ -21,6 +21,14 @@ describe('server case', () => {
         userFactory: 'user',
         buildFactory: {
             executor: {}
+        },
+        auth: {
+            scm: {
+                getBellConfiguration: sinon.stub().resolves()
+            }
+        },
+        httpd: {
+            port: 12347
         }
     };
 
@@ -72,32 +80,30 @@ describe('server case', () => {
                 });
         });
 
-        it('populates access-control-allow-origin correctly', done => {
+        after(() => {
+            server.stop();
+        });
+
+        it('populates access-control-allow-origin correctly', async () => {
             Assert.notOk(error);
 
             server.route({
                 method: 'GET',
                 path: '/v1/status',
-                handler: (request, reply) => reply('OK')
+                handler: (_, h) => h.response('OK')
             });
 
-            Assert.notOk(error);
-
-            return server.inject(
-                {
-                    method: 'GET',
-                    url: '/v1/status',
-                    headers: {
-                        origin: ecosystem.allowCors[0]
-                    }
-                },
-                response => {
-                    Assert.equal(response.statusCode, 200);
-                    Assert.equal(response.headers['access-control-allow-origin'], 'http://mycors.com');
-                    Assert.include(response.request.info.host, '12347');
-                    done();
+            const response = await server.inject({
+                method: 'GET',
+                url: '/v1/status',
+                headers: {
+                    origin: ecosystem.allowCors[0]
                 }
-            );
+            });
+
+            Assert.equal(response.statusCode, 200);
+            Assert.equal(response.headers['access-control-allow-origin'], 'http://mycors.com');
+            Assert.include(response.request.info.host, '12347');
         });
 
         it('does it with a different port', () => {
@@ -149,10 +155,12 @@ describe('server case', () => {
             registrationManMock.rejects(new Error('registrationMan fail'));
 
             return hapiEngine({
+                httpd: { port: 12347 },
                 ecosystem: {
                     ui: 'http://example.com',
                     allowCors: ''
-                }
+                },
+                ...config
             }).catch(error => {
                 Assert.strictEqual('registrationMan fail', error.message);
             });
@@ -160,103 +168,107 @@ describe('server case', () => {
     });
 
     describe('error handling', () => {
-        beforeEach(() => {
+        let srvConfig;
+        let hapiServer;
+
+        beforeEach(async () => {
             mockery.registerMock('./registerPlugins', server => {
                 server.route({
                     method: 'GET',
                     path: '/yes',
-                    handler: (request, reply) => reply('OK')
+                    handler: (_request, h) => h.response('OK')
                 });
                 server.route({
                     method: 'GET',
                     path: '/no',
-                    handler: (request, reply) => reply(new Error('Not OK'))
+                    handler: () => {
+                        throw new Error('Not OK');
+                    }
                 });
                 server.route({
                     method: 'GET',
                     path: '/noStack',
-                    handler: (request, reply) => {
-                        const response = boom.boomify(new Error('whatStackTrace'));
-
-                        delete response.stack;
-
-                        return reply(response);
+                    handler: () => {
+                        throw new Error('whatStackTrace');
                     }
                 });
 
                 server.route({
                     method: 'GET',
                     path: '/noWithResponse',
-                    handler: (request, reply) => {
-                        const response = boom.boomify(boom.conflict('conflict', { conflictOn: 1 }));
-
-                        return reply(response);
+                    handler: () => {
+                        throw boom.conflict('conflict', { conflictOn: 1 });
                     }
                 });
 
-                server.plugins.shutdown = {
-                    handler: sinon.stub()
+                server.plugins = {
+                    queue: {
+                        init: sinon.stub().resolves()
+                    },
+                    worker: {
+                        init: sinon.stub().resolves()
+                    }
                 };
 
                 return Promise.resolve();
             });
+
+            srvConfig = { ...config, httpd: { port: 12348 } };
+
             /* eslint-disable global-require */
             hapiEngine = require('../../lib/server');
             /* eslint-enable global-require */
+
+            hapiServer = await hapiEngine(srvConfig);
+        });
+
+        afterEach(() => {
+            hapiServer.stop();
         });
 
         it('doesnt affect non-errors', () =>
-            hapiEngine(config).then(server =>
-                server
-                    .inject({
-                        method: 'GET',
-                        url: '/yes'
-                    })
-                    .then(response => {
-                        Assert.equal(response.statusCode, 200);
-                    })
-            ));
-
+            hapiServer
+                .inject({
+                    method: 'GET',
+                    url: '/yes'
+                })
+                .then(response => {
+                    Assert.equal(response.statusCode, 200);
+                }));
         it('doesnt affect errors', () =>
-            hapiEngine(config).then(server =>
-                server
-                    .inject({
-                        method: 'GET',
-                        url: '/no'
-                    })
-                    .then(response => {
-                        Assert.equal(response.statusCode, 500);
-                        Assert.equal(JSON.parse(response.payload).message, 'Not OK');
-                    })
-            ));
+            hapiServer
+                .inject({
+                    method: 'GET',
+                    url: '/no'
+                })
+                .then(response => {
+                    Assert.equal(response.statusCode, 500);
+                    Assert.equal(JSON.parse(response.payload).message, 'Not OK');
+                }));
 
         it('defaults to the error message if the stack trace is missing', () =>
-            hapiEngine(config).then(server =>
-                server
-                    .inject({
-                        method: 'GET',
-                        url: '/noStack'
-                    })
-                    .then(response => {
-                        Assert.equal(response.statusCode, 500);
-                        Assert.equal(JSON.parse(response.payload).message, 'whatStackTrace');
-                    })
-            ));
+            hapiServer
+                .inject({
+                    method: 'GET',
+                    url: '/noStack'
+                })
+                .then(response => {
+                    Assert.equal(response.statusCode, 500);
+                    Assert.equal(JSON.parse(response.payload).message, 'whatStackTrace');
+                }));
 
         it('responds with error response data', () =>
-            hapiEngine(config).then(server =>
-                server
-                    .inject({
-                        method: 'GET',
-                        url: '/noWithResponse'
-                    })
-                    .then(response => {
-                        const { message, data } = JSON.parse(response.payload);
+            hapiServer
+                .inject({
+                    method: 'GET',
+                    url: '/noWithResponse'
+                })
+                .then(response => {
+                    const { message, data } = JSON.parse(response.payload);
 
-                        Assert.equal(response.statusCode, 409);
-                        Assert.equal(message, 'conflict');
-                        Assert.deepEqual(data, { conflictOn: 1 });
-                    })
-            ));
+                    Assert.equal(response.statusCode, 409);
+                    Assert.equal(message, 'conflict');
+                    Assert.deepEqual(data, { conflictOn: 1 });
+                }));
     });
 });
