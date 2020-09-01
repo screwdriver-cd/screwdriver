@@ -1,8 +1,8 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const octokitRest = require('@octokit/rest');
-const octokit = octokitRest({
+const { Octokit } = require('@octokit/rest');
+const octokit = new Octokit({
     baseUrl: [
         `https://${process.env.TEST_SCM_HOSTNAME || 'api.github.com'}`,
         `${process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''}`

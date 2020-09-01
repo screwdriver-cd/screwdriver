@@ -23,7 +23,7 @@ module.exports = config => ({
             const { jobFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId } = buildCredentials;
-            const { scope, projectKey, username } = request.query;
+            const { scope, projectKey, projectName, username } = request.query;
             const tokenConfig = {
                 buildCredentials,
                 scope
@@ -31,6 +31,10 @@ module.exports = config => ({
 
             if (projectKey) {
                 tokenConfig.projectKey = projectKey;
+            }
+
+            if (projectName) {
+                tokenConfig.projectName = projectName;
             }
 
             if (username) {
