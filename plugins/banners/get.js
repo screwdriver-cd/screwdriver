@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const Joi = require('joi');
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.banner.get;
 const idSchema = schema.models.banner.base.extract('id');
@@ -34,7 +34,7 @@ module.exports = () => ({
             schema: getSchema
         },
         validate: {
-            params: Joi.object({
+            params: joi.object({
                 id: idSchema
             })
         }

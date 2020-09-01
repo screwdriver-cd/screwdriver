@@ -1,13 +1,13 @@
 'use strict';
 
-const Joi = require('joi');
+const joi = require('joi');
 const logger = require('screwdriver-logger');
 
 const tasks = {};
-const taskSchema = Joi.object({
-    taskname: Joi.string().required(),
-    task: Joi.func().required(),
-    timeout: Joi.number().integer()
+const taskSchema = joi.object({
+    taskname: joi.string().required(),
+    task: joi.func().required(),
+    timeout: joi.number().integer()
 });
 
 /**

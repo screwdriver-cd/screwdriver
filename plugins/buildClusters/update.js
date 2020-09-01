@@ -2,7 +2,7 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const Joi = require('joi');
+const joi = require('joi');
 const nameSchema = schema.models.buildCluster.base.extract('name');
 
 module.exports = () => ({
@@ -130,7 +130,7 @@ module.exports = () => ({
                 });
         },
         validate: {
-            params: Joi.object({
+            params: joi.object({
                 name: nameSchema
             }),
             payload: schema.models.buildCluster.update

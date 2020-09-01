@@ -24,7 +24,7 @@ const JOI_BOOLEAN = joi
  * @param {object} h
  */
 const validate = async function() {
-    // The _decoded token signature is validated by jwt.veriry so we can return true
+    // The _decoded token signature is validated by jwt.verify so we can return true
     return { isValid: true };
 };
 
@@ -172,11 +172,8 @@ const authPlugin = {
             accessTokenName: 'api_token',
             allowCookieToken: false,
             allowQueryToken: true,
-            validate: async function _validateFunc(tokenValue) {
+            validate: async (request, tokenValue) => {
                 // Token is an API token
-                // using function syntax makes 'this' the request
-                const request = this;
-
                 try {
                     const { tokenFactory } = request.server.app;
                     const { userFactory } = request.server.app;
@@ -186,7 +183,7 @@ const authPlugin = {
                     const token = await tokenFactory.get({ value: tokenValue });
 
                     if (!token) {
-                        return Promise.reject();
+                        return { isValid: false };
                     }
                     let profile;
 
@@ -195,7 +192,7 @@ const authPlugin = {
                         const user = await userFactory.get({ accessToken: tokenValue });
 
                         if (!user) {
-                            return Promise.reject();
+                            return { isValid: false };
                         }
 
                         const description = `The default collection for ${user.username}`;
@@ -227,7 +224,7 @@ const authPlugin = {
                         const pipeline = await pipelineFactory.get({ accessToken: tokenValue });
 
                         if (!pipeline) {
-                            return Promise.reject();
+                            return { isValid: false };
                         }
 
                         const admin = await pipeline.admin;
@@ -240,15 +237,15 @@ const authPlugin = {
                         };
                     }
                     if (!profile) {
-                        return Promise.reject();
+                        return { isValid: false };
                     }
 
-                    // request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
+                    request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
                     profile.token = server.plugins.auth.generateToken(profile);
 
                     return { isValid: true, profile };
                 } catch (err) {
-                    // request.log(['auth', 'error'], err);
+                    request.log(['auth', 'error'], err);
 
                     return { isValid: false };
                 }

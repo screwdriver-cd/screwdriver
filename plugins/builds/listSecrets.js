@@ -3,7 +3,6 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const Joi = require('joi');
 const buildListSchema = joi
     .array()
     .items(schema.models.secret.get)
@@ -67,7 +66,7 @@ module.exports = () => ({
             schema: buildListSchema
         },
         validate: {
-            params: Joi.object({
+            params: joi.object({
                 id: buildIdSchema
             })
         }
