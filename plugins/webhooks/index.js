@@ -356,7 +356,6 @@ async function createPREvents(options, request) {
     const {
         username,
         scmConfig,
-        sha,
         prRef,
         prNum,
         pipelines,
@@ -366,14 +365,19 @@ async function createPREvents(options, request) {
         action,
         prSource,
         restrictPR,
-        chainPR
+        chainPR,
+        ref,
+        releaseName,
+        meta
     } = options;
     const { scm } = request.server.app.pipelineFactory;
     const { eventFactory } = request.server.app;
     const { pipelineFactory } = request.server.app;
+    const { userFactory } = request.server.app;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];
+    let { sha } = options;
 
     scmConfig.prNum = prNum;
 
@@ -382,14 +386,38 @@ async function createPREvents(options, request) {
             const b = await p.branch;
             // obtain pipeline's latest commit sha for branch specific job
             let configPipelineSha = '';
+            let subscribedConfigSha = '';
+            let eventConfig = {};
 
-            try {
-                configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
-            } catch (err) {
-                if (err.status >= 500) {
-                    throw err;
-                } else {
-                    logger.info(`skip create event for branch: ${b}`);
+            // Check is the webhook event is from a subscribed repo and
+            // and fetch the source repo commit sha and save the subscribed sha
+            if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
+                subscribedConfigSha = sha;
+
+                try {
+                    sha = await pipelineFactory.scm.getCommitSha({
+                        scmUri: p.scmUri,
+                        scmContext: scmConfig.scmContext,
+                        token: scmConfig.token
+                    });
+                } catch (err) {
+                    if (err.status >= 500) {
+                        throw err;
+                    } else {
+                        logger.info(`skip create event for branch: ${b}`);
+                    }
+                }
+
+                configPipelineSha = sha;
+            } else {
+                try {
+                    configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
+                } catch (err) {
+                    if (err.status >= 500) {
+                        throw err;
+                    } else {
+                        logger.info(`skip create event for branch: ${b}`);
+                    }
                 }
             }
 
@@ -401,7 +429,9 @@ async function createPREvents(options, request) {
                 chainPR
             });
 
-            const eventConfig = {
+            const prInfo = await eventFactory.scm.getPrInfo(scmConfig);
+
+            eventConfig = {
                 pipelineId: p.id,
                 type: 'pr',
                 webhooks: true,
@@ -416,14 +446,10 @@ async function createPREvents(options, request) {
                 prRef,
                 prNum,
                 prTitle,
-                prInfo: await eventFactory.scm.getPrInfo(scmConfig),
+                prInfo,
                 prSource,
                 baseBranch: branch
             };
-
-            if (skipMessage) {
-                eventConfig.skipMessage = skipMessage;
-            }
 
             if (b === branch) {
                 eventConfig.startFrom = '~pr';
@@ -431,10 +457,34 @@ async function createPREvents(options, request) {
 
             // Check is the webhook event is from a subscribed repo and
             // set the jobs entrypoint from ~startfrom
+            // For subscribed PR event, it should be mimiced as a commit
+            // in order to function properly
             if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
-                eventConfig.subscribedEvent = true;
-                eventConfig.subscribedScmConfig = scmConfig;
-                eventConfig.startFrom = '~subscribe';
+                eventConfig = {
+                    pipelineId: p.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext: scmConfig.scmContext,
+                    startFrom: '~subscribe',
+                    sha,
+                    configPipelineSha,
+                    changedFiles,
+                    baseBranch: branch,
+                    causeMessage: `Merged by ${username}`,
+                    meta,
+                    releaseName,
+                    ref,
+                    subscribedEvent: true,
+                    subscribedConfigSha,
+                    subscribedSourceUrl: prInfo.url
+                };
+
+                await updateAdmins(userFactory, username, scmConfig.scmContext, p.id);
+            }
+
+            if (skipMessage) {
+                eventConfig.skipMessage = skipMessage;
             }
 
             return eventConfig;
@@ -604,6 +654,41 @@ async function obtainScmToken(pluginOptions, userFactory, username, scmContext) 
 }
 
 /**
+ * Create metadata by the parsed event
+ * @param   {Object}   parsed   It has information to create metadata
+ * @returns {Object}            Metadata
+ */
+function createMeta(parsed) {
+    const { action, ref, releaseId, releaseName, releaseAuthor } = parsed;
+
+    if (action === 'release') {
+        return {
+            sd: {
+                release: {
+                    id: releaseId,
+                    name: releaseName,
+                    author: releaseAuthor
+                },
+                tag: {
+                    name: ref
+                }
+            }
+        };
+    }
+    if (action === 'tag') {
+        return {
+            sd: {
+                tag: {
+                    name: ref
+                }
+            }
+        };
+    }
+
+    return {};
+}
+
+/**
  * Act on a Pull Request change (create, sync, close)
  *  - Opening a PR should sync the pipeline (creating the job) and start the new PR job
  *  - Syncing a PR should stop the existing PR job and start a new one
@@ -645,6 +730,7 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
         scmContext
     };
     const { restrictPR, chainPR } = pluginOptions;
+    const meta = createMeta(parsed);
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
@@ -684,7 +770,10 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
                 fullCheckoutUrl,
                 restrictPR,
                 chainPR,
-                pipelines
+                pipelines,
+                ref,
+                releaseName,
+                meta
             };
 
             await batchUpdateAdmins({ userFactory, pipelines, username, scmContext });
@@ -705,41 +794,6 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
 
             throw err;
         });
-}
-
-/**
- * Create metadata by the parsed event
- * @param   {Object}   parsed   It has information to create metadata
- * @returns {Object}            Metadata
- */
-function createMeta(parsed) {
-    const { action, ref, releaseId, releaseName, releaseAuthor } = parsed;
-
-    if (action === 'release') {
-        return {
-            sd: {
-                release: {
-                    id: releaseId,
-                    name: releaseName,
-                    author: releaseAuthor
-                },
-                tag: {
-                    name: ref
-                }
-            }
-        };
-    }
-    if (action === 'tag') {
-        return {
-            sd: {
-                tag: {
-                    name: ref
-                }
-            }
-        };
-    }
-
-    return {};
 }
 
 /**
@@ -857,8 +911,35 @@ async function createEvents(
                 // set the jobs entry point to ~subscribe
                 if (uriTrimmer(scmConfigFromHook.scmUri) !== uriTrimmer(pTuple.pipeline.scmUri)) {
                     eventConfig.subscribedEvent = true;
-                    eventConfig.subscribedScmConfig = scmConfigFromHook;
                     eventConfig.startFrom = '~subscribe';
+                    eventConfig.subscribedConfigSha = eventConfig.sha;
+
+                    try {
+                        eventConfig.sha = await pipelineFactory.scm.getCommitSha(scmConfig);
+                    } catch (err) {
+                        if (err.status >= 500) {
+                            throw err;
+                        } else {
+                            logger.info(`skip create event for this subscribed trigger`);
+                        }
+                    }
+
+                    try {
+                        const commitInfo = await pipelineFactory.scm.decorateCommit({
+                            scmUri: scmConfigFromHook.scmUri,
+                            scmContext,
+                            sha: eventConfig.subscribedConfigSha,
+                            token
+                        });
+
+                        eventConfig.subscribedSourceUrl = commitInfo.url;
+                    } catch (err) {
+                        if (err.status >= 500) {
+                            throw err;
+                        } else {
+                            logger.info(`skip create event for this subscribed trigger`);
+                        }
+                    }
                 }
 
                 if (skipMessage) {

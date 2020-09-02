@@ -1346,11 +1346,6 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.list
                     .withArgs({ search: { field: 'subscribedScmUrls', keyword: '%github.com:789123:%' } })
                     .resolves([pipelineMock]);
-                const scmConfigSubscribe = {
-                    scmUri: 'github.com:789123:master',
-                    token,
-                    scmContext
-                };
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 201);
@@ -1360,8 +1355,9 @@ describe('webhooks plugin test', () => {
                         webhooks: true,
                         username,
                         scmContext,
-                        sha,
+                        sha: latestSha,
                         configPipelineSha: latestSha,
+                        subscribedConfigSha: sha,
                         startFrom: '~subscribe',
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
@@ -1369,8 +1365,7 @@ describe('webhooks plugin test', () => {
                         releaseName: undefined,
                         ref: undefined,
                         meta: {},
-                        subscribedEvent: true,
-                        subscribedScmConfig: scmConfigSubscribe
+                        subscribedEvent: true
                     });
                 });
             });
@@ -1864,38 +1859,37 @@ describe('webhooks plugin test', () => {
                         .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
                         .resolves('github.com:789123:master');
                     pipelineFactoryMock.list.resolves([]);
+                    pipelineMock.baxterthehacker = 'master';
+                    pipelineMock.admins = {
+                        baxterthehacker: true
+                    };
                     pipelineFactoryMock.list
                         .withArgs({ search: { field: 'subscribedScmUrls', keyword: '%github.com:789123:%' } })
                         .resolves([pipelineMock]);
-                    const scmConfigSubscribe = {
-                        scmUri: 'github.com:789123:master',
-                        token,
-                        scmContext,
-                        prNum: 2
-                    };
+                    eventFactoryMock.scm.getPrInfo.resolves({
+                        url: 'foo'
+                    });
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 201);
                         assert.calledWith(eventFactoryMock.create, {
-                            prInfo,
                             pipelineId,
-                            type: 'pr',
+                            type: 'pipeline',
                             webhooks: true,
                             username,
                             scmContext,
-                            sha,
+                            sha: latestSha,
                             configPipelineSha: latestSha,
+                            subscribedConfigSha: sha,
                             startFrom: '~subscribe',
-                            prNum: 2,
-                            prTitle: 'Update the README with new information',
-                            prRef,
-                            prSource: 'branch',
-                            changedFiles,
-                            causeMessage: `Opened by ${scmDisplayName}:${username}`,
-                            chainPR: false,
                             baseBranch: 'master',
+                            causeMessage: `Merged by ${username}`,
+                            changedFiles,
+                            releaseName: undefined,
+                            ref: undefined,
+                            meta: {},
                             subscribedEvent: true,
-                            subscribedScmConfig: scmConfigSubscribe
+                            subscribedSourceUrl: 'foo'
                         });
                     });
                 });
