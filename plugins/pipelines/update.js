@@ -45,14 +45,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-<<<<<<< HEAD
         handler: async (request, h) => {
-=======
-        // eslint-disable-next-line max-statements
-        // eslint-disable-next-line max-lines-per-function
-        // eslint-disable-next-line max-statements
-        handler: (request, reply) => {
->>>>>>> 85389c2... fix(1415): Fix update-sync sequence in update pipeline
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { id } = request.params;
@@ -150,7 +143,7 @@ module.exports = () => ({
 
                                                 const result = await updatedPipeline.sync();
 
-                                                return reply(result.toJson()).code(200);
+                                                return h.response(result.toJson()).code(200);
                                             });
                                         })
                                 )
