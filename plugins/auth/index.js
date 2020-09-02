@@ -183,7 +183,7 @@ const authPlugin = {
                     const token = await tokenFactory.get({ value: tokenValue });
 
                     if (!token) {
-                        return { isValid: false };
+                        return { isValid: false, credentials: {} };
                     }
                     let profile;
 
@@ -192,7 +192,7 @@ const authPlugin = {
                         const user = await userFactory.get({ accessToken: tokenValue });
 
                         if (!user) {
-                            return { isValid: false };
+                            return { isValid: false, credentials: {} };
                         }
 
                         const description = `The default collection for ${user.username}`;
@@ -224,7 +224,7 @@ const authPlugin = {
                         const pipeline = await pipelineFactory.get({ accessToken: tokenValue });
 
                         if (!pipeline) {
-                            return { isValid: false };
+                            return { isValid: false, credentials: {} };
                         }
 
                         const admin = await pipeline.admin;
@@ -237,17 +237,17 @@ const authPlugin = {
                         };
                     }
                     if (!profile) {
-                        return { isValid: false };
+                        return { isValid: false, credentials: {} };
                     }
 
                     request.log(['auth'], `${profile.username} has logged in via ${profile.scope[0]} API keys`);
                     profile.token = server.plugins.auth.generateToken(profile);
 
-                    return { isValid: true, profile };
+                    return { isValid: true, credentials: profile };
                 } catch (err) {
                     request.log(['auth', 'error'], err);
 
-                    return { isValid: false };
+                    return { isValid: false, credentials: {} };
                 }
             }
         });
