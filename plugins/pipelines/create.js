@@ -123,7 +123,7 @@ module.exports = () => ({
                 protocol: request.server.info.protocol,
                 pathname: `${request.path}/${pipeline.id}`
             });
-            const data = await results[0].toJson();
+            const data = await results.toJson();
 
             return h
                 .response(data)
