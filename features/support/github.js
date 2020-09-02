@@ -124,7 +124,7 @@ function createFile(branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    return octokit.repos.createOrUpdateFile({
+    return octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
         path: `testfiles/${filename}`,
