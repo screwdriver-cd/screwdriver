@@ -1,6 +1,3 @@
-/* eslint-disable max-lines-per-function */
-/* eslint-disable max-params */
-
 'use strict';
 
 const joi = require('joi');
@@ -253,6 +250,11 @@ function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
     return result;
 }
 
+/**
+ * Returns the uri keeping only the host and the repo ID
+ * @param  {String}       uri       The uri to be trimmed
+ * @return {String}
+ */
 const uriTrimmer = uri => {
     const uriToArray = uri.split(':');
 
@@ -389,7 +391,7 @@ async function createPREvents(options, request) {
             let subscribedConfigSha = '';
             let eventConfig = {};
 
-            // Check is the webhook event is from a subscribed repo and
+            // Check if the webhook event is from a subscribed repo and
             // and fetch the source repo commit sha and save the subscribed sha
             if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
                 subscribedConfigSha = sha;
@@ -455,7 +457,7 @@ async function createPREvents(options, request) {
                 eventConfig.startFrom = '~pr';
             }
 
-            // Check is the webhook event is from a subscribed repo and
+            // Check if the webhook event is from a subscribed repo and
             // set the jobs entrypoint from ~startfrom
             // For subscribed PR event, it should be mimiced as a commit
             // in order to function properly
