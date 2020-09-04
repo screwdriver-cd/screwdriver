@@ -252,6 +252,7 @@ function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
 
 /**
  * Returns the uri keeping only the host and the repo ID
+ * @method  uriTrimmer
  * @param  {String}       uri       The uri to be trimmed
  * @return {String}
  */
