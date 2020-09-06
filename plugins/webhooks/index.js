@@ -292,7 +292,7 @@ async function triggeredPipelines(
     const scmBranch = `${splitUri[0]}:${splitUri[1]}:${splitUri[2]}`;
     const scmRepoId = `${splitUri[0]}:${splitUri[1]}`;
     const listConfig = { search: { field: 'scmUri', keyword: `${scmRepoId}:%` } };
-    const externalRepoSearchConfig = { search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } };
+    const externalRepoSearchConfig = { search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } };
 
     const pipelines = await pipelineFactory.list(listConfig);
 

@@ -1864,7 +1864,9 @@ describe('webhooks plugin test', () => {
                         baxterthehacker: true
                     };
                     pipelineFactoryMock.list
-                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: '%github.com:789123:%' } })
+                        .withArgs({
+                            search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' }
+                        })
                         .resolves([pipelineMock]);
                     eventFactoryMock.scm.getPrInfo.resolves({
                         url: 'foo'
@@ -2300,7 +2302,7 @@ describe('webhooks plugin test', () => {
                     const abortMsg = 'Aborted because new commit was pushed to PR#1';
 
                     pipelineFactoryMock.list
-                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                         .resolves([]);
 
                     return server.inject(options).then(reply => {
