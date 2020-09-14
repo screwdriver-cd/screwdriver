@@ -858,7 +858,7 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
     const { eventFactory } = request.server.app;
     const { pipelineFactory } = request.server.app;
     const { userFactory } = request.server.app;
-    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
+    const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref, deleted } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -888,7 +888,7 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
         );
         let events = [];
 
-        if (!pipelines || pipelines.length === 0) {
+        if (deleted || !pipelines || pipelines.length === 0) {
             request.log(['webhook', hookId], `Skipping since Pipeline ${fullCheckoutUrl} does not exist`);
         } else {
             events = await createEvents(eventFactory, userFactory, pipelineFactory, pipelines, parsed, skipMessage);
