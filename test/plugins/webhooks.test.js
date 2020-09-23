@@ -581,7 +581,7 @@ describe('webhooks plugin test', () => {
                 pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
                 pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, payload).resolves(parsed);
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                     .resolves([pipelineMock]);
                 pipelineFactoryMock.list.resolves([pipelineMock]);
             });
@@ -1144,7 +1144,7 @@ describe('webhooks plugin test', () => {
 
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                     .resolves([]);
 
                 return server.inject(options).then(reply => {
@@ -1244,7 +1244,7 @@ describe('webhooks plugin test', () => {
                 pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
                 pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2]);
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                     .resolves([]);
 
                 return server.inject(options).then(reply => {
@@ -1344,7 +1344,7 @@ describe('webhooks plugin test', () => {
                     .resolves('github.com:789123:master');
                 pipelineFactoryMock.list.resolves([]);
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrls', keyword: '%github.com:789123:%' } })
+                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' } })
                     .resolves([pipelineMock]);
 
                 return server.inject(options).then(reply => {
@@ -2538,7 +2538,7 @@ describe('webhooks plugin test', () => {
 
                 it('returns 200 on success', () => {
                     pipelineFactoryMock.list
-                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                         .resolves([]);
 
                     return server.inject(options).then(reply => {
@@ -2559,7 +2559,7 @@ describe('webhooks plugin test', () => {
 
                 it('stops running builds', () => {
                     pipelineFactoryMock.list
-                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                         .resolves([]);
 
                     return server.inject(options).then(() => {
@@ -2575,7 +2575,7 @@ describe('webhooks plugin test', () => {
                 it('returns 500 when failed', () => {
                     jobMock.update.rejects(new Error('Failed to update'));
                     pipelineFactoryMock.list
-                        .withArgs({ search: { field: 'subscribedScmUrls', keyword: `%${scmRepoId}:%` } })
+                        .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                         .resolves([]);
 
                     return server.inject(options).then(reply => {
