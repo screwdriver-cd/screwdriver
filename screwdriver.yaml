@@ -31,12 +31,7 @@ jobs:
         requires: [main]
         template: screwdriver-cd/semantic-release
         steps:
-          - postpublish: |
-                git clone https://github.com/screwdriver-cd/toolbox.git ci
-                git fetch
-                export DOCKER_TAG=`git describe --tags`
-                ./ci/docker-trigger.sh
-                meta set docker_tag $DOCKER_TAG && meta get docker_tag
+          - postpublish: sd-cmd exec screwdriver/docker-trigger
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
         secrets:
