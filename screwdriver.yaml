@@ -31,7 +31,7 @@ jobs:
         requires: [main]
         template: screwdriver-cd/semantic-release
         steps:
-          - postpublish: sd-cmd exec screwdriver/docker-trigger
+          - postpublish: sd-cmd exec screwdriver/docker-trigger@latest
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
         secrets:
