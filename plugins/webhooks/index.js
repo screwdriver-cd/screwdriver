@@ -980,9 +980,7 @@ async function createEvents(
  * @param  {String}             [skipMessage]          Message to skip starting builds
  */
 async function pushEvent(request, h, parsed, skipMessage, token) {
-    const { eventFactory } = request.server.app;
-    const { pipelineFactory } = request.server.app;
-    const { userFactory } = request.server.app;
+    const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
