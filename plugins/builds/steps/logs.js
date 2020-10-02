@@ -7,7 +7,7 @@ const ndjson = require('ndjson');
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
 const jwt = require('jsonwebtoken');
-const uuid = require('uuid/v4');
+const uuid = require('uuid');
 
 const logger = require('screwdriver-logger');
 
