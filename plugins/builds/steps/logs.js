@@ -185,7 +185,7 @@ module.exports = config => ({
                         {
                             algorithm: 'RS256',
                             expiresIn: '5s',
-                            jwtid: uuid()
+                            jwtid: uuid.v4()
                         }
                     );
                     const { sort, type } = req.query;
