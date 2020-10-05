@@ -4525,7 +4525,7 @@ describe('build plugin test', () => {
                 });
         });
 
-        it.only('returns download link for download option', () => {
+        it('returns download link for download option', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
@@ -4536,8 +4536,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?type=download`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['session']
                     }
                 })
                 .then(reply => {
