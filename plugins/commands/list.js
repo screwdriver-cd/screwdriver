@@ -8,7 +8,7 @@ const listSchema = joi
     .label('List of commands');
 const distinctSchema = joi
     .string()
-    .valid(...Object.keys(schema.models.command.base.describe().keys))
+    .valid(...Object.keys(schema.models.command.fields))
     .label('Field to return unique results by');
 const compactSchema = joi
     .string()
