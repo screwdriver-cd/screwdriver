@@ -192,7 +192,8 @@ module.exports = config => ({
                     let pagesToLoad = req.query.pages;
                     let linesFrom = req.query.from;
 
-                    if (type === 'download') {
+                    if (type === 'download' && isDone) {
+                        // 100 lines per page
                         pagesToLoad = Math.ceil(stepModel.lines / 100);
                         linesFrom = 0;
                     }
