@@ -184,7 +184,7 @@ module.exports = config => ({
                         config.authConfig.jwtPrivateKey,
                         {
                             algorithm: 'RS256',
-                            expiresIn: '45s',
+                            expiresIn: '300s',
                             jwtid: uuid.v4()
                         }
                     );
