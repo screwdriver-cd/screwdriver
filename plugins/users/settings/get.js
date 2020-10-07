@@ -24,20 +24,14 @@ module.exports = () => ({
         },
         handler: async (request, h) => {
             const { userFactory } = request.server.app;
+            const user = await userFactory.get(request.params.id);
 
-            return userFactory
-                .get(request.params.id)
-                .then(user => {
-                    if (!user) {
-                        throw boom.notFound('User does not exist');
-                    }
-                    const userSettings = user.getSettings();
+            if (!user) {
+                throw boom.notFound('User does not exist');
+            }
+            const userSettings = user.getSettings();
 
-                    return h.response(userSettings);
-                })
-                .catch(err => {
-                    throw err;
-                });
+            return h.response(userSettings);
         },
         response: {
             schema: getSchema

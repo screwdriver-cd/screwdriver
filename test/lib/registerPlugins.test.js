@@ -6,7 +6,7 @@ const sinon = require('sinon');
 
 sinon.assert.expose(Assert, { prefix: '' });
 
-describe.only('Register Unit Test Case', () => {
+describe('Register Unit Test Case', () => {
     const expectedPlugins = [
         '@hapi/inert',
         '@hapi/vision',

@@ -26,25 +26,19 @@ module.exports = () => ({
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { settings } = request.payload;
+            const user = await userFactory.get(request.params.id);
 
-            return userFactory
-                .get(request.params.id)
-                .then(user => {
-                    if (!user) {
-                        throw boom.notFound('User does not exist');
-                    }
+            if (!user) {
+                throw boom.notFound('User does not exist');
+            }
 
-                    if (user.username !== username) {
-                        throw boom.forbidden(`User ${username} cannot update user settings for user ${user.username}`);
-                    }
+            if (user.username !== username) {
+                throw boom.forbidden(`User ${username} cannot update user settings for user ${user.username}`);
+            }
 
-                    return user.updateSettings(settings).then(results => {
-                        return h.response(results).code(200);
-                    });
-                })
-                .catch(err => {
-                    throw err;
-                });
+            return user.updateSettings(settings).then(results => {
+                return h.response(results).code(200);
+            });
         },
         response: {
             schema: updateSchema
