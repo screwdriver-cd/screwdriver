@@ -374,9 +374,7 @@ async function createPREvents(options, request) {
         meta
     } = options;
     const { scm } = request.server.app.pipelineFactory;
-    const { eventFactory } = request.server.app;
-    const { pipelineFactory } = request.server.app;
-    const { userFactory } = request.server.app;
+    const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
     const events = [];

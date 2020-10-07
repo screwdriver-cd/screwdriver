@@ -64,7 +64,6 @@ module.exports = () => ({
             return (
                 Promise.all([pipelineFactory.get({ id }), userFactory.get({ username, scmContext })])
                     // get the pipeline given its ID and the user
-                    // eslint-disable-next-line max-lines-per-function
                     .then(([oldPipeline, user]) => {
                         // if the pipeline ID is invalid, reject
                         if (!oldPipeline) {
