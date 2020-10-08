@@ -6,6 +6,8 @@ const request = require('request');
 const ndjson = require('ndjson');
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
+const jwt = require('jsonwebtoken');
+const uuid = require('uuid');
 
 const logger = require('screwdriver-logger');
 
@@ -144,7 +146,7 @@ module.exports = config => ({
         notes: 'Returns the logs for a step',
         tags: ['api', 'builds', 'steps', 'log'],
         auth: {
-            strategies: ['token'],
+            strategies: ['token', 'session'],
             scope: ['user', 'pipeline', 'build']
         },
         plugins: {
@@ -156,7 +158,6 @@ module.exports = config => ({
             const { stepFactory } = req.server.app;
             const buildId = req.params.id;
             const stepName = req.params.name;
-            const { headers } = req;
 
             return stepFactory
                 .get({ buildId, name: stepName })
@@ -174,10 +175,28 @@ module.exports = config => ({
 
                     const isDone = stepModel.code !== undefined;
                     const baseUrl = `${config.ecosystem.store}/v1/builds/${buildId}/${stepName}/log`;
-                    const authToken = headers.authorization;
-                    const { sort } = req.query;
-                    const pagesToLoad = req.query.pages;
-                    const linesFrom = req.query.from;
+                    const authToken = jwt.sign(
+                        {
+                            buildId,
+                            stepName,
+                            scope: ['user']
+                        },
+                        config.authConfig.jwtPrivateKey,
+                        {
+                            algorithm: 'RS256',
+                            expiresIn: '300s',
+                            jwtid: uuid.v4()
+                        }
+                    );
+                    const { sort, type } = req.query;
+                    let pagesToLoad = req.query.pages;
+                    let linesFrom = req.query.from;
+
+                    if (type === 'download' && isDone) {
+                        // 100 lines per page
+                        pagesToLoad = Math.ceil(stepModel.lines / 100);
+                        linesFrom = 0;
+                    }
 
                     // eslint-disable-next-line max-len
                     return getMaxLines({ baseUrl, authToken })
@@ -191,9 +210,22 @@ module.exports = config => ({
                                 maxLines
                             })
                         )
-                        .then(([lines, morePages]) =>
-                            h.response(lines).header('X-More-Data', (morePages || !isDone).toString())
-                        );
+                        .then(([lines, morePages]) => {
+                            if (type !== 'download') {
+                                return h.response(lines).header('X-More-Data', (morePages || !isDone).toString());
+                            }
+
+                            let res = '';
+
+                            for (let i = 0; i < lines.length; i += 1) {
+                                res = `${res}${lines[i].m}\n`;
+                            }
+
+                            return h
+                                .response(res)
+                                .type('text/plain')
+                                .header('content-disposition', `attachment; filename="${stepName}-log.txt"`);
+                        });
                 })
                 .catch(err => {
                     throw err;

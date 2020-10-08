@@ -13,7 +13,8 @@
     "functional-beta": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast --exit",
     "functional-dev": "cucumber-js --format=./node_modules/cucumber-pretty --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast --exit",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
-    "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png"
+    "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "bin": {
     "screwdriver-api": "./bin/server"
@@ -73,14 +74,14 @@
     "@hapi/good-console": "^9.0.0",
     "@hapi/good-squeeze": "^6.0.0",
     "@hapi/hapi": "^20.0.0",
-    "@hapi/hoek": "^9.0.4",
+    "@hapi/hoek": "^9.1.0",
     "@hapi/inert": "^6.0.1",
     "@hapi/vision": "^6.0.0",
     "@promster/hapi": "^4.2.0",
     "async": "^3.2.0",
     "config": "^1.31.0",
     "date-fns": "^1.30.1",
-    "dayjs": "^1.8.33",
+    "dayjs": "^1.9.1",
     "deepmerge": "^4.2.2",
     "hapi-auth-bearer-token": "^6.1.6",
     "hapi-auth-jwt2": "^10.1.0",
@@ -123,6 +124,12 @@
     "tinytim": "^0.1.1",
     "uuid": "^8.3.0",
     "verror": "^1.6.1"
+  },
+  "release": {
+    "debug": false,
+    "verifyConditions": {
+      "path": "./node_modules/semantic-release/src/lib/plugin-noop.js"
+    }
   },
   "devDependencies": {
     "@octokit/rest": "~18.0.3",
