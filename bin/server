@@ -9,12 +9,18 @@ const hoek = require('hoek');
 const { Bookend } = require('screwdriver-build-bookend');
 const logger = require('screwdriver-logger');
 
+/**
+ * convert value to Boolean
+ * @method convertToBool
+ * @param {(Boolean|String)} value
+ * @return {Boolean}
+ */
 function convertToBool(value) {
-  if (typeof value === 'boolean') {
-    return value;
-  }
+    if (typeof value === 'boolean') {
+        return value;
+    }
 
-  return value === 'true';
+    return value === 'true';
 }
 
 // Setup Authentication
