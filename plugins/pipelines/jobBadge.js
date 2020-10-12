@@ -38,6 +38,11 @@ module.exports = config => ({
         description: 'Get a badge for a job',
         notes: 'Redirects to the badge service',
         tags: ['api', 'job', 'badge'],
+        plugins: {
+            'hapi-rate-limit': {
+                enabled: false
+            }
+        },
         handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;

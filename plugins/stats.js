@@ -22,6 +22,11 @@ const statsPlugin = {
                 description: 'API stats',
                 notes: 'Should return statistics for the entire system',
                 tags: ['api', 'stats'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 response: {
                     schema: schema.api.stats
                 }

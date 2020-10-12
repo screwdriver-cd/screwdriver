@@ -983,6 +983,11 @@ const webhooksPlugin = {
                 description: 'Handle webhook events',
                 notes: 'Acts on pull request, pushes, comments, etc.',
                 tags: ['api', 'webhook'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 payload: {
                     maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
                 },

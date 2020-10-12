@@ -58,6 +58,11 @@ const versionsTemplate = {
                         description: 'API Package Versions',
                         notes: 'Returns list of Screwdriver package versions and third-party dependencies',
                         tags: ['api'],
+                        plugins: {
+                            'hapi-rate-limit': {
+                                enabled: false
+                            }
+                        },
                         response: {
                             schema: schema.api.versions
                         }
