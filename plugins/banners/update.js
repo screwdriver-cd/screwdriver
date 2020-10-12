@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
-const joi = require('joi');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.banner.base, 'id');
+const joi = require('joi');
+const idSchema = schema.models.banner.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/banners/{id}',
-    config: {
+    options: {
         description: 'Update a banner',
         notes: 'Update a banner',
         tags: ['api', 'banners'],
@@ -21,23 +21,23 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params; // id of banner to update
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
+            const { scm } = bannerFactory;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
 
             // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
             // verify user is authorized to update banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
-                return reply(
-                    boom.forbidden(
-                        `User ${adminDetails.userDisplayName}
+                return boom.forbidden(
+                    `User ${adminDetails.userDisplayName}
                     does not have Screwdriver administrative privileges.`
-                    )
                 );
             }
 
@@ -50,14 +50,16 @@ module.exports = () => ({
 
                     Object.assign(banner, request.payload);
 
-                    return banner.update().then(updatedBanner => reply(updatedBanner.toJson()).code(200));
+                    return banner.update().then(updatedBanner => h.response(updatedBanner.toJson()).code(200));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.banner.update
         }
     }

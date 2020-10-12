@@ -2,10 +2,10 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const testBuildCluster = require('./data/buildCluster.json');
 const testBuildClusters = require('./data/buildClusters.json');
 const updatedBuildCluster = require('./data/updatedBuildCluster.json');
@@ -33,6 +33,7 @@ const getMockBuildClusters = buildClusters => {
 describe('buildCluster plugin test', () => {
     const username = 'myself';
     const scmContext = 'github:github.com';
+    const scmDisplayName = 'github';
     const buildClusterId = 12345;
     const name = 'iOS';
     const credentials = {
@@ -42,6 +43,7 @@ describe('buildCluster plugin test', () => {
     };
 
     let buildClusterFactoryMock;
+    let bannerFactoryMock;
     let userFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
@@ -56,7 +58,7 @@ describe('buildCluster plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         buildClusterFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -69,25 +71,28 @@ describe('buildCluster plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub()
         };
-
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub()
+            }
+        };
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/buildClusters');
         /* eslint-enable global-require */
-        server = new hapi.Server();
-        server.app = {
-            buildClusterFactory: buildClusterFactoryMock,
-            userFactory: userFactoryMock
-        };
-        server.connection({
+        server = new hapi.Server({
             port: 12345,
             host: 'localhost'
         });
-
+        server.app = {
+            buildClusterFactory: buildClusterFactoryMock,
+            userFactory: userFactoryMock,
+            bannerFactory: bannerFactoryMock
+        };
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (_, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -97,43 +102,32 @@ describe('buildCluster plugin test', () => {
         server.auth.strategy('session', 'custom');
 
         bannerMock = {
-            register: (s, o, next) => {
+            name: 'banners',
+            register: s => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
-                next();
             }
         };
-        bannerMock.register.attributes = {
-            name: 'banners'
-        };
-
         authMock = {
-            register: (s, o, next) => {
-                next();
-            }
-        };
-        authMock.register.attributes = {
-            name: 'auth'
+            name: 'auth',
+            register: () => {}
         };
 
-        server.register(
-            [
-                bannerMock,
-                authMock,
-                {
-                    register: plugin,
-                    options: {
-                        authConfig: {
-                            jwtPrivateKey: 'boo'
-                        }
+        await server.register([
+            { plugin: bannerMock },
+            { plugin: authMock },
+            {
+                plugin,
+                options: {
+                    authConfig: {
+                        jwtPrivateKey: 'boo'
                     }
-                },
-                {
-                    // eslint-disable-next-line global-require
-                    register: require('../../plugins/pipelines')
                 }
-            ],
-            done
-        );
+            },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/pipelines')
+            }
+        ]);
     });
 
     afterEach(() => {
@@ -158,7 +152,10 @@ describe('buildCluster plugin test', () => {
             options = {
                 method: 'GET',
                 url: '/buildclusters',
-                credentials
+                auth: {
+                    credentials,
+                    strategy: ['token']
+                }
             };
         });
 
@@ -264,7 +261,10 @@ describe('buildCluster plugin test', () => {
                     maintainer: 'foo@bar.com',
                     weightage: 50
                 },
-                credentials
+                auth: {
+                    credentials,
+                    strategy: ['token']
+                }
             };
 
             buildClusterMock = getMockBuildClusters({
@@ -283,6 +283,7 @@ describe('buildCluster plugin test', () => {
                 member: true
             });
             userFactoryMock.get.resolves(userMock);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         it('returns 201 for a successful create for an external build cluster', () => {
@@ -403,7 +404,10 @@ describe('buildCluster plugin test', () => {
                     isActive: false,
                     description: 'updated description'
                 },
-                credentials
+                auth: {
+                    credentials,
+                    strategy: ['token']
+                }
             };
             userMock = {
                 username,
@@ -419,6 +423,7 @@ describe('buildCluster plugin test', () => {
                 member: true
             });
             userFactoryMock.get.resolves(userMock);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         it('returns 200 and correct build cluster data', () =>
@@ -529,7 +534,10 @@ describe('buildCluster plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/buildclusters/${name}`,
-                credentials
+                auth: {
+                    credentials,
+                    strategy: ['token']
+                }
             };
             userMock = {
                 username,
@@ -538,6 +546,7 @@ describe('buildCluster plugin test', () => {
             userFactoryMock.get.resolves(userMock);
             buildClusterFactoryMock.list.resolves(buildClustersMock);
             buildClustersMock[0].remove.resolves({});
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         it('returns 204 when delete is successful', () =>

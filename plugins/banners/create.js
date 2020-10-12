@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',
     path: '/banners',
-    config: {
+    options: {
         description: 'Create a new banner',
         notes: 'Create a specific banner',
         tags: ['api', 'banners'],
@@ -20,21 +20,21 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
+            const { scm } = bannerFactory;
+            const scmDisplayName = scm.getDisplayName({ scmContext });
 
             // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
             // verify user is authorized to create banners
             // return unauthorized if not system admin
             if (!adminDetails.isAdmin) {
-                return reply(
-                    boom.forbidden(
-                        `User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges.`
-                    )
+                return boom.forbidden(
+                    `User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges.`
                 );
             }
 
@@ -51,11 +51,14 @@ module.exports = () => ({
                         pathname: `${request.path}/${banner.id}`
                     });
 
-                    return reply(banner.toJson())
+                    return h
+                        .response(banner.toJson())
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             payload: schema.models.banner.create

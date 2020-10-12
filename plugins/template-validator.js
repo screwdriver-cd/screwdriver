@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const templateSchema = schema.api.templateValidator;
 const validator = require('screwdriver-template-validator');
@@ -11,34 +11,38 @@ const validator = require('screwdriver-template-validator');
  *    errors associated with it
  * @method register
  * @param  {Hapi.Server}    server
- * @param  {Object}         options
  * @param  {Function} next
  */
-exports.register = (server, options, next) => {
-    server.route({
-        method: 'POST',
-        path: '/validator/template',
-        config: {
-            description: 'Validate a given sd-template.yaml',
-            notes: 'returns the parsed config, validation errors, or both',
-            tags: ['api', 'validation', 'yaml'],
-            handler: (request, reply) => {
-                const templateString = request.payload.yaml;
+const templateValidatorPlugin = {
+    name: 'template-validator',
+    async register(server) {
+        server.route({
+            method: 'POST',
+            path: '/validator/template',
+            options: {
+                description: 'Validate a given sd-template.yaml',
+                notes: 'returns the parsed config, validation errors, or both',
+                tags: ['api', 'validation', 'yaml'],
+                handler: async (request, h) => {
+                    try {
+                        const templateString = request.payload.yaml;
 
-                return validator(templateString).then(reply, err => reply(boom.badRequest(err.toString())));
-            },
-            validate: {
-                payload: templateSchema.input
-            },
-            response: {
-                schema: templateSchema.output
+                        const result = await validator(templateString);
+
+                        return h.response(result);
+                    } catch (err) {
+                        throw boom.badRequest(err.toString());
+                    }
+                },
+                validate: {
+                    payload: templateSchema.input
+                },
+                response: {
+                    schema: templateSchema.output
+                }
             }
-        }
-    });
-
-    next();
+        });
+    }
 };
 
-exports.register.attributes = {
-    name: 'template-validator'
-};
+module.exports = templateValidatorPlugin;

@@ -6,7 +6,7 @@
 ### Register plugin
 
 ```javascript
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const server = new Hapi.Server();
 const tokensPlugin = require('./');
 
@@ -78,7 +78,7 @@ The server supplies factories to plugins in the form of server settings:
 
 ```js
 // handler tokenPlugin.js
-handler: (request, reply) => {
+handler: async (request, h) => {
     const factory = request.server.app.tokenFactory;
 
     // ...

@@ -1,11 +1,9 @@
 'use strict';
 
-const boom = require('boom');
-
 module.exports = config => ({
     method: 'GET',
     path: '/coverage/info',
-    config: {
+    options: {
         description: 'Get coverage metadata',
         notes: 'Returns object with coverage info',
         tags: ['api', 'coverage', 'badge'],
@@ -18,11 +16,10 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            return config.coveragePlugin
-                .getInfo(request.query)
-                .then(reply)
-                .catch(err => reply(boom.boomify(err)));
+        handler: async (request, h) => {
+            const data = await config.coveragePlugin.getInfo(request.query);
+
+            return h.response(data);
         }
     }
 });

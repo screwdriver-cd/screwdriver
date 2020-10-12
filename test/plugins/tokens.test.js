@@ -1,7 +1,7 @@
 'use strict';
 
 const { assert } = require('chai');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const { PassThrough } = require('stream');
 const sinon = require('sinon');
@@ -62,7 +62,7 @@ describe('token plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         tokenFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub()
@@ -88,28 +88,20 @@ describe('token plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/tokens');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             tokenFactory: tokenFactoryMock,
             userFactory: userFactoryMock
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) => reply.continue({})
+            authenticate: (request, h) => h.authenticated({})
         }));
         server.auth.strategy('token', 'custom');
 
-        return server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            done
-        );
+        return server.register({ plugin });
     });
 
     afterEach(() => {
@@ -140,10 +132,13 @@ describe('token plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -204,10 +199,13 @@ describe('token plugin test', () => {
             options = {
                 method: 'GET',
                 url: '/tokens',
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -253,10 +251,13 @@ describe('token plugin test', () => {
             options = {
                 method: 'PUT',
                 url: `/tokens/${tokenId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 },
                 payload: {
                     name: testToken.name,
@@ -332,10 +333,13 @@ describe('token plugin test', () => {
             options = {
                 method: 'PUT',
                 url: `/tokens/${tokenId}/refresh`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -396,10 +400,13 @@ describe('token plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/tokens/${tokenId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
         });

@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 
 module.exports = () => ({
     method: 'POST',
     path: '/buildclusters',
-    config: {
+    options: {
         description: 'Create a build cluster',
         notes: 'Create a specific build cluster',
         tags: ['api', 'buildclusters'],
@@ -20,9 +20,8 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            const { buildClusterFactory } = request.server.app;
-            const { userFactory } = request.server.app;
+        handler: async (request, h) => {
+            const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
             const { username } = request.auth.credentials;
             const { scmContext } = request.auth.credentials;
@@ -41,14 +40,13 @@ module.exports = () => ({
             // Check permissions
             // Must be Screwdriver admin to add Screwdriver build cluster
             if (payload.managedByScrewdriver) {
-                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
                 if (!adminDetails.isAdmin) {
-                    return reply(
-                        boom.forbidden(
-                            `User ${adminDetails.userDisplayName}
+                    return boom.forbidden(
+                        `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                        )
                     );
                 }
 
@@ -64,19 +62,20 @@ module.exports = () => ({
                                 pathname: `${request.path}/${buildCluster.id}`
                             });
 
-                            return reply(buildCluster.toJson())
+                            return h
+                                .response(buildCluster.toJson())
                                 .header('Location', location)
                                 .code(201);
                         })
                         // something was botched
-                        .catch(err => reply(boom.boomify(err)))
+                        .catch(err => {
+                            throw err;
+                        })
                 );
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return reply(
-                    boom.boomify(boom.badData(`No scmOrganizations provided for build cluster ${payload.name}.`))
-                );
+                return boom.badData(`No scmOrganizations provided for build cluster ${payload.name}.`);
             }
 
             // Must have admin permission on org(s) if adding org-specific build cluster
@@ -116,12 +115,15 @@ module.exports = () => ({
                             pathname: `${request.path}/${buildCluster.id}`
                         });
 
-                        return reply(buildCluster.toJson())
+                        return h
+                            .response(buildCluster.toJson())
                             .header('Location', location)
                             .code(201);
                     })
                     // something was botched
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

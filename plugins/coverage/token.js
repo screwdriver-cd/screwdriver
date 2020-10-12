@@ -1,12 +1,12 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 module.exports = config => ({
     method: 'GET',
     path: '/coverage/token',
-    config: {
+    options: {
         description: 'Get an access token to talk to coverage server',
         notes: 'Returns a token string',
         tags: ['api', 'coverage'],
@@ -19,11 +19,11 @@ module.exports = config => ({
                 security: [{ token: [] }]
             }
         },
-        handler: async (request, reply) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId } = buildCredentials;
-            const { scope, projectKey, username } = request.query;
+            const { scope, projectKey, projectName, username } = request.query;
             const tokenConfig = {
                 buildCredentials,
                 scope
@@ -33,33 +33,37 @@ module.exports = config => ({
                 tokenConfig.projectKey = projectKey;
             }
 
+            if (projectName) {
+                tokenConfig.projectName = projectName;
+            }
+
             if (username) {
                 tokenConfig.username = username;
             }
 
+            let data;
             // Get job scope
+
             if (jobId && !scope) {
-                return jobFactory.get(jobId).then(job => {
-                    if (!job) {
-                        throw boom.notFound(`Job ${jobId} does not exist`);
-                    }
+                const job = await jobFactory.get(jobId);
 
-                    tokenConfig.scope =
-                        job.permutations[0] && job.permutations[0].annotations
-                            ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
-                            : null;
+                if (!job) {
+                    throw boom.notFound(`Job ${jobId} does not exist`);
+                }
 
-                    return config.coveragePlugin
-                        .getAccessToken(tokenConfig)
-                        .then(reply)
-                        .catch(err => reply(boom.boomify(err)));
-                });
+                tokenConfig.scope =
+                    job.permutations[0] && job.permutations[0].annotations
+                        ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
+                        : null;
+
+                data = await config.coveragePlugin.getAccessToken(tokenConfig);
+
+                return h.response(data);
             }
 
-            return config.coveragePlugin
-                .getAccessToken(tokenConfig)
-                .then(reply)
-                .catch(err => reply(boom.boomify(err)));
+            data = await config.coveragePlugin.getAccessToken(tokenConfig);
+
+            return h.response(data);
         }
     }
 });

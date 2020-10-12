@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
     path: '/pipelines/{id}/tokens',
-    config: {
+    options: {
         description: 'Remove all tokens for a specific pipeline',
         notes: 'Returns null if successful',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { username } = request.auth.credentials;
@@ -44,15 +44,17 @@ module.exports = () => ({
                                 throw boom.forbidden(`User ${username} is not an admin of this repo`);
                             }
                         })
-                        .then(() => pipeline.tokens.then(tokens => tokens.map(t => t.remove())));
+                        .then(() => pipeline.tokens.then(tokens => tokens && tokens.map(t => t.remove())));
                 })
-                .then(() => reply().code(204))
-                .catch(err => reply(boom.boomify(err)));
+                .then(() => h.response().code(204))
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

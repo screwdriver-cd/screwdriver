@@ -10,6 +10,7 @@ const { createPlugin } = require('@promster/hapi');
  * @param  {Function} next
  */
 module.exports = {
-    register: createPlugin({ options: { metricPrefix: 'sd_' } }),
+    name: 'prompster',
+    plugin: createPlugin({ options: { metricPrefix: 'sd_' } }),
     options: {}
 };

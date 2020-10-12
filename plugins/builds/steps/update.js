@@ -1,12 +1,12 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}/steps/{name}',
-    config: {
+    options: {
         description: 'Update a step for a build',
         notes: 'Writes a step record',
         tags: ['api', 'builds', 'steps'],
@@ -19,14 +19,14 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { stepFactory } = request.server.app;
             const buildId = request.params.id;
             const stepName = request.params.name;
             const buildIdCred = request.auth.credentials.username;
 
             if (buildId !== buildIdCred) {
-                return reply(boom.forbidden(`Credential only valid for ${buildIdCred}`));
+                return boom.forbidden(`Credential only valid for ${buildIdCred}`);
             }
 
             const now = new Date().toISOString();
@@ -50,8 +50,10 @@ module.exports = () => ({
 
                     return step.update();
                 })
-                .then(updatedStep => reply(updatedStep).code(200))
-                .catch(err => reply(boom.boomify(err)));
+                .then(updatedStep => h.response(updatedStep).code(200))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: schema.models.build.getStep

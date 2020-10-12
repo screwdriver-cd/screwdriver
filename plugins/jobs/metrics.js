@@ -1,17 +1,17 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
 const jobMetricListSchema = joi.array().items(joi.object());
-const jobIdSchema = joi.reach(schema.models.job.base, 'id');
+const jobIdSchema = schema.models.job.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/metrics',
-    config: {
+    options: {
         description: 'Get build metrics for this job',
         notes: 'Returns list of build metrics for the given job',
         tags: ['api', 'jobs', 'metrics'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
             const { id } = request.params;
             const { aggregateInterval } = request.query;
@@ -53,20 +53,27 @@ module.exports = () => ({
 
                     return job.getMetrics(config);
                 })
-                .then(metrics => reply(metrics))
-                .catch(err => reply(boom.boomify(err)));
+                .then(metrics => h.response(metrics))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: jobMetricListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: jobIdSchema
-            },
+            }),
             query: joi.object({
                 startTime: joi.string().isoDate(),
                 endTime: joi.string().isoDate(),
-                aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                aggregateInterval: joi
+                    .string()
+                    .valid('none', 'day', 'week', 'month', 'year')
+                    .messages({
+                        'any.only': '{{#label}} fails because it must be one of none, day, week, month, year'
+                    })
             })
         }
     }

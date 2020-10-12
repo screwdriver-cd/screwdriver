@@ -1,18 +1,18 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.command.get;
-const namespaceSchema = joi.reach(schema.models.command.base, 'namespace');
-const nameSchema = joi.reach(schema.models.command.base, 'name');
-const versionSchema = joi.reach(schema.models.command.base, 'version');
-const tagSchema = joi.reach(schema.models.commandTag.base, 'tag');
+const namespaceSchema = schema.models.command.base.extract('namespace');
+const nameSchema = schema.models.command.base.extract('name');
+const versionSchema = schema.models.command.base.extract('version');
+const tagSchema = schema.models.commandTag.base.extract('tag');
 
 module.exports = () => ({
     method: 'GET',
     path: '/commands/{namespace}/{name}/{versionOrTag}',
-    config: {
+    options: {
         description: 'Get a single command given command namespace, name and version or tag',
         notes: 'Returns a command record',
         tags: ['api', 'commands'],
@@ -25,30 +25,27 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { commandFactory } = request.server.app;
             const { namespace, name, versionOrTag } = request.params;
 
-            return commandFactory
-                .getCommand(`${namespace}/${name}@${versionOrTag}`)
-                .then(command => {
-                    if (!command) {
-                        throw boom.notFound(`Command ${namespace}/${name}@${versionOrTag} does not exist`);
-                    }
+            const command = await commandFactory.getCommand(`${namespace}/${name}@${versionOrTag}`);
 
-                    return reply(command);
-                })
-                .catch(err => reply(boom.boomify(err)));
+            if (!command) {
+                throw boom.notFound(`Command ${namespace}/${name}@${versionOrTag} does not exist`);
+            }
+
+            return h.response(command);
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 namespace: namespaceSchema,
                 name: nameSchema,
                 versionOrTag: joi.alternatives().try(versionSchema, tagSchema)
-            }
+            })
         }
     }
 });

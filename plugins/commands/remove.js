@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.command.base;
@@ -44,7 +44,7 @@ function removeCommand(command, storeUrl, authToken) {
 module.exports = () => ({
     method: 'DELETE',
     path: '/commands/{namespace}/{name}',
-    config: {
+    options: {
         description: 'Delete a command',
         notes: 'Returns null if successful',
         tags: ['api', 'commands'],
@@ -57,7 +57,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { namespace, name } = request.params;
             const { credentials } = request.auth;
             const { commandFactory, commandTagFactory } = request.server.app;
@@ -74,7 +74,7 @@ module.exports = () => ({
                         throw boom.notFound(`Command ${namespace}/${name} does not exist`);
                     }
 
-                    return canRemove(credentials, commands[0], 'admin')
+                    return canRemove(credentials, commands[0], 'admin', request.server.app)
                         .then(() => {
                             const commandPromises = commands.map(command =>
                                 removeCommand(command, storeUrl, authToken)
@@ -83,15 +83,17 @@ module.exports = () => ({
 
                             return Promise.all(commandPromises.concat(tagPromises));
                         })
-                        .then(() => reply().code(204));
+                        .then(() => h.response().code(204));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
-                namespace: joi.reach(baseSchema, 'namespace'),
-                name: joi.reach(baseSchema, 'name')
-            }
+            params: joi.object({
+                namespace: baseSchema.extract('namespace'),
+                name: baseSchema.extract('name')
+            })
         }
     }
 });

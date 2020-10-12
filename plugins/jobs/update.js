@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.job.base, 'id');
+const idSchema = schema.models.job.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/jobs/{id}',
-    config: {
+    options: {
         description: 'Update a job',
         notes: 'Update a specific job',
         tags: ['api', 'jobs'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { jobFactory, pipelineFactory, userFactory } = request.server.app;
             const { id } = request.params;
             const { username } = request.auth.credentials;
@@ -69,13 +69,15 @@ module.exports = () => ({
                         );
                     });
                 })
-                .then(job => reply(job.toJson()).code(200))
-                .catch(err => reply(boom.boomify(err)));
+                .then(job => h.response(job.toJson()).code(200))
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.job.update
         }
     }

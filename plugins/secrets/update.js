@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.secret.base, 'id');
+const idSchema = schema.models.secret.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/secrets/{id}',
-    config: {
+    options: {
         description: 'Update a secret',
         notes: 'Update a specific secret',
         tags: ['api', 'secrets'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.secretFactory;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -34,7 +34,7 @@ module.exports = () => ({
                     }
 
                     // Make sure that user has permission before updating
-                    return canAccess(credentials, secret, 'admin')
+                    return canAccess(credentials, secret, 'admin', request.server.app)
                         .then(() => {
                             Object.keys(request.payload).forEach(key => {
                                 secret[key] = request.payload[key];
@@ -47,15 +47,17 @@ module.exports = () => ({
 
                             delete output.value;
 
-                            return reply(output).code(200);
+                            return h.response(output).code(200);
                         });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.secret.update
         }
     }

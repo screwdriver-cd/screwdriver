@@ -4,7 +4,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const workflowParser = require('screwdriver-workflow-parser');
 const tinytim = require('tinytim');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 /**
  * Generate Badge URL
@@ -79,11 +79,11 @@ function dfs(workflowGraph, start, prNum) {
 module.exports = config => ({
     method: 'GET',
     path: '/pipelines/{id}/badge',
-    config: {
+    options: {
         description: 'Get a badge for the pipeline',
         notes: 'Redirects to the badge service',
         tags: ['api', 'pipelines', 'badge'],
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;
             const { encodeBadgeSubject } = request.server.plugins.pipelines;
@@ -98,7 +98,7 @@ module.exports = config => ({
                 .get(request.params.id)
                 .then(pipeline => {
                     if (!pipeline) {
-                        return reply.redirect(getUrl(badgeConfig));
+                        return h.redirect(getUrl(badgeConfig));
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then(allEvents => {
@@ -106,7 +106,7 @@ module.exports = config => ({
                             const lastEvent = events.pop();
 
                             if (!lastEvent) {
-                                return reply.redirect(getUrl(badgeConfig));
+                                return h.redirect(getUrl(badgeConfig));
                             }
 
                             return lastEvent.getBuilds().then(builds => {
@@ -128,7 +128,7 @@ module.exports = config => ({
                                     buildsStatus[i] = 'unknown';
                                 }
 
-                                return reply.redirect(
+                                return h.redirect(
                                     getUrl(Object.assign(badgeConfig, { buildsStatus, subject: pipeline.name }))
                                 );
                             });
@@ -137,12 +137,12 @@ module.exports = config => ({
                         return getLastEffectiveEvent(allEvents);
                     });
                 })
-                .catch(() => reply.redirect(getUrl(badgeConfig)));
+                .catch(() => h.redirect(getUrl(badgeConfig)));
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

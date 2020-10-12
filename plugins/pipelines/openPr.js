@@ -1,17 +1,17 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const helper = require('./helper');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
-const pipelineCheckoutUrlSchema = joi.reach(schema.models.pipeline.create, 'checkoutUrl');
-const pipelineRootDirSchema = joi.reach(schema.models.pipeline.create, 'rootDir');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
+const pipelineCheckoutUrlSchema = schema.models.pipeline.create.extract('checkoutUrl');
+const pipelineRootDirSchema = schema.models.pipeline.create.extract('rootDir');
 
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/openPr',
-    config: {
+    options: {
         description: 'Open pull request for repository',
         notes: 'Open pull request',
         tags: ['api', 'pipelines'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { files, title, message } = request.payload;
@@ -48,40 +48,53 @@ module.exports = () => ({
                                     checkoutUrl,
                                     token
                                 })
-                                .then(scmUri => user.getPermissions(scmUri))
-                                .then(permissions => {
-                                    if (!permissions.push) {
-                                        throw boom.forbidden(
-                                            `User ${username} does not have push access for this repo`
-                                        );
-                                    }
-                                })
-                                .then(() =>
-                                    userFactory.scm.openPr({
-                                        checkoutUrl,
-                                        files,
-                                        token,
-                                        scmContext,
-                                        title,
-                                        message
-                                    })
+                                .then(scmUri =>
+                                    user
+                                        .getPermissions(scmUri)
+                                        .then(permissions => {
+                                            if (!permissions.push) {
+                                                throw boom.forbidden(
+                                                    `User ${username} does not have push access for this repo`
+                                                );
+                                            }
+                                        })
+                                        .then(() => {
+                                            let scmUrl = checkoutUrl;
+
+                                            // Set branch if missing
+                                            if (checkoutUrl.split('#').length === 1) {
+                                                scmUrl = scmUrl.concat(`#${scmUri.split(':')[2]}`);
+                                            }
+
+                                            return userFactory.scm.openPr({
+                                                checkoutUrl: scmUrl,
+                                                files,
+                                                token,
+                                                scmContext,
+                                                title,
+                                                message
+                                            });
+                                        })
                                 );
                         })
-                        .then(pullRequest => {
+                        .then(async pullRequest => {
                             if (!pullRequest) {
                                 throw boom.notImplemented('openPr not implemented for gitlab');
                             }
+                            const html = await pullRequest.data.html_url;
 
-                            return reply({ prUrl: pullRequest.data.html_url }).code(201);
+                            return h.response({ prUrl: html }).code(201);
                         });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
-            payload: {
+            }),
+            payload: joi.object({
                 checkoutUrl: pipelineCheckoutUrlSchema,
                 rootDir: pipelineRootDirSchema,
                 files: joi
@@ -96,7 +109,7 @@ module.exports = () => ({
                     .required(),
                 title: joi.string().required(),
                 message: joi.string().required()
-            }
+            })
         }
     }
 });

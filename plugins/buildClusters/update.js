@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
-const joi = require('joi');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const nameSchema = joi.reach(schema.models.buildCluster.base, 'name');
+const joi = require('joi');
+const nameSchema = schema.models.buildCluster.base.extract('name');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/buildclusters/{name}',
-    config: {
+    options: {
         description: 'Update a build cluster',
         notes: 'Update a build cluster',
         tags: ['api', 'buildclusters'],
@@ -21,26 +21,23 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            const { buildClusterFactory } = request.server.app;
-            const { userFactory } = request.server.app;
+        handler: async (request, h) => {
+            const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
             const { name } = request.params; // name of build cluster to update
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { username, scmContext } = request.auth.credentials;
             const { scmOrganizations } = request.payload;
 
             // Check permissions
             // Must be Screwdriver admin to update Screwdriver build cluster
             if (request.payload.managedByScrewdriver) {
-                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
                 if (!adminDetails.isAdmin) {
-                    return reply(
-                        boom.forbidden(
-                            `User ${adminDetails.userDisplayName}
+                    return boom.forbidden(
+                        `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                        )
                     );
                 }
 
@@ -63,13 +60,15 @@ module.exports = () => ({
 
                         return buildClusters[0]
                             .update()
-                            .then(updatedBuildCluster => reply(updatedBuildCluster.toJson()).code(200));
+                            .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
                     })
-                    .catch(err => reply(boom.boomify(err)));
+                    .catch(err => {
+                        throw err;
+                    });
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return reply(boom.boomify(boom.badData(`No scmOrganizations provided for build cluster ${name}.`)));
+                return boom.badData(`No scmOrganizations provided for build cluster ${name}.`);
             }
 
             // Must have admin permission on org(s) if updating org-specific build cluster
@@ -122,16 +121,18 @@ module.exports = () => ({
 
                             return buildCluster
                                 .update()
-                                .then(updatedBuildCluster => reply(updatedBuildCluster.toJson()).code(200));
+                                .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
                         });
                     })
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 name: nameSchema
-            },
+            }),
             payload: schema.models.buildCluster.update
         }
     }

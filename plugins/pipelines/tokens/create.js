@@ -1,16 +1,16 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const joi = require('joi');
-const boom = require('boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const tokenCreateSchema = schema.models.token.create;
 
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/tokens',
-    config: {
+    options: {
         description: 'Create a new token for pipeline',
         notes: 'Create a specific token for pipeline',
         tags: ['api', 'tokens'],
@@ -23,7 +23,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { userFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
@@ -75,18 +75,21 @@ module.exports = () => ({
                                 pathname: `${request.path}/${token.id}`
                             });
 
-                            return reply(token.toJson())
+                            return h
+                                .response(token.toJson())
                                 .header('Location', location)
                                 .code(201);
                         })
-                        .catch(err => reply(boom.boomify(err)));
+                        .catch(err => {
+                            throw err;
+                        });
                 }
             );
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
+            }),
             payload: tokenCreateSchema
         }
     }

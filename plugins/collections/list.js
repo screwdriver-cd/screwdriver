@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const listSchema = schema.models.collection.list;
 
 module.exports = () => ({
     method: 'GET',
     path: '/collections',
-    config: {
+    options: {
         description: 'Get collections for requesting user',
         notes: 'Returns all collection records belonging to the requesting user',
         tags: ['api', 'collections'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { userFactory, collectionFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
 
@@ -37,9 +37,13 @@ module.exports = () => ({
                         }
                     };
 
-                    return collectionFactory.list(config).then(collections => reply(collections.map(c => c.toJson())));
+                    return collectionFactory
+                        .list(config)
+                        .then(collections => h.response(collections.map(c => c.toJson())));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

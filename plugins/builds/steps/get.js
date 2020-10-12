@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.build.getStep;
 
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/steps/{name}',
-    config: {
+    options: {
         description: 'Get a step for a build',
         notes: 'Returns a step record',
         tags: ['api', 'builds', 'steps'],
@@ -20,7 +20,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { stepFactory } = request.server.app;
 
             return stepFactory
@@ -30,9 +30,11 @@ module.exports = () => ({
                         throw boom.notFound('Step does not exist');
                     }
 
-                    return reply(stepModel);
+                    return h.response(stepModel);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema

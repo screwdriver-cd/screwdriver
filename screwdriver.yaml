@@ -1,3 +1,6 @@
+cache:
+  event: [ $SD_SOURCE_DIR/node_modules ]
+
 shared:
     image: node:12
 
@@ -26,21 +29,16 @@ jobs:
 
     publish:
         requires: [main]
+        template: screwdriver-cd/semantic-release
         steps:
-            - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-            - install-ci: npm install npm-auto-version
-            - publish-npm-and-git-tag: ./ci/publish.sh
-            - publish-docker: |
-                export DOCKER_TAG=`cat VERSION`
-                ./ci/docker-trigger.sh
-            - save-tag-to-meta: meta set docker_tag $DOCKER_TAG && meta get docker_tag
+          - postpublish: sd-cmd exec screwdriver/docker-trigger@latest
         environment:
             DOCKER_REPO: screwdrivercd/screwdriver
         secrets:
             # Publishing to NPM
             - NPM_TOKEN
             # Pushing tags to Git
-            - GIT_KEY
+            - GH_TOKEN
             # Trigger a Docker Hub build
             - DOCKER_TRIGGER
 

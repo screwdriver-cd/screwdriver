@@ -13,18 +13,18 @@ const formatCheckoutUrl = checkoutUrl => {
     let result = checkoutUrl;
     const MATCH_COMPONENT_BRANCH_NAME = 4;
     const matched = schema.config.regex.CHECKOUT_URL.exec(result);
-    let branchName = matched[MATCH_COMPONENT_BRANCH_NAME];
+    const branchName = matched[MATCH_COMPONENT_BRANCH_NAME];
 
     // Check if branch name exists
-    if (!branchName) {
-        branchName = '#master';
-    }
-
     // Do not convert branch name to lowercase
-    result = result
-        .split('#')[0]
-        .toLowerCase()
-        .concat(branchName);
+    if (branchName) {
+        result = result
+            .split('#')[0]
+            .toLowerCase()
+            .concat(branchName);
+    } else {
+        result = result.toLowerCase();
+    }
 
     return result;
 };

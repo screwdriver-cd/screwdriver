@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.token.base, 'id');
+const idSchema = schema.models.token.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
     path: '/tokens/{id}/refresh',
-    config: {
+    options: {
         description: 'Refresh a token',
         notes: 'Update the value of a token while preserving its other metadata',
         tags: ['api', 'tokens'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.tokens;
@@ -33,16 +33,18 @@ module.exports = () => ({
                         throw boom.notFound('Token does not exist');
                     }
 
-                    return canAccess(credentials, token)
+                    return canAccess(credentials, token, request.server.app)
                         .then(() => token.refresh())
-                        .then(() => reply(token.toJson()).code(200));
+                        .then(() => h.response(token.toJson()).code(200));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

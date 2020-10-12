@@ -2,10 +2,10 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const nock = require('nock');
 const streamToPromise = require('stream-to-promise');
 const FormData = require('form-data');
@@ -74,7 +74,7 @@ describe('command plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         commandFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -97,7 +97,9 @@ describe('command plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/commands');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             commandFactory: commandFactoryMock,
             commandTagFactory: commandTagFactoryMock,
@@ -107,13 +109,10 @@ describe('command plugin test', () => {
                 store: 'http://store.example.com'
             }
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -121,14 +120,7 @@ describe('command plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                {
-                    register: plugin
-                }
-            ],
-            done
-        );
+        await server.register({ plugin });
     });
 
     afterEach(() => {
@@ -420,10 +412,13 @@ describe('command plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/commands/foo/bar',
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user', '!guest']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user', '!guest']
+                    },
+                    strategy: 'token'
                 }
             };
             testCommand = decorateObj({
@@ -528,7 +523,7 @@ describe('command plugin test', () => {
         });
 
         it('deletes command if user has Screwdriver admin credentials and command exists', () => {
-            options.credentials.scope.push('admin');
+            options.auth.credentials.scope.push('admin');
             nock('http://store.example.com')
                 .delete('/v1/commands/foo/bar/1.0.0')
                 .reply(204, '');
@@ -576,11 +571,14 @@ describe('command plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/commands/foo/bar',
-                credentials: {
-                    username,
-                    scmContext,
-                    pipelineId: 1337,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId: 1337,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -600,15 +598,18 @@ describe('command plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/commands/foo/bar',
-                credentials: {
-                    isPR: true,
-                    username,
-                    scmContext,
-                    pipelineId: 1337,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        isPR: true,
+                        username,
+                        scmContext,
+                        pipelineId: 1337,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
                 }
             };
-            options.credentials.isPR = true;
+            options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -624,11 +625,14 @@ describe('command plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: '/commands/foo/bar',
-                credentials: {
-                    username,
-                    scmContext,
-                    pipelineId,
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -653,8 +657,11 @@ describe('command plugin test', () => {
                 method: 'POST',
                 url: '/commands',
                 payload: COMMAND_VALID,
-                credentials: {
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        scope: ['build']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -692,7 +699,7 @@ describe('command plugin test', () => {
         });
 
         it('returns 403 if it is a PR build', () => {
-            options.credentials.isPR = true;
+            options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -1140,8 +1147,11 @@ describe('command plugin test', () => {
                 method: 'PUT',
                 url: '/commands/screwdriver/test/tags/stable',
                 payload,
-                credentials: {
-                    scope: ['build']
+                auth: {
+                    credentials: {
+                        scope: ['build']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -1163,7 +1173,7 @@ describe('command plugin test', () => {
         });
 
         it('returns 403 if it is a PR build', () => {
-            options.credentials.isPR = true;
+            options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -1329,8 +1339,11 @@ describe('command plugin test', () => {
                 method: 'PUT',
                 url: '/commands/foo/bar/trusted',
                 payload,
-                credentials: {
-                    scope: ['admin']
+                auth: {
+                    credentials: {
+                        scope: ['admin']
+                    },
+                    strategy: 'token'
                 }
             };
 
@@ -1368,7 +1381,7 @@ describe('command plugin test', () => {
                 message: 'Insufficient scope'
             };
 
-            options.credentials.scope = ['user'];
+            options.auth.credentials.scope = ['user'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);

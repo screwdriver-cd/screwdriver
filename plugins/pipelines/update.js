@@ -1,9 +1,9 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 const helper = require('./helper');
 
 /**
@@ -32,7 +32,7 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
 module.exports = () => ({
     method: 'PUT',
     path: '/pipelines/{id}',
-    config: {
+    options: {
         description: 'Update a pipeline',
         notes: 'Update a specific pipeline',
         tags: ['api', 'pipelines'],
@@ -45,7 +45,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { id } = request.params;
@@ -58,7 +58,7 @@ module.exports = () => ({
             let gitToken;
 
             if (!isValidToken(id, request.auth.credentials)) {
-                return reply(boom.unauthorized('Token does not have permission to this pipeline'));
+                return boom.unauthorized('Token does not have permission to this pipeline');
             }
 
             return (
@@ -137,20 +137,29 @@ module.exports = () => ({
                                             // update pipeline with new scmRepo and branch
                                             return oldPipeline
                                                 .update()
-                                                .then(updatedPipeline => updatedPipeline.sync())
-                                                .then(syncedPipeline => reply(syncedPipeline.toJson()).code(200));
+                                                .then(updatedPipeline =>
+                                                    Promise.all([
+                                                        updatedPipeline.sync(),
+                                                        updatedPipeline.addWebhook(
+                                                            `${request.server.info.uri}/v4/webhooks`
+                                                        )
+                                                    ])
+                                                )
+                                                .then(results => h.response(results[0].toJson()).code(200));
                                         })
                                 )
                         );
                     })
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.pipeline.update
         }
     }

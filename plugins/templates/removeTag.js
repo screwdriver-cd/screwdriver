@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.templateTag.base;
@@ -11,7 +11,7 @@ const baseSchema = schema.models.templateTag.base;
 module.exports = () => ({
     method: 'DELETE',
     path: '/templates/{templateName}/tags/{tagName}',
-    config: {
+    options: {
         description: 'Delete a template tag',
         notes: 'Delete a specific template',
         tags: ['api', 'templates'],
@@ -24,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { pipelineFactory, templateFactory, templateTagFactory } = request.server.app;
             const { pipelineId, isPR } = request.auth.credentials;
             const name = request.params.templateName;
@@ -53,14 +53,16 @@ module.exports = () => ({
                         return templateTag.remove();
                     });
                 })
-                .then(() => reply().code(204))
-                .catch(err => reply(boom.boomify(err)));
+                .then(() => h.response().code(204))
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
-                templateName: joi.reach(baseSchema, 'name'),
-                tagName: joi.reach(baseSchema, 'tag')
-            }
+            params: joi.object({
+                templateName: baseSchema.extract('name'),
+                tagName: baseSchema.extract('tag')
+            })
         }
     }
 });

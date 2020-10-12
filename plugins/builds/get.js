@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.build.get;
-const idSchema = joi.reach(schema.models.build.base, 'id');
+const idSchema = schema.models.build.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}',
-    config: {
+    options: {
         description: 'Get a single build',
         notes: 'Returns a build record',
         tags: ['api', 'builds'],
@@ -22,18 +22,20 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { buildFactory } = request.server.app;
 
             return buildFactory
                 .get(request.params.id)
-                .then(buildModel => {
+                .then(async buildModel => {
                     if (!buildModel) {
                         throw boom.notFound('Build does not exist');
                     }
 
                     if (Array.isArray(buildModel.environment)) {
-                        return reply(buildModel.toJsonWithSteps());
+                        const data = await buildModel.toJsonWithSteps();
+
+                        return h.response(data);
                     }
 
                     // convert environment obj to array
@@ -44,17 +46,19 @@ module.exports = () => ({
                     });
                     buildModel.environment = env;
 
-                    return buildModel.update().then(m => reply(m.toJsonWithSteps()));
+                    return buildModel.update().then(async m => h.response(await m.toJsonWithSteps()));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

@@ -58,7 +58,7 @@ Then(/^they are notified it has (no|some) errors$/, function step(quantity) {
             Assert.equal(this.body.errors.length, 2);
 
             Assert.equal(this.body.errors[0].message, '"description" is required');
-            Assert.equal(this.body.errors[1].message, '"image" must be a string');
+            Assert.equal(this.body.errors[1].message, '"config.image" must be a string');
             break;
         default:
             return Promise.resolve('pending');

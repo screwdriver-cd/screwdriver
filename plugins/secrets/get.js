@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.secret.get;
-const idSchema = joi.reach(schema.models.secret.base, 'id');
+const idSchema = schema.models.secret.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/secrets/{id}',
-    config: {
+    options: {
         description: 'Get a single secret',
         notes: 'Returns a secret record',
         tags: ['api', 'secrets'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { secretFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -34,25 +34,27 @@ module.exports = () => ({
                         throw boom.notFound('Secret does not exist');
                     }
 
-                    return canAccess(credentials, secret, 'push').then(showSecret => {
+                    return canAccess(credentials, secret, 'push', request.server.app).then(showSecret => {
                         const output = secret.toJson();
 
                         if (!showSecret) {
                             delete output.value;
                         }
 
-                        return reply(output);
+                        return h.response(output);
                     });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

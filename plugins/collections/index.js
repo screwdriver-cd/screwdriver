@@ -13,12 +13,11 @@ const removeRoute = require('./remove');
  * @param  {Object}    options         Configuration
  * @param  {Function}  next            Function to call when done
  */
-exports.register = (server, options, next) => {
-    server.route([createRoute(), getRoute(), listRoute(), updateRoute(), removeRoute()]);
-
-    next();
+const collectionsPlugin = {
+    name: 'collections',
+    async register(server) {
+        server.route([createRoute(), getRoute(), listRoute(), updateRoute(), removeRoute()]);
+    }
 };
 
-exports.register.attributes = {
-    name: 'collections'
-};
+module.exports = collectionsPlugin;

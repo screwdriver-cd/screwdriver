@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.pipeline.get;
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}',
-    config: {
+    options: {
         description: 'Get a single pipeline',
         notes: 'Returns a pipeline record',
         tags: ['api', 'pipelines'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
 
             return factory
@@ -32,17 +32,19 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return reply(pipeline.toJson());
+                    return h.response(pipeline.toJson());
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

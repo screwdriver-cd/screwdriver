@@ -1,9 +1,8 @@
 'use strict';
 
-const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 const listSchema = joi
     .array()
     .items(schema.models.pipeline.get)
@@ -12,7 +11,7 @@ const listSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines',
-    config: {
+    options: {
         description: 'Get pipelines with pagination',
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
@@ -25,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const scmContexts = factory.scm.getScmContexts();
             let pipelineArray = [];
@@ -67,8 +66,10 @@ module.exports = () => ({
 
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
-                .then(allPipelines => reply(allPipelines.map(p => p.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(allPipelines => h.response(allPipelines.map(p => p.toJson())))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

@@ -1,18 +1,18 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const buildListSchema = joi
     .array()
     .items(schema.models.build.get)
     .label('List of builds');
-const eventIdSchema = joi.reach(schema.models.event.base, 'id');
+const eventIdSchema = schema.models.event.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/events/{id}/builds',
-    config: {
+    options: {
         description: 'Get builds for a given event',
         notes: 'Returns builds for a given event',
         tags: ['api', 'events', 'builds'],
@@ -25,28 +25,27 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { eventFactory } = request.server.app;
+            const event = await eventFactory.get(request.params.id);
 
-            return eventFactory
-                .get(request.params.id)
-                .then(event => {
-                    if (!event) {
-                        throw boom.notFound('Event does not exist');
-                    }
+            if (!event) {
+                throw boom.notFound('Event does not exist');
+            }
 
-                    return event.getBuilds();
-                })
-                .then(buildsModel => reply(Promise.all(buildsModel.map(buildModel => buildModel.toJsonWithSteps()))))
-                .catch(err => reply(boom.boomify(err)));
+            const buildsModel = await event.getBuilds();
+
+            const data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJsonWithSteps()));
+
+            return h.response(data);
         },
         response: {
             schema: buildListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: eventIdSchema
-            }
+            })
         }
     }
 });

@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines/{id}/startall',
-    config: {
+    options: {
         description: 'Start all child pipelines given a specific pipeline',
         notes: 'Start all child pipelines given a specific pipeline',
         tags: ['api', 'pipelines'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { pipelineFactory, eventFactory, userFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
             const { id } = request.params;
@@ -75,13 +75,15 @@ module.exports = () => ({
                             )
                     )
                 )
-                .then(() => reply().code(201))
-                .catch(err => reply(boom.boomify(err)));
+                .then(() => h.response().code(201))
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });
