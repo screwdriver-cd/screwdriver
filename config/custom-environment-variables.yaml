@@ -368,9 +368,7 @@ coverage:
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
-  enabled: 
-    __name: MULTI_BUILD_CLUSTER_ENABLED
-    __format: boolean
+  enabled: MULTI_BUILD_CLUSTER_ENABLED
 
 ecosystem:
   # URL for the User Interface
