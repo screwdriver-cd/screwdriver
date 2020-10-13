@@ -15,7 +15,7 @@ const decoratePipelineMock = pipeline => {
     const mock = hoek.clone(pipeline);
 
     mock.sync = sinon.stub();
-    mock.addWebhook = sinon.stub();
+    mock.addWebhooks = sinon.stub();
     mock.syncPRs = sinon.stub();
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
