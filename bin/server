@@ -20,7 +20,11 @@ function convertToBool(value) {
         return value;
     }
 
-    return String(value).toLowerCase() === 'true';
+    // trueList refers to https://yaml.org/type/bool.html
+　　const trueList = ['on', 'true', 'yes, 'y'];
+    const lowerValue = String(value).toLowerCase();
+
+    return trueList.includes(lowerValue);
 }
 
 // Setup Authentication
