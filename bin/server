@@ -9,6 +9,20 @@ const hoek = require('@hapi/hoek');
 const { Bookend } = require('screwdriver-build-bookend');
 const logger = require('screwdriver-logger');
 
+/**
+ * convert value to Boolean
+ * @method convertToBool
+ * @param {(Boolean|String)} value
+ * @return {Boolean}
+ */
+function convertToBool(value) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    return String(value).toLowerCase() === 'true';
+}
+
 // Setup Authentication
 const authConfig = config.get('auth');
 
@@ -29,7 +43,7 @@ ecosystem.api = httpdConfig.uri;
 const notificationConfig = config.get('notifications');
 
 // Multiple build cluster feature flag
-const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
+const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
 
 // Default cluster environment variable
 const clusterEnvConfig = config.get('build').environment; // readonly
