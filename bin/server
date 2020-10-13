@@ -21,230 +21,231 @@ function convertToBool(value) {
     }
 
     // trueList refers to https://yaml.org/type/bool.html
-　　const trueList = ['on', 'true', 'yes', 'y'];
+    const trueList = ['on', 'true', 'yes', 'y'];
     const lowerValue = String(value).toLowerCase();
 
     return trueList.includes(lowerValue);
 }
 
-// Setup Authentication
-const authConfig = config.get('auth');
-
-// Setup HTTPd
-const httpdConfig = config.get('httpd');
-
-const shutdownConfig = config.get('shutdown');
-
-// Setup Webhooks
-const webhooksConfig = config.get('webhooks');
-
-// Special urls for things like the UI
-const ecosystem = config.get('ecosystem');
-
-ecosystem.api = httpdConfig.uri;
-
-// Notification config
-const notificationConfig = config.get('notifications');
-
-// Multiple build cluster feature flag
+//// Setup Authentication
+//const authConfig = config.get('auth');
+//
+//// Setup HTTPd
+//const httpdConfig = config.get('httpd');
+//
+//const shutdownConfig = config.get('shutdown');
+//
+//// Setup Webhooks
+//const webhooksConfig = config.get('webhooks');
+//
+//// Special urls for things like the UI
+//const ecosystem = config.get('ecosystem');
+//
+//ecosystem.api = httpdConfig.uri;
+//
+//// Notification config
+//const notificationConfig = config.get('notifications');
+//
+//// Multiple build cluster feature flag
 const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
+console.log(typeof multiBuildClusterEnabled, multiBuildClusterEnabled);
 
-// Default cluster environment variable
-const clusterEnvConfig = config.get('build').environment; // readonly
-const clusterEnv = Object.assign({}, clusterEnvConfig);
-
-Object.keys(clusterEnv).forEach((k) => {
-    clusterEnv[k] = String(clusterEnv[k]);
-});
-
-const externalJoin = config.get('build').externalJoin; // flag to allow external join
-
-// Setup Datastore
-const datastoreConfig = config.get('datastore');
-const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
-
-const datastorePluginConfig = Object.assign({}, datastoreConfig[datastoreConfig.plugin]);
-
-// Readonly Datastore
-const datastoreROConfig = datastorePluginConfig.readOnly;
-let datastoreRO;
-
-if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
-    datastoreRO = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastoreROConfig));
-}
-delete datastorePluginConfig.readOnly;
-
-// Default datastore
-const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
-    (datastorePluginConfig || {})));
-
-// Source Code Plugin
-const scmConfig = { scms: config.get('scms') };
-const ScmPlugin = require('screwdriver-scm-router');
-const scm = new ScmPlugin(scmConfig || {});
-
-authConfig.scm = scm;
-
-// Plugin to upload artifacts to store
-const ArtifactPlugin = require('screwdriver-artifact-bookend');
-const artifact = new ArtifactPlugin(ecosystem.store);
-
-// Build cache plugin
-const CachePlugin = require('screwdriver-cache-bookend');
-const cache = new CachePlugin();
-
-// Plugin to upload coverage
-const coverageConfig = config.get('coverage');
-const CoveragePlugin = require('screwdriver-coverage-bookend');
-const coverage = new CoveragePlugin(coverageConfig);
-
-// Plugins to run before/after a build
-const bookends = config.get('bookends');
-const bookend = new Bookend({
-    scm,
-    'screwdriver-artifact-bookend': artifact,
-    'screwdriver-coverage-bookend': coverage,
-    'screwdriver-cache-bookend': cache
-},
-    bookends.setup || [], // plugins required for the setup- steps
-    bookends.teardown || [] // plugins required for the teardown-steps
-);
-
-// Setup Pipeline Factory for Executor
-const Models = require('screwdriver-models');
-const pipelineFactory = Models.PipelineFactory.getInstance({
-    datastore,
-    scm,
-    externalJoin,
-    multiBuildClusterEnabled
-});
-
-// Setup Executor
-const executorConfig = config.get('executor');
-
-executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
-const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
-const executor = new ExecutorPlugin(Object.assign(
-    { ecosystem: hoek.clone(ecosystem) },
-    executorConfig[executorConfig.plugin].options
-));
-
-// Setup Model Factories
-const commandFactory = Models.CommandFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const commandTagFactory = Models.CommandTagFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const templateFactory = Models.TemplateFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const templateTagFactory = Models.TemplateTagFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const jobFactory = Models.JobFactory.getInstance({
-    datastore,
-    datastoreRO,
-    executor
-});
-const userFactory = Models.UserFactory.getInstance({
-    datastore,
-    datastoreRO,
-    scm,
-    password: authConfig.encryptionPassword
-});
-const buildFactory = Models.BuildFactory.getInstance({
-    datastore,
-    datastoreRO,
-    dockerRegistry: ecosystem.dockerRegistry,
-    scm,
-    executor,
-    bookend,
-    uiUri: ecosystem.ui,
-    multiBuildClusterEnabled,
-    clusterEnv
-});
-const stepFactory = Models.StepFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const secretFactory = Models.SecretFactory.getInstance({
-    datastore,
-    datastoreRO,
-    password: authConfig.encryptionPassword
-});
-const tokenFactory = Models.TokenFactory.getInstance({
-    datastore,
-    datastoreRO,
-    password: authConfig.hashingPassword
-});
-const eventFactory = Models.EventFactory.getInstance({
-    datastore,
-    datastoreRO,
-    scm
-});
-const bannerFactory = Models.BannerFactory.getInstance({
-    datastore,
-    datastoreRO,
-    scm
-});
-const collectionFactory = Models.CollectionFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const triggerFactory = Models.TriggerFactory.getInstance({
-    datastore,
-    datastoreRO
-});
-const buildClusterFactory = Models.BuildClusterFactory.getInstance({
-    datastore,
-    datastoreRO,
-    scm
-});
-
-// @TODO run setup for SCM and Executor
-// datastoreConfig.ddlSync => sync datastore schema (ddl) via api (default: true)
-datastore.setup(datastoreConfig.ddlSyncEnabled)
-    .then(() => server({
-        httpd: httpdConfig,
-        auth: authConfig,
-        webhooks: webhooksConfig,
-        notifications: notificationConfig,
-        shutdown: shutdownConfig,
-        coverage,
-        ecosystem,
-        commandFactory,
-        commandTagFactory,
-        templateFactory,
-        templateTagFactory,
-        pipelineFactory,
-        jobFactory,
-        userFactory,
-        buildFactory,
-        buildClusterFactory,
-        stepFactory,
-        bannerFactory,
-        secretFactory,
-        tokenFactory,
-        eventFactory,
-        collectionFactory,
-        triggerFactory,
-        banners: authConfig,
-        builds: {
-            ecosystem,
-            authConfig,
-            externalJoin
-        },
-        stats: {
-            executor, scm
-        }
-    }))
-    .then(instance => logger.info('Server running at %s', instance.info.uri))
-    .catch((err) => {
-        logger.error(err);
-        process.exit(1);
-    });
+//// Default cluster environment variable
+//const clusterEnvConfig = config.get('build').environment; // readonly
+//const clusterEnv = Object.assign({}, clusterEnvConfig);
+//
+//Object.keys(clusterEnv).forEach((k) => {
+//    clusterEnv[k] = String(clusterEnv[k]);
+//});
+//
+//const externalJoin = config.get('build').externalJoin; // flag to allow external join
+//
+//// Setup Datastore
+//const datastoreConfig = config.get('datastore');
+//const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
+//
+//const datastorePluginConfig = Object.assign({}, datastoreConfig[datastoreConfig.plugin]);
+//
+//// Readonly Datastore
+//const datastoreROConfig = datastorePluginConfig.readOnly;
+//let datastoreRO;
+//
+//if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
+//    datastoreRO = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastoreROConfig));
+//}
+//delete datastorePluginConfig.readOnly;
+//
+//// Default datastore
+//const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
+//    (datastorePluginConfig || {})));
+//
+//// Source Code Plugin
+//const scmConfig = { scms: config.get('scms') };
+//const ScmPlugin = require('screwdriver-scm-router');
+//const scm = new ScmPlugin(scmConfig || {});
+//
+//authConfig.scm = scm;
+//
+//// Plugin to upload artifacts to store
+//const ArtifactPlugin = require('screwdriver-artifact-bookend');
+//const artifact = new ArtifactPlugin(ecosystem.store);
+//
+//// Build cache plugin
+//const CachePlugin = require('screwdriver-cache-bookend');
+//const cache = new CachePlugin();
+//
+//// Plugin to upload coverage
+//const coverageConfig = config.get('coverage');
+//const CoveragePlugin = require('screwdriver-coverage-bookend');
+//const coverage = new CoveragePlugin(coverageConfig);
+//
+//// Plugins to run before/after a build
+//const bookends = config.get('bookends');
+//const bookend = new Bookend({
+//    scm,
+//    'screwdriver-artifact-bookend': artifact,
+//    'screwdriver-coverage-bookend': coverage,
+//    'screwdriver-cache-bookend': cache
+//},
+//    bookends.setup || [], // plugins required for the setup- steps
+//    bookends.teardown || [] // plugins required for the teardown-steps
+//);
+//
+//// Setup Pipeline Factory for Executor
+//const Models = require('screwdriver-models');
+//const pipelineFactory = Models.PipelineFactory.getInstance({
+//    datastore,
+//    scm,
+//    externalJoin,
+//    multiBuildClusterEnabled
+//});
+//
+//// Setup Executor
+//const executorConfig = config.get('executor');
+//
+//executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
+//const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
+//const executor = new ExecutorPlugin(Object.assign(
+//    { ecosystem: hoek.clone(ecosystem) },
+//    executorConfig[executorConfig.plugin].options
+//));
+//
+//// Setup Model Factories
+//const commandFactory = Models.CommandFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const commandTagFactory = Models.CommandTagFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const templateFactory = Models.TemplateFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const templateTagFactory = Models.TemplateTagFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const jobFactory = Models.JobFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    executor
+//});
+//const userFactory = Models.UserFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    scm,
+//    password: authConfig.encryptionPassword
+//});
+//const buildFactory = Models.BuildFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    dockerRegistry: ecosystem.dockerRegistry,
+//    scm,
+//    executor,
+//    bookend,
+//    uiUri: ecosystem.ui,
+//    multiBuildClusterEnabled,
+//    clusterEnv
+//});
+//const stepFactory = Models.StepFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const secretFactory = Models.SecretFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    password: authConfig.encryptionPassword
+//});
+//const tokenFactory = Models.TokenFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    password: authConfig.hashingPassword
+//});
+//const eventFactory = Models.EventFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    scm
+//});
+//const bannerFactory = Models.BannerFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    scm
+//});
+//const collectionFactory = Models.CollectionFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const triggerFactory = Models.TriggerFactory.getInstance({
+//    datastore,
+//    datastoreRO
+//});
+//const buildClusterFactory = Models.BuildClusterFactory.getInstance({
+//    datastore,
+//    datastoreRO,
+//    scm
+//});
+//
+//// @TODO run setup for SCM and Executor
+//// datastoreConfig.ddlSync => sync datastore schema (ddl) via api (default: true)
+//datastore.setup(datastoreConfig.ddlSyncEnabled)
+//    .then(() => server({
+//        httpd: httpdConfig,
+//        auth: authConfig,
+//        webhooks: webhooksConfig,
+//        notifications: notificationConfig,
+//        shutdown: shutdownConfig,
+//        coverage,
+//        ecosystem,
+//        commandFactory,
+//        commandTagFactory,
+//        templateFactory,
+//        templateTagFactory,
+//        pipelineFactory,
+//        jobFactory,
+//        userFactory,
+//        buildFactory,
+//        buildClusterFactory,
+//        stepFactory,
+//        bannerFactory,
+//        secretFactory,
+//        tokenFactory,
+//        eventFactory,
+//        collectionFactory,
+//        triggerFactory,
+//        banners: authConfig,
+//        builds: {
+//            ecosystem,
+//            authConfig,
+//            externalJoin
+//        },
+//        stats: {
+//            executor, scm
+//        }
+//    }))
+//    .then(instance => logger.info('Server running at %s', instance.info.uri))
+//    .catch((err) => {
+//        logger.error(err);
+//        process.exit(1);
+//    });
