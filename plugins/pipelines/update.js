@@ -140,7 +140,7 @@ module.exports = () => ({
                                                 .then(updatedPipeline =>
                                                     Promise.all([
                                                         updatedPipeline.sync(),
-                                                        updatedPipeline.addWebhook(
+                                                        updatedPipeline.addWebhooks(
                                                             `${request.server.info.uri}/v4/webhooks`
                                                         )
                                                     ])
