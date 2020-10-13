@@ -1824,7 +1824,7 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 when the user is admin of old repo with deprecated scmContext', () => {
             pipelineMock.admins = { [username]: true };
-            pipelineMock.scmContext = 'depreacated';
+            pipelineMock.scmContext = 'deprecated';
 
             return server.inject(options).then(reply => {
                 // Only call once to get permissions on the new repo
