@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.user.base.extract('id');
-const getSchema = schema.models.user.get;
+const getSchema = schema.models.user.base.extract('settings');
 
 module.exports = () => ({
     method: 'GET',
