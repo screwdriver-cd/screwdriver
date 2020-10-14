@@ -18,6 +18,12 @@ const swaggerPlugin = {
                         name: 'X-Token',
                         in: 'header'
                     }
+                },
+                // see https://github.com/glennjones/hapi-swagger/blob/master/optionsreference.md#json-json-endpoint-needed-to-create-ui
+                documentationRoutePlugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
                 }
             },
             security: [{ token: [] }]

@@ -22,6 +22,11 @@ const validatorTemplate = {
                 description: 'Validate a given screwdriver.yaml',
                 notes: 'Returns the parsed config or validation errors',
                 tags: ['api', 'validation', 'yaml'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 handler: async (request, h) =>
                     parser(
                         request.payload.yaml,
