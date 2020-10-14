@@ -399,3 +399,7 @@ build:
     __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json
   externalJoin: EXTERNAL_JOIN
+
+rateLimit:
+  __name: RATE_LIMIT_VARIABLES
+  __format: json

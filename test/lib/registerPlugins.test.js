@@ -18,7 +18,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/template-validator',
         '../plugins/command-validator',
         '../plugins/promster',
-        '../plugins/metrics'
+        '../plugins/metrics',
+        '../plugins/ratelimit'
     ];
     const resourcePlugins = [
         '../plugins/auth',

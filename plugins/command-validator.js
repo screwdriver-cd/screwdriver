@@ -22,6 +22,11 @@ const commandValidatorPlugin = {
                 description: 'Validate a given sd-command.yaml',
                 notes: 'returns the parsed config, validation errors, or both',
                 tags: ['api', 'validation', 'yaml'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 handler: async (request, h) => {
                     try {
                         const commandString = request.payload.yaml;

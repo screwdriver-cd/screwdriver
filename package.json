@@ -85,6 +85,7 @@
     "deepmerge": "^4.2.2",
     "hapi-auth-bearer-token": "^6.1.6",
     "hapi-auth-jwt2": "^10.1.0",
+    "hapi-rate-limit": "^5.0.0",
     "hapi-swagger": "^14.0.0",
     "joi": "^17.2.0",
     "js-yaml": "^3.13.1",

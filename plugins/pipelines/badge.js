@@ -83,6 +83,11 @@ module.exports = config => ({
         description: 'Get a badge for the pipeline',
         notes: 'Redirects to the badge service',
         tags: ['api', 'pipelines', 'badge'],
+        plugins: {
+            'hapi-rate-limit': {
+                enabled: false
+            }
+        },
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const badgeService = request.server.app.ecosystem.badges;

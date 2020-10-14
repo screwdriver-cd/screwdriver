@@ -18,6 +18,11 @@ module.exports = {
             path: '/metrics',
             handler: (_, h) => h.response(getSummary()),
             config: {
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 description: 'application metrics',
                 notes: 'Expose application metrics',
                 tags: ['api']

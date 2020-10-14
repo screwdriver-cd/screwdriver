@@ -19,6 +19,11 @@ function addGuestRoute(config) {
                 description: 'Login as an guest user',
                 notes: 'Authenticate an guest user',
                 tags: ['api', 'auth', 'login'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 auth: null,
                 handler: async (request, h) => {
                     // Check if guest is allowed to login
