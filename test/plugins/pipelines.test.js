@@ -1729,7 +1729,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.notCalled(pipelineFactoryMock.scm.parseUrl);
                 assert.calledOnce(pipelineMock.update);
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1745,7 +1745,7 @@ describe('pipeline plugin test', () => {
                     rootDir: ''
                 });
                 assert.calledOnce(pipelineMock.update);
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
             });
         });
