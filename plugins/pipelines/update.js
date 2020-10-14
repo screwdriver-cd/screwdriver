@@ -136,9 +136,7 @@ module.exports = () => ({
             // update pipeline
             const updatedPipeline = await oldPipeline.update();
 
-            await updatedPipeline.addWebhooks(
-                `${request.server.info.uri}/v4/webhooks`
-            );
+            await updatedPipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
             const result = await updatedPipeline.sync();
 
