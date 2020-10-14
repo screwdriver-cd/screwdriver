@@ -1,6 +1,3 @@
-cache:
-  event: [ $SD_SOURCE_DIR/node_modules ]
-
 shared:
     image: node:12
 
