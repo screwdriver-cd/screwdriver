@@ -19,6 +19,11 @@ const statusPlugin = {
                 description: 'API status',
                 notes: 'Should respond with 200: ok',
                 tags: ['api'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
                 response: {
                     schema: schema.api.status
                 }

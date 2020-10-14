@@ -136,10 +136,13 @@ module.exports = () => ({
             // update pipeline
             const updatedPipeline = await oldPipeline.update();
 
-            return Promise.all([
-                updatedPipeline.sync(),
-                updatedPipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-            ]).then(results => h.response(results[0].toJson()).code(200));
+            await updatedPipeline.addWebhooks(
+                `${request.server.info.uri}/v4/webhooks`
+            );
+
+            const result = await updatedPipeline.sync();
+
+            return h.response(result.toJson()).code(200);
         },
         validate: {
             params: joi.object({

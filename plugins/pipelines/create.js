@@ -113,10 +113,9 @@ module.exports = () => ({
                 });
             }
 
-            const results = await Promise.all([
-                pipeline.sync(),
-                pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-            ]);
+            const results = await pipeline.sync();
+
+            await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
             const location = urlLib.format({
                 host: request.headers.host,
@@ -124,7 +123,7 @@ module.exports = () => ({
                 protocol: request.server.info.protocol,
                 pathname: `${request.path}/${pipeline.id}`
             });
-            const data = await results[0].toJson();
+            const data = await results.toJson();
 
             return h
                 .response(data)

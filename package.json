@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
@@ -85,6 +85,7 @@
     "deepmerge": "^4.2.2",
     "hapi-auth-bearer-token": "^6.1.6",
     "hapi-auth-jwt2": "^10.1.0",
+    "hapi-rate-limit": "^5.0.0",
     "hapi-swagger": "^14.0.0",
     "joi": "^17.2.0",
     "js-yaml": "^3.13.1",
@@ -111,10 +112,10 @@
     "screwdriver-executor-queue": "^3.0.0",
     "screwdriver-executor-router": "^2.0.0",
     "screwdriver-logger": "^1.0.1",
-    "screwdriver-models": "^28.0.0",
+    "screwdriver-models": "^28.3.0",
     "screwdriver-notifications-email": "^2.0.0",
     "screwdriver-notifications-slack": "^3.0.0",
-    "screwdriver-scm-base": "^7.0.0",
+    "screwdriver-scm-base": "^7.1.1",
     "screwdriver-scm-github": "^11.0.1",
     "screwdriver-scm-gitlab": "^2.0.0",
     "screwdriver-scm-router": "^6.0.0",
