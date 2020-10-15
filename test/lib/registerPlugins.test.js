@@ -34,6 +34,7 @@ describe('Register Unit Test Case', () => {
         '../plugins/secrets',
         '../plugins/templates',
         '../plugins/tokens',
+        '../plugins/users',
         '../plugins/webhooks',
         '../plugins/stats',
         '../plugins/isAdmin',
