@@ -37,7 +37,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/webhooks',
         '../plugins/stats',
         '../plugins/isAdmin',
-        '../plugins/shutdown'
+        '../plugins/shutdown',
+        '../plugins/release'
     ];
     const authPlugins = ['@hapi/bell', '@hapi/cookie', '@hapi/crumb', 'hapi-auth-bearer-token', 'hapi-auth-jwt2'];
     const pluginLength = expectedPlugins.length + resourcePlugins.length + authPlugins.length; // for server.register of auth Plugins;

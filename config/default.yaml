@@ -300,6 +300,20 @@ ecosystem:
     max_size_mb: 0
     max_go_threads: 10000
 
+# environment release information
+release:
+  # release mode stable or canary
+  mode: stable
+  # name of cookie
+  cookieName: biscotti
+  # value of cookie : always|never
+  cookieValue: chocochip
+  # header name
+  headerName: pretzel
+  # header value : always|never
+  headerValue: cheese
+
+
 # default cluster environment variables to inject into builds
 build:
   environment:

@@ -25,6 +25,8 @@ const ecosystem = config.get('ecosystem');
 
 ecosystem.api = httpdConfig.uri;
 
+const release = config.get('release');
+
 // Notification config
 const notificationConfig = config.get('notifications');
 
@@ -223,7 +225,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled)
         },
         stats: {
             executor, scm
-        }
+        },
+        release
     }))
     .then(instance => logger.info('Server running at %s', instance.info.uri))
     .catch((err) => {
