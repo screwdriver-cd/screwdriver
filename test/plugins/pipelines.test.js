@@ -1723,6 +1723,33 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             }));
 
+        it('returns 200 and updates settings only', () => {
+            options.payload = { settings: { metricsDowntimeJobs: ['prod', 'beta'] } };
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(pipelineFactoryMock.scm.parseUrl);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and updates settings as well', () => {
+            options.payload.settings = { metricsDowntimeJobs: ['prod', 'beta'] };
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 200 with pipeline token', () => {
             options.auth.credentials = {
                 username,
