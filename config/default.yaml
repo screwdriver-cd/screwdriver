@@ -301,18 +301,7 @@ ecosystem:
     max_go_threads: 10000
 
 # environment release information
-release:
-  # release mode stable or canary
-  mode: stable
-  # name of cookie
-  cookieName: biscotti
-  # value of cookie : always|never
-  cookieValue: chocochip
-  # header name
-  headerName: pretzel
-  # header value : always|never
-  headerValue: cheese
-
+release: {}
 
 # default cluster environment variables to inject into builds
 build:

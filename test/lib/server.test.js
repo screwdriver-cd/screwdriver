@@ -32,7 +32,6 @@ describe('server case', () => {
             port: 12347
         },
         release: {
-            mode: 'canary',
             cookieName: 'test_cookie',
             cookieValue: 'test_value'
         }
