@@ -28,11 +28,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const factory = request.server.app.commandFactory;
             const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;

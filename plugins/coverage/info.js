@@ -11,11 +11,7 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const data = await config.coveragePlugin.getInfo(request.query);
 

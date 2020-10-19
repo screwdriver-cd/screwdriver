@@ -19,11 +19,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build', 'pipeline', '!guest', 'temporal']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { stepFactory } = request.server.app;
             const buildIdCred = request.auth.credentials.username && request.auth.credentials.username.toString();

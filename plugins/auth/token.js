@@ -20,7 +20,6 @@ module.exports = () => ({
             scope: ['user', 'pipeline']
         },
         plugins: {
-            'hapi-swagger': { security: [{ token: [] }] },
             'hapi-rate-limit': {
                 enabled: false
             }
