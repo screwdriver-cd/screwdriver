@@ -13,9 +13,9 @@ const swaggerPlugin = {
                     version: '3'
                 },
                 securityDefinitions: {
-                    token: {
-                        type: 'bearer',
-                        name: 'X-Token',
+                    jwt: {
+                        type: 'apiKey',
+                        name: 'Authorization',
                         in: 'header'
                     }
                 },
@@ -24,9 +24,9 @@ const swaggerPlugin = {
                     'hapi-rate-limit': {
                         enabled: false
                     }
-                }
-            },
-            security: [{ token: [] }]
+                },
+                security: [{ jwt: [] }]
+            }
         });
     }
 };
