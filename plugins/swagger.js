@@ -13,10 +13,10 @@ const swaggerPlugin = {
                     version: '3'
                 },
                 securityDefinitions: {
-                    token: {
-                        type: 'bearer',
-                        name: 'X-Token',
-                        in: 'header'
+                    'jwt': {
+                        'type': 'apiKey',
+                        'name': 'Authorization',
+                        'in': 'header'
                     }
                 },
                 // see https://github.com/glennjones/hapi-swagger/blob/master/optionsreference.md#json-json-endpoint-needed-to-create-ui
@@ -24,9 +24,9 @@ const swaggerPlugin = {
                     'hapi-rate-limit': {
                         enabled: false
                     }
-                }
-            },
-            security: [{ token: [] }]
+                },
+                security: [{ jwt: [] }]
+            }
         });
     }
 };
