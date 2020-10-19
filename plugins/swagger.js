@@ -13,10 +13,10 @@ const swaggerPlugin = {
                     version: '3'
                 },
                 securityDefinitions: {
-                    'jwt': {
-                        'type': 'apiKey',
-                        'name': 'Authorization',
-                        'in': 'header'
+                    jwt: {
+                        type: 'apiKey',
+                        name: 'Authorization',
+                        in: 'header'
                     }
                 },
                 // see https://github.com/glennjones/hapi-swagger/blob/master/optionsreference.md#json-json-endpoint-needed-to-create-ui
