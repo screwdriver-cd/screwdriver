@@ -301,7 +301,13 @@ ecosystem:
     max_go_threads: 10000
 
 # environment release information
-release: {}
+release: 
+    mode: stable
+    cookieName: release
+    cookieValue: stable
+    headerName: release
+    headerValue: stable
+
 
 # default cluster environment variables to inject into builds
 build:
