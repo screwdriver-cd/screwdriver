@@ -123,7 +123,10 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/metrics?startTime=2019-02-01T12:00:00.000Z`
 
-`GET /pipelines/{id}/metrics?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
+`GET /pipelines/{id}/metrics?aggregateInterval=week`
+
+Need to have array format for downtimeJobs and downtimeStatuses
+`GET /pipelines/{id}/metrics?downtimeJobs[0]=123&downtimeJobs[1]=456&downtimeStatuses[0]=ABORTED`
 
 #### Start all child pipelines belong to this pipeline
 * Start all child pipelines belong to this config pipeline all at once
@@ -169,7 +172,7 @@ Path Params:
 Query Params:
 
 * `scope` - Scope of the cache supporting values `pipelines|jobs|events`
-* `cacheId` - The id of the cache - pipelinId/jobId/eventId
+* `cacheId` - The id of the cache - pipelineId/jobId/eventId
 
 ### Configuration - Reads the ecosystem
 ```

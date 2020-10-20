@@ -1724,7 +1724,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 and updates settings only', () => {
-            options.payload = { settings: { metricsDowntimeJobs: ['prod', 'beta'] } };
+            options.payload = { settings: { metricsDowntimeJobs: [123, 456] } };
 
             return server.inject(options).then(reply => {
                 assert.notCalled(pipelineFactoryMock.scm.parseUrl);
@@ -1735,7 +1735,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and updates settings as well', () => {
-            options.payload.settings = { metricsDowntimeJobs: ['prod', 'beta'] };
+            options.payload.settings = { metricsDowntimeJobs: [123, 456] };
 
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
@@ -2301,6 +2301,20 @@ describe('pipeline plugin test', () => {
                     startTime: '2019-03-13T21:10:58.211Z',
                     endTime: nowTime,
                     aggregateInterval: 'week'
+                });
+            });
+        });
+
+        it('passes in downtime jobs and statuses', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[0]=123&downtimeJobs[1]=456&downtimeStatuses[0]=ABORTED`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2019-03-13T21:10:58.211Z',
+                    endTime: nowTime,
+                    downtimeJobs: [123, 456],
+                    downtimeStatuses: ['ABORTED']
                 });
             });
         });

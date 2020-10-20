@@ -58,6 +58,28 @@ module.exports = () => ({
                         config.aggregateInterval = aggregateInterval;
                     }
 
+                    const downtimeJobs = [];
+                    const downtimeStatuses = [];
+
+                    // Parse array values for downtime
+                    Object.keys(request.query).forEach(key => {
+                        if (key.startsWith('downtimeJobs[')) {
+                            downtimeJobs.push(parseInt(request.query[key], 10));
+                        }
+
+                        if (key.startsWith('downtimeStatuses[')) {
+                            downtimeStatuses.push(request.query[key]);
+                        }
+                    });
+
+                    if (downtimeJobs.length) {
+                        config.downtimeJobs = downtimeJobs;
+                    }
+
+                    if (downtimeStatuses.length) {
+                        config.downtimeStatuses = downtimeStatuses;
+                    }
+
                     return pipeline.getMetrics(config);
                 })
                 .then(metrics => h.response(metrics))
@@ -73,11 +95,13 @@ module.exports = () => ({
                 id: pipelineIdSchema
             }),
             query: schema.api.pagination.concat(
-                joi.object({
-                    startTime: joi.string().isoDate(),
-                    endTime: joi.string().isoDate(),
-                    aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
-                })
+                joi
+                    .object({
+                        startTime: joi.string().isoDate(),
+                        endTime: joi.string().isoDate(),
+                        aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                    })
+                    .unknown(true)
             )
         }
     }
