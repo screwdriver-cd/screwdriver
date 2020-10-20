@@ -347,12 +347,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 and all pipelines with no pagination', () => {
+        it('returns 200 and pipelines with pagination if no search parameter specified', () => {
             options.url = '/pipelines';
             pipelineFactoryMock.list
                 .withArgs({
                     params: {
                         scmContext: 'github:github.com'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'descending'
                 })
@@ -361,6 +365,10 @@ describe('pipeline plugin test', () => {
                 .withArgs({
                     params: {
                         scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'descending'
                 })
@@ -379,6 +387,10 @@ describe('pipeline plugin test', () => {
                     params: {
                         scmContext: 'github:github.com'
                     },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
                     sort: 'ascending'
                 })
                 .resolves(getPipelineMocks(testPipelines));
@@ -386,6 +398,10 @@ describe('pipeline plugin test', () => {
                 .withArgs({
                     params: {
                         scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'ascending'
                 })
@@ -404,6 +420,10 @@ describe('pipeline plugin test', () => {
                     params: {
                         scmContext: 'github:github.com'
                     },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
                     sort: 'ascending',
                     sortBy: 'name'
                 })
@@ -412,6 +432,10 @@ describe('pipeline plugin test', () => {
                 .withArgs({
                     params: {
                         scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'ascending',
                     sortBy: 'name'
