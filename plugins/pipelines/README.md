@@ -126,7 +126,7 @@ Only PR events of specified PR number will be searched when `prNum` is set
 `GET /pipelines/{id}/metrics?aggregateInterval=week`
 
 Need to have array format for downtimeJobs and downtimeStatuses
-`GET /pipelines/{id}/metrics?downtimeJobs[0]=123&downtimeJobs[1]=456&downtimeStatuses[0]=ABORTED`
+`GET /pipelines/{id}/metrics?downtimeJobs[]=123&downtimeJobs[]=456&downtimeStatuses[]=ABORTED`
 
 #### Start all child pipelines belong to this pipeline
 * Start all child pipelines belong to this config pipeline all at once

@@ -5,6 +5,8 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
+const DOWNTIME_JOBS_KEY = 'downtimeJobs[]';
+const DOWNTIME_STATUSES_KEY = 'downtimeStatuses[]';
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
 
@@ -58,26 +60,20 @@ module.exports = () => ({
                         config.aggregateInterval = aggregateInterval;
                     }
 
-                    const downtimeJobs = [];
-                    const downtimeStatuses = [];
+                    // Format downtimeJobs and downtimeStatuses and pass them in
+                    const downtimeJobs = request.query[DOWNTIME_JOBS_KEY];
+                    const downtimeStatuses = request.query[DOWNTIME_STATUSES_KEY];
 
-                    // Parse array values for downtime
-                    Object.keys(request.query).forEach(key => {
-                        if (key.startsWith('downtimeJobs[')) {
-                            downtimeJobs.push(parseInt(request.query[key], 10));
-                        }
-
-                        if (key.startsWith('downtimeStatuses[')) {
-                            downtimeStatuses.push(request.query[key]);
-                        }
-                    });
-
-                    if (downtimeJobs.length) {
-                        config.downtimeJobs = downtimeJobs;
+                    if (downtimeJobs) {
+                        config.downtimeJobs = Array.isArray(downtimeJobs)
+                            ? downtimeJobs.map(jobId => parseInt(jobId, 10))
+                            : [parseInt(downtimeJobs, 10)];
                     }
 
-                    if (downtimeStatuses.length) {
-                        config.downtimeStatuses = downtimeStatuses;
+                    if (downtimeStatuses) {
+                        config.downtimeStatuses = Array.isArray(downtimeStatuses)
+                            ? downtimeStatuses
+                            : [downtimeStatuses];
                     }
 
                     return pipeline.getMetrics(config);

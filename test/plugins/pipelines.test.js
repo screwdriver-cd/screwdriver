@@ -2305,8 +2305,8 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('passes in downtime jobs and statuses', () => {
-            options.url = `/pipelines/${id}/metrics?downtimeJobs[0]=123&downtimeJobs[1]=456&downtimeStatuses[0]=ABORTED`;
+        it('passes in downtime jobs array and status', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[]=123&downtimeJobs[]=456&downtimeStatuses[]=ABORTED`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -2315,6 +2315,20 @@ describe('pipeline plugin test', () => {
                     endTime: nowTime,
                     downtimeJobs: [123, 456],
                     downtimeStatuses: ['ABORTED']
+                });
+            });
+        });
+
+        it('passes in downtime job and statuses array', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[]=123&downtimeStatuses[]=ABORTED&downtimeStatuses[]=FAILURE`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2019-03-13T21:10:58.211Z',
+                    endTime: nowTime,
+                    downtimeJobs: [123],
+                    downtimeStatuses: ['ABORTED', 'FAILURE']
                 });
             });
         });
