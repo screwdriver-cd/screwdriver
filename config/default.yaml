@@ -305,6 +305,7 @@ release:
     mode: stable
     cookieName: release
     cookieValue: stable
+    cookieTimeout: 2 # in minutes
     headerName: release
     headerValue: stable
 
