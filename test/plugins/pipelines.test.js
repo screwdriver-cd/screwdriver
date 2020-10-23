@@ -1747,7 +1747,7 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             }));
 
-        it('returns 200 and updates settings only', () => {
+        it.skip('returns 200 and updates settings only', () => {
             options.payload = { settings: { metricsDowntimeJobs: ['prod', 'beta'] } };
 
             return server.inject(options).then(reply => {
@@ -1758,7 +1758,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 and updates settings as well', () => {
+        it.skip('returns 200 and updates settings as well', () => {
             options.payload.settings = { metricsDowntimeJobs: ['prod', 'beta'] };
 
             return server.inject(options).then(reply => {
