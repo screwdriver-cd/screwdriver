@@ -33,7 +33,8 @@ describe('server case', () => {
         },
         release: {
             cookieName: 'test_cookie',
-            cookieValue: 'test_value'
+            cookieValue: 'test_value',
+            cookieTimeout: 2
         }
     };
 
