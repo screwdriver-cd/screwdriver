@@ -101,15 +101,13 @@ module.exports = () => ({
                 id: pipelineIdSchema
             }),
             query: schema.api.pagination.concat(
-                joi
-                    .object({
-                        startTime: joi.string().isoDate(),
-                        endTime: joi.string().isoDate(),
-                        aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year'),
-                        'downtimeJobs[]': jobIdsSchema.optional(),
-                        'downtimeStatuses[]': statusesSchema.optional()
-                    })
-                    .unknown(true)
+                joi.object({
+                    startTime: joi.string().isoDate(),
+                    endTime: joi.string().isoDate(),
+                    aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year'),
+                    'downtimeJobs[]': jobIdsSchema.optional(),
+                    'downtimeStatuses[]': statusesSchema.optional()
+                })
             )
         }
     }
