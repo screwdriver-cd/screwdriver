@@ -1747,8 +1747,8 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             }));
 
-        it.skip('returns 200 and updates settings only', () => {
-            options.payload = { settings: { metricsDowntimeJobs: ['prod', 'beta'] } };
+        it('returns 200 and updates settings only', () => {
+            options.payload = { settings: { metricsDowntimeJobs: [123, 456] } };
 
             return server.inject(options).then(reply => {
                 assert.notCalled(pipelineFactoryMock.scm.parseUrl);
@@ -1758,8 +1758,8 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it.skip('returns 200 and updates settings as well', () => {
-            options.payload.settings = { metricsDowntimeJobs: ['prod', 'beta'] };
+        it('returns 200 and updates settings as well', () => {
+            options.payload.settings = { metricsDowntimeJobs: [123, 456] };
 
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
@@ -2325,6 +2325,34 @@ describe('pipeline plugin test', () => {
                     startTime: '2019-03-13T21:10:58.211Z',
                     endTime: nowTime,
                     aggregateInterval: 'week'
+                });
+            });
+        });
+
+        it('passes in downtime jobs array and status', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[]=123&downtimeJobs[]=456&downtimeStatuses[]=ABORTED`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2019-03-13T21:10:58.211Z',
+                    endTime: nowTime,
+                    downtimeJobs: [123, 456],
+                    downtimeStatuses: ['ABORTED']
+                });
+            });
+        });
+
+        it('passes in downtime job and statuses array', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[]=123&downtimeStatuses[]=ABORTED&downtimeStatuses[]=FAILURE`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2019-03-13T21:10:58.211Z',
+                    endTime: nowTime,
+                    downtimeJobs: [123],
+                    downtimeStatuses: ['ABORTED', 'FAILURE']
                 });
             });
         });
