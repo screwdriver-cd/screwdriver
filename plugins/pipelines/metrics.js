@@ -9,6 +9,16 @@ const DOWNTIME_JOBS_KEY = 'downtimeJobs[]';
 const DOWNTIME_STATUSES_KEY = 'downtimeStatuses[]';
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
+const jobIdSchema = joi.string().regex(/^[0-9]+$/);
+const jobIdsSchema = joi
+    .alternatives()
+    .try(joi.array().items(jobIdSchema), jobIdSchema)
+    .required();
+const statusSchema = schema.models.build.base.extract('status');
+const statusesSchema = joi
+    .alternatives()
+    .try(joi.array().items(statusSchema), statusSchema)
+    .required();
 
 module.exports = () => ({
     method: 'GET',
@@ -95,7 +105,9 @@ module.exports = () => ({
                     .object({
                         startTime: joi.string().isoDate(),
                         endTime: joi.string().isoDate(),
-                        aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                        aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year'),
+                        'downtimeJobs[]': jobIdsSchema.optional(),
+                        'downtimeStatuses[]': statusesSchema.optional()
                     })
                     .unknown(true)
             )
