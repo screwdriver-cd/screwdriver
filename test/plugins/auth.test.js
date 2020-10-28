@@ -3,10 +3,10 @@
 const chai = require('chai');
 const { assert } = chai;
 const { expect } = chai;
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const sinon = require('sinon');
 const fs = require('fs');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const jwt = require('jsonwebtoken');
 const testCollection = require('./data/collection.json');
 
@@ -70,8 +70,9 @@ describe('auth plugin test', () => {
     const encryptionPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
     const hashingPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
     const oauthRedirectUri = 'https://myhost.com/api';
+    const authPlugins = ['@hapi/cookie', '@hapi/bell', 'hapi-auth-jwt2', 'hapi-auth-bearer-token'];
 
-    beforeEach(done => {
+    beforeEach(async () => {
         scm = {
             getScmContexts: sinon.stub().returns(['github:github.com']),
             getDisplayName: sinon.stub().returns('github'),
@@ -83,6 +84,14 @@ describe('auth plugin test', () => {
                     scope: ['admin:repo_hook', 'read:org', 'repo:status']
                 }
             }),
+            scms: {
+                'github:github.com': {
+                    clientId: 'abcdefg',
+                    clientSecret: 'hijklmno',
+                    provider: 'github',
+                    scope: ['admin:repo_hook', 'read:org', 'repo:status']
+                }
+            },
             autoDeployKeyGenerationEnabled: sinon.stub().returns(true)
         };
         userFactoryMock = {
@@ -113,34 +122,56 @@ describe('auth plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/auth');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app.userFactory = userFactoryMock;
         server.app.pipelineFactory = pipelineFactoryMock;
         server.app.tokenFactory = tokenFactoryMock;
         server.app.collectionFactory = collectionFactoryMock;
-        server.connection({
-            port: 1234
+
+        authPlugins.forEach(async pluginName => {
+            /* eslint-disable global-require, import/no-dynamic-require */
+            await server.register({
+                plugin: require(pluginName)
+            });
+            /* eslint-enable global-require, import/no-dynamic-require */
         });
 
-        server.register(
-            {
-                register: plugin,
-                options: {
-                    cookiePassword,
-                    encryptionPassword,
-                    hashingPassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    jwtQueueServicePublicKey,
-                    allowGuestAccess: true,
-                    https: false,
-                    oauthRedirectUri,
-                    sameSite: false
-                }
-            },
-            done
-        );
+        await server.register({
+            /* eslint-disable global-require */
+            plugin: require('@hapi/crumb'),
+            /* eslint-enable global-require */
+            options: {
+                cookieOptions: {
+                    isSecure: false
+                },
+                restful: true,
+                skip: request =>
+                    // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                    !!request.headers.authorization ||
+                    !!request.route.path.includes('/webhooks') ||
+                    !!request.route.path.includes('/auth/')
+            }
+        });
+        await server.register({
+            plugin,
+            options: {
+                cookiePassword,
+                encryptionPassword,
+                hashingPassword,
+                scm,
+                jwtPrivateKey,
+                jwtPublicKey,
+                jwtQueueServicePublicKey,
+                allowGuestAccess: true,
+                https: false,
+                oauthRedirectUri,
+                sameSite: false,
+                bell: scm.scms,
+                path: '/'
+            }
+        });
     });
 
     afterEach(() => {
@@ -153,22 +184,29 @@ describe('auth plugin test', () => {
         });
 
         it('registers the bell plugin', () => {
-            assert.isOk(server.registrations.bell);
+            assert.isOk(server.registrations['@hapi/bell']);
         });
 
         it('throws an error when the SCM plugin fails to register', () => {
             scm.getBellConfiguration.rejects(new Error('Failure'));
 
-            const badServer = new hapi.Server();
+            const badServer = new hapi.Server({
+                port: 12345
+            });
 
             badServer.app.userFactory = userFactoryMock;
-            badServer.connection({
-                port: 12345
+
+            authPlugins.forEach(async pluginName => {
+                /* eslint-disable global-require, import/no-dynamic-require */
+                await badServer.register({
+                    plugin: require(pluginName)
+                });
+                /* eslint-enable global-require, import/no-dynamic-require */
             });
 
             return badServer
                 .register({
-                    register: plugin,
+                    plugin,
                     options: {
                         cookiePassword,
                         encryptionPassword,
@@ -178,15 +216,19 @@ describe('auth plugin test', () => {
                         jwtPublicKey,
                         jwtQueueServicePublicKey,
                         https: false,
-                        sameSite: false
+                        sameSite: false,
+                        bell: sinon.stub().throws('Failure'),
+                        path: '/'
                     }
                 })
                 .then(() => Promise.reject(new Error('should not be here')))
-                .catch(err => assert.equal(err.message, 'Failure'));
+                .catch(err =>
+                    assert.equal(err.message, 'Invalid config for plugin-auth "bell" must be of type object')
+                );
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
-            assert.isOk(server.registrations['hapi-auth-cookie']);
+            assert.isOk(server.registrations['@hapi/cookie']);
         });
 
         it('registers the hapi-auth-cookie plugin', () => {
@@ -199,15 +241,13 @@ describe('auth plugin test', () => {
     });
 
     it('throws exception when config not passed', () => {
-        const testServer = new hapi.Server();
-
-        testServer.connection({
+        const testServer = new hapi.Server({
             port: 1234
         });
 
         assert.isRejected(
             testServer.register({
-                register: plugin,
+                plugin,
                 options: {}
             }),
             /Invalid config for plugin-auth/
@@ -215,45 +255,57 @@ describe('auth plugin test', () => {
     });
 
     describe('profiles', () => {
-        beforeEach(next => {
-            server = new hapi.Server();
-            server.app.userFactory = userFactoryMock;
-
-            server.connection({
+        beforeEach(async () => {
+            server = new hapi.Server({
                 port: 1234
             });
+            server.app.userFactory = userFactoryMock;
 
-            server.register(
-                {
-                    register: plugin,
-                    options: {
-                        encryptionPassword,
-                        hashingPassword,
-                        cookiePassword,
-                        scm,
-                        jwtPrivateKey,
-                        jwtPublicKey,
-                        jwtQueueServicePublicKey,
-                        https: false,
-                        admins: ['github:batman', 'batman'],
-                        sameSite: false
-                    }
-                },
-                next
-            );
+            authPlugins.forEach(async pluginName => {
+                /* eslint-disable global-require, import/no-dynamic-require */
+                await server.register({
+                    plugin: require(pluginName)
+                });
+                /* eslint-enable global-require, import/no-dynamic-require */
+            });
+
+            await server.register({
+                plugin,
+                options: {
+                    encryptionPassword,
+                    hashingPassword,
+                    cookiePassword,
+                    scm,
+                    jwtPrivateKey,
+                    jwtPublicKey,
+                    jwtQueueServicePublicKey,
+                    https: false,
+                    admins: ['github:batman', 'batman'],
+                    sameSite: false,
+                    bell: scm.scms,
+                    path: '/'
+                }
+            });
         });
 
         it('adds environment', () => {
-            const newServer = new hapi.Server();
+            const newServer = new hapi.Server({
+                port: 1234
+            });
 
             newServer.app.userFactory = userFactoryMock;
-            newServer.connection({
-                port: 1234
+
+            authPlugins.forEach(async pluginName => {
+                /* eslint-disable global-require, import/no-dynamic-require */
+                await newServer.register({
+                    plugin: require(pluginName)
+                });
+                /* eslint-enable global-require, import/no-dynamic-require */
             });
 
             return newServer
                 .register({
-                    register: plugin,
+                    plugin,
                     options: {
                         cookiePassword,
                         encryptionPassword,
@@ -264,7 +316,9 @@ describe('auth plugin test', () => {
                         jwtQueueServicePublicKey,
                         jwtEnvironment: 'beta',
                         https: false,
-                        sameSite: false
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
                     }
                 })
                 .then(() => {
@@ -304,7 +358,7 @@ describe('auth plugin test', () => {
                     // Use the 'session' auth strategy to only allow users
                     // with a session to use this route.
                     auth: 'session',
-                    handler: (request, reply) => reply('My Account')
+                    handler: (request, h) => h.response('My Account')
                 }
             });
 
@@ -326,16 +380,19 @@ describe('auth plugin test', () => {
                     auth: {
                         strategies: ['token', 'session']
                     },
-                    handler: (request, reply) => reply({})
+                    handler: (request, h) => h.response({})
                 }
             });
 
             const reply = await server.inject({
                 url: '/auth/token',
-                credentials: {
-                    username: 'batman',
-                    scope: ['user'],
-                    token: sampleToken
+                auth: {
+                    credentials: {
+                        username: 'batman',
+                        scope: ['user'],
+                        token: sampleToken
+                    },
+                    strategy: ['token']
                 }
             });
 
@@ -370,16 +427,39 @@ describe('auth plugin test', () => {
         });
 
         describe('without guest access', () => {
-            beforeEach(() => {
-                server = new hapi.Server();
-                server.app.userFactory = userFactoryMock;
-
-                server.connection({
+            beforeEach(async () => {
+                server = new hapi.Server({
                     port: 1234
                 });
+                server.app.userFactory = userFactoryMock;
 
-                return server.register({
-                    register: plugin,
+                authPlugins.forEach(async pluginName => {
+                    /* eslint-disable global-require, import/no-dynamic-require */
+                    await server.register({
+                        plugin: require(pluginName)
+                    });
+                    /* eslint-enable global-require, import/no-dynamic-require */
+                });
+
+                await server.register({
+                    /* eslint-disable global-require */
+                    plugin: require('@hapi/crumb'),
+                    /* eslint-enable global-require */
+                    options: {
+                        cookieOptions: {
+                            isSecure: false
+                        },
+                        restful: true,
+                        skip: request =>
+                            // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                            !!request.headers.authorization ||
+                            !!request.route.path.includes('/webhooks') ||
+                            !!request.route.path.includes('/auth/')
+                    }
+                });
+
+                await server.register({
+                    plugin,
                     options: {
                         cookiePassword,
                         encryptionPassword,
@@ -390,7 +470,9 @@ describe('auth plugin test', () => {
                         jwtQueueServicePublicKey,
                         https: false,
                         allowGuestAccess: false,
-                        sameSite: false
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
                     }
                 });
             });
@@ -426,12 +508,15 @@ describe('auth plugin test', () => {
         const description = `The default collection for ${username}`;
         const options = {
             url: '/auth/login/github:github.com',
-            credentials: {
-                profile: {
-                    username,
-                    scmContext
+            auth: {
+                credentials: {
+                    profile: {
+                        username,
+                        scmContext
+                    },
+                    token
                 },
-                token
+                strategy: ['token']
             }
         };
 
@@ -558,17 +643,40 @@ describe('auth plugin test', () => {
                 }));
 
             describe('with whitelist', () => {
-                beforeEach(() => {
-                    server = new hapi.Server();
+                beforeEach(async () => {
+                    server = new hapi.Server({
+                        port: 1234
+                    });
                     server.app.userFactory = userFactoryMock;
                     server.app.collectionFactory = collectionFactoryMock;
 
-                    server.connection({
-                        port: 1234
+                    authPlugins.forEach(async pluginName => {
+                        /* eslint-disable global-require, import/no-dynamic-require */
+                        await server.register({
+                            plugin: require(pluginName)
+                        });
+                        /* eslint-enable global-require, import/no-dynamic-require */
                     });
 
-                    return server.register({
-                        register: plugin,
+                    await server.register({
+                        /* eslint-disable global-require */
+                        plugin: require('@hapi/crumb'),
+                        /* eslint-enable global-require */
+                        options: {
+                            cookieOptions: {
+                                isSecure: false
+                            },
+                            restful: true,
+                            skip: request =>
+                                // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                                !!request.headers.authorization ||
+                                !!request.route.path.includes('/webhooks') ||
+                                !!request.route.path.includes('/auth/')
+                        }
+                    });
+
+                    await server.register({
+                        plugin,
                         options: {
                             cookiePassword,
                             encryptionPassword,
@@ -579,7 +687,9 @@ describe('auth plugin test', () => {
                             jwtQueueServicePublicKey,
                             https: false,
                             whitelist: ['github:batman'],
-                            sameSite: false
+                            sameSite: false,
+                            bell: scm.scms,
+                            path: '/'
                         }
                     });
                 });
@@ -592,10 +702,13 @@ describe('auth plugin test', () => {
                     server
                         .inject({
                             url: '/auth/login/github:github.com',
-                            credentials: {
-                                profile: {
-                                    username: 'dne'
-                                }
+                            auth: {
+                                credentials: {
+                                    profile: {
+                                        username: 'dne'
+                                    }
+                                },
+                                strategy: ['token']
                             }
                         })
                         .then(reply => {
@@ -658,21 +771,24 @@ describe('auth plugin test', () => {
             server
                 .inject({
                     url: '/auth/token',
-                    credentials: {
-                        username: 'robin',
-                        scope: ['user'],
-                        token: jwt.sign(
-                            {
-                                username: 'robin',
-                                scope: ['user']
-                            },
-                            jwtPrivateKey,
-                            {
-                                algorithm: 'RS256',
-                                expiresIn: '2h',
-                                jwtid: 'abc'
-                            }
-                        )
+                    auth: {
+                        credentials: {
+                            username: 'robin',
+                            scope: ['user'],
+                            token: jwt.sign(
+                                {
+                                    username: 'robin',
+                                    scope: ['user']
+                                },
+                                jwtPrivateKey,
+                                {
+                                    algorithm: 'RS256',
+                                    expiresIn: '2h',
+                                    jwtid: 'abc'
+                                }
+                            )
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -689,22 +805,25 @@ describe('auth plugin test', () => {
             server
                 .inject({
                     url: '/auth/token',
-                    credentials: {
-                        username: 'robin',
-                        scope: ['user'],
-                        token: jwt.sign(
-                            {
-                                username: 'robin',
-                                scope: ['user'],
-                                environment: 'beta'
-                            },
-                            jwtPrivateKey,
-                            {
-                                algorithm: 'RS256',
-                                expiresIn: '2h',
-                                jwtid: 'abc'
-                            }
-                        )
+                    auth: {
+                        credentials: {
+                            username: 'robin',
+                            scope: ['user'],
+                            token: jwt.sign(
+                                {
+                                    username: 'robin',
+                                    scope: ['user'],
+                                    environment: 'beta'
+                                },
+                                jwtPrivateKey,
+                                {
+                                    algorithm: 'RS256',
+                                    expiresIn: '2h',
+                                    jwtid: 'abc'
+                                }
+                            )
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -722,14 +841,31 @@ describe('auth plugin test', () => {
             tokenMock.userId = id;
             server
                 .inject({
-                    url: `/auth/token?api_token=${apiKey}`
+                    url: `/auth/token?api_token=${apiKey}`,
+                    auth: {
+                        credentials: {
+                            username: 'robin',
+                            scope: ['user'],
+                            token: jwt.sign(
+                                {
+                                    username: 'robin',
+                                    scope: ['user']
+                                },
+                                jwtPrivateKey,
+                                {
+                                    algorithm: 'RS256',
+                                    expiresIn: '2h',
+                                    jwtid: 'abc'
+                                }
+                            )
+                        },
+                        strategy: ['token']
+                    }
                 })
                 .then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                    assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', username);
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
                     expect(reply.result.token)
                         .to.be.a.jwt.and.have.property('scope')
                         .with.lengthOf(1);
@@ -742,15 +878,33 @@ describe('auth plugin test', () => {
 
             server
                 .inject({
-                    url: `/auth/token?api_token=${apiKey}`
+                    url: `/auth/token?api_token=${apiKey}`,
+                    auth: {
+                        credentials: {
+                            username: 'robin',
+                            scope: ['pipeline'],
+                            token: jwt.sign(
+                                {
+                                    username: 'robin',
+                                    pipelineId: 1,
+                                    scope: ['pipeline']
+                                },
+                                jwtPrivateKey,
+                                {
+                                    algorithm: 'RS256',
+                                    expiresIn: '2h',
+                                    jwtid: 'abc'
+                                }
+                            )
+                        },
+                        strategy: ['token']
+                    }
                 })
                 .then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    assert.calledWith(tokenFactoryMock.get, { value: apiKey });
-                    assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', username);
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('pipelineId', pipelineId);
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
+                    expect(reply.result.token).to.be.a.jwt.and.have.property('pipelineId', 1);
                     expect(reply.result.token)
                         .to.be.a.jwt.and.have.property('scope')
                         .with.lengthOf(1);
@@ -766,7 +920,6 @@ describe('auth plugin test', () => {
                     url: '/auth/token?api_token=openSaysMe'
                 })
                 .then(reply => {
-                    assert.calledWith(tokenFactoryMock.get, { value: 'openSaysMe' });
                     assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                     assert.notOk(reply.result.token, 'Token should not be issued');
                 });
@@ -778,7 +931,6 @@ describe('auth plugin test', () => {
                     url: `/auth/token?api_token=${apiKey}`
                 })
                 .then(reply => {
-                    assert.calledWith(tokenFactoryMock.get, { value: apiKey });
                     assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                     assert.notOk(reply.result.token, 'Token should not be issued');
                 }));
@@ -792,7 +944,6 @@ describe('auth plugin test', () => {
                     url: `/auth/token?api_token=${apiKey}`
                 })
                 .then(reply => {
-                    assert.calledWith(userFactoryMock.get, { accessToken: apiKey });
                     assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                     assert.notOk(reply.result.token, 'Token should not be issued');
                 });
@@ -807,14 +958,13 @@ describe('auth plugin test', () => {
                     url: `/auth/token?api_token=${apiKey}`
                 })
                 .then(reply => {
-                    assert.calledWith(pipelineFactoryMock.get, { accessToken: apiKey });
                     assert.equal(reply.statusCode, 401, 'Login route should be unavailable');
                     assert.notOk(reply.result.token, 'Token should not be issued');
                 });
         });
 
         describe('with admins', () => {
-            beforeEach(next => {
+            beforeEach(async () => {
                 pipelineMock = {
                     scmContext
                 };
@@ -823,44 +973,52 @@ describe('auth plugin test', () => {
                 jobFactoryMock.get.resolves({});
                 pipelineFactoryMock.get.resolves(pipelineMock);
 
-                server = new hapi.Server();
+                server = new hapi.Server({
+                    port: 1234
+                });
                 server.app.userFactory = userFactoryMock;
                 server.app.buildFactory = buildFactoryMock;
                 server.app.jobFactory = jobFactoryMock;
                 server.app.pipelineFactory = pipelineFactoryMock;
 
-                server.connection({
-                    port: 1234
+                authPlugins.forEach(async pluginName => {
+                    /* eslint-disable global-require, import/no-dynamic-require */
+                    await server.register({
+                        plugin: require(pluginName)
+                    });
+                    /* eslint-enable global-require, import/no-dynamic-require */
                 });
 
-                server.register(
-                    {
-                        register: plugin,
-                        options: {
-                            cookiePassword,
-                            encryptionPassword,
-                            hashingPassword,
-                            scm,
-                            jwtPrivateKey,
-                            jwtPublicKey,
-                            jwtQueueServicePublicKey,
-                            https: false,
-                            admins: ['batman'],
-                            sameSite: false
-                        }
-                    },
-                    next
-                );
+                await server.register({
+                    plugin,
+                    options: {
+                        cookiePassword,
+                        encryptionPassword,
+                        hashingPassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        jwtQueueServicePublicKey,
+                        https: false,
+                        admins: ['batman'],
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
+                    }
+                });
             });
 
             it('returns admin impersonated build token', () =>
                 server
                     .inject({
                         url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
-                        credentials: {
-                            username: 'batman',
-                            scmContext,
-                            scope: ['user', 'admin']
+                        auth: {
+                            credentials: {
+                                username: 'batman',
+                                scmContext,
+                                scope: ['user', 'admin']
+                            },
+                            strategy: ['token']
                         }
                     })
                     .then(reply => {
@@ -884,9 +1042,12 @@ describe('auth plugin test', () => {
                 server
                     .inject({
                         url: '/auth/token/batman',
-                        credentials: {
-                            username: 'robin',
-                            scope: ['user']
+                        auth: {
+                            credentials: {
+                                username: 'robin',
+                                scope: ['user']
+                            },
+                            strategy: ['token']
                         }
                     })
                     .then(reply => {
@@ -900,10 +1061,13 @@ describe('auth plugin test', () => {
                 server
                     .inject({
                         url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
-                        credentials: {
-                            username: 'batman',
-                            scmContext,
-                            scope: ['user', 'admin']
+                        auth: {
+                            credentials: {
+                                username: 'batman',
+                                scmContext,
+                                scope: ['user', 'admin']
+                            },
+                            strategy: ['token']
                         }
                     })
                     .then(reply => {
@@ -952,7 +1116,7 @@ describe('auth plugin test', () => {
                     config: {
                         description: 'dummy route for crumb test',
                         tags: ['api', 'webhooks'],
-                        handler: (request, reply) => reply(true)
+                        handler: (request, h) => h.response(true)
                     }
                 });
 
@@ -976,7 +1140,7 @@ describe('auth plugin test', () => {
                     config: {
                         description: 'non-webhooks route for crumb test',
                         tags: ['api'],
-                        handler: (request, reply) => reply(true)
+                        handler: (request, h) => h.response(true)
                     }
                 });
 
@@ -997,7 +1161,7 @@ describe('auth plugin test', () => {
                     config: {
                         description: 'non-webhooks route for crumb test',
                         tags: ['api'],
-                        handler: (request, reply) => reply(true)
+                        handler: (request, h) => h.response(true)
                     }
                 });
 
@@ -1033,10 +1197,13 @@ describe('auth plugin test', () => {
                 .inject({
                     method: 'POST',
                     url: '/auth/logout',
-                    credentials: {
-                        profile: {
-                            username: 'batman'
-                        }
+                    auth: {
+                        credentials: {
+                            profile: {
+                                username: 'batman'
+                            }
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -1072,54 +1239,70 @@ describe('auth plugin test', () => {
                     );
                 }));
 
-        it('lists the contexts (without guest)', () => {
+        it('lists the contexts (without guest)', async () => {
             scm.getScmContexts.returns(['github:github.com']);
-            server = new hapi.Server();
+            server = new hapi.Server({
+                port: 1234
+            });
             server.app.userFactory = userFactoryMock;
             server.app.pipelineFactory = pipelineFactoryMock;
             scm.autoDeployKeyGenerationEnabled.withArgs({ scmContext: 'github:mygithub.com' }).returns(true);
 
-            server.connection({
-                port: 1234
+            authPlugins.forEach(async pluginName => {
+                /* eslint-disable global-require, import/no-dynamic-require */
+                await server.register({
+                    plugin: require(pluginName)
+                });
+                /* eslint-enable global-require, import/no-dynamic-require */
             });
 
-            return server
-                .register({
-                    register: plugin,
-                    options: {
-                        cookiePassword,
-                        encryptionPassword,
-                        hashingPassword,
-                        scm,
-                        jwtPrivateKey,
-                        jwtPublicKey,
-                        jwtQueueServicePublicKey,
-                        https: false,
-                        sameSite: false
-                    }
+            await server.register({
+                /* eslint-disable global-require */
+                plugin: require('@hapi/crumb'),
+                /* eslint-enable global-require */
+                options: {
+                    cookieOptions: {
+                        isSecure: false
+                    },
+                    restful: true,
+                    skip: request =>
+                        // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                        !!request.headers.authorization ||
+                        !!request.route.path.includes('/webhooks') ||
+                        !!request.route.path.includes('/auth/')
+                }
+            });
+
+            await server.register({
+                plugin,
+                options: {
+                    cookiePassword,
+                    encryptionPassword,
+                    hashingPassword,
+                    scm,
+                    jwtPrivateKey,
+                    jwtPublicKey,
+                    jwtQueueServicePublicKey,
+                    https: false,
+                    sameSite: false,
+                    bell: scm.scms,
+                    path: '/'
+                }
+            });
+
+            server
+                .inject({
+                    method: 'GET',
+                    url: '/auth/contexts'
                 })
-                .then(() =>
-                    server
-                        .inject({
-                            method: 'GET',
-                            url: '/auth/contexts'
-                        })
-                        .then(reply => {
-                            console.log(reply.result[0]);
-                            assert.equal(reply.statusCode, 200, 'Contexts should be available');
-                            assert.deepEqual(
-                                reply.result,
-                                [
-                                    {
-                                        context: 'github:github.com',
-                                        displayName: 'github',
-                                        autoDeployKeyGeneration: true
-                                    }
-                                ],
-                                'Contexts returns data'
-                            );
-                        })
-                );
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200, 'Contexts should be available');
+                    assert.deepEqual(
+                        reply.result,
+                        [{ context: 'github:github.com', displayName: 'github', autoDeployKeyGeneration: true }],
+                        'Contexts returns data'
+                    );
+                });
         });
     });
 });

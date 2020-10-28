@@ -40,6 +40,11 @@ auth:
   sessionTimeout: 120
   # SameSite Cookie Option
   sameSite: Strict
+  # cookie path to access the cookie, set to '/'
+  path: /
+
+shutdown:
+  terminationGracePeriod: TERMINATION_GRACE_PERIOD
 
 httpd:
   # Port to listen on
@@ -247,6 +252,7 @@ coverage:
   #   adminToken: your-sonar-admin-token
   #   sdUiUrl: https://cd.screwdriver.cd
   #   sonarEnterprise: false
+  #   sonarGitAppName: "Screwdriver Sonar PR Checks"
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
@@ -292,9 +298,28 @@ ecosystem:
     compress: false
     md5check: false
     max_size_mb: 0
+    max_go_threads: 10000
+
+# environment release information
+release: 
+    mode: stable
+    cookieName: release
+    cookieValue: stable
+    cookieTimeout: 2 # in minutes
+    headerName: release
+    headerValue: stable
+
 
 # default cluster environment variables to inject into builds
 build:
   environment:
     SD_VERSION: 4
   externalJoin: false
+
+rateLimit:
+  # set true to enable rate limiting on auth token
+  enabled: false
+  # max request limit on auth token per duration, default: 300 (1 rps)
+  limit: 300
+  # limit duration in milliseconds, default: 300000 (5 mins)
+  duration: 300000

@@ -79,6 +79,7 @@
         ]
     },
     "parameters": {},
+    "subscribe": {},
     "workflowGraph": {
         "nodes": [
             { "name": "~pr" },

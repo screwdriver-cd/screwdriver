@@ -3,9 +3,9 @@
 const { assert } = require('chai');
 
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 
 const testPipeline = require('./data/pipeline.json');
 
@@ -15,7 +15,7 @@ const decoratePipelineMock = pipeline => {
     const mock = hoek.clone(pipeline);
 
     mock.sync = sinon.stub();
-    mock.addWebhook = sinon.stub();
+    mock.addWebhooks = sinon.stub();
     mock.syncPRs = sinon.stub();
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
@@ -86,7 +86,7 @@ describe('DELETE /pipelines/1234/caches', () => {
         mockery.disable();
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         pipelineFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -108,10 +108,13 @@ describe('DELETE /pipelines/1234/caches', () => {
         options = {
             method: 'DELETE',
             url: `/pipelines/${id}/caches?scope=${scope}&cacheId=${cacheId}`,
-            credentials: {
-                username,
-                scmContext,
-                scope: ['user']
+            auth: {
+                credentials: {
+                    username,
+                    scmContext,
+                    scope: ['user']
+                },
+                strategy: ['token']
             }
         };
 
@@ -128,7 +131,9 @@ describe('DELETE /pipelines/1234/caches', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
@@ -141,13 +146,10 @@ describe('DELETE /pipelines/1234/caches', () => {
                 }
             }
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -156,33 +158,27 @@ describe('DELETE /pipelines/1234/caches', () => {
         server.auth.strategy('token', 'custom');
 
         authMock = {
-            register: (s, o, next) => {
+            name: 'auth',
+            register: s => {
                 s.expose('generateToken', generateTokenMock);
                 s.expose('generateProfile', generateProfileMock);
-                next();
             }
         };
-        authMock.register.attributes = {
-            name: 'auth'
-        };
 
-        server.register(
-            [
-                authMock,
-                {
-                    register: plugin,
-                    options: {
-                        password,
-                        scm: scmMock,
-                        admins: ['github:myself'],
-                        authConfig: {
-                            jwtPrivateKey: 'boo'
-                        }
+        server.register([
+            { plugin: authMock },
+            {
+                plugin,
+                options: {
+                    password,
+                    scm: scmMock,
+                    admins: ['github:myself'],
+                    authConfig: {
+                        jwtPrivateKey: 'boo'
                     }
                 }
-            ],
-            done
-        );
+            }
+        ]);
 
         pipelineMock = getPipelineMocks(testPipeline);
         pipelineFactoryMock.get.resolves(pipelineMock);
@@ -220,11 +216,14 @@ describe('DELETE /pipelines/1234/caches', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${id}/caches?scope=${scope}&cacheId=${cacheId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['pipeline'],
-                    pipelineId: 456
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['pipeline'],
+                        pipelineId: 456
+                    },
+                    strategy: ['token']
                 }
             };
 

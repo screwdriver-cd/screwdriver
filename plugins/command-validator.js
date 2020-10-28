@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const commandSchema = schema.api.commandValidator;
 const validator = require('screwdriver-command-validator');
@@ -11,34 +11,42 @@ const validator = require('screwdriver-command-validator');
  *    errors associated with it
  * @method register
  * @param  {Hapi.Server}    server
- * @param  {Object}         options
- * @param  {Function}       next
  */
-exports.register = (server, options, next) => {
-    server.route({
-        method: 'POST',
-        path: '/validator/command',
-        config: {
-            description: 'Validate a given sd-command.yaml',
-            notes: 'returns the parsed config, validation errors, or both',
-            tags: ['api', 'validation', 'yaml'],
-            handler: (request, reply) => {
-                const commandString = request.payload.yaml;
+const commandValidatorPlugin = {
+    name: 'command-validator',
+    async register(server) {
+        server.route({
+            method: 'POST',
+            path: '/validator/command',
+            options: {
+                description: 'Validate a given sd-command.yaml',
+                notes: 'returns the parsed config, validation errors, or both',
+                tags: ['api', 'validation', 'yaml'],
+                plugins: {
+                    'hapi-rate-limit': {
+                        enabled: false
+                    }
+                },
+                handler: async (request, h) => {
+                    try {
+                        const commandString = request.payload.yaml;
 
-                return validator(commandString).then(reply, err => reply(boom.badRequest(err.toString())));
-            },
-            validate: {
-                payload: commandSchema.input
-            },
-            response: {
-                schema: commandSchema.output
+                        const result = await validator(commandString);
+
+                        return h.response(result);
+                    } catch (err) {
+                        throw boom.badRequest(err.toString());
+                    }
+                },
+                validate: {
+                    payload: commandSchema.input
+                },
+                response: {
+                    schema: commandSchema.output
+                }
             }
-        }
-    });
-
-    next();
+        });
+    }
 };
 
-exports.register.attributes = {
-    name: 'command-validator'
-};
+module.exports = commandValidatorPlugin;

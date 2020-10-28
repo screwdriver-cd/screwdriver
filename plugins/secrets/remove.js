@@ -1,14 +1,14 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.secret.base, 'id');
+const idSchema = schema.models.secret.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
     path: '/secrets/{id}',
-    config: {
+    options: {
         description: 'Remove a single secret',
         notes: 'Returns null if successful',
         tags: ['api', 'secrets'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { secretFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -35,16 +35,18 @@ module.exports = () => ({
                     }
 
                     // Make sure that user has permission before deleting
-                    return canAccess(credentials, secret, 'admin')
+                    return canAccess(credentials, secret, 'admin', request.server.app)
                         .then(() => secret.remove())
-                        .then(() => reply().code(204));
+                        .then(() => h.response().code(204));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

@@ -2,10 +2,10 @@
 
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const validator = require('screwdriver-command-validator');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const urlLib = require('url');
 const req = require('request');
 const VERSION_REGEX = schema.config.regex.VERSION;
@@ -108,7 +108,7 @@ function checkValidMultipartPayload(data) {
 module.exports = () => ({
     method: 'POST',
     path: '/commands',
-    config: {
+    options: {
         description: 'Create a new command',
         notes: 'Create a specific command',
         tags: ['api', 'commands'],
@@ -124,9 +124,10 @@ module.exports = () => ({
         payload: {
             parse: true,
             maxBytes: DEFAULT_BYTES,
-            allow: ['multipart/form-data', 'application/json']
+            allow: ['multipart/form-data', 'application/json'],
+            multipart: true
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const data = request.payload;
             const { isPR } = request.auth.credentials;
             let commandSpec;
@@ -141,7 +142,7 @@ module.exports = () => ({
                     commandSpec = data.spec;
                     commandBin = data.file;
                 } else {
-                    return reply(boom.badRequest(multipartCheckResult.message));
+                    return boom.badRequest(multipartCheckResult.message);
                 }
             } else {
                 commandSpec = data.yaml;
@@ -201,11 +202,14 @@ module.exports = () => ({
                         pathname: `${request.path}/${command.id}`
                     });
 
-                    return reply(command.toJson())
+                    return h
+                        .response(command.toJson())
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         }
     }
 });

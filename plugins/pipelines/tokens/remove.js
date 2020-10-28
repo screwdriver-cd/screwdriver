@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const tokenIdSchema = joi.reach(schema.models.token.base, 'id');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const tokenIdSchema = schema.models.token.base.extract('id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'DELETE',
     path: '/pipelines/{pipelineId}/tokens/{tokenId}',
-    config: {
+    options: {
         description: 'Remove a single token for a specific pipeline',
         notes: 'Returns null if successful',
         tags: ['api', 'tokens'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { tokenFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -63,14 +63,16 @@ module.exports = () => ({
                             })
                         );
                 })
-                .then(() => reply().code(204))
-                .catch(err => reply(boom.boomify(err)));
+                .then(() => h.response().code(204))
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
+            params: joi.object({
                 pipelineId: pipelineIdSchema,
                 tokenId: tokenIdSchema
-            }
+            })
         }
     }
 });

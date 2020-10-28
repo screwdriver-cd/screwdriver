@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const getSchema = schema.models.event.get;
-const idSchema = joi.reach(schema.models.event.base, 'id');
+const idSchema = schema.models.event.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/events/{id}',
-    config: {
+    options: {
         description: 'Get a single event',
         notes: 'Returns a event record',
         tags: ['api', 'events'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.eventFactory;
 
             return factory
@@ -32,17 +32,19 @@ module.exports = () => ({
                         throw boom.notFound('Event does not exist');
                     }
 
-                    return reply(model.toJson());
+                    return h.response(model.toJson());
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

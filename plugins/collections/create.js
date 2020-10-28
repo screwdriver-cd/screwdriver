@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',
     path: '/collections',
-    config: {
+    options: {
         description: 'Create a new collection',
         notes: 'Creates a collection',
         tags: ['api', 'collections'],
@@ -20,10 +20,10 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             // Check if the collection to be created has a type 'default'
             if (request.payload.type === 'default') {
-                return reply(boom.forbidden('Collection with type "default" cannot be created by user'));
+                return boom.forbidden('Collection with type "default" cannot be created by user');
             }
 
             // if request.payload.type is either undefined or not part of allowed types,
@@ -82,12 +82,15 @@ module.exports = () => ({
                             pathname: `${request.path}/${collection.id}`
                         });
 
-                        return reply(collection.toJson())
+                        return h
+                            .response(collection.toJson())
                             .header('Location', location)
                             .code(201);
                     })
                     // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

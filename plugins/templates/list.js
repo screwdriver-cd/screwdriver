@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
@@ -9,19 +8,19 @@ const listSchema = joi
     .label('List of templates');
 const distinctSchema = joi
     .string()
-    .valid(Object.keys(schema.models.template.base.describe().children))
+    .valid(...Object.keys(schema.models.template.fields))
     .label('Field to return unique results by');
 const compactSchema = joi
     .string()
-    .valid(['', 'false', 'true'])
+    .valid('', 'false', 'true')
     .label('Flag to return compact data');
-const namespaceSchema = joi.reach(schema.models.template.base, 'namespace');
+const namespaceSchema = schema.models.template.base.extract('namespace');
 const namespacesSchema = joi.array().items(joi.object().keys({ namespace: namespaceSchema }));
 
 module.exports = () => ({
     method: 'GET',
     path: '/templates',
-    config: {
+    options: {
         description: 'Get templates with pagination',
         notes: 'Returns all template records',
         tags: ['api', 'templates'],
@@ -34,7 +33,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.templateFactory;
             const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
             const config = { sort };
@@ -84,12 +83,14 @@ module.exports = () => ({
                 .list(config)
                 .then(templates => {
                     if (config.raw) {
-                        return reply(templates);
+                        return h.response(templates);
                     }
 
-                    return reply(templates.map(p => p.toJson()));
+                    return h.response(templates.map(p => p.toJson()));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.alternatives().try(listSchema, namespacesSchema)

@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
@@ -8,7 +8,7 @@ const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 module.exports = () => ({
     method: 'POST',
     path: '/events',
-    config: {
+    options: {
         description: 'Create and start a event',
         notes: 'Create and start a specific event',
         tags: ['api', 'events'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
             const { buildId, causeMessage, creator, meta } = request.payload;
             const { scmContext, username } = request.auth.credentials;
@@ -260,7 +260,7 @@ module.exports = () => ({
                             })
                             .then(event => {
                                 if (event.builds === null) {
-                                    return reply(boom.notFound('No jobs to start.'));
+                                    return boom.notFound('No jobs to start.');
                                 }
                                 // everything succeeded, inform the user
                                 const location = urlLib.format({
@@ -270,13 +270,16 @@ module.exports = () => ({
                                     pathname: `${request.path}/${event.id}`
                                 });
 
-                                return reply(event.toJson())
+                                return h
+                                    .response(event.toJson())
                                     .header('Location', location)
                                     .code(201);
                             });
                     }
                 )
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             payload: validationSchema.models.event.create

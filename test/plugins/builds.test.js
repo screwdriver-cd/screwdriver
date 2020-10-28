@@ -2,10 +2,10 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const nock = require('nock');
 const rewire = require('rewire');
 const testBuild = require('./data/build.json');
@@ -90,6 +90,7 @@ describe('build plugin test', () => {
     let authMock;
     let generateTokenMock;
     let generateProfileMock;
+    let bannerFactoryMock;
     let plugin;
     let server;
     const logBaseUrl = 'https://store.screwdriver.cd';
@@ -101,7 +102,7 @@ describe('build plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         buildFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -122,7 +123,8 @@ describe('build plugin test', () => {
         jobFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            getLatestBuild: sinon.stub()
         };
         userFactoryMock = {
             get: sinon.stub(),
@@ -146,6 +148,11 @@ describe('build plugin test', () => {
             get: sinon.stub(),
             list: sinon.stub()
         };
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub()
+            }
+        };
 
         secretAccessMock = sinon.stub().resolves(false);
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
@@ -157,7 +164,10 @@ describe('build plugin test', () => {
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 12345,
+            host: 'localhost'
+        });
         server.app = {
             buildFactory: buildFactoryMock,
             stepFactory: stepFactoryMock,
@@ -165,16 +175,12 @@ describe('build plugin test', () => {
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock,
-            triggerFactory: triggerFactoryMock
+            triggerFactory: triggerFactoryMock,
+            bannerFactory: bannerFactoryMock
         };
-        server.connection({
-            port: 12345,
-            host: 'localhost'
-        });
-
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -185,60 +191,48 @@ describe('build plugin test', () => {
         server.event('build_status');
 
         secretMock = {
-            register: (s, o, next) => {
+            name: 'secrets',
+            register: s => {
                 s.expose('canAccess', secretAccessMock);
-                next();
             }
-        };
-        secretMock.register.attributes = {
-            name: 'secrets'
         };
 
         bannerMock = {
-            register: (s, o, next) => {
+            name: 'banners',
+            register: s => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
-                next();
             }
-        };
-        bannerMock.register.attributes = {
-            name: 'banners'
         };
 
         authMock = {
-            register: (s, o, next) => {
+            name: 'auth',
+            register: s => {
                 s.expose('generateToken', generateTokenMock);
                 s.expose('generateProfile', generateProfileMock);
-                next();
             }
         };
-        authMock.register.attributes = {
-            name: 'auth'
-        };
 
-        server.register(
-            [
-                secretMock,
-                bannerMock,
-                authMock,
-                {
-                    register: plugin,
-                    options: {
-                        ecosystem: {
-                            store: logBaseUrl
-                        },
-                        authConfig: {
-                            jwtPrivateKey: 'boo'
-                        },
-                        externalJoin: false
-                    }
-                },
-                {
-                    // eslint-disable-next-line global-require
-                    register: require('../../plugins/pipelines')
+        await server.register([
+            { plugin: secretMock },
+            { plugin: bannerMock },
+            { plugin: authMock },
+            {
+                plugin,
+                options: {
+                    ecosystem: {
+                        store: logBaseUrl
+                    },
+                    authConfig: {
+                        jwtPrivateKey: 'boo'
+                    },
+                    externalJoin: false
                 }
-            ],
-            done
-        );
+            },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/pipelines')
+            }
+        ]);
     });
 
     afterEach(() => {
@@ -345,6 +339,7 @@ describe('build plugin test', () => {
         const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
         const scmContext = 'github:github.com';
+        const scmDisplayName = 'github';
         const scmRepo = {
             branch: 'master',
             name: 'screwdriver-cd/screwdriver',
@@ -383,6 +378,7 @@ describe('build plugin test', () => {
                 }),
                 toJson: sinon.stub().returns({ id: pipelineId })
             };
+            pipelineFactoryMock.get.resolves(pipelineMock);
             jobMock = {
                 id: 1234,
                 name: 'main',
@@ -394,7 +390,8 @@ describe('build plugin test', () => {
                         }
                     }
                 ],
-                pipeline: sinon.stub().resolves(pipelineMock)()
+                pipeline: sinon.stub().resolves(pipelineMock)(),
+                getLatestBuild: sinon.stub().resolves(buildMock)
             };
 
             eventMock = {
@@ -437,6 +434,7 @@ describe('build plugin test', () => {
             ];
 
             triggerFactoryMock.list.resolves(triggerMocks);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         it('emits event build_status', () => {
@@ -450,8 +448,11 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'ABORTED'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -463,10 +464,12 @@ describe('build plugin test', () => {
             buildFactoryMock.uiUri = 'http://foo.bar';
             userFactoryMock.get.resolves(userMock);
 
-            server.emit = sinon.stub().resolves(null);
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
 
             return server.inject(options).then(reply => {
-                assert.calledWith(server.emit, 'build_status', {
+                assert.calledWith(server.events.emit, 'build_status', {
                     build: buildMock.toJson(),
                     buildLink: 'http://foo.bar/pipelines/123/builds/12345',
                     jobName: 'main',
@@ -475,7 +478,89 @@ describe('build plugin test', () => {
                     settings: {
                         email: 'foo@bar.com'
                     },
-                    status: 'ABORTED'
+                    status: 'ABORTED',
+                    isFixed: false
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('emits fixed build_status', () => {
+            const userMock = {
+                username: id,
+                getPermissions: sinon.stub().resolves({ push: true })
+            };
+            const options = {
+                method: 'PUT',
+                url: `/builds/${id}`,
+                payload: {
+                    status: 'SUCCESS'
+                },
+                auth: {
+                    credentials: {
+                        username: id,
+                        scmContext,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            const successBuild = getBuildMock({
+                id: 12345,
+                status: 'SUCCESS'
+            });
+            const failureBuild = getBuildMock({
+                id: 12346,
+                status: 'FAILURE'
+            });
+
+            const fixedJobMock = {
+                id: 2929,
+                name: 'main',
+                pipelineId,
+                permutations: [
+                    {
+                        settings: {
+                            email: 'foo@bar.com'
+                        }
+                    }
+                ],
+                pipeline: sinon.stub().resolves(pipelineMock)(),
+
+                getLatestBuild: sinon.stub()
+            };
+
+            fixedJobMock.getLatestBuild.withArgs({ status: 'FAILURE' }).resolves(failureBuild);
+            fixedJobMock.getLatestBuild.withArgs({ status: 'SUCCESS' }).resolves(successBuild);
+
+            buildMock.job = sinon.stub().resolves(fixedJobMock)();
+            buildMock.settings = {
+                email: 'foo@bar.com'
+            };
+
+            jobFactoryMock.get.resolves(fixedJobMock);
+
+            buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+            userFactoryMock.get.resolves(userMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(server.events.emit, 'build_status', {
+                    build: buildMock.toJson(),
+                    buildLink: 'http://foo.bar/pipelines/123/builds/12345',
+                    jobName: 'main',
+                    event: { id: 123 },
+                    pipeline: { id: 123 },
+                    settings: {
+                        email: 'foo@bar.com'
+                    },
+                    status: 'SUCCESS',
+                    isFixed: true
                 });
                 assert.equal(reply.statusCode, 200);
             });
@@ -488,8 +573,11 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'SUCCESS'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -507,8 +595,11 @@ describe('build plugin test', () => {
                 payload: {
                     status: 'SUCCESS'
                 },
-                credentials: {
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -532,9 +623,12 @@ describe('build plugin test', () => {
                     payload: {
                         status: 'ABORTED'
                     },
-                    credentials: {
-                        scope: ['user'],
-                        username: 'test-user'
+                    auth: {
+                        credentials: {
+                            scope: ['user'],
+                            username: 'test-user'
+                        },
+                        strategy: ['token']
                     }
                 };
 
@@ -560,8 +654,11 @@ describe('build plugin test', () => {
                     payload: {
                         status: 'ABORTED'
                     },
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 };
 
@@ -578,8 +675,11 @@ describe('build plugin test', () => {
                     payload: {
                         status: 'SUCCESS'
                     },
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 };
 
@@ -602,9 +702,12 @@ describe('build plugin test', () => {
                         status: 'FAILURE',
                         statusMessage: 'some failure message'
                     },
-                    credentials: {
-                        scope: ['user'],
-                        username: 'foo'
+                    auth: {
+                        credentials: {
+                            scope: ['user'],
+                            username: 'foo'
+                        },
+                        strategy: ['token']
                     }
                 };
 
@@ -629,9 +732,12 @@ describe('build plugin test', () => {
                     payload: {
                         status: 'BLOCKED'
                     },
-                    credentials: {
-                        scope: ['user'],
-                        username: 'foo'
+                    auth: {
+                        credentials: {
+                            scope: ['user'],
+                            username: 'foo'
+                        },
+                        strategy: ['token']
                     }
                 };
 
@@ -676,9 +782,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['temporal']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -701,9 +810,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['temporal']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -730,9 +842,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['temporal']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -754,9 +869,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['temporal']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         statusMessage
@@ -781,9 +899,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['temporal']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         stats: {
@@ -813,9 +934,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['temporal']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         statusMessage,
@@ -849,9 +973,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         meta,
@@ -893,9 +1020,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -920,9 +1050,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         meta,
@@ -963,9 +1096,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         meta,
@@ -1003,9 +1139,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         meta,
@@ -1040,9 +1179,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -1061,9 +1203,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: `${id}a`,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: `${id}a`,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -1092,9 +1237,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -1137,9 +1285,12 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status
@@ -1171,7 +1322,10 @@ describe('build plugin test', () => {
                 });
 
                 it('skip external OR if exernalJoin flag is on', () => {
-                    const newServer = new hapi.Server();
+                    const newServer = new hapi.Server({
+                        port: 12345,
+                        host: 'localhost'
+                    });
 
                     newServer.app = {
                         buildFactory: buildFactoryMock,
@@ -1182,13 +1336,9 @@ describe('build plugin test', () => {
                         eventFactory: eventFactoryMock,
                         triggerFactory: triggerFactoryMock
                     };
-                    newServer.connection({
-                        port: 12345,
-                        host: 'localhost'
-                    });
                     newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, reply) =>
-                            reply.continue({
+                        authenticate: (request, h) =>
+                            h.authenticated({
                                 credentials: {
                                     scope: ['user']
                                 }
@@ -1200,7 +1350,7 @@ describe('build plugin test', () => {
 
                     return newServer
                         .register({
-                            register: plugin,
+                            plugin,
                             options: {
                                 ecosystem: {
                                     store: logBaseUrl
@@ -1217,10 +1367,13 @@ describe('build plugin test', () => {
                             const options = {
                                 method: 'PUT',
                                 url: `/builds/${id}`,
-                                credentials: {
-                                    username,
-                                    scmContext,
-                                    scope: ['build']
+                                auth: {
+                                    credentials: {
+                                        username,
+                                        scmContext,
+                                        scope: ['build']
+                                    },
+                                    strategy: ['token']
                                 },
                                 payload: {
                                     status
@@ -1266,10 +1419,13 @@ describe('build plugin test', () => {
                     const options = {
                         method: 'PUT',
                         url: `/builds/${id}`,
-                        credentials: {
-                            username,
-                            scmContext,
-                            scope: ['build']
+                        auth: {
+                            credentials: {
+                                username,
+                                scmContext,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
                         },
                         payload: {
                             meta,
@@ -1332,10 +1488,13 @@ describe('build plugin test', () => {
                     const options = {
                         method: 'PUT',
                         url: `/builds/${id}`,
-                        credentials: {
-                            username,
-                            scmContext,
-                            scope: ['build']
+                        auth: {
+                            credentials: {
+                                username,
+                                scmContext,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
                         },
                         payload: {
                             status
@@ -1385,9 +1544,12 @@ describe('build plugin test', () => {
                     const options = {
                         method: 'PUT',
                         url: `/builds/${id}`,
-                        credentials: {
-                            username: id,
-                            scope: ['build']
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
                         },
                         payload: {
                             status
@@ -1410,9 +1572,12 @@ describe('build plugin test', () => {
                     const options = {
                         method: 'PUT',
                         url: `/builds/${id}`,
-                        credentials: {
-                            username: id,
-                            scope: ['build']
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
                         },
                         payload: {
                             status
@@ -1440,9 +1605,12 @@ describe('build plugin test', () => {
                     const options = {
                         method: 'PUT',
                         url: `/builds/${id}`,
-                        credentials: {
-                            username,
-                            scope: ['build']
+                        auth: {
+                            credentials: {
+                                username,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
                         },
                         payload: {
                             meta,
@@ -1465,10 +1633,13 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scmContext,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scmContext,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status: 'SUCCESS'
@@ -1952,10 +2123,13 @@ describe('build plugin test', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
-                    credentials: {
-                        username: id,
-                        scmContext,
-                        scope: ['build']
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scmContext,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
                     },
                     payload: {
                         status: 'SUCCESS'
@@ -2001,7 +2175,7 @@ describe('build plugin test', () => {
                 let jobCconfig;
                 let parentEventMock;
 
-                beforeEach(done => {
+                beforeEach(async () => {
                     parentEventMock = {
                         id: 456,
                         pipelineId,
@@ -2085,7 +2259,10 @@ describe('build plugin test', () => {
                     };
                     jobCconfig = { ...jobBconfig, jobId: 3 };
 
-                    newServer = new hapi.Server();
+                    newServer = new hapi.Server({
+                        port: 12345,
+                        host: 'localhost'
+                    });
 
                     newServer.app = {
                         buildFactory: buildFactoryMock,
@@ -2096,13 +2273,9 @@ describe('build plugin test', () => {
                         eventFactory: eventFactoryMock,
                         triggerFactory: triggerFactoryMock
                     };
-                    newServer.connection({
-                        port: 12345,
-                        host: 'localhost'
-                    });
                     newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, reply) =>
-                            reply.continue({
+                        authenticate: (request, h) =>
+                            h.authenticated({
                                 credentials: {
                                     scope: ['user']
                                 }
@@ -2112,21 +2285,18 @@ describe('build plugin test', () => {
                     newServer.auth.strategy('session', 'custom');
                     newServer.event('build_status');
 
-                    newServer.register(
-                        {
-                            register: plugin,
-                            options: {
-                                ecosystem: {
-                                    store: logBaseUrl
-                                },
-                                authConfig: {
-                                    jwtPrivateKey: 'boo'
-                                },
-                                externalJoin: true
-                            }
-                        },
-                        done
-                    );
+                    await newServer.register({
+                        plugin,
+                        options: {
+                            ecosystem: {
+                                store: logBaseUrl
+                            },
+                            authConfig: {
+                                jwtPrivateKey: 'boo'
+                            },
+                            externalJoin: true
+                        }
+                    });
                 });
 
                 afterEach(() => {
@@ -3661,6 +3831,7 @@ describe('build plugin test', () => {
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
         const scmUri = 'github.com:12345:branchName';
         const scmContext = 'github:github.com';
+        const scmDisplayName = 'github';
 
         let options;
         let buildMock;
@@ -3684,10 +3855,13 @@ describe('build plugin test', () => {
                     jobId,
                     meta
                 },
-                credentials: {
-                    scope: ['user'],
-                    username,
-                    scmContext
+                auth: {
+                    credentials: {
+                        scope: ['user'],
+                        username,
+                        scmContext
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -3749,6 +3923,7 @@ describe('build plugin test', () => {
             jobFactoryMock.get.resolves(jobMock);
             userFactoryMock.get.resolves(userMock);
             eventFactoryMock.create.resolves(eventMock);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         it('returns 201 for a successful create for a PR build', () => {
@@ -3832,7 +4007,7 @@ describe('build plugin test', () => {
         it('returns 201 for a successful create for a pipeline build with pipeline token', () => {
             let expectedLocation;
 
-            options.credentials = {
+            options.auth.credentials = {
                 scope: ['pipeline'],
                 username,
                 scmContext,
@@ -3885,7 +4060,7 @@ describe('build plugin test', () => {
 
         it('returns 403 forbidden error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
-            options.credentials.username = 'bar';
+            options.auth.credentials.username = 'bar';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -3894,7 +4069,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 401 unauthorized error when pipeline token does not have permission', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 scope: ['pipeline'],
                 username,
                 scmContext,
@@ -3922,9 +4097,12 @@ describe('build plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/builds/${id}/secrets`,
-                credentials: {
-                    scope: ['user'],
-                    username
+                auth: {
+                    credentials: {
+                        scope: ['user'],
+                        username
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -3986,9 +4164,12 @@ describe('build plugin test', () => {
         const options = {
             method: 'GET',
             url: `/builds/${id}/steps/${step}`,
-            credentials: {
-                scope: ['user'],
-                username: 'batman'
+            auth: {
+                credentials: {
+                    scope: ['user'],
+                    username: 'batman'
+                },
+                strategy: ['token']
             }
         };
         let testStep;
@@ -4031,9 +4212,12 @@ describe('build plugin test', () => {
         const options = {
             method: 'GET',
             url: `/builds/${id}/steps?status=active`,
-            credentials: {
-                scope: ['user'],
-                username: '12345'
+            auth: {
+                credentials: {
+                    scope: ['user'],
+                    username: '12345'
+                },
+                strategy: ['token']
             }
         };
         const stepsMock = testBuildWithSteps.steps.map(step => getStepMock(step));
@@ -4122,8 +4306,8 @@ describe('build plugin test', () => {
 
         it('returns 403 when token is temporal and build id is different', () => {
             options.url = `/builds/${id}/steps?status=active`;
-            options.credentials.scope = ['temporal'];
-            options.credentials.username = '999';
+            options.auth.credentials.scope = ['temporal'];
+            options.auth.credentials.username = '999';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -4157,9 +4341,12 @@ describe('build plugin test', () => {
                     startTime: '2038-01-19T03:13:08.532Z',
                     endTime: '2038-01-19T03:15:08.532Z'
                 },
-                credentials: {
-                    scope: ['build'],
-                    username: id
+                auth: {
+                    credentials: {
+                        scope: ['build'],
+                        username: id
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -4230,7 +4417,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 403 for a the wrong build permission', () => {
-            options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
+            options.auth.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -4238,7 +4425,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when updating with temporal token of same build', () => {
-            options.credentials.scope = ['temporal'];
+            options.auth.credentials.scope = ['temporal'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -4249,8 +4436,8 @@ describe('build plugin test', () => {
         });
 
         it('returns 403 when updating with temporal token with wrong build permission', () => {
-            options.credentials.scope = ['temporal'];
-            options.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
+            options.auth.credentials.scope = ['temporal'];
+            options.auth.credentials.username = 'b7c747ead67d34bb465c0225a2d78ff99f0457fd';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -4324,14 +4511,42 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.deepEqual(reply.result, logs);
                     assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
+        });
+
+        it('returns download link for download option', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = 'Building stuff\nStill building...\nDone Building stuff\n';
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?type=download`,
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['session']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, expectedLog);
+                    assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
                 });
         });
 
@@ -4347,8 +4562,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4370,8 +4588,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4393,8 +4614,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4433,8 +4657,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4475,8 +4702,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4517,8 +4747,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4558,8 +4791,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4601,8 +4837,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4623,8 +4862,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?from=100`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4645,8 +4887,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?from=100`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4668,8 +4913,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs?from=2`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4692,8 +4940,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/publish/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4717,8 +4968,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/test/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4734,8 +4988,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4749,8 +5006,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4766,8 +5026,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4787,8 +5050,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/steps/${step}/logs`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4808,8 +5074,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/artifacts/${artifact}`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4825,8 +5094,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/artifacts/${multiByteArtifact}`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4841,8 +5113,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/artifacts/${artifact}?type=download`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4857,8 +5132,11 @@ describe('build plugin test', () => {
             return server
                 .inject({
                     url: `/builds/${id}/artifacts/${artifact}?type=preview`,
-                    credentials: {
-                        scope: ['user']
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
                     }
                 })
                 .then(reply => {
@@ -4900,15 +5178,18 @@ describe('build plugin test', () => {
                 payload: {
                     buildTimeout: `${buildTimeout}`
                 },
-                credentials: {
-                    scope: `${scope}`,
-                    username: `${id}`,
-                    scmContext: 'github:github.com',
-                    isPR: false,
-                    jobId: 1234,
-                    pipelineId: 1,
-                    eventId: 777,
-                    configPipelineId: 123
+                auth: {
+                    credentials: {
+                        scope: `${scope}`,
+                        username: `${id}`,
+                        scmContext: 'github:github.com',
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123
+                    },
+                    strategy: ['token']
                 }
             };
         });
@@ -4942,7 +5223,7 @@ describe('build plugin test', () => {
 
         it('includes prParentJobId', () => {
             profile.prParentJobId = 1000;
-            options.credentials.prParentJobId = 1000;
+            options.auth.credentials.prParentJobId = 1000;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -4982,7 +5263,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 404 if buildId between parameter and token is different', () => {
-            options.credentials.username = 9999;
+            options.auth.credentials.username = 9999;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
@@ -5009,7 +5290,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 403 if scope of token is insufficient', () => {
-            options.credentials.scope = ['build'];
+            options.auth.credentials.scope = ['build'];
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -5060,9 +5341,12 @@ describe('build plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/builds/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             buildMock = getBuildMock(testBuild);

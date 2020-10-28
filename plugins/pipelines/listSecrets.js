@@ -1,18 +1,18 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const secretListSchema = joi
     .array()
     .items(schema.models.secret.get)
     .label('List of secrets');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/secrets',
-    config: {
+    options: {
         description: 'Get all secrets secrets for a given pipelines',
         notes: 'Returns all secrets for a given pipeline',
         tags: ['api', 'pipelines', 'secrets'],
@@ -25,7 +25,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { credentials } = request.auth;
             const { canAccess } = request.server.plugins.secrets;
@@ -41,11 +41,11 @@ module.exports = () => ({
                 })
                 .then(secrets => {
                     if (secrets.length === 0) {
-                        return reply([]);
+                        return h.response([]);
                     }
 
-                    return canAccess(credentials, secrets[0], 'push').then(() =>
-                        reply(
+                    return canAccess(credentials, secrets[0], 'push', request.server.app).then(() =>
+                        h.response(
                             secrets.map(s => {
                                 const output = s.toJson();
 
@@ -56,15 +56,17 @@ module.exports = () => ({
                         )
                     );
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: secretListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            }
+            })
         }
     }
 });

@@ -1,16 +1,16 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const validator = require('screwdriver-template-validator');
 const templateSchema = schema.api.templateValidator;
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',
     path: '/templates',
-    config: {
+    options: {
         description: 'Create a new template',
         notes: 'Create a specific template',
         tags: ['api', 'templates'],
@@ -23,7 +23,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) =>
+        handler: (request, h) =>
             validator(request.payload.yaml)
                 .then(config => {
                     if (config.errors.length > 0) {
@@ -74,11 +74,14 @@ module.exports = () => ({
                         pathname: `${request.path}/${template.id}`
                     });
 
-                    return reply(template.toJson())
+                    return h
+                        .response(template.toJson())
                         .header('Location', location)
                         .code(201);
                 })
-                .catch(err => reply(boom.boomify(err))),
+                .catch(err => {
+                    throw err;
+                }),
         validate: {
             payload: templateSchema.input
         }

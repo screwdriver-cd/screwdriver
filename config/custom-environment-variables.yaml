@@ -40,6 +40,11 @@ auth:
   oauthRedirectUri: OAUTH_REDIRECT_URI
   # SameSite Cookie Option
   sameSite: COOKIE_SAME_SITE
+  # cookie path to access the cookie https://github.com/hapijs/cookie/issues/209
+  path: COOKIE_PATH_VALUE
+
+shutdown:
+  terminationGracePeriod: TERMINATION_GRACE_PERIOD
 
 httpd:
   # Port to listen on
@@ -357,6 +362,9 @@ coverage:
     sdUiUrl: ECOSYSTEM_UI
     # Enterprise edition (true) or open source edition (false)
     sonarEnterprise: COVERAGE_SONAR_ENTERPRISE
+    # Github app name for Sonar PR decoration (default to 'Screwdriver Sonar PR Checks')
+    # https://docs.sonarqube.org/latest/analysis/pr-decoration/
+    sonarGitAppName: COVERAGE_SONAR_GIT_APP_NAME
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
@@ -384,9 +392,19 @@ ecosystem:
     compress: CACHE_COMPRESS
     md5check: CACHE_MD5CHECK
     max_size_mb: CACHE_MAX_SIZE_MB
+    max_go_threads: CACHE_MAX_GO_THREADS
+
+# environment release information
+release:
+  __name: RELEASE_ENVIRONMENT_VARIABLES
+  __format: json
 
 build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json
   externalJoin: EXTERNAL_JOIN
+
+rateLimit:
+  __name: RATE_LIMIT_VARIABLES
+  __format: json

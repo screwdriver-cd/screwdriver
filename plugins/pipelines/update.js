@@ -1,9 +1,9 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 const helper = require('./helper');
 
 /**
@@ -32,7 +32,7 @@ function getPermissionsForOldPipeline({ scmContexts, pipeline, user }) {
 module.exports = () => ({
     method: 'PUT',
     path: '/pipelines/{id}',
-    config: {
+    options: {
         description: 'Update a pipeline',
         notes: 'Update a specific pipeline',
         tags: ['api', 'pipelines'],
@@ -45,114 +45,107 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
-            const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
-            const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
+        handler: async (request, h) => {
+            const { checkoutUrl, rootDir, settings } = request.payload;
             const { id } = request.params;
-            const { pipelineFactory } = request.server.app;
-            const { userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { pipelineFactory, userFactory } = request.server.app;
+            const { scmContext, username } = request.auth.credentials;
             const scmContexts = pipelineFactory.scm.getScmContexts();
             const { isValidToken } = request.server.plugins.pipelines;
-            let gitToken;
 
             if (!isValidToken(id, request.auth.credentials)) {
-                return reply(boom.unauthorized('Token does not have permission to this pipeline'));
+                return boom.unauthorized('Token does not have permission to this pipeline');
             }
 
-            return (
-                Promise.all([pipelineFactory.get({ id }), userFactory.get({ username, scmContext })])
-                    // get the pipeline given its ID and the user
-                    .then(([oldPipeline, user]) => {
-                        // if the pipeline ID is invalid, reject
-                        if (!oldPipeline) {
-                            throw boom.notFound(`Pipeline ${id} does not exist`);
-                        }
+            // get the pipeline given its ID and the user
+            const oldPipeline = await pipelineFactory.get({ id });
+            const user = await userFactory.get({ username, scmContext });
 
-                        if (oldPipeline.configPipelineId) {
-                            throw boom.forbidden(
-                                'Child pipeline checkoutUrl can only be modified by' +
-                                    ` config pipeline ${oldPipeline.configPipelineId}`
-                            );
-                        }
+            // Handle pipeline permissions
+            // if the pipeline ID is invalid, reject
+            if (!oldPipeline) {
+                throw boom.notFound(`Pipeline ${id} does not exist`);
+            }
 
-                        // get the user token
-                        return (
-                            user
-                                .unsealToken()
-                                // get the scm URI
-                                .then(token => {
-                                    gitToken = token;
+            if (oldPipeline.configPipelineId) {
+                throw boom.forbidden(
+                    `Child pipeline can only be modified by config pipeline ${oldPipeline.configPipelineId}`
+                );
+            }
 
-                                    return pipelineFactory.scm.parseUrl({
-                                        scmContext,
-                                        checkoutUrl,
-                                        rootDir,
-                                        token
-                                    });
-                                })
-                                // get the user permissions for the repo
-                                .then(scmUri =>
-                                    Promise.all([
-                                        getPermissionsForOldPipeline({
-                                            scmContexts,
-                                            pipeline: oldPipeline,
-                                            user
-                                        }),
-                                        user.getPermissions(scmUri)
-                                    ])
-                                        // if the user isn't an admin for both repos, reject
-                                        .then(([oldPermissions, permissions]) => {
-                                            if (!oldPermissions.admin || !permissions.admin) {
-                                                throw boom.forbidden(`User ${username} is not an admin of these repos`);
-                                            }
-                                        })
-                                        // check if there is already a pipeline with the new checkoutUrl
-                                        .then(() => pipelineFactory.get({ scmUri }))
-                                        .then(newPipeline => {
-                                            // reject if pipeline already exists with new checkoutUrl
-                                            if (newPipeline) {
-                                                throw boom.conflict(
-                                                    `Pipeline already exists with the ID: ${newPipeline.id}`
-                                                );
-                                            }
+            // get the user permissions for the repo
+            const oldPermissions = await getPermissionsForOldPipeline({
+                scmContexts,
+                pipeline: oldPipeline,
+                user
+            });
 
-                                            return pipelineFactory.scm.decorateUrl({
-                                                scmUri,
-                                                scmContext,
-                                                token: gitToken
-                                            });
-                                        })
-                                        .then(scmRepo => {
-                                            // update keys
-                                            oldPipeline.scmContext = scmContext;
-                                            oldPipeline.scmUri = scmUri;
-                                            oldPipeline.admins = {
-                                                [username]: true
-                                            };
-                                            oldPipeline.scmRepo = scmRepo;
-                                            oldPipeline.name = scmRepo.name;
+            if (checkoutUrl || rootDir) {
+                const formattedCheckoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
+                const sanitizedRootDir = helper.sanitizeRootDir(request.payload.rootDir);
 
-                                            // update pipeline with new scmRepo and branch
-                                            return oldPipeline.update().then(updatedPipeline => {
-                                                return Promise.all([
-                                                    updatedPipeline.sync(),
-                                                    updatedPipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-                                                ]).then(results => reply(results[0].toJson()).code(200));
-                                            });
-                                        })
-                                )
-                        );
-                    })
-                    // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
-            );
+                // get the user token
+                const token = await user.unsealToken();
+                // get the scm URI
+                const scmUri = await pipelineFactory.scm.parseUrl({
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    rootDir: sanitizedRootDir,
+                    token
+                });
+                const permissions = await user.getPermissions(scmUri);
+
+                // if the user isn't an admin for both repos, reject
+                if (!permissions.admin) {
+                    throw boom.forbidden(`User ${username} is not an admin of these repos`);
+                }
+
+                // check if there is already a pipeline with the new checkoutUrl
+                const newPipeline = await pipelineFactory.get({ scmUri });
+
+                // reject if pipeline already exists with new checkoutUrl
+                if (newPipeline) {
+                    throw boom.conflict(`Pipeline already exists with the ID: ${newPipeline.id}`);
+                }
+
+                const scmRepo = await pipelineFactory.scm.decorateUrl({
+                    scmUri,
+                    scmContext,
+                    token
+                });
+
+                // update keys
+                oldPipeline.scmContext = scmContext;
+                oldPipeline.scmUri = scmUri;
+                oldPipeline.scmRepo = scmRepo;
+                oldPipeline.name = scmRepo.name;
+            }
+
+            if (!oldPermissions.admin) {
+                throw boom.forbidden(`User ${username} is not an admin of these repos`);
+            }
+
+            oldPipeline.admins = {
+                [username]: true
+            };
+
+            if (settings) {
+                oldPipeline.settings = settings;
+            }
+
+            // update pipeline
+            const updatedPipeline = await oldPipeline.update();
+
+            await updatedPipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
+
+            const result = await updatedPipeline.sync();
+
+            return h.response(result.toJson()).code(200);
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
+            }),
             payload: schema.models.pipeline.update
         }
     }

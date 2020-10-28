@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const getSchema = joi.reach(schema.models.pipeline.base, 'admins').get;
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const getSchema = schema.models.pipeline.base.extract('admins').get;
+const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/admin',
-    config: {
+    options: {
         description: 'Get the pipeline admin',
         notes: 'Returns a pipeline admin record',
         tags: ['api', 'pipelines'],
@@ -22,29 +22,25 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: async (request, reply) => {
-            try {
-                const factory = request.server.app.pipelineFactory;
-                const pipeline = await factory.get(request.params.id);
+        handler: async (request, h) => {
+            const factory = request.server.app.pipelineFactory;
+            const pipeline = await factory.get(request.params.id);
 
-                if (!pipeline) {
-                    throw boom.notFound('Pipeline does not exist');
-                }
-
-                const admin = await pipeline.getFirstAdmin();
-
-                return reply(admin);
-            } catch (err) {
-                return reply(boom.boomify(err));
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
             }
+
+            const admin = await pipeline.getFirstAdmin();
+
+            return h.response(admin);
         },
         response: {
             schema: getSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            }
+            })
         }
     }
 });

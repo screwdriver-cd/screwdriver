@@ -8,17 +8,17 @@
 module.exports = () => ({
     method: 'POST',
     path: '/auth/logout',
-    config: {
+    options: {
         description: 'Logout of screwdriver',
         notes: 'Clears the cookie used for authentication',
         tags: ['api', 'auth', 'logout'],
         auth: {
             strategies: ['token', 'session']
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             request.cookieAuth.clear();
 
-            return reply({});
+            return h.response({});
         }
     }
 });

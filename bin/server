@@ -5,15 +5,35 @@
 /* eslint-disable import/no-dynamic-require */
 const config = require('config');
 const server = require('../');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const { Bookend } = require('screwdriver-build-bookend');
 const logger = require('screwdriver-logger');
+
+/**
+ * convert value to Boolean
+ * @method convertToBool
+ * @param {(Boolean|String)} value
+ * @return {Boolean}
+ */
+function convertToBool(value) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    // trueList refers to https://yaml.org/type/bool.html
+    const trueList = ['on', 'true', 'yes', 'y'];
+    const lowerValue = String(value).toLowerCase();
+
+    return trueList.includes(lowerValue);
+}
 
 // Setup Authentication
 const authConfig = config.get('auth');
 
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
+
+const shutdownConfig = config.get('shutdown');
 
 // Setup Webhooks
 const webhooksConfig = config.get('webhooks');
@@ -23,11 +43,13 @@ const ecosystem = config.get('ecosystem');
 
 ecosystem.api = httpdConfig.uri;
 
+const release = config.get('release');
+
 // Notification config
 const notificationConfig = config.get('notifications');
 
 // Multiple build cluster feature flag
-const multiBuildClusterEnabled = config.get('multiBuildCluster').enabled;
+const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
 
 // Default cluster environment variable
 const clusterEnvConfig = config.get('build').environment; // readonly
@@ -86,8 +108,8 @@ const bookend = new Bookend({
     'screwdriver-coverage-bookend': coverage,
     'screwdriver-cache-bookend': cache
 },
-bookends.setup || [], // plugins required for the setup- steps
-bookends.teardown || [] // plugins required for the teardown-steps
+    bookends.setup || [], // plugins required for the setup- steps
+    bookends.teardown || [] // plugins required for the teardown-steps
 );
 
 // Setup Pipeline Factory for Executor
@@ -194,6 +216,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled)
         auth: authConfig,
         webhooks: webhooksConfig,
         notifications: notificationConfig,
+        shutdown: shutdownConfig,
         coverage,
         ecosystem,
         commandFactory,
@@ -220,7 +243,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled)
         },
         stats: {
             executor, scm
-        }
+        },
+        release
     }))
     .then(instance => logger.info('Server running at %s', instance.info.uri))
     .catch((err) => {

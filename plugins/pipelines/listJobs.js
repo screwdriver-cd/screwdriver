@@ -1,19 +1,19 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const jobListSchema = joi
     .array()
     .items(schema.models.job.get)
     .label('List of jobs');
-const jobNameSchema = joi.reach(schema.models.job.base, 'name');
-const pipelineIdSchema = joi.reach(schema.models.pipeline.base, 'id');
+const jobNameSchema = schema.models.job.base.extract('name');
+const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines/{id}/jobs',
-    config: {
+    options: {
         description: 'Get all jobs for a given pipeline',
         notes: 'Returns all jobs for a given pipeline',
         tags: ['api', 'pipelines', 'jobs'],
@@ -26,7 +26,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { pipelineFactory } = request.server.app;
             const { page, count, jobName } = request.query;
 
@@ -52,16 +52,18 @@ module.exports = () => ({
 
                     return pipeline.getJobs(config);
                 })
-                .then(jobs => reply(jobs.map(j => j.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(jobs => h.response(jobs.map(j => j.toJson())))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: jobListSchema
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: pipelineIdSchema
-            },
+            }),
             query: schema.api.pagination.concat(
                 joi.object({
                     archived: joi

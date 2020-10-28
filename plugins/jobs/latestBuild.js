@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.job.base, 'id');
-const statusSchema = joi.reach(schema.models.build.base, 'status');
+const idSchema = schema.models.job.base.extract('id');
+const statusSchema = schema.models.build.base.extract('status');
 
 module.exports = () => ({
     method: 'GET',
     path: '/jobs/{id}/latestBuild',
-    config: {
+    options: {
         description: 'Get latest build for a given job',
         notes: 'Return latest build of status specified',
         tags: ['api', 'job', 'build'],
@@ -22,7 +22,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { status } = request.query || {};
 
@@ -35,25 +35,28 @@ module.exports = () => ({
 
                     return job.getLatestBuild({ status });
                 })
-                .then(build => {
+                .then(async build => {
                     if (Object.keys(build).length === 0) {
                         throw boom.notFound('There is no such latest build');
                     }
+                    const data = await build.toJsonWithSteps();
 
-                    return reply(build.toJsonWithSteps());
+                    return h.response(data);
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: joi.object()
         },
         validate: {
-            params: {
+            params: joi.object({
                 id: idSchema
-            },
-            query: {
+            }),
+            query: joi.object({
                 status: statusSchema
-            }
+            })
         }
     }
 });

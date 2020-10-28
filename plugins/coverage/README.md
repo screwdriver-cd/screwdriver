@@ -4,7 +4,7 @@
 ## Usage
 
 ```javascript
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const server = new Hapi.Server();
 const coveragePlugin = require('./');
 
@@ -27,7 +27,7 @@ server.register({
 ### Routes
 
 #### Returns an access token to talk to coverage server
-`GET /coverage/token?scope=job&projectKey=job:123&username=user-job-123`
+`GET /coverage/token?scope=job&projectKey=job:123&projectName=d2lam/mytest&username=user-job-123`
 
 #### Get an object with coverage info
 

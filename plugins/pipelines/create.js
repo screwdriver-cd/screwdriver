@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const helper = require('./helper');
@@ -8,7 +8,7 @@ const helper = require('./helper');
 module.exports = () => ({
     method: 'POST',
     path: '/pipelines',
-    config: {
+    options: {
         description: 'Create a new pipeline',
         notes: 'Create a specific pipeline',
         tags: ['api', 'pipelines'],
@@ -21,153 +21,114 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { autoKeysGeneration } = request.payload;
             const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
-            let pipelineToken = '';
+            const pipelineToken = '';
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
-            return (
-                userFactory
-                    .get({ username, scmContext })
-                    .then(user =>
-                        user
-                            .unsealToken()
-                            .then(token => {
-                                pipelineToken = token;
+            const user = await userFactory.get({ username, scmContext });
+            const token = await user.unsealToken();
+            const scmUri = await pipelineFactory.scm.parseUrl({
+                scmContext,
+                rootDir,
+                checkoutUrl,
+                token
+            });
+            // get the user permissions for the repo
 
-                                return token;
-                            })
-                            .then(token =>
-                                pipelineFactory.scm.parseUrl({
-                                    scmContext,
-                                    rootDir,
-                                    checkoutUrl,
-                                    token
-                                })
-                            )
-                            // get the user permissions for the repo
-                            .then(scmUri =>
-                                user
-                                    .getPermissions(scmUri)
-                                    // if the user isn't an admin, reject
-                                    .then(permissions => {
-                                        if (!permissions.admin) {
-                                            throw boom.forbidden(
-                                                `User ${user.getFullDisplayName()} is not an admin of this repo`
-                                            );
-                                        }
-                                    })
-                                    // see if there is already a pipeline
-                                    .then(() => pipelineFactory.get({ scmUri }))
-                                    // if there is already a pipeline for the checkoutUrl, reject
-                                    .then(pipeline => {
-                                        if (pipeline) {
-                                            throw boom.conflict(`Pipeline already exists with the ID: ${pipeline.id}`, {
-                                                existingId: pipeline.id
-                                            });
-                                        }
-                                    })
-                                    // set up pipeline admins, and create a new pipeline
-                                    .then(() => {
-                                        const pipelineConfig = {
-                                            admins: {
-                                                [username]: true
-                                            },
-                                            scmContext,
-                                            scmUri
-                                        };
+            const permissions = await user.getPermissions(scmUri);
+            // if the user isn't an admin, reject
 
-                                        return pipelineFactory.create(pipelineConfig);
-                                    })
-                                    // get the default collection for current user
-                                    .then(pipeline => {
-                                        return collectionFactory
-                                            .list({
-                                                params: {
-                                                    userId: user.id,
-                                                    type: 'default'
-                                                }
-                                            })
-                                            .then(collections => {
-                                                const defaultCollection = collections[0];
+            if (!permissions.admin) {
+                throw boom.forbidden(`User ${user.getFullDisplayName()} is not an admin of this repo`);
+            }
+            // see if there is already a pipeline
+            let pipeline = await pipelineFactory.get({ scmUri });
+            // if there is already a pipeline for the checkoutUrl, reject
 
-                                                if (!defaultCollection) {
-                                                    return collectionFactory.create({
-                                                        userId: user.id,
-                                                        name: 'My Pipelines',
-                                                        description: `The default collection for ${user.username}`,
-                                                        type: 'default'
-                                                    });
-                                                }
+            if (pipeline) {
+                throw boom.conflict(`Pipeline already exists with the ID: ${pipeline.id}`, {
+                    existingId: pipeline.id
+                });
+            }
+            // set up pipeline admins, and create a new pipeline
+            const pipelineConfig = {
+                admins: {
+                    [username]: true
+                },
+                scmContext,
+                scmUri
+            };
 
-                                                return defaultCollection;
-                                            })
-                                            .then(defaultCollection => {
-                                                // Check if the pipeline exists in the default collection
-                                                // to prevent the situation where a pipeline is deleted and then created right away with the same id
-                                                if (defaultCollection.pipelineIds.includes(pipeline.id)) {
-                                                    return defaultCollection;
-                                                }
+            pipeline = await pipelineFactory.create(pipelineConfig);
 
-                                                Object.assign(defaultCollection, {
-                                                    pipelineIds: [...defaultCollection.pipelineIds, pipeline.id]
-                                                });
+            const collections = await collectionFactory.list({
+                params: {
+                    userId: user.id,
+                    type: 'default'
+                }
+            });
+            let defaultCollection;
 
-                                                return defaultCollection.update();
-                                            })
-                                            .then(() => {
-                                                if (autoKeysGeneration) {
-                                                    return pipelineFactory.scm
-                                                        .addDeployKey({
-                                                            scmContext,
-                                                            checkoutUrl,
-                                                            token: pipelineToken
-                                                        })
-                                                        .then(privateDeployKey => {
-                                                            const privateDeployKeyB64 = Buffer.from(
-                                                                privateDeployKey
-                                                            ).toString('base64');
+            if (collections && collections.length > 0) {
+                defaultCollection = collections[0];
+            }
 
-                                                            return secretFactory.create({
-                                                                pipelineId: pipeline.id,
-                                                                name: deployKeySecret,
-                                                                value: privateDeployKeyB64,
-                                                                allowInPR: true
-                                                            });
-                                                        });
-                                                }
+            if (!defaultCollection) {
+                defaultCollection = await collectionFactory.create({
+                    userId: user.id,
+                    name: 'My Pipelines',
+                    description: `The default collection for ${user.username}`,
+                    type: 'default'
+                });
+            }
 
-                                                return null;
-                                            })
-                                            .then(() => {
-                                                // TODO: decide to put this outside or inside
-                                                Promise.all([
-                                                    pipeline.sync(),
-                                                    pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-                                                ]).then(results => {
-                                                    const location = urlLib.format({
-                                                        host: request.headers.host,
-                                                        port: request.headers.port,
-                                                        protocol: request.server.info.protocol,
-                                                        pathname: `${request.path}/${pipeline.id}`
-                                                    });
+            // Check if the pipeline exists in the default collection
+            // to prevent the situation where a pipeline is deleted and then created right away with the same id
+            if (!defaultCollection.pipelineIds.includes(pipeline.id)) {
+                Object.assign(defaultCollection, {
+                    pipelineIds: [...defaultCollection.pipelineIds, pipeline.id]
+                });
 
-                                                    return reply(results[0].toJson())
-                                                        .header('Location', location)
-                                                        .code(201);
-                                                });
-                                            });
-                                    })
-                            )
-                    )
-                    // something broke, respond with error
-                    .catch(err => reply(boom.boomify(err)))
-            );
+                await defaultCollection.update();
+            }
+            if (autoKeysGeneration) {
+                const privateDeployKey = await pipelineFactory.scm.addDeployKey({
+                    scmContext,
+                    checkoutUrl,
+                    token: pipelineToken
+                });
+                const privateDeployKeyB64 = Buffer.from(privateDeployKey).toString('base64');
+
+                await secretFactory.create({
+                    pipelineId: pipeline.id,
+                    name: deployKeySecret,
+                    value: privateDeployKeyB64,
+                    allowInPR: true
+                });
+            }
+
+            const results = await pipeline.sync();
+
+            await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
+
+            const location = urlLib.format({
+                host: request.headers.host,
+                port: request.headers.port,
+                protocol: request.server.info.protocol,
+                pathname: `${request.path}/${pipeline.id}`
+            });
+            const data = await results.toJson();
+
+            return h
+                .response(data)
+                .header('Location', location)
+                .code(201);
         },
         validate: {
             payload: schema.models.pipeline.create

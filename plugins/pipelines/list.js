@@ -1,9 +1,8 @@
 'use strict';
 
-const boom = require('boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const idSchema = joi.reach(schema.models.pipeline.base, 'id');
+const idSchema = schema.models.pipeline.base.extract('id');
 const listSchema = joi
     .array()
     .items(schema.models.pipeline.get)
@@ -12,7 +11,7 @@ const listSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/pipelines',
-    config: {
+    options: {
         description: 'Get pipelines with pagination',
         notes: 'Returns all pipeline records',
         tags: ['api', 'pipelines'],
@@ -25,7 +24,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const scmContexts = factory.scm.getScmContexts();
             let pipelineArray = [];
@@ -51,13 +50,22 @@ module.exports = () => ({
                         // See https://www.w3schools.com/sql/sql_like.asp for syntax
                         keyword: `%${request.query.search}%`
                     };
+                } else {
+                    // default list all to 50 max count, according to schema.api.pagination
+                    config.paginate = {
+                        page: 1,
+                        count: 50
+                    };
                 }
 
-                if (request.query.page || request.query.count) {
-                    config.paginate = {
-                        page: request.query.page,
-                        count: request.query.count
-                    };
+                if (request.query.page) {
+                    config.paginate = config.paginate || {};
+                    config.paginate.page = request.query.page;
+                }
+
+                if (request.query.count) {
+                    config.paginate = config.paginate || {};
+                    config.paginate.count = request.query.count;
                 }
 
                 const pipelines = factory.list(config);
@@ -67,8 +75,10 @@ module.exports = () => ({
 
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
-                .then(allPipelines => reply(allPipelines.map(p => p.toJson())))
-                .catch(err => reply(boom.boomify(err)));
+                .then(allPipelines => h.response(allPipelines.map(p => p.toJson())))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

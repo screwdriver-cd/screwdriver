@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const listSchema = joi
@@ -11,7 +11,7 @@ const listSchema = joi
 module.exports = () => ({
     method: 'GET',
     path: '/builds/{id}/steps',
-    config: {
+    options: {
         description: 'Get a step for a build',
         notes: 'Returns a step record',
         tags: ['api', 'builds', 'steps'],
@@ -24,14 +24,14 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { stepFactory } = request.server.app;
             const buildIdCred = request.auth.credentials.username && request.auth.credentials.username.toString();
             const buildId = request.params.id && request.params.id.toString();
             const { status } = request.query;
 
             if (request.auth.credentials.scope.includes('temporal') && buildId !== buildIdCred) {
-                return reply(boom.forbidden(`Credential only valid for build ${buildIdCred}`));
+                return boom.forbidden(`Credential only valid for build ${buildIdCred}`);
             }
 
             return stepFactory
@@ -60,9 +60,11 @@ module.exports = () => ({
                             stepModel = [].concat(steps);
                     }
 
-                    return reply(stepModel.map(step => step.toJson()));
+                    return h.response(stepModel.map(step => step.toJson()));
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema

@@ -1,6 +1,6 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 
 /**
@@ -11,7 +11,7 @@ const schema = require('screwdriver-data-schema');
 module.exports = () => ({
     method: ['GET'],
     path: '/auth/token/{buildId?}',
-    config: {
+    options: {
         description: 'Generate jwt',
         notes: 'Generate a JWT for use throughout Screwdriver',
         tags: ['api', 'auth', 'token'],
@@ -20,9 +20,12 @@ module.exports = () => ({
             scope: ['user', 'pipeline']
         },
         plugins: {
-            'hapi-swagger': { security: [{ token: [] }] }
+            'hapi-swagger': { security: [{ token: [] }] },
+            'hapi-rate-limit': {
+                enabled: false
+            }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             let profile = request.auth.credentials;
             const { scope, token, username } = profile;
             const { buildFactory, jobFactory, pipelineFactory } = request.server.app;
@@ -30,29 +33,25 @@ module.exports = () => ({
             // Check Build ID impersonate
             if (request.params.buildId) {
                 if (!scope.includes('admin')) {
-                    return reply(boom.forbidden(`User ${username} is not an admin and cannot impersonate`));
+                    return boom.forbidden(`User ${username} is not an admin and cannot impersonate`);
                 }
 
-                return buildFactory
-                    .get(request.params.buildId)
-                    .then(build => jobFactory.get(build.jobId))
-                    .then(job => pipelineFactory.get(job.pipelineId))
-                    .then(pipeline => {
-                        profile = request.server.plugins.auth.generateProfile(
-                            request.params.buildId,
-                            pipeline.scmContext,
-                            ['build', 'impersonated']
-                        );
-                        profile.token = request.server.plugins.auth.generateToken(profile);
+                const build = await buildFactory.get(request.params.buildId);
+                const job = await jobFactory.get(build.jobId);
+                const pipeline = pipelineFactory.get(job.pipelineId);
 
-                        request.cookieAuth.set(profile);
+                profile = request.server.plugins.auth.generateProfile(request.params.buildId, pipeline.scmContext, [
+                    'build',
+                    'impersonated'
+                ]);
+                profile.token = request.server.plugins.auth.generateToken(profile);
 
-                        return reply({ token: profile.token });
-                    })
-                    .catch(err => reply(boom.boomify(err)));
+                request.cookieAuth.set(profile);
+
+                return h.response({ token: profile.token });
             }
 
-            return reply({ token });
+            return h.response({ token });
         },
         response: {
             schema: schema.api.auth.token

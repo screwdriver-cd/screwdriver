@@ -1,15 +1,15 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 
 module.exports = () => ({
     method: 'POST',
     path: '/builds',
-    config: {
+    options: {
         description: 'Create and start a build',
-        notes: 'This api is depercated, use POST /events instead',
+        notes: 'This api is deprecated, use POST /events instead',
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token'],
@@ -21,7 +21,7 @@ module.exports = () => ({
                 deprecated: true
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { buildFactory } = request.server.app;
             const { userFactory } = request.server.app;
@@ -142,7 +142,7 @@ module.exports = () => ({
                             );
                         })
                     )
-                    .then(build => {
+                    .then(async build => {
                         // everything succeeded, inform the user
                         const location = urlLib.format({
                             host: request.headers.host,
@@ -151,12 +151,15 @@ module.exports = () => ({
                             pathname: `${request.path}/${build.id}`
                         });
 
-                        return reply(build.toJsonWithSteps())
+                        return h
+                            .response(await build.toJsonWithSteps())
                             .header('Location', location)
                             .code(201);
                     })
                     // something was botched
-                    .catch(err => reply(boom.boomify(err)))
+                    .catch(err => {
+                        throw err;
+                    })
             );
         },
         validate: {

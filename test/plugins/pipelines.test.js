@@ -2,10 +2,10 @@
 
 const { assert } = require('chai');
 const sinon = require('sinon');
-const hapi = require('hapi');
+const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
-const hoek = require('hoek');
+const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
 const testCollection = require('./data/collection.json');
@@ -79,7 +79,7 @@ const decoratePipelineMock = pipeline => {
     const mock = hoek.clone(pipeline);
 
     mock.sync = sinon.stub();
-    mock.addWebhook = sinon.stub();
+    mock.addWebhooks = sinon.stub();
     mock.syncPRs = sinon.stub();
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(pipeline);
@@ -163,6 +163,7 @@ describe('pipeline plugin test', () => {
     let collectionFactoryMock;
     let eventFactoryMock;
     let tokenFactoryMock;
+    let bannerFactoryMock;
     let jobFactoryMock;
     let triggerFactoryMock;
     let secretFactoryMock;
@@ -173,6 +174,7 @@ describe('pipeline plugin test', () => {
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const scmContext = 'github:github.com';
+    const scmDisplayName = 'github';
 
     before(() => {
         mockery.enable({
@@ -181,7 +183,7 @@ describe('pipeline plugin test', () => {
         });
     });
 
-    beforeEach(done => {
+    beforeEach(async () => {
         pipelineFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub(),
@@ -219,26 +221,29 @@ describe('pipeline plugin test', () => {
         triggerFactoryMock = {
             getTriggers: sinon.stub()
         };
+        bannerFactoryMock = {
+            scm: {
+                getDisplayName: sinon.stub().returns()
+            }
+        };
         secretFactoryMock = {
             create: sinon.stub(),
             get: sinon.stub()
         };
         bannerMock = {
-            register: (s, o, next) => {
+            name: 'banners',
+            register: s => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
-                next();
             }
         };
-        bannerMock.register.attributes = {
-            name: 'banners'
-        };
-
         screwdriverAdminDetailsMock = sinon.stub();
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
-        server = new hapi.Server();
+        server = new hapi.Server({
+            port: 1234
+        });
         server.app = {
             eventFactory: eventFactoryMock,
             jobFactory: jobFactoryMock,
@@ -247,18 +252,16 @@ describe('pipeline plugin test', () => {
             userFactory: userFactoryMock,
             collectionFactory: collectionFactoryMock,
             tokenFactory: tokenFactoryMock,
+            bannerFactory: bannerFactoryMock,
             secretFactory: secretFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
         };
-        server.connection({
-            port: 1234
-        });
 
         server.auth.scheme('custom', () => ({
-            authenticate: (request, reply) =>
-                reply.continue({
+            authenticate: (request, h) =>
+                h.authenticated({
                     credentials: {
                         scope: ['user']
                     }
@@ -266,27 +269,24 @@ describe('pipeline plugin test', () => {
         }));
         server.auth.strategy('token', 'custom');
 
-        server.register(
-            [
-                bannerMock,
-                {
-                    register: plugin,
-                    options: {
-                        password,
-                        scm: scmMock,
-                        admins: ['github:myself']
-                    }
-                },
-                {
-                    // eslint-disable-next-line global-require
-                    register: require('../../plugins/secrets'),
-                    options: {
-                        password
-                    }
+        server.register([
+            { plugin: bannerMock },
+            {
+                plugin,
+                options: {
+                    password,
+                    scm: scmMock,
+                    admins: ['github:myself']
                 }
-            ],
-            done
-        );
+            },
+            {
+                // eslint-disable-next-line global-require
+                plugin: require('../../plugins/secrets'),
+                options: {
+                    password
+                }
+            }
+        ]);
     });
 
     afterEach(() => {
@@ -347,12 +347,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 and all pipelines with no pagination', () => {
+        it('returns 200 and pipelines with pagination if no search parameter specified', () => {
             options.url = '/pipelines';
             pipelineFactoryMock.list
                 .withArgs({
                     params: {
                         scmContext: 'github:github.com'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'descending'
                 })
@@ -361,6 +365,10 @@ describe('pipeline plugin test', () => {
                 .withArgs({
                     params: {
                         scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'descending'
                 })
@@ -379,6 +387,10 @@ describe('pipeline plugin test', () => {
                     params: {
                         scmContext: 'github:github.com'
                     },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
                     sort: 'ascending'
                 })
                 .resolves(getPipelineMocks(testPipelines));
@@ -386,6 +398,10 @@ describe('pipeline plugin test', () => {
                 .withArgs({
                     params: {
                         scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'ascending'
                 })
@@ -404,6 +420,10 @@ describe('pipeline plugin test', () => {
                     params: {
                         scmContext: 'github:github.com'
                     },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
                     sort: 'ascending',
                     sortBy: 'name'
                 })
@@ -412,6 +432,10 @@ describe('pipeline plugin test', () => {
                 .withArgs({
                     params: {
                         scmContext: 'gitlab:mygitlab'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
                     },
                     sort: 'ascending',
                     sortBy: 'name'
@@ -557,10 +581,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${id}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -571,6 +598,7 @@ describe('pipeline plugin test', () => {
             pipeline = getPipelineMocks(testPipeline);
             pipeline.remove.resolves(null);
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
+            bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         afterEach(() => {
@@ -602,7 +630,7 @@ describe('pipeline plugin test', () => {
             };
 
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
-            options.credentials.username = 'd2lam';
+            options.auth.credentials.username = 'd2lam';
             userMock = getUserMock({ username: 'd2lam', scmContext });
             userFactoryMock.get.withArgs({ username: 'd2lam', scmContext }).resolves(userMock);
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -976,10 +1004,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${pipelineId}/secrets`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             pipelineMock = getPipelineMocks(testPipeline);
@@ -1117,10 +1148,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/sync`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1141,7 +1175,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 204 with pipeline token', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 scmContext,
                 pipelineId: id,
@@ -1175,7 +1209,7 @@ describe('pipeline plugin test', () => {
                 message: 'Token does not have permission to this pipeline'
             };
 
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 pipelineId: '999',
                 scope: 'pipeline'
@@ -1231,10 +1265,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/sync/webhooks`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1291,7 +1328,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 500 when model returns an error', () => {
-            pipelineMock.addWebhook.rejects(new Error('icantdothatdave'));
+            pipelineMock.addWebhooks.rejects(new Error('icantdothatdave'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
@@ -1311,10 +1348,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/sync/pullrequests`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1385,7 +1425,7 @@ describe('pipeline plugin test', () => {
         let userMock;
 
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
@@ -1401,10 +1441,13 @@ describe('pipeline plugin test', () => {
                 payload: {
                     checkoutUrl: unformattedCheckoutUrl
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1417,7 +1460,7 @@ describe('pipeline plugin test', () => {
 
             pipelineMock = getPipelineMocks(testPipeline);
             pipelineMock.sync.resolves(pipelineMock);
-            pipelineMock.addWebhook.resolves(null);
+            pipelineMock.addWebhooks.resolves(null);
 
             pipelineFactoryMock.get.resolves(null);
             pipelineFactoryMock.create.resolves(pipelineMock);
@@ -1603,6 +1646,16 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when the pipeline model fails to sync during create', () => {
             const testError = new Error('pipelineModelSyncError');
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
+
+            collectionFactoryMock.list
+                .withArgs({
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
+                })
+                .resolves([getCollectionMock(testDefaultCollection)]);
 
             pipelineMock.sync.rejects(testError);
 
@@ -1613,8 +1666,18 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when the pipeline model fails to add webhooks during create', () => {
             const testError = new Error('pipelineModelAddWebhookError');
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
 
-            pipelineMock.addWebhook.rejects(testError);
+            collectionFactoryMock.list
+                .withArgs({
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
+                })
+                .resolves([getCollectionMock(testDefaultCollection)]);
+
+            pipelineMock.addWebhooks.rejects(testError);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
@@ -1625,7 +1688,7 @@ describe('pipeline plugin test', () => {
     describe('PUT /pipelines/{id}', () => {
         let options;
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        let formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const oldScmUri = 'github.com:12345:branchName';
         const id = 123;
@@ -1647,10 +1710,13 @@ describe('pipeline plugin test', () => {
                 payload: {
                     checkoutUrl: unformattedCheckoutUrl
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1662,7 +1728,7 @@ describe('pipeline plugin test', () => {
 
             pipelineMock = getPipelineMocks(testPipeline);
             updatedPipelineMock = hoek.clone(pipelineMock);
-            updatedPipelineMock.addWebhook.resolves(null);
+            updatedPipelineMock.addWebhooks.resolves(null);
 
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
@@ -1677,12 +1743,39 @@ describe('pipeline plugin test', () => {
         it('returns 200 and correct pipeline data', () =>
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
             }));
 
+        it('returns 200 and updates settings only', () => {
+            options.payload = { settings: { metricsDowntimeJobs: [123, 456] } };
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(pipelineFactoryMock.scm.parseUrl);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and updates settings as well', () => {
+            options.payload.settings = { metricsDowntimeJobs: [123, 456] };
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 200 with pipeline token', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 scmContext,
                 pipelineId: id,
@@ -1691,7 +1784,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1748,7 +1841,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).resolves(null);
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 404);
             });
         });
@@ -1757,7 +1850,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.configPipelineId = 123;
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1766,7 +1859,7 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
             });
         });
@@ -1775,20 +1868,20 @@ describe('pipeline plugin test', () => {
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
             });
         });
 
         it('returns 200 when the user is admin of old repo with deprecated scmContext', () => {
             pipelineMock.admins = { [username]: true };
-            pipelineMock.scmContext = 'depreacated';
+            pipelineMock.scmContext = 'deprecated';
 
             return server.inject(options).then(reply => {
                 // Only call once to get permissions on the new repo
                 assert.calledOnce(userMock.getPermissions);
                 assert.calledWith(userMock.getPermissions, scmUri);
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 200);
             });
         });
@@ -1801,13 +1894,13 @@ describe('pipeline plugin test', () => {
                 // Only call once to get permissions on the new repo
                 assert.calledOnce(userMock.getPermissions);
                 assert.calledWith(userMock.getPermissions, scmUri);
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 403);
             });
         });
 
         it('returns 401 when the pipeline token does not have permission', () => {
-            options.credentials = {
+            options.auth.credentials = {
                 username,
                 scmContext,
                 pipelineId: '999',
@@ -1815,7 +1908,7 @@ describe('pipeline plugin test', () => {
             };
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 401);
             });
         });
@@ -1825,7 +1918,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 409);
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.strictEqual(reply.result.message, `Pipeline already exists with the ID: ${pipelineMock.id}`);
             });
         });
@@ -1836,7 +1929,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.get.withArgs({ id }).rejects(testError);
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1847,7 +1940,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.update.rejects(testError);
 
             return server.inject(options).then(reply => {
-                assert.notCalled(updatedPipelineMock.addWebhook);
+                assert.notCalled(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1858,7 +1951,7 @@ describe('pipeline plugin test', () => {
             pipelineMock.sync.rejects(testError);
 
             return server.inject(options).then(reply => {
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1866,10 +1959,10 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the pipeline model fails to add webhooks during create', () => {
             const testError = new Error('pipelineModelAddWebhookError');
 
-            updatedPipelineMock.addWebhook.rejects(testError);
+            updatedPipelineMock.addWebhooks.rejects(testError);
 
             return server.inject(options).then(reply => {
-                assert.calledOnce(updatedPipelineMock.addWebhook);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.equal(reply.statusCode, 500);
             });
         });
@@ -1887,10 +1980,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'POST',
                 url: `/pipelines/${id}/startall`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
 
@@ -1967,10 +2063,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/admin`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2026,10 +2125,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/tokens`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2122,10 +2224,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/metrics?startTime=${startTime}&endTime=${endTime}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             pipelineMock = getPipelineMocks(testPipeline);
@@ -2201,9 +2306,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 400 when option is bad', () => {
-            const errorMsg =
-                'child "aggregateInterval" fails because ["aggregateInterval" ' +
-                'must be one of [none, day, week, month, year]]';
+            const errorMsg = 'Invalid request query input';
 
             options.url = `/pipelines/${id}/metrics?aggregateInterval=biweekly`;
 
@@ -2222,6 +2325,34 @@ describe('pipeline plugin test', () => {
                     startTime: '2019-03-13T21:10:58.211Z',
                     endTime: nowTime,
                     aggregateInterval: 'week'
+                });
+            });
+        });
+
+        it('passes in downtime jobs array and status', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[]=123&downtimeJobs[]=456&downtimeStatuses[]=ABORTED`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2019-03-13T21:10:58.211Z',
+                    endTime: nowTime,
+                    downtimeJobs: [123, 456],
+                    downtimeStatuses: ['ABORTED']
+                });
+            });
+        });
+
+        it('passes in downtime job and statuses array', () => {
+            options.url = `/pipelines/${id}/metrics?downtimeJobs[]=123&downtimeStatuses[]=ABORTED&downtimeStatuses[]=FAILURE`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getMetrics, {
+                    startTime: '2019-03-13T21:10:58.211Z',
+                    endTime: nowTime,
+                    downtimeJobs: [123],
+                    downtimeStatuses: ['ABORTED', 'FAILURE']
                 });
             });
         });
@@ -2253,10 +2384,13 @@ describe('pipeline plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2365,10 +2499,13 @@ describe('pipeline plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2505,10 +2642,13 @@ describe('pipeline plugin test', () => {
                     name,
                     description
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2634,10 +2774,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${pipelineId}/tokens/${tokenId}`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2755,10 +2898,13 @@ describe('pipeline plugin test', () => {
             options = {
                 method: 'DELETE',
                 url: `/pipelines/${id}/tokens`,
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2835,7 +2981,7 @@ describe('pipeline plugin test', () => {
         const id = 123;
         const username = 'myself';
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
-        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
+        const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const title = 'update file';
@@ -2864,10 +3010,13 @@ describe('pipeline plugin test', () => {
                     title,
                     message
                 },
-                credentials: {
-                    username,
-                    scmContext,
-                    scope: ['user']
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
                 }
             };
             userMock = getUserMock({ username, scmContext });
@@ -2878,13 +3027,41 @@ describe('pipeline plugin test', () => {
             userFactoryMock.scm.openPr.resolves(pullRequest);
         });
 
-        it('returns 201 and correct pipeline data', () =>
+        it('returns 201 and correct pipeline data', () => {
             server.inject(options).then(reply => {
                 const { prUrl } = reply.result;
 
                 assert.equal(prUrl, pullRequest.data.html_url);
                 assert.equal(reply.statusCode, 201);
-            }));
+                assert.calledWith(userFactoryMock.scm.openPr, {
+                    checkoutUrl: 'git@github.com:screwdriver-cd/data-model.git#master',
+                    files: [{ content: 'fileContent', name: 'fileName' }],
+                    message: 'update file',
+                    scmContext,
+                    title: 'update file',
+                    token
+                });
+            });
+        });
+
+        it('formats the checkout url correctly with branch', () => {
+            options.payload.checkoutUrl = `${unformattedCheckoutUrl}#branchName`;
+
+            return server.inject(options).then(reply => {
+                const { prUrl } = reply.result;
+
+                assert.equal(prUrl, pullRequest.data.html_url);
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(userFactoryMock.scm.openPr, {
+                    checkoutUrl: 'git@github.com:screwdriver-cd/data-model.git#branchName',
+                    files: [{ content: 'fileContent', name: 'fileName' }],
+                    message: 'update file',
+                    scmContext,
+                    title: 'update file',
+                    token
+                });
+            });
+        });
 
         it('formats the checkout url correctly', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });

@@ -1,13 +1,13 @@
 'use strict';
 
-const boom = require('boom');
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.commandTag.base;
 const urlLib = require('url');
 const VERSION_REGEX = schema.config.regex.VERSION;
-const exactVersionSchema = joi.reach(schema.models.commandTag.base, 'version');
-const tagSchema = joi.reach(schema.models.commandTag.base, 'tag');
+const exactVersionSchema = schema.models.commandTag.base.extract('version');
+const tagSchema = schema.models.commandTag.base.extract('tag');
 
 /* Currently, only build scope is allowed to tag command due to security reasons.
  * The same pipeline that publishes the command has the permission to tag it.
@@ -15,7 +15,7 @@ const tagSchema = joi.reach(schema.models.commandTag.base, 'tag');
 module.exports = () => ({
     method: 'PUT',
     path: '/commands/{namespace}/{name}/tags/{tagName}',
-    config: {
+    options: {
         description: 'Add or update a command tag',
         notes: 'Add or update a specific command',
         tags: ['api', 'commands'],
@@ -28,7 +28,7 @@ module.exports = () => ({
                 security: [{ token: [] }]
             }
         },
-        handler: (request, reply) => {
+        handler: async (request, h) => {
             const { pipelineFactory, commandFactory, commandTagFactory } = request.server.app;
             const { pipelineId, isPR } = request.auth.credentials;
             const { namespace } = request.params;
@@ -73,7 +73,7 @@ module.exports = () => ({
                     if (commandTag) {
                         commandTag.version = version;
 
-                        return commandTag.update().then(newTag => reply(newTag.toJson()).code(200));
+                        return commandTag.update().then(newTag => h.response(newTag.toJson()).code(200));
                     }
 
                     // If command exists, then create the tag
@@ -85,22 +85,25 @@ module.exports = () => ({
                             pathname: `${request.path}/${newTag.id}`
                         });
 
-                        return reply(newTag.toJson())
+                        return h
+                            .response(newTag.toJson())
                             .header('Location', location)
                             .code(201);
                     });
                 })
-                .catch(err => reply(boom.boomify(err)));
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
-            params: {
-                namespace: joi.reach(baseSchema, 'namespace'),
-                name: joi.reach(baseSchema, 'name'),
-                tagName: joi.reach(baseSchema, 'tag')
-            },
-            payload: {
+            params: joi.object({
+                namespace: baseSchema.extract('namespace'),
+                name: baseSchema.extract('name'),
+                tagName: baseSchema.extract('tag')
+            }),
+            payload: joi.object({
                 version: joi.alternatives().try(exactVersionSchema, tagSchema)
-            }
+            })
         }
     }
 });

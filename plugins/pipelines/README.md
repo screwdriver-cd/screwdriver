@@ -6,7 +6,7 @@
 ### Register plugin
 
 ```javascript
-const Hapi = require('hapi');
+const Hapi = require('@hapi/hapi');
 const server = new Hapi.Server();
 const pipelinesPlugin = require('./');
 
@@ -123,7 +123,10 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/metrics?startTime=2019-02-01T12:00:00.000Z`
 
-`GET /pipelines/{id}/metrics?startTime=2019-02-01T12:00:00.000Z&endTime=2019-03-01T12:00:00.000`
+`GET /pipelines/{id}/metrics?aggregateInterval=week`
+
+Need to have array format for downtimeJobs and downtimeStatuses
+`GET /pipelines/{id}/metrics?downtimeJobs[]=123&downtimeJobs[]=456&downtimeStatuses[]=ABORTED`
 
 #### Start all child pipelines belong to this pipeline
 * Start all child pipelines belong to this config pipeline all at once
@@ -169,7 +172,7 @@ Path Params:
 Query Params:
 
 * `scope` - Scope of the cache supporting values `pipelines|jobs|events`
-* `cacheId` - The id of the cache - pipelinId/jobId/eventId
+* `cacheId` - The id of the cache - pipelineId/jobId/eventId
 
 ### Configuration - Reads the ecosystem
 ```
@@ -189,7 +192,7 @@ The server supplies factories to plugins in the form of server settings:
 
 ```js
 // handler pipelinePlugin.js
-handler: (request, reply) => {
+handler: async (request, h) => {
     const factory = request.server.app.pipelineFactory;
 
     // ...
