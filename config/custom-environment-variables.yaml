@@ -394,6 +394,11 @@ ecosystem:
     max_size_mb: CACHE_MAX_SIZE_MB
     max_go_threads: CACHE_MAX_GO_THREADS
 
+# environment release information
+release:
+  __name: RELEASE_ENVIRONMENT_VARIABLES
+  __format: json
+
 build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES

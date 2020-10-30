@@ -46,13 +46,22 @@ module.exports = () => ({
                         // See https://www.w3schools.com/sql/sql_like.asp for syntax
                         keyword: `%${request.query.search}%`
                     };
+                } else {
+                    // default list all to 50 max count, according to schema.api.pagination
+                    config.paginate = {
+                        page: 1,
+                        count: 50
+                    };
                 }
 
-                if (request.query.page || request.query.count) {
-                    config.paginate = {
-                        page: request.query.page,
-                        count: request.query.count
-                    };
+                if (request.query.page) {
+                    config.paginate = config.paginate || {};
+                    config.paginate.page = request.query.page;
+                }
+
+                if (request.query.count) {
+                    config.paginate = config.paginate || {};
+                    config.paginate.count = request.query.count;
                 }
 
                 const pipelines = factory.list(config);
