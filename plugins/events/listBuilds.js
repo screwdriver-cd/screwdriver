@@ -20,11 +20,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'pipeline']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { eventFactory } = request.server.app;
             const event = await eventFactory.get(request.params.id);

@@ -149,11 +149,7 @@ module.exports = config => ({
             strategies: ['token', 'session'],
             scope: ['user', 'pipeline', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: (req, h) => {
             const { stepFactory } = req.server.app;
             const buildId = req.params.id;

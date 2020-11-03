@@ -18,11 +18,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: (request, h) =>
             validator(request.payload.yaml)
                 .then(config => {

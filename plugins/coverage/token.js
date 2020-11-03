@@ -14,11 +14,7 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;

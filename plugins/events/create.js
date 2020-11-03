@@ -16,11 +16,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest', 'pipeline']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
             const { buildId, causeMessage, creator, meta } = request.payload;

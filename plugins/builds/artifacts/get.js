@@ -20,11 +20,7 @@ module.exports = config => ({
             strategies: ['session', 'token'],
             scope: ['user', 'build', 'pipeline']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const artifact = request.params.name;
             const buildId = request.params.id;

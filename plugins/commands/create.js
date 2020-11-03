@@ -116,11 +116,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         payload: {
             parse: true,
             maxBytes: DEFAULT_BYTES,
