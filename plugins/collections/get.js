@@ -38,15 +38,16 @@ module.exports = () => ({
                         result.type = 'normal';
                     }
 
-                    // Store promises from pipelineFactory fetch operations
-                    const collectionPipelines = [];
-
-                    result.pipelineIds.forEach(id => {
-                        collectionPipelines.push(pipelineFactory.get(id));
-                    });
+                    const listConfig = {
+                        search: {
+                            field: 'id',
+                            keyword: collection.pipelineIds
+                        }
+                    };
 
                     return (
-                        Promise.all(collectionPipelines)
+                        pipelineFactory
+                            .list(listConfig)
                             // to filter out null
                             .then(pipelines => pipelines.filter(pipeline => pipeline))
                             .then(pipelines => {
