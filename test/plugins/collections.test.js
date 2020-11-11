@@ -46,6 +46,23 @@ const getPipelineMockFromId = id => {
     return Promise.resolve(result);
 };
 
+const listPipelines = config => {
+    const result = [];
+
+    config.search.keyword.forEach(id => {
+        let pipelineMock = null;
+
+        testPipelines.forEach(pipeline => {
+            if (pipeline.id === id) {
+                pipelineMock = hoek.clone(pipeline);
+            }
+        });
+        result.push(pipelineMock);
+    });
+
+    return Promise.resolve(result);
+};
+
 const getUserMock = user => {
     const mock = hoek.clone(user);
 
@@ -84,7 +101,8 @@ describe('collection plugin test', () => {
             get: sinon.stub().resolves(null)
         };
         pipelineFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            list: sinon.stub()
         };
         userFactoryMock = {
             get: sinon.stub()
@@ -105,6 +123,7 @@ describe('collection plugin test', () => {
         });
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         pipelineFactoryMock.get.callsFake(getPipelineMockFromId);
+        pipelineFactoryMock.list.callsFake(listPipelines);
 
         mockery.registerMock('screwdriver-logger', loggerMock);
 
