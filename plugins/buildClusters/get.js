@@ -17,11 +17,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { name } = request.params;
             const factory = request.server.app.buildClusterFactory;

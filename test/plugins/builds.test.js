@@ -4525,6 +4525,31 @@ describe('build plugin test', () => {
                 });
         });
 
+        it('returns download link for download option', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            const expectedLog = 'Building stuff\nStill building...\nDone Building stuff\n';
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs?type=download`,
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['session']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, expectedLog);
+                    assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+                });
+        });
+
         it('returns logs for a step that is split across pages', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)

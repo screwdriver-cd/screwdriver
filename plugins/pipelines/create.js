@@ -16,18 +16,13 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { autoKeysGeneration } = request.payload;
             const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
-            const pipelineToken = '';
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
@@ -101,7 +96,7 @@ module.exports = () => ({
                 const privateDeployKey = await pipelineFactory.scm.addDeployKey({
                     scmContext,
                     checkoutUrl,
-                    token: pipelineToken
+                    token
                 });
                 const privateDeployKeyB64 = Buffer.from(privateDeployKey).toString('base64');
 
@@ -113,10 +108,9 @@ module.exports = () => ({
                 });
             }
 
-            const results = await Promise.all([
-                pipeline.sync(),
-                pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`)
-            ]);
+            const results = await pipeline.sync();
+
+            await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
             const location = urlLib.format({
                 host: request.headers.host,
@@ -124,7 +118,7 @@ module.exports = () => ({
                 protocol: request.server.info.protocol,
                 pathname: `${request.path}/${pipeline.id}`
             });
-            const data = await results[0].toJson();
+            const data = await results.toJson();
 
             return h
                 .response(data)

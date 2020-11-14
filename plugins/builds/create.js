@@ -9,7 +9,7 @@ module.exports = () => ({
     path: '/builds',
     options: {
         description: 'Create and start a build',
-        notes: 'This api is depercated, use POST /events instead',
+        notes: 'This api is deprecated, use POST /events instead',
         tags: ['api', 'builds'],
         auth: {
             strategies: ['token'],

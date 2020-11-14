@@ -20,11 +20,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'pipeline', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
             const { sort, sortBy, page, count } = request.query;

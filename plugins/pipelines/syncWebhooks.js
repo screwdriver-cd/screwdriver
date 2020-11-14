@@ -16,11 +16,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { id } = request.params;
             const { pipelineFactory } = request.server.app;
@@ -51,7 +47,7 @@ module.exports = () => ({
                                 }
                             })
                             // user has good permissions, add or update webhooks
-                            .then(() => pipeline.addWebhook(`${request.server.info.uri}/v4/webhooks`))
+                            .then(() => pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`))
                             .then(() => h.response().code(204))
                     );
                 })

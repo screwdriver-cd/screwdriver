@@ -14,6 +14,11 @@ module.exports = () => ({
         description: 'Generate crumb',
         notes: 'Should return a crumb',
         tags: ['api', 'crumb', 'auth'],
+        plugins: {
+            'hapi-rate-limit': {
+                enabled: false
+            }
+        },
         handler: async (request, h) =>
             h.response({
                 crumb: request.server.plugins.crumb.generate(request, h)

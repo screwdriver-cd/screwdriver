@@ -18,7 +18,8 @@ describe('Register Unit Test Case', () => {
         '../plugins/template-validator',
         '../plugins/command-validator',
         '../plugins/promster',
-        '../plugins/metrics'
+        '../plugins/metrics',
+        '../plugins/ratelimit'
     ];
     const resourcePlugins = [
         '../plugins/auth',
@@ -33,10 +34,12 @@ describe('Register Unit Test Case', () => {
         '../plugins/secrets',
         '../plugins/templates',
         '../plugins/tokens',
+        '../plugins/users',
         '../plugins/webhooks',
         '../plugins/stats',
         '../plugins/isAdmin',
-        '../plugins/shutdown'
+        '../plugins/shutdown',
+        '../plugins/release'
     ];
     const authPlugins = ['@hapi/bell', '@hapi/cookie', '@hapi/crumb', 'hapi-auth-bearer-token', 'hapi-auth-jwt2'];
     const pluginLength = expectedPlugins.length + resourcePlugins.length + authPlugins.length; // for server.register of auth Plugins;

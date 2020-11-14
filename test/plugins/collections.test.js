@@ -6,12 +6,10 @@ const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
-const testBuilds = require('./data/builds.json').slice(0, 2);
 const testCollection = require('./data/collection.json');
 const testCollectionResponse = require('./data/collection.response.json');
 const testCollections = require('./data/collections.json');
 const testPipelines = require('./data/pipelines.json');
-const testPRJobs = require('./data/prJobs.json');
 const updatedCollection = require('./data/updatedCollection.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -42,12 +40,24 @@ const getPipelineMockFromId = id => {
     testPipelines.forEach(pipeline => {
         if (pipeline.id === id) {
             result = hoek.clone(pipeline);
-
-            result.update = sinon.stub();
-            result.toJson = sinon.stub().returns(pipeline);
-            result.getJobs = sinon.stub().resolves(null);
-            result.remove = sinon.stub();
         }
+    });
+
+    return Promise.resolve(result);
+};
+
+const listPipelines = config => {
+    const result = [];
+
+    config.search.keyword.forEach(id => {
+        let pipelineMock = null;
+
+        testPipelines.forEach(pipeline => {
+            if (pipeline.id === id) {
+                pipelineMock = hoek.clone(pipeline);
+            }
+        });
+        result.push(pipelineMock);
     });
 
     return Promise.resolve(result);
@@ -91,7 +101,8 @@ describe('collection plugin test', () => {
             get: sinon.stub().resolves(null)
         };
         pipelineFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            list: sinon.stub()
         };
         userFactoryMock = {
             get: sinon.stub()
@@ -112,6 +123,7 @@ describe('collection plugin test', () => {
         });
         userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
         pipelineFactoryMock.get.callsFake(getPipelineMockFromId);
+        pipelineFactoryMock.list.callsFake(listPipelines);
 
         mockery.registerMock('screwdriver-logger', loggerMock);
 
@@ -388,9 +400,6 @@ describe('collection plugin test', () => {
 
     describe('GET /collections/{id}', () => {
         const { id } = testCollectionResponse;
-        let buildsMock;
-        let eventMock;
-        let pipelineMock;
         let options;
 
         beforeEach(() => {
@@ -406,35 +415,8 @@ describe('collection plugin test', () => {
                     strategy: 'token'
                 }
             };
-            eventMock = {
-                getBuilds() {
-                    buildsMock = testBuilds.map(build => getMock(build));
-
-                    return Promise.resolve(buildsMock);
-                }
-            };
-
-            // Mock getting PRs info for a pipeline
-            pipelineMock = getMock(testPipelines[0]);
-            pipelineMock.getJobs = () => {
-                const jobsMock = testPRJobs.map(job => {
-                    const mock = getMock(job);
-
-                    return mock;
-                });
-
-                // For the first job, let getBuilds return a last build that succeeded
-                jobsMock[0].getBuilds = () => Promise.resolve([getMock(testBuilds[0])]);
-                // For the second job, let getBuilds return a last build that failed
-                jobsMock[1].getBuilds = () => Promise.resolve([getMock(testBuilds[1])]);
-
-                return Promise.resolve(jobsMock);
-            };
-
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
-            eventFactoryMock.get.withArgs(testPipelines[0].lastEventId).resolves(eventMock);
             collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
-            pipelineFactoryMock.get.withArgs(testPipelines[0].id).resolves(pipelineMock);
         });
 
         it('exposes a route for getting a collection', () =>
@@ -496,41 +478,6 @@ describe('collection plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, newTestCollectionResponse);
-            });
-        });
-
-        it('sets lastBuilds to an empty array in response if no builds', () => {
-            eventMock.getBuilds = () => Promise.resolve([]);
-            const expected = { ...testCollectionResponse };
-
-            expected.pipelines[0].lastBuilds = [];
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, expected);
-            });
-        });
-
-        it('fails to get pr jobs for a pipeline', () => {
-            pipelineMock.getJobs = () => Promise.reject(new Error('Failed'));
-
-            return server.inject(options).then(reply => {
-                // The response should still be 200 but error should be logged
-                assert.equal(reply.statusCode, 200);
-                assert.calledOnce(loggerMock.error);
-            });
-        });
-
-        it('fails to get last event for a pipeline', () => {
-            eventFactoryMock.get.withArgs(testPipelines[0].lastEventId).rejects(new Error('Failed'));
-            const expected = { ...testCollectionResponse };
-
-            expected.pipelines[0].lastBuilds = [];
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, expected);
-                assert.calledOnce(loggerMock.error);
             });
         });
 

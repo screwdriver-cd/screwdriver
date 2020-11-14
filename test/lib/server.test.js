@@ -23,12 +23,18 @@ describe('server case', () => {
             executor: {}
         },
         auth: {
+            sessionTimeout: 2,
             scm: {
                 getBellConfiguration: sinon.stub().resolves()
             }
         },
         httpd: {
             port: 12347
+        },
+        release: {
+            cookieName: 'test_cookie',
+            cookieValue: 'test_value',
+            cookieTimeout: 2
         }
     };
 

@@ -13,3 +13,4 @@ docker-compose.yml
 mw-data
 .vscode
 .envrc
+.node-version

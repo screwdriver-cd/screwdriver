@@ -300,8 +300,26 @@ ecosystem:
     max_size_mb: 0
     max_go_threads: 10000
 
+# environment release information
+release: 
+    mode: stable
+    cookieName: release
+    cookieValue: stable
+    cookieTimeout: 2 # in minutes
+    headerName: release
+    headerValue: stable
+
+
 # default cluster environment variables to inject into builds
 build:
   environment:
     SD_VERSION: 4
   externalJoin: false
+
+rateLimit:
+  # set true to enable rate limiting on auth token
+  enabled: false
+  # max request limit on auth token per duration, default: 300 (1 rps)
+  limit: 300
+  # limit duration in milliseconds, default: 300000 (5 mins)
+  duration: 300000

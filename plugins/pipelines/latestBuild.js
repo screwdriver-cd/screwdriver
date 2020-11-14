@@ -18,11 +18,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build', 'pipeline']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { jobFactory } = request.server.app;
             const { status } = request.query || {};

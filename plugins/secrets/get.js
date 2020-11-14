@@ -17,11 +17,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { secretFactory } = request.server.app;
             const { credentials } = request.auth;

@@ -17,11 +17,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['temporal']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const profile = request.auth.credentials;
             const { buildTimeout } = request.payload;

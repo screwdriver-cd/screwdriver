@@ -5,8 +5,20 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
 const MAX_DAYS = 180; // 6 months
+const DOWNTIME_JOBS_KEY = 'downtimeJobs[]';
+const DOWNTIME_STATUSES_KEY = 'downtimeStatuses[]';
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
+const jobIdSchema = joi.string().regex(/^[0-9]+$/);
+const jobIdsSchema = joi
+    .alternatives()
+    .try(joi.array().items(jobIdSchema), jobIdSchema)
+    .required();
+const statusSchema = schema.models.build.base.extract('status');
+const statusesSchema = joi
+    .alternatives()
+    .try(joi.array().items(statusSchema), statusSchema)
+    .required();
 
 module.exports = () => ({
     method: 'GET',
@@ -19,11 +31,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest', 'pipeline']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const { id } = request.params;
@@ -58,6 +66,22 @@ module.exports = () => ({
                         config.aggregateInterval = aggregateInterval;
                     }
 
+                    // Format downtimeJobs and downtimeStatuses and pass them in
+                    const downtimeJobs = request.query[DOWNTIME_JOBS_KEY];
+                    const downtimeStatuses = request.query[DOWNTIME_STATUSES_KEY];
+
+                    if (downtimeJobs) {
+                        config.downtimeJobs = Array.isArray(downtimeJobs)
+                            ? downtimeJobs.map(jobId => parseInt(jobId, 10))
+                            : [parseInt(downtimeJobs, 10)];
+                    }
+
+                    if (downtimeStatuses) {
+                        config.downtimeStatuses = Array.isArray(downtimeStatuses)
+                            ? downtimeStatuses
+                            : [downtimeStatuses];
+                    }
+
                     return pipeline.getMetrics(config);
                 })
                 .then(metrics => h.response(metrics))
@@ -76,7 +100,9 @@ module.exports = () => ({
                 joi.object({
                     startTime: joi.string().isoDate(),
                     endTime: joi.string().isoDate(),
-                    aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year')
+                    aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year'),
+                    'downtimeJobs[]': jobIdsSchema.optional(),
+                    'downtimeStatuses[]': statusesSchema.optional()
                 })
             )
         }

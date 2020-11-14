@@ -13,6 +13,11 @@ module.exports = () => ({
         description: 'Get a single banner',
         notes: 'Return a banner record',
         tags: ['api', 'banners'],
+        plugins: {
+            'hapi-rate-limit': {
+                enabled: false
+            }
+        },
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
             const { id } = request.params;
