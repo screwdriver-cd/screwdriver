@@ -26,7 +26,11 @@ module.exports = () => ({
                 throw boom.notFound('Pipeline does not exist');
             }
 
-            const admin = await pipeline.getFirstAdmin();
+            try {
+                const admin = await pipeline.getFirstAdmin();
+            } catch (e) {
+                throw boom.notFound(e);
+            }
 
             return h.response(admin);
         },
