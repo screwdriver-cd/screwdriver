@@ -28,11 +28,11 @@ module.exports = () => ({
 
             try {
                 const admin = await pipeline.getFirstAdmin();
+
+                return h.response(admin);
             } catch (e) {
                 throw boom.notFound(e);
             }
-
-            return h.response(admin);
         },
         response: {
             schema: getSchema
