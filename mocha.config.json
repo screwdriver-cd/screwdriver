@@ -1,0 +1,6 @@
+{
+    "reporterEnabled": "spec, mocha-sonarqube-reporter",
+    "mochaSonarqubeReporterReporterOptions": {
+        "output": "./artifacts/report/test.xml"
+    }
+}
