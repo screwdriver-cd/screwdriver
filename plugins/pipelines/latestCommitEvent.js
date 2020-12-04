@@ -25,6 +25,9 @@ module.exports = () => ({
                     params: {
                         pipelineId: request.params.id,
                         parentEventId: null
+                    },
+                    paginate: {
+                        count: 1
                     }
                 })
                 .then(async events => {

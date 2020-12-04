@@ -905,6 +905,9 @@ describe('pipeline plugin test', () => {
                     params: {
                         pipelineId: id,
                         parentEventId: null
+                    },
+                    paginate: {
+                        count: 1
                     }
                 });
                 assert.deepEqual(reply.result, testEvents[0]);
