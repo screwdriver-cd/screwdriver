@@ -10,7 +10,7 @@ module.exports = () => ({
     path: '/pipelines/{id}/latestCommitEvent',
     options: {
         description: 'Get latest commit event for a given pipeline',
-        notes: 'Return latest commit sha',
+        notes: 'Return latest commit event',
         tags: ['api', 'pipelines'],
         auth: {
             strategies: ['token'],
