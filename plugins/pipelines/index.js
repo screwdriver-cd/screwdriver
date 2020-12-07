@@ -23,6 +23,7 @@ const removeToken = require('./tokens/remove');
 const removeAllTokens = require('./tokens/removeAll');
 const metricsRoute = require('./metrics');
 const latestBuild = require('./latestBuild');
+const latestCommitEvent = require('./latestCommitEvent');
 const getAdmin = require('./admins/get');
 const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
@@ -111,6 +112,7 @@ const pipelinesPlugin = {
             removeAllTokens(),
             metricsRoute(),
             latestBuild(),
+            latestCommitEvent(),
             getAdmin(),
             deleteCache(),
             openPrRoute()
