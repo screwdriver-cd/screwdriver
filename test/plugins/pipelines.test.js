@@ -2130,12 +2130,12 @@ describe('pipeline plugin test', () => {
 
                 assert.equal(res.username, 'abc');
             }));
-        it('returns 500 when pipeline has  no admin', () => {
+        it('returns 404 when pipeline has  no admin', () => {
             pipelineMock.getFirstAdmin.rejects(new Error('Pipeline has no admin'));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.statusCode, 404);
             });
         });
         it('returns 500 when datastore fails', () => {
