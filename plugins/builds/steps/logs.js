@@ -8,7 +8,7 @@ const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
 const jwt = require('jsonwebtoken');
 const uuid = require('uuid');
-
+const validator = require('validator');
 const logger = require('screwdriver-logger');
 
 /**
@@ -207,20 +207,36 @@ module.exports = config => ({
                             })
                         )
                         .then(([lines, morePages]) => {
-                            if (type !== 'download') {
-                                return h.response(lines).header('X-More-Data', (morePages || !isDone).toString());
+                            if (type === 'download') {
+                                let res = '';
+
+                                for (let i = 0; i < lines.length; i += 1) {
+                                    res = `${res}${lines[i].m}\n`;
+                                }
+
+                                return h
+                                    .response(res)
+                                    .type('text/plain')
+                                    .header('content-disposition', `attachment; filename="${stepName}-log.txt"`);
                             }
 
-                            let res = '';
+                            const formatedLine = lines.map(line => {
+                                const texts = line.m.split(/\s+/);
 
-                            for (let i = 0; i < lines.length; i += 1) {
-                                res = `${res}${lines[i].m}\n`;
-                            }
+                                for (let i = 0; i < texts.length; i += 1) {
+                                    if (validator.isURL(texts[i])) {
+                                        // eslint-disable-next-line
+                                        texts[i] = `<a href='${texts[i]}' target='_blank' rel='noopener'>${texts[i]}</a>`;
+                                    } else {
+                                        texts[i] = validator.escape(texts[i]);
+                                    }
+                                }
+                                line.m = texts.join(' ');
 
-                            return h
-                                .response(res)
-                                .type('text/plain')
-                                .header('content-disposition', `attachment; filename="${stepName}-log.txt"`);
+                                return line;
+                            });
+
+                            return h.response(formatedLine).header('X-More-Data', (morePages || !isDone).toString());
                         });
                 })
                 .catch(err => {

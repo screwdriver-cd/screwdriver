@@ -4525,6 +4525,90 @@ describe('build plugin test', () => {
                 });
         });
 
+        it('returns escaped logs that has html script ', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.html.log.ndjson`);
+
+            const escapedLogs = [
+                {
+                    m: '&lt;script&gt; alert(&#x27;xss&amp;doom&#x27;); &lt;&#x2F;script&gt;',
+                    n: 0,
+                    t: 1472236246000
+                },
+                {
+                    m: '&lt;script&gt; alert(&quot;xss&amp;doom&quot;); &lt;&#x2F;script&gt;',
+                    n: 1,
+                    t: 1472236247000
+                },
+                {
+                    m: 'Backtick: &#96;',
+                    n: 2,
+                    t: 1472236248000
+                },
+                {
+                    m: 'Backslash: &#x5C;',
+                    n: 3,
+                    t: 1472236249000
+                }
+            ];
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, escapedLogs);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
+        });
+
+        it('returns converted logs that has url', () => {
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.url.log.ndjson`);
+
+            /* eslint-disable */
+            const escapedLogs = [
+                {
+                    m: "http:&#x2F;&#x2F; link <a href='http://github.com' target='_blank' rel='noopener'>http://github.com</a>",
+                    n: 0,
+                    t: 1472236240000
+                },
+                {
+                    m: "https:&#x2F;&#x2F; link <a href='https://github.com' target='_blank' rel='noopener'>https://github.com</a>",
+                    n: 1,
+                    t: 1472236241000
+                }
+            ];
+            /* eslint-enable */
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, escapedLogs);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
+        });
+
         it('returns download link for download option', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)

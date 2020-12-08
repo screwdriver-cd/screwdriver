@@ -1,0 +1,4 @@
+{"t":1472236246000,"m":"<script> alert('xss&doom'); </script>","n":0}
+{"t":1472236247000,"m":"<script> alert(\"xss&doom\"); </script>","n":1}
+{"t":1472236248000,"m":"Backtick: `","n":2}
+{"t":1472236249000,"m":"Backslash: \\","n":3}
