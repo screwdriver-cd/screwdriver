@@ -8,10 +8,17 @@ const mockery = require('mockery');
 sinon.assert.expose(assert, { prefix: '' });
 
 describe('coverage plugin test', () => {
+    const credentials = {
+        jobId: 123,
+        pipelineId: 333,
+        scope: ['build']
+    };
+
     let plugin;
     let server;
     let mockCoveragePlugin;
     let jobFactoryMock;
+    let pipelineFactoryMock;
 
     before(() => {
         mockery.enable({
@@ -28,6 +35,9 @@ describe('coverage plugin test', () => {
         jobFactoryMock = {
             get: sinon.stub()
         };
+        pipelineFactoryMock = {
+            get: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/coverage');
@@ -38,7 +48,8 @@ describe('coverage plugin test', () => {
         });
 
         server.app = {
-            jobFactory: jobFactoryMock
+            jobFactory: jobFactoryMock,
+            pipelineFactory: pipelineFactoryMock
         };
 
         server.auth.scheme('custom', () => ({
@@ -80,10 +91,7 @@ describe('coverage plugin test', () => {
             options = {
                 url: '/coverage/token',
                 auth: {
-                    credentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    },
+                    credentials,
                     strategy: ['token']
                 }
             };
@@ -96,6 +104,9 @@ describe('coverage plugin test', () => {
                 name: 'main',
                 isPR: sinon.stub().returns(false)
             });
+            pipelineFactoryMock.get.resolves({
+                name: 'd2lam/test'
+            });
         });
 
         it('returns 200', () => {
@@ -104,27 +115,25 @@ describe('coverage plugin test', () => {
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
                     scope: 'pipeline',
-                    buildCredentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    }
+                    jobName: 'main',
+                    pipelineName: 'd2lam/test',
+                    buildCredentials: credentials
                 });
             });
         });
 
-        it('returns 200 with projectKey and username', () => {
-            options.url = '/coverage/token?projectKey=job:123&username=user-job-123&scope=job';
+        it('returns 200 with projectKey and username and projectName', () => {
+            options.url =
+                '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
                     scope: 'job',
-                    buildCredentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    },
+                    buildCredentials: credentials,
                     projectKey: 'job:123',
+                    projectName: 'd2lam/test:main',
                     username: 'user-job-123'
                 });
             });
@@ -141,10 +150,9 @@ describe('coverage plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
-                    buildCredentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    },
+                    buildCredentials: credentials,
+                    jobName: 'main',
+                    pipelineName: 'd2lam/test',
                     scope: null
                 });
             });
@@ -158,10 +166,8 @@ describe('coverage plugin test', () => {
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
                     scope: 'job',
-                    buildCredentials: {
-                        jobId: 123,
-                        scope: ['build']
-                    }
+                    pipelineName: 'd2lam/test',
+                    buildCredentials: credentials
                 });
             });
         });
@@ -182,8 +188,10 @@ describe('coverage plugin test', () => {
                 assert.deepEqual(reply.result, 'faketoken');
                 assert.calledWith(mockCoveragePlugin.getAccessToken, {
                     scope: 'job',
+                    pipelineName: 'd2lam/test',
                     buildCredentials: {
                         jobId: 555,
+                        pipelineId: 333,
                         scope: ['build'],
                         prParentJobId: 123
                     }
@@ -215,6 +223,7 @@ describe('coverage plugin test', () => {
                     assert.deepEqual(reply.result, 'faketoken');
                     assert.calledWith(mockCoveragePlugin.getAccessToken, {
                         scope: 'pipeline',
+                        jobName: 'PR-234:main',
                         buildCredentials: {
                             jobId: 123,
                             scope: ['build']
@@ -225,6 +234,14 @@ describe('coverage plugin test', () => {
 
         it('returns 404 when job does not exist', () => {
             jobFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
