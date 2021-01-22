@@ -68,7 +68,11 @@ module.exports = () => ({
             if (compact === 'true') {
                 // removing `config` trims most of the bytes
                 config.exclude = ['config'];
-                config.groupBy = ['namespace', 'name'];
+                if (config.params) {
+                    config.params.latestVersion = true;
+                } else {
+                    config.params = { latestVersion: true };
+                }
             }
 
             if (page || count) {

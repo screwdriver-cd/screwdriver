@@ -72,7 +72,11 @@ module.exports = () => ({
             if (compact === 'true') {
                 // removing `config` trims most of the bytes
                 config.exclude = ['usage', 'docker', 'habitat', 'binary'];
-                config.groupBy = ['namespace', 'name'];
+                if (config.params) {
+                    config.params.latestVersion = true;
+                } else {
+                    config.params = { latestVersion: true };
+                }
             }
 
             return factory
