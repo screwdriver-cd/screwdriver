@@ -68,11 +68,11 @@ module.exports = () => ({
             if (compact === 'true') {
                 // removing `config` trims most of the bytes
                 config.exclude = ['config'];
-                if (config.params) {
-                    config.params.latestVersion = true;
-                } else {
-                    config.params = { latestVersion: true };
-                }
+                // using spread operator because params could be null
+                config.params = {
+                    ...config.params,
+                    latest: true
+                };
             }
 
             if (page || count) {
