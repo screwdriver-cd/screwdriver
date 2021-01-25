@@ -240,7 +240,7 @@ describe('command plugin test', () => {
                 assert.deepEqual(reply.result, testcommands);
                 assert.calledWith(commandFactoryMock.list, {
                     exclude: ['usage', 'docker', 'habitat', 'binary'],
-                    groupBy: ['namespace', 'name'],
+                    params: { latestVersion: true },
                     sort: 'descending'
                 });
             });

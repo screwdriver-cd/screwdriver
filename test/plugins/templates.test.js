@@ -235,7 +235,7 @@ describe('template plugin test', () => {
                 assert.deepEqual(reply.result, testtemplates);
                 assert.calledWith(templateFactoryMock.list, {
                     exclude: ['config'],
-                    groupBy: ['namespace', 'name'],
+                    params: { latestVersion: true }, 
                     sort: 'descending'
                 });
             });
