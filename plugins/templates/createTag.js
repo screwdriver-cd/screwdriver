@@ -22,13 +22,9 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory } = request.server.app;
-            const { templateFactory } = request.server.app;
-            const { templateTagFactory } = request.server.app;
-            const { pipelineId } = request.auth.credentials;
-            const { isPR } = request.auth.credentials;
-            const name = request.params.templateName;
-            const tag = request.params.tagName;
+            const { pipelineFactory, templateFactory, templateTagFactory } = request.server.app;
+            const { isPR, pipelineId } = request.auth.credentials;
+            const { templateName: name, tagName: tag } = request.params;
             const { version } = request.payload;
 
             return Promise.all([

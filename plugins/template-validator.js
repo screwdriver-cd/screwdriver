@@ -30,9 +30,10 @@ const templateValidatorPlugin = {
                 },
                 handler: async (request, h) => {
                     try {
-                        const templateString = request.payload.yaml;
+                        const { templateFactory } = request.server.app;
+                        const { yaml: templateString } = request.payload;
 
-                        const result = await validator(templateString);
+                        const result = await validator(templateString, templateFactory);
 
                         return h.response(result);
                     } catch (err) {
