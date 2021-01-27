@@ -20,11 +20,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { commandFactory } = request.server.app;
             const { namespace, name, versionOrTag } = request.params;

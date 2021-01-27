@@ -28,11 +28,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const factory = request.server.app.commandFactory;
             const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
@@ -76,7 +72,11 @@ module.exports = () => ({
             if (compact === 'true') {
                 // removing `config` trims most of the bytes
                 config.exclude = ['usage', 'docker', 'habitat', 'binary'];
-                config.groupBy = ['namespace', 'name'];
+                // using spread operator because params could be null
+                config.params = {
+                    ...config.params,
+                    latest: true
+                };
             }
 
             return factory

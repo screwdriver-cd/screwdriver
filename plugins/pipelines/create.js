@@ -16,18 +16,13 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
             const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
             const { autoKeysGeneration } = request.payload;
             const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
-            const pipelineToken = '';
             const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             // fetch the user
@@ -101,7 +96,7 @@ module.exports = () => ({
                 const privateDeployKey = await pipelineFactory.scm.addDeployKey({
                     scmContext,
                     checkoutUrl,
-                    token: pipelineToken
+                    token
                 });
                 const privateDeployKeyB64 = Buffer.from(privateDeployKey).toString('base64');
 

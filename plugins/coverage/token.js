@@ -14,15 +14,11 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['build']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
-            const { jobFactory } = request.server.app;
+            const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
-            const { jobId } = buildCredentials;
+            const { jobId, pipelineId } = buildCredentials;
             const { scope, projectKey, projectName, username } = request.query;
             const tokenConfig = {
                 buildCredentials,
@@ -41,9 +37,7 @@ module.exports = config => ({
                 tokenConfig.username = username;
             }
 
-            let data;
-            // Get job scope
-
+            // Get scope and job name
             if (jobId && !scope) {
                 const job = await jobFactory.get(jobId);
 
@@ -51,17 +45,25 @@ module.exports = config => ({
                     throw boom.notFound(`Job ${jobId} does not exist`);
                 }
 
+                tokenConfig.jobName = job.name;
                 tokenConfig.scope =
                     job.permutations[0] && job.permutations[0].annotations
                         ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
                         : null;
-
-                data = await config.coveragePlugin.getAccessToken(tokenConfig);
-
-                return h.response(data);
             }
 
-            data = await config.coveragePlugin.getAccessToken(tokenConfig);
+            // Get pipeline name
+            if (pipelineId && (!projectName || projectName.includes('undefined'))) {
+                const pipeline = await pipelineFactory.get(pipelineId);
+
+                if (!pipeline) {
+                    throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
+                }
+
+                tokenConfig.pipelineName = pipeline.name;
+            }
+
+            const data = await config.coveragePlugin.getAccessToken(tokenConfig);
 
             return h.response(data);
         }

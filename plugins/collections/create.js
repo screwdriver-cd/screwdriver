@@ -15,11 +15,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             // Check if the collection to be created has a type 'default'
             if (request.payload.type === 'default') {

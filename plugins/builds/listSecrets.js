@@ -20,11 +20,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'build', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const factory = request.server.app.buildFactory;
             const { credentials } = request.auth;

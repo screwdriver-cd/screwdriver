@@ -14,11 +14,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build', 'temporal']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { stepFactory } = request.server.app;
             const buildId = request.params.id;

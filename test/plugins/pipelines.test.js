@@ -209,7 +209,8 @@ describe('pipeline plugin test', () => {
             list: sinon.stub()
         };
         eventFactoryMock = {
-            create: sinon.stub().resolves(null)
+            create: sinon.stub().resolves(null),
+            list: sinon.stub().resolves(null)
         };
         tokenFactoryMock = {
             get: sinon.stub(),
@@ -871,6 +872,46 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 404);
             });
         });
+    });
+
+    describe('GET /pipelines/{id}/latestCommitEvent', () => {
+        const id = 1234;
+        let options;
+        let events;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/latestCommitEvent`
+            };
+
+            events = getEventsMocks(testEvents);
+
+            eventFactoryMock.list.resolves(events);
+        });
+
+        it('returns 404 if event does not exist', () => {
+            eventFactoryMock.list.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 if found last commit event', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        parentEventId: null
+                    },
+                    paginate: {
+                        count: 1
+                    }
+                });
+                assert.deepEqual(reply.result, testEvents[0]);
+            }));
     });
 
     describe('GET /pipelines/{id}/badge', () => {
@@ -2089,12 +2130,12 @@ describe('pipeline plugin test', () => {
 
                 assert.equal(res.username, 'abc');
             }));
-        it('returns 500 when pipeline has  no admin', () => {
+        it('returns 404 when pipeline has  no admin', () => {
             pipelineMock.getFirstAdmin.rejects(new Error('Pipeline has no admin'));
             pipelineFactoryMock.get.withArgs(id).resolves(pipelineMock);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.statusCode, 404);
             });
         });
         it('returns 500 when datastore fails', () => {

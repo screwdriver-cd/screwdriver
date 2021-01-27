@@ -40,11 +40,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', '!guest', 'pipeline']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const { checkoutUrl, rootDir, settings } = request.payload;
             const { id } = request.params;

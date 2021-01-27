@@ -46,11 +46,7 @@ module.exports = config => ({
             strategies: ['token'],
             scope: ['build', 'pipeline', 'user', '!guest', 'temporal']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             // eslint-disable-next-line max-len
             const {

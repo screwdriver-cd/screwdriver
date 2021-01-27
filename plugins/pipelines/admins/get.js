@@ -17,11 +17,7 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['user', 'pipeline', '!guest']
         },
-        plugins: {
-            'hapi-swagger': {
-                security: [{ token: [] }]
-            }
-        },
+
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
             const pipeline = await factory.get(request.params.id);
@@ -30,9 +26,13 @@ module.exports = () => ({
                 throw boom.notFound('Pipeline does not exist');
             }
 
-            const admin = await pipeline.getFirstAdmin();
+            try {
+                const admin = await pipeline.getFirstAdmin();
 
-            return h.response(admin);
+                return h.response(admin);
+            } catch (e) {
+                throw boom.notFound(e);
+            }
         },
         response: {
             schema: getSchema
