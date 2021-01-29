@@ -891,6 +891,37 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('allows to update when statusMessage is undefined', () => {
+                const expected = hoek.applyToDefaults(testBuildWithSteps, { status: 'FAILURE' });
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    payload: {
+                        status: 'FAILURE'
+                    },
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
+                    }
+                };
+
+                buildMock.job = sinon.stub().resolves(jobMock)();
+                buildFactoryMock.get.resolves(buildMock);
+                buildMock.toJsonWithSteps.resolves(expected);
+                buildMock.toJson.returns(testBuild);
+
+                return server.inject(options).then(reply => {
+                    console.log(buildMock);
+                    assert.deepEqual(reply.result, expected);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.equal(buildMock.statusMessage, undefined);
+                    assert.equal(reply.statusCode, 200);
+                });
+            });
+
             it('updates stats only', () => {
                 // for coverage
                 buildMock.stats = {
