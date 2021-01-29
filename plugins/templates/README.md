@@ -41,7 +41,7 @@ Can search by keyword in template name, namespace, and description:
 Can list all distinct template namespaces:
 `GET /templates?distinct=namespace`
 
-Can use additional options for sorting, pagination and get toal count:
+Can use additional options for sorting, pagination and get total count:
 `GET /templates?sort=ascending&sortBy=name&page=1&count=50&getCount=true`
 
 ##### Get a single template
