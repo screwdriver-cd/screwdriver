@@ -276,6 +276,29 @@ describe('template plugin test', () => {
             });
         });
 
+        it('returns 200 and all templates with count', () => {
+            const templateMocks = getTemplateMocks(testtemplates);
+            const resultMock = {
+                count: 123,
+                rows: templateMocks
+            };
+
+            templateFactoryMock.list.resolves(resultMock);
+            options.url = '/templates?getCount=true';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {
+                    count: 123,
+                    rows: testtemplates
+                });
+                assert.calledWith(templateFactoryMock.list, {
+                    getCount: true,
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 500 when datastore fails', () => {
             templateFactoryMock.list.rejects(new Error('fittoburst'));
 
