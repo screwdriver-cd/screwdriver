@@ -6,6 +6,13 @@ const listSchema = joi
     .array()
     .items(schema.models.command.get)
     .label('List of commands');
+const listCountSchema = joi
+    .object()
+    .keys({
+        count: joi.number(),
+        rows: listSchema
+    })
+    .label('Command Count and List of commands');
 const distinctSchema = joi
     .string()
     .valid(...Object.keys(schema.models.command.fields))
@@ -31,7 +38,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.commandFactory;
-            const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
+            const { getCount, count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
             const config = { sort };
 
             // Return distinct rows for that column name
@@ -68,6 +75,10 @@ module.exports = () => ({
                 config.paginate = { page, count };
             }
 
+            if (getCount) {
+                config.getCount = getCount;
+            }
+
             // check if the call wants compact data
             if (compact === 'true') {
                 // removing `config` trims most of the bytes
@@ -86,6 +97,12 @@ module.exports = () => ({
                         return h.response(commands);
                     }
 
+                    if (getCount) {
+                        commands.rows = commands.rows.map(p => p.toJson());
+
+                        return h.response(commands);
+                    }
+
                     return h.response(commands.map(p => p.toJson()));
                 })
                 .catch(err => {
@@ -93,7 +110,7 @@ module.exports = () => ({
                 });
         },
         response: {
-            schema: joi.alternatives().try(listSchema, namespacesSchema)
+            schema: joi.alternatives().try(listSchema, namespacesSchema, listCountSchema)
         },
         validate: {
             query: schema.api.pagination.concat(

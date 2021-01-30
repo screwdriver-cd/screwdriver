@@ -281,6 +281,29 @@ describe('command plugin test', () => {
             });
         });
 
+        it('returns 200 and all commands with count', () => {
+            const commandMocks = getCommandMocks(testcommands);
+            const resultMock = {
+                count: 123,
+                rows: commandMocks
+            };
+
+            commandFactoryMock.list.resolves(resultMock);
+            options.url = '/commands?getCount=true';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, '200');
+                assert.deepEqual(reply.result, {
+                    count: 123,
+                    rows: testcommands
+                });
+                assert.calledWith(commandFactoryMock.list, {
+                    getCount: true,
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 500 when datastore fails', () => {
             commandFactoryMock.list.rejects(new Error('fittoburst'));
 
