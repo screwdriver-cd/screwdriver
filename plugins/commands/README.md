@@ -42,8 +42,8 @@ Can search by keyword in command name, namespace, and description:
 Can list all distinct command namespaces:
 `GET /commands?distinct=namespace`
 
-Can use additional options for sorting and pagination:
-`GET /commands?sort=ascending&sortBy=name&page=1&count=50`
+Can use additional options for sorting, pagination and return total count:
+`GET /commands?sort=ascending&sortBy=name&page=1&count=50&getCount=true`
 
 ##### Get all command versions
 
