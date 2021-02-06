@@ -248,7 +248,11 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
             executor,
             scm
         },
-        release
+        release,
+        validator: {
+            externalJoin,
+            notificationsValidationErr
+        }
     })
         .then(instance => logger.info('Server running at %s', instance.info.uri))
         .catch(err => {

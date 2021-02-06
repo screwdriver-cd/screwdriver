@@ -12,8 +12,7 @@ const schema = require('screwdriver-data-schema');
 const statsPlugin = {
     name: 'stats',
     async register(server, options) {
-        const { executor } = options;
-        const { scm } = options;
+        const { executor, scm } = options;
 
         server.route({
             method: 'GET',
