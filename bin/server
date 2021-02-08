@@ -4,7 +4,6 @@
 
 /* eslint-disable import/no-dynamic-require */
 const config = require('config');
-const server = require('../');
 const hoek = require('@hapi/hoek');
 const { Bookend } = require('screwdriver-build-bookend');
 const logger = require('screwdriver-logger');
@@ -53,19 +52,21 @@ const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').e
 
 // Default cluster environment variable
 const clusterEnvConfig = config.get('build').environment; // readonly
-const clusterEnv = Object.assign({}, clusterEnvConfig);
+const clusterEnv = { ...clusterEnvConfig };
 
-Object.keys(clusterEnv).forEach((k) => {
+Object.keys(clusterEnv).forEach(k => {
     clusterEnv[k] = String(clusterEnv[k]);
 });
 
-const externalJoin = config.get('build').externalJoin; // flag to allow external join
+const { externalJoin } = config.get('build'); // flag to allow external join
+
+const notificationsValidationErr = hoek.reach(config.get('notifications').options, 'throwValidationErr'); // flag to throw notifications validation err or not
 
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
 const DatastorePlugin = require(`screwdriver-datastore-${datastoreConfig.plugin}`);
 
-const datastorePluginConfig = Object.assign({}, datastoreConfig[datastoreConfig.plugin]);
+const datastorePluginConfig = { ...datastoreConfig[datastoreConfig.plugin] };
 
 // Readonly Datastore
 const datastoreROConfig = datastorePluginConfig.readOnly;
@@ -77,8 +78,7 @@ if (datastoreROConfig && Object.keys(datastoreROConfig).length > 0) {
 delete datastorePluginConfig.readOnly;
 
 // Default datastore
-const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem },
-    (datastorePluginConfig || {})));
+const datastore = new DatastorePlugin(hoek.applyToDefaults({ ecosystem }, datastorePluginConfig || {}));
 
 // Source Code Plugin
 const scmConfig = { scms: config.get('scms') };
@@ -102,22 +102,25 @@ const coverage = new CoveragePlugin(coverageConfig);
 
 // Plugins to run before/after a build
 const bookends = config.get('bookends');
-const bookend = new Bookend({
-    scm,
-    'screwdriver-artifact-bookend': artifact,
-    'screwdriver-coverage-bookend': coverage,
-    'screwdriver-cache-bookend': cache
-},
+const bookend = new Bookend(
+    {
+        scm,
+        'screwdriver-artifact-bookend': artifact,
+        'screwdriver-coverage-bookend': coverage,
+        'screwdriver-cache-bookend': cache
+    },
     bookends.setup || [], // plugins required for the setup- steps
     bookends.teardown || [] // plugins required for the teardown-steps
 );
 
 // Setup Pipeline Factory for Executor
 const Models = require('screwdriver-models');
+const server = require('..');
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm,
     externalJoin,
+    notificationsValidationErr,
     multiBuildClusterEnabled
 });
 
@@ -126,10 +129,10 @@ const executorConfig = config.get('executor');
 
 executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
-const executor = new ExecutorPlugin(Object.assign(
-    { ecosystem: hoek.clone(ecosystem) },
-    executorConfig[executorConfig.plugin].options
-));
+const executor = new ExecutorPlugin({
+    ecosystem: hoek.clone(ecosystem),
+    ...executorConfig[executorConfig.plugin].options
+});
 
 // Setup Model Factories
 const commandFactory = Models.CommandFactory.getInstance({
@@ -210,8 +213,8 @@ const buildClusterFactory = Models.BuildClusterFactory.getInstance({
 
 // @TODO run setup for SCM and Executor
 // datastoreConfig.ddlSync => sync datastore schema (ddl) via api (default: true)
-datastore.setup(datastoreConfig.ddlSyncEnabled)
-    .then(() => server({
+datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
+    server({
         httpd: httpdConfig,
         auth: authConfig,
         webhooks: webhooksConfig,
@@ -242,12 +245,18 @@ datastore.setup(datastoreConfig.ddlSyncEnabled)
             externalJoin
         },
         stats: {
-            executor, scm
+            executor,
+            scm
         },
-        release
-    }))
-    .then(instance => logger.info('Server running at %s', instance.info.uri))
-    .catch((err) => {
-        logger.error(err);
-        process.exit(1);
-    });
+        release,
+        validator: {
+            externalJoin,
+            notificationsValidationErr
+        }
+    })
+        .then(instance => logger.info('Server running at %s', instance.info.uri))
+        .catch(err => {
+            logger.error(err);
+            process.exit(1);
+        })
+);
