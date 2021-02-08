@@ -14,7 +14,7 @@ const validatorSchema = schema.api.validator;
  */
 const validatorTemplate = {
     name: 'validator',
-    async register(server) {
+    async register(server, options) {
         server.route({
             method: 'POST',
             path: '/validator',
@@ -27,12 +27,18 @@ const validatorTemplate = {
                         enabled: false
                     }
                 },
-                handler: async (request, h) =>
-                    parser(
-                        request.payload.yaml,
-                        request.server.app.templateFactory,
-                        request.server.app.buildClusterFactory
-                    ).then(pipeline => h.response(pipeline)),
+                handler: async (request, h) => {
+                    const { notificationsValidationErr } = options;
+                    const { buildClusterFactory, templateFactory } = request.server.app;
+
+                    // TODO: Handle externalJoin case (pass in triggerFactory and pipelineId)
+                    return parser({
+                        yaml: request.payload.yaml,
+                        templateFactory,
+                        buildClusterFactory,
+                        notificationsValidationErr
+                    }).then(pipeline => h.response(pipeline));
+                },
                 validate: {
                     payload: validatorSchema.input
                 },
