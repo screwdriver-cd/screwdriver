@@ -58,9 +58,12 @@ Object.keys(clusterEnv).forEach(k => {
     clusterEnv[k] = String(clusterEnv[k]);
 });
 
-const { externalJoin } = config.get('build'); // flag to allow external join
-
-const notificationsValidationErr = hoek.reach(config.get('notifications').options, 'throwValidationErr'); // flag to throw notifications validation err or not
+// Flag to allow external join
+const { externalJoin } = config.get('build');
+// Flag to throw notifications validation err or not; default true
+const notificationsValidationErr = convertToBool(
+    hoek.reach(config.get('notifications').options, 'throwValidationErr', { default: true })
+);
 
 // Setup Datastore
 const datastoreConfig = config.get('datastore');
