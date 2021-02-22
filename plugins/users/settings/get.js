@@ -8,7 +8,7 @@ const getSchema = schema.models.user.base.extract('settings');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/users/{id}/settings',
+    path: '/users/settings',
     options: {
         description: 'Get user settings',
         notes: 'Returns user settings record',
@@ -20,22 +20,19 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { userFactory } = request.server.app;
-            const user = await userFactory.get(request.params.id);
+            const { scmContext, username } = request.auth.credentials;
+            const user = await userFactory.get({ username, scmContext });
 
             if (!user) {
                 throw boom.notFound('User does not exist');
             }
+
             const userSettings = user.getSettings();
 
             return h.response(userSettings);
         },
         response: {
             schema: getSchema
-        },
-        validate: {
-            params: joi.object({
-                id: idSchema
-            })
         }
     }
 });
