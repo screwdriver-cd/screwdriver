@@ -1,10 +1,8 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const updateSchema = schema.models.user.base.extract('settings');
-const idSchema = schema.models.user.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
