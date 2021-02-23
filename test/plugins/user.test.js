@@ -210,13 +210,5 @@ describe('user plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
-
-        it('throws error when get user does not have permission to update settings', () => {
-            userFactoryMock.get.resolves(getUserMock({ username: 'otherUser', scmContext }));
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
-            });
-        });
     });
 });
