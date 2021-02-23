@@ -97,7 +97,7 @@ describe('user plugin test', () => {
         });
 
         it('exposes a route for updating user settings', () => {
-            userFactoryMock.get.withArgs(username).resolves(userMock);
+            userFactoryMock.get.resolves(userMock);
             userMock.getSettings.returns(settings);
 
             return server.inject(options).then(reply => {
