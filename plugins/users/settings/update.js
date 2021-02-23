@@ -2,6 +2,7 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const updateSchema = schema.models.user.base.extract('settings');
 
 module.exports = () => ({
@@ -20,15 +21,22 @@ module.exports = () => ({
             const { userFactory } = request.server.app;
             const { scmContext, username } = request.auth.credentials;
             const { settings } = request.payload;
-            const user = await userFactory.get({ username, scmContext });
 
-            if (!user) {
-                throw boom.notFound('User does not exist');
+            try {
+                const user = await userFactory.get({ username, scmContext });
+
+                if (!user) {
+                    throw boom.notFound('User does not exist');
+                }
+
+                return user.updateSettings(settings).then(results => {
+                    return h.response(results).code(200);
+                });
+            } catch (err) {
+                logger.info(err.message);
             }
 
-            return user.updateSettings(settings).then(results => {
-                return h.response(results).code(200);
-            });
+            return Promise.resolve();
         },
         response: {
             schema: updateSchema
