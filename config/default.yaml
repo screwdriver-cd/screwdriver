@@ -268,9 +268,9 @@ bookends:
     - screwdriver-cache-bookend
 
 notifications:
-  # options:
-  #   # Throw error when validation fails (default true); otherwise show warning
-  #   throwValidationErr: true
+  options:
+    # Throw error when validation fails (default true); otherwise show warning
+    throwValidationErr: true
   # # Email notification when a build finishes
   # email:
   #   host: email-host
