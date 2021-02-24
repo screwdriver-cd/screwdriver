@@ -1,17 +1,15 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const updateSchema = schema.models.user.base.extract('settings');
-const idSchema = schema.models.user.base.extract('id');
 
 module.exports = () => ({
     method: 'PUT',
-    path: '/users/{id}/settings',
+    path: '/users/settings',
     options: {
         description: 'Update user settings',
-        notes: 'Update a specific users settings',
+        notes: 'Update user settings',
         tags: ['api', 'users'],
         auth: {
             strategies: ['token'],
@@ -20,16 +18,12 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
+            const { scmContext, username } = request.auth.credentials;
             const { settings } = request.payload;
-            const user = await userFactory.get(request.params.id);
+            const user = await userFactory.get({ username, scmContext });
 
             if (!user) {
                 throw boom.notFound('User does not exist');
-            }
-
-            if (user.username !== username) {
-                throw boom.forbidden(`User ${username} cannot update user settings for user ${user.username}`);
             }
 
             return user.updateSettings(settings).then(results => {
@@ -38,11 +32,6 @@ module.exports = () => ({
         },
         response: {
             schema: updateSchema
-        },
-        validate: {
-            params: joi.object({
-                id: idSchema
-            })
         }
     }
 });
