@@ -171,6 +171,7 @@ const buildFactory = Models.BuildFactory.getInstance({
     dockerRegistry: ecosystem.dockerRegistry,
     scm,
     executor,
+    executorName: executorConfig.plugin,
     bookend,
     uiUri: ecosystem.ui,
     multiBuildClusterEnabled,
