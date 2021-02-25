@@ -137,6 +137,8 @@ const executor = new ExecutorPlugin({
     ...executorConfig[executorConfig.plugin].options
 });
 
+executor.name = executorConfig.plugin;
+
 // Setup Model Factories
 const commandFactory = Models.CommandFactory.getInstance({
     datastore,
