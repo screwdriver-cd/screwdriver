@@ -24,10 +24,7 @@ module.exports = () => ({
 
             // get the earliest entry
             const templates = await templateFactory.list({
-                params: { name },
-                paginate: { count: 1 },
-                sortBy: 'id',
-                sort: 'ascending'
+                params: { name, latest: true }
             });
 
             if (templates.length === 0) {
