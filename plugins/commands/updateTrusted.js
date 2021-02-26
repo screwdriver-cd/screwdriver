@@ -24,10 +24,7 @@ module.exports = () => ({
 
             // get the earliest entry
             const commands = await commandFactory.list({
-                params: { namespace, name },
-                paginate: { count: 1 },
-                sortBy: 'id',
-                sort: 'ascending'
+                params: { namespace, name, latest: true }
             });
 
             if (commands.length === 0) {
