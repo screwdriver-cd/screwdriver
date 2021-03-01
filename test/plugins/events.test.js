@@ -645,13 +645,6 @@ describe('event plugin test', () => {
             'returns 403 when it fails to creates a PR event when ' +
                 'PR author only has permission to run PR and restrictPR is on',
             () => {
-                eventConfig.startFrom = 'PR-1:main';
-                eventConfig.prNum = '1';
-                eventConfig.type = 'pr';
-                eventConfig.chainPR = false;
-                eventConfig.prInfo = prInfo;
-                ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-                eventConfig.changedFiles = ['screwdriver.yaml'];
                 options.payload.startFrom = 'PR-1:main';
                 userMock.getPermissions.resolves({ push: false });
                 pipelineMock.annotations['screwdriver.cd/restrictPR'] = 'fork';
@@ -748,6 +741,18 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 404 when the model encounters an branch not found error', () => {
+            const testError = new Error('Branch not found');
+
+            testError.status = 404;
+
+            eventFactoryMock.scm.getCommitSha.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it('returns 403 forbidden error when user does not have push permission', () => {
             userMock.getPermissions.resolves({ push: false });
 
@@ -766,9 +771,6 @@ describe('event plugin test', () => {
         });
 
         it('returns 400 bad request error missing prNum for "~pr"', () => {
-            eventConfig.type = 'pr';
-            eventConfig.prInfo = prInfo;
-            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
             options.payload.startFrom = '~pr';
 
             return server.inject(options).then(reply => {
@@ -777,12 +779,6 @@ describe('event plugin test', () => {
         });
 
         it('returns 403 forbidden error when user does not have push permission and is not author of PR', () => {
-            eventConfig.startFrom = 'PR-1:main';
-            eventConfig.prNum = '1';
-            eventConfig.type = 'pr';
-            eventConfig.prInfo = prInfo;
-            ({ ref: eventConfig.prRef, prSource: eventConfig.prSource } = prInfo);
-            eventConfig.changedFiles = ['screwdriver.yaml'];
             options.payload.startFrom = 'PR-1:main';
             userMock.getPermissions.resolves({ push: false });
             eventFactoryMock.scm.getPrInfo.resolves({
