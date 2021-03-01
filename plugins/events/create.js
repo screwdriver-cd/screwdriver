@@ -222,6 +222,11 @@ module.exports = () => ({
                                             scm.getCommitSha(scmConfig).then(sha => {
                                                 payload.sha = sha;
                                             })
+                                            .catch(err => {
+                                                if (err.status === 404 && err.message === 'Branch not found') {
+                                                    throw boom.notFound(err.message);
+                                                }
+                                            })
                                         )
                                         .then(() => {
                                             // If there is parentEvent, pass workflowGraph and sha to payload
