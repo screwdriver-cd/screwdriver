@@ -402,7 +402,7 @@ async function createPREvents(options, request) {
                         token: scmConfig.token
                     });
                 } catch (err) {
-                    if (err.status >= 500) {
+                    if (err.output.statusCode >= 500) {
                         throw err;
                     } else {
                         logger.info(`skip create event for branch: ${b}`);
@@ -414,7 +414,7 @@ async function createPREvents(options, request) {
                 try {
                     configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
                 } catch (err) {
-                    if (err.status >= 500) {
+                    if (err.output.statusCode >= 500) {
                         throw err;
                     } else {
                         logger.info(`skip create event for branch: ${b}`);
@@ -885,7 +885,7 @@ async function createEvents(
                 try {
                     configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
                 } catch (err) {
-                    if (err.status >= 500) {
+                    if (err.output.statusCode >= 500) {
                         throw err;
                     } else {
                         logger.info(`skip create event for branch: ${pipelineBranch}`);
@@ -918,7 +918,7 @@ async function createEvents(
                     try {
                         eventConfig.sha = await pipelineFactory.scm.getCommitSha(scmConfig);
                     } catch (err) {
-                        if (err.status >= 500) {
+                        if (err.output.statusCode >= 500) {
                             throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);

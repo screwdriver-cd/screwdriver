@@ -3,6 +3,7 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
+const boom = require('@hapi/boom');
 const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
@@ -1896,8 +1897,8 @@ describe('webhooks plugin test', () => {
                     });
                 });
 
-                it('returns 201 when getCommitSha() is rejected', () => {
-                    pipelineFactoryMock.scm.getCommitSha.rejects(new Error('some error'));
+                it.only('returns 201 when getCommitSha() is rejected due to missing branch', () => {
+                    pipelineFactoryMock.scm.getCommitSha.rejects(new boom.Boom('some error', { statusCode: 404 }));
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 201);

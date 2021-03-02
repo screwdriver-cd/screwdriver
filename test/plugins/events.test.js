@@ -3,6 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
+const boom = require('@hapi/boom');
 const mockery = require('mockery');
 const hoek = require('@hapi/hoek');
 const urlLib = require('url');
@@ -741,10 +742,8 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 404 when the model encounters an branch not found error', () => {
-            const testError = new Error('Branch not found');
-
-            testError.status = 404;
+        it('returns 404 when the model encounters a branch not found error', () => {
+            const testError = new boom.Boom('Branch not found', { statusCode: 404 });
 
             eventFactoryMock.scm.getCommitSha.rejects(testError);
 
