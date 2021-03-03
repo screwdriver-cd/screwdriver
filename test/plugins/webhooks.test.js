@@ -1897,7 +1897,7 @@ describe('webhooks plugin test', () => {
                     });
                 });
 
-                it.only('returns 201 when getCommitSha() is rejected due to missing branch', () => {
+                it('returns 201 when getCommitSha() is rejected due to missing branch', () => {
                     pipelineFactoryMock.scm.getCommitSha.rejects(new boom.Boom('some error', { statusCode: 404 }));
 
                     return server.inject(options).then(reply => {
