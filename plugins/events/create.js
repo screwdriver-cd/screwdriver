@@ -225,7 +225,7 @@ module.exports = () => ({
                                                     payload.sha = sha;
                                                 })
                                                 .catch(err => {
-                                                    if (err.status === 404 && err.message === 'Branch not found') {
+                                                    if (err.status === 404) {
                                                         throw boom.notFound(err.message);
                                                     }
                                                 })
