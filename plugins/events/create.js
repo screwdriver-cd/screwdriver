@@ -225,8 +225,8 @@ module.exports = () => ({
                                                     payload.sha = sha;
                                                 })
                                                 .catch(err => {
-                                                    if (err.status === 404) {
-                                                        throw boom.notFound(err);
+                                                    if (err.status) {
+                                                        throw boom.boomify(err, { statusCode: err.status });
                                                     }
                                                 })
                                         )
