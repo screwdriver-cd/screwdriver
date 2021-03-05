@@ -741,7 +741,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 404 when the model encounters an branch not found error', () => {
+        it('returns 404 when the model encounters a branch not found error', () => {
             const testError = new Error('Branch not found');
 
             testError.status = 404;
