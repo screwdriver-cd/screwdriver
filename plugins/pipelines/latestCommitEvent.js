@@ -24,7 +24,8 @@ module.exports = () => ({
                 .list({
                     params: {
                         pipelineId: request.params.id,
-                        parentEventId: null
+                        parentEventId: null,
+                        type: 'pipeline'
                     },
                     paginate: {
                         count: 1
