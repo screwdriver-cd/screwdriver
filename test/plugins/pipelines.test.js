@@ -904,7 +904,8 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(eventFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        parentEventId: null
+                        parentEventId: null,
+                        type: 'pipeline'
                     },
                     paginate: {
                         count: 1
