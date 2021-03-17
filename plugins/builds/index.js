@@ -951,52 +951,51 @@ async function createOrRunNextBuild({
 }
 
 /**
- * Finds unique pipeline IDs and filters them out to return duplicates
- * @param  {Array} externalJobPipelineIds External job pipeline IDs
- * @return {Array}                        Duplicate external job pipeline IDs
- */
-function getDuplicatePipelineIds(externalJobPipelineIds) {
-    // Find uniq pipelineIds
-    const uniqPipelineIds = externalJobPipelineIds
-        .map(pid => ({ count: 1, pid }))
-        .reduce((a, b) => {
-            a[b.pid] = (a[b.pid] || 0) + b.count;
-
-            return a;
-        }, {});
-    const duplicatePipelineIds = Object.keys(uniqPipelineIds).filter(a => uniqPipelineIds[a] > 1);
-
-    return duplicatePipelineIds;
-}
-
-/**
  * Parses join object to return duplicate pipeline IDs
  * and a dict for easier data manipulation and lookup (e.g. below)
- * {
- *   123: {
- *     full: ['sd@123:main', 'sd@234:test'],
- *     short: ['main', 'test']
- *   }
- * }
+ *
  * @param  {Object} joinObj Join object
+ *  {
+ *     'sd@123:main' : [],
+ *     'sd@123:test' : [],
+ *     'sd@234:test' : [sd@345:run]
+ *     'sd@345:test' : [],
+ *  }
  * @return {Object}         Duplicate pipeline IDs and external triggers dict
+ *
+ *  {
+ *    duplicatePipelineIds: ['123']
+ *    externalTriggersDict: {
+ *      123: {
+ *        full: ['sd@123:main', 'sd@123:test'],
+ *        short: ['main', 'test']
+ *      },
+ *      345: {
+ *        full: ['sd@123:test'],
+ *        short: ['test']
+ *      }
+ * }
  */
 function parseJoinObj(joinObj) {
     // Get all external job names that do not have a join in joinObj
     const externalJobNamesWithNoJoinArr = Object.keys(joinObj).filter(
         jName => EXTERNAL_TRIGGER_ALL.test(jName) && joinObj[jName].length === 0
     );
-    // Get pipeline IDs only
-    const externalJobPipelineIds = externalJobNamesWithNoJoinArr.map(n => EXTERNAL_TRIGGER_ALL.exec(n)[1]);
+
+    const externalJobPipelineIds = new Array(externalJobNamesWithNoJoinArr.length);
+    const duplicatePipelineIds = [];
     const externalTriggersDict = {};
 
     // Construct a dict for easier manipulation
     externalJobNamesWithNoJoinArr.forEach(n => {
         const [fullName, pId, jName] = EXTERNAL_TRIGGER_ALL.exec(n);
 
+        externalJobPipelineIds.push(pId);
+
         if (externalTriggersDict[pId]) {
-            externalTriggersDict[pId].full = externalTriggersDict[pId].full.concat([fullName]);
-            externalTriggersDict[pId].short = externalTriggersDict[pId].short.concat([jName]);
+            duplicatePipelineIds.push(pId);
+            externalTriggersDict[pId].full.push(fullName);
+            externalTriggersDict[pId].push(jName);
         } else {
             externalTriggersDict[pId] = {
                 full: [fullName],
@@ -1004,9 +1003,6 @@ function parseJoinObj(joinObj) {
             };
         }
     });
-
-    // Get duplicate pipeline IDs
-    const duplicatePipelineIds = getDuplicatePipelineIds(externalJobPipelineIds);
 
     return {
         duplicatePipelineIds,
@@ -1027,7 +1023,7 @@ function parseJoinObj(joinObj) {
  * @param  {Number}   config.pipelineId      Current pipeline ID
  * @return {Promise}                         Modified join object
  */
-async function handleDuplicatePipelines(config) {
+async function triggerExternalJobsInSamePipeline(config) {
     const { joinObj, pipelineFactory, eventFactory, pipelineId, currentJobName, build, event } = config;
     const { duplicatePipelineIds, externalTriggersDict } = parseJoinObj(joinObj);
     const pipelinesToStart = [];
@@ -1039,7 +1035,7 @@ async function handleDuplicatePipelines(config) {
             const pipeline = await pipelineFactory.get(id);
 
             if (pipeline && pipeline.workflowGraph) {
-                // Check for join in workflowGraph
+                // Only process pipeline if this is not an External Join
                 const containsJoin = duplicateJobNames.some(name => {
                     const edge = pipeline.workflowGraph.edges.filter(e => e.dest === name);
 
@@ -1102,6 +1098,58 @@ async function handleDuplicatePipelines(config) {
 }
 
 /**
+ * Get pipelineId and job name from the `name`
+ * If internal, pipelineId will be the current pipelineId
+ * @param  {String} name        Job name
+ * @param  {String} pipelineId  Pipeline ID
+ * @return {Object}             With pipeline id and job name
+ */
+function triggerNextJobsWithNoExternalJoin(joinObj, event, config, app) {
+    const { buildFactory, eventFactory, jobFactory } = app;
+    const { pipeline, job, build, username, scmContext } = config;
+    const pipelineId = pipeline.id;
+    const currentJobName = job.name;
+    const { workflowGraph } = event;
+
+    return Promise.all(
+        Object.keys(joinObj).map(nextJobName => {
+            const joinList = joinObj[nextJobName];
+            const joinListNames = joinList.map(j => j.name);
+            const buildConfig = {
+                jobFactory,
+                buildFactory,
+                eventFactory,
+                pipelineId,
+                jobName: nextJobName,
+                username,
+                scmContext,
+                build, // this is the parentBuild for the next build
+                baseBranch: event.baseBranch || null
+            };
+
+            // Just start the build if falls in to these 2 scenarios
+            // 1. No join
+            // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
+            //    joinList doesn't include C, so start A
+            if (joinList.length === 0 || !joinListNames.includes(currentJobName)) {
+                return createBuild(buildConfig);
+            }
+
+            return Promise.resolve()
+                .then(() => getFinishedBuilds(event, eventFactory))
+                .then(finishedBuilds =>
+                    handleNextBuild({
+                        buildConfig,
+                        joinList,
+                        finishedBuilds,
+                        jobId: workflowGraph.nodes.find(node => node.name === trimJobName(nextJobName)).id
+                    })
+                );
+        })
+    );
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -1154,8 +1202,12 @@ const buildsPlugin = {
                 trigger: currentJobName,
                 chainPR: pipeline.chainPR
             });
-            // Create a join object like: {A:[B,C], D:[B,F]} where [B,C] join on A, [B,F] join on D, etc.
-            // This can include external jobs
+            /*
+             * Create a join object :
+             *      For A & D in nextJobs for currentJobName B, create
+             *          {A:[B,C], D:[B,F]} where [B,C] join on A, [B,F] join on D
+             *      This can include external jobs
+             */
             let joinObj = nextJobs.reduce((obj, jobName) => {
                 obj[jobName] = workflowParser.getSrcForJoin(workflowGraph, { jobName });
 
@@ -1166,49 +1218,14 @@ const buildsPlugin = {
              * Use if external join flag is false
              */
             if (!externalJoin) {
-                return Promise.all(
-                    Object.keys(joinObj).map(nextJobName => {
-                        const joinList = joinObj[nextJobName];
-                        const joinListNames = joinList.map(j => j.name);
-                        const buildConfig = {
-                            jobFactory,
-                            buildFactory,
-                            eventFactory,
-                            pipelineId,
-                            jobName: nextJobName,
-                            username,
-                            scmContext,
-                            build, // this is the parentBuild for the next build
-                            baseBranch: event.baseBranch || null
-                        };
-
-                        // Just start the build if falls in to these 2 scenarios
-                        // 1. No join
-                        // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
-                        //    joinList doesn't include C, so start A
-                        if (joinList.length === 0 || !joinListNames.includes(currentJobName)) {
-                            return createBuild(buildConfig);
-                        }
-
-                        return Promise.resolve()
-                            .then(() => getFinishedBuilds(event, eventFactory))
-                            .then(finishedBuilds =>
-                                handleNextBuild({
-                                    buildConfig,
-                                    joinList,
-                                    finishedBuilds,
-                                    jobId: workflowGraph.nodes.find(node => node.name === trimJobName(nextJobName)).id
-                                })
-                            );
-                    })
-                );
+                return triggerNextJobsWithNoExternalJoin(joinObj, event, app, config);
             }
 
             /* NEW FLOW
              * Use if external join flag is true
              */
-            // Trigger jobs with duplicate pipelines first; remove them from joinObj
-            joinObj = await handleDuplicatePipelines({
+            // Trigger jobs with same pipeline first; remove them from joinObj
+            joinObj = await triggerExternalJobsInSamePipeline({
                 joinObj,
                 pipelineFactory,
                 eventFactory,
