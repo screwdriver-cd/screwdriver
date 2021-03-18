@@ -416,54 +416,6 @@ async function createInternalBuild(config) {
 }
 
 /**
- * DFS the workflowGraph from the start point
- * @method dfs
- * @param  {Object} workflowGraph   workflowGraph
- * @param  {String} start           Start job name
- * @param  {Array} builds           An array of builds
- * @param  {Set} visited            A set to store visited build ids
- * @return {Set}                    A set of build ids that are visited
- */
-function dfs(workflowGraph, start, builds, visited) {
-    const startNode = workflowGraph.nodes.find(node => node.name === start);
-
-    if (!startNode) {
-        logger.error(`Workflow does not contain ${start}`);
-
-        return visited;
-    }
-
-    const jobId = startNode.id;
-    const nextJobs = workflowParser.getNextJobs(workflowGraph, { trigger: start });
-
-    // If the start job has no build in parentEvent then just return
-    if (!builds.find(build => build.jobId === jobId)) {
-        return visited;
-    }
-
-    visited.add(builds.find(build => build.jobId === jobId).id);
-    nextJobs.forEach(job => dfs(workflowGraph, job, builds, visited));
-
-    return visited;
-}
-
-/**
- * Remove startFrom and all downstream builds from startFrom
- * @method removeDownstreamBuilds
- * @param  {Object} config
- * @param  {Array}  config.builds         An array of all builds from the parent event
- * @param  {String} config.startFrom      Job name to start the event from
- * @param  {Object} config.parentEvent    The parent event model
- * @return {Array}                        An array of upstream builds
- */
-function removeDownstreamBuilds(config) {
-    const { builds, startFrom, parentEvent } = config;
-    const visitedBuilds = dfs(parentEvent.workflowGraph, startFrom, builds, new Set());
-
-    return builds.filter(build => !visitedBuilds.has(build.id));
-}
-
-/**
  * Return PR job or not
  * PR job name certainly has ":". e.g. "PR-1:jobName"
  * @method isPR
@@ -591,17 +543,9 @@ async function getFinishedBuilds(event, buildFactory) {
         return event.getBuilds();
     }
 
-    // New logic to use groupEventId
-    const parents = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+    const allBuilds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
 
-    const upstreamBuilds = removeDownstreamBuilds({
-        builds: parents,
-        startFrom: event.startFrom,
-        event
-    });
-    const builds = await event.getBuilds();
-
-    return builds.concat(upstreamBuilds);
+    return allBuilds;
 }
 
 /**
