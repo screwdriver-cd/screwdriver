@@ -657,18 +657,51 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
 }
 
 /**
+ * Get all builds with same parent event id
+ * @param  {Factory}    eventFactory    Event factory
+ * @param  {Number}     parentEventId   Parent event ID
+ * @param  {Number}     pipelineId      Pipeline ID
+ * @return {Promise}                    Array of builds with same parent event ID
+ */
+async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
+    let parallelEvents = await eventFactory.list({
+        params: {
+            parentEventId
+        }
+    });
+
+    // Remove previous events from same pipeline
+    parallelEvents = parallelEvents.filter(pe => pe.pipelineId !== pipelineId);
+
+    let parallelBuilds = [];
+
+    await Promise.all(
+        parallelEvents.map(async pe => {
+            const parallelBuild = await pe.getBuilds();
+
+            parallelBuilds = parallelBuilds.concat(parallelBuild);
+        })
+    );
+
+    return parallelBuilds;
+}
+
+/**
  * Fills parentBuilds object with missing job information
  */
 async function fillParentBuilds(parentBuilds, app, current, externalEvent = null) {
-    const { buildFactory } = app;
+    const { buildFactory, eventFactory } = app;
 
     let finishedInternalBuilds = await getFinishedBuilds(current.event, buildFactory);
 
     if (externalEvent) {
-        // FIXME: external & internal might not be needed at same time.
-        const finishedExternalBuilds = await getFinishedBuilds(externalEvent, buildFactory);
+        const parallelBuilds = await getParallelBuilds({
+            eventFactory,
+            parentEventId: externalEvent.id,
+            pipelineId: externalEvent.pipelineId
+        });
 
-        finishedInternalBuilds = finishedInternalBuilds.concat(finishedExternalBuilds);
+        finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
     }
 
     Object.keys(parentBuilds).forEach(pid => {
