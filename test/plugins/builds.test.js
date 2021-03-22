@@ -1352,7 +1352,7 @@ describe('build plugin test', () => {
                     buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
                 });
 
-                it('skip external OR if exernalJoin flag is on', () => {
+                it.only('skip external OR if exernalJoin flag is on', () => {
                     const newServer = new hapi.Server({
                         port: 12345,
                         host: 'localhost'
