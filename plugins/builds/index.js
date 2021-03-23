@@ -235,7 +235,6 @@ async function createInternalBuild(config) {
     } else {
         job = await jobFactory.get(jobId);
     }
-
     const internalBuildConfig = {
         jobId: job.id,
         sha: sha || build.sha,
@@ -251,6 +250,9 @@ async function createInternalBuild(config) {
         start: start !== false,
         baseBranch
     };
+
+    console.log('createInternalBuild', internalBuildConfig);
+
 
     if (job.state === 'ENABLED') {
         return buildFactory.create(internalBuildConfig);
@@ -382,10 +384,13 @@ function parseJobInfo({ joinObj, currentJobName, nextJobName, pipelineId, build 
  * @param  {Factory}    [buildFactory]          Build factory
  * @return {Promise}                            All finished builds
  */
-async function getFinishedBuilds(event, buildFactory) {
-    const allBuilds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
-
-    return allBuilds;
+async function getFinishedBuilds(event, buildFactory) {   
+    if (!event.parentEventId) {
+        //FIXME: remove this flow to always use buildFactory.getLatestBuilds
+        return event.getBuilds();
+    }
+    
+    return buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
 }
 
 /**
@@ -849,10 +854,10 @@ async function triggerExternalJobsWithNoJoin(config) {
                         pipelineFactory,
                         eventFactory,
                         externalPipelineId: pid,
-                        startFrom: `~sd@${current.pipelineId}:${current.job.name}`,
+                        startFrom: `~sd@${current.pipeline.id}:${current.job.name}`,
                         parentBuildId: current.build.id,
                         parentBuilds,
-                        causeMessage: `Triggered by sd@${current.pipelineId}:${current.job.name}`,
+                        causeMessage: `Triggered by sd@${current.pipeline.id}:${current.job.name}`,
                         parentEventId: current.event.id
                     });
                 } catch (err) {
@@ -910,6 +915,8 @@ const buildsPlugin = {
          * @return {Promise}                        Resolves to the newly created build or null
          */
         server.expose('triggerNextJobs', async (config, app) => {
+            console.log('here');
+
             const { pipeline, job, build } = config;
             const { eventFactory, pipelineFactory, buildFactory, jobFactory } = app;
             const event = await eventFactory.get({ id: build.eventId });
@@ -937,6 +944,10 @@ const buildsPlugin = {
                 return obj;
             }, {});
 
+            console.log(current.job.name);
+
+            console.log(joinObj);
+
             // Trigger external jobs with no join; remove them from joinObj
             joinObj = await triggerExternalJobsWithNoJoin({
                 joinObj,
@@ -944,6 +955,8 @@ const buildsPlugin = {
                 eventFactory,
                 current
             });
+
+            console.log(joinObj);            
 
             // function for handling build creation/starting logic
             const triggerNextJob = async nextJobName => {
@@ -977,6 +990,7 @@ const buildsPlugin = {
                  *    joinList doesn't include sd@111:D, so start A
                  */
                 if (joinListNames.length === 0 || isORTrigger) {
+                    console.log(isExternal);
                     // Next build is internal : sequential flow or OR flow
                     if (!isExternal) {
                         const internalBuildConfig = {
@@ -987,7 +1001,7 @@ const buildsPlugin = {
                             jobName: nextJobName,
                             username,
                             scmContext,
-                            build: current.build.id, // this is the parentBuild for the next build
+                            build: current.build, // this is the parentBuild for the next build
                             baseBranch: current.event.baseBranch || null,
                             parentBuilds
                         };

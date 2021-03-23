@@ -58,8 +58,6 @@ Object.keys(clusterEnv).forEach(k => {
     clusterEnv[k] = String(clusterEnv[k]);
 });
 
-// Flag to allow external join
-const { externalJoin } = config.get('build');
 // Flag to throw notifications validation err or not; default true
 const notificationsValidationErr = convertToBool(
     hoek.reach(config.get('notifications').options, 'throwValidationErr', { default: true })
@@ -122,7 +120,7 @@ const server = require('..');
 const pipelineFactory = Models.PipelineFactory.getInstance({
     datastore,
     scm,
-    externalJoin,
+    externalJoin: true,
     notificationsValidationErr,
     multiBuildClusterEnabled
 });
@@ -246,8 +244,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         banners: authConfig,
         builds: {
             ecosystem,
-            authConfig,
-            externalJoin
+            authConfig
         },
         stats: {
             executor,
@@ -255,7 +252,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         },
         release,
         validator: {
-            externalJoin,
+            externalJoin: true,
             notificationsValidationErr
         }
     })

@@ -4,7 +4,6 @@ const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
-const { EXTERNAL_TRIGGER } = schema.config.regex;
 const idSchema = schema.models.job.base.extract('id');
 
 /**
@@ -53,7 +52,6 @@ module.exports = config => ({
                 buildFactory,
                 eventFactory,
                 jobFactory,
-                triggerFactory,
                 userFactory,
                 stepFactory,
                 bannerFactory
@@ -62,8 +60,7 @@ module.exports = config => ({
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
-            const { triggerEvent, triggerNextJobs } = request.server.plugins.builds;
-            const externalJoin = config.externalJoin || false;
+            const { triggerNextJobs } = request.server.plugins.builds;
 
             if (isBuild && username !== id) {
                 return boom.forbidden(`Credential only valid for ${username}`);
@@ -241,49 +238,11 @@ module.exports = config => ({
                                         job,
                                         build: newBuild,
                                         username,
-                                        scmContext,
-                                        externalJoin
+                                        scmContext
                                     },
                                     request.server.app
                                 ).then(async () => {
-                                    // if external join is allowed, then triggerNextJobs will take care of external OR already
-                                    if (externalJoin) {
-                                        return h.response(await newBuild.toJsonWithSteps()).code(200);
-                                    }
-
-                                    const src = `~sd@${pipeline.id}:${job.name}`;
-
-                                    // Old flow
-                                    return triggerFactory
-                                        .list({ params: { src } })
-                                        .then(records => {
-                                            // Use set to remove duplicate and keep only unique pipelineIds
-                                            const triggeredPipelines = new Set();
-
-                                            records.forEach(record => {
-                                                const pipelineId = record.dest.match(EXTERNAL_TRIGGER)[1];
-
-                                                triggeredPipelines.add(pipelineId);
-                                            });
-
-                                            return Array.from(triggeredPipelines);
-                                        })
-                                        .then(pipelineIds =>
-                                            Promise.all(
-                                                pipelineIds.map(pipelineId =>
-                                                    triggerEvent(
-                                                        {
-                                                            pipelineId: parseInt(pipelineId, 10),
-                                                            startFrom: src,
-                                                            causeMessage: `Triggered by build ${username}`,
-                                                            parentBuildId: newBuild.id
-                                                        },
-                                                        request.server.app
-                                                    )
-                                                )
-                                            )
-                                        )
-                                        .then(async () => h.response(await newBuild.toJsonWithSteps()).code(200));
+                                    return h.response(await newBuild.toJsonWithSteps()).code(200);
                                 });
                             })
                             .catch(err => {

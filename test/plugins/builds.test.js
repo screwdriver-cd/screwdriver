@@ -1352,7 +1352,7 @@ describe('build plugin test', () => {
                     buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
                 });
 
-                it.only('skip external OR if exernalJoin flag is on', () => {
+                it('skip external OR if exernalJoin flag is on', () => {
                     const newServer = new hapi.Server({
                         port: 12345,
                         host: 'localhost'
@@ -1660,7 +1660,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe('join', () => {
+            describe('join', () => {    
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -2609,7 +2609,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers if all jobs in external join are done and updates join job', () => {
+                it.only('triggers if all jobs in external join are done and updates join job', () => {
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
