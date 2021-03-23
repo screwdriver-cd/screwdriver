@@ -183,11 +183,13 @@ async function handleNextBuild({ buildConfig, joinList, event, eventFactory, job
             // [A B] -> C. A passed -> C created; B passed -> update C
             if (!nextBuild) {
                 buildConfig.start = false;
-                newBuild = await createBuild(buildConfig);
+                try {
+                    newBuild = await createBuild(buildConfig);
+                } catch (err) {
+                    finishedBuilds = await getFinishedBuilds(event, eventFactory);
+                    nextBuild = finishedBuilds.filter(b => b.jobId === jobId)[0];
+                }
             }
-
-            finishedBuilds = await getFinishedBuilds(event, eventFactory);
-            nextBuild = finishedBuilds.filter(b => b.jobId === jobId)[0];
 
             if (nextBuild && !newBuild) {
                 nextBuild.parentBuildId = successBuildsIds;
@@ -864,11 +866,15 @@ async function createOrRunNextBuild({
             newBuild = await createExternalBuild(externalBuildConfig);
         } else {
             internalBuildConfig.start = false;
-            newBuild = await createInternalBuild(internalBuildConfig);
+
+            try {
+                newBuild = await createInternalBuild(internalBuildConfig);
+            } catch (err) {
+                nextBuild = await getNextBuild(getConfig);
+            }
         }
     }
 
-    nextBuild = await getNextBuild(getConfig);
 
     if (nextBuild && !newBuild){
         newBuild = await updateParentBuilds({
@@ -1425,23 +1431,27 @@ const buildsPlugin = {
                                 const parentBuildId = build.parentBuilds[externalPipelineId].jobs[parentJobName];
                                 const parentBuild = parentBuildId ? await buildFactory.get(parentBuildId) : build;
 
-                                newBuild = await createInternalBuild({
-                                    jobFactory,
-                                    buildFactory,
-                                    eventFactory,
-                                    pipelineId: externalEvent.pipelineId,
-                                    jobName: externalJobName,
-                                    jobId,
-                                    username,
-                                    scmContext,
-                                    build: parentBuild, // this is the parentBuild for the next build
-                                    baseBranch: event.baseBranch || null,
-                                    parentBuilds,
-                                    parentBuildId: build.id,
-                                    start: false,
-                                    eventId: externalEventId,
-                                    sha: externalEvent.sha
-                                });
+                                try {
+                                    newBuild = await createInternalBuild({
+                                        jobFactory,
+                                        buildFactory,
+                                        eventFactory,
+                                        pipelineId: externalEvent.pipelineId,
+                                        jobName: externalJobName,
+                                        jobId,
+                                        username,
+                                        scmContext,
+                                        build: parentBuild, // this is the parentBuild for the next build
+                                        baseBranch: event.baseBranch || null,
+                                        parentBuilds,
+                                        parentBuildId: build.id,
+                                        start: false,
+                                        eventId: externalEventId,
+                                        sha: externalEvent.sha
+                                    });
+                                } catch (err) {
+                                    nextBuild = await getNextBuild(getConfig);
+                                }
                             }
                         }
 
