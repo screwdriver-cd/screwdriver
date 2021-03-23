@@ -1450,14 +1450,12 @@ const buildsPlugin = {
                                         sha: externalEvent.sha
                                     });
                                 } catch (err) {
-                                    nextBuild = await getNextBuild(getConfig);
+                                    finishedExternalBuilds = await externalEvent.getBuilds();
+                                    nextBuild = finishedExternalBuilds.find(b => b.jobId === jobId && b.status === 'CREATED');
                                 }
                             }
                         }
 
-                        // get next build again in case of race condition
-                        finishedExternalBuilds = await externalEvent.getBuilds();
-                        nextBuild = finishedExternalBuilds.find(b => b.jobId === jobId && b.status === 'CREATED');
                         // If next build exists, update next build with parentBuilds info
                         if (!newBuild && nextBuild){
                             newBuild = await updateParentBuilds({
