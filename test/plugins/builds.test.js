@@ -2609,7 +2609,9 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('triggers if all jobs in external join are done and updates join job', () => {
+                it('triggers if all jobs in external join are done and updates join job', () => {
+                    // re-entry case
+                    // join-job exist
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -2729,7 +2731,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledTwice(externalEventMock.getBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledTwice(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });
@@ -2739,6 +2741,7 @@ describe('build plugin test', () => {
                     // For a pipeline like this:
                     //  ~sd@2:a -> a -> sd@2:c
                     // If user is at `a`, it should trigger `sd@2:c`
+                    // No join-job, so create
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -2794,6 +2797,7 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
+                        baseBranch: 'master',
                         builds: [
                             {
                                 id: 888,
@@ -2838,7 +2842,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledTwice(externalEventMock.getBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, jobCConfig);
                         assert.calledOnce(buildC.update);
@@ -2846,7 +2850,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('creates a single event for downstream triggers in the same pipeline', () => {
+                it.only('creates a single event for downstream triggers in the same pipeline', () => {
                     // For a pipeline like this:
                     //      -> b
                     //    a
