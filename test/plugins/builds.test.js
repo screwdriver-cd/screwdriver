@@ -1660,7 +1660,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe('join', () => {    
+            describe('join', () => {
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -2850,7 +2850,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('creates a single event for downstream triggers in the same pipeline', () => {
+                it('creates a single event for downstream triggers in the same pipeline', () => {
                     // For a pipeline like this:
                     //      -> b
                     //    a
@@ -2937,7 +2937,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('creates without starting join job in external join when fork not done', () => {
+                it.only('creates without starting join job in external join when fork not done', () => {
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3053,7 +3053,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledTwice(externalEventMock.getBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.notCalled(buildC.update);
                         assert.notCalled(updatedBuildC.start);

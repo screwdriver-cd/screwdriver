@@ -34,7 +34,7 @@ async function isFixedBuild(build, jobFactory) {
     return false;
 }
 
-module.exports = config => ({
+module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
     options: {
