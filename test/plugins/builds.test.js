@@ -2980,7 +2980,7 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
                         id: 2,
-                        pipelineId: 123,
+                        pipelineId: 2,
                         builds: [
                             {
                                 id: 888,
