@@ -2937,7 +2937,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('creates without starting join job in external join when fork not done', () => {
+                it('creates without starting join job in external join when fork not done', () => {
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
