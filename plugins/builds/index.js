@@ -1225,7 +1225,7 @@ const buildsPlugin = {
              */
             if (!externalJoin) {
                 return Promise.all(
-                    Object.keys(joinObj).map(nextJobName => {
+                    Object.keys(joinObj).map(async nextJobName => {
                         const joinList = joinObj[nextJobName];
                         const joinListNames = joinList.map(j => j.name);
                         const buildConfig = {
@@ -1245,7 +1245,18 @@ const buildsPlugin = {
                         // 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
                         //    joinList doesn't include C, so start A
                         if (joinList.length === 0 || !joinListNames.includes(currentJobName)) {
-                            return createBuild(buildConfig);
+                            let newBuild;
+
+                            try {
+                                newBuild = await createBuild(buildConfig);
+                            } catch (err) {
+                                logger.error(
+                                    `Error in triggerNextJobs - pipeline:${pipelineId}-${nextJobName} event:${event.id} `,
+                                    err
+                                );
+                            }
+
+                            return newBuild;
                         }
 
                         return Promise.resolve().then(() =>
@@ -1320,8 +1331,18 @@ const buildsPlugin = {
                             baseBranch: event.baseBranch || null,
                             parentBuilds
                         };
+                        let newBuild;
 
-                        return createInternalBuild(internalBuildConfig);
+                        try {
+                            newBuild = await createInternalBuild(internalBuildConfig);
+                        } catch (err) {
+                            logger.error(
+                                `Error in processNextJob - pipeline:${pipelineId}-${nextJobName} event:${event.id} `,
+                                err
+                            );
+                        }
+
+                        return newBuild;
                     }
 
                     /* GET OR CREATE NEXT BUILD, UPDATE WITH PARENT BUILDS INFO, AND
