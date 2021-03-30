@@ -17,6 +17,8 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
+const { redlock } = require('../helper.js');
+const ttl = 20000;
 
 /**
  * Checks if job is external trigger
@@ -594,6 +596,15 @@ async function updateParentBuilds({ joinParentBuilds, currentJobParentBuilds, ne
  * @return {Promise}  the newly updated/created build
  */
 async function handleNextBuild({ buildConfig, joinList, event, eventFactory, jobId }) {
+    const resource = `event:${event.id}:${jobName}`;
+    let lock;
+
+    try {
+        lock = await redlock.lock(resource, ttl)
+    } catch (err) {
+        logger.info(`Failed to lock job ${jobName} in event ${event.id}`);
+    }
+
     let finishedBuilds = await getFinishedBuilds(event, eventFactory);
     const noFailedBuilds = noFailureSoFar(joinList, finishedBuilds);
     let nextBuild = finishedBuilds.filter(b => b.jobId === jobId)[0];
@@ -630,6 +641,8 @@ async function handleNextBuild({ buildConfig, joinList, event, eventFactory, job
         nextBuild.parentBuildId = successBuildsIds;
         newBuild = await nextBuild.update();
     }
+
+    await lock.unlock();
 
     const done = isJoinDone(joinList, finishedBuilds);
 
@@ -955,6 +968,16 @@ async function createOrRunNextBuild({
         isExternal,
         nextJobName
     };
+
+    const resource = `event:${event.id}:${nextJobName}`;
+    let lock;
+
+    try {
+        lock = await redlock.lock(resource, ttl)
+    } catch (err) {
+        logger.info(`Failed to lock job ${nextJobName} in event ${event.id}`);
+    }
+
     /* CHECK WHETHER NEXT BUILD EXISTS */
     let nextBuild = await getNextBuild(getConfig);
     let newBuild;
@@ -984,6 +1007,8 @@ async function createOrRunNextBuild({
             build: externalBuild
         });
     }
+
+    await lock.unlock();
 
     if (!newBuild) {
         logger.error(`No build found for ${pipelineId}:${jobName}`);
@@ -1353,6 +1378,15 @@ const buildsPlugin = {
                      * Otherwise, create internal build for matching pipeline
                      */
                     if (build.parentBuilds && build.parentBuilds[externalPipelineId]) {
+                        const resource = `event:${event.id}:${nextJobName}`;
+                        let lock;
+                    
+                        try {
+                            lock = await redlock.lock(resource, ttl)
+                        } catch (err) {
+                            logger.info(`Failed to lock job ${nextJobName} in event ${event.id}`);
+                        }
+        
                         // TODO: refactor this section to reduce number of DB calls
                         const externalEventId = build.parentBuilds[externalPipelineId].eventId;
                         const externalEvent = await eventFactory.get(externalEventId);
@@ -1490,6 +1524,8 @@ const buildsPlugin = {
                                 build
                             });
                         }
+
+                        await lock.unlock();
 
                         // Get join information in context of join job
                         const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {
