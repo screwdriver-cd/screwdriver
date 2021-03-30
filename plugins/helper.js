@@ -17,7 +17,7 @@ const redis = new Redis(connectionDetails.port, connectionDetails.host, connecti
 // https://github.com/mike-marcacci/node-redlock
 const redlock = new Redlock([redis], {
     driftFactor: 0.01, // time in ms
-    retryCount: 5,
+    retryCount: 200,
     retryDelay: 500, // time in ms
     retryJitter: 200 // time in ms
 });
