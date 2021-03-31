@@ -914,7 +914,6 @@ describe('build plugin test', () => {
                 buildMock.toJson.returns(testBuild);
 
                 return server.inject(options).then(reply => {
-                    console.log(buildMock);
                     assert.deepEqual(reply.result, expected);
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.equal(buildMock.statusMessage, undefined);
@@ -2334,7 +2333,7 @@ describe('build plugin test', () => {
                     newServer = null;
                 });
 
-                it('triggers if not a join', () => {
+                it.only('triggers if not a join', () => {
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -2405,6 +2404,7 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledOnce(buildFactoryMock.create);
+                        assert.calledOnce(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                     });
                 });
@@ -2762,7 +2762,7 @@ describe('build plugin test', () => {
                     };
                     const parentBuilds = {
                         123: { eventId: '8888', jobs: { a: 12345 } },
-                        2: { eventId: '8888', jobs: { a: 12345 } }
+                        2: { eventId: '8887', jobs: { a: 12345 } }
                     };
                     const buildC = {
                         jobId: 3,
@@ -2777,7 +2777,7 @@ describe('build plugin test', () => {
                     const jobCConfig = {
                         baseBranch: 'master',
                         configPipelineSha: 'abc123',
-                        eventId: '8887',
+                        eventId: 8887,
                         jobId: 3,
                         parentBuildId: 12345,
                         parentBuilds: {
@@ -2795,7 +2795,10 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
-                        id: 2,
+                        sha: '58393af682d61de87789fb4961645c42180cec5a',
+                        pr: {},
+                        id: 8887,
+                        configPipelineSha: 'abc123',
                         pipelineId: 123,
                         baseBranch: 'master',
                         builds: [
@@ -2836,7 +2839,8 @@ describe('build plugin test', () => {
                         }
                     ]);
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.get.withArgs(8889).resolves(Object.assign({}, externalEventMock, { id: '8889' }));
+                    eventFactoryMock.list.resolves([Object.assign({}, externalEventMock, { id: '8889' })]);
                     buildFactoryMock.create.onCall(0).resolves(buildC);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -2923,7 +2927,7 @@ describe('build plugin test', () => {
                     };
 
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([Object.assign({}, externalEventMock, { id: '8889' })]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
