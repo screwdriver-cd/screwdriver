@@ -82,7 +82,6 @@ describe('build plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
     let eventFactoryMock;
-    let triggerFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let secretMock;
@@ -144,10 +143,7 @@ describe('build plugin test', () => {
                 getCommitSha: sinon.stub()
             }
         };
-        triggerFactoryMock = {
-            get: sinon.stub(),
-            list: sinon.stub()
-        };
+
         bannerFactoryMock = {
             scm: {
                 getDisplayName: sinon.stub()
@@ -175,7 +171,6 @@ describe('build plugin test', () => {
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock,
-            triggerFactory: triggerFactoryMock,
             bannerFactory: bannerFactoryMock
         };
         server.auth.scheme('custom', () => ({
@@ -433,7 +428,6 @@ describe('build plugin test', () => {
                 }
             ];
 
-            triggerFactoryMock.list.resolves(triggerMocks);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
@@ -1348,168 +1342,8 @@ describe('build plugin test', () => {
                         nodes: [{ name: 'main' }, { name: 'publish' }],
                         edges: [{ src: 'main', dest: 'publish' }]
                     };
-                    buildMock.eventId = 'bbf22a3808c19dc50777258a253805b14fb3ad8b';
-                });
-
-                it('skip external OR if exernalJoin flag is on', () => {
-                    const newServer = new hapi.Server({
-                        port: 12345,
-                        host: 'localhost'
-                    });
-
-                    newServer.app = {
-                        buildFactory: buildFactoryMock,
-                        stepFactory: stepFactoryMock,
-                        pipelineFactory: pipelineFactoryMock,
-                        jobFactory: jobFactoryMock,
-                        userFactory: userFactoryMock,
-                        eventFactory: eventFactoryMock,
-                        triggerFactory: triggerFactoryMock
-                    };
-                    newServer.auth.scheme('custom', () => ({
-                        authenticate: (request, h) =>
-                            h.authenticated({
-                                credentials: {
-                                    scope: ['user']
-                                }
-                            })
-                    }));
-                    newServer.auth.strategy('token', 'custom');
-                    newServer.auth.strategy('session', 'custom');
-                    newServer.event('build_status');
-
-                    return newServer
-                        .register({
-                            plugin,
-                            options: {
-                                ecosystem: {
-                                    store: logBaseUrl
-                                },
-                                authConfig: {
-                                    jwtPrivateKey: 'boo'
-                                },
-                                externalJoin: true
-                            }
-                        })
-                        .then(() => {
-                            const username = id;
-                            const status = 'SUCCESS';
-                            const options = {
-                                method: 'PUT',
-                                url: `/builds/${id}`,
-                                auth: {
-                                    credentials: {
-                                        username,
-                                        scmContext,
-                                        scope: ['build']
-                                    },
-                                    strategy: ['token']
-                                },
-                                payload: {
-                                    status
-                                }
-                            };
-
-                            jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(publishJobMock);
-
-                            return newServer.inject(options).then(reply => {
-                                assert.equal(reply.statusCode, 200);
-                                assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
-                                assert.calledWith(buildFactoryMock.create, {
-                                    jobId: publishJobId,
-                                    sha: testBuild.sha,
-                                    parentBuildId: id,
-                                    username,
-                                    scmContext,
-                                    eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
-                                    configPipelineSha,
-                                    prRef: '',
-                                    prInfo: '',
-                                    prSource: '',
-                                    start: true,
-                                    baseBranch: null,
-                                    parentBuilds: {
-                                        123: {
-                                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
-                                            jobs: { main: 12345 }
-                                        }
-                                    }
-                                });
-                                assert.notCalled(triggerFactoryMock.list);
-                            });
-                        });
-                });
-
-                it('triggers next job in the pipeline workflow and external pipelines', () => {
-                    const meta = {
-                        darren: 'thebest'
-                    };
-                    const username = id;
-                    const status = 'SUCCESS';
-                    const options = {
-                        method: 'PUT',
-                        url: `/builds/${id}`,
-                        auth: {
-                            credentials: {
-                                username,
-                                scmContext,
-                                scope: ['build']
-                            },
-                            strategy: ['token']
-                        },
-                        payload: {
-                            meta,
-                            status
-                        }
-                    };
-
-                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(publishJobMock);
-
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.deepEqual(buildMock.meta, meta);
-                        assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: publishJobId,
-                            sha: testBuild.sha,
-                            parentBuildId: id,
-                            username,
-                            scmContext,
-                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
-                            configPipelineSha,
-                            prSource: '',
-                            prInfo: '',
-                            prRef: '',
-                            start: true,
-                            baseBranch: null
-                        });
-                        assert.calledWith(triggerFactoryMock.list, {
-                            params: { src }
-                        });
-                        // Make sure it only creates two events
-                        // The first event should group 456:main and 456:second
-                        assert.calledTwice(eventFactoryMock.create);
-                        assert.calledWith(eventFactoryMock.create.firstCall, {
-                            parentBuildId: 12345,
-                            causeMessage: 'Triggered by build 12345',
-                            pipelineId: 456,
-                            startFrom: src,
-                            type: 'pipeline',
-                            username: 'foo',
-                            scmContext,
-                            sha: 'sha'
-                        });
-                        assert.calledWith(eventFactoryMock.create.secondCall, {
-                            parentBuildId: 12345,
-                            causeMessage: 'Triggered by build 12345',
-                            pipelineId: 789,
-                            startFrom: src,
-                            type: 'pipeline',
-                            username: 'foo',
-                            scmContext,
-                            sha: 'sha'
-                        });
-                    });
+                    buildMock.eventId = '8888';
+                    eventMock.sha = testBuild.sha;
                 });
 
                 it('triggers next job in the chainPR workflow', () => {
@@ -1543,10 +1377,6 @@ describe('build plugin test', () => {
                     // flag should be true in chainPR events
                     pipelineMock.chainPR = true;
 
-                    // Set no external pipeline
-                    triggerMocks = [];
-                    triggerFactoryMock.list.resolves(triggerMocks);
-
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.isTrue(buildMock.update.calledBefore(buildFactoryMock.create));
@@ -1554,9 +1384,10 @@ describe('build plugin test', () => {
                             jobId: publishJobId,
                             sha: testBuild.sha,
                             parentBuildId: id,
+                            parentBuilds: { 123: { eventId: '8888', jobs: { 'PR-15:main': 12345 } } },
                             username,
                             scmContext,
-                            eventId: 'bbf22a3808c19dc50777258a253805b14fb3ad8b',
+                            eventId: eventMock.id,
                             configPipelineSha,
                             prSource: eventMock.pr.prSource,
                             prInfo: eventMock.pr.prInfo,
@@ -2148,7 +1979,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe.only('join new flow', () => {
+            describe('join new flow', () => {
                 let newServer;
                 const options = {
                     method: 'PUT',
@@ -2302,7 +2133,6 @@ describe('build plugin test', () => {
                         jobFactory: jobFactoryMock,
                         userFactory: userFactoryMock,
                         eventFactory: eventFactoryMock,
-                        triggerFactory: triggerFactoryMock
                     };
                     newServer.auth.scheme('custom', () => ({
                         authenticate: (request, h) =>
@@ -3469,7 +3299,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it.only('triggers if all jobs in external join are done with parent event', () => {
+                it('triggers if all jobs in external join are done with parent event', () => {
                     // (External join restart case)
                     // For pipelines like this:
                     // 1. pipeline 123
@@ -3547,7 +3377,7 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
                         id: 2,
-                        pipelineId: 123,
+                        pipelineId: 2,
                         builds: [
                             {
                                 id: 888,
