@@ -2148,7 +2148,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe('join new flow', () => {
+            describe.only('join new flow', () => {
                 let newServer;
                 const options = {
                     method: 'PUT',
@@ -2236,6 +2236,7 @@ describe('build plugin test', () => {
                         ]
                     };
                     eventMock.baseBranch = 'master';
+                    eventMock.sha = '58393af682d61de87789fb4961645c42180cec5a';
 
                     pipelineFactoryMock.get.withArgs(123).resolves(
                         Object.assign(pipelineMock, {
@@ -2333,7 +2334,7 @@ describe('build plugin test', () => {
                     newServer = null;
                 });
 
-                it.only('triggers if not a join', () => {
+                it('triggers if not a join', () => {
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -2983,6 +2984,7 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
+                        pr: {},
                         id: 2,
                         pipelineId: 2,
                         builds: [
@@ -3284,15 +3286,8 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-                    eventMock.getBuilds.resolves([
-                        {
-                            id: 5,
-                            jobId: 1,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        }
-                    ]);
-                    parentEventMock.getBuilds.resolves([
+
+                    buildFactoryMock.getLatestBuilds.resolves([
                         {
                             id: 1,
                             jobId: 1,
@@ -3306,6 +3301,7 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
+
                     jobCconfig.start = false;
                     jobCconfig.parentBuilds = parentBuilds;
                     buildC.update = sinon.stub().resolves(updatedBuildC);
@@ -3338,7 +3334,9 @@ describe('build plugin test', () => {
                                 jobs: { a: 12345 }
                             }
                         },
-                        start: sinon.stub().resolves()
+                        start: sinon.stub().resolves(),
+                        eventId: '8888',
+                        id: 889
                     };
                     const parentBuilds = {
                         123: {
@@ -3471,7 +3469,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers if all jobs in external join are done with parent event', () => {
+                it.only('triggers if all jobs in external join are done with parent event', () => {
                     // (External join restart case)
                     // For pipelines like this:
                     // 1. pipeline 123

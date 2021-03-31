@@ -16,7 +16,6 @@ const stepLogsRoute = require('./steps/logs');
 const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
-const { eventNames } = require('screwdriver-logger');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 
 /**
@@ -59,7 +58,7 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
     }
 
     const eventId = currentBuild.parentBuilds[pipelineId].eventId;
-    console.log('getExternalEvent',pipelineId, eventId);
+
     return eventFactory.get(eventId);
 }
 
@@ -252,7 +251,7 @@ async function createInternalBuild(config) {
     const internalBuildConfig = {
         jobId: job.id,
         sha: event.sha,
-        parentBuildId: parentBuildId || build.id,
+        parentBuildId,
         parentBuilds: parentBuilds || {},
         eventId: event.id,
         username,
@@ -265,7 +264,6 @@ async function createInternalBuild(config) {
         baseBranch
     };
 
-    console.log('internalBuildConfig', internalBuildConfig);
     if (job.state === 'ENABLED') {
         return buildFactory.create(internalBuildConfig);
     }
@@ -281,8 +279,7 @@ async function createInternalBuild(config) {
  * @return {Boolean}
  */
 function isPR(jobName) {
-    // FIXME: This catches remote job syntax. Implications ?
-    return jobName.includes(':');
+    return jobName.startsWith('PR-');
 }
 
 /**
@@ -456,7 +453,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
         ) {
             bId = upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName];
         }
-        console.log('getParentBuildStatus', 'bId', bId, pipelineId, name, joinInfo, upstream);
         // If buildId is empty, the job hasn't executed yet and the join is not done
         if (!bId) {
             done = false;
@@ -557,7 +553,7 @@ function fillParentBuilds(parentBuilds, current, builds) {
             let joinJob;
 
             if (parentBuilds[pid].jobs[jName] === null) {
-                if (parseInt(pid, 10) === current.pipelineId) {
+                if (parseInt(pid, 10) === current.pipeline.id) {
                     joinJob = current.event.workflowGraph.nodes.find(node => node.name === trimJobName(jName));
                 } else {
                     joinJob = current.event.workflowGraph.nodes.find(node => node.name.includes(`sd@${pid}:${jName}`));
@@ -594,16 +590,13 @@ function fillParentBuilds(parentBuilds, current, builds) {
 async function createJoinObject(nextJobs, current, eventFactory) {
     const { build, event } = current;
 
-    console.log('createJoinObject');
-    console.log(nextJobs);
-    console.log(event.workflowGraph);
     const joinObj = {};
 
     for (const jobName of nextJobs) {
         const jobInfo = getPipelineAndJob(jobName);
         const pid = jobInfo.externalPipelineId || 'current';
         const jName = jobInfo.externalJobName;
-        const jId = event.workflowGraph.nodes.find(n => n.name === jobName).id;
+        const jId = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName)).id;
 
         if (!joinObj[pid]) joinObj[pid] = {};
         const pipelineObj = joinObj[pid];
@@ -612,10 +605,8 @@ async function createJoinObject(nextJobs, current, eventFactory) {
         if (pid !== 'current') {
             jobs = [];
 
-            console.log('createJoinObject', pid)
-            console.log('createJoinObject', pid)
             const externalEvent = pipelineObj.event || (await getExternalEvent(build, pid, eventFactory));
-            console.log('createJoinObject', pid, externalEvent)
+
             if (externalEvent) {
                 pipelineObj.event = externalEvent;
                 jobs = workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: jName });
@@ -683,10 +674,6 @@ const buildsPlugin = {
                 event
             };
 
-            console.log('current job', current.job.name);
-            console.log('current event', current.event.id);
-            console.log('current pipeline', current.pipeline.id);
-
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
@@ -694,9 +681,7 @@ const buildsPlugin = {
 
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
 
-
-            console.log(JSON.stringify(pipelineJoinData, null, 0));
-
+            // Helper function to handle triggering jobs in same pipeline
             const triggerNextJobInSamePipeline = async (nextJobName, joinObj) => {
                 const { username, scmContext } = config;
                 const { parentBuilds, joinListNames, currentJobParentBuilds, currentBuildInfo } = parseJobInfo({
@@ -706,9 +691,6 @@ const buildsPlugin = {
                     pipelineId: current.pipeline.id,
                     build: current.build
                 });
-
-                console.log('triggerNextJobInSamePipeline', 'joinListNames', joinListNames);
-
 
                 // Handle no-join case. Sequential Workflow
                 // Note: current job can be "external" in nextJob's perspective
@@ -723,14 +705,14 @@ const buildsPlugin = {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
-                        eventFactory,
                         pipelineId: current.pipeline.id,
                         jobName: nextJobName,
                         username,
                         scmContext,
                         event: current.event, // this is the parentBuild for the next build
                         baseBranch: current.event.baseBranch || null,
-                        parentBuilds
+                        parentBuilds,
+                        parentBuildId: current.build.id
                     };
 
                     return createInternalBuild(internalBuildConfig);
@@ -739,7 +721,7 @@ const buildsPlugin = {
                 // Get finished internal builds from event
 
                 logger.info(`Fetching finished builds for event ${event.id}`);
-                let finishedInternalBuilds = await getFinishedBuilds(current.event, eventFactory, buildFactory);
+                let finishedInternalBuilds = await getFinishedBuilds(current.event, buildFactory);
 
                 if (current.event.parentEventId) {
                     // FIXME: On restart cases parentEventId should be fetched
@@ -751,7 +733,7 @@ const buildsPlugin = {
                     });
 
                     finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
-                    fillParentBuilds(parentBuilds, finishedInternalBuilds);
+                    fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
                 }
                 // If next build is internal, look at the finished builds for this event
                 const jobId = joinObj[nextJobName].id;
@@ -764,7 +746,6 @@ const buildsPlugin = {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
-                        eventFactory,
                         pipelineId: current.pipeline.id,
                         jobName: nextJobName,
                         start: false,
@@ -772,7 +753,8 @@ const buildsPlugin = {
                         scmContext,
                         event: current.event, // this is the parentBuild for the next build
                         baseBranch: current.event.baseBranch || null,
-                        parentBuilds
+                        parentBuilds,
+                        parentBuildId: current.build.id
                     };
 
                     newBuild = await createInternalBuild(internalBuildConfig);
@@ -809,26 +791,17 @@ const buildsPlugin = {
                 });
             };
 
+            // Helper function to handle triggering jobs in external pipeline
             const triggerJobsInExternalPipeline = async (externalPipelineId, joinObj) => {
-                console.log('starting triggerJobsInExternalPipeline');
-                console.log('joinObj', joinObj);
-                console.log('current', current.pipeline.id);
-                console.log('externalPipelineId', externalPipelineId);
-
                 const externalEvent = joinObj.event;
                 const nextJobs = joinObj.jobs;
                 const nextJobNames = Object.keys(nextJobs);
                 const triggerName = `sd@${current.pipeline.id}:${current.job.name}`;
 
-                console.log('externalEvent', externalEvent);
-
                 if (externalEvent) {
                     // Remote join case
-                    console.log('remote join case');
-                    const externalEventId = externalEvent.id;
-
                     // fetch builds created due to restart
-                    const externalGroupBuilds = await getFinishedBuilds(externalEvent, eventFactory, buildFactory);
+                    const externalGroupBuilds = await getFinishedBuilds(externalEvent, buildFactory);
                     const isRestartCase = externalGroupBuilds.some(
                         b => nextJobs[b.jobName] && b.jobId === nextJobs[b.jobName].id && b.status !== 'CREATED'
                     );
@@ -850,7 +823,7 @@ const buildsPlugin = {
                     // create/start build for each of nextJobs
                     for (const nextJobName of nextJobNames) {
                         const { username, scmContext } = config;
-                        const { parentBuilds, joinListNames } = parseJobInfo({
+                        const { parentBuilds } = parseJobInfo({
                             joinObj: nextJobs,
                             currentJobName: current.job.name,
                             nextJobName,
@@ -858,12 +831,8 @@ const buildsPlugin = {
                             build: current.build
                         });
 
-                        console.log('nextJobName', nextJobName);
-                        console.log('joinListNames', joinListNames);
                         fillParentBuilds(parentBuilds, current, externalGroupBuilds);
                         const nextJob = nextJobs[nextJobName];
-
-                        console.log('nextJob', nextJob);
                         const nextBuild = externalGroupBuilds.find(b => b.jobId === nextJob.id);
                         let newBuild;
 
@@ -876,15 +845,12 @@ const buildsPlugin = {
                                 currentBuildInfo: parentBuilds,
                                 build: current.build
                             });
-                            console.log('updating newBuild', newBuild);
                         } else {
-                            console.log(current.build.parentBuilds);
                             // no existing build, so first time processing this job
                             // in the external pipeline's event
                             newBuild = await createInternalBuild({
                                 jobFactory,
                                 buildFactory,
-                                eventFactory,
                                 pipelineId: externalEvent.pipelineId,
                                 jobName: nextJob.name,
                                 jobId: nextJob.id,
@@ -932,7 +898,7 @@ const buildsPlugin = {
                     externalPipelineId,
                     startFrom: `~${triggerName}`,
                     parentBuildId: current.build.id,
-                    parentBuilds: parentBuilds,
+                    parentBuilds,
                     causeMessage: `Triggered by ${triggerName}`,
                     parentEventId: current.event.id,
                     groupEventId: externalEvent ? externalEvent.id : null
