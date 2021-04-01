@@ -326,3 +326,24 @@ rateLimit:
   limit: 300
   # limit duration in milliseconds, default: 300000 (5 mins)
   duration: 300000
+
+redisLock:
+  # set true to enable redis lock
+  enabled: false
+  options:
+    # maximum retry limit to obtain lock
+    retryCount: 200 
+    # the expected clock drift
+    driftFactor: 0.01
+    # the time in milliseconds between retry attempts
+    retryDelay: 500
+    # the maximum time in milliseconds randomly added to retries
+    retryJitter: 200
+    # Configuration of the redis instance
+    redisConnection:
+      host: "127.0.0.1"
+      port: 9999
+      options:
+        password: "THIS-IS-A-PASSWORD"
+        tls: false
+      database: 0

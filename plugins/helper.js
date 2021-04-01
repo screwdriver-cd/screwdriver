@@ -4,23 +4,38 @@ const dayjs = require('dayjs');
 const Redis = require('ioredis');
 const Redlock = require('redlock');
 const config = require('config');
-const redisConfig = config.get('executor.queue.options.redisConnection');
-const connectionDetails = {
-    host: redisConfig.host,
-    options: {
-        password: redisConfig.options && redisConfig.options.password,
-        tls: redisConfig.options ? redisConfig.options.tls : false
-    },
-    port: redisConfig.port
-};
-const redis = new Redis(connectionDetails.port, connectionDetails.host, connectionDetails.options);
-// https://github.com/mike-marcacci/node-redlock
-const redlock = new Redlock([redis], {
-    driftFactor: 0.01, // time in ms
-    retryCount: 200,
-    retryDelay: 500, // time in ms
-    retryJitter: 200 // time in ms
-});
+
+/**
+ * locks a resource using redlock
+ * @method lockResource
+ * @param  {String}         resource  resource to lock
+ * @param  {Number}         ttl       maximum lock duration
+ * @return {Promise}                  Resolves to a lock
+ */
+function lockResource(resource, ttl) {
+    if (!config.get('executor.redisLock.enabled')) {
+        return Promise.resolve(null);
+    }
+
+    const redisLockConfig = config.get('executor.redisLock.options');
+    const connectionDetails = {
+        host: redisLockConfig.redisConnection.host,
+        options: {
+            password: redisLockConfig.redisConnection.options && redisLockConfig.redisConnection.options.password,
+            tls: redisLockConfig.redisConnection.options ? redisLockConfig.redisConnection.options.tls : false
+        },
+        port: redisLockConfig.redisConnection.port
+    };
+    const redis = new Redis(connectionDetails.port, connectionDetails.host, connectionDetails.options);
+    const redlock = new Redlock([redis], {
+        driftFactor: redisLockConfig.driftFactor,
+        retryCount: redisLockConfig.retryCount,
+        retryDelay: redisLockConfig.retryDelay,
+        retryJitter: redisLockConfig.retryJitter
+    });
+
+    return redlock.lock(resource, ttl);
+}
 
 /**
  * Set default start time and end time
@@ -58,5 +73,5 @@ function validTimeRange(start, end, maxDay) {
 module.exports = {
     setDefaultTimeRange,
     validTimeRange,
-    redlock
+    lockResource
 };

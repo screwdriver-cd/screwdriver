@@ -17,7 +17,7 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
-const { redlock } = require('../helper.js');
+const { lockResource } = require('../helper.js');
 const ttl = 20000;
 
 /**
@@ -592,17 +592,18 @@ async function updateParentBuilds({ joinParentBuilds, currentJobParentBuilds, ne
  * @param  {Array}    config.joinList           list of job that join on this current job
  * @param  {Event}    config.event              Current event
  * @param  {Factory}  config.eventFactory       Event factory
- * @param  {String}   config.jobName            jobname for this build
+ * @param  {String}   config.nextJobName        next job name
+ * @param  {String}   config.jobId              jobId for this build
  * @return {Promise}  the newly updated/created build
  */
-async function handleNextBuild({ buildConfig, joinList, event, eventFactory, jobId }) {
-    const resource = `event:${event.id}:${jobName}`;
+async function handleNextBuild({ buildConfig, joinList, event, eventFactory, nextJobName, jobId }) {
+    const resource = `event:${event.id}:${nextJobName}`;
     let lock;
 
     try {
-        lock = await redlock.lock(resource, ttl)
+        lock = await lockResource(resource, ttl);
     } catch (err) {
-        logger.info(`Failed to lock job ${jobName} in event ${event.id}`);
+        logger.info(`Failed to lock job ${nextJobName} in event ${event.id}`);
     }
 
     let finishedBuilds = await getFinishedBuilds(event, eventFactory);
@@ -642,7 +643,9 @@ async function handleNextBuild({ buildConfig, joinList, event, eventFactory, job
         newBuild = await nextBuild.update();
     }
 
-    await lock.unlock();
+    if (lock) {
+        await lock.unlock();
+    }
 
     const done = isJoinDone(joinList, finishedBuilds);
 
@@ -973,7 +976,7 @@ async function createOrRunNextBuild({
     let lock;
 
     try {
-        lock = await redlock.lock(resource, ttl)
+        lock = await lockResource(resource, ttl);
     } catch (err) {
         logger.info(`Failed to lock job ${nextJobName} in event ${event.id}`);
     }
@@ -1008,7 +1011,9 @@ async function createOrRunNextBuild({
         });
     }
 
-    await lock.unlock();
+    if (lock) {
+        await lock.unlock();
+    }
 
     if (!newBuild) {
         logger.error(`No build found for ${pipelineId}:${jobName}`);
@@ -1290,6 +1295,7 @@ const buildsPlugin = {
                                 joinList,
                                 event,
                                 eventFactory,
+                                nextJobName,
                                 jobId: workflowGraph.nodes.find(node => node.name === trimJobName(nextJobName)).id
                             })
                         );
@@ -1380,13 +1386,13 @@ const buildsPlugin = {
                     if (build.parentBuilds && build.parentBuilds[externalPipelineId]) {
                         const resource = `event:${event.id}:${nextJobName}`;
                         let lock;
-                    
+
                         try {
-                            lock = await redlock.lock(resource, ttl)
+                            lock = await lockResource(resource, ttl);
                         } catch (err) {
                             logger.info(`Failed to lock job ${nextJobName} in event ${event.id}`);
                         }
-        
+
                         // TODO: refactor this section to reduce number of DB calls
                         const externalEventId = build.parentBuilds[externalPipelineId].eventId;
                         const externalEvent = await eventFactory.get(externalEventId);
@@ -1525,7 +1531,9 @@ const buildsPlugin = {
                             });
                         }
 
-                        await lock.unlock();
+                        if (lock) {
+                            await lock.unlock();
+                        }
 
                         // Get join information in context of join job
                         const nextJobsForJoin = workflowParser.getNextJobs(parentWorkflowGraph, {

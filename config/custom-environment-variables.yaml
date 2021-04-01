@@ -408,3 +408,7 @@ build:
 rateLimit:
   __name: RATE_LIMIT_VARIABLES
   __format: json
+
+redisLock:
+  __name: REDIS_LOCK_VARIABLES
+  __format: json

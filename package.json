@@ -96,6 +96,8 @@
     "prom-client": "^12.0.0",
     "request": "^2.88.2",
     "requestretry": "^4.1.2",
+    "ioredis": "^3.2.2",
+    "redlock": "^4.1.0",
     "screwdriver-artifact-bookend": "^1.1.27",
     "screwdriver-build-bookend": "^2.3.3",
     "screwdriver-cache-bookend": "^2.0.1",
