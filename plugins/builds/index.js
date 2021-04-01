@@ -465,6 +465,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
     // Get the status of the builds
     const joinedBuilds = await Promise.all(promisesToAwait);
+
     joinedBuilds.forEach(b => {
         // Do not need to run the next build; terminal status
         if (['FAILURE', 'ABORTED', 'COLLAPSED', 'UNSTABLE'].includes(b.status)) {
@@ -589,7 +590,7 @@ function fillParentBuilds(parentBuilds, current, builds) {
  * @param {Object}  eventFactory   Object for querying DB for event data
  * @return {Object} Object representing join data for next jobs grouped by pipeline id
  *                  {"pipeineId" : {event: "externalEventId",
- *                                  jobs: {"nextJobName": {"id": "jobId", join: ["a", "b"] 
+ *                                  jobs: {"nextJobName": {"id": "jobId", join: ["a", "b"]
  *                                 }
  *                  }
  */

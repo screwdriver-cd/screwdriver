@@ -345,7 +345,6 @@ describe.only('build plugin test', () => {
         let jobMock;
         let pipelineMock;
         let eventMock;
-        let triggerMocks;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
@@ -409,24 +408,6 @@ describe.only('build plugin test', () => {
             eventFactoryMock.get.resolves(eventMock);
             eventMock.update.resolves(eventMock);
             jobFactoryMock.get.resolves(jobMock);
-
-            triggerMocks = [
-                {
-                    id: 1,
-                    src: `~sd@${pipelineId}:main`,
-                    dest: '~sd@456:main'
-                },
-                {
-                    id: 3,
-                    src: `~sd@${pipelineId}:main`,
-                    dest: '~sd@456:second'
-                },
-                {
-                    id: 2,
-                    src: `~sd@${pipelineId}:main`,
-                    dest: '~sd@789:main'
-                }
-            ];
 
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
@@ -1335,7 +1316,6 @@ describe.only('build plugin test', () => {
                     pipelineId,
                     state: 'ENABLED'
                 };
-                const src = `~sd@${pipelineId}:main`;
 
                 beforeEach(() => {
                     eventMock.workflowGraph = {
@@ -1559,7 +1539,7 @@ describe.only('build plugin test', () => {
                         jobId: 2,
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
                         parentBuildId: 12345,
-                        parentBuilds: { 123: { eventId: "8888", jobs: { a: 12345 } } },
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } },
                         start: true,
                         eventId: '8888',
                         username: 12345,
@@ -1570,8 +1550,9 @@ describe.only('build plugin test', () => {
                         prRef: '',
                         baseBranch: 'master'
                     };
-                    jobCconfig = { ...jobBconfig,
-                         parentBuilds: { 123: { eventId: "8888", jobs: { a: 12345, d: 123456 } }},
+                    jobCconfig = {
+                        ...jobBconfig,
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345, d: 123456 } } },
                         jobId: 3
                     };
                 });
@@ -1594,7 +1575,7 @@ describe.only('build plugin test', () => {
                     };
 
                     // different workflow that what's defined in beforeEach
-                    delete jobCconfig.parentBuilds['123'].jobs['d'];
+                    delete jobCconfig.parentBuilds['123'].jobs.d;
 
                     return server.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
@@ -1612,8 +1593,8 @@ describe.only('build plugin test', () => {
                     ];
 
                     // Add parentBuilds config for the join builds
-                    jobBconfig.parentBuilds['123'].jobs['c'] = null;
-                    jobBconfig.parentBuilds['123'].jobs['d'] = null;
+                    jobBconfig.parentBuilds['123'].jobs.c = null;
+                    jobBconfig.parentBuilds['123'].jobs.d = null;
 
                     return server.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
@@ -1643,6 +1624,7 @@ describe.only('build plugin test', () => {
                             eventId: '8888'
                         }
                     ];
+
                     eventMock.getBuilds.resolves(buildMocks);
 
                     const parentBuildsB = {
@@ -1652,11 +1634,11 @@ describe.only('build plugin test', () => {
                         123: { eventId: '8888', jobs: { a: 12345, d: 123456 } }
                     };
 
-                    buildFactoryMock.create.onCall(0).returns({...buildMock, parentBuilds: parentBuildsB });
-                    buildFactoryMock.create.onCall(1).returns({...buildMock, parentBuilds: parentBuildsC });
+                    buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
+                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, parentBuilds: parentBuildsC });
 
-                    //buildFactoryMock.get.withArgs(12345).resolves(buildMocks[0])
-                    //buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
+                    // buildFactoryMock.get.withArgs(12345).resolves(buildMocks[0])
+                    // buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
                     return server.inject(options).then(() => {
                         // create the builds
                         assert.calledTwice(buildFactoryMock.create);
@@ -1704,15 +1686,16 @@ describe.only('build plugin test', () => {
                     const parentBuildsC = {
                         123: { eventId: '8888', jobs: { 'PR-15:a': 12345, 'PR-15:d': 123456 } }
                     };
-                    jobBconfig.parentBuilds['123'].jobs['PR-15:a'] = jobBconfig.parentBuilds['123'].jobs['a'];
-                    jobCconfig.parentBuilds['123'].jobs['PR-15:a'] = jobCconfig.parentBuilds['123'].jobs['a'];
-                    jobCconfig.parentBuilds['123'].jobs['PR-15:d'] = jobCconfig.parentBuilds['123'].jobs['d'];
-                    delete jobBconfig.parentBuilds['123'].jobs['a'];
-                    delete jobCconfig.parentBuilds['123'].jobs['a'];
-                    delete jobCconfig.parentBuilds['123'].jobs['d'];
 
-                    buildFactoryMock.create.onCall(0).returns({...buildMock, parentBuilds: parentBuildsB });
-                    buildFactoryMock.create.onCall(1).returns({...buildMock, parentBuilds: parentBuildsC });
+                    jobBconfig.parentBuilds['123'].jobs['PR-15:a'] = jobBconfig.parentBuilds['123'].jobs.a;
+                    jobCconfig.parentBuilds['123'].jobs['PR-15:a'] = jobCconfig.parentBuilds['123'].jobs.a;
+                    jobCconfig.parentBuilds['123'].jobs['PR-15:d'] = jobCconfig.parentBuilds['123'].jobs.d;
+                    delete jobBconfig.parentBuilds['123'].jobs.a;
+                    delete jobCconfig.parentBuilds['123'].jobs.a;
+                    delete jobCconfig.parentBuilds['123'].jobs.d;
+
+                    buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
+                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, parentBuilds: parentBuildsC });
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
@@ -1736,7 +1719,7 @@ describe.only('build plugin test', () => {
                     return server.inject(options).then(() => {
                         // create the builds
                         assert.calledTwice(buildFactoryMock.create);
-                        console.log(buildFactoryMock.create.firstCall.args[0].parentBuilds, jobBconfig.parentBuilds)
+                        console.log(buildFactoryMock.create.firstCall.args[0].parentBuilds, jobBconfig.parentBuilds);
 
                         // jobB is created because there is no join
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
@@ -1744,7 +1727,7 @@ describe.only('build plugin test', () => {
                         // there is a finished join, jobC is created without starting, then start separately
                         // (same action but different flow in the code)
                         jobCconfig.start = false;
-                        console.log(buildFactoryMock.create.secondCall.args[0].parentBuilds, jobCconfig.parentBuilds)
+                        console.log(buildFactoryMock.create.secondCall.args[0].parentBuilds, jobCconfig.parentBuilds);
 
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                         assert.calledOnce(buildMock.start);
@@ -1785,6 +1768,7 @@ describe.only('build plugin test', () => {
                         },
                         buildC
                     ];
+
                     eventMock.getBuilds.resolves(buildMocks);
                     buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
 
@@ -1829,7 +1813,7 @@ describe.only('build plugin test', () => {
                     ]);
 
                     return server.inject(options).then(() => {
-                        //assert.notCalled(buildFactoryMock.create);
+                        // assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildMock.update); // current build
                         assert.deepEqual(buildC.parentBuildId, [111, 222]);
                         assert.calledOnce(buildC.update);
@@ -1992,7 +1976,7 @@ describe.only('build plugin test', () => {
                         pipelineFactory: pipelineFactoryMock,
                         jobFactory: jobFactoryMock,
                         userFactory: userFactoryMock,
-                        eventFactory: eventFactoryMock,
+                        eventFactory: eventFactoryMock
                     };
                     newServer.auth.scheme('custom', () => ({
                         authenticate: (request, h) =>
