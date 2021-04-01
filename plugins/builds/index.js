@@ -453,6 +453,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
         ) {
             bId = upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName];
         }
+
         // If buildId is empty, the job hasn't executed yet and the join is not done
         if (!bId) {
             done = false;
@@ -464,7 +465,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
     // Get the status of the builds
     const joinedBuilds = await Promise.all(promisesToAwait);
-
     joinedBuilds.forEach(b => {
         // Do not need to run the next build; terminal status
         if (['FAILURE', 'ABORTED', 'COLLAPSED', 'UNSTABLE'].includes(b.status)) {
@@ -733,8 +733,8 @@ const buildsPlugin = {
                     });
 
                     finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
-                    fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
                 }
+                fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
                 // If next build is internal, look at the finished builds for this event
                 const jobId = joinObj[nextJobName].id;
 
@@ -773,7 +773,6 @@ const buildsPlugin = {
 
                     return null;
                 }
-
                 /* CHECK IF ALL PARENT BUILDS OF NEW BUILD ARE DONE */
                 const { hasFailure, done } = await getParentBuildStatus({
                     newBuild,
