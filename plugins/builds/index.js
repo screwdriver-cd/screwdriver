@@ -584,8 +584,14 @@ function fillParentBuilds(parentBuilds, current, builds) {
  *          {A:[B,C], D:[B,F], X: []} where [B,C] join on A,
  *              [B,F] join on D and X has no join
  *   This can include external jobs
- * @param {Array}  nextJobs
- * @param {Object} event
+ * @param {Array}   nextJobs
+ * @param {Object}  current        Object holding current job's build, event data
+ * @param {Object}  eventFactory   Object for querying DB for event data
+ * @return {Object} Object representing join data for next jobs grouped by pipeline id
+ *                  {"pipeineId" : {event: "externalEventId",
+ *                                  jobs: {"nextJobName": {"id": "jobId", join: ["a", "b"] 
+ *                                 }
+ *                  }
  */
 async function createJoinObject(nextJobs, current, eventFactory) {
     const { build, event } = current;
