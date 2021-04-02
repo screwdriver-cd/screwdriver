@@ -173,7 +173,8 @@ async function createExternalBuild(config) {
         parentBuilds,
         causeMessage,
         parentEventId,
-        groupEventId
+        groupEventId,
+        start
     } = config;
 
     const createEventConfig = {
@@ -185,6 +186,10 @@ async function createExternalBuild(config) {
         causeMessage,
         parentBuilds
     };
+
+    if (start === false) {
+        createEventConfig.start = false;
+    }
 
     if (parentEventId) {
         createEventConfig.parentEventId = parentEventId;
@@ -423,6 +428,7 @@ async function updateParentBuilds({ joinParentBuilds, currentJobParentBuilds, ne
     nextBuild.parentBuilds = newParentBuilds;
     nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
 
+    // FIXME: Is this needed ? Why not update once in handleNewBuild()
     return nextBuild.update();
 }
 
@@ -453,7 +459,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
         ) {
             bId = upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName];
         }
-
         // If buildId is empty, the job hasn't executed yet and the join is not done
         if (!bId) {
             done = false;
@@ -547,6 +552,10 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 
 /**
  * Fills parentBuilds object with missing job information
+ * @param {Array}  parentBuilds
+ * @param {Object} current       Holds current build/event data
+ * @param {builds} builds        Completed builds which is used to fill parentBuilds data
+ * @return {ARray} Array of parentBuilds with missing data filled in.
  */
 function fillParentBuilds(parentBuilds, current, builds) {
     Object.keys(parentBuilds).forEach(pid => {
@@ -799,18 +808,23 @@ const buildsPlugin = {
 
             // Helper function to handle triggering jobs in external pipeline
             const triggerJobsInExternalPipeline = async (externalPipelineId, joinObj) => {
-                const externalEvent = joinObj.event;
+                let externalEvent = joinObj.event;
                 const nextJobs = joinObj.jobs;
-                const nextJobNames = Object.keys(nextJobs);
+                let nextJobNames = Object.keys(nextJobs);
                 const triggerName = `sd@${current.pipeline.id}:${current.job.name}`;
 
                 if (externalEvent) {
                     // Remote join case
                     // fetch builds created due to restart
                     const externalGroupBuilds = await getFinishedBuilds(externalEvent, buildFactory);
-                    const isRestartCase = externalGroupBuilds.some(
-                        b => nextJobs[b.jobName] && b.jobId === nextJobs[b.jobName].id && b.status !== 'CREATED'
-                    );
+
+                    const buildsToRestart = Object.keys(nextJobs)
+                        .map(j => {
+                            const existingBuild = externalGroupBuilds.find(b => b.jobId === nextJobs[j].id);
+
+                            return existingBuild && existingBuild.status !== 'CREATED' ? existingBuild : null;
+                        })
+                        .filter(b => b !== null);
 
                     // fetch builds created due to trigger
                     const parallelBuilds = await getParallelBuilds({
@@ -821,9 +835,26 @@ const buildsPlugin = {
 
                     externalGroupBuilds.push(...parallelBuilds);
 
-                    if (isRestartCase === true) {
-                        // Do not re-trigger a remote join job
-                        return null;
+                    if (buildsToRestart.length) {
+                        const parentBuilds = buildsToRestart[0].parentBuilds;
+                        // If restart handle like a fresh trigger
+                        // and start all jobs which are not join jobs
+                        const externalBuildConfig = {
+                            pipelineFactory,
+                            eventFactory,
+                            externalPipelineId,
+                            startFrom: `~${triggerName}`,
+                            parentBuildId: current.build.id,
+                            parentBuilds,
+                            causeMessage: `Triggered by ${triggerName}`,
+                            parentEventId: current.event.id,
+                            groupEventId: externalEvent.id
+                        };
+
+                        // proceed with join jobs using new external event
+                        nextJobNames = nextJobNames.filter(j => nextJobs[j].join.length);
+
+                        externalEvent = await createExternalBuild(externalBuildConfig);
                     }
 
                     // create/start build for each of nextJobs
@@ -839,7 +870,11 @@ const buildsPlugin = {
 
                         fillParentBuilds(parentBuilds, current, externalGroupBuilds);
                         const nextJob = nextJobs[nextJobName];
-                        const nextBuild = externalGroupBuilds.find(b => b.jobId === nextJob.id);
+                        // create new build if restart case.
+                        // externalGroupBuilds will contain previous externalEvent's builds
+                        const nextBuild = buildsToRestart.length
+                            ? null
+                            : externalGroupBuilds.find(b => b.jobId === nextJob.id);
                         let newBuild;
 
                         if (nextBuild) {
@@ -907,7 +942,7 @@ const buildsPlugin = {
                     parentBuilds,
                     causeMessage: `Triggered by ${triggerName}`,
                     parentEventId: current.event.id,
-                    groupEventId: externalEvent ? externalEvent.id : null
+                    groupEventId: null
                 };
 
                 return createExternalBuild(externalBuildConfig);
