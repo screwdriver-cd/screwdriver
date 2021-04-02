@@ -181,6 +181,10 @@ module.exports = config => ({
                         build.status = desiredStatus;
                         if (build.status === 'ABORTED') {
                             build.statusMessage = `Aborted by ${username}`;
+                        } else if (build.status === 'FAILURE' || build.status === 'SUCCESS') {
+                            if (statusMessage) {
+                                build.statusMessage = statusMessage;
+                            }
                         } else {
                             build.statusMessage = statusMessage || null;
                         }

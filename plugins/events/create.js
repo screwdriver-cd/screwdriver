@@ -219,9 +219,16 @@ module.exports = () => ({
                                         )
                                         // User has good permissions, create an event
                                         .then(() =>
-                                            scm.getCommitSha(scmConfig).then(sha => {
-                                                payload.sha = sha;
-                                            })
+                                            scm
+                                                .getCommitSha(scmConfig)
+                                                .then(sha => {
+                                                    payload.sha = sha;
+                                                })
+                                                .catch(err => {
+                                                    if (err.status) {
+                                                        throw boom.boomify(err, { statusCode: err.status });
+                                                    }
+                                                })
                                         )
                                         .then(() => {
                                             // If there is parentEvent, pass workflowGraph and sha to payload

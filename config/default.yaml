@@ -268,14 +268,17 @@ bookends:
     - screwdriver-cache-bookend
 
 notifications:
-  # Email notification when a build finishes
+  options:
+    # Throw error when validation fails (default true); otherwise show warning
+    throwValidationErr: true
+  # # Email notification when a build finishes
   # email:
   #   host: email-host
   #   port: email-port
   #   from: email-address-to-send-from
   #   username: optional-username
   #   password: optional-password
-  # Slack notification when build finishes
+  # # Slack notification when build finishes
   # slack:
   #   token: your-slack-bot-token
 ecosystem:
@@ -301,7 +304,7 @@ ecosystem:
     max_go_threads: 10000
 
 # environment release information
-release: 
+release:
     mode: stable
     cookieName: release
     cookieValue: stable

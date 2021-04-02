@@ -80,22 +80,24 @@ describe('user plugin test', () => {
         assert.isOk(server.registrations.users);
     });
 
-    describe('GET /user/{id}/settings', () => {
-        const id = 123;
+    describe('GET /user/settings', () => {
         let options;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/users/${id}/settings`
+                url: `/users/settings`
             };
             settings = {
-                displayJobNameLength: 25
+                1: {
+                    displayJobNameLength: 25,
+                    showPRJobs: true
+                }
             };
         });
 
         it('exposes a route for updating user settings', () => {
-            userFactoryMock.get.withArgs(id).resolves(userMock);
+            userFactoryMock.get.resolves(userMock);
             userMock.getSettings.returns(settings);
 
             return server.inject(options).then(reply => {
@@ -111,7 +113,7 @@ describe('user plugin test', () => {
                 message: 'User does not exist'
             };
 
-            userFactoryMock.get.withArgs(id).resolves(null);
+            userFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
@@ -120,7 +122,7 @@ describe('user plugin test', () => {
         });
 
         it('throws error when get user call returns error', () => {
-            userFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+            userFactoryMock.get.rejects(new Error('Failed'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
@@ -128,7 +130,7 @@ describe('user plugin test', () => {
         });
 
         it('throws error when get user settings call returns error', () => {
-            userFactoryMock.get.withArgs(id).resolves(userMock);
+            userFactoryMock.get.resolves(userMock);
             userMock.getSettings.throws(new Error('Failed'));
 
             return server.inject(options).then(reply => {
@@ -137,15 +139,19 @@ describe('user plugin test', () => {
         });
     });
 
-    describe('PUT /user/{id}/settings', () => {
-        const id = 123;
+    describe('PUT /user/settings', () => {
         let options;
 
         beforeEach(() => {
             options = {
                 method: 'PUT',
-                url: `/users/${id}/settings`,
-                payload: { displayJobNameLength: 50 },
+                url: `/users/settings`,
+                payload: {
+                    1: {
+                        displayJobNameLength: 50,
+                        showPRJobs: false
+                    }
+                },
                 auth: {
                     credentials: {
                         username,
@@ -156,12 +162,15 @@ describe('user plugin test', () => {
                 }
             };
             settings = {
-                displayJobNameLength: 50
+                1: {
+                    displayJobNameLength: 50,
+                    showPRJobs: false
+                }
             };
         });
 
         it('exposes a route for updating user settings', () => {
-            userFactoryMock.get.withArgs(id).resolves(userMock);
+            userFactoryMock.get.resolves(userMock);
             userMock.updateSettings.resolves(settings);
 
             return server.inject(options).then(reply => {
@@ -177,7 +186,7 @@ describe('user plugin test', () => {
                 message: 'User does not exist'
             };
 
-            userFactoryMock.get.withArgs(id).resolves(null);
+            userFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
@@ -186,7 +195,7 @@ describe('user plugin test', () => {
         });
 
         it('throws error when get user call returns error', () => {
-            userFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+            userFactoryMock.get.rejects(new Error('Failed'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
@@ -194,19 +203,11 @@ describe('user plugin test', () => {
         });
 
         it('throws error when update user settings call returns error', () => {
-            userFactoryMock.get.withArgs(id).resolves(userMock);
+            userFactoryMock.get.resolves(userMock);
             userMock.updateSettings.rejects(new Error('Failed'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
-            });
-        });
-
-        it('throws error when get user does not have permission to update settings', () => {
-            userFactoryMock.get.withArgs(id).resolves(getUserMock({ username: 'otherUser', scmContext }));
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
             });
         });
     });

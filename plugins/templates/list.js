@@ -6,6 +6,13 @@ const listSchema = joi
     .array()
     .items(schema.models.template.get)
     .label('List of templates');
+const listCountSchema = joi
+    .object()
+    .keys({
+        count: joi.number(),
+        rows: listSchema
+    })
+    .label('Template Count and List of templates');
 const distinctSchema = joi
     .string()
     .valid(...Object.keys(schema.models.template.fields))
@@ -31,7 +38,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.templateFactory;
-            const { count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
+            const { getCount, count, distinct, compact, namespace, page, search, sort, sortBy } = request.query;
             const config = { sort };
 
             // Return distinct rows for that column name
@@ -79,10 +86,20 @@ module.exports = () => ({
                 config.paginate = { page, count };
             }
 
+            if (getCount) {
+                config.getCount = getCount;
+            }
+
             return factory
                 .list(config)
                 .then(templates => {
                     if (config.raw) {
+                        return h.response(templates);
+                    }
+
+                    if (getCount) {
+                        templates.rows = templates.rows.map(p => p.toJson());
+
                         return h.response(templates);
                     }
 
@@ -93,7 +110,7 @@ module.exports = () => ({
                 });
         },
         response: {
-            schema: joi.alternatives().try(listSchema, namespacesSchema)
+            schema: joi.alternatives().try(listSchema, namespacesSchema, listCountSchema)
         },
         validate: {
             query: schema.api.pagination.concat(

@@ -19,8 +19,10 @@ module.exports = () => ({
             scope: ['build']
         },
 
-        handler: (request, h) =>
-            validator(request.payload.yaml)
+        handler: (request, h) => {
+            const { pipelineFactory, templateFactory } = request.server.app;
+
+            return validator(request.payload.yaml, templateFactory)
                 .then(config => {
                     if (config.errors.length > 0) {
                         throw boom.badRequest(
@@ -29,10 +31,7 @@ module.exports = () => ({
                         );
                     }
 
-                    const { pipelineFactory } = request.server.app;
-                    const { templateFactory } = request.server.app;
-                    const { pipelineId } = request.auth.credentials;
-                    const { isPR } = request.auth.credentials;
+                    const { isPR, pipelineId } = request.auth.credentials;
                     // Search using namespace if it is passed in
                     const listOptions = config.template.namespace
                         ? {
@@ -77,7 +76,8 @@ module.exports = () => ({
                 })
                 .catch(err => {
                     throw err;
-                }),
+                });
+        },
         validate: {
             payload: templateSchema.input
         }
