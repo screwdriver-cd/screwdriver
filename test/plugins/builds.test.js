@@ -1637,8 +1637,6 @@ describe('build plugin test', () => {
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
                     buildFactoryMock.create.onCall(1).returns({ ...buildMock, parentBuilds: parentBuildsC });
 
-                    // buildFactoryMock.get.withArgs(12345).resolves(buildMocks[0])
-                    // buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
                     return server.inject(options).then(() => {
                         // create the builds
                         assert.calledTwice(buildFactoryMock.create);
@@ -3144,7 +3142,7 @@ describe('build plugin test', () => {
                     //   -> sd@123:a ->
                     //                  d
                     //
-                    // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
+                    // If user restarts `123:a`, it should get `2:c`'s parent event status and trigger `c`
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3197,7 +3195,6 @@ describe('build plugin test', () => {
                         parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345, c: 45678 } }
-                            // 2: { eventId: '8887', jobs: { a: 12345 } }
                         },
                         parentEventId: '8888',
                         pipelineId: '2',

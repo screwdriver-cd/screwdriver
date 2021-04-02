@@ -554,7 +554,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  * Fills parentBuilds object with missing job information
  * @param {Array}  parentBuilds
  * @param {Object} current       Holds current build/event data
- * @param {builds} builds        Completed builds which is used to fill parentBuilds data
+ * @param {Array} builds        Completed builds which is used to fill parentBuilds data
  * @return {Array} Array of parentBuilds with missing data filled in.
  */
 function fillParentBuilds(parentBuilds, current, builds) {
@@ -594,7 +594,7 @@ function fillParentBuilds(parentBuilds, current, builds) {
  *          {A:[B,C], D:[B,F], X: []} where [B,C] join on A,
  *              [B,F] join on D and X has no join
  *   This can include external jobs
- * @param {Array}   nextJobs
+ * @param {Array}   nextJobs       List of jobs to run next from workflow parser.
  * @param {Object}  current        Object holding current job's build, event data
  * @param {Object}  eventFactory   Object for querying DB for event data
  * @return {Object} Object representing join data for next jobs grouped by pipeline id
