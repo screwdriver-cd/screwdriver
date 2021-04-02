@@ -555,7 +555,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  * @param {Array}  parentBuilds
  * @param {Object} current       Holds current build/event data
  * @param {builds} builds        Completed builds which is used to fill parentBuilds data
- * @return {ARray} Array of parentBuilds with missing data filled in.
+ * @return {Array} Array of parentBuilds with missing data filled in.
  */
 function fillParentBuilds(parentBuilds, current, builds) {
     Object.keys(parentBuilds).forEach(pid => {
