@@ -935,8 +935,8 @@ const buildsPlugin = {
             };
 
             for (const pid of Object.keys(pipelineJoinData)) {
+                // typecast pid to number
                 if (+pid === current.pipeline.id) {
-                    // typecase pid to number
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
                             await triggerNextJobInSamePipeline(nextJobName, pipelineJoinData[pid].jobs);
