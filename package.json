@@ -63,7 +63,8 @@
     "Peter Peterson <jedipetey@gmail.com>",
     "Reetika Rastogi <r3rastogi@gmail.com>",
     "St. John Johnson <st.john.johnson@gmail.com",
-    "Tiffany Kyi <tiffanykyi@gmail.com>"
+    "Tiffany Kyi <tiffanykyi@gmail.com>",
+    "Jithin Emmanuel <jithin1987@gmail.com>"
   ],
   "dependencies": {
     "@hapi/bell": "^12.1.1",
@@ -82,7 +83,6 @@
     "config": "^1.31.0",
     "date-fns": "^1.30.1",
     "dayjs": "^1.10.4",
-    "deepmerge": "^4.2.2",
     "hapi-auth-bearer-token": "^8.0.0",
     "hapi-auth-jwt2": "^10.2.0",
     "hapi-rate-limit": "^5.0.0",
@@ -91,6 +91,7 @@
     "js-yaml": "^3.14.1",
     "jsonwebtoken": "^8.5.1",
     "license-checker": "^17.0.0",
+    "lodash.merge": "^4.6.2",
     "ndjson": "^1.4.3",
     "node-env-file": "^0.1.8",
     "prom-client": "^12.0.0",
