@@ -13,7 +13,7 @@ module.exports = () => ({
     path: '/commands/{namespace}/{name}/tags/{tagName}',
     options: {
         description: 'Delete a command tag',
-        notes: 'Delete a specific commands',
+        notes: 'Delete a specific command tag',
         tags: ['api', 'commands'],
         auth: {
             strategies: ['token'],
@@ -25,13 +25,11 @@ module.exports = () => ({
             const { namespace, name } = request.params;
             const tag = request.params.tagName;
 
-            console.log(name);
-
             return commandTagFactory
                 .get({ namespace, name, tag })
                 .then(commandTag => {
                     if (!commandTag) {
-                        throw boom.notFound('Commands tag does not exist');
+                        throw boom.notFound(`Command tag ${tag} does not exist for ${namespace}/${name}`);
                     }
 
                     return Promise.all([
@@ -47,7 +45,7 @@ module.exports = () => ({
                             throw boom.forbidden('Not allowed to delete this command tag');
                         }
 
-                        // Remove the command tag, not the comannd
+                        // Remove the command tag, not the command
                         return commandTag.remove();
                     });
                 })
