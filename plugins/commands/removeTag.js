@@ -31,7 +31,7 @@ module.exports = () => ({
                 .get({ namespace, name, tag })
                 .then(commandTag => {
                     if (!commandTag) {
-                        throw boom.notFound('Commands tag does not exist');
+                        throw boom.notFound(`Command tag ${tag} does not exist for ${namespace}/${name}`);
                     }
 
                     return Promise.all([
