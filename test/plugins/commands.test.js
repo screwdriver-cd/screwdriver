@@ -1203,7 +1203,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('returns 404 when template tag does not exist', () => {
+        it('returns 404 when command tag does not exist', () => {
             commandTagFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
@@ -1211,7 +1211,7 @@ describe('command plugin test', () => {
             });
         });
 
-        it('deletes template tag if has good permission and tag exists', () =>
+        it('deletes command tag if has good permission and tag exists', () =>
             server.inject(options).then(reply => {
                 assert.calledOnce(testCommandTag.remove);
                 assert.equal(reply.statusCode, 204);
