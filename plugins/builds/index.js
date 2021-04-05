@@ -173,8 +173,7 @@ async function createExternalBuild(config) {
         parentBuilds,
         causeMessage,
         parentEventId,
-        groupEventId,
-        start
+        groupEventId
     } = config;
 
     const createEventConfig = {
