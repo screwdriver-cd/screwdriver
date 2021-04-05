@@ -47,10 +47,10 @@ function getPipelineAndJob(name, pipelineId) {
 
 /**
  * Helper function to fetch external event from parentBuilds
- * @param  {Object} currentBuild
- * @param  {String} pipelineId
- * @param  {Object} eventFactory
- * @return {Object} External Event
+ * @param  {Object} currentBuild     Build for current completed job
+ * @param  {String} pipelineId       Pipeline ID for next job to be triggered.
+ * @param  {Object} eventFactory     Factory for querying event data store.
+ * @return {Object} External Event   Event where the next job to be triggered belongs to.
  */
 function getExternalEvent(currentBuild, pipelineId, eventFactory) {
     if (!currentBuild.parentBuilds || !currentBuild.parentBuilds[pipelineId]) {
@@ -186,10 +186,6 @@ async function createExternalBuild(config) {
         causeMessage,
         parentBuilds
     };
-
-    if (start === false) {
-        createEventConfig.start = false;
-    }
 
     if (parentEventId) {
         createEventConfig.parentEventId = parentEventId;
@@ -389,8 +385,7 @@ function parseJobInfo({ joinObj = {}, current, nextJobName, nextPipelineId }) {
  * @param  {Event}      event                   Current event
  * @param  {Number}     [event.parentEventId]   Parent event ID
  * @param  {Number}     [event.groupEventId]    Group parent event ID
- * @param  {Factory}    eventFactory            Event Factory
- * @param  {Factory}    [buildFactory]          Build factory
+ * @param  {Factory}    buildFactory            Build factory
  * @return {Promise}                            All finished builds
  */
 async function getFinishedBuilds(event, buildFactory) {
@@ -406,6 +401,7 @@ async function getFinishedBuilds(event, buildFactory) {
  * Update parent builds info when next build already exists
  * @param  {Object} joinParentBuilds       Parent builds object for join job
  * @param  {Build}  nextBuild              Next build
+ * @param  {Build}  build                  Build for current completed job
  * @return {Promise}                       Updated next build
  */
 async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
