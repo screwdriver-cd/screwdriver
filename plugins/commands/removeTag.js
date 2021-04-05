@@ -25,8 +25,6 @@ module.exports = () => ({
             const { namespace, name } = request.params;
             const tag = request.params.tagName;
 
-            console.log(name);
-
             return commandTagFactory
                 .get({ namespace, name, tag })
                 .then(commandTag => {
