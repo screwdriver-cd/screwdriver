@@ -1153,6 +1153,71 @@ describe('command plugin test', () => {
         });
     });
 
+    describe('DELETE /command/tags', () => {
+        let options;
+        let commandMock;
+        let pipelineMock;
+
+        const testCommandTag = decorateObj({
+            id: 1,
+            name: 'testcommand',
+            namespace: 'testNS',
+            tag: 'stable',
+            remove: sinon.stub().resolves(null)
+        });
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: '/commands/testNS/testCommand/tags/stable',
+                auth: {
+                    credentials: {
+                        scope: ['build']
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            commandMock = getCommandMocks(testcommand);
+            commandFactoryMock.get.resolves(commandMock);
+
+            commandTagFactoryMock.get.resolves(testCommandTag);
+
+            pipelineMock = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 403 when pipelineId does not match', () => {
+            commandMock.pipelineId = 8888;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when pipelineId does not match', () => {
+            options.auth.credentials.isPR = true;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 404 when template tag does not exist', () => {
+            commandTagFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('deletes template tag if has good permission and tag exists', () =>
+            server.inject(options).then(reply => {
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 204);
+            }));
+    });
+
     describe('PUT /commands/namespace/name/tags', () => {
         let options;
         let commandMock;
