@@ -13,7 +13,7 @@ module.exports = () => ({
     path: '/commands/{namespace}/{name}/tags/{tagName}',
     options: {
         description: 'Delete a command tag',
-        notes: 'Delete a specific commands',
+        notes: 'Delete a specific command tag',
         tags: ['api', 'commands'],
         auth: {
             strategies: ['token'],
