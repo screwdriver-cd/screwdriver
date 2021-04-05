@@ -47,7 +47,7 @@ module.exports = () => ({
                             throw boom.forbidden('Not allowed to delete this command tag');
                         }
 
-                        // Remove the command tag, not the comannd
+                        // Remove the command tag, not the command
                         return commandTag.remove();
                     });
                 })
