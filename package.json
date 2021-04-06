@@ -91,7 +91,7 @@
     "js-yaml": "^3.14.1",
     "jsonwebtoken": "^8.5.1",
     "license-checker": "^17.0.0",
-    "lodash.merge": "^4.6.2",
+    "lodash.mergewith": "^4.6.2",
     "ndjson": "^1.4.3",
     "node-env-file": "^0.1.8",
     "prom-client": "^12.0.0",

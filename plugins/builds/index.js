@@ -2,7 +2,7 @@
 
 const logger = require('screwdriver-logger');
 const workflowParser = require('screwdriver-workflow-parser');
-const merge = require('lodash.merge');
+const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
 const getRoute = require('./get');
 const getBuildStatusesRoute = require('./getBuildStatuses');
@@ -401,7 +401,7 @@ async function getFinishedBuilds(event, buildFactory) {
  */
 async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     // Override old parentBuilds info
-    const newParentBuilds = merge({}, joinParentBuilds, nextBuild.parentBuilds);
+    const newParentBuilds = merge({}, joinParentBuilds, nextBuild.parentBuilds, (objVal, srcVal) => objVal || srcVal);
 
     nextBuild.parentBuilds = newParentBuilds;
     nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
@@ -698,7 +698,7 @@ const buildsPlugin = {
                  */
                 const isORTrigger = !joinListNames.includes(current.job.name);
 
-                if (joinListNames === 0 || isORTrigger) {
+                if (joinListNames.length === 0 || isORTrigger) {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
