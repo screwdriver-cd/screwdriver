@@ -731,6 +731,7 @@ const buildsPlugin = {
 
                     finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
                 }
+
                 fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
                 // If next build is internal, look at the finished builds for this event
                 const nextJobId = joinObj[nextJobName].id;

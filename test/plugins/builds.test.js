@@ -2227,23 +2227,15 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            id: 12345,
                             eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 4,
+                            id: 5555,
                             eventId: '8888',
                             status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 5,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 6,
-                            eventId: '8888',
-                            status: 'ABORTED'
                         },
                         buildC
                     ]);
@@ -2760,23 +2752,15 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            id: 12345,
                             eventId: '8888',
                             status: 'SUCCESS'
                         },
                         {
                             jobId: 4,
+                            id: 5555,
                             eventId: '8888',
                             status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 5,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        },
-                        {
-                            jobId: 6,
-                            eventId: '8888',
-                            status: 'ABORTED'
                         },
                         buildC
                     ]);
@@ -2834,11 +2818,13 @@ describe('build plugin test', () => {
                     eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
+                            id: 12345,
                             eventId: '8888',
                             status: 'FAILURE'
                         },
                         {
                             jobId: 4,
+                            id: 5555,
                             eventId: '8888',
                             status: 'SUCCESS'
                         },
