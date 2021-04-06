@@ -6,6 +6,7 @@ const createTagRoute = require('./createTag');
 const getRoute = require('./get');
 const listRoute = require('./list');
 const removeRoute = require('./remove');
+const removeTagRoute = require('./removeTag');
 const listTagsRoute = require('./listTags');
 const listVersionsRoute = require('./listVersions');
 const updateTrustedRoute = require('./updateTrusted');
@@ -78,6 +79,7 @@ const commandsPlugin = {
             createTagRoute(),
             getRoute(),
             removeRoute(),
+            removeTagRoute(),
             listRoute(),
             listVersionsRoute(),
             listTagsRoute(),
