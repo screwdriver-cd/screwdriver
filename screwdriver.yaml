@@ -19,8 +19,8 @@ jobs:
             - install: npm install
             - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
             - test: npm test
-            - coverage: ./ci/coverage.sh
-            - cp-coverage-to-artifacts: cp -r artifacts/coverage $SD_ARTIFACTS_DIR
+            - teardown-coverage: ./ci/coverage.sh
+            - teardown-cp-coverage-to-artifacts: cp -rf artifacts/coverage $SD_ARTIFACTS_DIR
         environment:
             SD_SONAR_OPTS:  "-Dsonar.sources=lib,plugins -Dsonar.tests=test -Dsonar.javascript.lcov.reportPaths=artifacts/coverage/lcov.info -Dsonar.testExecutionReportPaths=artifacts/report/test.xml"
             NODE_OPTIONS: "--max_old_space_size=8192"

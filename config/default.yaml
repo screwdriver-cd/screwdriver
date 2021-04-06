@@ -317,7 +317,6 @@ release:
 build:
   environment:
     SD_VERSION: 4
-  externalJoin: false
 
 rateLimit:
   # set true to enable rate limiting on auth token
