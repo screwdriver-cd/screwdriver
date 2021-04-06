@@ -735,7 +735,9 @@ const buildsPlugin = {
                 // If next build is internal, look at the finished builds for this event
                 const nextJobId = joinObj[nextJobName].id;
 
-                const nextBuild = finishedInternalBuilds.find(b => b.jobId === nextJobId && b.eventId === current.event.id);
+                const nextBuild = finishedInternalBuilds.find(
+                    b => b.jobId === nextJobId && b.eventId === current.event.id
+                );
                 let newBuild;
 
                 // Create next build
