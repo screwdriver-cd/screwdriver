@@ -204,19 +204,16 @@ async function createExternalBuild(config) {
  * @param  {Object}   config                    Configuration object
  * @param  {Factory}  config.jobFactory         Job Factory
  * @param  {Factory}  config.buildFactory       Build Factory
- * @param  {Factory}  config.eventFactory       Event Factory
  * @param  {Number}   [config.pipelineId]       Pipeline Id
  * @param  {String}   [config.jobName]          Job name
  * @param  {String}   config.username           Username of build
  * @param  {String}   config.scmContext         SCM context
- * @param  {Build}    config.build              Build object
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {String}   config.baseBranch         Branch name
  * @param  {Number}   [config.parentBuildId]    Parent build ID
- * @param  {Number}   [config.eventId]          Event ID for build
  * @param  {Boolean}  [config.start]            Whether to start the build or not
- * @param  {String}   [config.sha]              Build sha
  * @param  {Number}   [config.jobId]            Job ID
+ * @param  {Object}   [config.event]            Event build belongs to
  * @return {Promise}
  */
 async function createInternalBuild(config) {
@@ -536,8 +533,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  * @param {Array}  parentBuilds
  * @param {Object} current       Holds current build/event data
  * @param {Array}  builds        Completed builds which is used to fill parentBuilds data
- * @param {Object} nextEvent     External event
- * @return {Array} Array of parentBuilds with missing data filled in.
+ * @param {Object} [nextEvent]     External event
  */
 function fillParentBuilds(parentBuilds, current, builds, nextEvent) {
     Object.keys(parentBuilds).forEach(pid => {
@@ -573,8 +569,6 @@ function fillParentBuilds(parentBuilds, current, builds, nextEvent) {
             }
         });
     });
-
-    return parentBuilds;
 }
 
 /**
@@ -739,9 +733,9 @@ const buildsPlugin = {
                 }
                 fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
                 // If next build is internal, look at the finished builds for this event
-                const jobId = joinObj[nextJobName].id;
+                const nextJobId = joinObj[nextJobName].id;
 
-                const nextBuild = finishedInternalBuilds.find(b => b.jobId === jobId && b.eventId === current.event.id);
+                const nextBuild = finishedInternalBuilds.find(b => b.jobId === nextJobId && b.eventId === current.event.id);
                 let newBuild;
 
                 // Create next build
@@ -803,7 +797,7 @@ const buildsPlugin = {
                     // fetch builds created due to restart
                     const externalGroupBuilds = await getFinishedBuilds(externalEvent, buildFactory);
 
-                    const buildsToRestart = Object.keys(nextJobs)
+                    const buildsToRestart = nextJobNames
                         .map(j => {
                             const existingBuild = externalGroupBuilds.find(b => b.jobId === nextJobs[j].id);
 
