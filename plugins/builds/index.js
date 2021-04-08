@@ -763,6 +763,7 @@ const buildsPlugin = {
 
                     newBuild = await createInternalBuild(internalBuildConfig);
                 } else {
+                    console.log('before updateParentBuilds', nextBuild.id);
                     // nextBuild is not build object, so fetch proper build
                     newBuild = await updateParentBuilds({
                         joinParentBuilds: parentBuilds,
