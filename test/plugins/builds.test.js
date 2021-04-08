@@ -3428,6 +3428,7 @@ describe('build plugin test', () => {
                         },
                         {
                             jobId: 2,
+                            id: 5555,
                             eventId: '8888',
                             status: 'RUNNING'
                         },
