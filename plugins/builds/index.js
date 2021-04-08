@@ -401,7 +401,10 @@ async function getFinishedBuilds(event, buildFactory) {
  */
 async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     // Override old parentBuilds info
-    const newParentBuilds = merge({}, joinParentBuilds, nextBuild.parentBuilds, (objVal, srcVal) => objVal || srcVal);
+    const newParentBuilds = merge({}, joinParentBuilds, nextBuild.parentBuilds, (objVal, srcVal) =>
+        // passthrough objects, else mergeWith mutates source
+        srcVal && typeof srcVal === 'object' ? undefined : objVal || srcVal
+    );
 
     nextBuild.parentBuilds = newParentBuilds;
     nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
@@ -437,6 +440,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
         ) {
             bId = upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName];
         }
+
         // If buildId is empty, the job hasn't executed yet and the join is not done
         if (!bId) {
             done = false;
@@ -759,9 +763,10 @@ const buildsPlugin = {
 
                     newBuild = await createInternalBuild(internalBuildConfig);
                 } else {
+                    // nextBuild is not build model, so fetch proper build
                     newBuild = await updateParentBuilds({
                         joinParentBuilds: parentBuilds,
-                        nextBuild,
+                        nextBuild: await buildFactory.get(nextBuild.id),
                         build: current.build
                     });
                 }
@@ -861,9 +866,10 @@ const buildsPlugin = {
 
                         if (nextBuild) {
                             // update current build info in parentBuilds
+                            // nextBuild is not build model, so fetch proper build
                             newBuild = await updateParentBuilds({
                                 joinParentBuilds: parentBuilds,
-                                nextBuild,
+                                nextBuild: await buildFactory.get(nextBuild.id),
                                 build: current.build
                             });
                         } else {

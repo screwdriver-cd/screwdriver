@@ -1765,6 +1765,7 @@ describe('build plugin test', () => {
 
                     eventMock.getBuilds.resolves(buildMocks);
                     buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
+                    buildFactoryMock.get.withArgs(123455).resolves(buildC);
 
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
@@ -1799,6 +1800,7 @@ describe('build plugin test', () => {
                         },
                         buildC
                     ]);
+                    buildFactoryMock.get.withArgs(333).resolves(buildC);
 
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
@@ -2207,6 +2209,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        id: 3,
                         eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: {
@@ -2253,7 +2256,7 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
-                    buildFactoryMock.create.resolves(buildC);
+                    buildFactoryMock.get.withArgs(3).resolves(buildC);
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
@@ -2286,6 +2289,7 @@ describe('build plugin test', () => {
                     };
                     const buildC = {
                         jobId: 3,
+                        id: 3,
                         status: 'CREATED',
                         parentBuilds: {
                             2: {
@@ -2382,6 +2386,7 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
                     eventFactoryMock.list.resolves([Object.assign(externalEventMock, { id: '8889' })]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.get.withArgs(3).resolves(buildC); // d is done
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
@@ -2730,6 +2735,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        id: 3,
                         status: 'CREATED',
                         eventId: '8888',
                         parentBuilds: {
@@ -2787,7 +2793,7 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
-                    buildFactoryMock.create.resolves(buildC);
+                    buildFactoryMock.get.withArgs(3).resolves(buildC); // d is done
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
@@ -2806,6 +2812,7 @@ describe('build plugin test', () => {
                     const buildC = {
                         jobId: 3, // job c was previously created,
                         eventId: '8888',
+                        id: 3,
                         remove: sinon.stub().resolves(null)
                     };
 
@@ -2832,6 +2839,7 @@ describe('build plugin test', () => {
                     ]);
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'FAILURE' });
+                    buildFactoryMock.get.withArgs(3).resolves(buildC);
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
@@ -3398,6 +3406,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        id: 3,
                         eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: { 123: { jobs: { a: null, b: 5555 }, eventId: '8888' } }
@@ -3419,6 +3428,7 @@ describe('build plugin test', () => {
                         },
                         {
                             jobId: 2,
+                            id: 5555,
                             eventId: '8888',
                             status: 'RUNNING'
                         },
@@ -3443,6 +3453,7 @@ describe('build plugin test', () => {
 
                     const buildC = {
                         jobId: 3,
+                        id: 3,
                         eventId: '8888',
                         status: 'CREATED',
                         parentBuilds: { 123: { jobs: { a: null, b: 5555 }, eventId: '8888' } }
@@ -3471,6 +3482,7 @@ describe('build plugin test', () => {
                     ]);
 
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'FAILURE' }); // d is done
+                    buildFactoryMock.get.withArgs(3).resolves(buildC); // d is done
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
