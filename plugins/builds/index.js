@@ -975,6 +975,8 @@ const buildsPlugin = {
                     groupEventId: null
                 };
 
+                console.log('here');
+
                 return createExternalBuild(externalBuildConfig);
             };
 
@@ -999,11 +1001,18 @@ const buildsPlugin = {
                     }
                 } else {
                     try {
-                        const resource = `pipeline:${pid}:event:${pipelineJoinData[pid].event.id}`;
-                        const lock = await redLock.getLock(resource, ttl);
+                        const extEvent = pipelineJoinData[pid].event;
+                        let lock;
+
+                        // no need to lock if there is no external event
+                        if (extEvent) {
+                            const resource = `pipeline:${pid}:event:${pipelineJoinData[pid].event.id}`;
+
+                            lock = await redLock.getLock(resource, ttl);
+                        }
 
                         await triggerJobsInExternalPipeline(pid, pipelineJoinData[pid]);
-                        if (lock) {
+                        if (extEvent && lock) {
                             lock.unlock();
                         }
                     } catch (err) {
