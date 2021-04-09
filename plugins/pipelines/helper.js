@@ -30,7 +30,8 @@ const formatCheckoutUrl = checkoutUrl => {
 };
 
 /**
- * Get rid of leading/trailing slashes in rootDir, return empty string as default
+ * Get rid of leading/trailing slashes in rootDir, uri encode
+ * Return empty string as default
  * @method sanitizeRootDir
  * @param  {String}     rootDir     Root directory (ex: /src/component/app/ or /)
  * @return {String}                 Root dir with no leading/trailing slashes
@@ -45,7 +46,7 @@ const sanitizeRootDir = (rootDir = '') => {
         return '';
     }
 
-    return sanitizedRootDir;
+    return encodeURIComponent(sanitizedRootDir);
 };
 
 module.exports = {

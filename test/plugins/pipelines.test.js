@@ -175,6 +175,7 @@ describe('pipeline plugin test', () => {
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const scmContext = 'github:github.com';
     const scmDisplayName = 'github';
+    const rootDir = 'src%2Fapp%2Fcomponent';
 
     before(() => {
         mockery.enable({
@@ -1583,7 +1584,7 @@ describe('pipeline plugin test', () => {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token,
-                    rootDir: 'src/app/component'
+                    rootDir
                 });
                 assert.calledWith(userMock.getPermissions, scmUriWithRootDir);
             });
@@ -1613,7 +1614,7 @@ describe('pipeline plugin test', () => {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token,
-                    rootDir: 'src/app/component'
+                    rootDir
                 });
                 assert.calledWith(userMock.getPermissions, scmUri);
             });
@@ -1628,7 +1629,7 @@ describe('pipeline plugin test', () => {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token,
-                    rootDir: 'src/app/component'
+                    rootDir
                 });
                 assert.calledWith(userMock.getPermissions, scmUri);
             });
@@ -1857,7 +1858,7 @@ describe('pipeline plugin test', () => {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token,
-                    rootDir: 'src/app/component'
+                    rootDir
                 });
                 assert.calledWith(userMock.getPermissions, scmUriWithRootDir);
             });
@@ -3131,7 +3132,7 @@ describe('pipeline plugin test', () => {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token,
-                    rootDir: 'src/app/component'
+                    rootDir
                 });
                 assert.calledWith(userMock.getPermissions, scmUriWithRootDir);
             });
