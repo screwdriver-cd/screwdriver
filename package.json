@@ -125,7 +125,9 @@
     "sqlite3": "^5.0.1",
     "tinytim": "^0.1.1",
     "uuid": "^8.3.2",
-    "verror": "^1.6.1"
+    "verror": "^1.6.1",
+    "ioredis": "^3.2.2",
+    "redlock": "^4.1.0"
   },
   "release": {
     "debug": false,
