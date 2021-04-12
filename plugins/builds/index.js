@@ -804,7 +804,7 @@ const buildsPlugin = {
                 if (!newBuild && nextBuild) {
                     newBuild = await updateParentBuilds({
                         joinParentBuilds: parentBuilds,
-                        nextBuild: await buildFactory.get(nextBuild.id),
+                        nextBuild,
                         build: current.build
                     });
                 }
@@ -974,8 +974,6 @@ const buildsPlugin = {
                     parentEventId: current.event.id,
                     groupEventId: null
                 };
-
-                console.log('here');
 
                 return createExternalBuild(externalBuildConfig);
             };
