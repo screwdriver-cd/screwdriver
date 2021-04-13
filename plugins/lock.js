@@ -5,6 +5,9 @@ const Redlock = require('redlock');
 const config = require('config');
 
 class Lock {
+    /**
+     * Constructor
+     */
     constructor() {
         if (config.get('redisLock.enabled')) {
             const redisLockConfig = config.get('redisLock.options');
@@ -28,6 +31,14 @@ class Lock {
         }
     }
 
+    /**
+     * attempt to acquire a lock for resource, will retry accuqiring lock depending
+     * on configuration.
+     * @method  getLock
+     * @param   {String}      resource      the string identifier for the resource to lock
+     * @param   {Number}      ttl           maximum lock duration in milliseconds
+     * @returns {Promise}
+     */
     getLock(resource, ttl) {
         if (this.redlock) {
             return this.redlock.lock(resource, ttl);
