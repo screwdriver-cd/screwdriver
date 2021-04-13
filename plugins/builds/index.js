@@ -17,6 +17,8 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
+const redLock = require('../lock.js');
+const ttl = 20000;
 
 /**
  * Checks if job is external trigger
@@ -57,7 +59,7 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
         return null;
     }
 
-    const eventId = currentBuild.parentBuilds[pipelineId].eventId;
+    const { eventId } = currentBuild.parentBuilds[pipelineId];
 
     return eventFactory.get(eventId);
 }
@@ -715,11 +717,19 @@ const buildsPlugin = {
                         parentBuilds,
                         parentBuildId: current.build.id
                     };
+                    let newBuild;
 
-                    return createInternalBuild(internalBuildConfig);
+                    try {
+                        newBuild = await createInternalBuild(internalBuildConfig);
+                    } catch (err) {
+                        logger.error(
+                            `Error in triggerNextJobs - pipeline:${current.pipeline.id}-${nextJobName} event:${event.id} `,
+                            err
+                        );
+                    }
+
+                    return newBuild;
                 }
-
-                // Get finished internal builds from event
 
                 logger.info(`Fetching finished builds for event ${event.id}`);
                 let finishedInternalBuilds = await getFinishedBuilds(current.event, buildFactory);
@@ -739,7 +749,6 @@ const buildsPlugin = {
                 fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
                 // If next build is internal, look at the finished builds for this event
                 const nextJobId = joinObj[nextJobName].id;
-
                 const nextBuild = finishedInternalBuilds.find(
                     b => b.jobId === nextJobId && b.eventId === current.event.id
                 );
@@ -823,7 +832,7 @@ const buildsPlugin = {
                     externalGroupBuilds.push(...parallelBuilds);
 
                     if (buildsToRestart.length) {
-                        const parentBuilds = buildsToRestart[0].parentBuilds;
+                        const { parentBuilds } = buildsToRestart[0];
                         // If restart handle like a fresh trigger
                         // and start all jobs which are not join jobs
                         const externalBuildConfig = {
@@ -890,6 +899,7 @@ const buildsPlugin = {
                                 start: false
                             });
                         }
+
                         const joinList = nextJobs[nextJobName].join;
                         const { hasFailure, done } = await getParentBuildStatus({
                             newBuild,
@@ -936,7 +946,13 @@ const buildsPlugin = {
                 if (+pid === current.pipeline.id) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
+                            const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
+                            const lock = await redLock.getLock(resource, ttl);
+
                             await triggerNextJobInSamePipeline(nextJobName, pipelineJoinData[pid].jobs);
+                            if (lock) {
+                                lock.unlock();
+                            }
                         } catch (err) {
                             logger.error(
                                 `Error in triggerNextJobInSamePipeline:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
@@ -946,7 +962,20 @@ const buildsPlugin = {
                     }
                 } else {
                     try {
+                        const extEvent = pipelineJoinData[pid].event;
+                        let lock;
+
+                        // no need to lock if there is no external event
+                        if (extEvent) {
+                            const resource = `pipeline:${pid}:event:${pipelineJoinData[pid].event.id}`;
+
+                            lock = await redLock.getLock(resource, ttl);
+                        }
+
                         await triggerJobsInExternalPipeline(pid, pipelineJoinData[pid]);
+                        if (extEvent && lock) {
+                            lock.unlock();
+                        }
                     } catch (err) {
                         logger.error(
                             `Error in triggerJobsInExternalPipeline:${pid} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
