@@ -731,7 +731,7 @@ const buildsPlugin = {
                     return newBuild;
                 }
 
-                logger.info(`Fetching finished builds for event ${current.event.id}`);
+                logger.info(`Fetching finished builds for event ${event.id}`);
                 let finishedInternalBuilds = await getFinishedBuilds(current.event, buildFactory);
 
                 if (current.event.parentEventId) {
@@ -772,9 +772,10 @@ const buildsPlugin = {
 
                     newBuild = await createInternalBuild(internalBuildConfig);
                 } else {
+                    // nextBuild is not build model, so fetch proper build
                     newBuild = await updateParentBuilds({
                         joinParentBuilds: parentBuilds,
-                        nextBuild,
+                        nextBuild: await buildFactory.get(nextBuild.id),
                         build: current.build
                     });
                 }
@@ -872,7 +873,15 @@ const buildsPlugin = {
 
                         fillParentBuilds(parentBuilds, current, externalGroupBuilds, externalEvent);
 
-                        if (!nextBuild) {
+                        if (nextBuild) {
+                            // update current build info in parentBuilds
+                            // nextBuild is not build model, so fetch proper build
+                            newBuild = await updateParentBuilds({
+                                joinParentBuilds: parentBuilds,
+                                nextBuild: await buildFactory.get(nextBuild.id),
+                                build: current.build
+                            });
+                        } else {
                             // no existing build, so first time processing this job
                             // in the external pipeline's event
                             newBuild = await createInternalBuild({
@@ -888,14 +897,6 @@ const buildsPlugin = {
                                 parentBuilds,
                                 parentBuildId: current.build.id,
                                 start: false
-                            });
-                        } else {
-                            // update current build info in parentBuilds
-                            // nextBuild is not build model, so fetch proper build
-                            newBuild = await updateParentBuilds({
-                                joinParentBuilds: parentBuilds,
-                                nextBuild: await buildFactory.get(nextBuild.id),
-                                build: current.build
                             });
                         }
 
