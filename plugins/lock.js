@@ -32,7 +32,7 @@ class Lock {
     }
 
     /**
-     * attempt to acquire a lock for resource, will retry accuqiring lock depending
+     * Attempt to acquire a lock for resource, will retry acquiring lock depending
      * on configuration.
      * @method  getLock
      * @param   {String}      resource      the string identifier for the resource to lock
