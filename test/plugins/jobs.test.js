@@ -176,18 +176,13 @@ describe('job plugin test', () => {
     describe('PUT /jobs/{id}', () => {
         const id = '1234';
         const state = 'DISABLED';
+        const username = 'tkyi';
+        const scmContext = 'github:github.com';
         let jobMock;
+        let options;
 
         beforeEach(() => {
-            jobMock = getJobMocks({ id, state });
-
-            jobMock.update.resolves(jobMock);
-
-            jobFactoryMock.get.resolves(jobMock);
-        });
-
-        it('returns 200 for updating a job that exists', () => {
-            const options = {
+            options = {
                 method: 'PUT',
                 url: '/jobs/1234',
                 payload: {
@@ -195,12 +190,19 @@ describe('job plugin test', () => {
                 },
                 auth: {
                     credentials: {
-                        scope: ['user']
+                        scope: ['user'],
+                        username,
+                        scmContext
                     },
                     strategy: ['token']
                 }
             };
+            jobMock = getJobMocks({ id, state });
+            jobMock.update.resolves(jobMock);
+            jobFactoryMock.get.resolves(jobMock);
+        });
 
+        it('returns 200 for updating a job that exists', () => {
             jobMock.toJson.returns({ id, state: 'ENABLED' });
 
             return server.inject(options).then(reply => {
@@ -213,20 +215,7 @@ describe('job plugin test', () => {
         });
 
         it('returns 500 if datastore returns an error', () => {
-            const options = {
-                method: 'PUT',
-                url: '/jobs/1234',
-                payload: {
-                    state: 'DISABLED'
-                },
-                auth: {
-                    credentials: {
-                        scope: ['user']
-                    },
-                    strategy: ['token']
-                }
-            };
-
+            options.payload.state = 'DISABLED';
             jobMock.update.rejects(new Error('error'));
 
             return server.inject(options).then(reply => {
@@ -235,20 +224,7 @@ describe('job plugin test', () => {
         });
 
         it('returns 404 if job does not exist', () => {
-            const options = {
-                method: 'PUT',
-                url: '/jobs/1234',
-                payload: {
-                    state: 'DISABLED'
-                },
-                auth: {
-                    credentials: {
-                        scope: ['user']
-                    },
-                    strategy: ['token']
-                }
-            };
-
+            options.payload.state = 'DISABLED';
             jobFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
@@ -257,20 +233,7 @@ describe('job plugin test', () => {
         });
 
         it('returns 404 if pipeline does not exist', () => {
-            const options = {
-                method: 'PUT',
-                url: '/jobs/1234',
-                payload: {
-                    state: 'DISABLED'
-                },
-                auth: {
-                    credentials: {
-                        scope: ['user']
-                    },
-                    strategy: ['token']
-                }
-            };
-
+            options.payload.state = 'DISABLED';
             pipelineFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
@@ -279,26 +242,33 @@ describe('job plugin test', () => {
         });
 
         it('returns 403 if user has no push access to the repo', () => {
-            const options = {
-                method: 'PUT',
-                url: '/jobs/1234',
-                payload: {
-                    state: 'DISABLED'
-                },
-                auth: {
-                    credentials: {
-                        scope: ['user']
-                    },
-                    strategy: ['token']
-                }
-            };
-
+            options.payload.state = 'DISABLED';
             userMock.getPermissions.resolves({
                 push: false
             });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 401 unauthorized error when pipeline token does not have permission', () => {
+            const error = {
+                statusCode: 401,
+                error: 'Unauthorized',
+                message: 'Token does not have permission to this pipeline'
+            };
+
+            options.auth.credentials = {
+                scope: ['pipeline'],
+                username,
+                scmContext,
+                pipelineId: 555
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 401);
+                assert.deepEqual(reply.result, error);
             });
         });
     });
