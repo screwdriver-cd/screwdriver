@@ -394,6 +394,27 @@ ecosystem:
     max_size_mb: CACHE_MAX_SIZE_MB
     max_go_threads: CACHE_MAX_GO_THREADS
 
+redisLock:
+  # set true to enable redis lock
+  enabled: REDLOCK_ENABLED
+  options:
+    # maximum retry limit to obtain lock
+    retryCount: REDLOCK_RETRY_COUNT 
+    # the expected clock drift
+    driftFactor: REDLOCK_DRIFT_FACTOR
+    # the time in milliseconds between retry attempts
+    retryDelay: REDLOCK_RETRY_DELAY
+    # the maximum time in milliseconds randomly added to retries
+    retryJitter: REDLOCK_RETRY_JITTER
+    # Configuration of the redis instance
+    redisConnection:
+      host: REDLOCK_REDIS_HOST
+      port: REDLOCK_REDIS_PORT
+      options:
+        password: REDLOCK_REDIS_PASSWORD
+        tls: REDLOCK_REDIS_TLS_ENABLED
+      database: REDLOCK_REDIS_DATABASE
+
 # environment release information
 release:
   __name: RELEASE_ENVIRONMENT_VARIABLES
@@ -406,8 +427,4 @@ build:
 
 rateLimit:
   __name: RATE_LIMIT_VARIABLES
-  __format: json
-
-redisLock:
-  __name: REDIS_LOCK_VARIABLES
   __format: json
