@@ -60,6 +60,10 @@ module.exports = () => ({
                                         job[key] = request.payload[key];
                                     });
 
+                                    // Set stateChanger, stateChangeTime
+                                    job.stateChanger = username;
+                                    job.stateChangeTime = new Date().toISOString();
+
                                     return job.update();
                                 })
                         );
