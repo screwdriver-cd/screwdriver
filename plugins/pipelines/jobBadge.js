@@ -3,31 +3,7 @@
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
-const { makeBadge } = require('badge-maker');
-
-/**
- * Generate Badge Format
- * @method getLabels
- * @param  {Object} statusColor             Mapping for status and color
- * @param  {Array}  [builds=[]]       An array of builds
- * @param  {String} [label='job']         Subject of the badge
- * @return {Object}
- */
-function getLabels({ statusColor, builds = [], label = 'job' }) {
-    let color = 'lightgrey';
-    let status = 'unknown';
-
-    if (builds.length > 0) {
-        status = builds[0].status.toLowerCase();
-        color = statusColor[status];
-    }
-
-    return {
-        label,
-        message: status,
-        color
-    };
-}
+const { getJobBadge } = require('./helper');
 
 module.exports = config => ({
     method: 'GET',
@@ -50,12 +26,6 @@ module.exports = config => ({
                 statusColor
             };
 
-            const getBadge = badgeObject => {
-                const labels = getLabels(badgeObject);
-
-                return makeBadge(labels);
-            };
-
             return Promise.all([
                 jobFactory.get({
                     pipelineId: id,
@@ -65,12 +35,12 @@ module.exports = config => ({
             ])
                 .then(([job, pipeline]) => {
                     if (!job) {
-                        return h.response(getBadge(badgeConfig));
+                        return h.response(getJobBadge(badgeConfig));
                     }
 
                     if (job.state === 'DISABLED') {
                         return h.response(
-                            getBadge(
+                            getJobBadge(
                                 Object.assign(badgeConfig, {
                                     builds: [
                                         {
@@ -92,7 +62,7 @@ module.exports = config => ({
 
                     return job.getBuilds(listConfig).then(builds => {
                         return h.response(
-                            getBadge(
+                            getJobBadge(
                                 Object.assign(badgeConfig, {
                                     builds,
                                     label: `${pipeline.name}:${jobName}`
@@ -101,7 +71,7 @@ module.exports = config => ({
                         );
                     });
                 })
-                .catch(() => h.response(getBadge(badgeConfig)));
+                .catch(() => h.response(getJobBadge(badgeConfig)));
         },
         validate: {
             params: joi.object({

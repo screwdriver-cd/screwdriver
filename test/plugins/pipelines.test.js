@@ -933,7 +933,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 to for a valid build', () =>
-            server.inject(`/pipelines/${id}/badge`).then((reply) => {
+            server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'foo/bar: 1 unknown, 1 success, 1 failure');
             }));
@@ -941,7 +941,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 to for a valid PR build', () => {
             pipelineMock.getEvents.resolves(eventsPrMock);
 
-            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'foo/bar: 1 success, 1 failure');
             });
@@ -950,7 +950,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 to unknown for a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
-            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'pipeline: unknown');
             });
@@ -959,7 +959,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 to unknown for an event that does not exist', () => {
             pipelineMock.getEvents.resolves([]);
 
-            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'pipeline: unknown');
             });
@@ -968,7 +968,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 to unknown for a build that does not exist', () => {
             eventsMock[0].getBuilds.resolves([]);
 
-            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'pipeline: unknown');
             });
@@ -977,7 +977,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 to unknown when the datastore returns an error', () => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
 
-            return server.inject(`/pipelines/${id}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'pipeline: unknown');
             });
@@ -1000,7 +1000,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 to for a valid build', () =>
-            server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+            server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'foo/bar-test:deploy: success');
             }));
@@ -1008,16 +1008,16 @@ describe('pipeline plugin test', () => {
         it('returns 200 to for a job that is disabled', () => {
             jobMock.state = 'DISABLED';
 
-            return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.include(reply.payload, 'foo/bar-test: disabled');
+                assert.include(reply.payload, 'foo/bar-test:deploy: disabled');
             });
         });
 
         it('returns 200 to unknown for a job that does not exist', () => {
             jobFactoryMock.get.resolves(null);
 
-            return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'job: unknown');
             });
@@ -1027,7 +1027,7 @@ describe('pipeline plugin test', () => {
             server.app.ecosystem.badges = '{{subject}}*{{status}}*{{color}}';
             jobFactoryMock.get.rejects(new Error('icantdothatdave'));
 
-            return server.inject(`/pipelines/${id}/${jobName}/badge`).then((reply) => {
+            return server.inject(`/pipelines/${id}/${jobName}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.include(reply.payload, 'job: unknown');
             });
