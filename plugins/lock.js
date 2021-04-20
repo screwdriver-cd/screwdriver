@@ -69,7 +69,7 @@ class Lock {
     async unlock(lock, resource) {
         try {
             if (lock) {
-                const wait = lock.unlock();
+                const wait = await lock.unlock();
 
                 return wait;
             }
