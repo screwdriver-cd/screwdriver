@@ -17,8 +17,7 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
-const redLock = require('../lock.js');
-const ttl = 20000;
+const locker = require('../lock.js');
 
 /**
  * Checks if job is external trigger
@@ -550,11 +549,18 @@ function fillParentBuilds(parentBuilds, current, builds, nextEvent) {
                 let workflowGraph;
                 let searchJob = trimJobName(jName);
 
+                // parentBuild is in current event
                 if (+pid === current.pipeline.id) {
                     workflowGraph = current.event.workflowGraph;
                 } else if (nextEvent) {
+                    if (+pid !== nextEvent.pipelineId) {
+                        // parentBuild is remote triggered from external event
+                        // FIXME:: Will else condition ever be true ?
+                        searchJob = `sd@${pid}:${searchJob}`;
+                    }
                     workflowGraph = nextEvent.workflowGraph;
                 } else {
+                    // parentBuild is remote triggered from current Event
                     searchJob = `sd@${pid}:${searchJob}`;
                     workflowGraph = current.event.workflowGraph;
                 }
@@ -947,12 +953,10 @@ const buildsPlugin = {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
                             const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
-                            const lock = await redLock.getLock(resource, ttl);
+                            const lock = await locker.lock(resource);
 
                             await triggerNextJobInSamePipeline(nextJobName, pipelineJoinData[pid].jobs);
-                            if (lock) {
-                                lock.unlock();
-                            }
+                            await locker.unlock(lock, resource);
                         } catch (err) {
                             logger.error(
                                 `Error in triggerNextJobInSamePipeline:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
@@ -964,18 +968,16 @@ const buildsPlugin = {
                     try {
                         const extEvent = pipelineJoinData[pid].event;
                         let lock;
+                        let resource;
 
                         // no need to lock if there is no external event
                         if (extEvent) {
-                            const resource = `pipeline:${pid}:event:${pipelineJoinData[pid].event.id}`;
-
-                            lock = await redLock.getLock(resource, ttl);
+                            resource = `pipeline:${pid}:event:${pipelineJoinData[pid].event.id}`;
+                            lock = await locker.lock(resource);
                         }
 
                         await triggerJobsInExternalPipeline(pid, pipelineJoinData[pid]);
-                        if (extEvent && lock) {
-                            lock.unlock();
-                        }
+                        await locker.unlock(lock, resource);
                     } catch (err) {
                         logger.error(
                             `Error in triggerJobsInExternalPipeline:${pid} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
