@@ -21,11 +21,11 @@ function getLabels({ statusColor, buildsStatus = [], label = 'pipeline' }) {
 
     const levels = Object.keys(statusColor);
 
-    buildsStatus.forEach((status) => {
+    buildsStatus.forEach(status => {
         counts[status] = (counts[status] || 0) + 1;
     });
 
-    levels.forEach((status) => {
+    levels.forEach(status => {
         if (counts[status]) {
             parts.push(`${counts[status]} ${status}`);
             worst = statusColor[status];
@@ -64,7 +64,7 @@ function dfs(workflowGraph, start, prNum) {
 
     let visited = new Set(nextJobs);
 
-    nextJobs.forEach((job) => {
+    nextJobs.forEach(job => {
         const subJobs = dfs(workflowGraph, job);
 
         visited = new Set([...visited, ...subJobs]);
