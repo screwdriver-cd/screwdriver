@@ -34,6 +34,20 @@ async function isFixedBuild(build, jobFactory) {
     return false;
 }
 
+/**
+ * Stops a frozne build from executing
+ * @method stopFrozenBuild
+ * @param  {Object} build         Build Object
+ * @param  {string} previousStatus    prevous build status
+ */
+async function stopFrozenBuild(build, previousStatus) {
+    if (previousStatus !== 'FROZEN') {
+        return Promise.resolve();
+    }
+
+    return build.stopFrozen(previousStatus);
+}
+
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -74,7 +88,7 @@ module.exports = () => ({
                     }
 
                     // Check build status
-                    if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE'].includes(build.status)) {
+                    if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE', 'FROZEN'].includes(build.status)) {
                         throw boom.forbidden('Can only update RUNNING, QUEUED, BLOCKED, or UNSTABLE builds');
                     }
 
@@ -172,12 +186,18 @@ module.exports = () => ({
                             throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
                     }
 
+                    const currentStatus = build.status;
                     // UNSTABLE -> SUCCESS needs to update meta and endtime.
                     // However, the status itself cannot be updated to SUCCESS
-                    if (build.status !== 'UNSTABLE') {
+
+                    if (currentStatus !== 'UNSTABLE') {
                         build.status = desiredStatus;
                         if (build.status === 'ABORTED') {
-                            build.statusMessage = `Aborted by ${username}`;
+                            if (currentStatus === 'FROZEN') {
+                                build.statusMessage = `Frozen build aborted by ${username}`;
+                            } else {
+                                build.statusMessage = `Aborted by ${username}`;
+                            }
                         } else if (build.status === 'FAILURE' || build.status === 'SUCCESS') {
                             if (statusMessage) {
                                 build.statusMessage = statusMessage;
@@ -206,7 +226,12 @@ module.exports = () => ({
                     }
 
                     // Only trigger next build on success
-                    return Promise.all([build.update(), event.update(), isFixedBuild(build, jobFactory)]);
+                    return Promise.all([
+                        build.update(),
+                        event.update(),
+                        isFixedBuild(build, jobFactory),
+                        stopFrozenBuild(build, currentStatus)
+                    ]);
                 })
                 .then(([newBuild, newEvent, isFixed]) =>
                     newBuild.job.then(job =>

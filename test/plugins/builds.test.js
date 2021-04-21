@@ -45,6 +45,7 @@ const decorateBuildObject = build => {
     decorated.update = sinon.stub().resolves(updatedBuild);
     decorated.start = sinon.stub().resolves({});
     decorated.stop = sinon.stub();
+    decorated.stopFrozen = sinon.stub();
     delete noStepBuild.steps;
     decorated.toJson = sinon.stub().returns(noStepBuild);
     decorated.toJsonWithSteps = sinon.stub().resolves(build);
@@ -1175,6 +1176,122 @@ describe('build plugin test', () => {
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(initStepMock.update);
                     assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.status, status);
+                });
+            });
+
+            it('updates FROZEN build to ABORTED', () => {
+                const status = 'ABORTED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                buildMock.status = 'FROZEN';
+                buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+                initStepMock.update.resolves(null);
+                stepFactoryMock.get
+                    .withArgs({
+                        buildId: id,
+                        name: initStepName
+                    })
+                    .resolves(initStepMock);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.notCalled(initStepMock.update);
+                    assert.calledOnce(buildMock.update);
+                    assert.calledOnce(buildMock.stopFrozen);
+                    assert.strictEqual(buildMock.status, status);
+                });
+            });
+
+            it('sets build message correctly for abort frozen builds', () => {
+                const status = 'ABORTED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                buildMock.status = 'FROZEN';
+                buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.calledOnce(buildMock.stopFrozen);
+                    assert.strictEqual(buildMock.status, status);
+                    assert.strictEqual(buildMock.statusMessage, `Frozen build aborted by ${id}`);
+                });
+            });
+
+            it('does not call stopFrozen for builds with status not FROZEN', () => {
+                const status = 'RUNNING';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                const initStepName = 'sd-setup-init';
+                const initStepMock = getStepMock({
+                    buildId: id,
+                    name: initStepName
+                });
+
+                buildMock.status = 'QUEUED';
+                buildFactoryMock.get.withArgs(id).resolves(buildMock);
+
+                initStepMock.update.resolves(null);
+                stepFactoryMock.get
+                    .withArgs({
+                        buildId: id,
+                        name: initStepName
+                    })
+                    .resolves(initStepMock);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.notCalled(buildMock.stopFrozen);
                     assert.strictEqual(buildMock.status, status);
                 });
             });
