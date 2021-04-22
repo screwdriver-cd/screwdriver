@@ -35,10 +35,10 @@ async function isFixedBuild(build, jobFactory) {
 }
 
 /**
- * Stops a frozne build from executing
+ * Stops a frozen build from executing
  * @method stopFrozenBuild
  * @param  {Object} build         Build Object
- * @param  {string} previousStatus    prevous build status
+ * @param  {String} previousStatus    Prevous build status
  */
 async function stopFrozenBuild(build, previousStatus) {
     if (previousStatus !== 'FROZEN') {
