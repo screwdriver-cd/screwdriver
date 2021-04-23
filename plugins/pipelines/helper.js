@@ -57,7 +57,6 @@ const sanitizeRootDir = (rootDir = '') => {
  * @param  {String} [label='pipeline']         Subject of the badge
  * @return {String}
  */
-// function getPipelineBadge({ statusColor, buildsStatus = [], label = 'pipeline' }) {
 const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }) => {
     const counts = {};
     const parts = [];
@@ -91,7 +90,6 @@ const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }
  * @param  {String} [label='job']         Subject of the badge
  * @return {String}
  */
-// function getJobBadge({ statusColor, builds = [], label = 'job' }) {
 const getJobBadge = ({ statusColor, builds = [], label = 'job' }) => {
     let color = 'lightgrey';
     let status = 'unknown';
