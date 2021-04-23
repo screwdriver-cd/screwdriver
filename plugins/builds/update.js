@@ -89,7 +89,7 @@ module.exports = () => ({
 
                     // Check build status
                     if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE', 'FROZEN'].includes(build.status)) {
-                        throw boom.forbidden('Can only update RUNNING, QUEUED, BLOCKED, or UNSTABLE builds');
+                        throw boom.forbidden('Can only update RUNNING, QUEUED, BLOCKED, FROZEN, or UNSTABLE builds');
                     }
 
                     // Users can only mark a running or queued build as aborted
