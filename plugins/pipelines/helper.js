@@ -58,7 +58,7 @@ const sanitizeRootDir = (rootDir = '') => {
  * @return {String}
  */
 // function getPipelineBadge({ statusColor, buildsStatus = [], label = 'pipeline' }) {
-const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }) =>{
+const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }) => {
     const counts = {};
     const parts = [];
     let worst = 'lightgrey';
@@ -81,7 +81,7 @@ const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }
         message: parts.length > 0 ? parts.join(', ') : 'unknown',
         color: worst
     });
-}
+};
 
 /**
  * Generate Badge for Job
@@ -92,7 +92,7 @@ const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }
  * @return {String}
  */
 // function getJobBadge({ statusColor, builds = [], label = 'job' }) {
-const getJobBadge = ({ statusColor, builds = [], label = 'job' }) =>{
+const getJobBadge = ({ statusColor, builds = [], label = 'job' }) => {
     let color = 'lightgrey';
     let status = 'unknown';
 
@@ -106,7 +106,7 @@ const getJobBadge = ({ statusColor, builds = [], label = 'job' }) =>{
         message: status,
         color
     });
-}
+};
 
 module.exports = {
     formatCheckoutUrl,
