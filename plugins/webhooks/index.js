@@ -404,6 +404,8 @@ async function createPREvents(options, request) {
                 } catch (err) {
                     if (err.status >= 500) {
                         throw err;
+                    } else if (err.message !== undefined && err.message.indexOf('CircuitBreaker timeout') !== -1) {
+                        throw err;
                     } else {
                         logger.info(`skip create event for branch: ${b}`);
                     }
@@ -415,6 +417,8 @@ async function createPREvents(options, request) {
                     configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
                 } catch (err) {
                     if (err.status >= 500) {
+                        throw err;
+                    } else if (err.message !== undefined && err.message.indexOf('CircuitBreaker timeout') !== -1) {
                         throw err;
                     } else {
                         logger.info(`skip create event for branch: ${b}`);
@@ -542,7 +546,7 @@ async function pullRequestOpened(options, request, h) {
             return h.response().code(201);
         })
         .catch(err => {
-            logger.error(`[${hookId}]: ${err}`);
+            logger.error(`[${hookId}, pipeline:${options.pipeline.id}]: ${err}`);
 
             throw err;
         });
@@ -887,6 +891,8 @@ async function createEvents(
                 } catch (err) {
                     if (err.status >= 500) {
                         throw err;
+                    } else if (err.message !== undefined && err.message.indexOf('CircuitBreaker timeout') !== -1) {
+                        throw err;
                     } else {
                         logger.info(`skip create event for branch: ${pipelineBranch}`);
                     }
@@ -920,6 +926,8 @@ async function createEvents(
                     } catch (err) {
                         if (err.status >= 500) {
                             throw err;
+                        } else if (err.message !== undefined && err.message.indexOf('CircuitBreaker timeout') !== -1) {
+                            throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);
                         }
@@ -936,6 +944,8 @@ async function createEvents(
                         eventConfig.subscribedSourceUrl = commitInfo.url;
                     } catch (err) {
                         if (err.status >= 500) {
+                            throw err;
+                        } else if (err.message !== undefined && err.message.indexOf('CircuitBreaker timeout') !== -1) {
                             throw err;
                         } else {
                             logger.info(`skip create event for this subscribed trigger`);
