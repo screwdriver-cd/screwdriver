@@ -2,34 +2,8 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const tinytim = require('tinytim');
 const idSchema = schema.models.pipeline.base.extract('id');
-
-/**
- * Generate Badge URL
- * @method getUrl
- * @param  {String} badgeService            Badge service url
- * @param  {Object} statusColor             Mapping for status and color
- * @param  {Function} encodeBadgeSubject    Function to encode subject
- * @param  {Array}  [builds=[]]             An array of builds
- * @param  {String} [subject='job']         Subject of the badge
- * @return {String}
- */
-function getUrl({ badgeService, statusColor, encodeBadgeSubject, builds = [], subject = 'job' }) {
-    let color = 'lightgrey';
-    let status = 'unknown';
-
-    if (builds.length > 0) {
-        status = builds[0].status.toLowerCase();
-        color = statusColor[status];
-    }
-
-    return tinytim.tim(badgeService, {
-        subject: encodeBadgeSubject({ badgeService, subject }),
-        status,
-        color
-    });
-}
+const { getJobBadge } = require('./helper');
 
 module.exports = config => ({
     method: 'GET',
@@ -47,13 +21,9 @@ module.exports = config => ({
             const { jobFactory } = request.server.app;
             const { pipelineFactory } = request.server.app;
             const { id, jobName } = request.params;
-            const badgeService = request.server.app.ecosystem.badges;
-            const { encodeBadgeSubject } = request.server.plugins.pipelines;
             const { statusColor } = config;
             const badgeConfig = {
-                badgeService,
-                statusColor,
-                encodeBadgeSubject
+                statusColor
             };
 
             return Promise.all([
@@ -65,19 +35,19 @@ module.exports = config => ({
             ])
                 .then(([job, pipeline]) => {
                     if (!job) {
-                        return h.redirect(getUrl(badgeConfig));
+                        return h.response(getJobBadge(badgeConfig));
                     }
 
                     if (job.state === 'DISABLED') {
-                        return h.redirect(
-                            getUrl(
+                        return h.response(
+                            getJobBadge(
                                 Object.assign(badgeConfig, {
                                     builds: [
                                         {
                                             status: 'DISABLED'
                                         }
                                     ],
-                                    subject: `${pipeline.name}:${jobName}`
+                                    label: `${pipeline.name}:${jobName}`
                                 })
                             )
                         );
@@ -90,18 +60,18 @@ module.exports = config => ({
                         }
                     };
 
-                    return job.getBuilds(listConfig).then(builds =>
-                        h.redirect(
-                            getUrl(
+                    return job.getBuilds(listConfig).then(builds => {
+                        return h.response(
+                            getJobBadge(
                                 Object.assign(badgeConfig, {
                                     builds,
-                                    subject: `${pipeline.name}:${jobName}`
+                                    label: `${pipeline.name}:${jobName}`
                                 })
                             )
-                        )
-                    );
+                        );
+                    });
                 })
-                .catch(() => h.redirect(getUrl(badgeConfig)));
+                .catch(() => h.response(getJobBadge(badgeConfig)));
         },
         validate: {
             params: joi.object({

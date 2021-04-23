@@ -80,6 +80,7 @@
     "@hapi/vision": "^6.0.0",
     "@promster/hapi": "^4.2.1",
     "async": "^3.2.0",
+    "badge-maker": "^3.3.0",
     "config": "^1.31.0",
     "date-fns": "^1.30.1",
     "dayjs": "^1.10.4",
