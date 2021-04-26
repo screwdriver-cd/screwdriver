@@ -390,7 +390,18 @@ async function getFinishedBuilds(event, buildFactory) {
         return event.getBuilds();
     }
 
-    return buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+    // FIXME: buildFactory.getLatestBuilds doesn't return build model
+    const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+
+    builds.forEach(b => {
+        try {
+            b.parentBuilds = JSON.parse(b.parentBuilds);
+        } catch (err) {
+            logger.error(`Failed to parse parentBuilds for ${b.id}`);
+        }
+    });
+
+    return builds;
 }
 
 /**
@@ -839,6 +850,7 @@ const buildsPlugin = {
 
                     if (buildsToRestart.length) {
                         const { parentBuilds } = buildsToRestart[0];
+
                         // If restart handle like a fresh trigger
                         // and start all jobs which are not join jobs
                         const externalBuildConfig = {
