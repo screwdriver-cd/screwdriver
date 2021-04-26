@@ -1546,10 +1546,10 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-            it('returns 204  when getCommitSha() is rejected on undefined status error', () => {
+            it('returns 204  when getCommitSha() is rejected on 504 status error', () => {
                 const err = new Error('Failed to getCommitSha: CircuitBreaker timeout');
 
-                err.status = undefined;
+                err.status = 504;
                 pipelineFactoryMock.scm.getCommitSha.rejects(err);
 
                 return server.inject(options).then(reply => {
