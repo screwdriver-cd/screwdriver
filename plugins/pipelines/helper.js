@@ -1,6 +1,7 @@
 'use strict';
 
 const schema = require('screwdriver-data-schema');
+const { makeBadge } = require('badge-maker');
 
 /**
  * Format the scm url to include a branch and make case insensitive
@@ -48,7 +49,66 @@ const sanitizeRootDir = (rootDir = '') => {
     return sanitizedRootDir;
 };
 
+/**
+ * Generate Badge for pipeline
+ * @method getPipelineBadge
+ * @param  {Object} statusColor             Mapping for status and color
+ * @param  {Array}  [buildsStatus=[]]       An array of builds
+ * @param  {String} [label='pipeline']         Subject of the badge
+ * @return {String}
+ */
+const getPipelineBadge = ({ statusColor, buildsStatus = [], label = 'pipeline' }) => {
+    const counts = {};
+    const parts = [];
+    let worst = 'lightgrey';
+
+    const levels = Object.keys(statusColor);
+
+    buildsStatus.forEach(status => {
+        counts[status] = (counts[status] || 0) + 1;
+    });
+
+    levels.forEach(status => {
+        if (counts[status]) {
+            parts.push(`${counts[status]} ${status}`);
+            worst = statusColor[status];
+        }
+    });
+
+    return makeBadge({
+        label,
+        message: parts.length > 0 ? parts.join(', ') : 'unknown',
+        color: worst
+    });
+};
+
+/**
+ * Generate Badge for Job
+ * @method getJobBadge
+ * @param  {Object} statusColor             Mapping for status and color
+ * @param  {Array}  [builds=[]]       An array of builds
+ * @param  {String} [label='job']         Subject of the badge
+ * @return {String}
+ */
+const getJobBadge = ({ statusColor, builds = [], label = 'job' }) => {
+    let color = 'lightgrey';
+    let status = 'unknown';
+
+    if (builds.length > 0) {
+        status = builds[0].status.toLowerCase();
+        color = statusColor[status];
+    }
+
+    return makeBadge({
+        label,
+        message: status,
+        color
+    });
+};
+
 module.exports = {
     formatCheckoutUrl,
+    getJobBadge,
+    getPipelineBadge,
     sanitizeRootDir
 };
