@@ -55,17 +55,17 @@ module.exports = config => ({
         },
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
-
             const { statusColor } = config;
             const badgeConfig = {
                 statusColor
             };
+            const contentType = 'image/svg+xml;charset=utf-8';
 
             return factory
                 .get(request.params.id)
                 .then(pipeline => {
                     if (!pipeline) {
-                        return h.response(getPipelineBadge(badgeConfig));
+                        return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
                     }
 
                     return pipeline.getEvents({ sort: 'ascending' }).then(allEvents => {
@@ -73,7 +73,7 @@ module.exports = config => ({
                             const lastEvent = events.pop();
 
                             if (!lastEvent) {
-                                return h.response(getPipelineBadge(badgeConfig));
+                                return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
                             }
 
                             return lastEvent.getBuilds().then(builds => {
@@ -95,14 +95,16 @@ module.exports = config => ({
                                     buildsStatus[i] = 'unknown';
                                 }
 
-                                return h.response(
-                                    getPipelineBadge(
-                                        Object.assign(badgeConfig, {
-                                            buildsStatus,
-                                            label: pipeline.name
-                                        })
+                                return h
+                                    .response(
+                                        getPipelineBadge(
+                                            Object.assign(badgeConfig, {
+                                                buildsStatus,
+                                                label: pipeline.name
+                                            })
+                                        )
                                     )
-                                );
+                                    .header('Content-Type', contentType);
                             });
                         };
 
