@@ -25,6 +25,7 @@ module.exports = config => ({
             const badgeConfig = {
                 statusColor
             };
+            const contentType = 'image/svg+xml;charset=utf-8';
 
             return Promise.all([
                 jobFactory.get({
@@ -35,22 +36,24 @@ module.exports = config => ({
             ])
                 .then(([job, pipeline]) => {
                     if (!job) {
-                        return h.response(getJobBadge(badgeConfig));
+                        return h.response(getJobBadge(badgeConfig)).header('Content-Type', contentType);
                     }
 
                     if (job.state === 'DISABLED') {
-                        return h.response(
-                            getJobBadge(
-                                Object.assign(badgeConfig, {
-                                    builds: [
-                                        {
-                                            status: 'DISABLED'
-                                        }
-                                    ],
-                                    label: `${pipeline.name}:${jobName}`
-                                })
+                        return h
+                            .response(
+                                getJobBadge(
+                                    Object.assign(badgeConfig, {
+                                        builds: [
+                                            {
+                                                status: 'DISABLED'
+                                            }
+                                        ],
+                                        label: `${pipeline.name}:${jobName}`
+                                    })
+                                )
                             )
-                        );
+                            .header('Content-Type', contentType);
                     }
 
                     const listConfig = {
@@ -61,14 +64,16 @@ module.exports = config => ({
                     };
 
                     return job.getBuilds(listConfig).then(builds => {
-                        return h.response(
-                            getJobBadge(
-                                Object.assign(badgeConfig, {
-                                    builds,
-                                    label: `${pipeline.name}:${jobName}`
-                                })
+                        return h
+                            .response(
+                                getJobBadge(
+                                    Object.assign(badgeConfig, {
+                                        builds,
+                                        label: `${pipeline.name}:${jobName}`
+                                    })
+                                )
                             )
-                        );
+                            .header('Content-Type', contentType);
                     });
                 })
                 .catch(() => h.response(getJobBadge(badgeConfig)));

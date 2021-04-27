@@ -2997,6 +2997,7 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         pipelineId: 123,
+                        parentEventId: 2,
                         builds: [
                             {
                                 id: 888,
@@ -3070,7 +3071,8 @@ describe('build plugin test', () => {
                             id: 4,
                             jobId: 4,
                             eventId: '8888',
-                            status: 'SUCCESS'
+                            status: 'SUCCESS',
+                            parentBuilds: JSON.stringify({})
                         }
                     ]);
 
