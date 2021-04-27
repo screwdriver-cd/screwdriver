@@ -1546,6 +1546,18 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 204  when getCommitSha() is rejected on 504 status error', () => {
+                const err = new Error('Failed to getCommitSha: CircuitBreaker timeout');
+
+                err.status = 504;
+                pipelineFactoryMock.scm.getCommitSha.rejects(err);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 204);
+                    assert.notCalled(eventFactoryMock.create);
+                });
+            });
+
             it('handles checkouting when given a non-listed user on push event', () => {
                 userFactoryMock.get.resolves(null);
                 userFactoryMock.get
