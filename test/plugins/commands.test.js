@@ -1214,7 +1214,7 @@ describe('command plugin test', () => {
         it('deletes command tag if has good permission and tag exists', () =>
             server.inject(options).then(reply => {
                 assert.calledOnce(testCommandTag.remove);
-                assert.equal(reply.statusCode, 204);
+                assert.equal(reply.statusCode, 200);
             }));
     });
 

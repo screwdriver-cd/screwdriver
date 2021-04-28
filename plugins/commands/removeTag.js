@@ -46,10 +46,21 @@ module.exports = () => ({
                         }
 
                         // Remove the command tag, not the command
-                        return commandTag.remove();
+                        return commandTag.remove().then(() =>
+                            h
+                                .response(
+                                    JSON.stringify({
+                                        name,
+                                        namespace,
+                                        version: commandTag.version,
+                                        pipelineId: pipeline.id,
+                                        tag
+                                    })
+                                )
+                                .code(200)
+                        );
                     });
                 })
-                .then(() => h.response().code(204))
                 .catch(err => {
                     throw err;
                 });
