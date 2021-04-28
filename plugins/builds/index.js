@@ -618,11 +618,7 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 
     for (const jobName of nextJobs) {
         const jobInfo = getPipelineAndJob(jobName, current.pipeline.id);
-        const pid = jobInfo.externalPipelineId;
-        const jName = jobInfo.externalJobName;
-        // needed to determine if join in same pipeline
-        // is expressed in external format
-        const isExternal = jobInfo.isExternal;
+        const { externalPipelineId: pid, externalJobName: jName, isExternal } = jobInfo;
 
         const jId = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName)).id;
 
