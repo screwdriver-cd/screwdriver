@@ -969,10 +969,10 @@ const buildsPlugin = {
                 if (isCurrentPipeline) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
-                            const forceExternalTrigger = pipelineJoinData[pid].jobs[nextJobName].isExternal;
+                            const isExternal = pipelineJoinData[pid].jobs[nextJobName].isExternal;
 
-                            triggerCurrentPipelineAsExternal = triggerCurrentPipelineAsExternal || forceExternalTrigger;
-                            if (!forceExternalTrigger) {
+                            triggerCurrentPipelineAsExternal = triggerCurrentPipelineAsExternal || isExternal;
+                            if (!isExternal) {
                                 const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
                                 const lock = await locker.lock(resource);
 
