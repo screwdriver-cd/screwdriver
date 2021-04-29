@@ -24,25 +24,48 @@ module.exports = config => ({
         handler: async (request, h) => {
             const artifact = request.params.name;
             const buildId = request.params.id;
+            const { credentials } = request.auth;
+            const { canAccessPipeline } = request.server.plugins.pipelines;
+            const { buildFactory, eventFactory } = request.server.app;
 
-            const encodedArtifact = encodeURIComponent(artifact);
+            return buildFactory.get(buildId)
+                .then(build => {
+                    if (!build) {
+                        throw boom.notFound('Build does not exist');
+                    }
 
-            const token = jwt.sign({
-                buildId, artifact, scope: ['user']
-            }, config.authConfig.jwtPrivateKey, {
-                algorithm: 'RS256',
-                expiresIn: '5s',
-                jwtid: uuid.v4()
-            });
+                    return eventFactory.get(build.eventId);
+                })
+                .then(event => {
+                    if (!event) {
+                        throw boom.notFound('Event does not exist');
+                    }
 
-            let baseUrl = `${config.ecosystem.store}/v1/builds/`
-                + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
+                    return canAccessPipeline(credentials, event.pipelineId, 'pull', request.server.app);
+                })
+                .then(() => {
+                    const encodedArtifact = encodeURIComponent(artifact);
 
-            if (request.query.type) {
-                baseUrl += `&type=${request.query.type}`;
-            }
-
-            return h.redirect(baseUrl);
+                    const token = jwt.sign({
+                        buildId, artifact, scope: ['user']
+                    }, config.authConfig.jwtPrivateKey, {
+                        algorithm: 'RS256',
+                        expiresIn: '5s',
+                        jwtid: uuid.v4()
+                    });
+        
+                    let baseUrl = `${config.ecosystem.store}/v1/builds/`
+                        + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
+        
+                    if (request.query.type) {
+                        baseUrl += `&type=${request.query.type}`;
+                    }
+        
+                    return h.redirect(baseUrl);
+                })
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({

@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const createRoute = require('./create');
 const updateRoute = require('./update');
 const removeRoute = require('./remove');
@@ -87,6 +88,54 @@ const pipelinesPlugin = {
             (id, credentials) =>
                 !credentials.scope.includes('pipeline') || parseInt(id, 10) === parseInt(credentials.pipelineId, 10)
         );
+
+        /**
+         * Throws error if a credential does not have access to a pipeline
+         * If credential has access, resolves to true
+         * @method canAccessPipeline
+         * @param {Object}  credentials              Credential object from Hapi
+         * @param {String}  credentials.username     Username of the person logged in (or build ID)
+         * @param {String}  credentials.scmContext   Scm of the person logged in (or build ID)
+         * @param {Array}   credentials.scope        Scope of the credential (user, build, admin)
+         * @param {String}  pipelineId               Target pipeline ID
+         * @param {String}  permission               Required permission level
+         * @param {String}  app                      Server app object
+         * @return {Promise}
+         */
+        server.expose('canAccessPipeline', (credentials, pipelineId, permission, app) => {
+            const { username, scmContext, scope } = credentials;
+            const { userFactory, pipelineFactory } = app;
+
+            if (credentials.scope.includes('admin')) {
+                return Promise.resolve(true);
+            }
+
+            return pipelineFactory.get(pipelineId).then(pipeline => {
+                if (!pipeline) {
+                    throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
+                }
+
+                if (!scope.includes('user') || !pipeline.private) {
+                    return true;
+                }
+
+                return userFactory.get({ username, scmContext }).then(user => {
+                    if (!user) {
+                        throw boom.notFound(`User ${username} does not exist`);
+                    }
+
+                    return user.getPermissions(pipeline.scmUri).then(permissions => {
+                        if (!permissions[permission]) {
+                            throw boom.forbidden(
+                                `User ${username} does not have ${permission} access for this content`
+                            );
+                        }
+
+                        return true;
+                    });
+                });
+            });
+        });
 
         server.route([
             createRoute(),

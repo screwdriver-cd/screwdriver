@@ -4314,6 +4314,17 @@ describe('build plugin test', () => {
                 t: 1472236248000
             }
         ];
+        const buildMock = {
+            id: 123,
+            eventId: 1234
+        };
+        const eventMock = {
+            id: 1234,
+            pipelineId: 12345
+        };
+        const pipelineMock = {
+            id: 12345
+        };
         let stepMock;
         let testStep;
 
@@ -4326,6 +4337,9 @@ describe('build plugin test', () => {
             };
             stepMock = getStepMock(testStep);
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
+            buildFactoryMock.get.resolves(buildMock);
+            eventFactoryMock.get.resolves(eventMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
             nock.disableNetConnect();
         });
 
@@ -4893,12 +4907,129 @@ describe('build plugin test', () => {
                     assert.equal(reply.statusCode, 500);
                 });
         });
+
+        it('returns 200 when user have permissions', () => {
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: true })
+            };
+            const privatePipelineMock = {
+                private: true
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, logs);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
+        });
+
+        it('returns 403 when user does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User foo does not have pull access for this content'
+            };
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+            const privatePipelineMock = {
+                private: true
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    auth: {
+                        credentials: {
+                            username: 'foo',
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.deepEqual(reply.result, error);
+                });
+        });
+
+        it('returns 200 when user is admin', () => {
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+            const privatePipelineMock = {
+                private: true
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server
+                .inject({
+                    url: `/builds/${id}/steps/${step}/logs`,
+                    auth: {
+                        credentials: {
+                            scope: ['user', 'admin']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.deepEqual(reply.result, logs);
+                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
+                });
+        });
     });
 
     describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
         const multiByteArtifact = 'まにふぇmanife漢字';
+        const buildMock = {
+            id: 123,
+            eventId: 1234
+        };
+        const eventMock = {
+            id: 1234,
+            pipelineId: 12345
+        };
+        const pipelineMock = {
+            id: 12345
+        };
+
+        beforeEach(() => {
+            buildFactoryMock.get.resolves(buildMock);
+            eventFactoryMock.get.resolves(eventMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
 
         it('redirects to store for an artifact request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
@@ -4967,6 +5098,98 @@ describe('build plugin test', () => {
                     auth: {
                         credentials: {
                             scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 302);
+                    assert.deepEqual(reply.headers.location, url);
+                });
+        });
+
+        it('redirects to store for an artifact request when user have permission', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: true })
+            };
+            const privatePipelineMock = {
+                private: true
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${artifact}`,
+                    auth: {
+                        credentials: {
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 302);
+                    assert.deepEqual(reply.headers.location, url);
+                });
+        });
+
+        it('returns 403 when user does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User foo does not have pull access for this content'
+            };
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+            const privatePipelineMock = {
+                private: true
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${artifact}`,
+                    auth: {
+                        credentials: {
+                            username: 'foo',
+                            scope: ['user']
+                        },
+                        strategy: ['token']
+                    }
+                })
+                .then(reply => {
+                    assert.equal(reply.statusCode, 403);
+                    assert.deepEqual(reply.result, error);
+                });
+        });
+
+        it('redirects to store for an artifact request when user is admin', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+            const privatePipelineMock = {
+                private: true
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+
+            return server
+                .inject({
+                    url: `/builds/${id}/artifacts/${artifact}`,
+                    auth: {
+                        credentials: {
+                            scope: ['user', 'admin']
                         },
                         strategy: ['token']
                     }
