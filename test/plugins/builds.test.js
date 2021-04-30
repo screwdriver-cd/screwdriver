@@ -2136,6 +2136,49 @@ describe('build plugin test', () => {
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                     });
                 });
+                it('triggers next job as external when user used external syntax for same pipeline', () => {
+                    const expectedEventArgs = {
+                        pipelineId: '123',
+                        startFrom: '~sd@123:a',
+                        type: 'pipeline',
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentEventId: '8888',
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888',
+                                jobs: { a: 12345 }
+                            }
+                        },
+                        scmContext: 'github:github.com',
+                        username: 'foo',
+                        sha: 'sha'
+                    };
+
+                    // FIXME:: workflow graph is a bit weird for same pipeline trigger
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: 'b', id: 2 },
+                            { name: 'sd@123:b', id: 2 },
+                            { name: '~sd@123:a', id: 1 }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'b' },
+                            { src: '~commit', dest: 'b' },
+                            { src: '~sd@123:a', dest: 'b' },
+                            { src: 'a', dest: 'sd@123:b' }
+                        ]
+                    };
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(eventFactoryMock.create);
+                        assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
+                    });
+                });
 
                 it('triggers next next job when next job is external', () => {
                     const expectedEventArgs = {
