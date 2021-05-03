@@ -115,25 +115,39 @@ const pipelinesPlugin = {
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
-                if (!scope.includes('user') || !pipeline.private) {
+                if (!pipeline.scmRepo.private) {
                     return true;
                 }
 
-                return userFactory.get({ username, scmContext }).then(user => {
-                    if (!user) {
-                        throw boom.notFound(`User ${username} does not exist`);
-                    }
-
-                    return user.getPermissions(pipeline.scmUri).then(permissions => {
-                        if (!permissions[permission]) {
-                            throw boom.forbidden(
-                                `User ${username} does not have ${permission} access for this content`
-                            );
+                if (scope.includes('user')) {
+                    return userFactory.get({ username, scmContext }).then(user => {
+                        if (!user) {
+                            throw boom.notFound(`User ${username} does not exist`);
                         }
 
-                        return true;
+                        return user.getPermissions(pipeline.scmUri).then(permissions => {
+                            if (!permissions[permission]) {
+                                throw boom.forbidden(`User ${username}
+                                does not have ${permission} access to this repo`);
+                            }
+
+                            return true;
+                        });
                     });
-                });
+                }
+
+                if (scope.includes('pipeline') && pipelineId !== credentials.pipelineId) {
+                    throw boom.forbidden('Token does not have permission to this pipeline');
+                }
+
+                if (
+                    pipelineId !== credentials.pipelineId &&
+                    pipelineId !== credentials.configPipelineId
+                ) {
+                    throw boom.forbidden(`${username} is not allowed to access this pipeline`);
+                }
+
+                return true;
             });
         });
 
