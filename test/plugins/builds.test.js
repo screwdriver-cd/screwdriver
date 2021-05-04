@@ -2658,8 +2658,8 @@ describe('build plugin test', () => {
                         }
                     ]);
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.get.withArgs(8889).resolves(Object.assign({}, externalEventMock, { id: '8889' }));
-                    eventFactoryMock.list.resolves([Object.assign({}, externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.get.withArgs(8889).resolves({ ...externalEventMock, id: '8889' });
+                    eventFactoryMock.list.resolves([{ ...externalEventMock, id: '8889' }]);
                     buildFactoryMock.create.onCall(0).resolves(buildC);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -2746,7 +2746,7 @@ describe('build plugin test', () => {
                     };
 
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
-                    eventFactoryMock.list.resolves([Object.assign({}, externalEventMock, { id: '8889' })]);
+                    eventFactoryMock.list.resolves([{ ...externalEventMock, id: '8889' }]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
@@ -4323,12 +4323,32 @@ describe('build plugin test', () => {
             pipelineId: 12345
         };
         const pipelineMock = {
-            id: 12345
+            id: 12345,
+            scmRepo: {
+                private: false
+            }
         };
+        const privatePipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: true
+            }
+        };
+        let options;
         let stepMock;
         let testStep;
 
         beforeEach(() => {
+            options = {
+                url: `/builds/${id}/steps/${step}/logs`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
             testStep = {
                 name: 'install',
                 code: 1,
@@ -4354,21 +4374,11 @@ describe('build plugin test', () => {
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, logs);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns download link for download option', () => {
@@ -4379,21 +4389,13 @@ describe('build plugin test', () => {
 
             const expectedLog = 'Building stuff\nStill building...\nDone Building stuff\n';
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?type=download`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['session']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, expectedLog);
-                    assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
-                });
+            options.url = `/builds/${id}/steps/${step}/logs?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expectedLog);
+                assert.propertyVal(reply.headers, 'content-disposition', `attachment; filename="${step}-log.txt"`);
+            });
         });
 
         it('returns logs for a step that is split across pages', () => {
@@ -4405,21 +4407,11 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 102);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 102);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns logs for a step that is split across pages in descending order', () => {
@@ -4431,21 +4423,13 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 1002);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            options.url = `/builds/${id}/steps/${step}/logs?sort=descending&from=1001`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1002);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns logs for a step that is split across pages with 1000 lines per file', () => {
@@ -4457,21 +4441,11 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.1000.lines2.log.ndjson`);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 1002);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1002);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns logs for a step that is split across max pages', () => {
@@ -4500,21 +4474,11 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 1000);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 1000);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
         });
 
         it('returns logs for a step that is split across extended max pages', () => {
@@ -4544,22 +4508,13 @@ describe('build plugin test', () => {
                         .reply(200, lines.join('\n'));
                 }
             }
+            options.url = `/builds/${id}/steps/${step}/logs?pages=${maxPages}`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 10000);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 10000);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
         });
 
         it('returns logs for a step that is split across max pages with 1000 maxLines', () => {
@@ -4589,22 +4544,13 @@ describe('build plugin test', () => {
                         .reply(200, lines.join('\n'));
                 }
             }
+            options.url = `/builds/${id}/steps/${step}/logs?pages=${maxPages}`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 20000);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 20000);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
         });
 
         it('returns logs for a step that ends at max pages', () => {
@@ -4634,21 +4580,11 @@ describe('build plugin test', () => {
                 }
             }
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 950);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 950);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns logs for a step that ends at extended max pages', () => {
@@ -4679,22 +4615,13 @@ describe('build plugin test', () => {
                         .reply(200, lines.join('\n'));
                 }
             }
+            options.url = `/builds/${id}/steps/${step}/logs?pages=${maxPages}`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?pages=${maxPages}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 100 * maxPages - 50);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 100 * maxPages - 50);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns from second page', () => {
@@ -4704,22 +4631,13 @@ describe('build plugin test', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithFile(200, `${__dirname}/data/step.long2.log.ndjson`);
+            options.url = `/builds/${id}/steps/${step}/logs?from=100`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?from=100`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 2);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 2);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns from second empty page', () => {
@@ -4729,22 +4647,13 @@ describe('build plugin test', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .reply(200, '');
+            options.url = `/builds/${id}/steps/${step}/logs?from=100`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?from=100`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.equal(reply.result.length, 0);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.result.length, 0);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns correct lines after a given line', () => {
@@ -4755,22 +4664,13 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+            options.url = `/builds/${id}/steps/${step}/logs?from=2`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs?from=2`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, logs.slice(2));
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs.slice(2));
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns false more-data for a step that is not started', () => {
@@ -4782,22 +4682,13 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+            options.url = `/builds/${id}/steps/publish/logs`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/publish/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, []);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns empty array on invalid data', () => {
@@ -4810,58 +4701,29 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/test/log.0`)
                 .twice()
                 .reply(200, '<invalid JSON>\n<more bad JSON>');
+            options.url = `/builds/${id}/steps/test/logs`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/test/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, []);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'true');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
         });
 
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 404);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
         });
 
         it('returns 500 when datastore returns an error', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).rejects(new Error('blah'));
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
         });
 
         it('returns 500 when build logs returns an error for page 0', () => {
@@ -4869,19 +4731,9 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
         });
 
         it('returns 500 when build logs returns an error for page 1', () => {
@@ -4893,19 +4745,9 @@ describe('build plugin test', () => {
                 .get(`/v1/builds/${id}/${step}/log.1`)
                 .replyWithError({ message: 'something awful happened', code: 404 });
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 500);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
         });
 
         it('returns 200 when user have permissions', () => {
@@ -4913,9 +4755,6 @@ describe('build plugin test', () => {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: true })
             };
-            const privatePipelineMock = {
-                private: true
-            };
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
@@ -4924,88 +4763,114 @@ describe('build plugin test', () => {
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, logs);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
 
         it('returns 403 when user does not have permissions', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User foo does not have pull access for this content'
+                message: 'User foo does not have pull access for this pipeline'
             };
             const userMock = {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: false })
             };
-            const privatePipelineMock = {
-                private: true
-            };
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            username: 'foo',
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 403);
-                    assert.deepEqual(reply.result, error);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
         });
 
-        it('returns 200 when user is admin', () => {
-            const userMock = {
-                username: 'foo',
-                getPermissions: sinon.stub().resolves({ pull: false })
-            };
-            const privatePipelineMock = {
-                private: true
+        it('returns 200 when build token have permissions', () => {
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = 12345;
+            options.auth.credentials.configPipelineId = 12345;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns 403 when build token does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Token does not have permission for this pipeline'
             };
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
-            userFactoryMock.get.resolves(userMock);
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = 54321;
+            options.auth.credentials.configPipelineId = 54321;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 200 when pipeline token have permissions', () => {
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = 12345;
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
                 .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/steps/${step}/logs`,
-                    auth: {
-                        credentials: {
-                            scope: ['user', 'admin']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200);
-                    assert.deepEqual(reply.result, logs);
-                    assert.propertyVal(reply.headers, 'x-more-data', 'false');
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns 403 when pipeline token does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Token does not have permission for this pipeline'
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = 54321;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 200 when user is admin', () => {
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['user', 'admin'];
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
         });
     });
 
@@ -5022,10 +4887,30 @@ describe('build plugin test', () => {
             pipelineId: 12345
         };
         const pipelineMock = {
-            id: 12345
+            id: 12345,
+            scmRepo: {
+                private: false
+            }
         };
+        const privatePipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: true
+            }
+        };
+        let options;
 
         beforeEach(() => {
+            options = {
+                url: `/builds/${id}/artifacts/${artifact}`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
             buildFactoryMock.get.resolves(buildMock);
             eventFactoryMock.get.resolves(eventMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
@@ -5034,78 +4919,44 @@ describe('build plugin test', () => {
         it('redirects to store for an artifact request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${artifact}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 302);
-                    assert.deepEqual(reply.headers.location, url);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
         });
 
         it('redirects to store for an multi-byte artifact request', () => {
             const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${multiByteArtifact}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 302);
-                    assert.deepEqual(reply.headers.location, url);
-                });
+            options.url = `/builds/${id}/artifacts/${multiByteArtifact}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
         });
 
         it('redirects to store for an artifact download request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=download`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${artifact}?type=download`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 302);
-                    assert.deepEqual(reply.headers.location, url);
-                });
+            options.url = `/builds/${id}/artifacts/${artifact}?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
         });
 
         it('redirects to store for an artifact preview request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=preview`;
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${artifact}?type=preview`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 302);
-                    assert.deepEqual(reply.headers.location, url);
-                });
+            options.url = `/builds/${id}/artifacts/${artifact}?type=preview`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
         });
 
         it('redirects to store for an artifact request when user have permission', () => {
@@ -5114,90 +4965,108 @@ describe('build plugin test', () => {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: true })
             };
-            const privatePipelineMock = {
-                private: true
-            };
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${artifact}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 302);
-                    assert.deepEqual(reply.headers.location, url);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
         });
 
         it('returns 403 when user does not have permissions', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User foo does not have pull access for this content'
+                message: 'User foo does not have pull access for this pipeline'
             };
             const userMock = {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: false })
             };
-            const privatePipelineMock = {
-                private: true
-            };
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${artifact}`,
-                    auth: {
-                        credentials: {
-                            username: 'foo',
-                            scope: ['user']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 403);
-                    assert.deepEqual(reply.result, error);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('redirects to store for an artifact request for pipeline token', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = 12345;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('returns 403 when pipeline token does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Token does not have permission for this pipeline'
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['pipeline'];
+            options.auth.credentials.pipelineId = 54321;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('redirects to store for an artifact request for build token', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = 12345;
+            options.auth.credentials.configPipelineId = 12345;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('returns 403 when build token does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Token does not have permission for this pipeline'
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = 54321;
+            options.auth.credentials.configPipelineId = 54321;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
         });
 
         it('redirects to store for an artifact request when user is admin', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
-            const userMock = {
-                username: 'foo',
-                getPermissions: sinon.stub().resolves({ pull: false })
-            };
-            const privatePipelineMock = {
-                private: true
-            };
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
-            userFactoryMock.get.resolves(userMock);
+            options.auth.credentials.scope = ['user', 'admin'];
 
-            return server
-                .inject({
-                    url: `/builds/${id}/artifacts/${artifact}`,
-                    auth: {
-                        credentials: {
-                            scope: ['user', 'admin']
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 302);
-                    assert.deepEqual(reply.headers.location, url);
-                });
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
         });
     });
 

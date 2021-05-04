@@ -107,7 +107,7 @@ const pipelinesPlugin = {
             const { userFactory, pipelineFactory } = app;
 
             if (credentials.scope.includes('admin')) {
-                return Promise.resolve(true);
+                return true;
             }
 
             return pipelineFactory.get(pipelineId).then(pipeline => {
@@ -115,7 +115,7 @@ const pipelinesPlugin = {
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
-                if (!pipeline.scmRepo.private) {
+                if (!pipeline.scmRepo || !pipeline.scmRepo.private) {
                     return true;
                 }
 
@@ -127,8 +127,9 @@ const pipelinesPlugin = {
 
                         return user.getPermissions(pipeline.scmUri).then(permissions => {
                             if (!permissions[permission]) {
-                                throw boom.forbidden(`User ${username}
-                                does not have ${permission} access to this repo`);
+                                throw boom.forbidden(
+                                    `User ${username} does not have ${permission} access for this pipeline`
+                                );
                             }
 
                             return true;
@@ -136,15 +137,11 @@ const pipelinesPlugin = {
                     });
                 }
 
-                if (scope.includes('pipeline') && pipelineId !== credentials.pipelineId) {
-                    throw boom.forbidden('Token does not have permission to this pipeline');
-                }
-
                 if (
-                    pipelineId !== credentials.pipelineId &&
-                    pipelineId !== credentials.configPipelineId
+                    (scope.includes('pipeline') || pipelineId !== credentials.configPipelineId) &&
+                    pipelineId !== credentials.pipelineId
                 ) {
-                    throw boom.forbidden(`${username} is not allowed to access this pipeline`);
+                    throw boom.forbidden('Token does not have permission for this pipeline');
                 }
 
                 return true;
