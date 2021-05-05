@@ -151,12 +151,29 @@ module.exports = config => ({
         },
 
         handler: (req, h) => {
-            const { stepFactory } = req.server.app;
+            const { credentials } = req.auth;
+            const { canAccessPipeline } = req.server.plugins.pipelines;
+            const { stepFactory, buildFactory, eventFactory } = req.server.app;
             const buildId = req.params.id;
             const stepName = req.params.name;
 
-            return stepFactory
-                .get({ buildId, name: stepName })
+            return buildFactory
+                .get(buildId)
+                .then(build => {
+                    if (!build) {
+                        throw boom.notFound('Build does not exist');
+                    }
+
+                    return eventFactory.get(build.eventId);
+                })
+                .then(event => {
+                    if (!event) {
+                        throw boom.notFound('Event does not exist');
+                    }
+
+                    return canAccessPipeline(credentials, event.pipelineId, 'pull', req.server.app);
+                })
+                .then(() => stepFactory.get({ buildId, name: stepName }))
                 .then(stepModel => {
                     if (!stepModel) {
                         throw boom.notFound('Step does not exist');
