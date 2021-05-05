@@ -33,17 +33,19 @@ function isExternalTrigger(jobName) {
  * If internal, pipelineId will be the current pipelineId
  * @param  {String} name        Job name
  * @param  {String} pipelineId  Pipeline ID
- * @return {Object}             With pipeline id and job name
+ * @return {Object}             With pipeline id, job name and isExternal flag
  */
 function getPipelineAndJob(name, pipelineId) {
     let externalJobName = name;
     let externalPipelineId = pipelineId;
+    let isExternal = false;
 
     if (isExternalTrigger(name)) {
+        isExternal = true;
         [, externalPipelineId, externalJobName] = EXTERNAL_TRIGGER_ALL.exec(name);
     }
 
-    return { externalPipelineId, externalJobName };
+    return { externalPipelineId, externalJobName, isExternal };
 }
 
 /**
@@ -390,7 +392,18 @@ async function getFinishedBuilds(event, buildFactory) {
         return event.getBuilds();
     }
 
-    return buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+    // FIXME: buildFactory.getLatestBuilds doesn't return build model
+    const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+
+    builds.forEach(b => {
+        try {
+            b.parentBuilds = JSON.parse(b.parentBuilds);
+        } catch (err) {
+            logger.error(`Failed to parse parentBuilds for ${b.id}`);
+        }
+    });
+
+    return builds;
 }
 
 /**
@@ -605,8 +618,8 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 
     for (const jobName of nextJobs) {
         const jobInfo = getPipelineAndJob(jobName, current.pipeline.id);
-        const pid = jobInfo.externalPipelineId;
-        const jName = jobInfo.externalJobName;
+        const { externalPipelineId: pid, externalJobName: jName, isExternal } = jobInfo;
+
         const jId = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName)).id;
 
         if (!joinObj[pid]) joinObj[pid] = {};
@@ -627,7 +640,7 @@ async function createJoinObject(nextJobs, current, eventFactory) {
         }
 
         if (!pipelineObj.jobs) pipelineObj.jobs = {};
-        pipelineObj.jobs[jName] = { id: jId, join: jobs };
+        pipelineObj.jobs[jName] = { id: jId, join: jobs, isExternal };
     }
 
     return joinObj;
@@ -839,6 +852,7 @@ const buildsPlugin = {
 
                     if (buildsToRestart.length) {
                         const { parentBuilds } = buildsToRestart[0];
+
                         // If restart handle like a fresh trigger
                         // and start all jobs which are not join jobs
                         const externalBuildConfig = {
@@ -949,14 +963,22 @@ const buildsPlugin = {
 
             for (const pid of Object.keys(pipelineJoinData)) {
                 // typecast pid to number
-                if (+pid === current.pipeline.id) {
+                let triggerCurrentPipelineAsExternal = false;
+                const isCurrentPipeline = +pid === current.pipeline.id;
+
+                if (isCurrentPipeline) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
-                            const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
-                            const lock = await locker.lock(resource);
+                            const isExternal = pipelineJoinData[pid].jobs[nextJobName].isExternal;
 
-                            await triggerNextJobInSamePipeline(nextJobName, pipelineJoinData[pid].jobs);
-                            await locker.unlock(lock, resource);
+                            triggerCurrentPipelineAsExternal = triggerCurrentPipelineAsExternal || isExternal;
+                            if (!isExternal) {
+                                const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
+                                const lock = await locker.lock(resource);
+
+                                await triggerNextJobInSamePipeline(nextJobName, pipelineJoinData[pid].jobs);
+                                await locker.unlock(lock, resource);
+                            }
                         } catch (err) {
                             logger.error(
                                 `Error in triggerNextJobInSamePipeline:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
@@ -964,8 +986,13 @@ const buildsPlugin = {
                             );
                         }
                     }
-                } else {
+                }
+                if (triggerCurrentPipelineAsExternal || !isCurrentPipeline) {
                     try {
+                        if (isCurrentPipeline) {
+                            // force external trigger for jobs in same pipeline if user used external trigger syntax
+                            delete pipelineJoinData[pid].event;
+                        }
                         const extEvent = pipelineJoinData[pid].event;
                         let lock;
                         let resource;
