@@ -658,6 +658,87 @@ const buildsPlugin = {
     name: 'builds',
     async register(server, options) {
         /**
+         * Remove the downstream jobs of the current job in CREATED state
+         * @method removeJoinChild
+         * @param {Object}      config              Configuration object
+         * @param {Pipeline}    config.pipeline     Current pipeline
+         * @param {Job}         config.job          Current job
+         * @param {Build}       config.build        Current build
+         * @param {String}      config.username     Username
+         * @param {String}  app                      Server app object
+         * @return {Promise}                        Resolves to the removed build or null
+         */
+        server.expose('removeJoinChild', async (config, app) => {
+            const { pipeline, job, build } = config;
+            const { eventFactory, buildFactory } = app;
+            const event = await eventFactory.get({ id: build.eventId });
+            const current = {
+                pipeline,
+                job,
+                build,
+                event
+            };
+
+            const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
+                trigger: current.job.name,
+                chainPR: pipeline.chainPR
+            });
+
+            const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
+
+            // triggerFetchBuild fetches the build details for both internal and external
+            const triggerFetchBuild = async (nextJobName, joinObj, eventId) => {
+                const nextJob = joinObj.jobs[nextJobName];
+
+                const internalBuildConfig = {
+                    jobId: nextJob.id,
+                    eventId
+                };
+
+                if (job.state === 'ENABLED') {
+                    return buildFactory.get(internalBuildConfig);
+                }
+
+                return null;
+            };
+
+            const delBuild = (buildToDel) => {
+                if (buildToDel && buildToDel.status === 'CREATED') {
+                    buildToDel.remove();
+                }
+            };
+
+            let buildToDel;
+
+            for (const pid of Object.keys(pipelineJoinData)) {
+                const isExternal = +pid !== current.pipeline.id;
+
+                for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
+                    try {
+                        if (!isExternal) {
+                            buildToDel = await triggerFetchBuild(nextJobName, pipelineJoinData[pid], event.id);
+
+                            delBuild(buildToDel);
+                        } else {
+                            const eventId = pipelineJoinData[pid].event.id;
+
+                            buildToDel = await triggerFetchBuild(nextJobName, pipelineJoinData[pid], eventId);
+
+                            delBuild(buildToDel);
+                        }
+                    } catch (err) {
+                        logger.error(
+                            `Error in removeJoinChild:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
+                            err
+                        );
+                    }
+                }
+            }
+
+            return null;
+        });
+
+        /**
          * Create event for downstream pipeline that need to be rebuilt
          * @method triggerEvent
          * @param {Object}  config               Configuration object
