@@ -647,6 +647,46 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 }
 
 /**
+ * Get the build status
+ * @param  {Factory}    jobFactory    Job factory
+ * @param  {Factory}    buildFactory    Build factory
+ * @param  {Number} config.pipelineId       Pipeline ID
+ * @param  {String} config.jobName          Job name
+ * @param  {Array}  [config.joinListNames]  Job names in join list
+ * @param  {Event}      event                   Current event
+ * @param {Array}  parentBuilds
+ * @return {Promise}                         Returns build object
+ */
+async function getInternalBuild(config) {
+    const { jobFactory, buildFactory, pipelineId, jobName, event, parentBuilds } = config;
+    const prRef = event.pr.ref ? event.pr.ref : '';
+    const prSource = event.pr.prSource || '';
+    const prInfo = event.pr.prInfo || '';
+
+    let job = {};
+
+    job = await jobFactory.get({
+        name: jobName,
+        pipelineId
+    });
+    const internalBuildConfig = {
+        jobId: job.id,
+        sha: event.sha,
+        parentBuilds: parentBuilds || {},
+        eventId: event.id,
+        prRef,
+        prSource,
+        prInfo
+    };
+
+    if (job.state === 'ENABLED') {
+        return buildFactory.get(internalBuildConfig);
+    }
+
+    return null;
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -657,6 +697,75 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 const buildsPlugin = {
     name: 'builds',
     async register(server, options) {
+        /**
+         * Remove the child jobs of the current job in CREATED state
+         * @method removeJoinChild
+         * @param {Object}      config              Configuration object
+         * @param {Pipeline}    config.pipeline     Current pipeline
+         * @param {Job}         config.job          Current job
+         * @param {Build}       config.build        Current build
+         * @param {String}      config.username     Username
+         * @param {String}  app                      Server app object
+         * @return {Promise}                        Resolves to the removed build or null
+         */
+        server.expose('removeJoinChild', async (config, app) => {
+            const { pipeline, job, build } = config;
+            const { eventFactory, buildFactory, jobFactory } = app;
+            const event = await eventFactory.get({ id: build.eventId });
+            const current = {
+                pipeline,
+                job,
+                build,
+                event
+            };
+
+            const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
+                trigger: current.job.name,
+                chainPR: pipeline.chainPR
+            });
+
+            const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
+
+            const triggerGetJob = async (nextJobName, joinObj) => {
+                const { parentBuilds } = parseJobInfo({
+                    joinObj,
+                    current,
+                    nextJobName
+                });
+                const internalBuildConfig = {
+                    jobFactory,
+                    buildFactory,
+                    pipelineId: current.pipeline.id,
+                    jobName: nextJobName,
+                    event: current.event,
+                    parentBuilds
+                };
+
+                return await getInternalBuild(internalBuildConfig);
+            };
+
+            for (const pid of Object.keys(pipelineJoinData)) {
+                if (+pid === current.pipeline.id) {
+                    for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
+                        try {
+                            triggerGetJob(nextJobName, pipelineJoinData[pid].jobs).then(async (b) => {
+                                if (b && b.status === 'CREATED') {
+                                    b.remove();
+                                }
+                            });
+                        } catch (err) {
+                            logger.error(
+                                `Error in removeJoinChild:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
+                                err
+                            );
+                        }
+                    }
+                }
+            }
+
+            return null;
+        });
+
         /**
          * Create event for downstream pipeline that need to be rebuilt
          * @method triggerEvent
