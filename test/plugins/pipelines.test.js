@@ -1826,12 +1826,19 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 and updates settings only', () => {
-            options.payload = { settings: { metricsDowntimeJobs: [123, 456] } };
+            const expectedSetting = {
+                metricsDowntimeJobs: [123, 456],
+                public: true
+            };
+
+            pipelineMock.settings = { metricsDowntimeJobs: [123, 456] };
+            options.payload = { settings: { public: true } };
 
             return server.inject(options).then(reply => {
                 assert.notCalled(pipelineFactoryMock.scm.parseUrl);
                 assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.deepEqual(expectedSetting, pipelineMock.settings);
                 assert.equal(reply.statusCode, 200);
             });
         });

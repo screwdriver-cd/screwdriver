@@ -134,7 +134,10 @@ describe('build plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            scm: {
+                getDisplayName: sinon.stub().resolves('name')
+            }
         };
         eventFactoryMock = {
             get: sinon.stub(),
@@ -144,7 +147,6 @@ describe('build plugin test', () => {
                 getCommitSha: sinon.stub()
             }
         };
-
         bannerFactoryMock = {
             scm: {
                 getDisplayName: sinon.stub()
@@ -4787,12 +4789,34 @@ describe('build plugin test', () => {
                 getPermissions: sinon.stub().resolves({ pull: false })
             };
 
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 200 when user was cluster admin', () => {
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userFactoryMock.get.resolves(userMock);
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
 
@@ -4864,9 +4888,33 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 200 when user is admin', () => {
+        it('returns 200 for admin scope', () => {
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['user', 'admin'];
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns 200 when pipeline was set to public', () => {
+            const publicPipelineMock = {
+                id: 12345,
+                scmRepo: {
+                    private: true
+                },
+                settings: {
+                    public: true
+                }
+            };
+
+            pipelineFactoryMock.get.resolves(publicPipelineMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
@@ -4992,12 +5040,30 @@ describe('build plugin test', () => {
                 getPermissions: sinon.stub().resolves({ pull: false })
             };
 
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('redirects to store for an artifact request for cluster admin', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
             });
         });
 
@@ -5063,11 +5129,31 @@ describe('build plugin test', () => {
             });
         });
 
-        it('redirects to store for an artifact request when user is admin', () => {
+        it('redirects to store for an artifact request when scope includes admin', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['user', 'admin'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('redirects to store for an artifact request when pipeline was set to public', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+            const publicPipelineMock = {
+                id: 12345,
+                scmRepo: {
+                    private: true
+                },
+                settings: {
+                    public: true
+                }
+            };
+
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 302);
