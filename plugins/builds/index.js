@@ -702,7 +702,7 @@ const buildsPlugin = {
                 return null;
             };
 
-            const delBuild = (buildToDel) => {
+            const delBuild = buildToDel => {
                 if (buildToDel && buildToDel.status === 'CREATED') {
                     buildToDel.remove();
                 }
