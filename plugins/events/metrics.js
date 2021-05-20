@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const { setDefaultTimeRange, validTimeRange } = require('../helper.js');
+const { setDefaultTimeRange, validTimeRange } = require('../helper');
 const MAX_DAYS = 180; // 6 months
 const eventIdSchema = schema.models.event.base.extract('id');
 const eventMetricListSchema = joi.array().items(joi.object());
