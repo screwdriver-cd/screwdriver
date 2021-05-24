@@ -17,7 +17,7 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
-const locker = require('../lock.js');
+const locker = require('../lock');
 
 /**
  * Checks if job is external trigger
