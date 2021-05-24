@@ -17,11 +17,8 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { userFactory } = request.server.app;
-            const { pipelineFactory } = request.server.app;
-            const { secretFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { pipelineFactory, secretFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
 
             return (

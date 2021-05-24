@@ -18,7 +18,7 @@ module.exports = () => ({
         tags: ['api', 'pipelines', 'secrets'],
         auth: {
             strategies: ['token'],
-            scope: ['user', '!guest']
+            scope: ['admin', 'user', '!guest']
         },
 
         handler: async (request, h) => {

@@ -123,7 +123,7 @@ module.exports = () => ({
                                             .then(permissions => {
                                                 if (!permissions.push && !adminDetails.isAdmin) {
                                                     throw boom.forbidden(
-                                                        `User ${user.getFullDisplayName()} does not ` +
+                                                        `User ${username} does not ` +
                                                             'have permission to abort this build'
                                                     );
                                                 }

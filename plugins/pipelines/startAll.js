@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const { getUserPermissions, handleUserPermissions } = require('../helper.js');
 const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
@@ -23,54 +24,44 @@ module.exports = () => ({
             const { id } = request.params;
             const { scm } = pipelineFactory;
 
-            return Promise.all([pipelineFactory.get(id), userFactory.get({ username, scmContext })])
-                .then(([pipeline, user]) => {
-                    if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
-                    }
+            const pipeline = await pipelineFactory.get(id);
+            const user = await userFactory.get({ username, scmContext });
 
-                    return (
-                        user
-                            .getPermissions(pipeline.scmUri)
-                            // check if user has push access
-                            .then(permissions => {
-                                if (!permissions.push) {
-                                    throw boom.forbidden(
-                                        `User ${username} does not have push permission for this repo`
-                                    );
-                                }
-                            })
-                    );
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
+
+            await getUserPermissions({ user, scmUri: pipeline.scmUri });
+
+            const pipelines = await pipelineFactory.list({
+                params: {
+                    configPipelineId: id
+                }
+            });
+
+            return pipelines
+                .map(async p => {
+                    const { pipelineUsername, pipelineToken, pipelineScmContext } = handleUserPermissions({
+                        user,
+                        userFactory,
+                        pipeline,
+                        permissionsOnly: false
+                    });
+                    const sha = await scm.getCommitSha({
+                        scmContext: pipelineScmContext,
+                        scmUri: p.scmUri,
+                        token: pipelineToken
+                    });
+
+                    return eventFactory.create({
+                        pipelineId: p.id,
+                        sha,
+                        username: pipelineUsername,
+                        scmContext: pipelineScmContext,
+                        startFrom: '~commit',
+                        causeMessage: `Started by ${pipelineUsername}`
+                    });
                 })
-                .then(() =>
-                    pipelineFactory.list({
-                        params: {
-                            configPipelineId: id
-                        }
-                    })
-                )
-                .then(pipelines =>
-                    pipelines.map(p =>
-                        p.token
-                            .then(token =>
-                                scm.getCommitSha({
-                                    scmContext,
-                                    scmUri: p.scmUri,
-                                    token
-                                })
-                            )
-                            .then(sha =>
-                                eventFactory.create({
-                                    pipelineId: p.id,
-                                    sha,
-                                    username,
-                                    scmContext,
-                                    startFrom: '~commit',
-                                    causeMessage: `Started by ${username}`
-                                })
-                            )
-                    )
-                )
                 .then(() => h.response().code(201))
                 .catch(err => {
                     throw err;

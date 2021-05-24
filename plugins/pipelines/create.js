@@ -35,17 +35,16 @@ module.exports = () => ({
                 token
             });
             // get the user permissions for the repo
-
             const permissions = await user.getPermissions(scmUri);
-            // if the user isn't an admin, reject
 
+            // if the user isn't an admin, reject
             if (!permissions.admin) {
                 throw boom.forbidden(`User ${user.getFullDisplayName()} is not an admin of this repo`);
             }
             // see if there is already a pipeline
             let pipeline = await pipelineFactory.get({ scmUri });
-            // if there is already a pipeline for the checkoutUrl, reject
 
+            // if there is already a pipeline for the checkoutUrl, reject
             if (pipeline) {
                 throw boom.conflict(`Pipeline already exists with the ID: ${pipeline.id}`, {
                     existingId: pipeline.id
