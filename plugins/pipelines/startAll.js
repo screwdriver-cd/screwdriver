@@ -41,12 +41,9 @@ module.exports = () => ({
 
             return pipelines
                 .map(async p => {
-                    const { pipelineUsername, pipelineToken, pipelineScmContext } = handleUserPermissions({
-                        user,
-                        userFactory,
-                        pipeline,
-                        permissionsOnly: false
-                    });
+                    const pipelineToken = await p.token;
+                    const pipelineUsername = await p.admin;
+                    const pipelineScmContext = p.scmContext;
                     const sha = await scm.getCommitSha({
                         scmContext: pipelineScmContext,
                         scmUri: p.scmUri,
