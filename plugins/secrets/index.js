@@ -32,9 +32,7 @@ const secretsPlugin = {
          */
         server.expose('canAccess', (credentials, secret, permission, app) => {
             const { userFactory, pipelineFactory } = app;
-            const { username } = credentials;
-            const { scmContext } = credentials;
-            const { scope } = credentials;
+            const { scmContext, scope, username } = credentials;
 
             return pipelineFactory.get(secret.pipelineId).then(pipeline => {
                 if (!pipeline) {
