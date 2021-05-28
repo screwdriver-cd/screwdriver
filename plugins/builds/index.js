@@ -66,6 +66,37 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
 }
 
 /**
+ * Fetch builds with given params
+ * @method triggerFetchBuild
+ * @param  {Object}   config                    Parameters of build to fetch
+ * @param  {Factory}  config.buildFactory       Build Factory
+ * @param  {Number}   config.jobID              Job ID
+ * @param  {Number}   config.eventID            Event ID
+ * @return {Promise}
+ * */
+async function triggerFetchBuild(config) {
+    const { jobID, eventID, buildFactory } = config;
+    const buildConfig = {
+        jobId: jobID,
+        eventId: eventID
+    };
+
+    return buildFactory.get(buildConfig);
+}
+
+/**
+ * Delete a build
+ * @method delBuild
+ * @param  {Object}   buildToDel                  build object to delete
+ * @return {Promise}
+ * */
+async function delBuild(buildToDel) {
+    if (buildToDel && buildToDel.status === 'CREATED') {
+        buildToDel.remove();
+    }
+}
+
+/**
  * Create event for downstream pipeline that need to be rebuilt
  * @method createEvent
  * @param {Object}  config                  Configuration object
@@ -678,6 +709,9 @@ const buildsPlugin = {
                 build,
                 event
             };
+            const buildConfig = {
+                buildFactory
+            };
 
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
@@ -686,28 +720,6 @@ const buildsPlugin = {
 
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
 
-            // triggerFetchBuild fetches the build details for both internal and external
-            const triggerFetchBuild = async (nextJobName, joinObj, eventId) => {
-                const nextJob = joinObj.jobs[nextJobName];
-
-                const internalBuildConfig = {
-                    jobId: nextJob.id,
-                    eventId
-                };
-
-                if (job.state === 'ENABLED') {
-                    return buildFactory.get(internalBuildConfig);
-                }
-
-                return null;
-            };
-
-            const delBuild = buildToDel => {
-                if (buildToDel && buildToDel.status === 'CREATED') {
-                    buildToDel.remove();
-                }
-            };
-
             let buildToDel;
 
             for (const pid of Object.keys(pipelineJoinData)) {
@@ -715,16 +727,18 @@ const buildsPlugin = {
 
                 for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                     try {
+                        const nextJob = pipelineJoinData[pid].jobs[nextJobName];
+
+                        buildConfig.jobID = nextJob.id;
                         if (!isExternal) {
-                            buildToDel = await triggerFetchBuild(nextJobName, pipelineJoinData[pid], event.id);
-
-                            delBuild(buildToDel);
+                            buildConfig.eventID = event.id;
                         } else {
-                            const eventId = pipelineJoinData[pid].event.id;
+                            buildConfig.eventID = pipelineJoinData[pid].event.id;
+                        }
+                        buildToDel = await triggerFetchBuild(buildConfig);
 
-                            buildToDel = await triggerFetchBuild(nextJobName, pipelineJoinData[pid], eventId);
-
-                            delBuild(buildToDel);
+                        if (buildToDel !== null) {
+                            await delBuild(buildToDel);
                         }
                     } catch (err) {
                         logger.error(

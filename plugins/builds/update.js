@@ -256,18 +256,14 @@ module.exports = () => ({
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
                                     // Check for failed jobs and remove any child jobs in created state
                                     if (newBuild.status === 'FAILURE') {
-                                        try {
-                                            await removeJoinChild(
-                                                {
-                                                    pipeline,
-                                                    job,
-                                                    build: newBuild
-                                                },
-                                                request.server.app
-                                            );
-                                        } catch (err) {
-                                            throw boom.internal(`failed to remove created child jobs, ${err}`);
-                                        }
+                                        await removeJoinChild(
+                                            {
+                                                pipeline,
+                                                job,
+                                                build: newBuild
+                                            },
+                                            request.server.app
+                                        );
                                     }
 
                                     return h.response(await newBuild.toJsonWithSteps()).code(200);
