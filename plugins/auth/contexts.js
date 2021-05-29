@@ -33,7 +33,7 @@ module.exports = config => ({
                     autoDeployKeyGeneration: scm.autoDeployKeyGenerationEnabled({
                         scmContext
                     }),
-                    readOnly: scm.readOnlyEnabled({ scmContext })
+                    readOnly: scm.getReadOnlyInfo({ scmContext }).enabled
                 };
 
                 contexts.push(context);

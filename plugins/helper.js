@@ -37,11 +37,11 @@ function validTimeRange(start, end, maxDay) {
 }
 
 /**
- * [getUserPermissions description]
- * @param  {[type]}  user           [description]
- * @param  {[type]}  scmUri         [description]
- * @param  {Boolean} [isAdmin=false }]            [description]
- * @return {Promise}                [description]
+ * Check user permissions
+ * @param  {User}       user                User
+ * @param  {String}     scmUri              Scm URI
+ * @param  {Boolean}    [isAdmin=false }]   Flag if user is admin or not
+ * @return {Promise}                        Return permissions object or throws error
  */
 async function getUserPermissions({ user, scmUri, isAdmin = false }) {
     // Check if user has push access or is a Screwdriver admin

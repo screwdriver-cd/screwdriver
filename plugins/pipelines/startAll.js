@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const { getUserPermissions, handleUserPermissions } = require('../helper.js');
+const { getUserPermissions } = require('../helper.js');
 const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
@@ -25,11 +25,12 @@ module.exports = () => ({
             const { scm } = pipelineFactory;
 
             const pipeline = await pipelineFactory.get(id);
-            const user = await userFactory.get({ username, scmContext });
 
             if (!pipeline) {
                 throw boom.notFound('Pipeline does not exist');
             }
+
+            const user = await userFactory.get({ username, scmContext });
 
             await getUserPermissions({ user, scmUri: pipeline.scmUri });
 
