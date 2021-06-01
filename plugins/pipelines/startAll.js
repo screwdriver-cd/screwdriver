@@ -32,7 +32,7 @@ module.exports = () => ({
 
             const user = await userFactory.get({ username, scmContext });
 
-            await getUserPermissions({ user, scmUri: pipeline.scmUri });
+            await getUserPermissions({ user, scmUri: pipeline.scmUri, level: 'push' });
 
             const pipelines = await pipelineFactory.list({
                 params: {

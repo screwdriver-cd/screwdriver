@@ -28,8 +28,7 @@ const tokensPlugin = {
          */
         server.expose('canAccess', (credentials, token, app) => {
             const { userFactory } = app;
-            const { username } = credentials;
-            const { scmContext } = credentials;
+            const { username, scmContext } = credentials;
 
             return userFactory.get({ username, scmContext }).then(user => {
                 if (!user) {

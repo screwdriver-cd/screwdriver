@@ -3,7 +3,8 @@
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
-const helper = require('./helper');
+const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
+const { getUserPermissions } = require('../helper.js');
 
 module.exports = () => ({
     method: 'POST',
@@ -18,8 +19,8 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const checkoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
-            const rootDir = helper.sanitizeRootDir(request.payload.rootDir);
+            const checkoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);
+            const rootDir = sanitizeRootDir(request.payload.rootDir);
             const { autoKeysGeneration } = request.payload;
             const { pipelineFactory, userFactory, collectionFactory, secretFactory } = request.server.app;
             const { username, scmContext } = request.auth.credentials;
@@ -34,13 +35,10 @@ module.exports = () => ({
                 checkoutUrl,
                 token
             });
-            // get the user permissions for the repo
-            const permissions = await user.getPermissions(scmUri);
 
-            // if the user isn't an admin, reject
-            if (!permissions.admin) {
-                throw boom.forbidden(`User ${user.getFullDisplayName()} is not an admin of this repo`);
-            }
+            // get the user permissions for the repo
+            await getUserPermissions({ user, scmUri });
+
             // see if there is already a pipeline
             let pipeline = await pipelineFactory.get({ scmUri });
 

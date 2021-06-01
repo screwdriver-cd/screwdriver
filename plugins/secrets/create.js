@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
+const { getUserPermissions, getScmUri } = require('../helper.js');
 
 module.exports = () => ({
     method: 'POST',
@@ -21,71 +22,56 @@ module.exports = () => ({
             const { username, scmContext } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
 
-            return (
-                Promise.all([
-                    pipelineFactory.get(request.payload.pipelineId),
-                    userFactory.get({ username, scmContext })
-                ])
-                    .then(([pipeline, user]) => {
-                        if (!pipeline) {
-                            throw boom.notFound(`Pipeline ${request.payload.pipelineId} does not exist`);
-                        }
+            const pipeline = await pipelineFactory.get(request.payload.pipelineId);
 
-                        if (!user) {
-                            throw boom.notFound(`User ${username} does not exist`);
-                        }
+            if (!pipeline) {
+                throw boom.notFound(`Pipeline ${request.payload.pipelineId} does not exist`);
+            }
 
-                        // In pipeline scope, check if the token is allowed to the pipeline
-                        if (!isValidToken(pipeline.id, request.auth.credentials)) {
-                            throw boom.unauthorized('Token does not have permission to this pipeline');
-                        }
+            // In pipeline scope, check if the token is allowed to the pipeline
+            if (!isValidToken(pipeline.id, request.auth.credentials)) {
+                throw boom.unauthorized('Token does not have permission to this pipeline');
+            }
 
-                        return (
-                            user
-                                .getPermissions(pipeline.scmUri)
-                                .then(permissions => {
-                                    if (!permissions.admin) {
-                                        throw boom.forbidden(`User ${username} is not an admin of this repo`);
-                                    }
-                                })
-                                // check if secret already exists
-                                .then(() =>
-                                    secretFactory.get({
-                                        pipelineId: request.payload.pipelineId,
-                                        name: request.payload.name
-                                    })
-                                )
-                                // if secret already exists, reject
-                                .then(secret => {
-                                    if (secret) {
-                                        throw boom.conflict(`Secret already exists with the ID: ${secret.id}`);
-                                    }
+            const user = await userFactory.get({ username, scmContext });
 
-                                    return secretFactory.create(request.payload);
-                                })
-                                .then(secret => {
-                                    const location = urlLib.format({
-                                        host: request.headers.host,
-                                        port: request.headers.port,
-                                        protocol: request.server.info.protocol,
-                                        pathname: `${request.path}/${secret.id}`
-                                    });
-                                    const output = secret.toJson();
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
 
-                                    delete output.value;
+            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+            const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
-                                    return h
-                                        .response(output)
-                                        .header('Location', location)
-                                        .code(201);
-                                })
-                        );
-                    })
-                    // something broke, respond with error
-                    .catch(err => {
-                        throw err;
-                    })
-            );
+            // Check the user's permission
+            await getUserPermissions({ user, scmUri });
+
+            // check if secret already exists
+            const secret = await secretFactory.get({
+                pipelineId: request.payload.pipelineId,
+                name: request.payload.name
+            });
+
+            // if secret already exists, reject
+            if (secret) {
+                throw boom.conflict(`Secret already exists with the ID: ${secret.id}`);
+            }
+
+            const newSecret = await secretFactory.create(request.payload);
+
+            const location = urlLib.format({
+                host: request.headers.host,
+                port: request.headers.port,
+                protocol: request.server.info.protocol,
+                pathname: `${request.path}/${newSecret.id}`
+            });
+            const output = newSecret.toJson();
+
+            delete output.value;
+
+            return h
+                .response(output)
+                .header('Location', location)
+                .code(201);
         },
         validate: {
             payload: schema.models.secret.create

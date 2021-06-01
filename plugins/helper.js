@@ -40,18 +40,63 @@ function validTimeRange(start, end, maxDay) {
  * Check user permissions
  * @param  {User}       user                User
  * @param  {String}     scmUri              Scm URI
- * @param  {Boolean}    [isAdmin=false }]   Flag if user is admin or not
+ * @param  {String}     [level='admin']     Permission level (e.g. 'admin', 'push')
+ * @param  {Boolean}    [isAdmin=false]     Flag if user is admin or not
  * @return {Promise}                        Return permissions object or throws error
  */
-async function getUserPermissions({ user, scmUri, isAdmin = false }) {
+async function getUserPermissions({ user, scmUri, level = 'admin', isAdmin = false }) {
     // Check if user has push access or is a Screwdriver admin
     const permissions = await user.getPermissions(scmUri);
 
-    if (!permissions.push && !isAdmin) {
-        throw boom.forbidden(`User ${user.getFullDisplayName()} does not have push permission for this repo`);
+    if (!permissions[level] && !isAdmin) {
+        throw boom.forbidden(`User ${user.getFullDisplayName()} does not have ${level} permission for this repo`);
     }
 
     return permissions;
+}
+
+/**
+ * [getScmContext description]
+ * @method getScmContext
+ * @param  {[type]} user     [description]
+ * @param  {[type]} pipeline [description]
+ * @param  {[type]} scm      [description]
+ * @return {[type]}          [description]
+ */
+function getReadOnlyInfo({ pipeline, scm }) {
+    const { enabled, username, accessToken } = scm.getReadOnlyInfo({ scmContext: pipeline.scmContext });
+
+    return {
+        readOnlyEnabled: enabled,
+        pipelineContext: pipeline.scmContext,
+        headlessUsername: username,
+        headlessAccessToken: accessToken
+    };
+}
+
+/**
+ * Return parent scm uri if pipeline is read-only scm and child pipeline;
+ * otherwise return pipeline scmUri
+ * @param  {Pipeline}   pipeline            Pipeline
+ * @param  {Factory}    pipelineFactory     Pipeline factory to fetch parent pipeline
+ * @return {Promise}                        Return scmUri string or throws error
+ */
+async function getScmUri({ pipeline, pipelineFactory }) {
+    const { scm } = pipelineFactory;
+    const { readOnlyEnabled } = getReadOnlyInfo({ pipeline, scm });
+    let { scmUri } = pipeline;
+
+    if (readOnlyEnabled && pipeline.configPipelineId) {
+        const parentPipeline = await pipelineFactory.get(pipeline.configPipelineId);
+
+        if (!parentPipeline) {
+            throw boom.notFound(`Parent pipeline ${parentPipeline.id} does not exist`);
+        }
+
+        scmUri = parentPipeline.scmUri;
+    }
+
+    return scmUri;
 }
 
 /**
@@ -111,30 +156,11 @@ async function handleUserPermissions({ user, userFactory, pipeline, isAdmin = fa
     return defaultConfig;
 }
 
-/**
- * [getScmContext description]
- * @method getScmContext
- * @param  {[type]} user     [description]
- * @param  {[type]} pipeline [description]
- * @param  {[type]} scm      [description]
- * @return {[type]}          [description]
- */
-function getScmContext({ user, pipeline, scm }) {
-    if (user.scmContext !== pipeline.scmContext) {
-        const readOnlyEnabled = scm.readOnlyEnabled({ scmContext: pipeline.scmContext });
-
-        if (readOnlyEnabled) {
-            return pipeline.scmContext;
-        }
-    }
-
-    return user.scmContext;
-}
-
 module.exports = {
     setDefaultTimeRange,
     validTimeRange,
-    getScmContext,
+    getReadOnlyInfo,
     handleUserPermissions,
-    getUserPermissions
+    getUserPermissions,
+    getScmUri
 };

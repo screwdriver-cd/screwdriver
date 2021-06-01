@@ -76,7 +76,7 @@ const pipelinesPlugin = {
 
         /**
          * Returns true if the scope does not include pipeline or includes pipeline
-         * and it's pipelineId matches the pipeline, otherwise returns false
+         * and its pipelineId matches the pipeline, otherwise returns false
          * @method isValidToken
          * @param  {String} id                     ID of pipeline
          * @param  {Object} credentials            Credential object from Hapi

@@ -6,6 +6,7 @@ const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const tokenCreateSchema = schema.models.token.create;
+const { getUserPermissions, getScmUri } = require('../../helper.js');
 
 module.exports = () => ({
     method: 'POST',
@@ -20,67 +21,59 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { tokenFactory } = request.server.app;
-            const { userFactory } = request.server.app;
-            const { pipelineFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { pipelineFactory, tokenFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
             const pipelineId = request.params.id;
 
-            return Promise.all([pipelineFactory.get(pipelineId), userFactory.get({ username, scmContext })]).then(
-                ([pipeline, user]) => {
-                    if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
-                    }
+            const [pipeline, user] = await Promise.all([
+                pipelineFactory.get(pipelineId),
+                userFactory.get({ username, scmContext })
+            ]);
 
-                    if (!user) {
-                        throw boom.notFound(`User ${username} does not exist`);
-                    }
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
 
-                    // Check the user's permission and make sure the name is unique
-                    return Promise.all([
-                        user.getPermissions(pipeline.scmUri).then(permissions => {
-                            if (!permissions.admin) {
-                                throw boom.forbidden(`User ${username} is not an admin of this repo`);
-                            }
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
 
-                            return Promise.resolve();
-                        }),
-                        pipeline.tokens.then(tokens => {
-                            const match = tokens && tokens.find(t => t.name === request.payload.name);
+            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+            const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
-                            if (match) {
-                                throw boom.conflict(`Token ${match.name} already exists`);
-                            }
+            // Check the user's permission
+            await getUserPermissions({ user, scmUri });
 
-                            return Promise.resolve();
-                        })
-                    ])
-                        .then(() =>
-                            tokenFactory.create({
-                                name: request.payload.name,
-                                description: request.payload.description,
-                                pipelineId
-                            })
-                        )
-                        .then(token => {
-                            const location = urlLib.format({
-                                host: request.headers.host,
-                                port: request.headers.port,
-                                protocol: request.server.info.protocol,
-                                pathname: `${request.path}/${token.id}`
-                            });
+            // Make sure the token name is unique
+            const tokens = await pipeline.tokens;
+            const match = tokens && tokens.find(t => t.name === request.payload.name);
 
-                            return h
-                                .response(token.toJson())
-                                .header('Location', location)
-                                .code(201);
-                        })
-                        .catch(err => {
-                            throw err;
-                        });
-                }
-            );
+            if (match) {
+                throw boom.conflict(`Token ${match.name} already exists`);
+            }
+
+            return tokenFactory
+                .create({
+                    name: request.payload.name,
+                    description: request.payload.description,
+                    pipelineId
+                })
+                .then(token => {
+                    const location = urlLib.format({
+                        host: request.headers.host,
+                        port: request.headers.port,
+                        protocol: request.server.info.protocol,
+                        pathname: `${request.path}/${token.id}`
+                    });
+
+                    return h
+                        .response(token.toJson())
+                        .header('Location', location)
+                        .code(201);
+                })
+                .catch(err => {
+                    throw err;
+                });
         },
         validate: {
             params: joi.object({
