@@ -4,6 +4,7 @@ const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
+const { getScmUri } = require('../helper.js');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
@@ -75,12 +76,15 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
  * @param  {String}         username        Username of user
  * @param  {String}         scmContext      Scm which pipeline's repository exists in
  * @param  {Pipeline}       pipeline        Pipeline object
+ * @param  {PipelineFactory}pipelineFactory PipelineFactory object
  * @return {Promise}                        Updates the pipeline admins and throws an error if not an admin
  */
-async function updateAdmins(userFactory, username, scmContext, pipeline) {
+async function updateAdmins(userFactory, username, scmContext, pipeline, pipelineFactory) {
     try {
+        // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+        const scmUri = await getScmUri({ pipeline, pipelineFactory });
         const user = await userFactory.get({ username, scmContext });
-        const userPermissions = await user.getPermissions(pipeline.scmUri);
+        const userPermissions = await user.getPermissions(scmUri);
         const newAdmins = pipeline.admins;
 
         // Delete user from admin list if bad permissions
@@ -108,13 +112,17 @@ async function updateAdmins(userFactory, username, scmContext, pipeline) {
 
 /**
  * Update admins for an array of pipelines
- * @param  {Object}     config.userFactory      UserFactory
- * @param  {Array}      config.pipelines        An array of pipelines
- * @param  {String}     config.username         Username
- * @param  {String}     config.scmContext       ScmContext
+ * @param  {Object}             config.userFactory      UserFactory
+ * @param  {Array}              config.pipelines        An array of pipelines
+ * @param  {String}             config.username         Username
+ * @param  {String}             config.scmContext       ScmContext
+ * @param  {PipelineFactory}    config.pipelineFactory  PipelineFactory object
+ * @return {Promise}
  */
-async function batchUpdateAdmins({ userFactory, pipelines, username, scmContext }) {
-    await Promise.all(pipelines.map(pipeline => updateAdmins(userFactory, username, scmContext, pipeline)));
+async function batchUpdateAdmins({ userFactory, pipelines, username, scmContext, pipelineFactory }) {
+    await Promise.all(
+        pipelines.map(pipeline => updateAdmins(userFactory, username, scmContext, pipeline, pipelineFactory))
+    );
 }
 
 /**
@@ -457,8 +465,8 @@ async function createPREvents(options, request) {
             }
 
             // Check if the webhook event is from a subscribed repo and
-            // set the jobs entrypoint from ~startfrom
-            // For subscribed PR event, it should be mimiced as a commit
+            // set the jobs entrypoint from ~startFrom
+            // For subscribed PR event, it should be mimicked as a commit
             // in order to function properly
             if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
                 eventConfig = {
@@ -481,7 +489,7 @@ async function createPREvents(options, request) {
                     subscribedSourceUrl: prInfo.url
                 };
 
-                await updateAdmins(userFactory, username, scmConfig.scmContext, p.id);
+                await updateAdmins(userFactory, username, scmConfig.scmContext, p.id, pipelineFactory);
             }
 
             if (skipMessage) {
@@ -705,8 +713,7 @@ function createMeta(parsed) {
  * @param  {Object}             parsed
  */
 function pullRequestEvent(pluginOptions, request, h, parsed, token) {
-    const { pipelineFactory } = request.server.app;
-    const { userFactory } = request.server.app;
+    const { pipelineFactory, userFactory } = request.server.app;
     const {
         hookId,
         action,
@@ -777,7 +784,7 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
                 meta
             };
 
-            await batchUpdateAdmins({ userFactory, pipelines, username, scmContext });
+            await batchUpdateAdmins({ userFactory, pipelines, username, scmContext, pipelineFactory });
 
             switch (action) {
                 case 'opened':
@@ -947,7 +954,7 @@ async function createEvents(
                     eventConfig.skipMessage = skipMessage;
                 }
 
-                await updateAdmins(userFactory, username, scmContext, pTuple.pipeline);
+                await updateAdmins(userFactory, username, scmContext, pTuple.pipeline, pipelineFactory);
 
                 return eventConfig;
             } catch (err) {
