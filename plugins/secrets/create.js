@@ -30,7 +30,7 @@ module.exports = () => ({
 
             // In pipeline scope, check if the token is allowed to the pipeline
             if (!isValidToken(pipeline.id, request.auth.credentials)) {
-                throw boom.unauthorized('Token does not have permission to this pipeline');
+                throw boom.forbidden('Token does not have permission to this pipeline');
             }
 
             const user = await userFactory.get({ username, scmContext });

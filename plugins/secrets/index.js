@@ -58,7 +58,7 @@ const secretsPlugin = {
                 const user = await userFactory.get({ username, scmContext });
 
                 if (!user) {
-                    throw boom.notFound(`User ${user.getFullDisplayName()} does not exist`);
+                    throw boom.notFound(`User ${username} does not exist`);
                 }
 
                 await getUserPermissions({ user, scmUri, level: permission });
