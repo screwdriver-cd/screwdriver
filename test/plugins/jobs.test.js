@@ -72,7 +72,8 @@ describe('job plugin test', () => {
         userMock = {
             getPermissions: sinon.stub().resolves({
                 push: true
-            })
+            }),
+            getFullDisplayName: sinon.stub().returns('Display Name')
         };
 
         jobFactoryMock = {
@@ -81,7 +82,10 @@ describe('job plugin test', () => {
         };
 
         pipelineFactoryMock = {
-            get: sinon.stub().resolves(pipelineMock)
+            get: sinon.stub().resolves(pipelineMock),
+            scm: {
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+            }
         };
 
         userFactoryMock = {
@@ -235,6 +239,15 @@ describe('job plugin test', () => {
         it('returns 404 if pipeline does not exist', () => {
             options.payload.state = 'DISABLED';
             pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 if user does not exist', () => {
+            options.payload.state = 'DISABLED';
+            userFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);

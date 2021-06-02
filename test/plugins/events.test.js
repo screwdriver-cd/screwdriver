@@ -76,10 +76,14 @@ describe('event plugin test', () => {
             }
         };
         pipelineFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            scm: {
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+            }
         };
         userFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            getFullDisplayName: sinon.stub().returns('Memys Elfandi')
         };
         buildFactoryMock = {
             get: sinon.stub()
@@ -256,7 +260,8 @@ describe('event plugin test', () => {
             userMock = {
                 username,
                 getPermissions: sinon.stub().resolves({ push: true }),
-                unsealToken: sinon.stub().resolves('iamtoken')
+                unsealToken: sinon.stub().resolves('iamtoken'),
+                getFullDisplayName: sinon.stub().returns('Memys Elfandi')
             };
             scmConfig = {
                 prNum: null,
@@ -525,10 +530,13 @@ describe('event plugin test', () => {
                 }
             };
             eventConfig.configPipelineSha = 'configPipelineSha';
-            eventConfig.meta.parameters = {
-                user: { value: 'adong' }
+            eventConfig.meta = {
+                parameters: {
+                    user: { value: 'adong' }
+                }
             };
             options.payload.parentEventId = parentEventId;
+            delete options.payload.meta;
             eventFactoryMock.get.withArgs(parentEventId).resolves(getEventMock(testEvent));
 
             return server.inject(options).then(reply => {
@@ -795,14 +803,6 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
-            });
-        });
-
-        it("returns 403 forbidden error when user's scm and pipeline's scm are different", () => {
-            options.auth.credentials.scmContext = 'mygit:mygit.com';
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
             });
         });
 
