@@ -1465,7 +1465,8 @@ describe('build plugin test', () => {
                     eventMock.pr = {
                         ref: 'pull/15/merge',
                         prSource: 'branch',
-                        prInfo: { prBranchName: 'prBranchName' }
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
                     };
 
                     jobMock.name = 'PR-15:main';
@@ -1487,7 +1488,7 @@ describe('build plugin test', () => {
                             eventId: eventMock.id,
                             configPipelineSha,
                             prSource: eventMock.pr.prSource,
-                            prInfo: eventMock.pr.prInfo,
+                            prInfo: { prBranchName: eventMock.pr.prBranchName, url: eventMock.pr.url },
                             prRef: eventMock.pr.ref,
                             start: true,
                             baseBranch: null
@@ -1817,19 +1818,24 @@ describe('build plugin test', () => {
                     eventMock.pr = {
                         ref: 'pull/15/merge',
                         prSource: 'branch',
-                        prInfo: {
-                            prBranchName: 'prBranchName'
-                        }
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
                     };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
                     jobBconfig.prSource = 'branch';
-                    jobBconfig.prInfo = { prBranchName: 'prBranchName' };
+                    jobBconfig.prInfo = {
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
                     jobCconfig.prRef = 'pull/15/merge';
                     jobCconfig.prSource = 'branch';
-                    jobCconfig.prInfo = { prBranchName: 'prBranchName' };
+                    jobCconfig.prInfo = {
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
 
                     return server.inject(options).then(() => {
                         // create the builds

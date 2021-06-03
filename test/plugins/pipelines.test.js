@@ -1110,6 +1110,42 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, expected);
             }));
+
+        it('returns 200 for getting secrets with proper pipeline scope', () => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${pipelineId}/secrets`,
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['pipeline'],
+                        pipelineId: 123
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                const expected = [
+                    {
+                        id: 1234,
+                        pipelineId: 123,
+                        name: 'NPM_TOKEN',
+                        allowInPR: false
+                    },
+                    {
+                        id: 1235,
+                        pipelineId: 123,
+                        name: 'GIT_TOKEN',
+                        allowInPR: true
+                    }
+                ];
+
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, expected);
+            });
+        });
     });
 
     describe('GET /pipelines/{id}/events', () => {
