@@ -52,14 +52,9 @@ module.exports = () => ({
                 throw boom.forbidden('Pipeline does not own token');
             }
 
-            return token
-                .refresh()
-                .then(refreshed => {
-                    return h.response(refreshed.toJson()).code(200);
-                })
-                .catch(err => {
-                    throw err;
-                });
+            const refreshed = await token.refresh();
+
+            return h.response(refreshed.toJson()).code(200);
         },
         validate: {
             params: joi.object({

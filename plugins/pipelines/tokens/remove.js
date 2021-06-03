@@ -52,12 +52,7 @@ module.exports = () => ({
                 throw boom.forbidden('Pipeline does not own token');
             }
 
-            return token
-                .remove()
-                .then(() => h.response().code(204))
-                .catch(err => {
-                    throw err;
-                });
+            return token.remove().then(() => h.response().code(204));
         },
         validate: {
             params: joi.object({

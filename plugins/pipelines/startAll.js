@@ -40,8 +40,8 @@ module.exports = () => ({
                 }
             });
 
-            return pipelines
-                .map(async p => {
+            await Promise.all(
+                pipelines.map(async p => {
                     const pipelineToken = await p.token;
                     const pipelineUsername = await p.admin;
                     const pipelineScmContext = p.scmContext;
@@ -51,7 +51,7 @@ module.exports = () => ({
                         token: pipelineToken
                     });
 
-                    return eventFactory.create({
+                    await eventFactory.create({
                         pipelineId: p.id,
                         sha,
                         username: pipelineUsername,
@@ -60,10 +60,9 @@ module.exports = () => ({
                         causeMessage: `Started by ${pipelineUsername}`
                     });
                 })
-                .then(() => h.response().code(201))
-                .catch(err => {
-                    throw err;
-                });
+            );
+
+            return h.response().code(201);
         },
         validate: {
             params: joi.object({

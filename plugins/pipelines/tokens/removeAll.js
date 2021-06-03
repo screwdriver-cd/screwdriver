@@ -41,12 +41,11 @@ module.exports = () => ({
             // Check the user's permission
             await getUserPermissions({ user, scmUri });
 
-            return pipeline.tokens
-                .then(tokens => tokens && tokens.map(t => t.remove()))
-                .then(() => h.response().code(204))
-                .catch(err => {
-                    throw err;
-                });
+            const tokens = await pipeline.tokens;
+
+            await Promise.all(tokens.map(t => t.remove()));
+
+            return h.response().code(204);
         },
         validate: {
             params: joi.object({

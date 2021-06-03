@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
-const { getUserPermissions, getScmUri } = require('../helper.js');
+const { getScmUri } = require('../helper.js');
 
 module.exports = () => ({
     method: 'POST',
@@ -45,7 +45,7 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            const permissions = await getUserPermissions({ user, scmUri, level: 'push' });
+            const permissions = await user.getPermissions(scmUri);
 
             // check if user has push access
             if (!permissions.push) {
@@ -57,7 +57,9 @@ module.exports = () => ({
                 pipeline.admins = newAdmins;
 
                 return pipeline.update().then(() => {
-                    throw boom.forbidden(`User ${username} does not have push permission for this repo`);
+                    throw boom.forbidden(
+                        `User ${user.getFullDisplayName()} does not have push permission for this repo`
+                    );
                 });
             }
 
@@ -75,12 +77,7 @@ module.exports = () => ({
             // user has good permissions, sync the pipeline
             await pipeline.sync();
 
-            return h
-                .response()
-                .code(204)
-                .catch(err => {
-                    throw err;
-                });
+            return h.response().code(204);
         },
         validate: {
             params: joi.object({

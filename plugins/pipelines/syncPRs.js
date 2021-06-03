@@ -44,12 +44,7 @@ module.exports = () => ({
 
             await pipeline.syncPRs();
 
-            return h
-                .response()
-                .code(204)
-                .catch(err => {
-                    throw err;
-                });
+            return h.response().code(204);
         },
         validate: {
             params: joi.object({

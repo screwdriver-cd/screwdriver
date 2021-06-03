@@ -140,7 +140,7 @@ const getUserMock = user => {
     const mock = hoek.clone(user);
 
     mock.getPermissions = sinon.stub();
-    mock.getFullDisplayName = sinon.stub();
+    mock.getFullDisplayName = sinon.stub().returns('batman');
     mock.update = sinon.stub();
     mock.sealToken = sinon.stub();
     mock.unsealToken = sinon.stub();
@@ -175,6 +175,10 @@ describe('pipeline plugin test', () => {
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
     const scmContext = 'github:github.com';
     const scmDisplayName = 'github';
+    const username = 'batman';
+    const message = `User ${username} does not have admin permission for this repo`;
+    const messagePush = `User ${username} does not have push permission for this repo`;
+    const messageUser = `User ${username} does not exist`;
 
     before(() => {
         mockery.enable({
@@ -194,7 +198,8 @@ describe('pipeline plugin test', () => {
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha'),
-                addDeployKey: sinon.stub()
+                addDeployKey: sinon.stub(),
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
             }
         };
         userFactoryMock = {
@@ -277,7 +282,7 @@ describe('pipeline plugin test', () => {
                 options: {
                     password,
                     scm: scmMock,
-                    admins: ['github:myself']
+                    admins: ['github:batman']
                 }
             },
             {
@@ -573,7 +578,6 @@ describe('pipeline plugin test', () => {
     describe('DELETE /pipelines/{id}', () => {
         const id = 123;
         const scmUri = 'github.com:12345:branchName';
-        const username = 'myself';
         let pipeline;
         let options;
         let userMock;
@@ -627,13 +631,13 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User d2lam does not have admin permission for this repo'
+                message
             };
 
             screwdriverAdminDetailsMock.returns({ isAdmin: false });
-            options.auth.credentials.username = 'd2lam';
-            userMock = getUserMock({ username: 'd2lam', scmContext });
-            userFactoryMock.get.withArgs({ username: 'd2lam', scmContext }).resolves(userMock);
+            options.auth.credentials.username = username;
+            userMock = getUserMock({ username, scmContext });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
@@ -669,7 +673,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'User myself does not exist'
+                message: messageUser
             };
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
@@ -1036,7 +1040,6 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/secrets', () => {
         const pipelineId = '123';
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         let options;
         let pipelineMock;
@@ -1180,7 +1183,6 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines/{id}/sync', () => {
         const id = 123;
-        const username = 'd2lam';
         const scmUri = 'github.com:12345:branchName';
         let pipelineMock;
         let userMock;
@@ -1229,11 +1231,11 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when user does not have admin permission', () => {
+        it('returns 403 when user does not have push permission', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User d2lam does not have push permission for this repo'
+                message: messagePush
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
@@ -1275,7 +1277,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'User d2lam does not exist'
+                message: `User ${username} does not exist`
             };
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
@@ -1297,7 +1299,6 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines/{id}/sync/webhooks', () => {
         const id = 123;
-        const username = 'd2lam';
         const scmUri = 'github.com:12345:branchName';
         let pipelineMock;
         let userMock;
@@ -1331,11 +1332,11 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 204);
             }));
 
-        it('returns 403 when user does not have admin permission', () => {
+        it('returns 403 when user does not have push permission', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User d2lam does not have push permission for this repo'
+                message: messagePush
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
@@ -1358,7 +1359,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'User d2lam does not exist'
+                message: `User ${username} does not exist`
             };
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
@@ -1380,7 +1381,6 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines/{id}/sync/pullrequests', () => {
         const id = 123;
-        const username = 'batman';
         const scmUri = 'github.com:12345:branchName';
         let pipelineMock;
         let userMock;
@@ -1418,7 +1418,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User batman does not have push permission for this repo'
+                message: messagePush
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
@@ -1471,7 +1471,6 @@ describe('pipeline plugin test', () => {
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const testId = '123';
-        const username = 'd2lam';
         const userId = '34';
         const privateKey = 'testkey';
         const privateKeyB64 = Buffer.from(privateKey).toString('base64');
@@ -1536,7 +1535,7 @@ describe('pipeline plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(pipelineFactoryMock.create, {
                     admins: {
-                        d2lam: true
+                        [username]: true
                     },
                     scmUri,
                     scmContext
@@ -1735,7 +1734,6 @@ describe('pipeline plugin test', () => {
         const oldScmUri = 'github.com:12345:branchName';
         const id = 123;
         const token = 'secrettoken';
-        const username = 'd2lam';
         const scmRepo = {
             branch: 'master',
             name: 'screwdriver-cd/screwdriver',
@@ -2012,7 +2010,6 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines/{id}/startall', () => {
         const id = 123;
-        const username = 'd2lam';
         const scmUri = 'github.com:12345:branchName';
         let pipelineMock;
         let userMock;
@@ -2058,7 +2055,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: 'User d2lam does not have push permission for this repo'
+                message: messagePush
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -2088,7 +2085,6 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/admin', () => {
         const id = 123;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         const token = {
             id: 12345,
@@ -2150,7 +2146,6 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/tokens', () => {
         const id = 123;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         const token = {
             id: 12345,
@@ -2197,7 +2192,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} is not an admin of this repo`
+                message
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -2249,7 +2244,6 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/metrics', () => {
         const id = 123;
-        const username = 'myself';
         let options;
         let pipelineMock;
         let startTime = '2019-01-29T01:47:27.863Z';
@@ -2410,7 +2404,6 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines/{id}/tokens', () => {
         const id = 123;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         const name = 'pipeline token';
         const description = 'a token for pipeline API';
@@ -2462,7 +2455,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} is not an admin of this repo`
+                message
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -2524,7 +2517,6 @@ describe('pipeline plugin test', () => {
     describe('PUT /pipelines/{pipelineId}/tokens/{tokenId}', () => {
         const pipelineId = 123;
         const tokenId = 12345;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         const name = 'updated token';
         const description = 'updated';
@@ -2571,7 +2563,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} is not an admin of this repo`
+                message
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -2582,7 +2574,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when token is not ownd by the pipeline', () => {
+        it('returns 403 when token is not owned by the pipeline', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
@@ -2616,7 +2608,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'User does not exist'
+                message: messageUser
             };
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
@@ -2667,7 +2659,6 @@ describe('pipeline plugin test', () => {
     describe('PUT /pipelines/{pipelineId}/tokens/{tokenId}/refresh', () => {
         const pipelineId = 123;
         const tokenId = 12345;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         const name = 'updated token';
         const description = 'updated';
@@ -2722,7 +2713,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} is not an admin of this repo`
+                message
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -2767,7 +2758,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'User does not exist'
+                message: `User does not exist`
             };
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
@@ -2805,7 +2796,6 @@ describe('pipeline plugin test', () => {
     describe('DELETE /pipelines/{pipelineId}/tokens/{tokenId}', () => {
         const pipelineId = 123;
         const tokenId = 12345;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         let options;
         let pipelineMock;
@@ -2846,7 +2836,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} is not an admin of this repo`
+                message
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -2930,7 +2920,6 @@ describe('pipeline plugin test', () => {
 
     describe('DELETE /pipelines/{pipelineId}/tokens', () => {
         const id = 123;
-        const username = 'myself';
         const scmUri = 'github.com:12345:branchName';
         let options;
         let pipelineMock;
@@ -2966,7 +2955,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} is not an admin of this repo`
+                message
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
@@ -3021,13 +3010,11 @@ describe('pipeline plugin test', () => {
 
     describe('POST /pipelines/{pipelineId}/openPr', () => {
         const id = 123;
-        const username = 'myself';
         const unformattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-MODEL.git';
         const formattedCheckoutUrl = 'git@github.com:screwdriver-cd/data-model.git';
         const scmUri = 'github.com:12345:master';
         const token = 'secrettoken';
         const title = 'update file';
-        const message = 'update file';
         const files = [
             {
                 name: 'fileName',
@@ -3050,7 +3037,7 @@ describe('pipeline plugin test', () => {
                     checkoutUrl: unformattedCheckoutUrl,
                     files,
                     title,
-                    message
+                    message: 'update file'
                 },
                 auth: {
                     credentials: {
@@ -3165,7 +3152,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 403,
                 error: 'Forbidden',
-                message: `User ${username} does not have push access for this repo`
+                message: messagePush
             };
 
             userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
@@ -3180,7 +3167,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'User myself does not exist'
+                message: `User ${username} does not exist`
             };
 
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);

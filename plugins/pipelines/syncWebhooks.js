@@ -45,12 +45,7 @@ module.exports = () => ({
             // user has good permissions, add or update webhooks
             await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
-            return h
-                .response()
-                .code(204)
-                .catch(err => {
-                    throw err;
-                });
+            return h.response().code(204);
         },
         validate: {
             params: joi.object({

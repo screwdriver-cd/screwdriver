@@ -52,28 +52,23 @@ module.exports = () => ({
                 throw boom.conflict(`Token ${match.name} already exists`);
             }
 
-            return tokenFactory
-                .create({
-                    name: request.payload.name,
-                    description: request.payload.description,
-                    pipelineId
-                })
-                .then(token => {
-                    const location = urlLib.format({
-                        host: request.headers.host,
-                        port: request.headers.port,
-                        protocol: request.server.info.protocol,
-                        pathname: `${request.path}/${token.id}`
-                    });
+            const token = await tokenFactory.create({
+                name: request.payload.name,
+                description: request.payload.description,
+                pipelineId
+            });
 
-                    return h
-                        .response(token.toJson())
-                        .header('Location', location)
-                        .code(201);
-                })
-                .catch(err => {
-                    throw err;
-                });
+            const location = urlLib.format({
+                host: request.headers.host,
+                port: request.headers.port,
+                protocol: request.server.info.protocol,
+                pathname: `${request.path}/${token.id}`
+            });
+
+            return h
+                .response(token.toJson())
+                .header('Location', location)
+                .code(201);
         },
         validate: {
             params: joi.object({
