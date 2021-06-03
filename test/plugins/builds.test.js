@@ -5153,7 +5153,7 @@ describe('build plugin test', () => {
                 }
             };
 
-            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            pipelineFactoryMock.get.resolves(publicPipelineMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 302);
