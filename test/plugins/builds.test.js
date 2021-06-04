@@ -64,8 +64,21 @@ const getBuildMock = buildsWithSteps => {
 
 const getStepMock = step => {
     const mock = hoek.clone(step);
+    const updatedStep = {
+        toJson: sinon.stub().returns(step),
+        toJsonWithSteps: sinon.stub().resolves(step),
+        update: sinon.stub().returns({
+            id: 12345,
+            parentBuilds: {
+                2: { eventId: 2, jobs: { a: 555 } },
+                3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
+            },
+            start: sinon.stub().resolves({}),
+            update: sinon.stub().resolves({})
+        })
+    };
 
-    mock.update = sinon.stub();
+    mock.update = sinon.stub().resolves(updatedStep);
     mock.get = sinon.stub();
     mock.toJson = sinon.stub().returns(step);
 
@@ -76,7 +89,7 @@ const jwtMock = {
     sign: () => 'sign'
 };
 
-describe('build plugin test', () => {
+describe.only('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
     let userFactoryMock;
@@ -117,8 +130,7 @@ describe('build plugin test', () => {
         stepFactoryMock = {
             get: sinon.stub(),
             list: sinon.stub(),
-            create: sinon.stub(),
-            update: sinon.stub()
+            create: sinon.stub()
         };
         jobFactoryMock = {
             get: sinon.stub(),
@@ -134,7 +146,10 @@ describe('build plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
-            list: sinon.stub()
+            list: sinon.stub(),
+            scm: {
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+            }
         };
         eventFactoryMock = {
             get: sinon.stub(),
@@ -144,7 +159,6 @@ describe('build plugin test', () => {
                 getCommitSha: sinon.stub()
             }
         };
-
         bannerFactoryMock = {
             scm: {
                 getDisplayName: sinon.stub()
@@ -342,10 +356,12 @@ describe('build plugin test', () => {
             url: 'https://github.com/screwdriver-cd/screwdriver/tree/branchName'
         };
         const configPipelineSha = 'abc123';
+        const initStepName = 'sd-setup-init';
         let buildMock;
         let jobMock;
         let pipelineMock;
         let eventMock;
+        let stepMock;
 
         beforeEach(() => {
             testBuild.status = 'QUEUED';
@@ -354,10 +370,14 @@ describe('build plugin test', () => {
             delete testBuild.startTime;
 
             buildMock = getBuildMock(testBuild);
-
             buildMock.update.resolves(buildMock);
             buildFactoryMock.get.resolves(buildMock);
-
+            stepMock = getBuildMock({
+                buildId: id,
+                name: initStepName
+            });
+            stepMock.update.resolves(stepMock);
+            stepFactoryMock.get.resolves(stepMock);
             pipelineMock = {
                 id: pipelineId,
                 scmContext,
@@ -388,7 +408,6 @@ describe('build plugin test', () => {
                 pipeline: sinon.stub().resolves(pipelineMock)(),
                 getLatestBuild: sinon.stub().resolves(buildMock)
             };
-
             eventMock = {
                 id: '8888',
                 pipelineId,
@@ -405,11 +424,9 @@ describe('build plugin test', () => {
                 update: sinon.stub(),
                 toJson: sinon.stub().returns({ id: 123 })
             };
-
             eventFactoryMock.get.resolves(eventMock);
             eventMock.update.resolves(eventMock);
             jobFactoryMock.get.resolves(jobMock);
-
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
@@ -503,7 +520,6 @@ describe('build plugin test', () => {
                     }
                 ],
                 pipeline: sinon.stub().resolves(pipelineMock)(),
-
                 getLatestBuild: sinon.stub()
             };
 
@@ -1068,24 +1084,11 @@ describe('build plugin test', () => {
                         status
                     }
                 };
-                const initStepName = 'sd-setup-init';
-                const initStepMock = getStepMock({
-                    buildId: id,
-                    name: initStepName
-                });
-
-                initStepMock.update.resolves(null);
-                stepFactoryMock.get
-                    .withArgs({
-                        buildId: id,
-                        name: initStepName
-                    })
-                    .resolves(initStepMock);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
-                    assert.calledOnce(initStepMock.update);
+                    assert.calledOnce(stepMock.update);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
                     assert.isUndefined(buildMock.meta);
@@ -1114,24 +1117,11 @@ describe('build plugin test', () => {
                         status
                     }
                 };
-                const initStepName = 'sd-setup-init';
-                const initStepMock = getStepMock({
-                    buildId: id,
-                    name: initStepName
-                });
-
-                initStepMock.update.resolves(null);
-                stepFactoryMock.get
-                    .withArgs({
-                        buildId: id,
-                        name: initStepName
-                    })
-                    .resolves(initStepMock);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
-                    assert.calledOnce(initStepMock.update);
+                    assert.calledOnce(stepMock.update);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
                 });
@@ -1157,24 +1147,11 @@ describe('build plugin test', () => {
                         status
                     }
                 };
-                const initStepName = 'sd-setup-init';
-                const initStepMock = getStepMock({
-                    buildId: id,
-                    name: initStepName
-                });
-
-                initStepMock.update.resolves(null);
-                stepFactoryMock.get
-                    .withArgs({
-                        buildId: id,
-                        name: initStepName
-                    })
-                    .resolves(initStepMock);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
-                    assert.calledOnce(initStepMock.update);
+                    assert.calledOnce(stepMock.update);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
                 });
@@ -1196,27 +1173,14 @@ describe('build plugin test', () => {
                         status
                     }
                 };
-                const initStepName = 'sd-setup-init';
-                const initStepMock = getStepMock({
-                    buildId: id,
-                    name: initStepName
-                });
 
                 buildMock.status = 'FROZEN';
                 buildFactoryMock.get.withArgs(id).resolves(buildMock);
 
-                initStepMock.update.resolves(null);
-                stepFactoryMock.get
-                    .withArgs({
-                        buildId: id,
-                        name: initStepName
-                    })
-                    .resolves(initStepMock);
-
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
                     assert.calledWith(buildFactoryMock.get, id);
-                    assert.notCalled(initStepMock.update);
+                    assert.notCalled(stepMock.update);
                     assert.calledOnce(buildMock.update);
                     assert.calledOnce(buildMock.stopFrozen);
                     assert.strictEqual(buildMock.status, status);
@@ -1270,22 +1234,8 @@ describe('build plugin test', () => {
                     }
                 };
 
-                const initStepName = 'sd-setup-init';
-                const initStepMock = getStepMock({
-                    buildId: id,
-                    name: initStepName
-                });
-
                 buildMock.status = 'QUEUED';
                 buildFactoryMock.get.withArgs(id).resolves(buildMock);
-
-                initStepMock.update.resolves(null);
-                stepFactoryMock.get
-                    .withArgs({
-                        buildId: id,
-                        name: initStepName
-                    })
-                    .resolves(initStepMock);
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 200);
@@ -1370,11 +1320,6 @@ describe('build plugin test', () => {
                         status
                     }
                 };
-                const initStepName = 'sd-setup-init';
-                const initStepMock = getStepMock({
-                    buildId: id,
-                    name: initStepName
-                });
 
                 stepFactoryMock.get
                     .withArgs({
@@ -1388,7 +1333,7 @@ describe('build plugin test', () => {
                     assert.strictEqual(buildMock.status, 'RUNNING');
                     assert.isNull(buildMock.statusMessage);
                     assert.notCalled(buildFactoryMock.create);
-                    assert.notCalled(initStepMock.update);
+                    assert.notCalled(stepMock.update);
                 });
             });
 
@@ -4162,8 +4107,8 @@ describe('build plugin test', () => {
                 endTime: '2038-01-19T03:15:09.114Z'
             };
             stepMock = getStepMock(testStep);
-            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
             stepMock.update.resolves(testStep);
+            stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(stepMock);
 
             options = {
                 method: 'PUT',

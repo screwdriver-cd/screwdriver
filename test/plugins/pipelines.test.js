@@ -1928,7 +1928,7 @@ describe('pipeline plugin test', () => {
 
         it('returns 403 when the user is not admin of old repo with deprecated scmContext', () => {
             pipelineMock.admins = { ohno: true };
-            pipelineMock.scmContext = 'depreacated';
+            pipelineMock.scmContext = 'deprecated';
 
             return server.inject(options).then(reply => {
                 // Only call once to get permissions on the new repo

@@ -5,6 +5,7 @@ const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.job.base.extract('id');
+const { getScmUri, getUserPermissions } = require('../helper.js');
 
 /**
  * Determine if this build is FIXED build or not.
@@ -68,7 +69,8 @@ module.exports = () => ({
                 jobFactory,
                 userFactory,
                 stepFactory,
-                bannerFactory
+                bannerFactory,
+                pipelineFactory
             } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
@@ -82,7 +84,7 @@ module.exports = () => ({
 
             return buildFactory
                 .get(id)
-                .then(build => {
+                .then(async build => {
                     if (!build) {
                         throw boom.notFound(`Build ${id} does not exist`);
                     }
@@ -110,36 +112,24 @@ module.exports = () => ({
                             throw boom.badRequest('User can only update builds to ABORTED');
                         }
 
-                        // Check permission against the pipeline
                         // Fetch the job and user models
-                        return (
-                            Promise.all([jobFactory.get(build.jobId), userFactory.get({ username, scmContext })])
-                                // scmUri is buried in the pipeline, so we get that from the job
-                                .then(([job, user]) =>
-                                    job.pipeline.then(pipeline =>
-                                        user
-                                            .getPermissions(pipeline.scmUri)
-                                            // Check if user has push access or is a Screwdriver admin
-                                            .then(permissions => {
-                                                if (!permissions.push && !adminDetails.isAdmin) {
-                                                    throw boom.forbidden(
-                                                        `User ${user.getFullDisplayName()} does not ` +
-                                                            'have permission to abort this build'
-                                                    );
-                                                }
+                        const [job, user] = await Promise.all([
+                            jobFactory.get(build.jobId),
+                            userFactory.get({ username, scmContext })
+                        ]);
 
-                                                return eventFactory
-                                                    .get(build.eventId)
-                                                    .then(event => ({ build, event }));
-                                            })
-                                    )
-                                )
-                        );
+                        const pipeline = await job.pipeline;
+
+                        // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+                        const scmUri = await getScmUri({ pipeline, pipelineFactory });
+
+                        // Check the user's permission
+                        await getUserPermissions({ user, scmUri, level: 'push', isAdmin: adminDetails.isAdmin });
                     }
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
                 })
-                .then(({ build, event }) => {
+                .then(async ({ build, event }) => {
                     // We can't merge from executor-k8s/k8s-vm side because executor doesn't have build object
                     // So we do merge logic here instead
 
@@ -209,20 +199,17 @@ module.exports = () => ({
 
                     // If status got updated to RUNNING or COLLAPSED, update init endTime and code
                     if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
-                        return stepFactory
-                            .get({ buildId: id, name: 'sd-setup-init' })
-                            .then(step => {
-                                // If there is no init step, do nothing
-                                if (!step) {
-                                    return null;
-                                }
+                        const step = await stepFactory.get({ buildId: id, name: 'sd-setup-init' });
 
-                                step.endTime = build.startTime || new Date().toISOString();
-                                step.code = 0;
+                        // If there is no init step, do nothing
+                        if (step) {
+                            step.endTime = build.startTime || new Date().toISOString();
+                            step.code = 0;
 
-                                return step.update();
-                            })
-                            .then(() => Promise.all([build.update(), event.update()]));
+                            await step.update();
+                        }
+
+                        return Promise.all([build.update(), event.update()]);
                     }
 
                     // Only trigger next build on success
@@ -252,7 +239,6 @@ module.exports = () => ({
 
                                 // Guard against triggering non-successful or unstable builds
                                 // Don't further trigger pipeline if intented to skip further jobs
-
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
                                     return h.response(await newBuild.toJsonWithSteps()).code(200);
                                 }
