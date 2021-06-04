@@ -74,6 +74,7 @@ describe('auth plugin test', () => {
 
     beforeEach(async () => {
         scm = {
+            getReadOnlyInfo: sinon.stub().returns({ enabled: false, username: 'headlessuser', accessToken: 'token' }),
             getScmContexts: sinon.stub().returns(['github:github.com']),
             getDisplayName: sinon.stub().returns('github'),
             getBellConfiguration: sinon.stub().resolves({
@@ -1214,6 +1215,7 @@ describe('auth plugin test', () => {
 
     describe('GET /auth/contexts', () => {
         beforeEach(() => {
+            scm.getReadOnlyInfo.returns({ enabled: false, username: 'headlessuser', accessToken: 'token' });
             scm.getScmContexts.returns(['github:github.com', 'github:mygithub.com']);
             scm.getDisplayName.withArgs({ scmContext: 'github:github.com' }).returns('github');
             scm.getDisplayName.withArgs({ scmContext: 'github:mygithub.com' }).returns('mygithub');
@@ -1231,9 +1233,24 @@ describe('auth plugin test', () => {
                     assert.deepEqual(
                         reply.result,
                         [
-                            { context: 'github:github.com', displayName: 'github', autoDeployKeyGeneration: true },
-                            { context: 'github:mygithub.com', displayName: 'mygithub', autoDeployKeyGeneration: true },
-                            { context: 'guest', displayName: 'Guest Access', autoDeployKeyGeneration: false }
+                            {
+                                context: 'github:github.com',
+                                displayName: 'github',
+                                autoDeployKeyGeneration: true,
+                                readOnly: false
+                            },
+                            {
+                                context: 'github:mygithub.com',
+                                displayName: 'mygithub',
+                                autoDeployKeyGeneration: true,
+                                readOnly: false
+                            },
+                            {
+                                context: 'guest',
+                                displayName: 'Guest Access',
+                                autoDeployKeyGeneration: false,
+                                readOnly: false
+                            }
                         ],
                         'Contexts returns data'
                     );

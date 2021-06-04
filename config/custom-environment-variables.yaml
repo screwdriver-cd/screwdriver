@@ -328,6 +328,8 @@ scms:
   #         username: SCM_GITLAB_RO_USERNAME
   #         # headless access token
   #         accessToken: SCM_GITLAB_RO_TOKEN
+  #         # SCM clone type (https or ssh)
+  #         cloneType: SCM_GITLAB_RO_CLONE_TYPE
 webhooks:
   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
   username: SCM_USERNAME

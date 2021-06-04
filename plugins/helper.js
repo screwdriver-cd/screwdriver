@@ -56,12 +56,11 @@ async function getUserPermissions({ user, scmUri, level = 'admin', isAdmin = fal
 }
 
 /**
- * [getScmContext description]
- * @method getScmContext
- * @param  {[type]} user     [description]
- * @param  {[type]} pipeline [description]
- * @param  {[type]} scm      [description]
- * @return {[type]}          [description]
+ * Get read only information
+ * @method getReadOnlyInfo
+ * @param  {Object} pipeline Pipeline
+ * @param  {Object} scm      Scm
+ * @return {Object}          Read only info
  */
 function getReadOnlyInfo({ pipeline, scm }) {
     const { enabled, username, accessToken } = scm.getReadOnlyInfo({ scmContext: pipeline.scmContext });
@@ -99,68 +98,9 @@ async function getScmUri({ pipeline, pipelineFactory }) {
     return scmUri;
 }
 
-/**
- * [handleUserPermissions description]
- * @method handleUserPermissions
- * @param  {[type]}  user    [description]
- * @param  {[type]}  scmUri  [description]
- * @param  {Boolean} isAdmin [description]
- * @return {[type]}          [description]
- */
-async function handleUserPermissions({ user, userFactory, pipeline, isAdmin = false, permissionsOnly = true }) {
-    const { scm } = userFactory;
-    const defaultConfig = {
-        pipelineScmContext: user.scmContext,
-        pipelineToken: 'thisisnotatoken',
-        pipelineUsername: user.username,
-        pipelineUser: user
-    };
-
-    // If scm is read-only, try using generic SCM username
-    if (user.scmContext !== pipeline.scmContext) {
-        const { scmContext } = pipeline;
-        const scmContexts = scm.getScmContexts();
-
-        if (!scmContexts[scmContext]) {
-            throw boom.forbidden(`User ${user.getFullDisplayName()} does not have push permission for this scm`);
-        }
-
-        const readOnlyEnabled = scm.readOnlyEnabled({ scmContext });
-
-        if (!readOnlyEnabled) {
-            throw boom.forbidden(`User ${user.getFullDisplayName()} does not have push permission for this scm`);
-        }
-
-        // Avoid extra calls
-        if (!permissionsOnly) {
-            const genericUsername = scm.getUsername({ scmContext });
-            const buildBotUser = await userFactory.get({ username: genericUsername, scmContext });
-            const token = await buildBotUser.unsealToken();
-
-            return {
-                pipelineScmContext: scmContext,
-                pipelineToken: token,
-                pipelineUsername: genericUsername,
-                pipelineUser: buildBotUser
-            };
-        }
-    } else {
-        await getUserPermissions({ user, scmUri: pipeline.scmUri, isAdmin });
-
-        // Avoid extra call
-        if (!permissionsOnly) {
-            defaultConfig.pipelineToken = await user.unsealToken();
-        }
-    }
-
-    return defaultConfig;
-}
-
 module.exports = {
     setDefaultTimeRange,
     validTimeRange,
-    getReadOnlyInfo,
-    handleUserPermissions,
     getUserPermissions,
     getScmUri
 };
