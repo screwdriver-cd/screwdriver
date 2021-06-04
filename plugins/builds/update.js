@@ -74,7 +74,7 @@ module.exports = () => ({
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
-            const { triggerNextJobs, removeJoinChild } = request.server.plugins.builds;
+            const { triggerNextJobs, removeJoinBuilds } = request.server.plugins.builds;
 
             if (isBuild && username !== id) {
                 return boom.forbidden(`Credential only valid for ${username}`);
@@ -256,7 +256,7 @@ module.exports = () => ({
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
                                     // Check for failed jobs and remove any child jobs in created state
                                     if (newBuild.status === 'FAILURE') {
-                                        await removeJoinChild(
+                                        await removeJoinBuilds(
                                             {
                                                 pipeline,
                                                 job,

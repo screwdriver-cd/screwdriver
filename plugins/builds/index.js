@@ -66,34 +66,17 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
 }
 
 /**
- * Fetch builds with given params
- * @method triggerFetchBuild
- * @param  {Object}   config                    Parameters of build to fetch
- * @param  {Factory}  config.buildFactory       Build Factory
- * @param  {Number}   config.jobID              Job ID
- * @param  {Number}   config.eventID            Event ID
- * @return {Promise}
- * */
-async function triggerFetchBuild(config) {
-    const { jobID, eventID, buildFactory } = config;
-    const buildConfig = {
-        jobId: jobID,
-        eventId: eventID
-    };
-
-    return buildFactory.get(buildConfig);
-}
-
-/**
  * Delete a build
  * @method delBuild
  * @param  {Object}   buildToDel                  build object to delete
  * @return {Promise}
  * */
-async function delBuild(buildToDel) {
+async function deleteBuild(buildToDel) {
     if (buildToDel && buildToDel.status === 'CREATED') {
-        buildToDel.remove();
+        return buildToDel.remove();
     }
+
+    return null;
 }
 
 /**
@@ -689,8 +672,8 @@ const buildsPlugin = {
     name: 'builds',
     async register(server, options) {
         /**
-         * Remove the downstream jobs of the current job in CREATED state
-         * @method removeJoinChild
+         * Remove builds for downstream jobs of current job
+         * @method removeJoinBuilds
          * @param {Object}      config              Configuration object
          * @param {Pipeline}    config.pipeline     Current pipeline
          * @param {Job}         config.job          Current job
@@ -699,7 +682,7 @@ const buildsPlugin = {
          * @param {String}  app                      Server app object
          * @return {Promise}                        Resolves to the removed build or null
          */
-        server.expose('removeJoinChild', async (config, app) => {
+        server.expose('removeJoinBuilds', async (config, app) => {
             const { pipeline, job, build } = config;
             const { eventFactory, buildFactory } = app;
             const event = await eventFactory.get({ id: build.eventId });
@@ -709,9 +692,6 @@ const buildsPlugin = {
                 build,
                 event
             };
-            const buildConfig = {
-                buildFactory
-            };
 
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
@@ -719,8 +699,7 @@ const buildsPlugin = {
             });
 
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
-
-            let buildToDel;
+            const buildConfig = {};
 
             for (const pid of Object.keys(pipelineJoinData)) {
                 const isExternal = +pid !== current.pipeline.id;
@@ -729,20 +708,19 @@ const buildsPlugin = {
                     try {
                         const nextJob = pipelineJoinData[pid].jobs[nextJobName];
 
-                        buildConfig.jobID = nextJob.id;
+                        buildConfig.jobId = nextJob.id;
                         if (!isExternal) {
-                            buildConfig.eventID = event.id;
+                            buildConfig.eventId = event.id;
                         } else {
-                            buildConfig.eventID = pipelineJoinData[pid].event.id;
+                            buildConfig.eventId = pipelineJoinData[pid].event.id;
                         }
-                        buildToDel = await triggerFetchBuild(buildConfig);
 
-                        if (buildToDel !== null) {
-                            await delBuild(buildToDel);
-                        }
+                        const buildToDelete = await buildFactory.get(buildConfig);
+
+                        await deleteBuild(buildToDelete);
                     } catch (err) {
                         logger.error(
-                            `Error in removeJoinChild:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
+                            `Error in removeJoinBuilds:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
                             err
                         );
                     }
