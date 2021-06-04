@@ -148,7 +148,8 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
-                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false }),
+                getDisplayName: sinon.stub().resolves('name')
             }
         };
         eventFactoryMock = {
@@ -1410,7 +1411,8 @@ describe('build plugin test', () => {
                     eventMock.pr = {
                         ref: 'pull/15/merge',
                         prSource: 'branch',
-                        prInfo: { prBranchName: 'prBranchName' }
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
                     };
 
                     jobMock.name = 'PR-15:main';
@@ -1432,7 +1434,7 @@ describe('build plugin test', () => {
                             eventId: eventMock.id,
                             configPipelineSha,
                             prSource: eventMock.pr.prSource,
-                            prInfo: eventMock.pr.prInfo,
+                            prInfo: { prBranchName: eventMock.pr.prBranchName, url: eventMock.pr.url },
                             prRef: eventMock.pr.ref,
                             start: true,
                             baseBranch: null
@@ -1762,19 +1764,24 @@ describe('build plugin test', () => {
                     eventMock.pr = {
                         ref: 'pull/15/merge',
                         prSource: 'branch',
-                        prInfo: {
-                            prBranchName: 'prBranchName'
-                        }
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
                     };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
                     jobBconfig.prSource = 'branch';
-                    jobBconfig.prInfo = { prBranchName: 'prBranchName' };
+                    jobBconfig.prInfo = {
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
                     jobCconfig.prRef = 'pull/15/merge';
                     jobCconfig.prSource = 'branch';
-                    jobCconfig.prInfo = { prBranchName: 'prBranchName' };
+                    jobCconfig.prInfo = {
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -4726,12 +4733,34 @@ describe('build plugin test', () => {
                 getPermissions: sinon.stub().resolves({ pull: false })
             };
 
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 200 when user was cluster admin', () => {
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            userFactoryMock.get.resolves(userMock);
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
             });
         });
 
@@ -4803,9 +4832,33 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 200 when user is admin', () => {
+        it('returns 200 for admin scope', () => {
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['user', 'admin'];
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/${step}/log.0`)
+                .twice()
+                .replyWithFile(200, `${__dirname}/data/step.log.ndjson`);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, logs);
+                assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+
+        it('returns 200 when pipeline was set to public', () => {
+            const publicPipelineMock = {
+                id: 12345,
+                scmRepo: {
+                    private: true
+                },
+                settings: {
+                    public: true
+                }
+            };
+
+            pipelineFactoryMock.get.resolves(publicPipelineMock);
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .twice()
@@ -4931,12 +4984,30 @@ describe('build plugin test', () => {
                 getPermissions: sinon.stub().resolves({ pull: false })
             };
 
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             userFactoryMock.get.resolves(userMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('redirects to store for an artifact request for cluster admin', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            pipelineFactoryMock.get.resolves(privatePipelineMock);
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
             });
         });
 
@@ -5002,11 +5073,31 @@ describe('build plugin test', () => {
             });
         });
 
-        it('redirects to store for an artifact request when user is admin', () => {
+        it('redirects to store for an artifact request when scope includes admin', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['user', 'admin'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
+            });
+        });
+
+        it('redirects to store for an artifact request when pipeline was set to public', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+            const publicPipelineMock = {
+                id: 12345,
+                scmRepo: {
+                    private: true
+                },
+                settings: {
+                    public: true
+                }
+            };
+
+            pipelineFactoryMock.get.resolves(publicPipelineMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 302);

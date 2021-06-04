@@ -34,7 +34,7 @@ const secretsPlugin = {
          */
         server.expose('canAccess', async (credentials, secret, permission, app) => {
             const { userFactory, pipelineFactory } = app;
-            const { username, scmContext, scope } = credentials;
+            const { scmContext, scope, username } = credentials;
 
             // Get secret pipeline
             const pipeline = await pipelineFactory.get(secret.pipelineId);

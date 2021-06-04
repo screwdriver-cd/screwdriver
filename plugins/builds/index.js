@@ -17,7 +17,7 @@ const listSecretsRoute = require('./listSecrets');
 const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
-const locker = require('../lock.js');
+const locker = require('../lock');
 
 /**
  * Checks if job is external trigger
@@ -236,7 +236,12 @@ async function createInternalBuild(config) {
     } = config;
     const prRef = event.pr.ref ? event.pr.ref : '';
     const prSource = event.pr.prSource || '';
-    const prInfo = event.pr.prInfo || '';
+    const prInfo = event.pr.prBranchName
+        ? {
+              url: event.pr.url || '',
+              prBranchName: event.pr.prBranchName || ''
+          }
+        : '';
 
     let job = {};
 
