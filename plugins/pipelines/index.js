@@ -115,7 +115,7 @@ const pipelinesPlugin = {
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
-                if (!pipeline.scmRepo || !pipeline.scmRepo.private) {
+                if (!pipeline.scmRepo || !pipeline.scmRepo.private || (pipeline.settings && pipeline.settings.public)) {
                     return true;
                 }
 
@@ -125,15 +125,32 @@ const pipelinesPlugin = {
                             throw boom.notFound(`User ${username} does not exist`);
                         }
 
-                        return user.getPermissions(pipeline.scmUri).then(permissions => {
-                            if (!permissions[permission]) {
+                        return user
+                            .getPermissions(pipeline.scmUri)
+                            .then(permissions => {
+                                if (!permissions[permission]) {
+                                    throw boom.forbidden(
+                                        `User ${username} does not have ${permission} access for this pipeline`
+                                    );
+                                }
+
+                                return true;
+                            })
+                            .catch(() => {
+                                const scmDisplayName = pipelineFactory.scm.getDisplayName({ scmContext });
+                                const adminDetails = server.plugins.banners.screwdriverAdminDetails(
+                                    username,
+                                    scmDisplayName
+                                );
+
+                                if (adminDetails.isAdmin) {
+                                    return true;
+                                }
+
                                 throw boom.forbidden(
                                     `User ${username} does not have ${permission} access for this pipeline`
                                 );
-                            }
-
-                            return true;
-                        });
+                            });
                     });
                 }
 
