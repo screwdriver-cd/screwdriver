@@ -126,7 +126,7 @@ module.exports = () => ({
             };
 
             if (settings) {
-                oldPipeline.settings = settings;
+                oldPipeline.settings = { ...oldPipeline.settings, ...settings };
             }
 
             // update pipeline
