@@ -40,6 +40,10 @@ const getEventMock = event => {
     return decorated;
 };
 
+const badgeMock = {
+    makeBadge: format => `${format.label}: ${format.message}`
+};
+
 describe('event plugin test', () => {
     let bannerMock;
     let screwdriverAdminDetailsMock;
@@ -93,6 +97,8 @@ describe('event plugin test', () => {
                 s.expose('screwdriverAdminDetails', screwdriverAdminDetailsMock);
             }
         };
+
+        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/events');
