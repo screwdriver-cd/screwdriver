@@ -23,7 +23,7 @@ jobs:
             - teardown-cp-coverage-to-artifacts: cp -rf artifacts/coverage $SD_ARTIFACTS_DIR
         environment:
             SD_SONAR_OPTS:  "-Dsonar.sources=lib,plugins -Dsonar.tests=test -Dsonar.javascript.lcov.reportPaths=artifacts/coverage/lcov.info -Dsonar.testExecutionReportPaths=artifacts/report/test.xml"
-            NODE_OPTIONS: "--max_old_space_size=8192"
+            NODE_OPTIONS: "--max_old_space_size=4096"
         secrets:
             # Uploading coverage information to coveralls
             - COVERALLS_REPO_TOKEN
