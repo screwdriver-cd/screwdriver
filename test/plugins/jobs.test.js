@@ -46,6 +46,10 @@ const getJobMocks = jobs => {
     return decorateJobMock(jobs);
 };
 
+const badgeMock = {
+    makeBadge: () => 'badge'
+};
+
 describe('job plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
@@ -88,6 +92,7 @@ describe('job plugin test', () => {
             get: sinon.stub().resolves(userMock)
         };
 
+        mockery.registerMock('badge-maker', badgeMock);
         /* eslint-disable global-require */
         plugin = require('../../plugins/jobs');
         /* eslint-enable global-require */

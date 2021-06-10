@@ -40,6 +40,10 @@ const getSecretMock = secret => {
     return mock;
 };
 
+const badgeMock = {
+    makeBadge: () => 'badge'
+};
+
 describe('secret plugin test', () => {
     let secretFactoryMock;
     let userFactoryMock;
@@ -67,6 +71,8 @@ describe('secret plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
+
+        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/secrets');
