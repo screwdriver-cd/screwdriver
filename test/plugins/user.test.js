@@ -147,9 +147,11 @@ describe('user plugin test', () => {
                 method: 'PUT',
                 url: `/users/settings`,
                 payload: {
-                    1: {
-                        displayJobNameLength: 50,
-                        showPRJobs: false
+                    settings: {
+                        1: {
+                            displayJobNameLength: 50,
+                            showPRJobs: false
+                        }
                     }
                 },
                 auth: {
