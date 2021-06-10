@@ -76,6 +76,22 @@ const jwtMock = {
     sign: () => 'sign'
 };
 
+const badgeMock = {
+    makeBadge: () => 'badge'
+};
+
+/**
+ * mock Lockobj class
+ */
+class LockMockObj {
+    constructor() {
+        this.lock = sinon.stub();
+        this.unlock = sinon.stub();
+    }
+}
+
+const lockMock = new LockMockObj();
+
 describe('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
@@ -160,6 +176,8 @@ describe('build plugin test', () => {
         generateTokenMock = sinon.stub();
 
         mockery.registerMock('jsonwebtoken', jwtMock);
+        mockery.registerMock('badge-maker', badgeMock);
+        mockery.registerMock('../lock', lockMock);
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
         /* eslint-enable global-require */

@@ -40,6 +40,10 @@ const getPipelineMocks = pipelines => {
     return decoratePipelineMock(pipelines);
 };
 
+const badgeMock = {
+    makeBadge: () => 'badge'
+};
+
 const getUserMock = user => {
     const mock = hoek.clone(user);
 
@@ -127,6 +131,8 @@ describe('DELETE /pipelines/1234/caches', () => {
 
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
+
+        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
