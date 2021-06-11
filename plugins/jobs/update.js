@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.job.base.extract('id');
-const { getUserPermissions, getScmUri } = require('../helper.js');
+const { getUserPermissions, getScmUri } = require('../helper');
 
 module.exports = () => ({
     method: 'PUT',

@@ -5,7 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const tokenIdSchema = schema.models.token.base.extract('id');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
-const { getUserPermissions, getScmUri } = require('../../helper.js');
+const { getUserPermissions, getScmUri } = require('../../helper');
 
 module.exports = () => ({
     method: 'DELETE',

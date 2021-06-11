@@ -5,7 +5,7 @@ const createRoute = require('./create');
 const getRoute = require('./get');
 const removeRoute = require('./remove');
 const updateRoute = require('./update');
-const { getUserPermissions, getScmUri } = require('../helper.js');
+const { getUserPermissions, getScmUri } = require('../helper');
 
 /**
  * Secrets API Plugin

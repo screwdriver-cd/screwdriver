@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const urlLib = require('url');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
-const { getScmUri } = require('../helper.js');
+const { getScmUri } = require('../helper');
 
 module.exports = () => ({
     method: 'POST',

@@ -5,7 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
-const { getUserPermissions } = require('../helper.js');
+const { getUserPermissions } = require('../helper');
 
 /**
  * Get user permissions on old pipeline

@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
-const { getScmUri } = require('../helper.js');
+const { getScmUri } = require('../helper');
 
 module.exports = () => ({
     method: 'POST',

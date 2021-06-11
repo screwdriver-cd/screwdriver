@@ -6,7 +6,7 @@ const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const tokenCreateSchema = schema.models.token.create;
-const { getUserPermissions, getScmUri } = require('../../helper.js');
+const { getUserPermissions, getScmUri } = require('../../helper');
 
 module.exports = () => ({
     method: 'POST',

@@ -4,7 +4,7 @@ const joi = require('joi');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const api = require('./request');
-const { getUserPermissions, getScmUri } = require('../../helper.js');
+const { getUserPermissions, getScmUri } = require('../../helper');
 
 const SCHEMA_SCOPE_PIPELINE_ID = schema.models.pipeline.base.extract('id');
 const SCHEMA_SCOPE_NAME = joi

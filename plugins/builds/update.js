@@ -5,7 +5,7 @@ const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.job.base.extract('id');
-const { getScmUri, getUserPermissions } = require('../helper.js');
+const { getScmUri, getUserPermissions } = require('../helper');
 
 /**
  * Determine if this build is FIXED build or not.

@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
-const { getUserPermissions } = require('../helper.js');
+const { getUserPermissions } = require('../helper');
 
 module.exports = () => ({
     method: 'POST',
