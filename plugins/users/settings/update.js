@@ -2,7 +2,6 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const updateSchema = schema.models.user.base.extract('settings');
 
 module.exports = () => ({
     method: 'PUT',
@@ -30,8 +29,8 @@ module.exports = () => ({
                 return h.response(results).code(200);
             });
         },
-        response: {
-            schema: updateSchema
+        validate: {
+            payload: schema.models.user.update
         }
     }
 });

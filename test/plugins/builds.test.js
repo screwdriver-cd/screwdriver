@@ -89,6 +89,22 @@ const jwtMock = {
     sign: () => 'sign'
 };
 
+const badgeMock = {
+    makeBadge: () => 'badge'
+};
+
+/**
+ * mock Lockobj class
+ */
+class LockMockObj {
+    constructor() {
+        this.lock = sinon.stub();
+        this.unlock = sinon.stub();
+    }
+}
+
+const lockMock = new LockMockObj();
+
 describe('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
@@ -173,6 +189,8 @@ describe('build plugin test', () => {
         generateTokenMock = sinon.stub();
 
         mockery.registerMock('jsonwebtoken', jwtMock);
+        mockery.registerMock('badge-maker', badgeMock);
+        mockery.registerMock('../lock', lockMock);
         /* eslint-disable global-require */
         plugin = require('../../plugins/builds');
         /* eslint-enable global-require */
@@ -3601,6 +3619,79 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(updatedBuildC.remove);
+                    });
+                });
+                it('delete join build if it was created before, and parent has some failures', () => {
+                    eventMock.workflowGraph.nodes = [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'a', id: 1 },
+                        { name: 'b', id: 2 },
+                        { name: 'c', id: 3 },
+                        { name: 'd', id: 4 },
+                        { name: 'e', id: 5 }
+                    ];
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true },
+                        { src: 'a', dest: 'e', join: true },
+                        { src: 'd', dest: 'e', join: true }
+                    ];
+
+                    options.payload.status = 'FAILURE';
+
+                    const buildC = {
+                        jobId: 3,
+                        eventId: '8888',
+                        id: 3,
+                        status: 'CREATED',
+                        remove: sinon.stub().resolves(null)
+                    };
+
+                    const buildE = {
+                        jobId: 4,
+                        eventId: '8888',
+                        id: 4,
+                        status: 'CREATED',
+                        remove: sinon.stub().resolves(null)
+                    };
+
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds: { 123: { eventId: '8888', jobs: { d: 5555, a: 12345 } } }
+                    });
+
+                    const updatedBuildE = Object.assign(buildE, {
+                        parentBuilds: { 123: { eventId: '8888', jobs: { d: 5555, a: 12345 } } }
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    buildE.update = sinon.stub().resolves(updatedBuildE);
+
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            id: 12345,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            id: 5555,
+                            eventId: '8888',
+                            status: 'FAILURE'
+                        },
+                        buildC
+                    ]);
+
+                    buildFactoryMock.get.withArgs({ jobId: 3, eventId: '8888' }).resolves(buildC);
+                    buildFactoryMock.get.withArgs({ jobId: 5, eventId: '8888' }).resolves(buildE);
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildC.remove);
+                        assert.calledOnce(buildE.remove);
                     });
                 });
             });

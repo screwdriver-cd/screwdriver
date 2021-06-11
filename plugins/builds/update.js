@@ -76,7 +76,7 @@ module.exports = () => ({
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
-            const { triggerNextJobs } = request.server.plugins.builds;
+            const { triggerNextJobs, removeJoinBuilds } = request.server.plugins.builds;
 
             if (isBuild && username !== id) {
                 return boom.forbidden(`Credential only valid for ${username}`);
@@ -240,6 +240,18 @@ module.exports = () => ({
                                 // Guard against triggering non-successful or unstable builds
                                 // Don't further trigger pipeline if intented to skip further jobs
                                 if (newBuild.status !== 'SUCCESS' || skipFurther) {
+                                    // Check for failed jobs and remove any child jobs in created state
+                                    if (newBuild.status === 'FAILURE') {
+                                        await removeJoinBuilds(
+                                            {
+                                                pipeline,
+                                                job,
+                                                build: newBuild
+                                            },
+                                            request.server.app
+                                        );
+                                    }
+
                                     return h.response(await newBuild.toJsonWithSteps()).code(200);
                                 }
 

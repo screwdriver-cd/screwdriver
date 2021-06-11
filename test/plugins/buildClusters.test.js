@@ -30,6 +30,10 @@ const getMockBuildClusters = buildClusters => {
     return decorateBuildClusterObject(buildClusters);
 };
 
+const badgeMock = {
+    makeBadge: () => 'badge'
+};
+
 describe('buildCluster plugin test', () => {
     const username = 'myself';
     const scmContext = 'github:github.com';
@@ -77,6 +81,8 @@ describe('buildCluster plugin test', () => {
             }
         };
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
+
+        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/buildClusters');

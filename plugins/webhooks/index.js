@@ -550,7 +550,9 @@ async function pullRequestOpened(options, request, h) {
             return h.response().code(201);
         })
         .catch(err => {
-            logger.error(`Failed to pullRequestOpened: [${hookId}, pipeline:${options.pipeline.id}]: ${err}`);
+            logger.error(
+                `Failed to pullRequestOpened: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
+            );
 
             throw err;
         });
@@ -592,7 +594,9 @@ async function pullRequestClosed(options, request, h) {
     )
         .then(() => h.response().code(200))
         .catch(err => {
-            logger.error(`Failed to pullRequestClosed: [${hookId}, pipeline:${options.pipeline.id}]: ${err}`);
+            logger.error(
+                `Failed to pullRequestClosed: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
+            );
 
             throw err;
         });
@@ -630,7 +634,9 @@ async function pullRequestSync(options, request, h) {
             return h.response().code(201);
         })
         .catch(err => {
-            logger.error(`Failed to pullRequestSync: [${hookId}, pipeline:${options.pipeline.id}]: ${err}`);
+            logger.error(
+                `Failed to pullRequestSync: [${hookId}, pipeline:${options.pipeline && options.pipeline.id}]: ${err}`
+            );
 
             throw err;
         });

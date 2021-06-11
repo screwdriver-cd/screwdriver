@@ -157,6 +157,10 @@ const getCollectionMock = collection => {
     return mock;
 };
 
+const badgeMock = {
+    makeBadge: format => `${format.label}: ${format.message}`
+};
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
@@ -243,6 +247,8 @@ describe('pipeline plugin test', () => {
             }
         };
         screwdriverAdminDetailsMock = sinon.stub();
+
+        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
