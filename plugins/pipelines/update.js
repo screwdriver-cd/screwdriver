@@ -4,7 +4,8 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
-const helper = require('./helper');
+const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
+const { getUserPermissions } = require('../helper');
 
 /**
  * Get user permissions on old pipeline
@@ -77,8 +78,8 @@ module.exports = () => ({
             });
 
             if (checkoutUrl || rootDir) {
-                const formattedCheckoutUrl = helper.formatCheckoutUrl(request.payload.checkoutUrl);
-                const sanitizedRootDir = helper.sanitizeRootDir(request.payload.rootDir);
+                const formattedCheckoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);
+                const sanitizedRootDir = sanitizeRootDir(request.payload.rootDir);
 
                 // get the user token
                 const token = await user.unsealToken();
@@ -89,12 +90,9 @@ module.exports = () => ({
                     rootDir: sanitizedRootDir,
                     token
                 });
-                const permissions = await user.getPermissions(scmUri);
 
-                // if the user isn't an admin for both repos, reject
-                if (!permissions.admin) {
-                    throw boom.forbidden(`User ${username} is not an admin of these repos`);
-                }
+                // get the user permissions for the repo
+                await getUserPermissions({ user, scmUri });
 
                 // check if there is already a pipeline with the new checkoutUrl
                 const newPipeline = await pipelineFactory.get({ scmUri });

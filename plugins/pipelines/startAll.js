@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const { getUserPermissions } = require('../helper');
 const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
@@ -23,58 +24,45 @@ module.exports = () => ({
             const { id } = request.params;
             const { scm } = pipelineFactory;
 
-            return Promise.all([pipelineFactory.get(id), userFactory.get({ username, scmContext })])
-                .then(([pipeline, user]) => {
-                    if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
-                    }
+            const pipeline = await pipelineFactory.get(id);
 
-                    return (
-                        user
-                            .getPermissions(pipeline.scmUri)
-                            // check if user has push access
-                            .then(permissions => {
-                                if (!permissions.push) {
-                                    throw boom.forbidden(
-                                        `User ${username} does not have push permission for this repo`
-                                    );
-                                }
-                            })
-                    );
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
+
+            const user = await userFactory.get({ username, scmContext });
+
+            await getUserPermissions({ user, scmUri: pipeline.scmUri, level: 'push' });
+
+            const pipelines = await pipelineFactory.list({
+                params: {
+                    configPipelineId: id
+                }
+            });
+
+            await Promise.all(
+                pipelines.map(async p => {
+                    const pipelineToken = await p.token;
+                    const pipelineUsername = await p.admin;
+                    const pipelineScmContext = p.scmContext;
+                    const sha = await scm.getCommitSha({
+                        scmContext: pipelineScmContext,
+                        scmUri: p.scmUri,
+                        token: pipelineToken
+                    });
+
+                    await eventFactory.create({
+                        pipelineId: p.id,
+                        sha,
+                        username: pipelineUsername,
+                        scmContext: pipelineScmContext,
+                        startFrom: '~commit',
+                        causeMessage: `Started by ${pipelineUsername}`
+                    });
                 })
-                .then(() =>
-                    pipelineFactory.list({
-                        params: {
-                            configPipelineId: id
-                        }
-                    })
-                )
-                .then(pipelines =>
-                    pipelines.map(p =>
-                        p.token
-                            .then(token =>
-                                scm.getCommitSha({
-                                    scmContext,
-                                    scmUri: p.scmUri,
-                                    token
-                                })
-                            )
-                            .then(sha =>
-                                eventFactory.create({
-                                    pipelineId: p.id,
-                                    sha,
-                                    username,
-                                    scmContext,
-                                    startFrom: '~commit',
-                                    causeMessage: `Started by ${username}`
-                                })
-                            )
-                    )
-                )
-                .then(() => h.response().code(201))
-                .catch(err => {
-                    throw err;
-                });
+            );
+
+            return h.response().code(201);
         },
         validate: {
             params: joi.object({

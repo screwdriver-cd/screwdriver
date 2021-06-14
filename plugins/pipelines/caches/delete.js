@@ -4,6 +4,7 @@ const joi = require('joi');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const api = require('./request');
+const { getUserPermissions, getScmUri } = require('../../helper');
 
 const SCHEMA_SCOPE_PIPELINE_ID = schema.models.pipeline.base.extract('id');
 const SCHEMA_SCOPE_NAME = joi
@@ -50,14 +51,13 @@ module.exports = () => ({
                 throw boom.notFound(`User ${username} does not exist`);
             }
 
-            const permissions = await user.getPermissions(pipeline.scmUri);
+            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+            const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
-            if (!permissions.admin) {
-                throw boom.forbidden(`User ${user.getFullDisplayName()} does not have permission to delete this cache`);
-            }
+            // Check the user's permission
+            await getUserPermissions({ user, scmUri });
 
             const res = await api.invoke(request);
-
             const statusCode = res.statusCode === 200 ? 204 : res.statusCode;
 
             return h.response(res).code(statusCode);

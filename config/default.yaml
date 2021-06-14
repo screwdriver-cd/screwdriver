@@ -229,8 +229,18 @@ scms: {}
 #       # gitlabHost: mygitlab.com
 #       # gitlabProtocol: https
 #       # The username and email used for checkout with gitlab
-#       # username: sd-buildbot
+#       username: sd-buildbot
 #       # email: dev-null@screwdriver.cd
+#       # read-only scm config, default false
+#       readOnly:
+#         # set true to enable read-only scm mode
+#         enabled: false
+#         # headless username
+#         username: headless-user
+#         # headless access token
+#         accessToken: headlesstoken
+#         # SCM clone type (https or ssh)
+#         cloneType: https
 webhooks:
   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
   username: sd-buildbot
@@ -331,7 +341,7 @@ redisLock:
   enabled: false
   options:
     # maximum retry limit to obtain lock
-    retryCount: 200 
+    retryCount: 200
     # the expected clock drift
     driftFactor: 0.01
     # the time in milliseconds between retry attempts

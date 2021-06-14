@@ -263,7 +263,8 @@ describe('webhooks plugin test', () => {
                 getDisplayName: sinon.stub(),
                 getChangedFiles: sinon.stub(),
                 getCommitSha: sinon.stub(),
-                getCommitRefSha: sinon.stub()
+                getCommitRefSha: sinon.stub(),
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
             }
         };
         userFactoryMock = {

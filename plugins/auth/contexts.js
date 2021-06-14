@@ -32,7 +32,8 @@ module.exports = config => ({
                     displayName: scm.getDisplayName({ scmContext }),
                     autoDeployKeyGeneration: scm.autoDeployKeyGenerationEnabled({
                         scmContext
-                    })
+                    }),
+                    readOnly: scm.getReadOnlyInfo({ scmContext }).enabled
                 };
 
                 contexts.push(context);
@@ -42,7 +43,8 @@ module.exports = config => ({
                 contexts.push({
                     context: 'guest',
                     displayName: 'Guest Access',
-                    autoDeployKeyGeneration: false
+                    autoDeployKeyGeneration: false,
+                    readOnly: false
                 });
             }
 

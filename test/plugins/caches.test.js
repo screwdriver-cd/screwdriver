@@ -100,7 +100,8 @@ describe('DELETE /pipelines/1234/caches', () => {
                 getScmContexts: sinon.stub(),
                 parseUrl: sinon.stub(),
                 decorateUrl: sinon.stub(),
-                getCommitSha: sinon.stub().resolves('sha')
+                getCommitSha: sinon.stub().resolves('sha'),
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: true })
             }
         };
         userFactoryMock = {
@@ -300,7 +301,7 @@ describe('DELETE /pipelines/1234/caches', () => {
                 assert.equal(reply.statusCode, 403);
                 const res = JSON.parse(reply.payload);
 
-                assert.equal(res.message, 'User testuser does not have permission to delete this cache');
+                assert.equal(res.message, 'User testuser does not have admin permission for this repo');
             });
         });
     });

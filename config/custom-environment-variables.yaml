@@ -320,6 +320,16 @@ scms:
   #     # if you have on-premise gitlab, you can specify that here
   #     gitlabHost: SCM_GITLAB_HOST
   #     gitlabProtocol: SCM_GITLAB_PROTOCOL
+  #     # readOnly scm config, default false
+  #     readOnly:
+  #         # set true to enable read-only scm mode
+  #         enabled: SCM_GITLAB_RO_ENABLED
+  #         # headless username
+  #         username: SCM_GITLAB_RO_USERNAME
+  #         # headless access token
+  #         accessToken: SCM_GITLAB_RO_TOKEN
+  #         # SCM clone type (https or ssh)
+  #         cloneType: SCM_GITLAB_RO_CLONE_TYPE
 webhooks:
   # Obtains the SCM token for a given user. If a user does not have a valid SCM token registered with Screwdriver, it will use this user's token instead.
   username: SCM_USERNAME
@@ -399,7 +409,7 @@ redisLock:
   enabled: REDLOCK_ENABLED
   options:
     # maximum retry limit to obtain lock
-    retryCount: REDLOCK_RETRY_COUNT 
+    retryCount: REDLOCK_RETRY_COUNT
     # the expected clock drift
     driftFactor: REDLOCK_DRIFT_FACTOR
     # the time in milliseconds between retry attempts

@@ -50,7 +50,7 @@ module.exports = () => ({
                                         .then(permissions => {
                                             if (!permissions.push) {
                                                 throw boom.forbidden(
-                                                    `User ${username} does not have push access for this repo`
+                                                    `User ${user.getFullDisplayName()} does not have push permission for this repo`
                                                 );
                                             }
                                         })

@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const dayjs = require('dayjs');
 
 /**
@@ -35,7 +36,71 @@ function validTimeRange(start, end, maxDay) {
     return dayDiff >= 0 && dayDiff <= maxDay;
 }
 
+/**
+ * Check user permissions
+ * @param  {User}       user                User
+ * @param  {String}     scmUri              Scm URI
+ * @param  {String}     [level='admin']     Permission level (e.g. 'admin', 'push')
+ * @param  {Boolean}    [isAdmin=false]     Flag if user is admin or not
+ * @return {Promise}                        Return permissions object or throws error
+ */
+async function getUserPermissions({ user, scmUri, level = 'admin', isAdmin = false }) {
+    // Check if user has push access or is a Screwdriver admin
+    const permissions = await user.getPermissions(scmUri);
+
+    if (!permissions[level] && !isAdmin) {
+        throw boom.forbidden(`User ${user.getFullDisplayName()} does not have ${level} permission for this repo`);
+    }
+
+    return permissions;
+}
+
+/**
+ * Get read only information
+ * @method getReadOnlyInfo
+ * @param  {Object} pipeline Pipeline
+ * @param  {Object} scm      Scm
+ * @return {Object}          Read only info
+ */
+function getReadOnlyInfo({ pipeline, scm }) {
+    const { enabled, username, accessToken } = scm.getReadOnlyInfo({ scmContext: pipeline.scmContext });
+
+    return {
+        readOnlyEnabled: enabled,
+        pipelineContext: pipeline.scmContext,
+        headlessUsername: username,
+        headlessAccessToken: accessToken
+    };
+}
+
+/**
+ * Return parent scm uri if pipeline is read-only scm and child pipeline;
+ * otherwise return pipeline scmUri
+ * @param  {Pipeline}   pipeline            Pipeline
+ * @param  {Factory}    pipelineFactory     Pipeline factory to fetch parent pipeline
+ * @return {Promise}                        Return scmUri string or throws error
+ */
+async function getScmUri({ pipeline, pipelineFactory }) {
+    const { scm } = pipelineFactory;
+    const { readOnlyEnabled } = getReadOnlyInfo({ pipeline, scm });
+    let { scmUri } = pipeline;
+
+    if (readOnlyEnabled && pipeline.configPipelineId) {
+        const parentPipeline = await pipelineFactory.get(pipeline.configPipelineId);
+
+        if (!parentPipeline) {
+            throw boom.notFound(`Parent pipeline ${parentPipeline.id} does not exist`);
+        }
+
+        scmUri = parentPipeline.scmUri;
+    }
+
+    return scmUri;
+}
+
 module.exports = {
     setDefaultTimeRange,
-    validTimeRange
+    validTimeRange,
+    getUserPermissions,
+    getScmUri
 };

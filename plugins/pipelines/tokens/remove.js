@@ -5,6 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const tokenIdSchema = schema.models.token.base.extract('id');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
+const { getUserPermissions, getScmUri } = require('../../helper');
 
 module.exports = () => ({
     method: 'DELETE',
@@ -19,50 +20,39 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { tokenFactory } = request.server.app;
-            const { pipelineFactory } = request.server.app;
-            const { userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { tokenFactory, pipelineFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
 
-            return Promise.all([
+            const [pipeline, user] = await Promise.all([
                 pipelineFactory.get(request.params.pipelineId),
                 userFactory.get({ username, scmContext })
-            ])
-                .then(([pipeline, user]) => {
-                    if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
-                    }
+            ]);
 
-                    if (!user) {
-                        throw boom.notFound('User does not exist');
-                    }
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
 
-                    return user
-                        .getPermissions(pipeline.scmUri)
-                        .then(permissions => {
-                            if (!permissions.admin) {
-                                throw boom.forbidden(`User ${username} is not an admin of this repo`);
-                            }
-                        })
-                        .then(() =>
-                            tokenFactory.get(request.params.tokenId).then(token => {
-                                if (!token) {
-                                    throw boom.notFound('Token does not exist');
-                                }
+            if (!user) {
+                throw boom.notFound('User does not exist');
+            }
 
-                                if (token.pipelineId !== pipeline.id) {
-                                    throw boom.forbidden('Pipeline does not own token');
-                                }
+            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+            const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
-                                return token.remove();
-                            })
-                        );
-                })
-                .then(() => h.response().code(204))
-                .catch(err => {
-                    throw err;
-                });
+            // Check the user's permission
+            await getUserPermissions({ user, scmUri });
+
+            const token = await tokenFactory.get(request.params.tokenId);
+
+            if (!token) {
+                throw boom.notFound('Token does not exist');
+            }
+
+            if (token.pipelineId !== pipeline.id) {
+                throw boom.forbidden('Pipeline does not own token');
+            }
+
+            return token.remove().then(() => h.response().code(204));
         },
         validate: {
             params: joi.object({

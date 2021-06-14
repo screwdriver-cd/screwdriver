@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
+const { getUserPermissions, getScmUri } = require('../helper');
 
 module.exports = () => ({
     method: 'POST',
@@ -19,41 +20,32 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { id } = request.params;
-            const { pipelineFactory } = request.server.app;
-            const { userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { pipelineFactory, userFactory } = request.server.app;
+            const { username, scmContext } = request.auth.credentials;
 
             // Fetch the pipeline and user models
-            return Promise.all([pipelineFactory.get(id), userFactory.get({ username, scmContext })])
-                .then(([pipeline, user]) => {
-                    if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
-                    }
-                    if (!user) {
-                        throw boom.notFound(`User ${username} does not exist`);
-                    }
+            const [pipeline, user] = await Promise.all([
+                pipelineFactory.get(id),
+                userFactory.get({ username, scmContext })
+            ]);
 
-                    // ask the user for permissions on this repo
-                    return (
-                        user
-                            .getPermissions(pipeline.scmUri)
-                            // check if user has push access
-                            .then(permissions => {
-                                if (!permissions.push) {
-                                    throw boom.forbidden(
-                                        `User ${username} does not have push permission for this repo`
-                                    );
-                                }
-                            })
-                            // user has good permissions, add or update webhooks
-                            .then(() => pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`))
-                            .then(() => h.response().code(204))
-                    );
-                })
-                .catch(err => {
-                    throw err;
-                });
+            if (!pipeline) {
+                throw boom.notFound('Pipeline does not exist');
+            }
+            if (!user) {
+                throw boom.notFound(`User ${username} does not exist`);
+            }
+
+            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+            const scmUri = await getScmUri({ pipeline, pipelineFactory });
+
+            // Check the user's permission
+            await getUserPermissions({ user, scmUri, level: 'push' });
+
+            // user has good permissions, add or update webhooks
+            await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
+
+            return h.response().code(204);
         },
         validate: {
             params: joi.object({

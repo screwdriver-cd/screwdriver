@@ -26,6 +26,7 @@ const getUserMock = user => {
     const mock = hoek.clone(user);
 
     mock.getPermissions = sinon.stub();
+    mock.getFullDisplayName = sinon.stub().returns('fullDisplayName');
 
     return mock;
 };
@@ -66,7 +67,10 @@ describe('secret plugin test', () => {
             remove: sinon.stub()
         };
         pipelineFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            scm: {
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+            }
         };
         userFactoryMock = {
             get: sinon.stub()
@@ -217,6 +221,15 @@ describe('secret plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 when the pipeline token does not have permission', () => {
+            options.auth.credentials.pipelineId = 111;
+            options.auth.credentials.scope = ['pipeline'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
