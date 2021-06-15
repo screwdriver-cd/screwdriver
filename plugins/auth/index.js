@@ -23,10 +23,71 @@ const JOI_BOOLEAN = joi
  * @param {object} request
  * @param {object} h
  */
-const validate = async function() {
+const validate = async function validate() {
     // The _decoded token signature is validated by jwt.verify so we can return true
     return { isValid: true };
 };
+
+/**
+ *
+ * @param {user} user                User data
+ * @param {object} collectionFactory Factory to interface with Collections database
+ */
+const createDefaultCollection = async function createDefaultCollection(user, collectionFactory) {
+    const collections = await collectionFactory.list({
+        params: {
+            userId: user.id,
+            type: 'default'
+        }
+    });
+
+    if (!collections[0]) {
+        const description = `The default collection for ${user.username}`;
+
+        await collectionFactory.create({
+            userId: user.id,
+            name: 'My Pipelines',
+            description,
+            type: 'default'
+        });
+    }
+};
+
+const AUTH_PLUGIN_SCHEMA = joi.object().keys({
+    jwtEnvironment: joi.string().default(''),
+    https: JOI_BOOLEAN.required(),
+    cookiePassword: joi
+        .string()
+        .min(32)
+        .required(),
+    encryptionPassword: joi
+        .string()
+        .min(32)
+        .required(),
+    hashingPassword: joi
+        .string()
+        .min(32)
+        .required(),
+    allowGuestAccess: JOI_BOOLEAN.default(false),
+    jwtPrivateKey: joi.string().required(),
+    jwtPublicKey: joi.string().required(),
+    jwtQueueServicePublicKey: joi.string().required(),
+    whitelist: joi.array().default([]),
+    admins: joi.array().default([]),
+    bell: joi.object().required(),
+    scm: joi.object().required(),
+    sessionTimeout: joi
+        .number()
+        .integer()
+        .positive()
+        .default(120),
+    oauthRedirectUri: joi.string().optional(),
+    sameSite: joi
+        .alternatives()
+        .try(JOI_BOOLEAN, joi.string())
+        .required(),
+    path: joi.string().required()
+});
 
 /**
  * Auth API Plugin
@@ -47,45 +108,7 @@ const validate = async function() {
 const authPlugin = {
     name: 'auth',
     async register(server, options) {
-        const pluginOptions = joi.attempt(
-            options,
-            joi.object().keys({
-                jwtEnvironment: joi.string().default(''),
-                https: JOI_BOOLEAN.required(),
-                cookiePassword: joi
-                    .string()
-                    .min(32)
-                    .required(),
-                encryptionPassword: joi
-                    .string()
-                    .min(32)
-                    .required(),
-                hashingPassword: joi
-                    .string()
-                    .min(32)
-                    .required(),
-                allowGuestAccess: JOI_BOOLEAN.default(false),
-                jwtPrivateKey: joi.string().required(),
-                jwtPublicKey: joi.string().required(),
-                jwtQueueServicePublicKey: joi.string().required(),
-                whitelist: joi.array().default([]),
-                admins: joi.array().default([]),
-                bell: joi.object().required(),
-                scm: joi.object().required(),
-                sessionTimeout: joi
-                    .number()
-                    .integer()
-                    .positive()
-                    .default(120),
-                oauthRedirectUri: joi.string().optional(),
-                sameSite: joi
-                    .alternatives()
-                    .try(JOI_BOOLEAN, joi.string())
-                    .required(),
-                path: joi.string().required()
-            }),
-            'Invalid config for plugin-auth'
-        );
+        const pluginOptions = joi.attempt(options, AUTH_PLUGIN_SCHEMA, 'Invalid config for plugin-auth');
 
         /**
          * Generates a profile for storage in cookie and jwt
@@ -175,11 +198,7 @@ const authPlugin = {
             validate: async (request, tokenValue) => {
                 // Token is an API token
                 try {
-                    const { tokenFactory } = request.server.app;
-                    const { userFactory } = request.server.app;
-                    const { pipelineFactory } = request.server.app;
-                    const { collectionFactory } = request.server.app;
-
+                    const { tokenFactory, userFactory, pipelineFactory, collectionFactory } = request.server.app;
                     const token = await tokenFactory.get({ value: tokenValue });
 
                     if (!token) {
@@ -195,23 +214,7 @@ const authPlugin = {
                             return { isValid: false, credentials: {} };
                         }
 
-                        const description = `The default collection for ${user.username}`;
-
-                        const collections = await collectionFactory.list({
-                            params: {
-                                userId: user.id,
-                                type: 'default'
-                            }
-                        });
-
-                        if (!collections[0]) {
-                            await collectionFactory.create({
-                                userId: user.id,
-                                name: 'My Pipelines',
-                                description,
-                                type: 'default'
-                            });
-                        }
+                        createDefaultCollection(user, collectionFactory);
 
                         profile = {
                             username: user.username,

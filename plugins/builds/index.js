@@ -1047,7 +1047,7 @@ const buildsPlugin = {
                 if (isCurrentPipeline) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
-                            const isExternal = pipelineJoinData[pid].jobs[nextJobName].isExternal;
+                            const { isExternal } = pipelineJoinData[pid].jobs[nextJobName];
 
                             triggerCurrentPipelineAsExternal = triggerCurrentPipelineAsExternal || isExternal;
                             if (!isExternal) {

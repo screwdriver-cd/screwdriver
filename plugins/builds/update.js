@@ -8,7 +8,8 @@ const idSchema = schema.models.job.base.extract('id');
 const { getScmUri, getUserPermissions } = require('../helper');
 
 /**
- * Determine if this build is FIXED build or not.
+ * Identify whether this build resulted in a previously failed job to become successful.
+ *
  * @method isFixedBuild
  * @param  build         Build Object
  * @param  jobFactory    Job Factory instance
@@ -22,13 +23,7 @@ async function isFixedBuild(build, jobFactory) {
     const failureBuild = await job.getLatestBuild({ status: 'FAILURE' });
     const successBuild = await job.getLatestBuild({ status: 'SUCCESS' });
 
-    if (!failureBuild) {
-        return false;
-    }
-    if (failureBuild && !successBuild) {
-        return true;
-    }
-    if (failureBuild.id > successBuild.id) {
+    if ((failureBuild && !successBuild) || failureBuild.id > successBuild.id) {
         return true;
     }
 
@@ -49,6 +44,118 @@ async function stopFrozenBuild(build, previousStatus) {
     return build.stopFrozen(previousStatus);
 }
 
+/**
+ * Updates execution details for init step
+ * @method stopFrozenBuild
+ * @param  {Object} build       Build Object
+ * @param  {Object} app         Hapi app Object
+ */
+async function updateInitStep(build, app) {
+    return app.stepFactory.get({ buildId: build.id, name: 'sd-setup-init' }).then(step => {
+        // If there is no init step, do nothing
+        if (!step) {
+            return null;
+        }
+
+        step.endTime = build.startTime || new Date().toISOString();
+        step.code = 0;
+
+        return step.update();
+    });
+}
+
+/**
+ * Validate if build status can be updated
+ * @method validateBuildStatus
+ * @param  {String} id            Build Id
+ * @param  {Object} buildFactory  Build factory object to quey build store
+ */
+async function getBuildToUpdate(id, buildFactory) {
+    const build = buildFactory.get(id);
+
+    if (!build) {
+        throw boom.notFound(`Build ${id} does not exist`);
+    }
+
+    // Check build status
+    if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE', 'FROZEN'].includes(build.status)) {
+        throw boom.forbidden('Can only update RUNNING, QUEUED, BLOCKED, FROZEN, or UNSTABLE builds');
+    }
+
+    return build;
+}
+
+/**
+ *
+ * @param  {Object} build Build object
+ * @param  {Object} request hapi request object
+ * @throws {Error}  boom.badRequest on validation error
+ */
+async function validateUserPermission(build, request) {
+    const { jobFactory, userFactory, bannerFactory } = request.server.app;
+    const { username, scmContext } = request.auth.credentials;
+
+    const { status: desiredStatus } = request.payload;
+
+    const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+    // Check if Screwdriver admin
+    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+
+    // Check desired status
+    if (adminDetails.isAdmin) {
+        if (desiredStatus !== 'ABORTED' && desiredStatus !== 'FAILURE') {
+            throw boom.badRequest('Admin can only update builds to ABORTED or FAILURE');
+        }
+    } else if (desiredStatus !== 'ABORTED') {
+        throw boom.badRequest('User can only update builds to ABORTED');
+    }
+
+    // Check permission against the pipeline
+    // Fetch the job and user models
+    const [job, user] = await Promise.all([
+        jobFactory.get(build.jobId),
+        userFactory.get({ username, scmContext })
+    ]);
+
+    const pipeline = await job.pipeline;
+
+    // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+    const scmUri = await getScmUri({ pipeline, pipelineFactory });
+
+    // Check the user's permission
+    await getUserPermissions({ user, scmUri, level: 'push', isAdmin: adminDetails.isAdmin });
+}
+
+/**
+ *
+ * @param {Object} build         Build Model
+ * @param {String} desiredStatus New Status
+ * @param {String} statusMessage User passed status message
+ * @param {String} username      User initiating status build update
+ */
+function updateBuildStatus(build, desiredStatus, statusMessage, username) {
+    // UNSTABLE -> SUCCESS needs to update meta and endtime.
+    // However, the status itself cannot be updated to SUCCESS
+    const currentStatus = build.status;
+
+    if (currentStatus !== 'UNSTABLE') {
+        build.status = desiredStatus;
+        if (build.status === 'ABORTED') {
+            if (currentStatus === 'FROZEN') {
+                build.statusMessage = `Frozen build aborted by ${username}`;
+            } else {
+                build.statusMessage = `Aborted by ${username}`;
+            }
+        } else if (build.status === 'FAILURE' || build.status === 'SUCCESS') {
+            if (statusMessage) {
+                build.statusMessage = statusMessage;
+            }
+        } else {
+            build.statusMessage = statusMessage || null;
+        }
+    }
+}
+
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -62,16 +169,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            // eslint-disable-next-line max-len
-            const {
-                buildFactory,
-                eventFactory,
-                jobFactory,
-                userFactory,
-                stepFactory,
-                bannerFactory,
-                pipelineFactory
-            } = request.server.app;
+            const { buildFactory, eventFactory, jobFactory, pipelineFactory } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
@@ -82,49 +180,11 @@ module.exports = () => ({
                 return boom.forbidden(`Credential only valid for ${username}`);
             }
 
-            return buildFactory
-                .get(id)
-                .then(async build => {
-                    if (!build) {
-                        throw boom.notFound(`Build ${id} does not exist`);
-                    }
-
-                    // Check build status
-                    if (!['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE', 'FROZEN'].includes(build.status)) {
-                        throw boom.forbidden('Can only update RUNNING, QUEUED, BLOCKED, FROZEN, or UNSTABLE builds');
-                    }
-
+            return getBuildToUpdate(id, buildFactory)
+                .then(build => {
                     // Users can only mark a running or queued build as aborted
                     if (!isBuild) {
-                        const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
-                        // Check if Screwdriver admin
-                        const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
-                            username,
-                            scmDisplayName
-                        );
-
-                        // Check desired status
-                        if (adminDetails.isAdmin) {
-                            if (desiredStatus !== 'ABORTED' && desiredStatus !== 'FAILURE') {
-                                throw boom.badRequest('Admin can only update builds to ABORTED or FAILURE');
-                            }
-                        } else if (desiredStatus !== 'ABORTED') {
-                            throw boom.badRequest('User can only update builds to ABORTED');
-                        }
-
-                        // Fetch the job and user models
-                        const [job, user] = await Promise.all([
-                            jobFactory.get(build.jobId),
-                            userFactory.get({ username, scmContext })
-                        ]);
-
-                        const pipeline = await job.pipeline;
-
-                        // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
-                        const scmUri = await getScmUri({ pipeline, pipelineFactory });
-
-                        // Check the user's permission
-                        await getUserPermissions({ user, scmUri, level: 'push', isAdmin: adminDetails.isAdmin });
+                        validateUserPermission(build, request);
                     }
 
                     return eventFactory.get(build.eventId).then(event => ({ build, event }));
@@ -147,55 +207,21 @@ module.exports = () => ({
                         return Promise.all([build.update(), event.update()]);
                     }
 
-                    switch (desiredStatus) {
-                        case 'SUCCESS':
-                        case 'FAILURE':
-                        case 'ABORTED':
-                            build.meta = request.payload.meta || {};
-                            event.meta = { ...event.meta, ...build.meta };
-                            build.endTime = new Date().toISOString();
-                            break;
-                        case 'RUNNING':
-                            build.startTime = new Date().toISOString();
-                            break;
-                        // do not update meta or endTime for these cases
-                        case 'UNSTABLE':
-                            break;
-                        case 'BLOCKED':
-                            if (!hoek.reach(build, 'stats.blockedStartTime')) {
-                                build.stats = Object.assign(build.stats, {
-                                    blockedStartTime: new Date().toISOString()
-                                });
-                            }
-
-                            break;
-                        case 'FROZEN':
-                        case 'COLLAPSED':
-                            break;
-                        default:
-                            throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
+                    if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
+                        build.meta = request.payload.meta || {};
+                        event.meta = { ...event.meta, ...build.meta };
+                        build.endTime = new Date().toISOString();
+                    } else if (desiredStatus === 'RUNNING') {
+                        build.startTime = new Date().toISOString();
+                    } else if (desiredStatus === 'BLOCKED' && !hoek.reach(build, 'stats.blockedStartTime')) {
+                        build.stats = Object.assign(build.stats, {
+                            blockedStartTime: new Date().toISOString()
+                        });
                     }
 
                     const currentStatus = build.status;
-                    // UNSTABLE -> SUCCESS needs to update meta and endtime.
-                    // However, the status itself cannot be updated to SUCCESS
 
-                    if (currentStatus !== 'UNSTABLE') {
-                        build.status = desiredStatus;
-                        if (build.status === 'ABORTED') {
-                            if (currentStatus === 'FROZEN') {
-                                build.statusMessage = `Frozen build aborted by ${username}`;
-                            } else {
-                                build.statusMessage = `Aborted by ${username}`;
-                            }
-                        } else if (build.status === 'FAILURE' || build.status === 'SUCCESS') {
-                            if (statusMessage) {
-                                build.statusMessage = statusMessage;
-                            }
-                        } else {
-                            build.statusMessage = statusMessage || null;
-                        }
-                    }
+                    updateBuildStatus(build, desiredStatus, statusMessage, username);
 
                     // If status got updated to RUNNING or COLLAPSED, update init endTime and code
                     if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
