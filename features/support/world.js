@@ -66,7 +66,7 @@ function ensurePipelineExists(config) {
 
                 const str = response.body.message;
 
-                this.pipelineId = str.split(': ')[1];
+                [, this.pipelineId] = str.split(': ');
 
                 if (!shouldNotDeletePipeline) {
                     // If pipeline already exists, deletes and re-creates
