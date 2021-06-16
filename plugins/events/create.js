@@ -115,6 +115,8 @@ module.exports = () => ({
                 userFactory.get({ username, scmContext })
             ]);
 
+            payload.scmContext = pipeline.scmContext;
+
             // In pipeline scope, check if the token is allowed to the pipeline
             if (!isValidToken(pipeline.id, request.auth.credentials)) {
                 throw boom.unauthorized('Token does not have permission to this pipeline');
@@ -135,7 +137,7 @@ module.exports = () => ({
             const token = await user.unsealToken();
             const scmConfig = {
                 prNum,
-                scmContext,
+                scmContext: pipeline.scmContext,
                 scmUri: pipeline.scmUri,
                 token
             };
