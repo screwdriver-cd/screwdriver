@@ -51,17 +51,16 @@ async function stopFrozenBuild(build, previousStatus) {
  * @param  {Object} app         Hapi app Object
  */
 async function updateInitStep(build, app) {
-    return app.stepFactory.get({ buildId: build.id, name: 'sd-setup-init' }).then(step => {
-        // If there is no init step, do nothing
-        if (!step) {
-            return null;
-        }
+    const step = await app.stepFactory.get({ buildId: build.id, name: 'sd-setup-init' });
+    // If there is no init step, do nothing
+    if (!step) {
+        return null;
+    }
 
-        step.endTime = build.startTime || new Date().toISOString();
-        step.code = 0;
+    step.endTime = build.startTime || new Date().toISOString();
+    step.code = 0;
 
-        return step.update();
-    });
+    return step.update();
 }
 
 /**
@@ -71,7 +70,7 @@ async function updateInitStep(build, app) {
  * @param  {Object} buildFactory  Build factory object to quey build store
  */
 async function getBuildToUpdate(id, buildFactory) {
-    const build = buildFactory.get(id);
+    const build = await buildFactory.get(id);
 
     if (!build) {
         throw boom.notFound(`Build ${id} does not exist`);
@@ -89,7 +88,7 @@ async function getBuildToUpdate(id, buildFactory) {
  *
  * @param  {Object} build Build object
  * @param  {Object} request hapi request object
- * @throws {Error}  boom.badRequest on validation error
+ * @throws boom.badRequest on validation error
  */
 async function validateUserPermission(build, request) {
     const { jobFactory, userFactory, bannerFactory } = request.server.app;
@@ -180,125 +179,80 @@ module.exports = () => ({
                 return boom.forbidden(`Credential only valid for ${username}`);
             }
 
-            return getBuildToUpdate(id, buildFactory)
-                .then(build => {
-                    // Users can only mark a running or queued build as aborted
-                    if (!isBuild) {
-                        validateUserPermission(build, request);
-                    }
+            const build = await getBuildToUpdate(id, buildFactory);
 
-                    return eventFactory.get(build.eventId).then(event => ({ build, event }));
-                })
-                .then(async ({ build, event }) => {
-                    // We can't merge from executor-k8s/k8s-vm side because executor doesn't have build object
-                    // So we do merge logic here instead
+            if (!isBuild) {
+                await validateUserPermission(build, request);
+            }
+            const event = await eventFactory.get(build.eventId);
 
-                    if (stats) {
-                        // need to do this so the field is dirty
-                        build.stats = Object.assign(build.stats, stats);
-                    }
+            if (stats) {
+                // need to do this so the field is dirty
+                build.stats = Object.assign(build.stats, stats);
+            }
 
-                    // Short circuit for cases that don't need to update status
-                    if (!desiredStatus) {
-                        if (statusMessage) {
-                            build.statusMessage = statusMessage;
-                        }
+            // Short circuit for cases that don't need to update status
+            if (!desiredStatus) {
+                build.statusMessage = statusMessage || build.statusMessage;
+            } else if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
+                build.meta = request.payload.meta || {};
+                event.meta = { ...event.meta, ...build.meta };
+                build.endTime = new Date().toISOString();
+            } else if (desiredStatus === 'RUNNING') {
+                build.startTime = new Date().toISOString();
+            } else if (desiredStatus === 'BLOCKED' && !hoek.reach(build, 'stats.blockedStartTime')) {
+                build.stats = Object.assign(build.stats, {
+                    blockedStartTime: new Date().toISOString()
+                });
+            } else {
+                throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
+            }
 
-                        return Promise.all([build.update(), event.update()]);
-                    }
+            const currentStatus = build.status;
+            let isFixed = Promise.resolve(false);
+            let stopFrozen = null;
 
-                    if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
-                        build.meta = request.payload.meta || {};
-                        event.meta = { ...event.meta, ...build.meta };
-                        build.endTime = new Date().toISOString();
-                    } else if (desiredStatus === 'RUNNING') {
-                        build.startTime = new Date().toISOString();
-                    } else if (desiredStatus === 'BLOCKED' && !hoek.reach(build, 'stats.blockedStartTime')) {
-                        build.stats = Object.assign(build.stats, {
-                            blockedStartTime: new Date().toISOString()
-                        });
-                    }
+            updateBuildStatus(build, desiredStatus, statusMessage, username);
 
-                    const currentStatus = build.status;
+            // If status got updated to RUNNING or COLLAPSED, update init endTime and code
+            if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
+                await updateInitStep(build, request.server.app);
+            } else {
+                stopFrozen = stopFrozenBuild(build, currentStatus);
+                isFixed = isFixedBuild(build, jobFactory);
+            }
 
-                    updateBuildStatus(build, desiredStatus, statusMessage, username);
+            const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
 
-                    // If status got updated to RUNNING or COLLAPSED, update init endTime and code
-                    if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
-                        const step = await stepFactory.get({ buildId: id, name: 'sd-setup-init' });
+            const job = await newBuild.job;
+            const pipeline = await job.pipeline;
 
-                        // If there is no init step, do nothing
-                        if (step) {
-                            step.endTime = build.startTime || new Date().toISOString();
-                            step.code = 0;
+            await request.server.events.emit('build_status', {
+                settings: job.permutations[0].settings,
+                status: newBuild.status,
+                event: newEvent.toJson(),
+                pipeline: pipeline.toJson(),
+                jobName: job.name,
+                build: newBuild.toJson(),
+                buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`,
+                isFixed: await isFixed
+            });
 
-                            await step.update();
-                        }
+            const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
-                        return Promise.all([build.update(), event.update()]);
-                    }
+            // Guard against triggering non-successful or unstable builds
+            // Don't further trigger pipeline if intented to skip further jobs
 
-                    // Only trigger next build on success
-                    return Promise.all([
-                        build.update(),
-                        event.update(),
-                        isFixedBuild(build, jobFactory),
-                        stopFrozenBuild(build, currentStatus)
-                    ]);
-                })
-                .then(([newBuild, newEvent, isFixed]) =>
-                    newBuild.job.then(job =>
-                        job.pipeline
-                            .then(async pipeline => {
-                                await request.server.events.emit('build_status', {
-                                    settings: job.permutations[0].settings,
-                                    status: newBuild.status,
-                                    event: newEvent.toJson(),
-                                    pipeline: pipeline.toJson(),
-                                    jobName: job.name,
-                                    build: newBuild.toJson(),
-                                    buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`,
-                                    isFixed: isFixed || false
-                                });
+            if (newBuild.status !== 'SUCCESS' || skipFurther) {
+                // Check for failed jobs and remove any child jobs in created state
+                if (newBuild.status === 'FAILURE') {
+                    await removeJoinBuilds({ pipeline, job, build: newBuild }, request.server.app);
+                }
+            } else {
+                await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext }, request.server.app);
+            }
 
-                                const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
-
-                                // Guard against triggering non-successful or unstable builds
-                                // Don't further trigger pipeline if intented to skip further jobs
-                                if (newBuild.status !== 'SUCCESS' || skipFurther) {
-                                    // Check for failed jobs and remove any child jobs in created state
-                                    if (newBuild.status === 'FAILURE') {
-                                        await removeJoinBuilds(
-                                            {
-                                                pipeline,
-                                                job,
-                                                build: newBuild
-                                            },
-                                            request.server.app
-                                        );
-                                    }
-
-                                    return h.response(await newBuild.toJsonWithSteps()).code(200);
-                                }
-
-                                return triggerNextJobs(
-                                    {
-                                        pipeline,
-                                        job,
-                                        build: newBuild,
-                                        username,
-                                        scmContext
-                                    },
-                                    request.server.app
-                                ).then(async () => {
-                                    return h.response(await newBuild.toJsonWithSteps()).code(200);
-                                });
-                            })
-                            .catch(err => {
-                                throw err;
-                            })
-                    )
-                );
+            return h.response(await newBuild.toJsonWithSteps()).code(200);
         },
         validate: {
             params: joi.object({

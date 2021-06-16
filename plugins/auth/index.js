@@ -214,7 +214,7 @@ const authPlugin = {
                             return { isValid: false, credentials: {} };
                         }
 
-                        createDefaultCollection(user, collectionFactory);
+                        await createDefaultCollection(user, collectionFactory);
 
                         profile = {
                             username: user.username,

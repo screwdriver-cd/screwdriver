@@ -160,7 +160,7 @@ function ensurePipelineExists(config) {
                 }
 
                 return response;
-                /* eslint-disable complexity */
+                /* eslint-enable complexity */
             })
     );
 }
