@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
+const logger = require('screwdriver-logger');
 const { getScmUri } = require('../helper');
 
 module.exports = () => ({
@@ -74,10 +75,15 @@ module.exports = () => ({
                 await pipeline.update();
             }
 
-            // user has good permissions, sync the pipeline
-            await pipeline.sync();
+            try {
+                // user has good permissions, sync the pipeline
+                await pipeline.sync();
 
-            return h.response().code(204);
+                return h.response().code(204);
+            } catch (err) {
+                logger.error(`Failed to sync pipeline:${pipeline.id}`, err);
+                throw err;
+            }
         },
         validate: {
             params: joi.object({
