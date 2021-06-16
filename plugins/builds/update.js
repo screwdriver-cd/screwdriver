@@ -53,6 +53,7 @@ async function stopFrozenBuild(build, previousStatus) {
 async function updateInitStep(build, app) {
     const step = await app.stepFactory.get({ buildId: build.id, name: 'sd-setup-init' });
     // If there is no init step, do nothing
+
     if (!step) {
         return null;
     }
