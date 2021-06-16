@@ -1829,7 +1829,7 @@ describe.only('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             }));
 
-        it.only('returns 200 and updates settings only', () => {
+        it('returns 200 and updates settings only', () => {
             const expectedSetting = {
                 metricsDowntimeJobs: [123, 456],
                 public: true

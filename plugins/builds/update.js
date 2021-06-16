@@ -92,7 +92,7 @@ async function getBuildToUpdate(id, buildFactory) {
  * @throws boom.badRequest on validation error
  */
 async function validateUserPermission(build, request) {
-    const { jobFactory, userFactory, bannerFactory } = request.server.app;
+    const { jobFactory, userFactory, bannerFactory, pipelineFactory } = request.server.app;
     const { username, scmContext } = request.auth.credentials;
 
     const { status: desiredStatus } = request.payload;
@@ -112,10 +112,7 @@ async function validateUserPermission(build, request) {
 
     // Check permission against the pipeline
     // Fetch the job and user models
-    const [job, user] = await Promise.all([
-        jobFactory.get(build.jobId),
-        userFactory.get({ username, scmContext })
-    ]);
+    const [job, user] = await Promise.all([jobFactory.get(build.jobId), userFactory.get({ username, scmContext })]);
 
     const pipeline = await job.pipeline;
 
@@ -169,7 +166,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { buildFactory, eventFactory, jobFactory, pipelineFactory } = request.server.app;
+            const { buildFactory, eventFactory, jobFactory } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
