@@ -105,7 +105,7 @@ class LockMockObj {
 
 const lockMock = new LockMockObj();
 
-describe.only('build plugin test', () => {
+describe('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
     let userFactoryMock;

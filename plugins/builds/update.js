@@ -205,7 +205,7 @@ module.exports = () => ({
                 build.stats = Object.assign(build.stats, {
                     blockedStartTime: new Date().toISOString()
                 });
-            } else {
+            } else if (desiredStatus === 'QUEUED') {
                 throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
             }
 

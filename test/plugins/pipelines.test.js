@@ -161,7 +161,7 @@ const badgeMock = {
     makeBadge: format => `${format.label}: ${format.message}`
 };
 
-describe('pipeline plugin test', () => {
+describe.only('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let collectionFactoryMock;
@@ -1829,7 +1829,7 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
             }));
 
-        it('returns 200 and updates settings only', () => {
+        it.only('returns 200 and updates settings only', () => {
             const expectedSetting = {
                 metricsDowntimeJobs: [123, 456],
                 public: true
