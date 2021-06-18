@@ -203,7 +203,8 @@ describe('pipeline plugin test', () => {
                 decorateUrl: sinon.stub(),
                 getCommitSha: sinon.stub().resolves('sha'),
                 addDeployKey: sinon.stub(),
-                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false }),
+                getDisplayName: sinon.stub().returns()
             }
         };
         userFactoryMock = {
@@ -539,13 +540,27 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}', () => {
         const id = 123;
+        const privatePipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: true
+            }
+        };
         let options;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/pipelines/${id}`
+                url: `/pipelines/${id}`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
             };
+            pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
         it('exposes a route for getting a pipeline', () => {
@@ -561,7 +576,7 @@ describe('pipeline plugin test', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: 'Pipeline does not exist'
+                message: 'Pipeline 123 does not exist'
             };
 
             pipelineFactoryMock.get.withArgs(id).resolves(null);
@@ -577,6 +592,27 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 403 when user does not have permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User foo does not have pull access for this pipeline'
+            };
+            const userMock = {
+                username: 'foo',
+                getPermissions: sinon.stub().resolves({ pull: false })
+            };
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            pipelineFactoryMock.get.resolves(decoratePipelineMock(privatePipelineMock));
+            userFactoryMock.get.resolves(userMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
             });
         });
     });
@@ -1955,6 +1991,15 @@ describe('pipeline plugin test', () => {
 
         it('returns 403 when the user does not have admin permissions on the old repo', () => {
             userMock.getPermissions.withArgs(oldScmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 when get permission throws error', () => {
+            userMock.getPermissions.withArgs(oldScmUri).rejects(new Error('Failed'));
 
             return server.inject(options).then(reply => {
                 assert.notCalled(updatedPipelineMock.addWebhooks);
