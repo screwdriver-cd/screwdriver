@@ -71,11 +71,17 @@ module.exports = () => ({
             }
 
             // get the user permissions for the repo
-            const oldPermissions = await getPermissionsForOldPipeline({
-                scmContexts,
-                pipeline: oldPipeline,
-                user
-            });
+            let oldPermissions;
+
+            try {
+                oldPermissions = await getPermissionsForOldPipeline({
+                    scmContexts,
+                    pipeline: oldPipeline,
+                    user
+                });
+            } catch (err) {
+                throw boom.forbidden(`User ${user.getFullDisplayName()} does not have admin permission for this repo`);
+            }
 
             if (checkoutUrl || rootDir) {
                 const formattedCheckoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);

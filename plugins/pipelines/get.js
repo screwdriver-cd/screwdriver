@@ -19,10 +19,10 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const factory = request.server.app.pipelineFactory;
+            const { canAccessPipeline } = request.server.plugins.pipelines;
+            const { credentials } = request.auth;
 
-            return factory
-                .get(request.params.id)
+            return canAccessPipeline(credentials, request.params.id, 'pull', request.server.app)
                 .then(pipeline => {
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
