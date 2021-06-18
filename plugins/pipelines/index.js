@@ -91,7 +91,7 @@ const pipelinesPlugin = {
 
         /**
          * Throws error if a credential does not have access to a pipeline
-         * If credential has access, resolves to true
+         * If credential has access, returns pipeline
          * @method canAccessPipeline
          * @param {Object}  credentials              Credential object from Hapi
          * @param {String}  credentials.username     Username of the person logged in (or build ID)
@@ -100,23 +100,23 @@ const pipelinesPlugin = {
          * @param {String}  pipelineId               Target pipeline ID
          * @param {String}  permission               Required permission level
          * @param {String}  app                      Server app object
-         * @return {Promise}
+         * @return {Object} pipeline
          */
         server.expose('canAccessPipeline', (credentials, pipelineId, permission, app) => {
             const { username, scmContext, scope } = credentials;
             const { userFactory, pipelineFactory } = app;
-
-            if (credentials.scope.includes('admin')) {
-                return true;
-            }
 
             return pipelineFactory.get(pipelineId).then(pipeline => {
                 if (!pipeline) {
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
+                if (credentials.scope.includes('admin')) {
+                    return pipeline;
+                }
+
                 if (!pipeline.scmRepo || !pipeline.scmRepo.private || (pipeline.settings && pipeline.settings.public)) {
-                    return true;
+                    return pipeline;
                 }
 
                 if (scope.includes('user')) {
@@ -134,7 +134,7 @@ const pipelinesPlugin = {
                                     );
                                 }
 
-                                return true;
+                                return pipeline;
                             })
                             .catch(() => {
                                 const scmDisplayName = pipelineFactory.scm.getDisplayName({ scmContext });
@@ -144,7 +144,7 @@ const pipelinesPlugin = {
                                 );
 
                                 if (adminDetails.isAdmin) {
-                                    return true;
+                                    return pipeline;
                                 }
 
                                 throw boom.forbidden(
@@ -161,7 +161,7 @@ const pipelinesPlugin = {
                     throw boom.forbidden('Token does not have permission for this pipeline');
                 }
 
-                return true;
+                return pipeline;
             });
         });
 

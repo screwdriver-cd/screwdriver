@@ -43,7 +43,6 @@ module.exports = () => ({
             await Promise.all(
                 pipelines.map(async p => {
                     const pipelineToken = await p.token;
-                    const pipelineUsername = await p.admin;
                     const pipelineScmContext = p.scmContext;
                     const sha = await scm.getCommitSha({
                         scmContext: pipelineScmContext,
@@ -54,10 +53,10 @@ module.exports = () => ({
                     await eventFactory.create({
                         pipelineId: p.id,
                         sha,
-                        username: pipelineUsername,
+                        username,
                         scmContext: pipelineScmContext,
                         startFrom: '~commit',
-                        causeMessage: `Started by ${pipelineUsername}`
+                        causeMessage: `Started by ${username}`
                     });
                 })
             );
