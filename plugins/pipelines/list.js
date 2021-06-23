@@ -80,8 +80,6 @@ module.exports = () => ({
                     );
 
                     if (scope.includes('user') && adminDetails.isAdmin) {
-                        console.log('here');
-
                         return allPipelines;
                     }
 

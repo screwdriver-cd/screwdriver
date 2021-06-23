@@ -388,7 +388,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, [testPrivatePipelines[2]]);
+                assert.deepEqual(reply.result, [testPrivatePipelines[1], testPrivatePipelines[2]]);
             });
         });
 
