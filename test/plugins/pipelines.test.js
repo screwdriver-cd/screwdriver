@@ -8,6 +8,7 @@ const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');
+const testPrivatePipelines = require('./data/privatePipelines.json');
 const testCollection = require('./data/collection.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
@@ -323,8 +324,18 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: '/pipelines?page=1&count=3'
+                url: '/pipelines?page=1&count=3',
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
             };
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            pipelineFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
             pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com', 'gitlab:mygitlab']);
         });
 
@@ -357,6 +368,49 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
+        it('returns 200 and filter private pipelines', () => {
+            pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com']);
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'github:github.com'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(testPrivatePipelines));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, [testPrivatePipelines[1], testPrivatePipelines[2]]);
+            });
+        });
+
+        it('returns 200 and does not filter private pipelines for cluster admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com']);
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'github:github.com'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(testPrivatePipelines));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPrivatePipelines);
             });
         });
 
