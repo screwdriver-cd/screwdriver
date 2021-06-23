@@ -68,12 +68,15 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
 /**
  * Delete a build
  * @method delBuild
- * @param  {Object}   buildToDel                  build object to delete
+ * @param  {Object}  buildConfig  build object to delete
+ * @param  {Object}  buildFactory build factory
  * @return {Promise}
  * */
-async function deleteBuild(buildToDel) {
-    if (buildToDel && buildToDel.status === 'CREATED') {
-        return buildToDel.remove();
+async function deleteBuild(buildConfig, buildFactory) {
+    const buildToDelete = await buildFactory.get(buildConfig);
+
+    if (buildToDelete && buildToDelete.status === 'CREATED') {
+        return buildToDelete.remove();
     }
 
     return null;
@@ -705,6 +708,7 @@ const buildsPlugin = {
 
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
             const buildConfig = {};
+            const deletePromises = [];
 
             for (const pid of Object.keys(pipelineJoinData)) {
                 const isExternal = +pid !== current.pipeline.id;
@@ -720,9 +724,7 @@ const buildsPlugin = {
                             buildConfig.eventId = pipelineJoinData[pid].event.id;
                         }
 
-                        const buildToDelete = await buildFactory.get(buildConfig);
-
-                        await deleteBuild(buildToDelete);
+                        deletePromises.push(deleteBuild(buildConfig, buildFactory));
                     } catch (err) {
                         logger.error(
                             `Error in removeJoinBuilds:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
@@ -731,8 +733,7 @@ const buildsPlugin = {
                     }
                 }
             }
-
-            return null;
+            await Promise.all(deletePromises);
         });
 
         /**
@@ -1047,7 +1048,7 @@ const buildsPlugin = {
                 if (isCurrentPipeline) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
                         try {
-                            const isExternal = pipelineJoinData[pid].jobs[nextJobName].isExternal;
+                            const { isExternal } = pipelineJoinData[pid].jobs[nextJobName];
 
                             triggerCurrentPipelineAsExternal = triggerCurrentPipelineAsExternal || isExternal;
                             if (!isExternal) {
