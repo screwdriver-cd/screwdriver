@@ -4,7 +4,7 @@ const joi = require('joi');
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
-const { getScmUri } = require('../helper');
+const { getReadOnlyInfo } = require('../helper');
 
 const ANNOT_NS = 'screwdriver.cd';
 const ANNOT_CHAIN_PR = `${ANNOT_NS}/chainPR`;
@@ -80,11 +80,16 @@ function determineStartFrom(action, type, targetBranch, pipelineBranch, releaseN
  * @return {Promise}                        Updates the pipeline admins and throws an error if not an admin
  */
 async function updateAdmins(userFactory, username, scmContext, pipeline, pipelineFactory) {
+    const { readOnlyEnabled } = getReadOnlyInfo({ scm: pipelineFactory.scm, scmContext });
+
+    // Skip update admins if read-only pipeline
+    if (readOnlyEnabled) {
+        return Promise.resolve();
+    }
+
     try {
-        // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
-        const scmUri = await getScmUri({ pipeline, pipelineFactory });
         const user = await userFactory.get({ username, scmContext });
-        const userPermissions = await user.getPermissions(scmUri);
+        const userPermissions = await user.getPermissions(pipeline.scmUri);
         const newAdmins = pipeline.admins;
 
         // Delete user from admin list if bad permissions
@@ -643,8 +648,10 @@ async function pullRequestSync(options, request, h) {
 }
 
 /**
- * Obtains the SCM token for a given user. If a user does not have a valid SCM token registered
- * with Screwdriver, it will use a generic user's token instead.
+ * Obtains the SCM token for a given user.
+ * If a user does not have a valid SCM token registered with Screwdriver,
+ * it will use a generic user's token instead.
+ * If pipeline is in read-only SCM, use read-only token.
  * Some SCM services have different thresholds between IP requests and token requests. This is
  * to ensure we have a token to access the SCM service without being restricted by these quotas
  * @method obtainScmToken
@@ -653,13 +660,22 @@ async function pullRequestSync(options, request, h) {
  * @param  {UserFactory}    userFactory             UserFactory object
  * @param  {String}         username                Name of the user that the SCM token is associated with
  * @param  {String}         scmContext              Scm which pipeline's repository exists in
+ * @param  {Object}         scm                     Scm
  * @return {Promise}                                Promise that resolves into a SCM token
  */
-async function obtainScmToken(pluginOptions, userFactory, username, scmContext) {
-    const genericUsername = pluginOptions.username;
+async function obtainScmToken({ pluginOptions, userFactory, username, scmContext, scm }) {
+    const { readOnlyEnabled, headlessAccessToken } = getReadOnlyInfo({ scm, scmContext });
+
+    // If pipeline is in read-only SCM, use read-only token
+    if (readOnlyEnabled && headlessAccessToken) {
+        return headlessAccessToken;
+    }
+
     const user = await userFactory.get({ username, scmContext });
 
+    // Use generic username and token
     if (!user) {
+        const genericUsername = pluginOptions.username;
         const buildBotUser = await userFactory.get({ username: genericUsername, scmContext });
 
         return buildBotUser.unsealToken();
@@ -1176,7 +1192,7 @@ const webhooksPlugin = {
                             }
                         }
 
-                        const token = await obtainScmToken(pluginOptions, userFactory, username, scmContext);
+                        const token = await obtainScmToken({ pluginOptions, userFactory, username, scmContext, scm });
 
                         if (action !== 'release' && action !== 'tag') {
                             let scmUri;

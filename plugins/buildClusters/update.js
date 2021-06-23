@@ -21,13 +21,16 @@ module.exports = () => ({
             const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
             const { name } = request.params; // name of build cluster to update
-            const { username, scmContext } = request.auth.credentials;
-            const { scmOrganizations } = request.payload;
+            const { username, scmContext: userContext } = request.auth.credentials;
+            const { payload } = request;
+            const { managedByScrewdriver, scmOrganizations } = payload;
+
+            payload.scmContext = payload.scmContext || userContext;
 
             // Check permissions
             // Must be Screwdriver admin to update Screwdriver build cluster
-            if (request.payload.managedByScrewdriver) {
-                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            if (managedByScrewdriver) {
+                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: userContext });
                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
                 if (!adminDetails.isAdmin) {
@@ -41,7 +44,7 @@ module.exports = () => ({
                     .list({
                         params: {
                             name,
-                            scmContext
+                            scmContext: userContext
                         }
                     })
                     .then(buildClusters => {
@@ -49,7 +52,9 @@ module.exports = () => ({
                             throw boom.badData('Build cluster list returned non-array.');
                         }
                         if (buildClusters.length === 0) {
-                            throw boom.notFound(`Build cluster ${name}, scmContext ${scmContext} does not exist`);
+                            throw boom.notFound(
+                                `Build cluster ${name}, scmContext ${payload.scmContext} does not exist`
+                            );
                         }
 
                         Object.assign(buildClusters[0], request.payload);
@@ -69,14 +74,14 @@ module.exports = () => ({
 
             // Must have admin permission on org(s) if updating org-specific build cluster
             return userFactory
-                .get({ username, scmContext })
+                .get({ username, scmContext: userContext })
                 .then(user =>
                     Promise.all([
                         user.unsealToken(),
                         buildClusterFactory.list({
                             params: {
                                 name,
-                                scmContext
+                                scmContext: payload.scmContext
                             }
                         })
                     ]).then(([token, buildClusters]) => {
@@ -84,7 +89,9 @@ module.exports = () => ({
                             throw boom.badData('Build cluster list returned non-array.');
                         }
                         if (buildClusters.length === 0) {
-                            throw boom.notFound(`Build cluster ${name} scmContext ${scmContext} does not exist`);
+                            throw boom.notFound(
+                                `Build cluster ${name} scmContext ${payload.scmContext} does not exist`
+                            );
                         }
 
                         // To update scmOrganizations, user need to have admin permissions on both old and new organizations
@@ -100,7 +107,7 @@ module.exports = () => ({
                                         organization,
                                         username,
                                         token,
-                                        scmContext
+                                        scmContext: payload.scmContext
                                     })
                                     .then(permissions => {
                                         if (!permissions.admin) {
@@ -113,7 +120,7 @@ module.exports = () => ({
                                     })
                             )
                         ).then(() => {
-                            Object.assign(buildCluster, request.payload);
+                            Object.assign(buildCluster, payload);
 
                             return buildCluster
                                 .update()

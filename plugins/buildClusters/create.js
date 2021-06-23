@@ -19,24 +19,16 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
             const { scm } = buildClusterFactory;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
-            const { scmOrganizations } = request.payload;
-            const payload = {
-                name: request.payload.name,
-                scmOrganizations,
-                managedByScrewdriver: request.payload.managedByScrewdriver,
-                maintainer: request.payload.maintainer,
-                description: request.payload.description,
-                isActive: request.payload.isActive,
-                weightage: request.payload.weightage,
-                scmContext
-            };
+            const { username, scmContext: userContext } = request.auth.credentials;
+            const { payload } = request;
+            const { managedByScrewdriver, name, scmOrganizations } = payload;
+
+            payload.scmContext = payload.scmContext || userContext;
 
             // Check permissions
             // Must be Screwdriver admin to add Screwdriver build cluster
-            if (payload.managedByScrewdriver) {
-                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
+            if (managedByScrewdriver) {
+                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: payload.scmContext });
                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
                 if (!adminDetails.isAdmin) {
@@ -71,13 +63,13 @@ module.exports = () => ({
             }
             // Must provide scmOrganizations if not a Screwdriver cluster
             if (scmOrganizations && scmOrganizations.length === 0) {
-                return boom.badData(`No scmOrganizations provided for build cluster ${payload.name}.`);
+                return boom.badData(`No scmOrganizations provided for build cluster ${name}.`);
             }
 
             // Must have admin permission on org(s) if adding org-specific build cluster
             return (
                 userFactory
-                    .get({ username, scmContext })
+                    .get({ username, scmContext: userContext })
                     .then(user => user.unsealToken())
                     .then(token =>
                         Promise.all(
@@ -87,7 +79,7 @@ module.exports = () => ({
                                         organization,
                                         username,
                                         token,
-                                        scmContext
+                                        scmContext: payload.scmContext
                                     })
                                     .then(permissions => {
                                         if (!permissions.admin) {
