@@ -71,6 +71,27 @@ module.exports = () => ({
 
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
+                .then(allPipelines => {
+                    const { username, scope, scmContext } = request.auth.credentials;
+                    const scmDisplayName = factory.scm.getDisplayName({ scmContext });
+                    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                        username,
+                        scmDisplayName
+                    );
+
+                    if (scope.includes('user') && adminDetails.isAdmin) {
+                        console.log('here');
+
+                        return allPipelines;
+                    }
+
+                    return allPipelines.filter(pipeline => {
+                        const setToPublic = pipeline.settings && pipeline.settings.public;
+                        const privatePipeline = pipeline.scmRepo && pipeline.scmRepo.private;
+
+                        return !privatePipeline || setToPublic;
+                    });
+                })
                 .then(allPipelines => h.response(allPipelines.map(p => p.toJson())))
                 .catch(err => {
                     throw err;

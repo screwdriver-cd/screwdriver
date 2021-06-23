@@ -1,0 +1,37 @@
+[
+    {
+        "id": 123,
+        "scmUri": "github.com:12345:branchName",
+        "scmContext": "github:github.com",
+        "createTime": "2038-01-19T03:14:08.131Z",
+        "scmRepo": {
+            "private": true
+        },
+        "admins": {
+            "stjohn": true
+        },
+        "lastEventId": 456
+    },
+    {
+        "id": 124,
+        "scmUri": "github.com:12345:branchName",
+        "scmContext": "github:github.com",
+        "createTime": "2038-01-19T03:14:08.131Z",
+        "scmRepo": {
+            "private": true
+        },
+        "admins": {
+            "tkyi": true
+        },
+        "lastEventId": 789
+    },
+    {
+        "id": 125,
+        "scmUri": "github.com:12345:branchName",
+        "scmContext": "github:github.com",
+        "createTime": "2038-01-19T03:14:08.131Z",
+        "admins": {
+            "d2lam": true
+        }
+    }
+]
