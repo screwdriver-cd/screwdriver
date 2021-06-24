@@ -73,8 +73,6 @@ function getReadOnlyInfo({ pipeline, scm, scmContext }) {
     const context = scmContext || pipeline.scmContext;
     const { enabled, username, accessToken } = scm.getReadOnlyInfo({ scmContext: context });
 
-    console.log('scm.getReadOnlyInfo({ scmContext: context }): ', scm.getReadOnlyInfo({ scmContext: context }));
-
     return {
         readOnlyEnabled: enabled,
         pipelineContext: context,
