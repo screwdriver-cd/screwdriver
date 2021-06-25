@@ -64,16 +64,18 @@ async function getUserPermissions({ user, scmUri, level = 'admin', isAdmin = fal
 /**
  * Get read only information
  * @method getReadOnlyInfo
- * @param  {Object} pipeline Pipeline
- * @param  {Object} scm      Scm
- * @return {Object}          Read only info
+ * @param  {Object} [pipeline]      Pipeline
+ * @param  {Object} scm             Scm
+ * @param  {String} [scmContext]    Scm context
+ * @return {Object}                 Read only info
  */
-function getReadOnlyInfo({ pipeline, scm }) {
-    const { enabled, username, accessToken } = scm.getReadOnlyInfo({ scmContext: pipeline.scmContext });
+function getReadOnlyInfo({ pipeline, scm, scmContext }) {
+    const context = scmContext || pipeline.scmContext;
+    const { enabled, username, accessToken } = scm.getReadOnlyInfo({ scmContext: context });
 
     return {
         readOnlyEnabled: enabled,
-        pipelineContext: pipeline.scmContext,
+        pipelineContext: context,
         headlessUsername: username,
         headlessAccessToken: accessToken
     };
@@ -105,8 +107,9 @@ async function getScmUri({ pipeline, pipelineFactory }) {
 }
 
 module.exports = {
-    setDefaultTimeRange,
-    validTimeRange,
+    getReadOnlyInfo,
+    getScmUri,
     getUserPermissions,
-    getScmUri
+    setDefaultTimeRange,
+    validTimeRange
 };

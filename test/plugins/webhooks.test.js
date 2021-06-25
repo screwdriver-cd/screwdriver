@@ -264,7 +264,7 @@ describe('webhooks plugin test', () => {
                 getChangedFiles: sinon.stub(),
                 getCommitSha: sinon.stub(),
                 getCommitRefSha: sinon.stub(),
-                getReadOnlyInfo: sinon.stub().returns({ readOnlyEnabled: false })
+                getReadOnlyInfo: sinon.stub().returns({ enabled: false })
             }
         };
         userFactoryMock = {
@@ -2181,7 +2181,36 @@ describe('webhooks plugin test', () => {
                             baseBranch: 'master'
                         });
                         assert.equal(reply.statusCode, 201);
+                        assert.calledOnce(pipelineMock.update);
                     }));
+
+                it('returns 201 on success with read-only scm', () => {
+                    pipelineFactoryMock.scm.getReadOnlyInfo.returns({ enabled: true, accessToken: token });
+
+                    return server.inject(options).then(reply => {
+                        assert.calledWith(eventFactoryMock.create, {
+                            prInfo,
+                            pipelineId,
+                            type: 'pr',
+                            webhooks: true,
+                            username,
+                            scmContext,
+                            sha,
+                            configPipelineSha: latestSha,
+                            startFrom: '~pr',
+                            prNum: 1,
+                            prTitle: 'Update the README with new information',
+                            prRef,
+                            prSource: 'branch',
+                            changedFiles,
+                            causeMessage: `Synchronized by ${scmDisplayName}:${username}`,
+                            chainPR: false,
+                            baseBranch: 'master'
+                        });
+                        assert.equal(reply.statusCode, 201);
+                        assert.notCalled(pipelineMock.update);
+                    });
+                });
 
                 it('returns 201 on success with pr branch trigger', () => {
                     const wMock1 = {
