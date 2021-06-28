@@ -385,10 +385,37 @@ describe('pipeline plugin test', () => {
                     sort: 'descending'
                 })
                 .resolves(getPipelineMocks(testPrivatePipelines));
+            options.auth.credentials = {
+                username: 'guest/1234',
+                scmContext: null,
+                scope: ['user', 'guest']
+            };
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, [testPrivatePipelines[1], testPrivatePipelines[2]]);
+            });
+        });
+
+        it('returns 200 and does not filter private pipelines for pipeline admin', () => {
+            screwdriverAdminDetailsMock.returns({ isAdmin: true });
+            pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com']);
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'github:github.com'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(testPrivatePipelines));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPrivatePipelines);
             });
         });
 
