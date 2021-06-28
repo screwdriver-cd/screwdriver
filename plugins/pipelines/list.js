@@ -73,13 +73,15 @@ module.exports = () => ({
                 .then(pipelineArrays => [].concat(...pipelineArrays))
                 .then(allPipelines => {
                     const { username, scope, scmContext } = request.auth.credentials;
-                    const scmDisplayName = factory.scm.getDisplayName({ scmContext });
-                    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
-                        username,
-                        scmDisplayName
-                    );
+                    let adminDetails;
 
-                    if (scope.includes('user') && adminDetails.isAdmin) {
+                    if (scmContext) {
+                        const scmDisplayName = factory.scm.getDisplayName({ scmContext });
+
+                        adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+                    }
+
+                    if (scope.includes('user') && adminDetails && adminDetails.isAdmin) {
                         return allPipelines;
                     }
 
@@ -87,7 +89,7 @@ module.exports = () => ({
                         const setToPublic = pipeline.settings && pipeline.settings.public;
                         const privatePipeline = pipeline.scmRepo && pipeline.scmRepo.private;
 
-                        return !privatePipeline || setToPublic;
+                        return !privatePipeline || setToPublic || pipeline.admins[username];
                     });
                 })
                 .then(allPipelines => h.response(allPipelines.map(p => p.toJson())))
