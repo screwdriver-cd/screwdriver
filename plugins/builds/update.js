@@ -136,7 +136,9 @@ function updateBuildStatus(build, desiredStatus, statusMessage, username) {
     const currentStatus = build.status;
 
     if (currentStatus !== 'UNSTABLE') {
-        build.status = desiredStatus;
+        if (desiredStatus !== undefined) {
+            build.status = desiredStatus;
+        }
         if (build.status === 'ABORTED') {
             if (currentStatus === 'FROZEN') {
                 build.statusMessage = `Frozen build aborted by ${username}`;
