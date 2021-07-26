@@ -180,6 +180,7 @@ module.exports = () => ({
             }
 
             const build = await getBuildToUpdate(id, buildFactory);
+            const currentStatus = build.status;
 
             if (!isBuild) {
                 await validateUserPermission(build, request);
@@ -204,11 +205,10 @@ module.exports = () => ({
                 build.stats = Object.assign(build.stats, {
                     blockedStartTime: new Date().toISOString()
                 });
-            } else if (desiredStatus === 'QUEUED') {
+            } else if (desiredStatus === 'QUEUED' && currentStatus !== 'QUEUED') {
                 throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
             }
 
-            const currentStatus = build.status;
             let isFixed = Promise.resolve(false);
             let stopFrozen = null;
 
@@ -227,16 +227,18 @@ module.exports = () => ({
             const job = await newBuild.job;
             const pipeline = await job.pipeline;
 
-            await request.server.events.emit('build_status', {
-                settings: job.permutations[0].settings,
-                status: newBuild.status,
-                event: newEvent.toJson(),
-                pipeline: pipeline.toJson(),
-                jobName: job.name,
-                build: newBuild.toJson(),
-                buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`,
-                isFixed: await isFixed
-            });
+            if (desiredStatus) {
+                await request.server.events.emit('build_status', {
+                    settings: job.permutations[0].settings,
+                    status: newBuild.status,
+                    event: newEvent.toJson(),
+                    pipeline: pipeline.toJson(),
+                    jobName: job.name,
+                    build: newBuild.toJson(),
+                    buildLink: `${buildFactory.uiUri}/pipelines/${pipeline.id}/builds/${id}`,
+                    isFixed: await isFixed
+                });
+            }
 
             const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 

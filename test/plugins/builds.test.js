@@ -577,6 +577,45 @@ describe('build plugin test', () => {
             });
         });
 
+        it('does not emit build_status when status is not passed', () => {
+            const userMock = {
+                username: id,
+                getPermissions: sinon.stub().resolves({ push: true })
+            };
+            const options = {
+                method: 'PUT',
+                url: `/builds/${id}`,
+                payload: {
+                    statusMessage: 'Only set statusMessage.'
+                },
+                auth: {
+                    credentials: {
+                        username: id,
+                        scmContext,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            buildMock.job = sinon.stub().resolves(jobMock)();
+            buildMock.settings = {
+                email: 'foo@bar.com'
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            buildFactoryMock.uiUri = 'http://foo.bar';
+            userFactoryMock.get.resolves(userMock);
+
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            return server.inject(options).then(reply => {
+                assert.notCalled(server.events.emit);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 404 for updating a build that does not exist', () => {
             const options = {
                 method: 'PUT',
@@ -1281,6 +1320,8 @@ describe('build plugin test', () => {
                         status
                     }
                 };
+
+                buildMock.status = 'RUNNING';
 
                 return server.inject(options).then(reply => {
                     assert.equal(reply.statusCode, 400);
