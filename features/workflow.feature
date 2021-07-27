@@ -140,3 +140,15 @@ Feature: Workflow
         And the "SIMPLE" job is not triggered
         And the "MASTER-PR" job is not triggered
         And that "REGEX" build uses the same SHA as the "STAGING" build
+
+    @ignore @workflow-chainPR
+    Scenario: chainPR
+        Given an existing pipeline on "master" branch with the workflow jobs:
+            | job       | requires  |
+            | SIMPLE    | ~commit   |
+            | AFTER-SIMPLE | SIMPLE    |
+        When a pull request is opened to "testpr" branch
+        Then the "SIMPLE" PR job is triggered
+        And the "SIMPLE" PR build succeeded
+        Then the PR job of "AFTER-SIMPLE" is triggered from PR job of "SIMPLE"
+        And that "AFTER-SIMPLE" PR build uses the same SHA as the "SIMPLE" PR build
