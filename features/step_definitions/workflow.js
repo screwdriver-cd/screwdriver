@@ -102,7 +102,6 @@ When(
         timeout: TIMEOUT
     },
     function step(branch) {
-
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
@@ -115,7 +114,8 @@ When(
                 // throws an error if a PR already exists, so this is fine
                 Assert.strictEqual(err.status, 422);
             });
-    });
+    }
+);
 
 Then(
     /^the "(.*)" job is triggered$/,
@@ -171,12 +171,14 @@ Then(
                 });
             })
             .then(response => {
-                const jobData = response.body
+                const jobData = response.body;
+
                 this.jobs = jobData;
 
-                const prJobName = `PR-${this.pullRequestNumber}:${jobName}`
+                const prJobName = `PR-${this.pullRequestNumber}:${jobName}`;
                 const job = this.jobs.find(j => j.name === prJobName);
-                this.jobName = job.name
+
+                this.jobName = job.name;
 
                 Assert.equal(this.jobId, job.id);
             });
@@ -217,9 +219,8 @@ Then(
         timeout: TIMEOUT
     },
     function step(triggeredJobName, parentJobName) {
-
-        triggeredJobName = `PR-${this.pullRequestNumber}:${triggeredJobName}`
-        parentJobName = `PR-${this.pullRequestNumber}:${parentJobName}`
+        triggeredJobName = `PR-${this.pullRequestNumber}:${triggeredJobName}`;
+        parentJobName = `PR-${this.pullRequestNumber}:${parentJobName}`;
 
         return sdapi
             .findEventBuilds({
@@ -328,9 +329,8 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName1, jobName2) {
-
-        jobName1 = `PR-${this.pullRequestNumber}:${jobName1}`
-        jobName2 = `PR-${this.pullRequestNumber}:${jobName2}`
+        jobName1 = `PR-${this.pullRequestNumber}:${jobName1}`;
+        jobName2 = `PR-${this.pullRequestNumber}:${jobName2}`;
 
         return Promise.all([
             sdapi.searchForBuild({
@@ -385,7 +385,7 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName) {
-        jobName= `PR-${this.pullRequestNumber}:${jobName}`
+        jobName = `PR-${this.pullRequestNumber}:${jobName}`;
 
         return this.waitForBuild(this.buildId).then(resp => {
             Assert.equal(resp.statusCode, 200);

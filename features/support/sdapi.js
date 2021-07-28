@@ -29,7 +29,7 @@ function promiseToWait(timeToWait) {
  *                                              fulfill the given criteria. If nothing is found, an
  *                                              empty array is returned
  */
- function findJobs(config) {
+function findJobs(config) {
     const { instance } = config;
     const { pipelineId } = config;
 
@@ -68,8 +68,7 @@ function findBuilds(config) {
         instance,
         pipelineId,
         jwt: config.jwt
-    })
-    .then(response => {
+    }).then(response => {
         const jobData = response.body;
         let result = [];
 
