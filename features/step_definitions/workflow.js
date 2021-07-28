@@ -96,8 +96,13 @@ When(
     }
 );
 
+When(/^a pull request is opened to "(.*)" branch$/, (branch, callback) => {
+    // Write code here that turns the phrase above into concrete actions
+    callback(null, 'pending');
+});
+
 When(
-    /^a pull request is opened to "(.*)" branch$/,
+    /^a pull request is opened from "(.*)" branch$/,
     {
         timeout: TIMEOUT
     },

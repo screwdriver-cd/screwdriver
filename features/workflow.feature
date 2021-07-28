@@ -147,7 +147,7 @@ Feature: Workflow
             | job       | requires  |
             | SIMPLE    | ~commit   |
             | AFTER-SIMPLE | SIMPLE    |
-        When a pull request is opened to "testpr" branch
+        When a pull request is opened from "testpr" branch
         Then the "SIMPLE" PR job is triggered
         And the "SIMPLE" PR build succeeded
         Then the PR job of "AFTER-SIMPLE" is triggered from PR job of "SIMPLE"
