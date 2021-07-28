@@ -144,8 +144,8 @@ Feature: Workflow
     @ignore @workflow-chainPR
     Scenario: chainPR
         Given an existing pipeline on "master" branch with the workflow jobs:
-            | job       | requires  |
-            | SIMPLE    | ~commit   |
+            | job          | requires  |
+            | SIMPLE       | ~pr       |
             | AFTER-SIMPLE | SIMPLE    |
         When a pull request is opened from "testpr" branch
         Then the "SIMPLE" PR job is triggered
