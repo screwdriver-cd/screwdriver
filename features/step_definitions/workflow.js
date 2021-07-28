@@ -219,8 +219,8 @@ Then(
         timeout: TIMEOUT
     },
     function step(triggeredJobName, parentJobName) {
-        triggeredJobName = `PR-${this.pullRequestNumber}:${triggeredJobName}`;
-        parentJobName = `PR-${this.pullRequestNumber}:${parentJobName}`;
+        const prTriggeredJobName = `PR-${this.pullRequestNumber}:${triggeredJobName}`;
+        const prParentJobName = `PR-${this.pullRequestNumber}:${parentJobName}`;
 
         return sdapi
             .findEventBuilds({
@@ -228,13 +228,13 @@ Then(
                 eventId: this.eventId,
                 jwt: this.jwt,
                 jobs: this.jobs,
-                jobName: triggeredJobName
+                jobName: prTriggeredJobName
             })
             .then(builds => {
                 this.builds = builds;
-                const parentJob = this.jobs.find(j => j.name === parentJobName);
+                const parentJob = this.jobs.find(j => j.name === prParentJobName);
                 const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
-                const triggeredJob = this.jobs.find(j => j.name === triggeredJobName);
+                const triggeredJob = this.jobs.find(j => j.name === prTriggeredJobName);
                 const triggeredBuild = this.builds.find(b => b.jobId === triggeredJob.id);
 
                 Assert.equal(parentBuild.id, triggeredBuild.parentBuildId);
@@ -329,8 +329,8 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName1, jobName2) {
-        jobName1 = `PR-${this.pullRequestNumber}:${jobName1}`;
-        jobName2 = `PR-${this.pullRequestNumber}:${jobName2}`;
+        const prJobName1 = `PR-${this.pullRequestNumber}:${jobName1}`;
+        const prJobName2 = `PR-${this.pullRequestNumber}:${jobName2}`;
 
         return Promise.all([
             sdapi.searchForBuild({
@@ -338,7 +338,7 @@ Then(
                 pipelineId: this.pipelineId,
                 desiredSha: this.sha,
                 desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-                jobName: jobName1,
+                jobName: prJobName1,
                 jwt: this.jwt
             }),
             sdapi.searchForBuild({
@@ -346,7 +346,7 @@ Then(
                 pipelineId: this.pipelineId,
                 desiredSha: this.sha,
                 desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-                jobName: jobName2,
+                jobName: prJobName2,
                 jwt: this.jwt
             })
         ]).then(([build1, build2]) => Assert.equal(build1.sha, build2.sha));
@@ -385,11 +385,11 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName) {
-        jobName = `PR-${this.pullRequestNumber}:${jobName}`;
+        const prJobName = `PR-${this.pullRequestNumber}:${jobName}`;
 
         return this.waitForBuild(this.buildId).then(resp => {
             Assert.equal(resp.statusCode, 200);
-            Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${jobName}`);
+            Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${prJobName}`);
         });
     }
 );
