@@ -93,6 +93,10 @@ const badgeMock = {
     makeBadge: () => 'badge'
 };
 
+const gotMock = {
+    stream: sinon.stub().returns({})
+};
+
 /**
  * mock Lockobj class
  */
@@ -188,6 +192,7 @@ describe('build plugin test', () => {
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
 
+        mockery.registerMock('got', gotMock);
         mockery.registerMock('jsonwebtoken', jwtMock);
         mockery.registerMock('badge-maker', badgeMock);
         mockery.registerMock('../lock', lockMock);
@@ -5046,51 +5051,50 @@ describe('build plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        it('redirects to store for an artifact request', () => {
+        it('returns 200 for an artifact request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(gotMock.stream, url);
             });
         });
 
-        it('redirects to store for an multi-byte artifact request', () => {
+        it('returns 200 for an multi-byte artifact request', () => {
             const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
 
             options.url = `/builds/${id}/artifacts/${multiByteArtifact}`;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(gotMock.stream, url);
             });
         });
 
-        it('redirects to store for an artifact download request', () => {
+        it('returns 200 for an artifact download request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=download`;
 
             options.url = `/builds/${id}/artifacts/${artifact}?type=download`;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(gotMock.stream, url);
             });
         });
 
-        it('redirects to store for an artifact preview request', () => {
+        it('returns 200 for an artifact preview request', () => {
             const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=preview`;
 
             options.url = `/builds/${id}/artifacts/${artifact}?type=preview`;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(gotMock.stream, url);
             });
         });
 
-        it('redirects to store for an artifact request when user have permission', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+        it('returns 200 when user have permission', () => {
             const userMock = {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: true })
@@ -5100,8 +5104,7 @@ describe('build plugin test', () => {
             userFactoryMock.get.resolves(userMock);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
             });
         });
 
@@ -5126,8 +5129,7 @@ describe('build plugin test', () => {
             });
         });
 
-        it('redirects to store for an artifact request for cluster admin', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+        it('returns 200 for cluster admin', () => {
             const userMock = {
                 username: 'foo',
                 getPermissions: sinon.stub().resolves({ pull: false })
@@ -5138,21 +5140,17 @@ describe('build plugin test', () => {
             userFactoryMock.get.resolves(userMock);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
             });
         });
 
-        it('redirects to store for an artifact request for pipeline token', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
-
+        it('returns 200 for pipeline token', () => {
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['pipeline'];
             options.auth.credentials.pipelineId = 12345;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
             });
         });
 
@@ -5173,17 +5171,14 @@ describe('build plugin test', () => {
             });
         });
 
-        it('redirects to store for an artifact request for build token', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
-
+        it('returns 200 for build token', () => {
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['build'];
             options.auth.credentials.pipelineId = 12345;
             options.auth.credentials.configPipelineId = 12345;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
             });
         });
 
@@ -5205,20 +5200,16 @@ describe('build plugin test', () => {
             });
         });
 
-        it('redirects to store for an artifact request when scope includes admin', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
-
+        it('returns 200 when scope includes admin', () => {
             pipelineFactoryMock.get.resolves(privatePipelineMock);
             options.auth.credentials.scope = ['user', 'admin'];
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
             });
         });
 
-        it('redirects to store for an artifact request when pipeline was set to public', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
+        it('returns 200 when pipeline was set to public', () => {
             const publicPipelineMock = {
                 id: 12345,
                 scmRepo: {
@@ -5232,8 +5223,7 @@ describe('build plugin test', () => {
             pipelineFactoryMock.get.resolves(publicPipelineMock);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 302);
-                assert.deepEqual(reply.headers.location, url);
+                assert.equal(reply.statusCode, 200);
             });
         });
     });

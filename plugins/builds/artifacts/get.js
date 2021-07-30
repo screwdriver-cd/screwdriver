@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
+const got = require('got');
+const { getMimeFromFileName, displayableMimes } = require('../../helper');
 
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
@@ -43,7 +45,7 @@ module.exports = config => ({
 
                     return canAccessPipeline(credentials, event.pipelineId, 'pull', request.server.app);
                 })
-                .then(() => {
+                .then(async () => {
                     const encodedArtifact = encodeURIComponent(artifact);
 
                     const token = jwt.sign({
@@ -61,7 +63,24 @@ module.exports = config => ({
                         baseUrl += `&type=${request.query.type}`;
                     }
         
-                    return h.redirect(baseUrl);
+                    const gotStream = got.stream(baseUrl);
+                    let response = h.response(gotStream);
+
+                    if (request.query.type === 'download') {
+                        response.headers['content-type'] = 'application/octet-stream';
+                        response.headers['content-disposition'] = `attachment; filename="${encodeURI(encodedArtifact)}"`;
+                    } else {
+                        const fileExt = encodedArtifact.split('.').pop();
+                        const mime = getMimeFromFileName(fileExt, encodedArtifact);
+
+                        response.headers['content-type'] = mime;
+
+                        if (!displayableMimes.includes(mime)) {
+                            response.headers['content-disposition'] = `inline; filename="${encodeURI(encodedArtifact)}"`;
+                        }
+                    }
+
+                    return response;
                 })
                 .catch(err => {
                     throw err;
