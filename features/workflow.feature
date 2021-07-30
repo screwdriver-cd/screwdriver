@@ -94,7 +94,7 @@ Feature: Workflow
 
     @workflow-chainPR
     Scenario: chainPR
-        Given an existing pipeline on "main" branch with the workflow jobs:
+        Given an existing pipeline on "master" branch with the workflow jobs:
             | job          | requires  |
             | SIMPLE       | ~pr       |
             | AFTER-SIMPLE | SIMPLE    |
