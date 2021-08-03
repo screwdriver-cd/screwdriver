@@ -2,10 +2,11 @@ cache:
   event: [ $SD_SOURCE_DIR/node_modules ]
 
 shared:
-    image: node:12
-
+    environment:
+        DOCKER_REPO: screwdrivercd/screwdriver
 jobs:
     main:
+        image: node:12
         annotations:
             screwdriver.cd/ram: TURBO
             screwdriver.cd/cpu: TURBO
@@ -29,35 +30,30 @@ jobs:
             - COVERALLS_REPO_TOKEN
 
     publish:
+        image: node:12
         requires: [main]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install-ci: npm install npm-auto-version
             - publish-npm-and-git-tag: ./ci/publish.sh
-            - publish-docker: |
-                export DOCKER_TAG=`cat VERSION`
-                ./ci/docker-trigger.sh
-            - save-tag-to-meta: meta set docker_tag $DOCKER_TAG && meta get docker_tag
-        environment:
-            DOCKER_REPO: screwdrivercd/screwdriver
         secrets:
             # Publishing to NPM
             - NPM_TOKEN
             # Pushing tags to Git
             - GIT_KEY
-            # Trigger a Docker Hub build
-            - DOCKER_TRIGGER
-
+    docker-publish:
+        requires: publish
+        template: sd/dind@latest
     # Deploy to our beta environment and run tests
     beta:
-        requires: [publish]
+        image: node:12
+        requires: [docker-publish]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
             - test: npm install && npm run functional-beta
         environment:
-            DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
             K8S_HOST: kubernetes.default.svc
@@ -77,6 +73,7 @@ jobs:
 
     # Deploy to our prod environment and run tests
     prod:
+        image: node:12
         requires: [beta]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
@@ -86,7 +83,6 @@ jobs:
                 npm install
                 GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
         environment:
-            DOCKER_REPO: screwdrivercd/screwdriver
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
             K8S_HOST: kubernetes.default.svc
