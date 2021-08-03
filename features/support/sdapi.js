@@ -30,8 +30,7 @@ function promiseToWait(timeToWait) {
  *                                              empty array is returned
  */
 function findJobs(config) {
-    const { instance } = config;
-    const { pipelineId } = config;
+    const { instance, pipelineId } = config;
 
     return request({
         json: true,
