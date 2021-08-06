@@ -69,7 +69,7 @@ module.exports = config => ({
                     if (request.query.type === 'download') {
                         response.headers['content-type'] = 'application/octet-stream';
                         response.headers['content-disposition'] = `attachment; filename="${encodeURI(encodedArtifact)}"`;
-                    } else if (request.query.type === 'preview') {
+                    } else {
                         const fileExt = encodedArtifact.split('.').pop();
                         const mime = getMimeFromFileName(fileExt, encodedArtifact);
 
@@ -79,6 +79,8 @@ module.exports = config => ({
                             response.headers['content-disposition'] = `inline; filename="${encodeURI(encodedArtifact)}"`;
                         }
                     }
+
+                    console.log('here');
 
                     return response;
                 })

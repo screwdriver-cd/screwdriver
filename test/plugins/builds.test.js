@@ -5004,7 +5004,54 @@ describe('build plugin test', () => {
         });
     });
 
-    describe.only('GET /builds/{id}/artifacts/{artifact}', () => {
+    describe.only('test artifact', () => {
+        const id = 12345;
+        const artifact = 'manifest';
+        const buildMock = {
+            id: 123,
+            eventId: 1234
+        };
+        const eventMock = {
+            id: 1234,
+            pipelineId: 12345
+        };
+        const pipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: false
+            }
+        };
+        let options;
+
+        beforeEach(() => {
+            const gotMock = {
+                stream: sinon.stub().resolves({})
+            };
+
+            mockery.registerMock('got', gotMock);
+            options = {
+                url: `/builds/${id}/artifacts/${artifact}`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            eventFactoryMock.get.resolves(eventMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns stream', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
         const multiByteArtifact = 'まにふぇmanife漢字';
@@ -5031,13 +5078,6 @@ describe('build plugin test', () => {
         let options;
 
         beforeEach(() => {
-            const gotMock = {
-                stream: sinon.stub().resolves({
-                    body: 'something'
-                })
-            };
-
-            mockery.registerMock('got', gotMock);
             options = {
                 url: `/builds/${id}/artifacts/${artifact}`,
                 auth: {
@@ -5053,14 +5093,12 @@ describe('build plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
-        afterEach(() => {
-            mockery.deregisterMock('got');
-        });
+        it('redirects to store for an artifact request', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
 
-        it.only('redirects to store for an artifact request', () => {
             return server.inject(options).then(reply => {
-                console.log(reply);
-                assert.equal(reply.statusCode, 200);
+                assert.equal(reply.statusCode, 302);
+                assert.deepEqual(reply.headers.location, url);
             });
         });
 
