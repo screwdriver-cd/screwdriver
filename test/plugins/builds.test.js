@@ -5004,6 +5004,53 @@ describe('build plugin test', () => {
         });
     });
 
+    describe.only('test artifact', () => {
+        const id = 12345;
+        const artifact = 'manifest';
+        const buildMock = {
+            id: 123,
+            eventId: 1234
+        };
+        const eventMock = {
+            id: 1234,
+            pipelineId: 12345
+        };
+        const pipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: false
+            }
+        };
+        let options;
+
+        beforeEach(() => {
+            const gotMock = {
+                stream: sinon.stub().resolves({})
+            };
+
+            mockery.registerMock('got', gotMock);
+            options = {
+                url: `/builds/${id}/artifacts/${artifact}`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            eventFactoryMock.get.resolves(eventMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns stream', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+    });
+
     describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
