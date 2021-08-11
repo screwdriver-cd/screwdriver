@@ -107,7 +107,7 @@ When(
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
             .then(() => github.createPullRequest(branch, this.repoOrg, this.repoName))
             .then(({ data }) => {
-                this.branch = branch
+                this.branch = branch;
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             })
