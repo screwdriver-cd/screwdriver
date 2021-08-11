@@ -20,6 +20,18 @@ Before(
     }
 );
 
+Before(
+    {
+        tags: '@workflow-chainPR'
+    },
+    function hook() {
+        this.repoOrg = this.testOrg;
+        this.repoName = 'functional-chainPR';
+        this.pipelineId = null;
+        this.builds = null;
+    }
+);
+
 Given(
     /^an existing pipeline on "(.*)" branch with the workflow jobs:$/,
     {
@@ -84,6 +96,28 @@ When(
     }
 );
 
+When(
+    /^a pull request is opened from "(.*)" branch$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(branch) {
+        return github
+            .createBranch(branch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
+            .then(() => github.createPullRequest(branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.branch = branch
+                this.pullRequestNumber = data.number;
+                this.sha = data.head.sha;
+            })
+            .catch(err => {
+                // throws an error if a PR already exists, so this is fine
+                Assert.strictEqual(err.status, 422);
+            });
+    }
+);
+
 When(/^a pull request is opened to "(.*)" branch$/, (branch, callback) => {
     // Write code here that turns the phrase above into concrete actions
     callback(null, 'pending');
@@ -116,6 +150,48 @@ Then(
 );
 
 Then(
+    /^the "(.*)" PR job is triggered$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
+        return sdapi
+            .searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName,
+                pullRequestNumber: this.pullRequestNumber,
+                jwt: this.jwt
+            })
+            .then(build => {
+                this.eventId = build.eventId;
+                this.buildId = build.id;
+                this.jobId = build.jobId;
+
+                return sdapi.findJobs({
+                    instance: this.instance,
+                    pipelineId: this.pipelineId,
+                    jwt: this.jwt
+                });
+            })
+            .then(response => {
+                const jobData = response.body;
+
+                this.jobs = jobData;
+
+                const prJobName = `PR-${this.pullRequestNumber}:${jobName}`;
+                const job = this.jobs.find(j => j.name === prJobName);
+
+                this.jobName = job.name;
+
+                Assert.equal(this.jobId, job.id);
+            });
+    }
+);
+
+Then(
     /^the "(.*)" job is triggered from "([^"]*)"$/,
     {
         timeout: TIMEOUT
@@ -134,6 +210,37 @@ Then(
                 const parentJob = this.jobs.find(j => j.name === parentJobName);
                 const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
                 const triggeredJob = this.jobs.find(j => j.name === triggeredJobName);
+                const triggeredBuild = this.builds.find(b => b.jobId === triggeredJob.id);
+
+                Assert.equal(parentBuild.id, triggeredBuild.parentBuildId);
+
+                this.buildId = triggeredBuild.id;
+            });
+    }
+);
+
+Then(
+    /^the PR job of "(.*)" is triggered from PR job of "([^"]*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(triggeredJobName, parentJobName) {
+        const prTriggeredJobName = `PR-${this.pullRequestNumber}:${triggeredJobName}`;
+        const prParentJobName = `PR-${this.pullRequestNumber}:${parentJobName}`;
+
+        return sdapi
+            .findEventBuilds({
+                instance: this.instance,
+                eventId: this.eventId,
+                jwt: this.jwt,
+                jobs: this.jobs,
+                jobName: prTriggeredJobName
+            })
+            .then(builds => {
+                this.builds = builds;
+                const parentJob = this.jobs.find(j => j.name === prParentJobName);
+                const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
+                const triggeredJob = this.jobs.find(j => j.name === prTriggeredJobName);
                 const triggeredBuild = this.builds.find(b => b.jobId === triggeredJob.id);
 
                 Assert.equal(parentBuild.id, triggeredBuild.parentBuildId);
@@ -223,6 +330,36 @@ Then(
 );
 
 Then(
+    /^that "(.*)" PR build uses the same SHA as the "(.*)" PR build$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName1, jobName2) {
+        const prJobName1 = `PR-${this.pullRequestNumber}:${jobName1}`;
+        const prJobName2 = `PR-${this.pullRequestNumber}:${jobName2}`;
+
+        return Promise.all([
+            sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: prJobName1,
+                jwt: this.jwt
+            }),
+            sdapi.searchForBuild({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName: prJobName2,
+                jwt: this.jwt
+            })
+        ]).then(([build1, build2]) => Assert.equal(build1.sha, build2.sha));
+    }
+);
+
+Then(
     /^the "(.*)" build succeeded$/,
     {
         timeout: TIMEOUT
@@ -245,6 +382,35 @@ Then(
             Assert.equal(resp.statusCode, 200);
             Assert.equal(resp.body.status, 'FAILURE', `Unexpected build status: ${jobName}`);
         });
+    }
+);
+
+Then(
+    /^the "(.*)" PR build succeeded$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
+        const prJobName = `PR-${this.pullRequestNumber}:${jobName}`;
+
+        return this.waitForBuild(this.buildId).then(resp => {
+            Assert.equal(resp.statusCode, 200);
+            Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${prJobName}`);
+        });
+    }
+);
+
+After(
+    {
+        tags: '@workflow-chainPR'
+    },
+    function hook() {
+        Promise.resolve()
+            .then(github.closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber))
+            .then(github.removeBranch(this.repoOrg, this.repoName, this.branch))
+            .catch(() => {
+                Assert.fail('Failed to close Pull Request or remove branch.');
+            });
     }
 );
 
