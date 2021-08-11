@@ -111,9 +111,8 @@ When(
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             })
-            .catch(err => {
-                // throws an error if a PR already exists, so this is fine
-                Assert.strictEqual(err.status, 422);
+            .catch(() => {
+                Assert.fail('Failed to create the Pull Request.');
             });
     }
 );
