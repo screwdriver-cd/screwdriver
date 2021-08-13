@@ -62,16 +62,7 @@ module.exports = config => ({
                         baseUrl += `&type=${request.query.type}`;
                     }
         
-                    const gotStream = got.stream(baseUrl,{
-                        hooks: {
-                            afterResponse: [
-                                (response, retryWithMergedOptions) => {
-                                    console.log(response.headers);
-                                    return response;
-                                }
-                            ]
-                        }
-                    });
+                    const gotStream = got.stream(baseUrl);
 
                     let response = h.response(gotStream);
                     
