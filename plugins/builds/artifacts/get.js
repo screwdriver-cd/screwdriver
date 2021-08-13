@@ -5,7 +5,6 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
 const got = require('got');
-const { getMimeFromFileName, displayableMimes } = require('../../helper');
 
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
@@ -63,24 +62,30 @@ module.exports = config => ({
                         baseUrl += `&type=${request.query.type}`;
                     }
         
-                    const gotStream = got.stream(baseUrl);
-                    let response = h.response(gotStream);
-
-                    if (request.query.type === 'download') {
-                        response.headers['content-type'] = 'application/octet-stream';
-                        response.headers['content-disposition'] = `attachment; filename="${encodeURI(encodedArtifact)}"`;
-                    } else {
-                        const fileExt = encodedArtifact.split('.').pop();
-                        const mime = getMimeFromFileName(fileExt, encodedArtifact);
-
-                        response.headers['content-type'] = mime;
-
-                        if (!displayableMimes.includes(mime)) {
-                            response.headers['content-disposition'] = `inline; filename="${encodeURI(encodedArtifact)}"`;
+                    const gotStream = got.stream(baseUrl,{
+                        hooks: {
+                            afterResponse: [
+                                (response, retryWithMergedOptions) => {
+                                    console.log(response.headers);
+                                    return response;
+                                }
+                            ]
                         }
-                    }
+                    });
 
-                    return response;
+                    let response = h.response(gotStream);
+                    
+                    return new Promise((resolve) => {
+                        gotStream.on('response', response => {
+                            resolve(response.headers);
+                        }); 
+                    }).then(headers => {
+                        response.headers['content-type'] = headers['content-type'];
+                        response.headers['content-disposition'] = headers['content-disposition'];
+                        response.headers['content-length'] = headers['content-length'];
+
+                        return response;
+                    });
                 })
                 .catch(err => {
                     throw err;
