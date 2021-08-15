@@ -93,8 +93,23 @@ const badgeMock = {
     makeBadge: () => 'badge'
 };
 
+const responseMock = {
+    headers: {
+        'content-type': 'application/octet-stream',
+        'content-disposition': 'attachment; filename="manifest.txt"',
+        'content-length': '1077'
+    }
+};
+
+const streamMock = {
+    on: sinon
+        .stub()
+        .withArgs('response')
+        .yields(responseMock)
+};
+
 const gotMock = {
-    stream: sinon.stub().returns({})
+    stream: sinon.stub().returns(streamMock)
 };
 
 /**
