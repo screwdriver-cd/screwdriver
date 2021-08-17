@@ -25,7 +25,7 @@ function promiseToWait(timeToWait) {
  * @param  {Object}  config                     Configuration object
  * @param  {String}  config.instance            Screwdriver instance to test against
  * @param  {String}  config.pipelineId          Pipeline ID to find the build in
- * @return {Promise}                            A promise that resolves to an array of builds that
+ * @return {Promise}                            A promise that resolves to an array of jobs that
  *                                              fulfill the given criteria. If nothing is found, an
  *                                              empty array is returned
  */
