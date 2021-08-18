@@ -58,6 +58,24 @@ function cleanUpRepository(branch, tag, repoOwner, repoName) {
 }
 
 /**
+ * Remove Branch
+ * @method removeBranch
+ * @param  {String}          repoOwner  Owner of the repository
+ * @param  {String}          repoName   Name of the repository
+ * @param  {String}          branchName     Name of the branch to delete
+ * @return {Promise}
+ */
+function removeBranch(repoOwner, repoName, branchName) {
+    const branchParams = {
+        owner: repoOwner,
+        repo: repoName,
+        ref: `heads/${branchName}`
+    };
+
+    return octokit.git.getRef(branchParams).then(() => octokit.git.deleteRef(branchParams));
+}
+
+/**
  * Close a pull request for a given repository
  * @method closePullRequest
  * @param  {String}     repoOwner          Owner of the repository
@@ -303,5 +321,6 @@ module.exports = {
     createAnnotatedTag,
     createRelease,
     getStatus,
-    mergePullRequest
+    mergePullRequest,
+    removeBranch
 };

@@ -19,6 +19,30 @@ function promiseToWait(timeToWait) {
 }
 
 /**
+ * Finds a jobs in a given pipeline.
+ *
+ * @method findJobs
+ * @param  {Object}  config                     Configuration object
+ * @param  {String}  config.instance            Screwdriver instance to test against
+ * @param  {String}  config.pipelineId          Pipeline ID to find the build in
+ * @return {Promise}                            A promise that resolves to an array of jobs that
+ *                                              fulfill the given criteria. If nothing is found, an
+ *                                              empty array is returned
+ */
+function findJobs(config) {
+    const { instance, pipelineId } = config;
+
+    return request({
+        json: true,
+        method: 'GET',
+        uri: `${instance}/v4/pipelines/${pipelineId}/jobs`,
+        auth: {
+            bearer: config.jwt
+        }
+    });
+}
+
+/**
  * Finds a build in a given pipeline. It will look for a build associated with a pull request
  * when given pull request-related information. Otherwise, it will look for the main job
  * by default.
@@ -39,19 +63,16 @@ function findBuilds(config) {
     const { pullRequestNumber } = config;
     const { jobName } = config;
 
-    return request({
-        json: true,
-        method: 'GET',
-        uri: `${instance}/v4/pipelines/${pipelineId}/jobs`,
-        auth: {
-            bearer: config.jwt
-        }
+    return findJobs({
+        instance,
+        pipelineId,
+        jwt: config.jwt
     }).then(response => {
         const jobData = response.body;
         let result = [];
 
         if (pullRequestNumber) {
-            result = jobData.filter(job => job.name.startsWith(`PR-${pullRequestNumber}`));
+            result = jobData.filter(job => job.name === `PR-${pullRequestNumber}:${jobName}`);
         } else {
             result = jobData.filter(job => job.name === jobName);
         }
@@ -283,6 +304,7 @@ module.exports = {
     cleanupToken,
     cleanupBuilds,
     findBuilds,
+    findJobs,
     findEventBuilds,
     searchForBuild,
     waitForBuildStatus
