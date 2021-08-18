@@ -89,7 +89,7 @@
     "hapi-auth-jwt2": "^10.2.0",
     "hapi-rate-limit": "^5.0.0",
     "hapi-swagger": "^14.2.0",
-    "ioredis": "^3.2.2",
+    "ioredis": "^4.27.8",
     "joi": "^17.4.0",
     "js-yaml": "^3.14.1",
     "jsonwebtoken": "^8.5.1",
