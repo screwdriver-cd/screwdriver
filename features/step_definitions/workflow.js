@@ -102,12 +102,15 @@ When(
         timeout: TIMEOUT
     },
     function step(branch) {
+        const prefix = new Date().getTime().toString();
+        const branchName = `${branch}-${prefix}`;
+
         return github
-            .createBranch(branch, this.repoOrg, this.repoName)
-            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
-            .then(() => github.createPullRequest(branch, this.repoOrg, this.repoName))
+            .createBranch(branchName, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branchName, this.repoOrg, this.repoName))
+            .then(() => github.createPullRequest(branchName, this.repoOrg, this.repoName))
             .then(({ data }) => {
-                this.branch = branch;
+                this.branch = branchName;
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             })
