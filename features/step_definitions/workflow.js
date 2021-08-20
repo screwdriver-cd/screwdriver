@@ -102,12 +102,15 @@ When(
         timeout: TIMEOUT
     },
     function step(branch) {
+        const postfix = new Date().getTime().toString();
+        const branchName = `${branch}-${postfix}`;
+
         return github
-            .createBranch(branch, this.repoOrg, this.repoName)
-            .then(() => github.createFile(branch, this.repoOrg, this.repoName))
-            .then(() => github.createPullRequest(branch, this.repoOrg, this.repoName))
+            .createBranch(branchName, this.repoOrg, this.repoName)
+            .then(() => github.createFile(branchName, this.repoOrg, this.repoName))
+            .then(() => github.createPullRequest(branchName, this.repoOrg, this.repoName))
             .then(({ data }) => {
-                this.branch = branch;
+                this.branch = branchName;
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             })
@@ -404,9 +407,11 @@ After(
         tags: '@workflow-chainPR'
     },
     function hook() {
-        Promise.resolve()
-            .then(github.closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber))
-            .then(github.removeBranch(this.repoOrg, this.repoName, this.branch))
+        github
+            .closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber)
+            .then(() => {
+                github.removeBranch(this.repoOrg, this.repoName, this.branch);
+            })
             .catch(() => {
                 Assert.fail('Failed to close Pull Request or remove branch.');
             });

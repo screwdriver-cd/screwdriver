@@ -9,9 +9,9 @@
     "start": "./bin/server",
     "debug": "node --nolazy ./bin/server",
     "profile": "node --prof ./bin/server",
-    "functional": "cucumber-js --format=progress --tags '(not @ignore) and (not @beta)' --retry 2 --fail-fast --exit",
-    "functional-beta": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast --exit",
-    "functional-dev": "cucumber-js --format=./node_modules/cucumber-pretty --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast --exit",
+    "functional": "cucumber-js --format=progress --tags '(not @ignore) and (not @beta)' --retry 2 --fail-fast",
+    "functional-beta": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast",
+    "functional-dev": "cucumber-js --format=./node_modules/cucumber-pretty --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
     "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
