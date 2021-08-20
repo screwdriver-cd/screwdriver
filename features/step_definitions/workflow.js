@@ -102,8 +102,8 @@ When(
         timeout: TIMEOUT
     },
     function step(branch) {
-        const prefix = new Date().getTime().toString();
-        const branchName = `${branch}-${prefix}`;
+        const postfix = new Date().getTime().toString();
+        const branchName = `${branch}-${postfix}`;
 
         return github
             .createBranch(branchName, this.repoOrg, this.repoName)
