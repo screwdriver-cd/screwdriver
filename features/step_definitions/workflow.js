@@ -407,9 +407,11 @@ After(
         tags: '@workflow-chainPR'
     },
     function hook() {
-        Promise.resolve()
-            .then(github.closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber))
-            .then(github.removeBranch(this.repoOrg, this.repoName, this.branch))
+        github
+            .closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber)
+            .then(() => {
+                github.removeBranch(this.repoOrg, this.repoName, this.branch);
+            })
             .catch(() => {
                 Assert.fail('Failed to close Pull Request or remove branch.');
             });
