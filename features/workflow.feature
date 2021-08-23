@@ -93,6 +93,7 @@ Feature: Workflow
         And that "REGEX" build uses the same SHA as the "STAGING" build
 
     @workflow-chainPR
+    @ignore
     Scenario: chainPR
         Given an existing pipeline on "master" branch with the workflow jobs:
             | job          | requires  |
