@@ -6,7 +6,6 @@ const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
-const nock = require('nock');
 const streamToPromise = require('stream-to-promise');
 const FormData = require('form-data');
 const testcommand = require('./data/command.json');
@@ -64,6 +63,7 @@ describe('command plugin test', () => {
     let commandTagFactoryMock;
     let pipelineFactoryMock;
     let userFactoryMock;
+    let requestMock;
     let plugin;
     let server;
 
@@ -93,6 +93,9 @@ describe('command plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
+        requestMock = sinon.stub();
+
+        mockery.registerMock('screwdriver-request', requestMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/commands');
@@ -466,10 +469,7 @@ describe('command plugin test', () => {
 
             commandFactoryMock.list.resolves([testCommand]);
             commandTagFactoryMock.list.resolves([testCommandTag]);
-        });
-
-        afterEach(() => {
-            nock.cleanAll();
+            requestMock.resolves({ statusCode: 204 });
         });
 
         it('returns 404 when command does not exist', () => {
@@ -534,9 +534,6 @@ describe('command plugin test', () => {
 
         it('deletes command if user has pipeline admin credentials and command exists', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(204, '');
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
@@ -547,9 +544,6 @@ describe('command plugin test', () => {
 
         it('deletes command if user has Screwdriver admin credentials and command exists', () => {
             options.auth.credentials.scope.push('admin');
-            nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(204, '');
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(testCommand.remove);
@@ -560,9 +554,7 @@ describe('command plugin test', () => {
 
         it('returns 204 even when command binary is not found', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(404, '');
+            requestMock.resolves({ statusCode: 404, body: '' });
 
             return server.inject(options).then(reply => {
                 assert.notCalled(testCommand.remove);
@@ -573,9 +565,7 @@ describe('command plugin test', () => {
 
         it('throws error when store returns an error', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
-            nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .replyWithError({ message: 'request to the store is error' });
+            requestMock.rejects(new Error('request to the store is error'));
 
             return server.inject(options).then(reply => {
                 assert.notCalled(testCommand.remove);
@@ -641,10 +631,6 @@ describe('command plugin test', () => {
         });
 
         it('deletes command if build credentials provided and pipelineIds match', () => {
-            nock('http://store.example.com')
-                .delete('/v1/commands/foo/bar/1.0.0')
-                .reply(204, '');
-
             options = {
                 method: 'DELETE',
                 url: '/commands/foo/bar',
@@ -710,6 +696,8 @@ describe('command plugin test', () => {
             pipelineMock = getPipelineMocks(testpipeline);
             pipelineFactoryMock.get.resolves(pipelineMock);
 
+            requestMock.resolves({ statusCode: 202 });
+
             formData = new FormData();
         });
 
@@ -757,9 +745,6 @@ describe('command plugin test', () => {
             options.payload = COMMAND_VALID_NEW_VERSION;
             expected.version = '1.2';
             commandFactoryMock.list.resolves([commandMock]);
-            nock('http://store.example.com')
-                .post('/v1/commands/bar/foo/1.0.1')
-                .reply(202, '');
 
             return server.inject(options).then(reply => {
                 const expectedLocation = {
@@ -831,10 +816,8 @@ describe('command plugin test', () => {
 
                 pipelineMock = getPipelineMocks(testpipeline);
                 pipelineFactoryMock.get.resolves(pipelineMock);
-            });
 
-            afterEach(() => {
-                nock.cleanAll();
+                requestMock.resolves({ statusCode: 202 });
             });
 
             it('returns 400 when only the binary is posted', () => {
@@ -906,9 +889,6 @@ describe('command plugin test', () => {
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(null);
                 commandFactoryMock.list.resolves([]);
-                nock('http://store.example.com')
-                    .post('/v1/commands/bar/foo/1.1.0')
-                    .reply(202, '');
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;
@@ -943,9 +923,6 @@ describe('command plugin test', () => {
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(testBinaryCommand);
                 commandFactoryMock.list.resolves([commandMock]);
-                nock('http://store.example.com')
-                    .post('/v1/commands/bar/foo/1.0.1')
-                    .reply(202, '');
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;
@@ -1034,10 +1011,7 @@ describe('command plugin test', () => {
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(null);
                 commandFactoryMock.list.resolves([]);
-                nock.cleanAll();
-                nock('http://store.example.com')
-                    .post('/v1/commands/bar/foo/1.1.0')
-                    .replyWithError({ message: 'request to the store is error' });
+                requestMock.rejects(new Error('request to the store is error'));
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;
@@ -1055,10 +1029,7 @@ describe('command plugin test', () => {
                 options.headers.Authoriztion = 'AuthToken';
                 commandFactoryMock.getCommand.resolves(null);
                 commandFactoryMock.list.resolves([]);
-                nock.cleanAll();
-                nock('http://store.example.com')
-                    .post('/v1/commands/bar/foo/1.1.0')
-                    .reply(500, '');
+                requestMock.resolves({ statusCode: 500 });
 
                 return streamToPromise(formData).then(payload => {
                     options.payload = payload;

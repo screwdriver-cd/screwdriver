@@ -1316,7 +1316,14 @@ describe('auth plugin test', () => {
                     assert.equal(reply.statusCode, 200, 'Contexts should be available');
                     assert.deepEqual(
                         reply.result,
-                        [{ context: 'github:github.com', displayName: 'github', autoDeployKeyGeneration: true }],
+                        [
+                            {
+                                context: 'github:github.com',
+                                displayName: 'github',
+                                autoDeployKeyGeneration: true,
+                                readOnly: false
+                            }
+                        ],
                         'Contexts returns data'
                     );
                 });

@@ -128,7 +128,7 @@ describe('DELETE /pipelines/1234/caches', () => {
             list: sinon.stub()
         };
 
-        mockery.registerMock('requestretry', mockRequestRetry);
+        mockery.registerMock('screwdriver-request', mockRequestRetry);
 
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
@@ -203,7 +203,7 @@ describe('DELETE /pipelines/1234/caches', () => {
 
     describe('with cache strategy s3', () => {
         it('successfully deleting cache by id and scope', () => {
-            mockRequestRetry.yieldsAsync(null, { statusCode: 204 });
+            mockRequestRetry.resolves({ statusCode: 204 });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
@@ -212,7 +212,7 @@ describe('DELETE /pipelines/1234/caches', () => {
         });
 
         it('returns err when delete fails', () => {
-            mockRequestRetry.yieldsAsync(null, { statusCode: 500 });
+            mockRequestRetry.resolves({ statusCode: 500 });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
@@ -264,7 +264,7 @@ describe('DELETE /pipelines/1234/caches', () => {
         });
         it('successfully push cache delete message to queue', () => {
             buildClusterFactoryMock.list.resolves([{ name: 'q1' }, { name: 'q2' }]);
-            mockRequestRetry.yieldsAsync(null, { statusCode: 200 });
+            mockRequestRetry.resolves({ statusCode: 200 });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
@@ -274,7 +274,7 @@ describe('DELETE /pipelines/1234/caches', () => {
 
         it('returns err when push message fails', () => {
             buildClusterFactoryMock.list.resolves([{ name: 'q1' }, { name: 'q2' }]);
-            mockRequestRetry.yieldsAsync(null, { statusCode: 500 });
+            mockRequestRetry.resolves({ statusCode: 500 });
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
