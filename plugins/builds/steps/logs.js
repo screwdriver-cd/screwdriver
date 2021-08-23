@@ -2,7 +2,7 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const request = require('request');
+const request = require('screwdriver-request');
 const ndjson = require('ndjson');
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;

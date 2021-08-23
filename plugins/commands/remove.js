@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.command.base;
-const req = require('request');
+const req = require('screwdriver-request');
 
 /**
  * Remove command from store and API
@@ -24,15 +24,7 @@ function removeCommand(command, storeUrl, authToken) {
         }
     };
 
-    return new Promise((resolve, reject) => {
-        req(options, (err, response) => {
-            if (err) {
-                return reject(err);
-            }
-
-            return resolve(response);
-        });
-    }).then(response => {
+    return req(options).then(response => {
         if (response.statusCode !== 204) {
             throw new Error(`An error occured when trying to remove binary from the store:${response.body.message}`);
         }

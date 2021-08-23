@@ -3,20 +3,22 @@
 const Assert = require('chai').assert;
 const path = require('path');
 const env = require('node-env-file');
-const requestretry = require('requestretry');
 const { setWorldConstructor } = require('cucumber');
-const request = require('./request');
+const request = require('screwdriver-request');
 
 /**
  * Retry until the build has finished
- * @method retryStrategy
- * @param  {Object}      err
- * @param  {Object}      response
- * @param  {Object}      body
- * @return {Boolean}     Retry the build or not
+ * @method buildRetryStrategy
+ * @param  {Object}     response
+ * @param  {Function}   retryWithMergedOptions
+ * @return {Object}     Build response
  */
-function buildRetryStrategy(err, response, body) {
-    return err || body.status === 'QUEUED' || body.status === 'RUNNING';
+function buildRetryStrategy(response, retryWithMergedOptions) {
+    if (response.body.status === 'QUEUED' || response.body.status === 'RUNNING') {
+        retryWithMergedOptions({});
+    }
+
+    return response;
 }
 
 /**
@@ -187,29 +189,30 @@ function CustomWorld({ attach, parameters }) {
     this.promiseToWait = time => promiseToWait(time);
     this.getJwt = apiToken =>
         request({
-            followAllRedirects: true,
-            json: true,
             method: 'GET',
             url: `${this.instance}/${this.namespace}/auth/token?api_token=${apiToken}`
         });
     this.waitForBuild = buildID =>
-        requestretry({
-            uri: `${this.instance}/${this.namespace}/builds/${buildID}`,
+        request({
+            url: `${this.instance}/${this.namespace}/builds/${buildID}`,
             method: 'GET',
-            maxAttempts: 25,
-            retryDelay: 15000,
-            retryStrategy: buildRetryStrategy,
-            json: true,
-            auth: {
-                bearer: this.jwt
+            retryOptions: {
+                limit: 25,
+                calculateDelay: ({ computedValue }) => (computedValue ? 15000 : 0)
+            },
+            hooks: {
+                afterResponse: [buildRetryStrategy]
+            },
+            context: {
+                token: this.jwt
             }
         });
     this.loginWithToken = apiToken =>
         request({
-            uri: `${this.instance}/${this.namespace}/auth/logout`,
+            url: `${this.instance}/${this.namespace}/auth/logout`,
             method: 'POST',
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
             // Actual login is accomplished through getJwt
         }).then(() =>
@@ -219,33 +222,30 @@ function CustomWorld({ attach, parameters }) {
         );
     this.getPipeline = pipelineId =>
         request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/jobs`,
+            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/jobs`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         });
     this.createPipeline = (repoName, branch) =>
         request({
-            uri: `${this.instance}/${this.namespace}/pipelines`,
+            url: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             },
-            body: {
+            json: {
                 checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#${branch}`
-            },
-            json: true
+            }
         });
     this.deletePipeline = pipelineId =>
         request({
-            uri: `${this.instance}/${this.namespace}/pipelines/${pipelineId}`,
+            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}`,
             method: 'DELETE',
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
+            context: {
+                token: this.jwt
+            }
         });
     this.ensurePipelineExists = ensurePipelineExists;
 }

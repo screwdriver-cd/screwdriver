@@ -4,7 +4,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
@@ -31,15 +31,14 @@ Given(/^an existing pipeline with (.*) image and (.*) package$/, { timeout: TIME
             this.expectedImage = image;
 
             return request({
-                uri: `${this.instance}/${this.namespace}/pipelines`,
+                url: `${this.instance}/${this.namespace}/pipelines`,
                 method: 'POST',
-                auth: {
-                    bearer: this.jwt
+                context: {
+                    token: this.jwt
                 },
-                body: {
+                json: {
                     checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
-                },
-                json: true
+                }
             });
         })
         .then(response => {
@@ -58,11 +57,10 @@ Given(/^an existing pipeline with (.*) image and (.*) package$/, { timeout: TIME
 
 When(/^the (main|tilde|hat|specify) job is started$/, { timeout: TIMEOUT }, function step(jobName) {
     return request({
-        uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
+        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     })
         .then(response => {
@@ -80,15 +78,14 @@ When(/^the (main|tilde|hat|specify) job is started$/, { timeout: TIMEOUT }, func
         })
         .then(() =>
             request({
-                uri: `${this.instance}/${this.namespace}/builds`,
+                url: `${this.instance}/${this.namespace}/builds`,
                 method: 'POST',
-                body: {
+                json: {
                     jobId: this.jobId
                 },
-                auth: {
-                    bearer: this.jwt
-                },
-                json: true
+                context: {
+                    token: this.jwt
+                }
             }).then(resp => {
                 Assert.equal(resp.statusCode, 201);
 

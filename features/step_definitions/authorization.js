@@ -3,7 +3,7 @@
 const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
 const { Before, Given, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 const TIMEOUT = 240 * 1000;
 
 Before('@auth', function hook() {
@@ -48,15 +48,14 @@ Given(/^"([^"]*)" is logged in$/, { timeout: TIMEOUT }, function step(user) {
 Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
     return request({
         // make sure pipeline exists (TODO: move to Given an existing pipeline with that repository scenario)
-        uri: `${this.instance}/${this.namespace}/pipelines`,
+        url: `${this.instance}/${this.namespace}/pipelines`,
         method: 'POST',
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         },
-        body: {
+        json: {
             checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
-        },
-        json: true
+        }
     })
         .then(response => {
             Assert.oneOf(response.statusCode, [409, 201]);
@@ -74,10 +73,8 @@ Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
             request({
                 method: 'GET',
                 url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-                followAllRedirects: true,
-                json: true,
-                auth: {
-                    bearer: this.jwt
+                context: {
+                    token: this.jwt
                 }
             })
         )
@@ -88,16 +85,15 @@ Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
 
 Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/events`,
+        url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
-        body: {
+        json: {
             pipelineId: this.pipelineId,
             startFrom: 'main'
         },
         auth: {
             bearer: this.jwt
-        },
-        json: true
+        }
     })
         .then(resp => {
             Assert.equal(resp.statusCode, 201);
@@ -105,12 +101,11 @@ Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
         })
         .then(() =>
             request({
-                uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
                 method: 'GET',
-                auth: {
-                    bearer: this.jwt
-                },
-                json: true
+                context: {
+                    token: this.jwt
+                }
             })
         )
         .then(resp => {
@@ -122,11 +117,10 @@ Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
 Then(/^they can delete the pipeline$/, { timeout: TIMEOUT }, function step() {
     return request({
         method: 'DELETE',
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         },
-        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`,
-        json: true
+        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}`
     }).then(resp => {
         Assert.strictEqual(resp.statusCode, 204);
     });

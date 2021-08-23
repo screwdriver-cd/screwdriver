@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, Then, When, After } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 
 // Timeout of 15 seconds
 const TIMEOUT = 15 * 1000;
@@ -18,13 +18,12 @@ function createCollection(body) {
         this.jwt = response.body.token;
 
         return request({
-            uri: `${this.instance}/${this.namespace}/collections`,
+            url: `${this.instance}/${this.namespace}/collections`,
             method: 'POST',
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             },
-            body,
-            json: true
+            json: body
         });
     });
 }
@@ -41,12 +40,11 @@ function deleteCollection(id) {
     }
 
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${id}`,
+        url: `${this.instance}/${this.namespace}/collections/${id}`,
         method: 'DELETE',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 204);
     });
@@ -63,12 +61,11 @@ Before('@collections', function hook() {
 When(/^they check the default collection$/, { timeout: TIMEOUT }, function step() {
     return this.ensurePipelineExists({ repoName: this.repoName }).then(() =>
         request({
-            uri: `${this.instance}/${this.namespace}/collections`,
+            url: `${this.instance}/${this.namespace}/collections`,
             method: 'GET',
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
+            context: {
+                token: this.jwt
+            }
         }).then(response => {
             Assert.strictEqual(response.statusCode, 200);
             this.defaultCollectionId = response.body.find(collection => collection.type === 'default').id;
@@ -81,12 +78,11 @@ Then(/^they can see the default collection contains that pipeline$/, { timeout: 
     const pipelineId = parseInt(this.pipelineId, 10);
 
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${this.defaultCollectionId}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.defaultCollectionId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
         // TODO: May need to change back
@@ -113,12 +109,11 @@ When(/^they create a new collection "myCollection" with that pipeline$/, { timeo
 
 Then(/^they can see that collection$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
         Assert.strictEqual(response.body.name, 'myCollection');
@@ -129,12 +124,11 @@ Then(/^the collection contains that pipeline$/, { timeout: TIMEOUT }, function s
     const pipelineId = parseInt(this.pipelineId, 10);
 
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
         Assert.deepEqual(response.body.pipelineIds, [pipelineId]);
@@ -150,12 +144,11 @@ When(/^they create a new collection "myCollection"$/, { timeout: TIMEOUT }, func
 
 Then(/^the collection is empty$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
         Assert.deepEqual(response.body.pipelineIds, []);
@@ -167,15 +160,14 @@ When(/^they update the collection "myCollection" with that pipeline$/, { timeout
         const pipelineId = parseInt(this.pipelineId, 10);
 
         return request({
-            uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+            url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
             method: 'PUT',
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             },
-            body: {
+            json: {
                 pipelineIds: [pipelineId]
-            },
-            json: true
+            }
         }).then(response => {
             Assert.strictEqual(response.statusCode, 200);
         });
@@ -212,12 +204,11 @@ Given(/^they have a collection "anotherCollection"$/, { timeout: TIMEOUT }, func
 
 When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/collections`,
+        url: `${this.instance}/${this.namespace}/collections`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
         this.collections = response.body;
@@ -236,12 +227,11 @@ Then(/^they can see those collections and the default collection$/, function ste
 
 When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'DELETE',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 204);
     });
@@ -249,12 +239,11 @@ When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
 
 Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 404);
         this.firstCollectionId = null;

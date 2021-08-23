@@ -7,7 +7,7 @@ const schema = require('screwdriver-data-schema');
 const validator = require('screwdriver-command-validator');
 const hoek = require('@hapi/hoek');
 const urlLib = require('url');
-const req = require('request');
+const req = require('screwdriver-request');
 const VERSION_REGEX = schema.config.regex.VERSION;
 const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB
 
@@ -52,15 +52,7 @@ function publishFileToStore(commandFactory, config, file, storeUrl, authToken) {
                 body: file
             };
 
-            return new Promise((resolve, reject) => {
-                req(options, (err, response) => {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    return resolve(response);
-                });
-            });
+            return req(options);
         })
         .then(response => {
             if (response.statusCode !== 202) {

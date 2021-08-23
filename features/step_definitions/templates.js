@@ -4,7 +4,7 @@ const fs = require('mz/fs');
 const path = require('path');
 const Assert = require('chai').assert;
 const { Given, Then, When } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 
 Given(/^a (valid|invalid)\b job-level template$/, function step(templateType) {
     let targetFile = '';
@@ -31,15 +31,14 @@ When(/^they submit it to the API$/, function step() {
             const jwt = response.body.token;
 
             return request({
-                uri: `${this.instance}/${this.namespace}/validator/template`,
+                url: `${this.instance}/${this.namespace}/validator/template`,
                 method: 'POST',
-                auth: {
-                    bearer: jwt
+                context: {
+                    token: jwt
                 },
-                body: {
+                json: {
                     yaml: this.templateContents
-                },
-                json: true
+                }
             });
         })
         .then(response => {

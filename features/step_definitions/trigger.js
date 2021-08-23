@@ -2,9 +2,9 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('cucumber');
+const request = require('screwdriver-request');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
-const request = require('../support/request');
 
 const TIMEOUT = 240 * 1000;
 
@@ -92,15 +92,14 @@ When(
         const buildVarName = jobName ? `${jobName}BuildId` : 'buildId';
 
         return request({
-            uri: `${this.instance}/${this.namespace}/builds`,
+            url: `${this.instance}/${this.namespace}/builds`,
             method: 'POST',
-            body: {
+            json: {
                 jobId
             },
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
+            context: {
+                token: this.jwt
+            }
         }).then(resp => {
             Assert.equal(resp.statusCode, 201);
 
