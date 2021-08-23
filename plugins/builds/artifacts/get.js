@@ -8,7 +8,7 @@ const got = require('got');
 
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
-const typeSchema = joi.string().valid('', 'download', 'preview').label('Flag to trigger type either to download or preview');
+const typeSchema = joi.string().default('preview').valid('download', 'preview').label('Flag to trigger type either to download or preview');
 
 module.exports = config => ({
     method: 'GET',
@@ -57,7 +57,7 @@ module.exports = config => ({
         
                     let baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
-        
+
                     if (request.query.type) {
                         baseUrl += `&type=${request.query.type}`;
                     }
