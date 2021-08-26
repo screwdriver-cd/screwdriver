@@ -1756,10 +1756,32 @@ describe('webhooks plugin test', () => {
                         branch: Promise.resolve('fix-1')
                     });
 
-                    pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3, pMock4]);
+                    // simulate subscribe pipeline
+                    const pMock5 = getPipelineMocks({
+                        id: 'pipelineHash5',
+                        scmUri: 'github.com:12345:master',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph,
+                        branch: Promise.resolve('fix-1')
+                    });
+
+                    eventFactoryMock.create.resetHistory();
+                    pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3, pMock4, pMock5]);
+                    pipelineFactoryMock.scm.getCommitSha
+                        .withArgs({
+                            scmUri: pMock5.scmUri,
+                            scmContext,
+                            token
+                        })
+                        .rejects({ statusCode: 500 });
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 201);
+                        // create count should't change with pMock5
+                        assert.callCount(eventFactoryMock.create, 8);
                         assert.calledWith(eventFactoryMock.create, {
                             pipelineId: pMock1.id,
                             type: 'pr',

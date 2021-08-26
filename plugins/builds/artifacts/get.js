@@ -5,6 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
 const got = require('got');
+const boom = require('@hapi/boom');
 
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
@@ -54,22 +55,29 @@ module.exports = config => ({
                         expiresIn: '5s',
                         jwtid: uuid.v4()
                     });
-        
+
                     let baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
 
                     if (request.query.type) {
                         baseUrl += `&type=${request.query.type}`;
                     }
-        
+
                     const gotStream = got.stream(baseUrl);
 
                     let response = h.response(gotStream);
-                    
-                    return new Promise((resolve) => {
+
+                    return new Promise((resolve, reject) => {
                         gotStream.on('response', response => {
                             resolve(response.headers);
-                        }); 
+                        });
+                        gotStream.on('error', err => {
+                            if (err.response && err.response.statusCode == 404) {
+                                reject(boom.notFound('File not found'));
+                            } else {
+                                reject(err);
+                            }
+                        });
                     }).then(headers => {
                         response.headers['content-type'] = headers['content-type'];
                         response.headers['content-disposition'] = headers['content-disposition'];
