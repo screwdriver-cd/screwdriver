@@ -2,6 +2,7 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
+// const got = require('got');
 const request = require('screwdriver-request');
 const ndjson = require('ndjson');
 const MAX_LINES_SMALL = 100;
@@ -23,23 +24,17 @@ const logger = require('screwdriver-logger');
  */
 async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
     const output = [];
+    const gotStream = request.stream(`${baseUrl}.${page}`, {
+        method: 'GET',
+        headers: {
+            Authorization: authToken
+        }
+    });
 
     return new Promise((resolve, reject) => {
-        request
-            .get({
-                url: `${baseUrl}.${page}`,
-                headers: {
-                    Authorization: authToken
-                }
-            })
+        gotStream
+            .pipe(ndjson.parse())
             .on('error', e => reject(e))
-            // Parse the ndjson
-            .pipe(
-                ndjson.parse({
-                    strict: false
-                })
-            )
-            // Only save lines that we care about
             .on('data', line => {
                 const isNextLine = sort === 'ascending' ? line.n >= linesFrom : line.n <= linesFrom;
 
