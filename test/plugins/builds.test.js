@@ -122,6 +122,8 @@ describe('build plugin test', () => {
     let bannerFactoryMock;
     let plugin;
     let server;
+    let streamMock;
+    let gotMock;
     const logBaseUrl = 'https://store.screwdriver.cd';
 
     before(() => {
@@ -132,6 +134,16 @@ describe('build plugin test', () => {
     });
 
     beforeEach(async () => {
+        streamMock = {
+            on: sinon.stub()
+        };
+
+        streamMock.on.withArgs('response').yields(responseMock);
+
+        gotMock = {
+            stream: sinon.stub().returns(streamMock)
+        };
+
         buildFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -5108,6 +5120,32 @@ describe('build plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.match(reply.headers, headersMock);
+            });
+        });
+
+        it('returns 404 for an invalid artifact', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/doesnotexist?token=sign&type=preview`;
+
+            options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
+            streamMock.on.reset();
+            streamMock.on.withArgs('error').yields({ response: { statusCode: 404 } });
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(gotMock.stream, url);
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 for server error', () => {
+            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/doesnotexist?token=sign&type=preview`;
+
+            options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
+            streamMock.on.reset();
+            streamMock.on.withArgs('error').yields({ response: { statusCode: 502 } });
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(gotMock.stream, url);
+                assert.equal(reply.statusCode, 500);
             });
         });
 

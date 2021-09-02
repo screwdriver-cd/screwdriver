@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const request = require('screwdriver-request');
@@ -7,7 +8,7 @@ const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
-const typeSchema = joi.string().valid('', 'download', 'preview').label('Flag to trigger type either to download or preview');
+const typeSchema = joi.string().default('preview').valid('download', 'preview').label('Flag to trigger type either to download or preview');
 
 module.exports = config => ({
     method: 'GET',
@@ -65,9 +66,16 @@ module.exports = config => ({
 
                     let response = h.response(requestStream);
 
-                    return new Promise((resolve) => {
+                    return new Promise((resolve, reject) => {
                         requestStream.on('response', response => {
                             resolve(response.headers);
+                        });
+                        requestStream.on('error', err => {
+                            if (err.response && err.response.statusCode == 404) {
+                                reject(boom.notFound('File not found'));
+                            } else {
+                                reject(err);
+                            }
                         });
                     }).then(headers => {
                         response.headers['content-type'] = headers['content-type'];
