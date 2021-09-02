@@ -93,25 +93,6 @@ const badgeMock = {
     makeBadge: () => 'badge'
 };
 
-const responseMock = {
-    headers: {
-        'content-type': 'application/octet-stream',
-        'content-disposition': 'attachment; filename="manifest.txt"',
-        'content-length': '1077'
-    }
-};
-
-const streamMock = {
-    on: sinon
-        .stub()
-        .withArgs('response')
-        .yields(responseMock)
-};
-
-const gotMock = {
-    stream: sinon.stub().returns(streamMock)
-};
-
 /**
  * mock Lockobj class
  */
@@ -207,7 +188,6 @@ describe('build plugin test', () => {
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
 
-        mockery.registerMock('got', gotMock);
         mockery.registerMock('jsonwebtoken', jwtMock);
         mockery.registerMock('badge-maker', badgeMock);
         mockery.registerMock('../lock', lockMock);
@@ -5048,6 +5028,11 @@ describe('build plugin test', () => {
                 private: true
             }
         };
+        const headersMock = {
+            'content-type': 'application/octet-stream',
+            'content-disposition': 'attachment; filename="manifest.txt"',
+            'content-length': '1077'
+        };
         let options;
 
         beforeEach(() => {
@@ -5064,48 +5049,65 @@ describe('build plugin test', () => {
             buildFactoryMock.get.resolves(buildMock);
             eventFactoryMock.get.resolves(eventMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get(`/v1/builds/12345/ARTIFACTS/${artifact}?token=sign`)
+                .reply(200);
         });
 
         it('returns 200 for an artifact request', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign`;
-
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(gotMock.stream, url);
+                assert.match(reply.headers, headersMock);
             });
         });
 
         it('returns 200 for an multi-byte artifact request', () => {
             const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
+            const url = `/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get(url)
+                .reply(200);
 
             options.url = `/builds/${id}/artifacts/${multiByteArtifact}`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(gotMock.stream, url);
+                assert.match(reply.headers, headersMock);
             });
         });
 
         it('returns 200 for an artifact download request', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=download`;
+            const url = `/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=download`;
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get(url)
+                .reply(200);
 
             options.url = `/builds/${id}/artifacts/${artifact}?type=download`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(gotMock.stream, url);
+                assert.match(reply.headers, headersMock);
             });
         });
 
         it('returns 200 for an artifact preview request', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/manifest?token=sign&type=preview`;
+            const url = `/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=preview`;
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get(url)
+                .reply(200);
 
             options.url = `/builds/${id}/artifacts/${artifact}?type=preview`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(gotMock.stream, url);
+                assert.match(reply.headers, headersMock);
             });
         });
 

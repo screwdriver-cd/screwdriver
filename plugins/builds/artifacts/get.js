@@ -1,11 +1,10 @@
 'use strict';
 
-const jwt = require('jsonwebtoken');
 const joi = require('joi');
+const jwt = require('jsonwebtoken');
+const request = require('screwdriver-request');
 const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
-const got = require('got');
-
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
 const typeSchema = joi.string().valid('', 'download', 'preview').label('Flag to trigger type either to download or preview');
@@ -22,12 +21,12 @@ module.exports = config => ({
             scope: ['user', 'build', 'pipeline']
         },
 
-        handler: async (request, h) => {
-            const artifact = request.params.name;
-            const buildId = request.params.id;
-            const { credentials } = request.auth;
-            const { canAccessPipeline } = request.server.plugins.pipelines;
-            const { buildFactory, eventFactory } = request.server.app;
+        handler: async (req, h) => {
+            const artifact = req.params.name;
+            const buildId = req.params.id;
+            const { credentials } = req.auth;
+            const { canAccessPipeline } = req.server.plugins.pipelines;
+            const { buildFactory, eventFactory } = req.server.app;
 
             return buildFactory.get(buildId)
                 .then(build => {
@@ -42,7 +41,7 @@ module.exports = config => ({
                         throw boom.notFound('Event does not exist');
                     }
 
-                    return canAccessPipeline(credentials, event.pipelineId, 'pull', request.server.app);
+                    return canAccessPipeline(credentials, event.pipelineId, 'pull', req.server.app);
                 })
                 .then(async () => {
                     const encodedArtifact = encodeURIComponent(artifact);
@@ -54,22 +53,22 @@ module.exports = config => ({
                         expiresIn: '5s',
                         jwtid: uuid.v4()
                     });
-        
+
                     let baseUrl = `${config.ecosystem.store}/v1/builds/`
                         + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
-        
-                    if (request.query.type) {
-                        baseUrl += `&type=${request.query.type}`;
-                    }
-        
-                    const gotStream = got.stream(baseUrl);
 
-                    let response = h.response(gotStream);
-                    
+                    if (req.query.type) {
+                        baseUrl += `&type=${req.query.type}`;
+                    }
+
+                    const requestStream = request.stream(baseUrl);
+
+                    let response = h.response(requestStream);
+
                     return new Promise((resolve) => {
-                        gotStream.on('response', response => {
+                        requestStream.on('response', response => {
                             resolve(response.headers);
-                        }); 
+                        });
                     }).then(headers => {
                         response.headers['content-type'] = headers['content-type'];
                         response.headers['content-disposition'] = headers['content-disposition'];

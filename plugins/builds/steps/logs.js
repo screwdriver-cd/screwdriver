@@ -1,16 +1,15 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const schema = require('screwdriver-data-schema');
-// const got = require('got');
-const request = require('screwdriver-request');
-const ndjson = require('ndjson');
-const MAX_LINES_SMALL = 100;
-const MAX_LINES_BIG = 1000;
 const jwt = require('jsonwebtoken');
+const logger = require('screwdriver-logger');
+const ndjson = require('ndjson');
+const request = require('screwdriver-request');
+const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
 
-const logger = require('screwdriver-logger');
+const MAX_LINES_SMALL = 100;
+const MAX_LINES_BIG = 1000;
 
 /**
  * Makes the request to the Store to get lines from a log
@@ -24,7 +23,7 @@ const logger = require('screwdriver-logger');
  */
 async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
     const output = [];
-    const gotStream = request.stream(`${baseUrl}.${page}`, {
+    const requestStream = request.stream(`${baseUrl}.${page}`, {
         method: 'GET',
         headers: {
             Authorization: authToken
@@ -32,9 +31,11 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
     });
 
     return new Promise((resolve, reject) => {
-        gotStream
-            .pipe(ndjson.parse())
+        requestStream
             .on('error', e => reject(e))
+            // Parse the ndjson
+            .pipe(ndjson.parse({ strict: false }))
+            // Only save lines that we care about
             .on('data', line => {
                 const isNextLine = sort === 'ascending' ? line.n >= linesFrom : line.n <= linesFrom;
 
@@ -206,7 +207,6 @@ module.exports = config => ({
                         linesFrom = 0;
                     }
 
-                    // eslint-disable-next-line max-len
                     return getMaxLines({ baseUrl, authToken })
                         .then(maxLines =>
                             loadLines({
