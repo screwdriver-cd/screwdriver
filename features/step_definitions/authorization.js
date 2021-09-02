@@ -91,8 +91,8 @@ Then(/^they can start the "main" job$/, { timeout: TIMEOUT }, function step() {
             pipelineId: this.pipelineId,
             startFrom: 'main'
         },
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     })
         .then(resp => {
