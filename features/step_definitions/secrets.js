@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, Then, After } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 
 const TIMEOUT = 240 * 1000;
 
@@ -27,7 +27,7 @@ Given(/^an existing pipeline with that repository with the workflow:$/, table =>
 
 When(/^a secret "foo" is added globally$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/secrets`,
+        url: `${this.instance}/${this.namespace}/secrets`,
         method: 'POST',
         body: {
             pipelineId: this.pipelineId,
@@ -35,10 +35,9 @@ When(/^a secret "foo" is added globally$/, function step() {
             value: 'secrets',
             allowInPR: false
         },
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.equal(response.statusCode, 201);
 
@@ -48,16 +47,15 @@ When(/^a secret "foo" is added globally$/, function step() {
 
 When(/^the "main" job is started$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/events`,
+        url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
-        body: {
+        json: {
             pipelineId: this.pipelineId,
             startFrom: 'main'
         },
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     })
         .then(resp => {
             Assert.equal(resp.statusCode, 201);
@@ -65,12 +63,11 @@ When(/^the "main" job is started$/, { timeout: TIMEOUT }, function step() {
         })
         .then(() =>
             request({
-                uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
                 method: 'GET',
-                auth: {
-                    bearer: this.jwt
-                },
-                json: true
+                context: {
+                    token: this.jwt
+                }
             })
         )
         .then(resp => {
@@ -88,11 +85,10 @@ Then(/^the "foo" secret should be available in the build$/, { timeout: TIMEOUT }
 
 When(/^the "second" job is started$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
+        url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => {
         this.secondBuildId = response.body[0].id;
@@ -106,12 +102,11 @@ When(/^the "second" job is started$/, { timeout: TIMEOUT }, function step() {
 
 Then(/^the user can view the secret exists$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
+        url: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.isNotNull(response.body.name);
         Assert.equal(response.statusCode, 200);
@@ -120,12 +115,11 @@ Then(/^the user can view the secret exists$/, function step() {
 
 Then(/^the user can not view the secret exists$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
+        url: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.equal(response.statusCode, 403);
     });
@@ -133,12 +127,11 @@ Then(/^the user can not view the secret exists$/, function step() {
 
 Then(/^the user can not view the value$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
+        url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.isUndefined(response.body.value);
         Assert.equal(response.statusCode, 200);
@@ -151,12 +144,11 @@ After(
     },
     function hook() {
         return request({
-            uri: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
+            url: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
             method: 'DELETE',
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
+            context: {
+                token: this.jwt
+            }
         }).then(response => {
             Assert.equal(response.statusCode, 204);
         });

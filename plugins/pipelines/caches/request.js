@@ -1,17 +1,24 @@
 'use strict';
 
 const logger = require('screwdriver-logger');
-const requestretry = require('requestretry');
+const requestretry = require('screwdriver-request');
 
 const RETRY_DELAY = 5;
 const RETRY_LIMIT = 3;
 
 /**
  * Callback function to retry HTTP status codes > 299
- * @param {Object} err
- * @param {Object} response
+ * @param   {Object}    response
+ * @param   {Function}  retryWithMergedOptions
+ * @return  {Object}    Response
  */
-const retryStrategyFn = (err, response) => !!err || Math.floor(response.statusCode / 100) !== 2;
+const retryStrategyFn = (response, retryWithMergedOptions) => {
+    if (Math.floor(response.statusCode / 100) !== 2) {
+        retryWithMergedOptions({});
+    }
+
+    return response;
+};
 
 /**
  * @method invoke
@@ -33,9 +40,8 @@ async function invoke(request) {
     );
 
     const options = {
-        json: true,
         method,
-        uri: `${store}/v1/caches/${scope}/${cacheId}`,
+        url: `${store}/v1/caches/${scope}/${cacheId}`,
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -53,8 +59,8 @@ async function invoke(request) {
 
         Object.assign(options, {
             method: 'POST',
-            uri: `${queue}/v1/queue/message?type=cache`,
-            body: {
+            url: `${queue}/v1/queue/message?type=cache`,
+            json: {
                 scope,
                 id: cacheId,
                 buildClusters,
@@ -64,18 +70,30 @@ async function invoke(request) {
     }
 
     if (payload) {
-        if (options.body) {
-            Object.assign(options.body, payload);
+        if (options.json) {
+            Object.assign(options.json, payload);
         } else {
-            Object.assign(options, { body: payload });
+            Object.assign(options, { json: payload });
         }
     }
 
     if (retryStrategyFn) {
+        const retryOptions = {
+            limit: RETRY_LIMIT,
+            calculateDelay: ({ computedValue }) => (computedValue ? RETRY_DELAY * 1000 : 0) // in ms
+        };
+
+        if (method === 'POST') {
+            Object.assign(retryOptions, {
+                methods: ['POST']
+            });
+        }
+
         Object.assign(options, {
-            retryStrategy: retryStrategyFn,
-            maxAttempts: RETRY_LIMIT,
-            retryDelay: RETRY_DELAY * 1000 // in ms
+            retryOptions,
+            hooks: {
+                afterResponse: [retryStrategyFn]
+            }
         });
     }
 
@@ -83,15 +101,10 @@ async function invoke(request) {
         `${options.method} ${options.uri} Cache invalidation request for pipelineId:${pipelineId} ${query.scope}:${query.cacheId}`
     );
 
-    return new Promise((resolve, reject) => {
-        requestretry(options, (err, res) => {
-            if (!err) {
-                return resolve(res);
-            }
-            logger.error('Error occured while clearing cache', err);
+    return requestretry(options).catch(err => {
+        logger.error('Error occured while clearing cache', err);
 
-            return reject(err);
-        });
+        return Promise.reject(err);
     });
 }
 

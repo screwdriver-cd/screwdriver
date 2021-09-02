@@ -3,7 +3,7 @@
 const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
 const { Before, Given, When, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 
 Before('@apitoken', function hook() {
@@ -24,15 +24,14 @@ Given(/^"calvin" does not own a token named "([^"]*)"$/, function step(token) {
 
 When(/^a new API token named "([^"]*)" is generated$/, function step(tokenName) {
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens`,
+        url: `${this.instance}/${this.namespace}/tokens`,
         method: 'POST',
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         },
-        body: {
+        json: {
             name: tokenName
-        },
-        json: true
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 201);
         Assert.strictEqual(response.body.lastUsed, '');
@@ -57,12 +56,11 @@ Then(/^a valid JWT is received that represents "calvin"$/, function step() {
 
 Then(/^the "([^"]*)" token's 'last used' property is updated$/, function step(tokenName) {
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens`,
+        url: `${this.instance}/${this.namespace}/tokens`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         const { lastUsed } = response.body.find(token => token.name === tokenName);
 
@@ -72,15 +70,14 @@ Then(/^the "([^"]*)" token's 'last used' property is updated$/, function step(to
 
 Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tokenName) {
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens`,
+        url: `${this.instance}/${this.namespace}/tokens`,
         method: 'POST',
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         },
-        body: {
+        json: {
             name: tokenName
-        },
-        json: true
+        }
     }).then(response => {
         Assert.oneOf(response.statusCode, [409, 201]);
 
@@ -91,12 +88,11 @@ Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tok
         }
 
         return request({
-            uri: `${this.instance}/${this.namespace}/tokens`,
+            url: `${this.instance}/${this.namespace}/tokens`,
             method: 'GET',
-            auth: {
-                bearer: this.jwt
-            },
-            json: true
+            context: {
+                token: this.jwt
+            }
         }).then(listResponse => {
             Assert.strictEqual(listResponse.statusCode, 200);
 
@@ -107,12 +103,11 @@ Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tok
 
 When(/^he lists all his tokens$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens`,
+        url: `${this.instance}/${this.namespace}/tokens`,
         method: 'GET',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
 
@@ -142,15 +137,14 @@ When(/^he changes the label associated with the token$/, function step() {
     this.newDescription = this.testToken.description === 'tiger' ? 'not tiger' : 'tiger';
 
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
+        url: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
         method: 'PUT',
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         },
-        body: {
+        json: {
             description: this.newDescription
-        },
-        json: true
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
 
@@ -168,10 +162,10 @@ Then(/^the token's 'last used' property will not be updated$/, function step() {
 
 When(/^he revokes the token$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
+        url: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}`,
         method: 'DELETE',
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => Assert.strictEqual(response.statusCode, 204));
 });
@@ -182,12 +176,11 @@ Then(/^the login attempt fails$/, function step() {
 
 When(/^he refreshes the token$/, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}/refresh`,
+        url: `${this.instance}/${this.namespace}/tokens/${this.testToken.id}/refresh`,
         method: 'PUT',
-        auth: {
-            bearer: this.jwt
-        },
-        json: true
+        context: {
+            token: this.jwt
+        }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
 

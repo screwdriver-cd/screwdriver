@@ -1,6 +1,6 @@
 'use strict';
 
-const request = require('./request');
+const request = require('screwdriver-request');
 const WAIT_TIME = 6;
 
 /**
@@ -33,11 +33,10 @@ function findJobs(config) {
     const { instance, pipelineId } = config;
 
     return request({
-        json: true,
         method: 'GET',
-        uri: `${instance}/v4/pipelines/${pipelineId}/jobs`,
-        auth: {
-            bearer: config.jwt
+        url: `${instance}/v4/pipelines/${pipelineId}/jobs`,
+        context: {
+            token: config.jwt
         }
     });
 }
@@ -84,11 +83,10 @@ function findBuilds(config) {
         const jobId = result[0].id;
 
         return request({
-            json: true,
             method: 'GET',
-            uri: `${instance}/v4/jobs/${jobId}/builds`,
-            auth: {
-                bearer: config.jwt
+            url: `${instance}/v4/jobs/${jobId}/builds`,
+            context: {
+                token: config.jwt
             }
         });
     });
@@ -113,11 +111,10 @@ function findEventBuilds(config) {
     const { eventId } = config;
 
     return request({
-        json: true,
         method: 'GET',
-        uri: `${instance}/v4/events/${eventId}/builds`,
-        auth: {
-            bearer: config.jwt
+        url: `${instance}/v4/events/${eventId}/builds`,
+        context: {
+            token: config.jwt
         }
     }).then(response => {
         const builds = response.body || [];
@@ -202,11 +199,10 @@ function waitForBuildStatus(config) {
     const { instance } = config;
 
     return request({
-        json: true,
         method: 'GET',
-        uri: `${instance}/v4/builds/${buildId}`,
-        auth: {
-            bearer: config.jwt
+        url: `${instance}/v4/builds/${buildId}`,
+        context: {
+            token: config.jwt
         }
     }).then(response => {
         const buildData = response.body;
@@ -236,10 +232,10 @@ function cleanupToken(config) {
     const { jwt } = config;
 
     return request({
-        uri: `${instance}/${namespace}/tokens`,
+        url: `${instance}/${namespace}/tokens`,
         method: 'GET',
-        auth: {
-            bearer: jwt
+        context: {
+            token: jwt
         }
     }).then(response => {
         const match = JSON.parse(response.body).find(token => token.name === tokenName);
@@ -247,10 +243,10 @@ function cleanupToken(config) {
         if (!match) return Promise.resolve();
 
         return request({
-            uri: `${instance}/${namespace}/tokens/${match.id}`,
+            url: `${instance}/${namespace}/tokens/${match.id}`,
             method: 'DELETE',
-            auth: {
-                bearer: jwt
+            context: {
+                token: jwt
             }
         });
     });
@@ -285,15 +281,14 @@ function cleanupBuilds(config) {
         return Promise.all(
             builds.map(build =>
                 request({
-                    uri: `${instance}/v4/builds/${build.id}`,
+                    url: `${instance}/v4/builds/${build.id}`,
                     method: 'PUT',
-                    auth: {
-                        bearer: jwt
+                    context: {
+                        token: jwt
                     },
-                    body: {
+                    json: {
                         status: 'ABORTED'
-                    },
-                    json: true
+                    }
                 })
             )
         );

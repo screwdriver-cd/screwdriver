@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
 
@@ -26,9 +26,7 @@ Before(
         return request({
             // TODO : perform this in the before-hook for all func tests
             method: 'GET',
-            url: `${this.instance}/${this.namespace}/auth/token?api_token=${this.apiToken}`,
-            followAllRedirects: true,
-            json: true
+            url: `${this.instance}/${this.namespace}/auth/token?api_token=${this.apiToken}`
         })
             .then(response => {
                 this.jwt = response.body.token;
@@ -45,15 +43,14 @@ Given(
     },
     function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/pipelines`,
+            url: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             },
-            body: {
+            json: {
                 checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
-            },
-            json: true
+            }
         }).then(response => {
             Assert.oneOf(response.statusCode, [409, 201]);
 
@@ -297,11 +294,10 @@ Then(
 
 Then(/^the build should know they are in a pull request/, function step() {
     return request({
-        json: true,
         method: 'GET',
-        uri: `${this.instance}/${this.namespace}/jobs/${this.jobId}`,
-        auth: {
-            bearer: this.jwt
+        url: `${this.instance}/${this.namespace}/jobs/${this.jobId}`,
+        context: {
+            token: this.jwt
         }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);

@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 
 const TIMEOUT = 240 * 1000;
 
@@ -23,11 +23,10 @@ Given(/^"calvin" has admin permission to the pipeline$/, () => null);
 
 Then(/^an event is created$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
+        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => Assert.equal(response.body[0].id, this.eventId));
 });
@@ -41,11 +40,10 @@ Then(/^the "main" build succeeds$/, { timeout: TIMEOUT }, function step() {
 
 Then(/^the "publish" build succeeds with the same eventId as the "main" build$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
+        url: `${this.instance}/${this.namespace}/jobs/${this.secondJobId}/builds`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => {
         this.secondBuildId = response.body[0].id;

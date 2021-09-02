@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 
 const TIMEOUT = 240 * 1000;
 
@@ -24,9 +24,7 @@ Before(
         return request({
             // TODO : perform this in the before-hook for all func tests
             method: 'GET',
-            url: `${this.instance}/${this.namespace}/auth/token?api_token=${this.apiToken}`,
-            followAllRedirects: true,
-            json: true
+            url: `${this.instance}/${this.namespace}/auth/token?api_token=${this.apiToken}`
         }).then(response => {
             this.jwt = response.body.token;
         });
@@ -35,11 +33,10 @@ Before(
 
 Given(/^(.*) command in (.*) format$/, { timeout: TIMEOUT }, function step(command, format) {
     return request({
-        uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/latest`,
+        url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/latest`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => {
         Assert.equal(response.body.name, command);
@@ -54,11 +51,10 @@ Given(/^(.+) command does not exist yet$/, { timeout: TIMEOUT }, function step(c
     this.command = command;
 
     return request({
-        uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
+        url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => {
         if (response.statusCode === 404) {
@@ -67,11 +63,10 @@ Given(/^(.+) command does not exist yet$/, { timeout: TIMEOUT }, function step(c
 
         /* eslint-disable-next-line consistent-return */
         return request({
-            uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
+            url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
             method: 'DELETE',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(resp => {
             Assert.equal(resp.statusCode, 204);
@@ -88,15 +83,14 @@ Given(
         const jobName = `publish-${tag}`;
 
         return request({
-            uri: `${this.instance}/${this.namespace}/events`,
+            url: `${this.instance}/${this.namespace}/events`,
             method: 'POST',
-            json: true,
-            body: {
+            json: {
                 pipelineId: this.pipelineId,
                 startFrom: jobName
             },
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         })
             .then(response => {
@@ -105,12 +99,11 @@ Given(
             })
             .then(() =>
                 request({
-                    uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                    url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
                     method: 'GET',
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
+                    context: {
+                        token: this.jwt
+                    }
                 })
             )
             .then(response => {
@@ -133,15 +126,14 @@ When(
     },
     function step(jobName) {
         return request({
-            uri: `${this.instance}/${this.namespace}/events`,
+            url: `${this.instance}/${this.namespace}/events`,
             method: 'POST',
-            json: true,
-            body: {
+            json: {
                 pipelineId: this.pipelineId,
                 startFrom: jobName
             },
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         })
             .then(response => {
@@ -150,12 +142,11 @@ When(
             })
             .then(() =>
                 request({
-                    uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                    url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
                     method: 'GET',
-                    auth: {
-                        bearer: this.jwt
-                    },
-                    json: true
+                    context: {
+                        token: this.jwt
+                    }
                 })
             )
             .then(response => {
@@ -173,11 +164,10 @@ When(
     },
     function step(stepName, args) {
         return request({
-            uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps/${stepName}`,
+            url: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps/${stepName}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.statusCode, 200);
@@ -200,11 +190,10 @@ Then(
     },
     function step(format) {
         return request({
-            uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/latest`,
+            url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/latest`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.body.name, this.command);
@@ -221,11 +210,10 @@ Then(
     },
     function step(version, tag) {
         return request({
-            uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/${tag}`,
+            url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/${tag}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.body.version, version);
@@ -240,11 +228,10 @@ Then(
     },
     function step(tag, version) {
         return request({
-            uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/${tag}`,
+            url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}/${tag}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.notEqual(response.body.version, version);
@@ -260,11 +247,10 @@ Then(
     function step() {
         /* eslint-disable-next-line consistent-return */
         return request({
-            uri: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
+            url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
             method: 'DELETE',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(resp => {
             Assert.equal(resp.statusCode, 204);

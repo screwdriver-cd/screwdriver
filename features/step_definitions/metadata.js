@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, Then } = require('cucumber');
-const request = require('../support/request');
+const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
@@ -65,11 +65,10 @@ Then(/^the build succeeded$/, { timeout: TIMEOUT }, function step() {
 
 Then(/^the event is done$/, { timeout: TIMEOUT }, function step() {
     return request({
-        uri: `${this.instance}/${this.namespace}/jobs/${this.thirdJobId}/builds`,
+        url: `${this.instance}/${this.namespace}/jobs/${this.thirdJobId}/builds`,
         method: 'GET',
-        json: true,
-        auth: {
-            bearer: this.jwt
+        context: {
+            token: this.jwt
         }
     }).then(response => {
         this.buildId = response.body[0].id;

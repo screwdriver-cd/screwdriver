@@ -1,12 +1,11 @@
 'use strict';
 
-const jwt = require('jsonwebtoken');
+const boom = require('@hapi/boom');
 const joi = require('joi');
+const jwt = require('jsonwebtoken');
+const request = require('screwdriver-request');
 const schema = require('screwdriver-data-schema');
 const uuid = require('uuid');
-const got = require('got');
-const boom = require('@hapi/boom');
-
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
 const typeSchema = joi.string().default('preview').valid('download', 'preview').label('Flag to trigger type either to download or preview');
@@ -23,12 +22,12 @@ module.exports = config => ({
             scope: ['user', 'build', 'pipeline']
         },
 
-        handler: async (request, h) => {
-            const artifact = request.params.name;
-            const buildId = request.params.id;
-            const { credentials } = request.auth;
-            const { canAccessPipeline } = request.server.plugins.pipelines;
-            const { buildFactory, eventFactory } = request.server.app;
+        handler: async (req, h) => {
+            const artifact = req.params.name;
+            const buildId = req.params.id;
+            const { credentials } = req.auth;
+            const { canAccessPipeline } = req.server.plugins.pipelines;
+            const { buildFactory, eventFactory } = req.server.app;
 
             return buildFactory.get(buildId)
                 .then(build => {
@@ -43,7 +42,7 @@ module.exports = config => ({
                         throw boom.notFound('Event does not exist');
                     }
 
-                    return canAccessPipeline(credentials, event.pipelineId, 'pull', request.server.app);
+                    return canAccessPipeline(credentials, event.pipelineId, 'pull', req.server.app);
                 })
                 .then(async () => {
                     const encodedArtifact = encodeURIComponent(artifact);
@@ -57,21 +56,17 @@ module.exports = config => ({
                     });
 
                     let baseUrl = `${config.ecosystem.store}/v1/builds/`
-                        + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
+                        + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}&type=${req.query.type}`;
 
-                    if (request.query.type) {
-                        baseUrl += `&type=${request.query.type}`;
-                    }
+                    const requestStream = request.stream(baseUrl);
 
-                    const gotStream = got.stream(baseUrl);
-
-                    let response = h.response(gotStream);
+                    let response = h.response(requestStream);
 
                     return new Promise((resolve, reject) => {
-                        gotStream.on('response', response => {
+                        requestStream.on('response', response => {
                             resolve(response.headers);
                         });
-                        gotStream.on('error', err => {
+                        requestStream.on('error', err => {
                             if (err.response && err.response.statusCode == 404) {
                                 reject(boom.notFound('File not found'));
                             } else {

@@ -1,22 +1,20 @@
 'use strict';
 
-const request = require('request');
+const request = require('screwdriver-request');
 const Assert = require('chai').assert;
 const { Given, When, Then } = require('cucumber');
 
 Given(/^a running API server$/, next => next());
 
-When(/^I access the status endpoint$/, function step(callback) {
-    request.get(`${this.instance}/v4/status`, (err, result) => {
+When(/^I access the status endpoint$/, function step() {
+    return request({ method: 'GET', url: `${this.instance}/v4/status` }).then(result => {
         this.body = result ? result.body : null;
-        callback(err);
     });
 });
 
-When(/^I access the versions endpoint$/, function step(callback) {
-    request.get(`${this.instance}/v4/versions`, (err, result) => {
+When(/^I access the versions endpoint$/, function step() {
+    return request({ method: 'GET', url: `${this.instance}/v4/versions` }).then(result => {
         this.body = result ? JSON.parse(result.body) : null;
-        callback(err);
     });
 });
 
