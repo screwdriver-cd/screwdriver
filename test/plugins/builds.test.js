@@ -122,8 +122,6 @@ describe('build plugin test', () => {
     let bannerFactoryMock;
     let plugin;
     let server;
-    let streamMock;
-    let gotMock;
     const logBaseUrl = 'https://store.screwdriver.cd';
 
     before(() => {
@@ -134,16 +132,6 @@ describe('build plugin test', () => {
     });
 
     beforeEach(async () => {
-        streamMock = {
-            on: sinon.stub()
-        };
-
-        streamMock.on.withArgs('response').yields(responseMock);
-
-        gotMock = {
-            stream: sinon.stub().returns(streamMock)
-        };
-
         buildFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -5016,7 +5004,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('GET /builds/{id}/artifacts/{artifact}', () => {
+    describe('GET /builds/{id}/acts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
         const multiByteArtifact = 'まにふぇmanife漢字';
@@ -5063,7 +5051,7 @@ describe('build plugin test', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
             nock(logBaseUrl)
                 .defaultReplyHeaders(headersMock)
-                .get(`/v1/builds/12345/ARTIFACTS/${artifact}?token=sign`)
+                .get(`/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=preview`)
                 .reply(200);
         });
 
@@ -5076,7 +5064,7 @@ describe('build plugin test', () => {
 
         it('returns 200 for an multi-byte artifact request', () => {
             const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
-            const url = `/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign`;
+            const url = `/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign&type=preview`;
 
             nock(logBaseUrl)
                 .defaultReplyHeaders(headersMock)
@@ -5123,29 +5111,53 @@ describe('build plugin test', () => {
             });
         });
 
-        it('returns 404 for an invalid artifact', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/doesnotexist?token=sign&type=preview`;
-
-            options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
-            streamMock.on.reset();
-            streamMock.on.withArgs('error').yields({ response: { statusCode: 404 } });
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
-                assert.calledWith(gotMock.stream, url);
                 assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Build does not exist');
+            });
+        });
+
+        it('returns 404 when event does not exist', () => {
+            eventFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Event does not exist');
+            });
+        });
+
+        it('returns 404 for an invalid artifact', () => {
+            const url = '/v1/builds/12345/ARTIFACTS/doesnotexist?token=sign&type=preview';
+
+            options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get(url)
+                .reply(404);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'File not found');
             });
         });
 
         it('returns 500 for server error', () => {
-            const url = `${logBaseUrl}/v1/builds/12345/ARTIFACTS/doesnotexist?token=sign&type=preview`;
+            const url = '/v1/builds/12345/ARTIFACTS/doesnotexist?token=sign&type=preview';
 
             options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
-            streamMock.on.reset();
-            streamMock.on.withArgs('error').yields({ response: { statusCode: 502 } });
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get(url)
+                .reply(502);
 
             return server.inject(options).then(reply => {
-                assert.calledWith(gotMock.stream, url);
                 assert.equal(reply.statusCode, 500);
+                assert.equal(reply.result.message, 'An internal server error occurred');
             });
         });
 

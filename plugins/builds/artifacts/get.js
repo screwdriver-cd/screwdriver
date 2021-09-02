@@ -56,11 +56,7 @@ module.exports = config => ({
                     });
 
                     let baseUrl = `${config.ecosystem.store}/v1/builds/`
-                        + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}`;
-
-                    if (req.query.type) {
-                        baseUrl += `&type=${req.query.type}`;
-                    }
+                        + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}&type=${req.query.type}`;
 
                     const requestStream = request.stream(baseUrl);
 
