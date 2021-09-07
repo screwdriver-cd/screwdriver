@@ -3,6 +3,7 @@
 const Assert = require('chai').assert;
 const { Before, Given, Then, When, After } = require('cucumber');
 const request = require('screwdriver-request');
+const { ID } = require('../support/constants');
 
 // Timeout of 15 seconds
 const TIMEOUT = 15 * 1000;
@@ -175,31 +176,37 @@ When(/^they update the collection "myCollection" with that pipeline$/, { timeout
 });
 
 Given(/^they have a collection "myCollection"$/, { timeout: TIMEOUT }, function step() {
-    return createCollection.call(this, { name: 'myCollection' }).then(response => {
-        Assert.oneOf(response.statusCode, [409, 201]);
+    return createCollection
+        .call(this, { name: 'myCollection' })
+        .then(response => {
+            Assert.strictEqual(response.statusCode, 201);
 
-        if (response.statusCode === 201) {
             this.firstCollectionId = response.body.id;
-        } else {
-            const str = response.body.message;
+        })
+        .catch(err => {
+            Assert.strictEqual(err.statusCode, 409);
 
-            [, this.firstCollectionId] = str.split(': ');
-        }
-    });
+            const [, str] = err.message.split(': ');
+
+            [this.firstCollectionId] = str.match(ID);
+        });
 });
 
 Given(/^they have a collection "anotherCollection"$/, { timeout: TIMEOUT }, function step() {
-    return createCollection.call(this, { name: 'anotherCollection' }).then(response => {
-        Assert.oneOf(response.statusCode, [409, 201]);
+    return createCollection
+        .call(this, { name: 'anotherCollection' })
+        .then(response => {
+            Assert.strictEqual(response.statusCode, 201);
 
-        if (response.statusCode === 201) {
             this.secondCollectionId = response.body.id;
-        } else {
-            const str = response.body.message;
+        })
+        .catch(err => {
+            Assert.strictEqual(err.statusCode, 409);
 
-            [, this.secondCollectionId] = str.split(': ');
-        }
-    });
+            const [, str] = err.message.split(': ');
+
+            [this.secondCollectionId] = str.match(ID);
+        });
 });
 
 When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step() {
@@ -244,8 +251,8 @@ Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step()
         context: {
             token: this.jwt
         }
-    }).then(response => {
-        Assert.strictEqual(response.statusCode, 404);
+    }).catch(err => {
+        Assert.strictEqual(err.statusCode, 404);
         this.firstCollectionId = null;
     });
 });
@@ -259,9 +266,8 @@ When(/^they create another collection with the same name "myCollection"$/, { tim
 
 Then(/^they receive an error regarding unique collections$/, function step() {
     Assert.strictEqual(this.lastResponse.statusCode, 409);
-    Assert.strictEqual(
-        this.lastResponse.body.message,
-        `Collection already exists with the ID: ${this.firstCollectionId}`
+    Assert.isTrue(
+        this.lastResponse.message.includes(`Collection already exists with the ID: ${this.firstCollectionId}`)
     );
 });
 

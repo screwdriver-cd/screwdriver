@@ -6,6 +6,7 @@ const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
+const { ID } = require('../support/constants');
 
 const TIMEOUT = 240 * 1000;
 
@@ -42,16 +43,16 @@ Given(/^an existing pipeline with (.*) image and (.*) package$/, { timeout: TIME
             });
         })
         .then(response => {
-            Assert.oneOf(response.statusCode, [409, 201]);
+            Assert.strictEqual(response.statusCode, 201);
 
-            if (response.statusCode === 201) {
-                this.pipelineId = response.body.id;
-            } else {
-                const str = response.body.message;
-                const id = str.split(': ')[1];
+            this.pipelineId = response.body.id;
+        })
+        .catch(err => {
+            Assert.strictEqual(err.statusCode, 409);
 
-                this.pipelineId = id;
-            }
+            const [, str] = err.message.split(': ');
+
+            [this.pipelineId] = str.match(ID);
         });
 });
 

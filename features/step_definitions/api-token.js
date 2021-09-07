@@ -78,27 +78,29 @@ Given(/^"calvin" owns an existing API token named "([^"]*)"$/, function step(tok
         json: {
             name: tokenName
         }
-    }).then(response => {
-        Assert.oneOf(response.statusCode, [409, 201]);
+    })
+        .then(response => {
+            Assert.strictEqual(response.statusCode, 201);
 
-        if (response.statusCode === 201) {
             this.testToken = response.body;
 
             return null;
-        }
+        })
+        .catch(err => {
+            Assert.strictEqual(err.statusCode, 409);
 
-        return request({
-            url: `${this.instance}/${this.namespace}/tokens`,
-            method: 'GET',
-            context: {
-                token: this.jwt
-            }
-        }).then(listResponse => {
-            Assert.strictEqual(listResponse.statusCode, 200);
+            return request({
+                url: `${this.instance}/${this.namespace}/tokens`,
+                method: 'GET',
+                context: {
+                    token: this.jwt
+                }
+            }).then(listResponse => {
+                Assert.strictEqual(listResponse.statusCode, 200);
 
-            this.testToken = listResponse.body.find(token => token.name === tokenName);
+                this.testToken = listResponse.body.find(token => token.name === tokenName);
+            });
         });
-    });
 });
 
 When(/^he lists all his tokens$/, function step() {
