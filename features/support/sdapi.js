@@ -238,7 +238,7 @@ function cleanupToken(config) {
             token: jwt
         }
     }).then(response => {
-        const match = JSON.parse(response.body).find(token => token.name === tokenName);
+        const match = response.body.find(token => token.name === tokenName);
 
         if (!match) return Promise.resolve();
 
