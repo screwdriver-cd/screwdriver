@@ -5,6 +5,7 @@ const { Before, Given, When, Then } = require('cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
+const { ID } = require('../support/constants');
 
 const TIMEOUT = 500 * 1000;
 
@@ -51,18 +52,19 @@ Given(
             json: {
                 checkoutUrl: `git@${this.scmHostname}:${this.repoOrg}/${this.repoName}.git#master`
             }
-        }).then(response => {
-            Assert.oneOf(response.statusCode, [409, 201]);
+        })
+            .then(response => {
+                Assert.strictEqual(response.statusCode, 201);
 
-            if (response.statusCode === 201) {
                 this.pipelineId = response.body.id;
-            } else {
-                const str = response.body.message;
-                const id = str.split(': ')[1];
+            })
+            .catch(err => {
+                Assert.strictEqual(err.statusCode, 409);
 
-                this.pipelineId = id;
-            }
-        });
+                const [, str] = err.message.split(': ');
+
+                [this.pipelineId] = str.match(ID);
+            });
     }
 );
 
@@ -84,7 +86,7 @@ Given(
             })
             .catch(err => {
                 // throws an error if a PR already exists, so this is fine
-                Assert.strictEqual(err.status, 422);
+                Assert.strictEqual(err.statusCode, 422);
             });
     }
 );

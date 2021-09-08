@@ -4,6 +4,7 @@ const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
 const { Before, Given, Then } = require('cucumber');
 const request = require('screwdriver-request');
+const { ID } = require('../support/constants');
 const TIMEOUT = 240 * 1000;
 
 Before('@auth', function hook() {
@@ -58,16 +59,16 @@ Then(/^they can see the pipeline$/, { timeout: TIMEOUT }, function step() {
         }
     })
         .then(response => {
-            Assert.oneOf(response.statusCode, [409, 201]);
+            Assert.strictEqual(response.statusCode, 201);
 
-            if (response.statusCode === 201) {
-                this.pipelineId = response.body.id;
-            } else {
-                const str = response.body.message;
-                const id = str.split(': ')[1];
+            this.pipelineId = response.body.id;
+        })
+        .catch(err => {
+            Assert.strictEqual(err.statusCode, 409);
 
-                this.pipelineId = id;
-            }
+            const [, str] = err.message.split(': ');
+
+            [this.pipelineId] = str.match(ID);
         })
         .then(() =>
             request({

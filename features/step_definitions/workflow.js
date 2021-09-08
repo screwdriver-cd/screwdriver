@@ -4,6 +4,7 @@ const Assert = require('chai').assert;
 const { Before, Given, When, Then, After } = require('cucumber');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
+const { ID } = require('../support/constants');
 
 const TIMEOUT = 240 * 1000;
 const WAIT_TIME = 3;
@@ -49,16 +50,18 @@ Given(
                 .then(() => this.promiseToWait(WAIT_TIME))
                 .then(() => this.createPipeline(this.repoName, branch))
                 .then(response => {
-                    Assert.oneOf(response.statusCode, [409, 201]);
+                    Assert.strictEqual(response.statusCode, 201);
 
-                    if (response.statusCode === 201) {
-                        this.pipelineId = response.body.id;
-                    } else {
-                        [, this.pipelineId] = response.body.message.split(/\s*:\s*/);
-                    }
-
-                    return this.getPipeline(this.pipelineId);
+                    this.pipelineId = response.body.id;
                 })
+                .catch(err => {
+                    Assert.strictEqual(err.statusCode, 409);
+
+                    const [, str] = err.message.split(': ');
+
+                    [this.pipelineId] = str.match(ID);
+                })
+                .then(() => this.getPipeline(this.pipelineId))
                 .then(response => {
                     const expectedJobs = table.hashes();
 

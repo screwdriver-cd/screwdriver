@@ -5,6 +5,7 @@ const path = require('path');
 const env = require('node-env-file');
 const { setWorldConstructor } = require('cucumber');
 const request = require('screwdriver-request');
+const { ID } = require('./constants');
 
 /**
  * Retry until the build has finished
@@ -58,17 +59,16 @@ function ensurePipelineExists(config) {
                 return this.createPipeline(config.repoName, branch);
             })
             .then(response => {
-                Assert.oneOf(response.statusCode, [409, 201]);
+                Assert.strictEqual(response.statusCode, 201);
 
-                if (response.statusCode === 201) {
-                    this.pipelineId = response.body.id;
+                this.pipelineId = response.body.id;
 
-                    return this.getPipeline(this.pipelineId);
-                }
+                return this.getPipeline(this.pipelineId);
+            })
+            .catch(err => {
+                const [, str] = err.message.split(': ');
 
-                const str = response.body.message;
-
-                [, this.pipelineId] = str.split(': ');
+                [this.pipelineId] = str.match(ID);
 
                 if (!shouldNotDeletePipeline) {
                     // If pipeline already exists, deletes and re-creates
