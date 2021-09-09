@@ -10,6 +10,7 @@ const uuid = require('uuid');
 
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
+const EOF_MESSAGE = 'Response code 404 (Not Found)';
 
 /**
  * Makes the request to the Store to get lines from a log
@@ -32,7 +33,13 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
 
     return new Promise((resolve, reject) => {
         requestStream
-            .on('error', e => reject(e))
+            .on('error', e => {
+                if (!e.message.includes(EOF_MESSAGE)) {
+                    return reject(e);
+                }
+
+                return resolve([]);
+            })
             // Parse the ndjson
             .pipe(ndjson.parse({ strict: false }))
             // Only save lines that we care about

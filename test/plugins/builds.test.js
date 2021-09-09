@@ -4794,6 +4794,22 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when event does not exist', () => {
+            eventFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 
