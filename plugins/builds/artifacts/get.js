@@ -67,7 +67,7 @@ module.exports = config => ({
                             resolve(response.headers);
                         });
                         requestStream.on('error', err => {
-                            if (err.response && err.response.statusCode == 404) {
+                            if (err.response && err.response.statusCode === 404) {
                                 reject(boom.notFound('File not found'));
                             } else {
                                 reject(err);

@@ -68,7 +68,7 @@ module.exports = () => ({
             let defaultCollection;
 
             if (collections && collections.length > 0) {
-                defaultCollection = collections[0];
+                [defaultCollection] = collections;
             }
 
             if (!defaultCollection) {

@@ -4794,6 +4794,41 @@ describe('build plugin test', () => {
             });
         });
 
+        it('does not throw when logs return 404', () => {
+            stepMock = getStepMock({
+                name: 'test',
+                startTime: '2038-01-19T03:15:09.114Z'
+            });
+            stepFactoryMock.get.withArgs({ buildId: id, name: 'test' }).resolves(stepMock);
+            nock('https://store.screwdriver.cd')
+                .get(`/v1/builds/${id}/test/log.0`)
+                .twice()
+                .reply(404);
+            options.url = `/builds/${id}/steps/test/logs`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, []);
+                assert.propertyVal(reply.headers, 'x-more-data', 'true');
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when event does not exist', () => {
+            eventFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it('returns 404 when step does not exist', () => {
             stepFactoryMock.get.withArgs({ buildId: id, name: step }).resolves(null);
 

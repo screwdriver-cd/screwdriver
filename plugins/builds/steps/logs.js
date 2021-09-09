@@ -31,8 +31,14 @@ async function fetchLog({ baseUrl, linesFrom, authToken, page, sort }) {
     });
 
     return new Promise((resolve, reject) => {
+        requestStream.on('error', err => {
+            if (err.response && err.response.statusCode === 404) {
+                resolve([]);
+            } else {
+                reject(err);
+            }
+        });
         requestStream
-            .on('error', e => reject(e))
             // Parse the ndjson
             .pipe(ndjson.parse({ strict: false }))
             // Only save lines that we care about
