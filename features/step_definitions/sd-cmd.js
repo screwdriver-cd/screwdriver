@@ -56,22 +56,23 @@ Given(/^(.+) command does not exist yet$/, { timeout: TIMEOUT }, function step(c
         context: {
             token: this.jwt
         }
-    }).then(response => {
-        if (response.statusCode === 404) {
-            return;
-        }
-
-        /* eslint-disable-next-line consistent-return */
-        return request({
-            url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
-            method: 'DELETE',
-            context: {
-                token: this.jwt
+    })
+        .then(() => {
+            return request({
+                url: `${this.instance}/${this.namespace}/commands/${this.commandNamespace}/${this.command}`,
+                method: 'DELETE',
+                context: {
+                    token: this.jwt
+                }
+            }).then(resp => {
+                Assert.equal(resp.statusCode, 204);
+            });
+        })
+        .catch(err => {
+            if (err.statusCode !== 404) {
+                throw err;
             }
-        }).then(resp => {
-            Assert.equal(resp.statusCode, 204);
         });
-    });
 });
 
 Given(

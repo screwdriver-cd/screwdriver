@@ -29,7 +29,7 @@ When(/^a secret "foo" is added globally$/, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/secrets`,
         method: 'POST',
-        body: {
+        json: {
             pipelineId: this.pipelineId,
             name: 'FOO',
             value: 'secrets',
@@ -120,8 +120,8 @@ Then(/^the user can not view the secret exists$/, function step() {
         context: {
             token: this.jwt
         }
-    }).then(response => {
-        Assert.equal(response.statusCode, 403);
+    }).catch(err => {
+        Assert.strictEqual(err.statusCode, 403);
     });
 });
 
@@ -143,14 +143,19 @@ After(
         tags: '@secrets'
     },
     function hook() {
-        return request({
-            url: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
-            method: 'DELETE',
-            context: {
-                token: this.jwt
-            }
-        }).then(response => {
-            Assert.equal(response.statusCode, 204);
-        });
+        if (this.secretId) {
+            return request({
+                url: `${this.instance}/${this.namespace}/secrets/${this.secretId}`,
+                method: 'DELETE',
+                context: {
+                    token: this.jwt
+                }
+            }).then(response => {
+                Assert.equal(response.statusCode, 204);
+            });
+        }
+
+        // eslint-disable-next-line consistent-return, no-useless-return
+        return;
     }
 );
