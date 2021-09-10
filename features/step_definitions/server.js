@@ -7,7 +7,7 @@ const { Given, When, Then } = require('cucumber');
 Given(/^a running API server$/, next => next());
 
 When(/^I access the status endpoint$/, function step() {
-    return request({ method: 'GET', url: `${this.instance}/v4/status` }).then(result => {
+    return request({ method: 'GET', url: `${this.instance}/v4/status`, responseType: 'text' }).then(result => {
         this.body = result ? result.body : null;
     });
 });

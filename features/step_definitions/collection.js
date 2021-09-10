@@ -258,9 +258,9 @@ Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step()
 });
 
 When(/^they create another collection with the same name "myCollection"$/, { timeout: TIMEOUT }, function step() {
-    return createCollection.call(this, { name: 'myCollection' }).then(response => {
-        Assert.ok(response);
-        this.lastResponse = response;
+    return createCollection.call(this, { name: 'myCollection' }).catch(err => {
+        Assert.isOk(err, 'Error should be returned');
+        this.lastResponse = err;
     });
 });
 

@@ -216,9 +216,13 @@ function CustomWorld({ attach, parameters }) {
             }
             // Actual login is accomplished through getJwt
         }).then(() =>
-            this.getJwt(apiToken).then(response => {
-                this.loginResponse = response;
-            })
+            this.getJwt(apiToken)
+                .then(response => {
+                    this.loginResponse = response;
+                })
+                .catch(err => {
+                    this.loginResponse = err;
+                })
         );
     this.getPipeline = pipelineId =>
         request({
