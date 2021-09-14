@@ -57,10 +57,7 @@ function findJobs(config) {
  *                                              empty array is returned
  */
 function findBuilds(config) {
-    const { instance } = config;
-    const { pipelineId } = config;
-    const { pullRequestNumber } = config;
-    const { jobName } = config;
+    const { instance, jobName, pipelineId, pullRequestNumber } = config;
 
     return findJobs({
         instance,
