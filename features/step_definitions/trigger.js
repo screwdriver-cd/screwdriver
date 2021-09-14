@@ -134,7 +134,10 @@ Then(
             parentBuildId: this[buildVarName]
         });
 
+        const buildVarName1 = `${jobName1}BuildId`;
+
         this.buildId = build.id;
+        this[buildVarName1] = build.id;
         this.pipelines[branchName].eventId = build.eventId;
         this.pipelines[branchName].sha = build.sha;
 
