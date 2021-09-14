@@ -105,7 +105,7 @@ Feature: Workflow
         Then the PR job of "AFTER-SIMPLE" is triggered from PR job of "SIMPLE"
         And that "AFTER-SIMPLE" PR build uses the same SHA as the "SIMPLE" PR build
         And the "AFTER-SIMPLE" PR build succeeded
-    
+
     @ignore
     Scenario: Branch filtering (a pull request is opened to the master branch)
         Given an existing pipeline on "master" branch with the workflow jobs:

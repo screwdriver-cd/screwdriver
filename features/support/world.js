@@ -14,9 +14,9 @@ const { ID } = require('./constants');
  * @param  {Function}   retryWithMergedOptions
  * @return {Object}     Build response
  */
-function buildRetryStrategy(response, retryWithMergedOptions) {
+function buildRetryStrategy(response) {
     if (response.body.status === 'QUEUED' || response.body.status === 'RUNNING') {
-        retryWithMergedOptions({});
+        throw new Error('Retry limit reached');
     }
 
     return response;
@@ -196,7 +196,8 @@ function CustomWorld({ attach, parameters }) {
         request({
             url: `${this.instance}/${this.namespace}/builds/${buildID}`,
             method: 'GET',
-            retryOptions: {
+            retry: {
+                statusCodes: [200],
                 limit: 25,
                 calculateDelay: ({ computedValue }) => (computedValue ? 15000 : 0)
             },

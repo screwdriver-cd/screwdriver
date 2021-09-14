@@ -12,9 +12,9 @@ const RETRY_LIMIT = 3;
  * @param   {Function}  retryWithMergedOptions
  * @return  {Object}    Response
  */
-const retryStrategyFn = (response, retryWithMergedOptions) => {
+const retryStrategyFn = response => {
     if (Math.floor(response.statusCode / 100) !== 2) {
-        retryWithMergedOptions({});
+        throw new Error('Retry limit reached');
     }
 
     return response;
@@ -78,19 +78,19 @@ async function invoke(request) {
     }
 
     if (retryStrategyFn) {
-        const retryOptions = {
+        const retry = {
             limit: RETRY_LIMIT,
             calculateDelay: ({ computedValue }) => (computedValue ? RETRY_DELAY * 1000 : 0) // in ms
         };
 
         if (method === 'POST') {
-            Object.assign(retryOptions, {
+            Object.assign(retry, {
                 methods: ['POST']
             });
         }
 
         Object.assign(options, {
-            retryOptions,
+            retry,
             hooks: {
                 afterResponse: [retryStrategyFn]
             }
