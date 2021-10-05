@@ -1,9 +1,9 @@
-# Verizon Media Open Source Code of Conduct
+# Yahoo Open Source Code of Conduct
 
 ## Summary
 This Code of Conduct is our way to encourage good behavior and discourage bad behavior in our open source community. We invite participation from many people to bring different perspectives to support this project. We pledge to do our part to foster a welcoming and professional environment free of harassment. We expect participants to communicate professionally and thoughtfully during their involvement with this project.
 
-Participants may lose their good standing by engaging in misconduct. For example: insulting, threatening, or conveying unwelcome sexual content. We ask participants who observe conduct issues to report the incident directly to the project's Response Team at opensource-conduct@verizonmedia.com. Verizon Media will assign a respondent to address the issue. We may remove harassers from this project.
+Participants may lose their good standing by engaging in misconduct. For example: insulting, threatening, or conveying unwelcome sexual content. We ask participants who observe conduct issues to report the incident directly to the project's Response Team at opensource-conduct@yahooinc.com. Yahoo will assign a respondent to address the issue. We may remove harassers from this project.
 
 This code does not replace the terms of service or acceptable use policies of the websites used to support this project. We acknowledge that participants may be subject to additional conduct terms based on their employment which may govern their online expressions.
 
@@ -37,16 +37,16 @@ Participants remain in good standing when they do not engage in misconduct or ha
 We do not list all forms of harassment, nor imply some forms of harassment are not worthy of action. Any participant who *feels* harassed or *observes* harassment, should report the incident. Victim of harassment should not address grievances in the public forum, as this often intensifies the problem. Report it, and let us address it off-line.
 
 ### Reporting Issues
-If you experience or witness misconduct, or have any other concerns about the conduct of members of this project, please report it by contacting our Response Team at opensource-conduct@verizonmedia.com who will handle your report with discretion. Your report should include:
+If you experience or witness misconduct, or have any other concerns about the conduct of members of this project, please report it by contacting our Response Team at opensource-conduct@yahooinc.com who will handle your report with discretion. Your report should include:
 * Your preferred contact information. We cannot process anonymous reports.
 * Names (real or usernames) of those involved in the incident.
 * Your account of what occurred, and if the incident is ongoing. Please provide links to or transcripts of the publicly available records (e.g. a mailing list archive or a public IRC logger), so that we can review it.
 * Any additional information that may be helpful to achieve resolution.
 
-After filing a report, a representative will contact you directly to review the incident and ask additional questions. If a member of the Verizon Media Response Team is named in an incident report, that member will be recused from handling your incident. If the complaint originates from a member of the Response Team, it will be addressed by a different member of the Response Team. We will consider reports to be confidential for the purpose of protecting victims of abuse.
+After filing a report, a representative will contact you directly to review the incident and ask additional questions. If a member of the Yahoo Response Team is named in an incident report, that member will be recused from handling your incident. If the complaint originates from a member of the Response Team, it will be addressed by a different member of the Response Team. We will consider reports to be confidential for the purpose of protecting victims of abuse.
 
 ### Scope
-Verizon Media will assign a Response Team member with admin rights on the project and legal rights on the project copyright. The Response Team is empowered to restrict some privileges to the project as needed. Since this project is governed by an open source license, any participant may fork the code under the terms of the project license. The Response Team’s goal is to preserve the project if possible, and will restrict or remove participation from those who disrupt the project.
+Yahoo will assign a Response Team member with admin rights on the project and legal rights on the project copyright. The Response Team is empowered to restrict some privileges to the project as needed. Since this project is governed by an open source license, any participant may fork the code under the terms of the project license. The Response Team’s goal is to preserve the project if possible, and will restrict or remove participation from those who disrupt the project.
 
 This code does not replace the terms of service or acceptable use policies that are provided by the websites used to support this community. Nor does this code apply to communications or actions that take place outside of the context of this community. Many participants in this project are also subject to codes of conduct based on their employment. This code is a social-contract that informs participants of our social expectations. It is not a terms of service or legal contract.
 
