@@ -1432,6 +1432,33 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('does not allow updating to BLOCKED to BLOCKED', () => {
+                const status = 'BLOCKED';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['build']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        status
+                    }
+                };
+
+                buildMock.status = 'BLOCKED';
+                buildMock.stats.blockedStartTime = Date.now();
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 400);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.notCalled(buildMock.update);
+                });
+            });
+
             describe('workflow', () => {
                 const publishJobMock = {
                     id: publishJobId,
