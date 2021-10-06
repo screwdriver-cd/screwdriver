@@ -207,6 +207,9 @@ module.exports = () => ({
                 });
             } else if (desiredStatus === 'QUEUED' && currentStatus !== 'QUEUED') {
                 throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
+            } else if (desiredStatus === 'BLOCKED' && currentStatus === 'BLOCKED') {
+                // Queue-Service can call BLOCKED status update multiple times
+                throw boom.badRequest(`Cannot update builds to ${desiredStatus}`);
             }
 
             let isFixed = Promise.resolve(false);
