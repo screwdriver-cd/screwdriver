@@ -1,0 +1,143 @@
+# SD ZIP ARTIFACTS
+
+## Context
+
+Currently SD_ZIP_ARTIFACTS function depends on AWS Lambda which has some resource limitation. To be free from the limitation, Screwdriver will have all role to  realize the SD_ZIP_ARTIFACTS function.
+
+## Proposal
+
+After upload zip file from teardown, send message to queue.  
+The message will received by the consumer that unzip the zip file and re-uploads it.
+
+## Overview
+
+![image](https://user-images.githubusercontent.com/4645011/137283732-49cc0a2f-b9c3-469d-acc9-a7e6ca047e2b.png)
+
+Outline:  
+① upload zip file to Object Storage(S3) (build -> store -> S3)  
+② notify to queue-service after upload zip file (build -> api -> queue-service)  
+③ send a message to unzip file (queue-service -> Resque)  
+④ consumer(unzip worker) received the message and unzip and re-upload files  
+
+## Flow(Details)
+
+### sd-teardown-screwdriver-artifact-bookend
+
+1. When SD_ZIP_ARTIFACTS=true, zip artifacts to SD_ARTIFACT.zip and upload to S3
+1. After upload SD_ARTIFACT.zip, send request to API(/v4/builds/{id}/artifacts/unzip)
+
+### SD API
+
+1. Create token that have unzip worker scope.
+1. Send request to queue-service
+
+##### JWT Information
+
+|Name|Value|Description|Example|
+|:--|:--|:--|:--|
+|username|build ID|add build ID as username|12|
+|scope|new component name|unzip_worker|unzip_worker|
+|exp|time until unzip|expiration time for JWT. It need to be valid from queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
+
+#### API
+
+|Method|URL|Description|
+|:--|:--|:--|
+|POST|/builds/{id}/artifacts/unzip|send a request to the queue-worker to add a message to unzip the file|
+
+##### Authentication & Authorization
+
+Use sd-token to allow only requests when the build ID in the token and the id in the path are the same.
+
+##### POST DATA
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+|id|integer|path|build ID|12|
+
+##### Response Data
+
+Status(Success): 202 Accepted (Successfully sent a message to queue-service)
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+
+No data to response
+
+Status(Error):  
+401 Unauthorized (Token is not valid)  
+403 Forbidden    (Build ID has no authority)  
+404 Not Found    (The specified build id does not exist)  
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+|statusCode|integer|body|status code|401|
+|error|string|body|outline of error|Unauthorized|
+|message|string|body|detail message of error|Missing authentication|
+
+### queue-service
+
+1. Enqueue the message to queue(Resque) (Queue Name: unzip)
+
+#### Enqueue information
+
+|Name|Type|Description|Example|
+|:--|:--|:--|:--|
+|buildId|integer|build ID|12|
+|token|string|unzip worker scope JWT|jwt.unzip.token|
+
+#### API
+
+|Method|URL|Description|
+|:--|:--|:--|
+|POST|/queue/message|enqueue message to unzip file|
+
+##### Authentication & Authorization
+
+Use sd token to only allow requests from SD API
+
+##### POST DATA
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+|type|string|query|what kind of operation|unzip|
+|buildId|integer|body|build ID|12|
+|token|string|body|authenticate token for SD Store.(unzip worker scope JWT)|jwt.unzip.token|
+
+##### Response Data
+
+Status(Success): 200 OK (Successfully sent a message to queue)
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+
+No data to response.
+
+Status(Error):  
+401 Unauthorized (Token is not valid)  
+403 Forbidden    (Build ID has no authority)  
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+|statusCode|integer|body|status code|401|
+|error|string|body|outline of error|Unauthorized|
+|message|string|body|detail message of error|Missing authentication|
+
+### Unzip Worker (New component)
+
+1. Receive message from queue(Resque) the name is unzip.
+1. Get SD_ARTIFACT.zip from SD Store by using build ID and Token
+1. Unzip the SD_ARTIFACT.zip file and re-upload to Store
+1. If above process fails, retry.
+1. If retry fails
+    1. Add statusMessage to build and notify user to failed unzip files
+    1. Log the failure.
+
+### SD Store
+
+1. Upload and Download artifact files
+
+SD Store do not need to add new function, but need to add new Authentication.
+
+- Able to Upload and Download artifact files by unzip worker scope token
+- Return an error if the build id of the build artifacts to be operated is different from the build id contained in the token
