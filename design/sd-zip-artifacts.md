@@ -18,7 +18,7 @@ Outline:
 1. upload zip file to Object Storage(S3) (build -> store -> S3)  
 1. notify to queue-service after upload zip file (build -> api -> queue-service)  
 1. send a message to unzip file (queue-service -> Resque)  
-1. consumer(unzip worker) received the message and unzip and re-upload files  
+1. a consumer(unzip worker) receives the message, then the consumer downloads the zip file and unzips it, re-uploads unzipped files 
 
 ## Flow(Details)
 
