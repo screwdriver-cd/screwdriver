@@ -95,7 +95,7 @@ Status(Error):
 
 ##### Authentication & Authorization
 
-Use sd token to only allow requests from SD API
+Use sd-token to only allow requests from SD API
 
 ##### POST DATA
 
