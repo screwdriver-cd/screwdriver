@@ -6,7 +6,7 @@ Currently SD_ZIP_ARTIFACTS function depends on AWS Lambda which has some resourc
 
 ## Proposal
 
-After uploading zip file from teardown, send message to queue.  
+After uploading a zip file in `sd-teardown-screwdriver-artifact-bookend` step, send a message to the queue.  
 The message will be received by the consumer that unzip the zip file and re-uploads it.
 
 ## Overview
