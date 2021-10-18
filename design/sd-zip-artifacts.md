@@ -11,7 +11,7 @@ The message will be received by the consumer that unzip the zip file and re-uplo
 
 ## Overview
 
-![image](./diagrams/sd-zip-artifacts-overview.png)
+![image](diagrams/sd-zip-artifacts-overview.png)
 
 Outline:
 
