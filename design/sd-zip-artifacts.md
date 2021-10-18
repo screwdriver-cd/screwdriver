@@ -11,13 +11,14 @@ The message will received by the consumer that unzip the zip file and re-uploads
 
 ## Overview
 
-![image](https://user-images.githubusercontent.com/4645011/137283732-49cc0a2f-b9c3-469d-acc9-a7e6ca047e2b.png)
+![image](./diagrams/sd-zip-artifacts-overview.png)
 
-Outline:  
-① upload zip file to Object Storage(S3) (build -> store -> S3)  
-② notify to queue-service after upload zip file (build -> api -> queue-service)  
-③ send a message to unzip file (queue-service -> Resque)  
-④ consumer(unzip worker) received the message and unzip and re-upload files  
+Outline:
+
+1. upload zip file to Object Storage(S3) (build -> store -> S3)  
+1. notify to queue-service after upload zip file (build -> api -> queue-service)  
+1. send a message to unzip file (queue-service -> Resque)  
+1. consumer(unzip worker) received the message and unzip and re-upload files  
 
 ## Flow(Details)
 

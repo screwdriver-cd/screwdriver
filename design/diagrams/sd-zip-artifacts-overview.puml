@@ -1,0 +1,26 @@
+@startuml sd-zip-artifacts-overview
+
+skinparam sequenceMessageAlign center
+
+participant "sd build" as build
+participant "store" as store
+database "s3(Object Storage)" as s3
+participant "api" as api
+participant "queue-service" as qservice
+queue "Resque(Redis)" as resque
+participant "unzip worker" as worker
+
+
+build -> store: store-cli
+store -> s3: upload zip file
+build -> api: POST /builds/{id}/artifacts/unzip
+api -> qservice: POST /queue/message
+qservice -> resque: enqueue
+qservice --> api: response\n(POST /queue/message)
+api --> build: response\n(POST /builds/{id}/artifacts/unzip)
+worker -> resque : dequeue
+worker -> store: GET zip artifact
+store --> worker: response\nGET zip artifact
+worker -> store: upload unzip artifacts
+
+@enduml
