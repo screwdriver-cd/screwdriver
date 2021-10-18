@@ -38,7 +38,7 @@ Outline:
 |:--|:--|:--|:--|
 |username|build ID|add build ID as username|12|
 |scope|new component name|unzip_worker|unzip_worker|
-|exp|time until unzip|expiration time for JWT. It need to be valid from queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
+|exp|time until unzip|expiration time for JWT. JWT needs to be valid from queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
 
 #### API
 
