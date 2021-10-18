@@ -29,7 +29,7 @@ Outline:
 
 ### SD API
 
-1. Create token that have unzip worker scope.
+1. Create token that has an unzip worker scope.
 1. Send request to queue-service
 
 ##### JWT Information
