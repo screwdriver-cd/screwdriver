@@ -25,7 +25,7 @@ Outline:
 ### sd-teardown-screwdriver-artifact-bookend
 
 1. When SD_ZIP_ARTIFACTS=true, zip artifacts to SD_ARTIFACT.zip and upload to S3
-1. After upload SD_ARTIFACT.zip, send request to API(/v4/builds/{id}/artifacts/unzip)
+1. After uploading SD_ARTIFACT.zip, send request to API(/v4/builds/{id}/artifacts/unzip)
 
 ### SD API
 
