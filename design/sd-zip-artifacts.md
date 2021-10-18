@@ -2,7 +2,7 @@
 
 ## Context
 
-Currently SD_ZIP_ARTIFACTS function depends on AWS Lambda which has some resource limitation. To be free from the limitation, Screwdriver will have all role to  realize the SD_ZIP_ARTIFACTS function.
+Currently SD_ZIP_ARTIFACTS function depends on AWS Lambda which has some resource limitation. To be free from the limitation, Screwdriver will have all role to realize the SD_ZIP_ARTIFACTS function.
 
 ## Proposal
 
