@@ -15,19 +15,19 @@ The message will be received by the consumer(unzip worker) that unzips the zip f
 
 Outline:
 
-1. upload zip file to Object Storage(S3) (build -> store -> S3)  
-1. notify to queue-service after upload zip file (build -> api -> queue-service)  
+1. upload zip file to Object Storage(S3) (sd build -> store -> S3)  
+1. notify to queue-service after upload zip file (sd build -> api -> queue-service)  
 1. send a message to unzip file (queue-service -> Resque)  
 1. a consumer(unzip worker) receives the message, then the consumer downloads the zip file and unzips it, re-uploads unzipped files 
 
 ## Flow(Details)
 
-### sd-teardown-screwdriver-artifact-bookend
+### sd-teardown-screwdriver-artifact-bookend (sd build)
 
 1. When SD_ZIP_ARTIFACTS=true, zip artifacts to SD_ARTIFACT.zip and upload to S3
 1. After uploading SD_ARTIFACT.zip, send request to API(/v4/builds/{id}/artifacts/unzip)
 
-### SD API
+### SD API (api)
 
 1. Create token that has an unzip worker scope.
 1. Send request to queue-service
@@ -38,7 +38,7 @@ Outline:
 |:--|:--|:--|:--|
 |username|build ID|add build ID as username|12|
 |scope|new component name|unzip_worker|unzip_worker|
-|exp|time until unzip|expiration time for JWT. JWT needs to be valid from queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
+|exp|time until unzip|expiration time for JWT. It needs to be valid from sending queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
 
 #### API
 
@@ -76,7 +76,7 @@ Status(Error):
 |error|string|body|outline of error|Unauthorized|
 |message|string|body|detail message of error|Missing authentication|
 
-### queue-service
+### queue-service (queue-service)
 
 1. Enqueue the message to queue(Resque) (Queue Name: unzip)
 
@@ -124,17 +124,19 @@ Status(Error):
 |error|string|body|outline of error|Unauthorized|
 |message|string|body|detail message of error|Missing authentication|
 
-### Unzip Worker (New component)
+### Unzip Worker (unzip worker)
+
+This is a new component.
 
 1. Receive message from queue(Resque) the name is unzip.
 1. Get SD_ARTIFACT.zip from SD Store by using build ID and Token
-1. Unzip the SD_ARTIFACT.zip file and re-upload to Store
+1. Unzip the SD_ARTIFACT.zip file and re-upload the unzip files to Store
 1. If above process fails, retry.
 1. If retry fails
-    1. Add statusMessage to build and notify user to failed unzip files
+    1. Add a statusMessage to the build to notify the user that the unzip has failed
     1. Log the failure.
 
-### SD Store
+### SD Store (store)
 
 1. Upload and Download artifact files
 
