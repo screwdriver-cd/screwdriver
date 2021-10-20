@@ -103,7 +103,6 @@ Use sd-token to only allow requests from SD API
 |:--|:--|:--|:--|:--|
 |type|string|query|what kind of operation|unzip|
 |buildId|integer|body|build ID|12|
-|token|string|body|authenticate token for SD Store.(unzip worker scope JWT)|jwt.unzip.token|
 
 ##### Response Data
 
