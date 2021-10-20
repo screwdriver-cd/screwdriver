@@ -29,16 +29,7 @@ Outline:
 
 ### SD API (api)
 
-1. Create token that has an unzip worker scope.
 1. Send request to queue-service
-
-##### JWT Information
-
-|Name|Value|Description|Example|
-|:--|:--|:--|:--|
-|username|build ID|add build ID as username|12|
-|scope|new component name|unzip_worker|unzip_worker|
-|exp|time until unzip|expiration time for JWT. It needs to be valid from sending queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
 
 #### API
 
@@ -78,7 +69,16 @@ Status(Error):
 
 ### queue-service (queue-service)
 
+1. Create token that has an unzip worker scope.
 1. Enqueue the message to queue(Resque) (Queue Name: unzip)
+
+#### JWT Information
+
+|Name|Value|Description|Example|
+|:--|:--|:--|:--|
+|username|build ID|add build ID as username|12|
+|scope|new component name|scope that shows it's a unzip worker|unzip_worker|
+|exp|time until unzip|expiration time for JWT. It needs to be valid from sending queue message to re-uploading. Default time should be current time + 2 hours|1634198203|
 
 #### Enqueue information
 
