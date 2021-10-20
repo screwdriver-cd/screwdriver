@@ -348,6 +348,8 @@ redisLock:
     retryDelay: 500
     # the maximum time in milliseconds randomly added to retries
     retryJitter: 200
+    # the maximum time in milliseconds living of a key that has a timeout
+    ttl: 20000
     # Configuration of the redis instance
     redisConnection:
       host: "127.0.0.1"
