@@ -416,6 +416,8 @@ redisLock:
     retryDelay: REDLOCK_RETRY_DELAY
     # the maximum time in milliseconds randomly added to retries
     retryJitter: REDLOCK_RETRY_JITTER
+    # the maximum time in milliseconds living of a key that has a timeout
+    ttl: REDLOCK_TTL
     # Configuration of the redis instance
     redisConnection:
       host: REDLOCK_REDIS_HOST
