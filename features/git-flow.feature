@@ -39,16 +39,27 @@ Feature: Git Flow
         Then a new build from "main" should be created to test that change
 
     Scenario: New Tag
-        When a tag is created
+        When a tag "v1.0" is created
         Then a new build from "tag-triggered" should be created to test that change
+        And a new build from "tag-specific-triggered" should be created to test that change
+
+    Scenario: New Specific Tag
+        When a tag "v2.0" is created
+        Then a new build from "tag-triggered" should be created to test that change
+        And a new build from "tag-specific-triggered" should not be created to test that change
 
     Scenario: New Annotated Tag
         When an annotated tag is created
         Then a new build from "tag-triggered" should be created to test that change
 
     Scenario: New Release
-        When a release is created
+        When a release "v1.0" is created
         Then a new build from "release-triggered" should be created to test that change
+
+    Scenario: New Specific Release
+        When a release "v2.0" is created
+        Then a new build from "release-triggered" should be created to test that change
+        And a new build from "release-specific-triggered" should not be created to test that change
 
     Scenario: New Release with Annotated Tag
         When a release with annotated tag is created
