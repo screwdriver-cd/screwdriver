@@ -36,24 +36,29 @@ function randomString(stringLength) {
  * @param  {String}          repoOwner  Owner of the repository
  * @param  {String}          repoName   Name of the repository
  * @param  {String}          branch     Name of the branch to delete
- * @param  {String}          tag        Name of the tag to delete
+ * @param  {array}           tags       List of names tag to delete
  * @return {Promise}
  */
-function cleanUpRepository(branch, tag, repoOwner, repoName) {
+ function cleanUpRepository(branch, tags, repoOwner, repoName) {
     const branchParams = {
         owner: repoOwner,
         repo: repoName,
         ref: `heads/${branch}`
     };
-    const tagParams = {
-        owner: repoOwner,
-        repo: repoName,
-        ref: `tags/${tag}`
-    };
+
+    const removeTagPromises = tags.map(tag => {
+        const tagParams = {
+            owner: repoOwner,
+            repo: repoName,
+            ref: `tags/${tag}`
+        };
+
+        return octokit.git.getRef(tagParams).then(() => octokit.git.deleteRef(tagParams));
+    });
 
     return Promise.all([
         octokit.git.getRef(branchParams).then(() => octokit.git.deleteRef(branchParams)),
-        octokit.git.getRef(tagParams).then(() => octokit.git.deleteRef(tagParams))
+        ...removeTagPromises
     ]).catch(err => Assert.strictEqual(404, err.status));
 }
 
