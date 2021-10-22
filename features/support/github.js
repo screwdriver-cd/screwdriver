@@ -39,7 +39,7 @@ function randomString(stringLength) {
  * @param  {array}           tags       List of names tag to delete
  * @return {Promise}
  */
- function cleanUpRepository(branch, tags, repoOwner, repoName) {
+function cleanUpRepository(branch, tags, repoOwner, repoName) {
     const branchParams = {
         owner: repoOwner,
         repo: repoName,
