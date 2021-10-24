@@ -299,5 +299,6 @@ module.exports = {
     findJobs,
     findEventBuilds,
     searchForBuild,
-    waitForBuildStatus
+    waitForBuildStatus,
+    promiseToWait
 };

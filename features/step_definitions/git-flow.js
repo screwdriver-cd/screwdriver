@@ -16,7 +16,7 @@ Before(
     },
     function hook() {
         this.branch = 'darrenBranch';
-        this.tag = 'v1.0';
+        this.tagList = ['v1.0', 'v2.0'];
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-git';
 
@@ -32,7 +32,7 @@ Before(
             .then(response => {
                 this.jwt = response.body.token;
             })
-            .then(() => github.cleanUpRepository(this.branch, this.tag, this.repoOrg, this.repoName))
+            .then(() => github.cleanUpRepository(this.branch, this.tagList, this.repoOrg, this.repoName))
             .catch(() => Assert.fail('failed to clean up repository'));
     }
 );
@@ -188,13 +188,12 @@ When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, function ste
 });
 
 When(
-    /^a tag is created$/,
+    /^a tag "([^"]+)" is created$/,
     {
         timeout: TIMEOUT
     },
-    function step() {
+    function step(tag) {
         const { branch } = this;
-        const { tag } = this;
 
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
@@ -228,13 +227,12 @@ When(
 );
 
 When(
-    /^a release is created$/,
+    /^a release "([^"]+)" is created$/,
     {
         timeout: TIMEOUT
     },
-    function step() {
+    function step(release) {
         const { branch } = this;
-        const { tag } = this;
 
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
@@ -242,9 +240,9 @@ When(
             .then(({ data }) => {
                 this.sha = data.commit.sha;
 
-                return github.createTag(tag, branch, this.repoOrg, this.repoName);
+                return github.createTag(release, branch, this.repoOrg, this.repoName);
             })
-            .then(() => github.createRelease(tag, this.repoOrg, this.repoName));
+            .then(() => github.createRelease(release, this.repoOrg, this.repoName));
     }
 );
 
@@ -255,7 +253,7 @@ When(
     },
     function step() {
         const { branch } = this;
-        const { tag } = this;
+        const tag = this.tagList[0];
 
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
@@ -291,6 +289,32 @@ Then(
                 Assert.oneOf(build.status, ['QUEUED', 'RUNNING', 'SUCCESS']);
                 this.jobId = build.jobId;
             });
+    }
+);
+
+Then(
+    /^a new build from "([^"]+)" should not be created to test that change$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(specificJobName) {
+        const WAIT_TIME = 10; // Wait 10s.
+
+        return sdapi.promiseToWait(WAIT_TIME).then(() => {
+            return sdapi
+                .findBuilds({
+                    instance: this.instance,
+                    pipelineId: this.pipelineId,
+                    jobName: specificJobName,
+                    jwt: this.jwt
+                })
+                .then(response => {
+                    const builds = response.body;
+                    const targetBuilds = builds.filter(build => build.sha === this.sha);
+
+                    Assert.equal(targetBuilds.length, 0);
+                });
+        });
     }
 );
 
