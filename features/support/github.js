@@ -276,7 +276,8 @@ function createRelease(tagName, repoOwner, repoName) {
         .createRelease({
             owner,
             repo,
-            tag_name: tagName
+            tag_name: tagName,
+            name: tagName
         })
         .catch(() => {
             Assert.fail('failed to create release');
