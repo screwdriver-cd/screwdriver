@@ -213,7 +213,7 @@ When(
     },
     function step() {
         const { branch } = this;
-        const { tag } = this;
+        const tag = this.tagList[0];
 
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
