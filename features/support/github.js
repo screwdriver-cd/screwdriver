@@ -141,7 +141,7 @@ function createBranch(branch, repoOwner, repoName) {
  * @param  {String}   directoryName     Name of the directory
  * @return {Promise}
  */
-function createFile(branch, repoOwner, repoName) {
+function createFile(branch, repoOwner, repoName, directoryName) {
     // eslint-disable-next-line new-cap
     const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
