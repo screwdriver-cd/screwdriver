@@ -31,15 +31,14 @@ Before(
             })
                 .then(() =>
                     request({
-                        uri: `${this.instance}/${this.namespace}/events`,
+                        url: `${this.instance}/${this.namespace}/events`,
                         method: 'POST',
-                        json: true,
-                        body: {
+                        json: {
                             pipelineId: this.pipelineId,
                             startFrom: jobName
                         },
-                        auth: {
-                            bearer: this.jwt
+                        context: {
+                            token: this.jwt
                         }
                     })
                 )
@@ -49,12 +48,11 @@ Before(
                 })
                 .then(() =>
                     request({
-                        uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                        url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
                         method: 'GET',
-                        auth: {
-                            bearer: this.jwt
-                        },
-                        json: true
+                        context: {
+                            token: this.jwt
+                        }
                     })
                 )
                 .then(response => {
@@ -104,11 +102,10 @@ Given(
         this.template = template;
 
         return request({
-            uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
+            url: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             const { statusCode } = response;
@@ -146,11 +143,10 @@ Given(
         this.jobName = jobName;
 
         return request({
-            uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}/${version}`,
+            url: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}/${version}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         })
             .then(response => {
@@ -167,11 +163,10 @@ Given(
             )
             .then(() =>
                 request({
-                    uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
+                    url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
                     method: 'GET',
-                    json: true,
-                    auth: {
-                        bearer: this.jwt
+                    context: {
+                        token: this.jwt
                     }
                 })
             )
@@ -204,15 +199,14 @@ When(
     },
     function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/validator/template`,
+            url: `${this.instance}/${this.namespace}/validator/template`,
             method: 'POST',
-            auth: {
-                bearer: this.jwt
-            },
-            body: {
+            json: {
                 yaml: this.templateContents
             },
-            json: true
+            context: {
+                token: this.jwt
+            }
         }).then(response => {
             Assert.equal(response.statusCode, 200);
 
@@ -286,11 +280,10 @@ Then(
     },
     function step(stored) {
         return request({
-            uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
+            url: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.statusCode, 200);
@@ -312,11 +305,10 @@ Then(
     },
     function step(trust) {
         return request({
-            uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
+            url: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.statusCode, 200);
@@ -332,11 +324,10 @@ Then(
     },
     function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+            url: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.statusCode, 200);
@@ -371,11 +362,10 @@ Then(
     },
     function step() {
         return request({
-            uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+            url: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
             method: 'GET',
-            json: true,
-            auth: {
-                bearer: this.jwt
+            context: {
+                token: this.jwt
             }
         }).then(response => {
             Assert.equal(response.statusCode, 200);
