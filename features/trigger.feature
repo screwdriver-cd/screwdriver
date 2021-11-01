@@ -121,3 +121,14 @@ Feature: Remote Trigger
         And the "parallel2" build succeeded
         Then the "join" job is triggered from "parallel1" and "parallel2" on branch "external_trigger2"
         And that "join" build uses the same SHA as the "main" build on branch "external_trigger2"
+
+    @sourcePath
+    Scenario: sourcePath
+      Given an existing pipeline on branch "master" with the workflow jobs:
+            | job       | requires  |
+            | job1      | ~commit   |
+            | job2      | ~commit   |
+      When a new file is added to the "directory1" directory of the "master" branch
+      Then a new build from "job1" should be created to test that change
+      And a new build from "job2" should not be created to test that change
+
