@@ -55,14 +55,14 @@ Feature: Templates
         Then the template "<stored>" stored
 
         Examples:
-            | template      | status  | job             | stored |
-            | publish-test  | SUCCESS | publish-test    | is     |
-            | test-template | FAILURE | publish-invalid | is not |
+            | template      | status   | job             | stored |
+            | publish-test  | succeeds | publish-test    | is     |
+            | test-template | fails    | publish-invalid | is not |
 
     Scenario Outline: Publish a template by another pipeline
         Given a "test-template" template
         And the template exists
-        When a pipeline with the "wrong" permission "FAILURE" to publish the template in "<job>"
+        When a pipeline with the "wrong" permission "fails" to publish the template in "<job>"
         Then the template "is not" stored
 
         Examples:
@@ -75,15 +75,15 @@ Feature: Templates
         When a pipeline "<status>" to validate the template in "<job>"
 
         Examples:
-            | status  | job              |
-            | SUCCESS | validate-valid   |
-            | FAILURE | validate-invalid |
+            | status   | job              |
+            | succeeds | validate-valid   |
+            | fails    | validate-invalid |
 
     Scenario Outline: Hold trust status after publish a template
         Given a "<template>" template
         And the template exists
         And the template is "<trust>"
-        When a pipeline with the "right" permission "SUCCESS" to publish the template in "<job>"
+        When a pipeline with the "right" permission "succeeds" to publish the template in "<job>"
         Then the template "is" stored
         And the template is "<trust>"
 

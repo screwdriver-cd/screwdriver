@@ -216,7 +216,7 @@ When(
 );
 
 When(
-    /^a pipeline with the "(right|wrong)" permission "(SUCCESS|FAILURE)" to publish the template in "([^"]+)"$/,
+    /^a pipeline with the "(right|wrong)" permission "(succeeds|fails)" to publish the template in "([^"]+)"$/,
     {
         timeout: TIMEOUT
     },
@@ -226,19 +226,19 @@ When(
         }
 
         return this.startJob(jobName).then(result => {
-            Assert.equal(result, status);
+            Assert.equal(result, status === 'succeeds' ? 'SUCCESS' : 'FAILURE');
         });
     }
 );
 
 When(
-    /^a pipeline "(SUCCESS|FAILURE)" to validate the template in "([^"]+)"$/,
+    /^a pipeline "(succeeds|fails)" to validate the template in "([^"]+)"$/,
     {
         timeout: TIMEOUT
     },
     function step(status, jobName) {
         return this.startJob(jobName).then(result => {
-            Assert.equal(result, status);
+            Assert.equal(result, status === 'succeeds' ? 'SUCCESS' : 'FAILURE');
         });
     }
 );
