@@ -3,8 +3,77 @@
 const fs = require('mz/fs');
 const path = require('path');
 const Assert = require('chai').assert;
-const { Given, Then, When } = require('cucumber');
 const request = require('screwdriver-request');
+const { Before, Given, Then, When } = require('cucumber');
+
+const TIMEOUT = 240 * 1000;
+
+Before(
+    {
+        tags: '@templates'
+    },
+    function hook() {
+        this.repoOrg = this.testOrg;
+        this.repoName = 'functional-template';
+        this.templateNamespace = 'screwdriver-cd-test';
+        this.branchName = 'master';
+        this.pipelineId = null;
+        this.jwt = null;
+        this.template = null;
+        this.jobName = null;
+
+        this.startJob = jobName => {
+            return this.ensurePipelineExists({
+                repoName: this.repoName,
+                branch: this.branchName,
+                shouldNotDeletePipeline: true
+            })
+                .then(() =>
+                    request({
+                        uri: `${this.instance}/${this.namespace}/events`,
+                        method: 'POST',
+                        json: true,
+                        body: {
+                            pipelineId: this.pipelineId,
+                            startFrom: jobName
+                        },
+                        auth: {
+                            bearer: this.jwt
+                        }
+                    })
+                )
+                .then(response => {
+                    Assert.equal(response.statusCode, 201);
+                    this.eventId = response.body.id;
+                })
+                .then(() =>
+                    request({
+                        uri: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                        method: 'GET',
+                        auth: {
+                            bearer: this.jwt
+                        },
+                        json: true
+                    })
+                )
+                .then(response => {
+                    Assert.equal(response.statusCode, 200);
+                    this.buildId = response.body[0].id;
+
+                    return this.waitForBuild(this.buildId);
+                })
+                .then(response => {
+                    Assert.equal(response.statusCode, 200);
+
+                    return response.body.status;
+                });
+        };
+
+        return this.getJwt(this.apiToken).then(response => {
+            this.jwt = response.body.token;
+        });
+    }
+);
 
 Given(/^a (valid|invalid)\b job-level template$/, function step(templateType) {
     let targetFile = '';
@@ -25,28 +94,159 @@ Given(/^a (valid|invalid)\b job-level template$/, function step(templateType) {
     });
 });
 
-When(/^they submit it to the API$/, function step() {
-    return this.getJwt(this.apiToken)
-        .then(response => {
-            const jwt = response.body.token;
+Given(/^a "([^"]+)" template$/, function step(template) {
+    this.template = template;
 
-            return request({
-                url: `${this.instance}/${this.namespace}/validator/template`,
-                method: 'POST',
-                context: {
-                    token: jwt
-                },
-                json: {
-                    yaml: this.templateContents
-                }
-            });
-        })
-        .then(response => {
-            Assert.equal(response.statusCode, 200);
+    return request({
+        uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
+        method: 'GET',
+        json: true,
+        auth: {
+            bearer: this.jwt
+        }
+    }).then(response => {
+        const statusCode = response.statusCode;
 
-            this.body = response.body;
-        });
+        Assert.oneOf(statusCode, [200, 404]);
+        this.numOfTemplate = statusCode === 200 ? response.body.length : 0;
+    });
 });
+
+Given(
+    /^the template exists$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        if (this.numOfTemplate === 0) {
+            return this.startJob(`init-${this.template}`).then(result => {
+                Assert.equal(result, 'SUCCESS');
+                this.numOfTemplate = 1;
+            });
+        }
+
+        return Promise.resolve();
+    }
+);
+
+Given(
+    /^a pipeline using a "([^"]+)" @ "([^"]+)" template in job "([^"]+)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(template, version, jobName) {
+        this.template = template;
+        this.jobName = jobName;
+
+        return request({
+            uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}/${version}`,
+            method: 'GET',
+            json: true,
+            auth: {
+                bearer: this.jwt
+            }
+        })
+            .then(response => {
+                Assert.equal(response.statusCode, 200);
+                this.templateId = response.body.id;
+                this.templateConfig = response.body.config;
+            })
+            .then(() =>
+                this.ensurePipelineExists({
+                    repoName: this.repoName,
+                    branch: this.branchName,
+                    shouldNotDeletePipeline: true
+                })
+            )
+            .then(() =>
+                request({
+                    uri: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs`,
+                    method: 'GET',
+                    json: true,
+                    auth: {
+                        bearer: this.jwt
+                    }
+                })
+            )
+            .then(response => {
+                const jobs = response.body.filter(job => {
+                    return job.name === this.jobName;
+                });
+
+                Assert.equal(jobs.length, 1);
+                Assert.equal(jobs[0].templateId, this.templateId);
+                this.job = jobs[0];
+            });
+    }
+);
+
+Given(/^user has some settings defined$/, function step() {
+    Assert.equal(this.job.permutations[0].commands.length, 6);
+    Assert.equal(this.job.permutations[0].image, 'node:12');
+});
+
+Given(/^the template has the same settings with different values$/, function step() {
+    Assert.notEqual(this.job.permutations[0].commands.length, this.templateConfig.steps.length);
+    Assert.notEqual(this.job.permutations[0].image, this.templateConfig.image);
+});
+
+When(/^they submit it to the validator$/, function step() {
+    return request({
+        uri: `${this.instance}/${this.namespace}/validator/template`,
+        method: 'POST',
+        auth: {
+            bearer: this.jwt
+        },
+        body: {
+            yaml: this.templateContents
+        },
+        json: true
+    }).then(response => {
+        Assert.equal(response.statusCode, 200);
+
+        this.body = response.body;
+    });
+});
+
+When(
+    /^a pipeline with the "(right|wrong)" permission "(SUCCESS|FAILURE)" to publish the template in "([^"]+)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(permission, status, jobName) {
+        if (permission === 'wrong') {
+            this.branchName = 'wrong-permission';
+        }
+
+        return this.startJob(jobName).then(result => {
+            Assert.equal(result, status);
+        });
+    }
+);
+
+When(
+    /^a pipeline "(SUCCESS|FAILURE)" to validate the template in "([^"]+)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(status, jobName) {
+        return this.startJob(jobName).then(result => {
+            Assert.equal(result, status);
+        });
+    }
+);
+
+When(
+    /^user starts the pipeline$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        return this.startJob(this.jobName).then(result => {
+            Assert.oneOf(result, ['SUCCESS', 'FAILURE']);
+        });
+    }
+);
 
 Then(/^they are notified it has (no|some) errors$/, function step(quantity) {
     switch (quantity) {
@@ -64,4 +264,120 @@ Then(/^they are notified it has (no|some) errors$/, function step(quantity) {
     }
 
     return null;
+});
+
+Then(/^the template "(is|is not)" stored$/, function step(stored) {
+    return request({
+        uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
+        method: 'GET',
+        json: true,
+        auth: {
+            bearer: this.jwt
+        }
+    }).then(response => {
+        Assert.equal(response.statusCode, 200);
+        const length = response.body.length;
+
+        if (stored === 'is') {
+            Assert.equal(length, this.numOfTemplate + 1);
+        } else {
+            Assert.equal(length, this.numOfTemplate);
+        }
+    });
+});
+
+Then(/^the template is "(trusted|distrusted)"$/, function step(trust) {
+    return request({
+        uri: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}`,
+        method: 'GET',
+        json: true,
+        auth: {
+            bearer: this.jwt
+        }
+    }).then(response => {
+        Assert.equal(response.statusCode, 200);
+        Assert.equal(response.body[0].trusted, trust === 'trusted');
+    });
+});
+
+Then(/^the job executes what is specified in the template$/, function step() {
+    return request({
+        uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+        method: 'GET',
+        json: true,
+        auth: {
+            bearer: this.jwt
+        }
+    }).then(response => {
+        Assert.equal(response.statusCode, 200);
+
+        const expectedSteps = [
+            {
+                name: 'install',
+                command: 'npm install'
+            },
+            {
+                name: 'test',
+                command: 'npm test'
+            }
+        ];
+
+        expectedSteps.forEach(expectedStep => {
+            const result = response.body.filter(s => {
+                return s.name === expectedStep.name;
+            })[0];
+
+            Assert.equal(result.name, expectedStep.name);
+            Assert.include(result.command, expectedStep.command);
+        });
+    });
+});
+
+Then(/^settings is the job settings$/, function step() {
+    return request({
+        uri: `${this.instance}/${this.namespace}/builds/${this.buildId}/steps`,
+        method: 'GET',
+        json: true,
+        auth: {
+            bearer: this.jwt
+        }
+    }).then(response => {
+        Assert.equal(response.statusCode, 200);
+
+        const expectedSteps = [
+            {
+                name: 'preinstall',
+                command: "echo 'preinstall'"
+            },
+            {
+                name: 'install',
+                command: 'npm install'
+            },
+            {
+                name: 'postinstall',
+                command: "echo 'postinstall'"
+            },
+            {
+                name: 'pretest',
+                command: "echo 'pretest'"
+            },
+            {
+                name: 'test',
+                command: "echo 'test'"
+            },
+            {
+                name: 'posttest',
+                command: "echo 'posttest'"
+            }
+        ];
+
+        expectedSteps.forEach(expectedStep => {
+            const result = response.body.filter(s => {
+                return s.name === expectedStep.name;
+            })[0];
+
+            Assert.equal(result.name, expectedStep.name);
+            Assert.include(result.command, expectedStep.command);
+        });
+    });
 });
