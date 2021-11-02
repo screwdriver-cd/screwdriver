@@ -335,11 +335,11 @@ Then(
             const expectedSteps = [
                 {
                     name: 'install',
-                    command: 'npm install'
+                    command: "echo 'install'"
                 },
                 {
                     name: 'test',
-                    command: 'npm test'
+                    command: "echo 'test'"
                 }
             ];
 
@@ -377,7 +377,7 @@ Then(
                 },
                 {
                     name: 'install',
-                    command: 'npm install'
+                    command: "echo 'install'"
                 },
                 {
                     name: 'postinstall',
@@ -389,7 +389,7 @@ Then(
                 },
                 {
                     name: 'test',
-                    command: "echo 'test'"
+                    command: "echo 'override'"
                 },
                 {
                     name: 'posttest',
