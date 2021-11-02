@@ -27,6 +27,18 @@ Before(
     }
 );
 
+Before(
+    {
+        tags: '@sourcePath'
+    },
+    function hook() {
+        this.repoOrg = this.testOrg;
+        this.repoName = 'functional-sourcePath';
+        this.pipelineId = null;
+        this.builds = null;
+    }
+);
+
 Given(
     /^an existing pipeline on branch "([^"]*)" with the workflow jobs:$/,
     {
@@ -168,6 +180,18 @@ When(
         this.pipelines[branchName].eventId = build.eventId;
 
         Assert.equal(build.jobId, job.id);
+    }
+);
+
+When(
+    /^a new file is added to the "([^"]*)" directory of the "([^"]*)" branch$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(directoryName, branchName) {
+        github.createFile(branchName, this.repoOrg, this.repoName, directoryName).then(response => {
+            this.pipelines[branchName].sha = response.data.commit.sha;
+        });
     }
 );
 
