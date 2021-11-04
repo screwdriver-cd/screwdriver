@@ -138,19 +138,21 @@ function createBranch(branch, repoOwner, repoName) {
  * @param  {String}   branch            The branch to create the file in
  * @param  {String}   [repoOwner]       Owner of the repository
  * @param  {String}   [repoName]        Name of the repository
+ * @param  {String}   directoryName     Name of the directory
  * @return {Promise}
  */
-function createFile(branch, repoOwner, repoName) {
+function createFile(branch, repoOwner, repoName, directoryName) {
     // eslint-disable-next-line new-cap
     const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
+    const filePath = directoryName || 'testfiles';
 
     return octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
-        path: `testfiles/${filename}`,
+        path: `${filePath}/${filename}`,
         message: new Date().toString(), // commit message is the current time
         content: content.toString('base64'), // content needs to be transmitted in base64
         branch
