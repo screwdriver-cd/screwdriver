@@ -1,5 +1,1 @@
 extends: screwdriver
-rules:
-    prettier/prettier:
-        - error
-        - trailingComma: none

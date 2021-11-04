@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 
-const Assert = require("chai").assert;
-const { Before, Then, When } = require("cucumber");
-const request = require("screwdriver-request");
+const Assert = require('chai').assert;
+const { Before, Then, When } = require('cucumber');
+const request = require('screwdriver-request');
 
 const TIMEOUT = 240 * 1000;
 
-Before("@artifacts", function hook() {
-    this.repoName = "functional-artifacts";
+Before('@artifacts', function hook() {
+    this.repoName = 'functional-artifacts';
 
     // Reset shared information
     this.buildId = null;
@@ -19,10 +19,10 @@ Before("@artifacts", function hook() {
 When(/^the "ziped" job is started$/, { timeout: TIMEOUT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
-        method: "POST",
+        method: 'POST',
         json: {
             pipelineId: this.pipelineId,
-            startFrom: "ziped"
+            startFrom: 'ziped'
         },
         context: {
             token: this.jwt
@@ -35,7 +35,7 @@ When(/^the "ziped" job is started$/, { timeout: TIMEOUT }, function step() {
         .then(() =>
             request({
                 url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
-                method: "GET",
+                method: 'GET',
                 context: {
                     token: this.jwt
                 }
@@ -49,7 +49,7 @@ When(/^the "ziped" job is started$/, { timeout: TIMEOUT }, function step() {
 
 Then(/^the "ziped" build succeeds$/, { timeout: TIMEOUT }, function step() {
     return this.waitForBuild(this.buildId).then((resp) => {
-        Assert.equal(resp.body.status, "SUCCESS");
+        Assert.equal(resp.body.status, 'SUCCESS');
         Assert.equal(resp.statusCode, 200);
     });
 });
@@ -58,14 +58,12 @@ Then(
     /^artifacts were found in the build with the same event ID as the successful main job$/,
     { timeout: TIMEOUT },
     function step() {
-        const artifactName1 = "sample1.txt";
-        const artifactName2 = "sample2.txt";
+        const artifactName1 = 'sample1.txt';
+        const artifactName2 = 'sample2.txt';
 
         const retryConfig = {
             limit: 6,
-            statusCodes: [
-                408, 404, 413, 429, 500, 502, 503, 504, 521, 522, 524
-            ],
+            statusCodes: [408, 404, 413, 429, 500, 502, 503, 504, 521, 522, 524],
             calculateDelay: ({ computedValue }) => {
                 return computedValue;
             },
@@ -74,32 +72,26 @@ Then(
 
         const artifactRequest1 = request({
             url: `${this.instance}/${this.namespace}/builds/${this.buildId}/artifacts/${artifactName1}?type=preview`,
-            method: "GET",
+            method: 'GET',
             context: {
                 token: this.jwt
             },
             retry: retryConfig
         }).then((response) => {
             Assert.equal(response.statusCode, 200);
-            Assert.equal(
-                JSON.stringify(response.body),
-                '{"name":"sample text 1"}'
-            );
+            Assert.equal(JSON.stringify(response.body), '{"name":"sample text 1"}');
         });
 
         const artifactRequest2 = request({
             url: `${this.instance}/${this.namespace}/builds/${this.buildId}/artifacts/${artifactName2}?type=preview`,
-            method: "GET",
+            method: 'GET',
             context: {
                 token: this.jwt
             },
             retry: retryConfig
         }).then((response) => {
             Assert.equal(response.statusCode, 200);
-            Assert.equal(
-                JSON.stringify(response.body),
-                '{"name":"sample text 2"}'
-            );
+            Assert.equal(JSON.stringify(response.body), '{"name":"sample text 2"}');
         });
 
         return Promise.all([artifactRequest1, artifactRequest2]);
