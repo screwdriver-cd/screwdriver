@@ -1,7 +1,7 @@
 "use strict"
 
 const Assert = require("chai").assert
-const { Before, Then, When} = require("cucumber")
+const { Before, Then, When } = require("cucumber")
 const request = require("screwdriver-request")
 
 const TIMEOUT = 240 * 1000
@@ -19,40 +19,40 @@ Before("@artifacts", function hook() {
 When(/^the "ziped" job is started$/, { timeout: TIMEOUT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
-        method: 'POST',
+        method: "POST",
         json: {
             pipelineId: this.pipelineId,
-            startFrom: 'ziped'
+            startFrom: "ziped"
         },
         context: {
             token: this.jwt
         }
     })
-        .then(resp => {
-            Assert.equal(resp.statusCode, 201);
-            this.eventId = resp.body.id;
+        .then((resp) => {
+            Assert.equal(resp.statusCode, 201)
+            this.eventId = resp.body.id
         })
         .then(() =>
             request({
                 url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
-                method: 'GET',
+                method: "GET",
                 context: {
                     token: this.jwt
                 }
             })
         )
-        .then(resp => {
-            Assert.equal(resp.statusCode, 200);
-            this.buildId = resp.body[0].id;
-        });
-});
+        .then((resp) => {
+            Assert.equal(resp.statusCode, 200)
+            this.buildId = resp.body[0].id
+        })
+})
 
 Then(/^the "ziped" build succeeds$/, { timeout: TIMEOUT }, function step() {
-    return this.waitForBuild(this.buildId).then(resp => {
-        Assert.equal(resp.body.status, 'SUCCESS');
-        Assert.equal(resp.statusCode, 200);
-    });
-});
+    return this.waitForBuild(this.buildId).then((resp) => {
+        Assert.equal(resp.body.status, "SUCCESS")
+        Assert.equal(resp.statusCode, 200)
+    })
+})
 
 Then(
     /^artifacts were found in the build with the same event ID as the successful main job$/,
