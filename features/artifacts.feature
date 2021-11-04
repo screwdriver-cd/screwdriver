@@ -26,4 +26,4 @@ Feature: Artifacts
         When the "ziped" job is started
         Then an event is created
         And the "ziped" build succeeds
-        And artifacts were found in the build with the same event ID as the successful main job
+        And artifacts were found in the build with the same event ID as the successful ziped job
