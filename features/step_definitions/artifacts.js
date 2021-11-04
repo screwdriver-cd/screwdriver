@@ -16,13 +16,13 @@ Before('@artifacts', function hook() {
     this.jwt = null;
 });
 
-When(/^the "ziped" job is started$/, { timeout: TIMEOUT }, function step() {
+When(/^the "zipped" job is started$/, { timeout: TIMEOUT }, function step() {
     return request({
         url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
         json: {
             pipelineId: this.pipelineId,
-            startFrom: 'ziped'
+            startFrom: 'zipped'
         },
         context: {
             token: this.jwt
@@ -47,7 +47,7 @@ When(/^the "ziped" job is started$/, { timeout: TIMEOUT }, function step() {
         });
 });
 
-Then(/^the "ziped" build succeeds$/, { timeout: TIMEOUT }, function step() {
+Then(/^the "zipped" build succeeds$/, { timeout: TIMEOUT }, function step() {
     return this.waitForBuild(this.buildId).then((resp) => {
         Assert.equal(resp.body.status, 'SUCCESS');
         Assert.equal(resp.statusCode, 200);
@@ -55,7 +55,7 @@ Then(/^the "ziped" build succeeds$/, { timeout: TIMEOUT }, function step() {
 });
 
 Then(
-    /^artifacts were found in the build with the same event ID as the successful main job$/,
+    /^Found artifacts in the "(main|zipped)" job that were successfully build$/,
     { timeout: TIMEOUT },
     function step() {
         const artifactName1 = 'sample1.txt';

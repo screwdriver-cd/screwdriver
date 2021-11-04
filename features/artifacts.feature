@@ -11,7 +11,7 @@ Feature: Artifacts
         Given an existing pipeline with the workflow:
             | job | triggers |
             | main | ~commit |
-            | ziped | ~commit |
+            | zipped | ~commit |
         And "calvin" has admin permission to the pipeline
 
     Scenario: Verify that artifacts have been saved
@@ -19,11 +19,11 @@ Feature: Artifacts
         When the "main" job is started
         Then an event is created
         And the "main" build succeeds
-        And artifacts were found in the build with the same event ID as the successful main job
+        And Found artifacts in the "main" job that were successfully build
 
-    Scenario: Verify that the artifacts have been saved with ziping enabled.
+    Scenario: Verify that the artifacts have been saved with zipping enabled.
         And "calvin" is logged in
-        When the "ziped" job is started
-        Then an event is created
-        And the "ziped" build succeeds
-        And artifacts were found in the build with the same event ID as the successful ziped job
+        When the "zipped" job is started
+        Then an event is createdq
+        And the "zipped" build succeeds
+        And Found artifacts in the "zipped" job that were successfully build
