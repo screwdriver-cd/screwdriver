@@ -19,11 +19,11 @@ Feature: Artifacts
         When the "main" job is started
         Then an event is created
         And the "main" build succeeds
-        And Found artifacts in the "main" job that were successfully build
+        And artifacts were found in the build
 
     Scenario: Verify that the artifacts have been saved with zipping enabled.
         And "calvin" is logged in
         When the "zipped" job is started
         Then an event is createdq
         And the "zipped" build succeeds
-        And Found artifacts in the "zipped" job that were successfully build
+        And artifacts were found in the build
