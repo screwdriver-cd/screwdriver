@@ -107,12 +107,15 @@ Given(
             context: {
                 token: this.jwt
             }
-        }).then(response => {
-            const { statusCode } = response;
-
-            Assert.oneOf(statusCode, [200, 404]);
-            this.numOfTemplate = statusCode === 200 ? response.body.length : 0;
-        });
+        })
+            .then(response => {
+                Assert.equal(response.statusCode, 200);
+                this.numOfTemplate = response.body.length;
+            })
+            .catch(err => {
+                Assert.strictEqual(err.statusCode, 404);
+                this.numOfTemplate = 0;
+            });
     }
 );
 
