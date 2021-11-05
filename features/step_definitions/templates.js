@@ -144,6 +144,7 @@ Given(
     function step(template, version, jobName) {
         this.template = template;
         this.jobName = jobName;
+        this.branchName = 'second';
 
         return request({
             url: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}/${version}`,
@@ -225,7 +226,7 @@ When(
     },
     function step(permission, status, jobName) {
         if (permission === 'wrong') {
-            this.branchName = 'wrong-permission';
+            this.branchName = 'second';
         }
 
         return this.startJob(jobName).then(result => {
