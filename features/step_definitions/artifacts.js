@@ -57,15 +57,17 @@ Then(/^the "zipped" build succeeds$/, { timeout: TIMEOUT }, function step() {
 Then(/^artifacts were found in the build$/, { timeout: TIMEOUT }, function step() {
     const artifactName1 = 'sample1.txt';
     const artifactName2 = 'sample2.txt';
-    const retryInterval = 30000;
+    const maxRetryInterval = 30000;
 
     const retryConfig = {
         limit: 6,
         statusCodes: [408, 404, 413, 429, 500, 502, 503, 504, 521, 522, 524],
-        calculateDelay: () => {
-            return retryInterval;
+        calculateDelay: ({ attemptCount }) => {
+            // 1st time: 5sec, 2nd time: 10sec...
+            // max delay is 30sec.
+            return attemptCount * 50000;
         },
-        backoffLimit: retryInterval
+        backoffLimit: maxRetryInterval
     };
 
     const artifactRequest1 = request({
