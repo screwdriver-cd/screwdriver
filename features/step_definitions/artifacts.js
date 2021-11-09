@@ -65,7 +65,7 @@ Then(/^artifacts were found in the build$/, { timeout: TIMEOUT }, function step(
         calculateDelay: ({ attemptCount }) => {
             // 1st time: 5sec, 2nd time: 10sec...
             // max delay is 30sec.
-            return attemptCount * 50000;
+            return attemptCount * 5000;
         },
         backoffLimit: maxRetryInterval
     };
