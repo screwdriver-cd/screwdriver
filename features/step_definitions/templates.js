@@ -107,12 +107,15 @@ Given(
             context: {
                 token: this.jwt
             }
-        }).then(response => {
-            const { statusCode } = response;
-
-            Assert.oneOf(statusCode, [200, 404]);
-            this.numOfTemplate = statusCode === 200 ? response.body.length : 0;
-        });
+        })
+            .then(response => {
+                Assert.equal(response.statusCode, 200);
+                this.numOfTemplate = response.body.length;
+            })
+            .catch(err => {
+                Assert.strictEqual(err.statusCode, 404);
+                this.numOfTemplate = 0;
+            });
     }
 );
 
@@ -141,6 +144,7 @@ Given(
     function step(template, version, jobName) {
         this.template = template;
         this.jobName = jobName;
+        this.branchName = 'second';
 
         return request({
             url: `${this.instance}/${this.namespace}/templates/${this.templateNamespace}%2F${this.template}/${version}`,
@@ -222,7 +226,7 @@ When(
     },
     function step(permission, status, jobName) {
         if (permission === 'wrong') {
-            this.branchName = 'wrong-permission';
+            this.branchName = 'second';
         }
 
         return this.startJob(jobName).then(result => {
