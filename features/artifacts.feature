@@ -21,7 +21,7 @@ Feature: Artifacts
         And the "main" build succeeds
         And artifacts were found in the build
 
-    @zip-artifacts
+    @ignore
     Scenario: Verify that the artifacts have been saved with zipping enabled.
         And "calvin" is logged in
         When the "zipped" job is started
