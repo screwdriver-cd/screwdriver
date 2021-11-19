@@ -18,7 +18,7 @@ Outline:
 1. upload zip file to Object Storage(S3) (sd build -> store -> S3)  
 1. notify to queue-service after upload zip file (sd build -> api -> queue-service)  
 1. send a message to unzip file (queue-service -> Resque)  
-1. a consumer(unzip worker) receives the message, then the consumer downloads the zip file and unzips it, re-uploads unzipped files 
+1. a consumer(unzip worker) receives the message, then the consumer downloads the zip file and unzips it, re-uploads unzipped files, deletes the zip file
 
 ## Flow(Details)
 
@@ -91,7 +91,7 @@ Status(Error):
 
 |Method|URL|Description|
 |:--|:--|:--|
-|POST|/queue/message|enqueue message to unzip file|
+|POST|/queue/message?type=unzip|enqueue message to unzip file|
 
 ##### Authentication & Authorization
 
@@ -134,12 +134,21 @@ This is a new component.
 1. If retry fails
     1. Add a statusMessage to the build to notify the user that the unzip has failed
     1. Log the failure.
+1. Delete SD_ARTIFACT.zip
 
 ### SD Store (store)
+Enable the following operations from unzip worker
+1. Download SD_ARTIFACT.zip
+1. Upload unzipped artifact files
+1. Delete SD_ARTIFACT.zip
 
-1. Upload and Download artifact files
+#### API
 
-SD Store do not need to add new function, but need to add new Authentication.
+|Method|URL|Description|
+|:--|:--|:--|
+|DELETE|/builds/{id}/ARTIFACTS/SD_ARTIFACT.zip|delete zipped artifact files|
 
-- Able to Upload and Download artifact files by unzip worker scope token
+##### Authentication & Authorization
+
+- Able to Upload, Download, and Delete artifact files by unzip worker scope token
 - Return an error if the build id of the build artifacts to be operated is different from the build id contained in the token
