@@ -41,7 +41,7 @@ Outline:
 
 Use sd-token to allow only requests when the build ID in the token and the id in the path are the same.
 
-##### POST DATA
+##### Parameters
 
 |Name|Type|In|Description|Example|
 |:--|:--|:--|:--|:--|
@@ -97,7 +97,7 @@ Status(Error):
 
 Use sd-token to only allow requests from SD API
 
-##### POST DATA
+##### Parameters
 
 |Name|Type|In|Description|Example|
 |:--|:--|:--|:--|:--|
@@ -152,3 +152,10 @@ Enable the following operations from unzip worker
 
 - Able to Upload, Download, and Delete artifact files by unzip worker scope token
 - Return an error if the build id of the build artifacts to be operated is different from the build id contained in the token
+
+##### Parameters
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+|id|integer|path|build ID|12|
+|artifact*|string|path|path to artifact|ARTIFACTS/SD_ARTIFACT.zip|
