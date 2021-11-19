@@ -91,7 +91,7 @@ Status(Error):
 
 |Method|URL|Description|
 |:--|:--|:--|
-|POST|/queue/message?type=unzip|enqueue message to unzip file|
+|POST|/queue/message|enqueue message to unzip file|
 
 ##### Authentication & Authorization
 
