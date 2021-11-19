@@ -146,7 +146,7 @@ Enable the following operations from unzip worker
 
 |Method|URL|Description|
 |:--|:--|:--|
-|DELETE|/builds/{id}/ARTIFACTS/SD_ARTIFACT.zip|delete zipped artifact files|
+|DELETE|/builds/{id}/{artifact*}|delete zipped artifact files|
 
 ##### Authentication & Authorization
 
