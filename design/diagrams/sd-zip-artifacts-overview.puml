@@ -11,16 +11,22 @@ queue "Resque(Redis)" as resque
 participant "unzip worker" as worker
 
 
-build -> store: store-cli
-store -> s3: upload zip file
+build -> store: store-cli\nPUT /builds/{id}/ARTIFACTS/SD_ARTIFACT.zip
+store -> s3: upload zip artifact
 build -> api: POST /builds/{id}/artifacts/unzip
-api -> qservice: POST /queue/message
+api -> qservice: POST /queue/message?type=unzip
 qservice -> resque: enqueue
-qservice --> api: response\n(POST /queue/message)
+qservice --> api: response\n(POST /queue/message?type=unzip)
 api --> build: response\n(POST /builds/{id}/artifacts/unzip)
 worker -> resque : dequeue
-worker -> store: GET zip artifact
-store --> worker: response\nGET zip artifact
-worker -> store: upload unzip artifacts
+worker -> store: GET /builds/{id}/ARTIFACTS/SD_ARTIFACT.zip
+store -> s3: download zip artifact
+store --> worker: response\n(GET /builds/{id}/ARTIFACTS/SD_ARTIFACT.zip)
+worker -> store: PUT /builds/{id}/ARTIFACTS/*
+store -> s3: upload unzip artifacts
+store --> worker: response\n(PUT /builds/{id}/ARTIFACTS/*)
+worker -> store: DELETE /builds/{id}/ARTIFACTS/SD_ARTIFACT.zip
+store -> s3: delete zip artifact
+store --> worker: response\n(DELETE /builds/{id}/ARTIFACTS/SD_ARTIFACT.zip)
 
 @enduml
