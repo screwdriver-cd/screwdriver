@@ -18,7 +18,7 @@ Outline:
 1. upload zip file to Object Storage(S3) (sd build -> store -> S3)  
 1. notify to queue-service after upload zip file (sd build -> api -> queue-service)  
 1. send a message to unzip file (queue-service -> Resque)  
-1. a consumer(unzip worker) receives the message, then the consumer downloads the zip file and unzips it, re-uploads unzipped files 
+1. a consumer(unzip worker) receives the message, then the consumer downloads the zip file and unzips it, re-uploads unzipped files, deletes the zip file
 
 ## Flow(Details)
 
@@ -41,7 +41,7 @@ Outline:
 
 Use sd-token to allow only requests when the build ID in the token and the id in the path are the same.
 
-##### POST DATA
+##### Parameters
 
 |Name|Type|In|Description|Example|
 |:--|:--|:--|:--|:--|
@@ -97,7 +97,7 @@ Status(Error):
 
 Use sd-token to only allow requests from SD API
 
-##### POST DATA
+##### Parameters
 
 |Name|Type|In|Description|Example|
 |:--|:--|:--|:--|:--|
@@ -134,12 +134,28 @@ This is a new component.
 1. If retry fails
     1. Add a statusMessage to the build to notify the user that the unzip has failed
     1. Log the failure.
+1. Delete SD_ARTIFACT.zip
 
 ### SD Store (store)
+Enable the following operations from unzip worker
+1. Download SD_ARTIFACT.zip
+1. Upload unzipped artifact files
+1. Delete SD_ARTIFACT.zip
 
-1. Upload and Download artifact files
+#### API
 
-SD Store do not need to add new function, but need to add new Authentication.
+|Method|URL|Description|
+|:--|:--|:--|
+|DELETE|/builds/{id}/{artifact*}|delete zipped artifact files|
 
-- Able to Upload and Download artifact files by unzip worker scope token
+##### Authentication & Authorization
+
+- Able to Upload, Download, and Delete artifact files by unzip worker scope token
 - Return an error if the build id of the build artifacts to be operated is different from the build id contained in the token
+
+##### Parameters
+
+|Name|Type|In|Description|Example|
+|:--|:--|:--|:--|:--|
+|id|integer|path|build ID|12|
+|artifact*|string|path|path to artifact|ARTIFACTS/SD_ARTIFACT.zip|
