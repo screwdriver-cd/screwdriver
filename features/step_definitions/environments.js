@@ -26,7 +26,7 @@ Given(
 );
 
 When(
-    /^the "([^"]*)" job with setting environment variables is started$/,
+    /^the "([^"]*)" job that uses "FOO" environment variable is started$/,
     {
         timeout: TIMEOUT
     },
@@ -63,7 +63,7 @@ When(
 );
 
 Then(
-    /^the "[^"]*" job with setting environment variables is success$/,
+    /^the job was able to use the "FOO" environment variable$/,
     {
         timeout: TIMEOUT
     },
