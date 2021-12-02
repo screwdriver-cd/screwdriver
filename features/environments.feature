@@ -1,5 +1,4 @@
 @environments
-@ignore-for-deploy
 Feature: Envitonments
 
     Screwdriver exports a set of environment variables that you can rely on during build runtime
@@ -12,4 +11,4 @@ Feature: Envitonments
 
     Scenario: Check Environment can be used
         When the "main" job with setting environment variables is started
-        When the "main" job with setting environment variables is success
+        Then the "main" job with setting environment variables is success
