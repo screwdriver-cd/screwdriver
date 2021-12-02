@@ -16,7 +16,7 @@ Before(
 );
 
 Given(
-    /^the pipeline with setting environment variables should be exist$/,
+    /^an existing pipeline with setting environment variables$/,
     {
         timeout: TIMEOUT
     },
