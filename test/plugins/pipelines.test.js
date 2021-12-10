@@ -1933,6 +1933,7 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 and updates settings only', () => {
             const expectedSetting = {
+                groupedEvents: false,
                 metricsDowntimeJobs: [123, 456],
                 public: true
             };
