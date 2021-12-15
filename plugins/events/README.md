@@ -32,6 +32,9 @@ server.register({
 #### Returns a list of builds associated with the event
 `GET /events/{id}/builds`
 
+`GET /events/{id}/builds?steps=true`
+
+
 #### Get build metrics for a single event
 `GET /events/{id}/metrics`
 

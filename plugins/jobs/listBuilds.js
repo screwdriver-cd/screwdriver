@@ -23,7 +23,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
-            const { sort, sortBy, page, count } = request.query;
+            const { sort, sortBy, page, count, steps } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -32,7 +32,7 @@ module.exports = () => ({
                         throw boom.notFound('Job does not exist');
                     }
 
-                    const config = { sort, sortBy: 'createTime' };
+                    const config = { sort, sortBy: 'createTime', readOnly: true };
 
                     if (sortBy) {
                         config.sortBy = sortBy;
@@ -45,7 +45,13 @@ module.exports = () => ({
                     return job.getBuilds(config);
                 })
                 .then(async builds => {
-                    const data = await Promise.all(builds.map(b => b.toJsonWithSteps()));
+                    let data;
+
+                    if (steps) {
+                        data = await Promise.all(builds.map(b => b.toJsonWithSteps()));
+                    } else {
+                        data = await Promise.all(builds.map(b => b.toJson()));
+                    }
 
                     return h.response(data);
                 })
@@ -60,7 +66,15 @@ module.exports = () => ({
             params: joi.object({
                 id: jobIdSchema
             }),
-            query: schema.api.pagination
+            query: schema.api.pagination.concat(
+                joi.object({
+                    steps: joi
+                        .boolean()
+                        .truthy('true')
+                        .falsy('false')
+                        .default(false)
+                })
+            )
         }
     }
 });

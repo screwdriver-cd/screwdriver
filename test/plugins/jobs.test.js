@@ -15,6 +15,7 @@ const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
     mock.toJsonWithSteps = sinon.stub().resolves(build);
+    mock.toJson = sinon.stub().resolves(build);
 
     return mock;
 };
@@ -331,7 +332,8 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     sort: 'descending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             }));
@@ -347,7 +349,8 @@ describe('job plugin test', () => {
                         page: 2
                     },
                     sort: 'ascending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -364,7 +367,8 @@ describe('job plugin test', () => {
                         page: 2
                     },
                     sort: 'ascending',
-                    sortBy: 'id'
+                    sortBy: 'id',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -381,7 +385,8 @@ describe('job plugin test', () => {
                         count: 30
                     },
                     sort: 'descending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });

@@ -46,6 +46,8 @@ Example payload:
 #### Get list of builds for a single job
 `GET /jobs/{id}/builds`
 
+`GET /jobs/{id}/builds?steps=true`
+
 `GET /jobs/{id}/builds?page=2&count=30&sort=ascending`
 
 `GET /jobs/{id}/builds?page=2&count=30&sort=ascending&sortBy=id`
