@@ -11,6 +11,7 @@ const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
 const listStepsRoute = require('./steps/list');
 const artifactGetRoute = require('./artifacts/get');
+const artifactUnzipRoute = require('./artifacts/unzip');
 const stepUpdateRoute = require('./steps/update');
 const stepLogsRoute = require('./steps/logs');
 const listSecretsRoute = require('./listSecrets');
@@ -1106,7 +1107,8 @@ const buildsPlugin = {
             listSecretsRoute(),
             tokenRoute(),
             metricsRoute(),
-            artifactGetRoute(options)
+            artifactGetRoute(options),
+            artifactUnzipRoute(),
         ]);
     }
 };
