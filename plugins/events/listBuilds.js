@@ -24,23 +24,14 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { eventFactory } = request.server.app;
             const event = await eventFactory.get(request.params.id);
-            const { steps } = request.query;
 
             if (!event) {
                 throw boom.notFound('Event does not exist');
             }
 
-            const buildsModel = await event.getBuilds({
-                readOnly: true
-            });
+            const buildsModel = await event.getBuilds();
 
-            let data;
-
-            if (steps) {
-                data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJsonWithSteps()));
-            } else {
-                data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJson()));
-            }
+            const data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJsonWithSteps()));
 
             return h.response(data);
         },
@@ -50,16 +41,7 @@ module.exports = () => ({
         validate: {
             params: joi.object({
                 id: eventIdSchema
-            }),
-            query: schema.api.pagination.concat(
-                joi.object({
-                    steps: joi
-                        .boolean()
-                        .truthy('true')
-                        .falsy('false')
-                        .default(false)
-                })
-            )
+            })
         }
     }
 });
