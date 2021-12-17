@@ -72,7 +72,7 @@ module.exports = () => ({
                         .boolean()
                         .truthy('true')
                         .falsy('false')
-                        .default(false)
+                        .default(true)
                 })
             )
         }
