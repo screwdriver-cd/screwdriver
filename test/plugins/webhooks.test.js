@@ -10,10 +10,10 @@ const hoek = require('@hapi/hoek');
 
 chai.use(require('chai-as-promised'));
 
-const RewiredWebhooks = rewire('../../plugins/webhooks');
+const RewiredWebhooksHelper = rewire('../../plugins/webhooks/helper.js');
 /* eslint-disable no-underscore-dangle */
-const ANNOT_CHAIN_PR = RewiredWebhooks.__get__('ANNOT_CHAIN_PR');
-const ANNOT_RESTRICT_PR = RewiredWebhooks.__get__('ANNOT_RESTRICT_PR');
+const ANNOT_CHAIN_PR = RewiredWebhooksHelper.__get__('ANNOT_CHAIN_PR');
+const ANNOT_RESTRICT_PR = RewiredWebhooksHelper.__get__('ANNOT_RESTRICT_PR');
 /* eslint-enable no-underscore-dangle */
 
 const testPayloadPush = require('./data/github.push.json');
@@ -27,10 +27,9 @@ const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 sinon.assert.expose(assert, { prefix: '' });
 
 // separate from "webhooks plugin test" because there is unnecessary beforeEach hook for test test case
-describe('webhooks.determineStartFrom', () => {
-    const webhooks = rewire('../../plugins/webhooks/index.js');
+describe('webhooksHelper.determineStartFrom', () => {
     // eslint-disable-next-line no-underscore-dangle
-    const determineStartFrom = webhooks.__get__('determineStartFrom');
+    const determineStartFrom = RewiredWebhooksHelper.__get__('determineStartFrom');
     let action;
     let type;
     let targetBranch;
@@ -355,7 +354,7 @@ describe('webhooks plugin test', () => {
     describe('resolveChainPR function', () => {
         it('resolves ChainPR flag', () => {
             // eslint-disable-next-line no-underscore-dangle
-            const resolveChainPR = RewiredWebhooks.__get__('resolveChainPR');
+            const resolveChainPR = RewiredWebhooksHelper.__get__('resolveChainPR');
 
             let chainPR; // undefined;
             const pipeline = {
