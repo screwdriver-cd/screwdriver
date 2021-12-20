@@ -271,7 +271,6 @@ async function createInternalBuild(config) {
     } else {
         job = await jobFactory.get(jobId);
     }
-
     const internalBuildConfig = {
         jobId: job.id,
         sha: event.sha,
@@ -411,6 +410,11 @@ function parseJobInfo({ joinObj = {}, current, nextJobName, nextPipelineId }) {
  * @return {Promise}                            All finished builds
  */
 async function getFinishedBuilds(event, buildFactory) {
+    if (!event.parentEventId) {
+        // FIXME: remove this flow to always use buildFactory.getLatestBuilds
+        return event.getBuilds();
+    }
+
     // FIXME: buildFactory.getLatestBuilds doesn't return build model
     const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
 
