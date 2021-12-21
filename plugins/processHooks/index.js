@@ -5,7 +5,7 @@ const { startHookEvent } = require('../webhooks/helper');
 
 /**
  * Process Hooks API Plugin
- * - Start pipeline events from scm webhook config
+ * - Start pipeline events with scm webhook config via queue-service
  * @method register
  * @param  {Hapi}       server  Hapi Server
  * @param  {Object}     options Configuration
