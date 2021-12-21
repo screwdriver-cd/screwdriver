@@ -152,6 +152,16 @@ describe('processHooks plugin test', () => {
             eventFactory: eventFactoryMock
         };
 
+        server.auth.scheme('custom', () => ({
+            authenticate: (request, h) =>
+                h.authenticated({
+                    credentials: {
+                        scope: ['webhook_worker']
+                    }
+                })
+        }));
+        server.auth.strategy('token', 'custom');
+
         await server.register({
             plugin,
             options: {}
@@ -193,7 +203,12 @@ describe('processHooks plugin test', () => {
             method: 'POST',
             url: '/processHooks',
             headers: {},
-            auth: { credentials: {}, strategy: 'token' },
+            auth: {
+                credentials: {
+                    scope: ['webhook_worker']
+                },
+                strategy: 'token'
+            },
             payload: testWebhookConfigPush
         };
 
