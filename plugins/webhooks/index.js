@@ -80,7 +80,7 @@ const webhooksPlugin = {
 
                         request.log(['webhook', hookId], `Received event type ${type}`);
 
-                        return await startHookEvent(pluginOptions, request, h, parsed);
+                        return await startHookEvent(request, h, parsed);
 
                     } catch (err) {
                         logger.error(`[${hookId}]: ${err}`);

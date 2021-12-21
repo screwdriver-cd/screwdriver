@@ -1101,16 +1101,15 @@ async function getCommitRefSha({ scm, token, ref, refType, checkoutUrl, scmConte
 /**
  * Start pipeline events from scm webhook config
  * @method startHookEvent
- * @param  {Object} pluginOptions   Options of plugins processing hook
  * @param  {Hapi.request} request   Request from user
  * @param  {Object} h               Response toolkit
  * @param  {Object} webhookConfig   Parsed request.payload by scm webhook
  * @return {Promise}
  */
-async function startHookEvent(pluginOptions, request, h, webhookConfig) {
+async function startHookEvent(request, h, webhookConfig) {
     const { userFactory, pipelineFactory } = request.server.app;
     const { scm } = pipelineFactory;
-    const ignoreUser = pluginOptions.ignoreCommitsBy;
+    const ignoreUser = webhookConfig.pluginOptions.ignoreCommitsBy;
     let message = 'Unable to process this kind of event';
     let skipMessage;
     let parsedHookId = '';
@@ -1141,7 +1140,7 @@ async function startHookEvent(pluginOptions, request, h, webhookConfig) {
             }
         }
 
-        const token = await obtainScmToken({ pluginOptions, userFactory, username, scmContext, scm });
+        const token = await obtainScmToken({ pluginOptions: webhookConfig.pluginOptions, userFactory, username, scmContext, scm });
 
         if (action !== 'release' && action !== 'tag') {
             let scmUri;
@@ -1179,7 +1178,7 @@ async function startHookEvent(pluginOptions, request, h, webhookConfig) {
 
         if (type === 'pr') {
             // disregard skip ci for pull request events
-            return pullRequestEvent(pluginOptions, request, h, webhookConfig, token);
+            return pullRequestEvent(webhookConfig.pluginOptions, request, h, webhookConfig, token);
         }
 
         return pushEvent(request, h, webhookConfig, skipMessage, token);

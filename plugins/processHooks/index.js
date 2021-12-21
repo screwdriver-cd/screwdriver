@@ -32,7 +32,7 @@ const processHooksPlugin = {
                 },
                 handler: async (request, h) => {
                     try {
-                        return await startHookEvent(request.payload.pluginOptions, request, h, request.payload);
+                        return await startHookEvent(request, h, request.payload);
                     } catch (err) {
                         logger.error(`Error starting hook events for ${request.payload.hookId}:${err}`);
 
