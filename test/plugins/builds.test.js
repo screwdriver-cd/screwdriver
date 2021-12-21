@@ -5066,7 +5066,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('GET /builds/{id}/acts/{artifact}', () => {
+    describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
         const artifact = 'manifest';
         const multiByteArtifact = 'まにふぇmanife漢字';
@@ -5353,6 +5353,64 @@ describe('build plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+    });
+
+    describe('POST /builds/{id}/artifacts/unzip', () => {
+        const id = 12345;
+        const buildMock = {
+            id,
+            unzipArtifacts: sinon.stub().resolves(null)
+        };
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: `/builds/${id}/artifacts/unzip`,
+                auth: {
+                    credentials: {
+                        username: id,
+                        scope: ['build']
+                    },
+                    strategy: ['token']
+                }
+            };
+            buildFactoryMock.get.resolves(buildMock);
+        });
+
+        it('returns 202 for an unzip request', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 202);
+                assert.calledWith(buildMock.unzipArtifacts);
+            });
+        });
+
+        it('returns 403 when the build token have no permission for the artifacts', () => {
+            options.auth.credentials.username = 6789;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.result.message, 'Credential only valid for 6789');
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Build does not exist');
+            });
+        });
+
+        it('returns 500 for server error', () => {
+            buildFactoryMock.get.throws('An internal sever error occurred');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.result.message, 'An internal server error occurred');
             });
         });
     });
