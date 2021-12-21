@@ -1,9 +1,7 @@
 'use strict';
 
-const joi = require('joi');
+const logger = require('screwdriver-logger');
 const { startHookEvent } = require('../webhooks/helper');
-
-const DEFAULT_MAX_BYTES = 1048576;
 
 /**
  * Process Hooks API Plugin
@@ -23,6 +21,10 @@ const processHooksPlugin = {
                 description: 'Handle process hook events',
                 notes: 'Acts on pull request, pushes, comments, etc.',
                 tags: ['api', 'processHook'],
+                auth: {
+                    strategies: ['token'],
+                    scope: ['webhook_worker']
+                },
                 plugins: {
                     'hapi-rate-limit': {
                         enabled: false
