@@ -1103,7 +1103,7 @@ async function getCommitRefSha({ scm, token, ref, refType, checkoutUrl, scmConte
  * @method startHookEvent
  * @param  {Hapi.request} request   Request from user
  * @param  {Object} h               Response toolkit
- * @param  {Object} webhookConfig   Parsed request.payload by scm webhook
+ * @param  {Object} webhookConfig   Configuration required to start events
  * @return {Promise}
  */
 async function startHookEvent(request, h, webhookConfig) {
