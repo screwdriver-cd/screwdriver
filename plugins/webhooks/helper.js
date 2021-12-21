@@ -1099,7 +1099,7 @@ async function getCommitRefSha({ scm, token, ref, refType, checkoutUrl, scmConte
 }
 
 /**
- * Start pipeline events from scm webhook config
+ * Start pipeline events with scm webhook config
  * @method startHookEvent
  * @param  {Hapi.request} request   Request from user
  * @param  {Object} h               Response toolkit
