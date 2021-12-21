@@ -68,12 +68,13 @@ const webhooksPlugin = {
 
                     try {
                         const parsed = await scm.parseHook(request.headers, request.payload);
-                        parsed.pluginOptions = pluginOptions;
 
                         if (!parsed) {
                             // for all non-matching events or actions
                             return h.response({ message }).code(204);
                         }
+
+                        parsed.pluginOptions = pluginOptions;
 
                         const { type, hookId } = parsed;
 
