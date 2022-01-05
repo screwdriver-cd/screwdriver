@@ -529,11 +529,13 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
             return null;
         }
 
-        // If all join builds finished successfully, start new build
-        newBuild.status = 'QUEUED';
-        const queuedBuild = await newBuild.update();
+        // If all join builds finished successfully and it's clear that a new build has not been started before, start new build
+        if ([ 'CREATED', null, undefined ].includes(newBuild.status)) {
+            newBuild.status = 'QUEUED';
+            const queuedBuild = await newBuild.update();
 
-        return queuedBuild.start();
+            return queuedBuild.start();
+        }
     }
 
     return null;
