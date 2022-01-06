@@ -332,11 +332,24 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     sort: 'descending',
+                    sortBy: 'createTime'
+                });
+                assert.deepEqual(reply.result, testBuilds);
+            }));
+
+        it('returns 200 for getting builds with query params', () => {
+            options.url = `/jobs/${id}/builds?fetchSteps=false&readOnly=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    sort: 'descending',
                     sortBy: 'createTime',
                     readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
-            }));
+            });
+        });
 
         it('pass in the correct params to getBuilds', () => {
             options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending`;
@@ -349,8 +362,7 @@ describe('job plugin test', () => {
                         page: 2
                     },
                     sort: 'ascending',
-                    sortBy: 'createTime',
-                    readOnly: true
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -367,8 +379,7 @@ describe('job plugin test', () => {
                         page: 2
                     },
                     sort: 'ascending',
-                    sortBy: 'id',
-                    readOnly: true
+                    sortBy: 'id'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -385,8 +396,7 @@ describe('job plugin test', () => {
                         count: 30
                     },
                     sort: 'descending',
-                    sortBy: 'createTime',
-                    readOnly: true
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });

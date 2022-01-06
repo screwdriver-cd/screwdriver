@@ -219,9 +219,19 @@ describe('event plugin test', () => {
         it('returns 200 for getting builds', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(event.getBuilds, { readOnly: true });
+                assert.calledWith(event.getBuilds);
                 assert.deepEqual(reply.result, testBuilds);
             }));
+
+        it('returns 200 for getting builds with query params', () => {
+            options.url = `/events/${id}/builds?fetchSteps=false&readOnly=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(event.getBuilds, { readOnly: true });
+                assert.deepEqual(reply.result, testBuilds);
+            });
+        });
     });
 
     describe('POST /events', () => {

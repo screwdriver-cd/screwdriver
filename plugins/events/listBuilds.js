@@ -24,19 +24,19 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { eventFactory } = request.server.app;
             const event = await eventFactory.get(request.params.id);
-            const { steps } = request.query;
+            const { fetchSteps, readOnly } = request.query;
 
             if (!event) {
                 throw boom.notFound('Event does not exist');
             }
 
-            const buildsModel = await event.getBuilds({
-                readOnly: true
-            });
+            const config = readOnly ? { readOnly: true } : {};
+
+            const buildsModel = await event.getBuilds(config);
 
             let data;
 
-            if (steps) {
+            if (fetchSteps) {
                 data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJsonWithSteps()));
             } else {
                 data = await Promise.all(buildsModel.map(async buildModel => buildModel.toJson()));
@@ -53,7 +53,12 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    steps: joi
+                    readOnly: joi
+                        .boolean()
+                        .truthy('true')
+                        .falsy('false')
+                        .default(false),
+                    fetchSteps: joi
                         .boolean()
                         .truthy('true')
                         .falsy('false')
