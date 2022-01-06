@@ -62,8 +62,9 @@ const webhooksPlugin = {
                     maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
                 },
                 handler: async (request, h) => {
-                    const { pipelineFactory } = request.server.app;
+                    const { pipelineFactory, queueWebhook } = request.server.app;
                     const { scm } = pipelineFactory;
+                    const { executor, queueWebhookEnabled } = queueWebhook;
                     let message = 'Unable to process this kind of event';
 
                     try {
@@ -79,6 +80,14 @@ const webhooksPlugin = {
                         const { type, hookId } = parsed;
 
                         request.log(['webhook', hookId], `Received event type ${type}`);
+
+                        if (queueWebhookEnabled) {
+                            parsed.token = request.server.plugins.auth.generateToken({
+                                scope: ['sdapi']
+                            });
+
+                            return await executor.enqueueWebhook(parsed);
+                        }
 
                         return await startHookEvent(request, h, parsed);
 

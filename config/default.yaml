@@ -190,6 +190,10 @@ executor:
           tls: false
         database: 0
 
+queueWebhook:
+  # Enabled events from webhook queue or not
+  enabled: false
+
 scms: {}
 #   github:
 #     plugin: github
