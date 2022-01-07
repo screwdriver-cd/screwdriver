@@ -66,6 +66,7 @@ const webhooksPlugin = {
                     const { scm } = pipelineFactory;
                     const { executor, queueWebhookEnabled } = queueWebhook;
                     let message = 'Unable to process this kind of event';
+                    let hookId;
 
                     try {
                         const parsed = await scm.parseHook(request.headers, request.payload);
@@ -77,7 +78,8 @@ const webhooksPlugin = {
 
                         parsed.pluginOptions = pluginOptions;
 
-                        const { type, hookId } = parsed;
+                        const { type } = parsed;
+                        hookId = parsed.hookId;
 
                         request.log(['webhook', hookId], `Received event type ${type}`);
 
