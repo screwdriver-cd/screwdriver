@@ -387,6 +387,7 @@ describe('build plugin test', () => {
             delete testBuild.meta;
             delete testBuild.endTime;
             delete testBuild.startTime;
+            delete testBuild.statusMessage;
 
             buildMock = getBuildMock(testBuild);
             buildMock.update.resolves(buildMock);
@@ -1785,7 +1786,8 @@ describe('build plugin test', () => {
                     };
 
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
-                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, parentBuilds: parentBuildsC });
+                    // jobC is created without starting, so status is not QUEUED
+                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -1797,6 +1799,8 @@ describe('build plugin test', () => {
                         // (same action but different flow in the code)
                         jobCconfig.start = false;
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+
+                        // only jobC will be started in this test scope, the start of jobB is in the buildFactoryMock.create
                         assert.calledOnce(buildMock.start);
                         buildMock.update = sinon.stub().resolves(buildMock);
                     });
@@ -1843,7 +1847,8 @@ describe('build plugin test', () => {
                     delete jobCconfig.parentBuilds['123'].jobs.d;
 
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
-                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, parentBuilds: parentBuildsC });
+                    // jobC is created without starting, so status is not QUEUED
+                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
@@ -1879,6 +1884,8 @@ describe('build plugin test', () => {
                         // (same action but different flow in the code)
                         jobCconfig.start = false;
                         assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+
+                        // only jobC will be started in this test scope, the start of jobB is in the buildFactoryMock.create
                         assert.calledOnce(buildMock.start);
                         buildMock.update = sinon.stub().resolves(buildMock);
                     });
@@ -2461,6 +2468,74 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledTwice(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
+                    });
+                });
+
+                it('triggers only once if all jobs in join are done at similar time', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    const buildC = {
+                        jobId: 3,
+                        id: 3,
+                        eventId: '8888',
+                        status: 'QUEUED',
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888',
+                                jobs: { a: null, d: 5555 }
+                            }
+                        }
+                    };
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345, d: 5555 } }
+                        },
+                        start: sinon.stub().resolves()
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    eventMock.getBuilds.resolves([
+                        {
+                            jobId: 1,
+                            id: 12345,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            id: 5555,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        buildC
+                    ]);
+                    jobBconfig.parentBuilds = {
+                        123: {
+                            eventId: '8888',
+                            jobs: { a: 12345 }
+                        }
+                    };
+                    jobCconfig.parentBuilds = {
+                        123: {
+                            eventId: '8888',
+                            jobs: { a: 12345, d: null }
+                        }
+                    };
+
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
+                    buildFactoryMock.get.withArgs(3).resolves(buildC);
+
+                    return newServer.inject(options).then(() => {
+                        assert.calledWith(buildFactoryMock.create, jobBconfig);
+                        assert.notCalled(eventFactoryMock.create);
+                        assert.calledOnce(buildC.update);
+                        assert.notCalled(updatedBuildC.start);
                     });
                 });
 
@@ -3182,7 +3257,7 @@ describe('build plugin test', () => {
                     // If user restarts `a`, it should get `d`'s parent event status and trigger `c`
                     const buildC = {
                         jobId: 4,
-                        status: 'SUCCESS',
+                        status: 'CREATED',
                         parentBuilds: {
                             123: {
                                 eventId: '8888',
