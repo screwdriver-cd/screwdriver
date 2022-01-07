@@ -149,7 +149,7 @@ module.exports = () => ({
 
                 const [files, prInfo] = await Promise.all([
                     scm.getChangedFiles({
-                        payload: null,
+                        webhookConfig: null,
                         type: 'pr',
                         ...scmConfig
                     }),

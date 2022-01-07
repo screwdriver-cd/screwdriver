@@ -11,6 +11,7 @@ const createRoute = require('./create');
 const stepGetRoute = require('./steps/get');
 const listStepsRoute = require('./steps/list');
 const artifactGetRoute = require('./artifacts/get');
+const artifactUnzipRoute = require('./artifacts/unzip');
 const stepUpdateRoute = require('./steps/update');
 const stepLogsRoute = require('./steps/logs');
 const listSecretsRoute = require('./listSecrets');
@@ -528,11 +529,13 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
             return null;
         }
 
-        // If all join builds finished successfully, start new build
-        newBuild.status = 'QUEUED';
-        const queuedBuild = await newBuild.update();
+        // If all join builds finished successfully and it's clear that a new build has not been started before, start new build
+        if ([ 'CREATED', null, undefined ].includes(newBuild.status)) {
+            newBuild.status = 'QUEUED';
+            const queuedBuild = await newBuild.update();
 
-        return queuedBuild.start();
+            return queuedBuild.start();
+        }
     }
 
     return null;
@@ -1110,7 +1113,8 @@ const buildsPlugin = {
             listSecretsRoute(),
             tokenRoute(),
             metricsRoute(),
-            artifactGetRoute(options)
+            artifactGetRoute(options),
+            artifactUnzipRoute(),
         ]);
     }
 };
