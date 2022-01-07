@@ -15,6 +15,7 @@ const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
     mock.toJsonWithSteps = sinon.stub().resolves(build);
+    mock.toJson = sinon.stub().resolves(build);
 
     return mock;
 };
@@ -335,6 +336,20 @@ describe('job plugin test', () => {
                 });
                 assert.deepEqual(reply.result, testBuilds);
             }));
+
+        it('returns 200 for getting builds with query params', () => {
+            options.url = `/jobs/${id}/builds?fetchSteps=false&readOnly=true`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(job.getBuilds, {
+                    sort: 'descending',
+                    sortBy: 'createTime',
+                    readOnly: true
+                });
+                assert.deepEqual(reply.result, testBuilds);
+            });
+        });
 
         it('pass in the correct params to getBuilds', () => {
             options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending`;
