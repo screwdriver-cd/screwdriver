@@ -62,9 +62,11 @@ const webhooksPlugin = {
                     maxBytes: parseInt(pluginOptions.maxBytes, 10) || DEFAULT_MAX_BYTES
                 },
                 handler: async (request, h) => {
-                    const { pipelineFactory } = request.server.app;
+                    const { pipelineFactory, queueWebhook } = request.server.app;
                     const { scm } = pipelineFactory;
+                    const { executor, queueWebhookEnabled } = queueWebhook;
                     let message = 'Unable to process this kind of event';
+                    let hookId;
 
                     try {
                         const parsed = await scm.parseHook(request.headers, request.payload);
@@ -76,9 +78,25 @@ const webhooksPlugin = {
 
                         parsed.pluginOptions = pluginOptions;
 
-                        const { type, hookId } = parsed;
+                        const { type } = parsed;
+                        hookId = parsed.hookId;
 
                         request.log(['webhook', hookId], `Received event type ${type}`);
+
+                        if (queueWebhookEnabled) {
+                            parsed.token = request.server.plugins.auth.generateToken({
+                                scope: ['sdapi']
+                            });
+
+                            try {
+                                return await executor.enqueueWebhook(parsed);
+                            } catch (err) {
+                                // if enqueueWebhook is not implemented, an event starts without enqueuing
+                                if (err.message != 'Not implemented') {
+                                    throw err;
+                                }
+                            }
+                        }
 
                         return await startHookEvent(request, h, parsed);
 

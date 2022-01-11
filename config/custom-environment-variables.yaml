@@ -271,6 +271,11 @@ executor:
           tls: QUEUE_REDIS_TLS_ENABLED
         database: QUEUE_REDIS_DATABASE
 
+
+queueWebhook:
+  # Enabled events from webhook queue or not
+  enabled: QUEUE_WEBHOOK_ENABLED
+
 scms:
   __name: SCM_SETTINGS
   __format: json

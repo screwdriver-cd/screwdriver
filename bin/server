@@ -50,6 +50,9 @@ const notificationConfig = config.get('notifications');
 // Multiple build cluster feature flag
 const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
 
+// Queue Webhook feature flag
+const queueWebhookEnabled = convertToBool(config.get('queueWebhook').enabled);
+
 // Default cluster environment variable
 const clusterEnvConfig = config.get('build').environment; // readonly
 const clusterEnv = { ...clusterEnvConfig };
@@ -254,6 +257,10 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         validator: {
             externalJoin: true,
             notificationsValidationErr
+        },
+        queueWebhook: {
+            executor,
+            queueWebhookEnabled
         }
     })
         .then(instance => logger.info('Server running at %s', instance.info.uri))
