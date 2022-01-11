@@ -31,6 +31,7 @@ describe('webhooks plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
     let eventFactoryMock;
+    let queueWebhookMock;
     let plugin;
     let server;
     const apiUri = 'http://foo.bar:12345';
@@ -72,6 +73,12 @@ describe('webhooks plugin test', () => {
             },
             create: sinon.stub()
         };
+        queueWebhookMock = {
+            executor: {
+                enqueueWebhook: sinon.stub()
+            },
+            queueWebhookEnabled: false
+        }
 
         plugin = rewire('../../plugins/webhooks');
 
@@ -85,8 +92,14 @@ describe('webhooks plugin test', () => {
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
-            eventFactory: eventFactoryMock
+            eventFactory: eventFactoryMock,
+            queueWebhook: queueWebhookMock
         };
+        server.plugins = {
+            auth: {
+                generateToken: () => 'iamtoken'
+            }
+        }
 
         await server.register({
             plugin,
@@ -132,7 +145,8 @@ describe('webhooks plugin test', () => {
             buildFactory: buildFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
-            eventFactory: eventFactoryMock
+            eventFactory: eventFactoryMock,
+            queueWebhook: queueWebhookMock
         };
 
         assert.isRejected(
@@ -1334,6 +1348,29 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+
+            it('calls enqueueWebhook with webhookConfig when queueWebhookEnabled is true', () => {
+                queueWebhookMock.queueWebhookEnabled = true;
+                queueWebhookMock.executor.enqueueWebhook.resolves(null);
+
+                return server.inject(options).then(() => {
+                    assert.calledWith(queueWebhookMock.executor.enqueueWebhook, {
+                        ...parsed,
+                        token: 'iamtoken'
+                    });
+                });
+            });
+
+            it('returns 201 when executor.enqueueWebhook is not implemented', () => {
+                const err = new Error('Not implemented');
+                queueWebhookMock.queueWebhookEnabled = true;
+                queueWebhookMock.executor.enqueueWebhook.rejects(err);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                });
+            });
+
             it('returns 500 when failed', () => {
                 eventFactoryMock.create.rejects(new Error('Failed to start'));
 
@@ -1747,7 +1784,8 @@ describe('webhooks plugin test', () => {
                         buildFactory: buildFactoryMock,
                         pipelineFactory: pipelineFactoryMock,
                         userFactory: userFactoryMock,
-                        eventFactory: eventFactoryMock
+                        eventFactory: eventFactoryMock,
+                        queueWebhook: queueWebhookMock
                     };
 
                     testServer.register([
@@ -2289,7 +2327,8 @@ describe('webhooks plugin test', () => {
                         buildFactory: buildFactoryMock,
                         pipelineFactory: pipelineFactoryMock,
                         userFactory: userFactoryMock,
-                        eventFactory: eventFactoryMock
+                        eventFactory: eventFactoryMock,
+                        queueWebhook: queueWebhookMock
                     };
 
                     testServer.register([
