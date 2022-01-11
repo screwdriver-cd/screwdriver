@@ -1361,6 +1361,16 @@ describe('webhooks plugin test', () => {
                 });
             });
 
+            it('returns 201 when executor.enqueueWebhook is not implemented', () => {
+                const err = new Error('Not implemented');
+                queueWebhookMock.queueWebhookEnabled = true;
+                queueWebhookMock.executor.enqueueWebhook.rejects(err);
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 201);
+                });
+            });
+
             it('returns 500 when failed', () => {
                 eventFactoryMock.create.rejects(new Error('Failed to start'));
 

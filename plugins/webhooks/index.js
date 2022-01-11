@@ -88,7 +88,14 @@ const webhooksPlugin = {
                                 scope: ['sdapi']
                             });
 
-                            return await executor.enqueueWebhook(parsed);
+                            try {
+                                return await executor.enqueueWebhook(parsed);
+                            } catch (err) {
+                                // if enqueueWebhook is not implemented, an event starts without enqueuing
+                                if (err.message != 'Not implemented') {
+                                    throw err;
+                                }
+                            }
                         }
 
                         return await startHookEvent(request, h, parsed);
