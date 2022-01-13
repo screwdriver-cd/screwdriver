@@ -410,8 +410,13 @@ function parseJobInfo({ joinObj = {}, current, nextJobName, nextPipelineId }) {
  * @return {Promise}                            All finished builds
  */
 async function getFinishedBuilds(event, buildFactory) {
+    logger.info(`Finished builds using event.getBuilds(): ${await event.getBuilds()}`);
     // FIXME: buildFactory.getLatestBuilds doesn't return build model
     const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+
+    logger.info(
+        `Finished builds using buildFactory.getLatestBuilds() with groupEventId ${event.groupEventId}: ${builds}`
+    );
 
     builds.forEach(b => {
         try {
@@ -525,7 +530,7 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
         }
 
         // If all join builds finished successfully and it's clear that a new build has not been started before, start new build
-        if ([ 'CREATED', null, undefined ].includes(newBuild.status)) {
+        if (['CREATED', null, undefined].includes(newBuild.status)) {
             newBuild.status = 'QUEUED';
             const queuedBuild = await newBuild.update();
 
@@ -1042,6 +1047,8 @@ const buildsPlugin = {
                 // typecast pid to number
                 let triggerCurrentPipelineAsExternal = false;
                 const isCurrentPipeline = +pid === current.pipeline.id;
+
+                logger.info(`Triggering next job nextJobName: ${Object.keys(pipelineJoinData[pid].jobs)}`);
 
                 if (isCurrentPipeline) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
