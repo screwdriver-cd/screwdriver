@@ -414,10 +414,6 @@ async function getFinishedBuilds(event, buildFactory) {
     // FIXME: buildFactory.getLatestBuilds doesn't return build model
     const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
 
-    logger.info(
-        `Finished builds using buildFactory.getLatestBuilds() with groupEventId ${event.groupEventId}: ${builds}`
-    );
-
     builds.forEach(b => {
         try {
             b.parentBuilds = JSON.parse(b.parentBuilds);
@@ -425,6 +421,10 @@ async function getFinishedBuilds(event, buildFactory) {
             logger.error(`Failed to parse parentBuilds for ${b.id}`);
         }
     });
+
+    logger.info(
+        `Finished builds using buildFactory.getLatestBuilds() with groupEventId ${event.groupEventId}: ${builds}`
+    );
 
     return builds;
 }
