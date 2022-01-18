@@ -50,6 +50,9 @@ const notificationConfig = config.get('notifications');
 // Multiple build cluster feature flag
 const multiBuildClusterEnabled = convertToBool(config.get('multiBuildCluster').enabled);
 
+// Unzip artifacts feature flag
+const unzipArtifactsEnabled = convertToBool(config.get('unzipArtifacts').enabled);
+
 // Queue Webhook feature flag
 const queueWebhookEnabled = convertToBool(config.get('queueWebhook').enabled);
 
@@ -261,7 +264,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         queueWebhook: {
             executor,
             queueWebhookEnabled
-        }
+        },
+        unzipArtifactsEnabled
     })
         .then(instance => logger.info('Server running at %s', instance.info.uri))
         .catch(err => {
