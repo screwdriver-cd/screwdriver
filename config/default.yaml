@@ -273,7 +273,7 @@ multiBuildCluster:
   enabled: false
 
 unzipArtifacts:
-  # Enabled unzip a zip artifact feature or not
+  # Enabled unzip artifacts feature or not
   enabled: false
 
 bookends:
