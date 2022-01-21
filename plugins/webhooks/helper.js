@@ -348,6 +348,37 @@ async function triggeredPipelines(
 }
 
 /**
+ * Start Events
+ * @async  startEvents
+ * @param  {Array}  eventConfigs Array of event config objects
+ * @param  {Object} eventFactory Factory to create events
+ * @return {Promise<Array>}  Array of created events
+ */
+async function startEvents(eventConfigs, eventFactory) {
+    const results = await Promise.allSettled(
+        eventConfigs.map(eventConfig => {
+            if (eventConfig && eventConfig.configPipelineSha) {
+                return eventFactory.create(eventConfig);
+            }
+
+            return Promise.resolve(null);
+        })
+    );
+
+    const events = [];
+
+    results.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+            if (result.value) events.push(result.value);
+        } else {
+            logger.error(`pipeline:${eventConfigs[i].pipelineId} error in starting event`, result.value);
+        }
+    });
+
+    return events;
+}
+
+/**
  * Create events for each pipeline
  * @async  createPREvents
  * @param  {Object}       options
@@ -388,7 +419,6 @@ async function createPREvents(options, request) {
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
-    const events = [];
     let { sha } = options;
 
     scmConfig.prNum = prNum;
@@ -509,13 +539,9 @@ async function createPREvents(options, request) {
         })
     );
 
-    eventConfigs.forEach(eventConfig => {
-        if (eventConfig && eventConfig.configPipelineSha) {
-            events.push(eventFactory.create(eventConfig));
-        }
-    });
+    const events = await startEvents(eventConfigs, eventFactory);
 
-    return Promise.all(events);
+    return events;
 }
 
 /**
@@ -851,7 +877,6 @@ async function createEvents(
     scmConfigFromHook
 ) {
     const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
-    const events = [];
     const meta = createMeta(parsed);
 
     const pipelineTuples = await Promise.all(
@@ -991,13 +1016,9 @@ async function createEvents(
         })
     );
 
-    eventConfigs.forEach(eventConfig => {
-        if (eventConfig && eventConfig.configPipelineSha) {
-            events.push(eventFactory.create(eventConfig));
-        }
-    });
+    const events = await startEvents(eventConfigs, eventFactory);
 
-    return Promise.all(events);
+    return events;
 }
 
 /**
