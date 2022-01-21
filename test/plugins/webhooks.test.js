@@ -25,7 +25,7 @@ const PARSED_CONFIG = require('./data/github.parsedyaml.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
-describe('webhooks plugin test', () => {
+describe.only('webhooks plugin test', () => {
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
