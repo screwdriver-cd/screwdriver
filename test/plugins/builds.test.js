@@ -1648,26 +1648,11 @@ describe('build plugin test', () => {
                     state: 'ENABLED'
                 };
                 const jobC = { ...jobB, id: 3 };
-                let buildMocks;
                 let jobBconfig;
                 let jobCconfig;
                 let parentEventMock;
 
                 beforeEach(() => {
-                    buildMocks = [
-                        {
-                            jobId: 1,
-                            status: 'SUCCESS',
-                            id: 12345,
-                            eventId: '8888'
-                        },
-                        {
-                            jobId: 4,
-                            status: 'SUCCESS',
-                            id: 123456,
-                            eventId: '8888'
-                        }
-                    ];
                     parentEventMock = {
                         id: 456,
                         pipelineId,
@@ -1781,7 +1766,21 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
 
-                    buildFactoryMock.getLatestBuilds.resolves(buildMocks);
+                    const buildMocks = [
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS',
+                            id: 12345,
+                            eventId: '8888'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS',
+                            id: 123456,
+                            eventId: '8888'
+                        }
+                    ];
+
                     eventMock.getBuilds.resolves(buildMocks);
 
                     const parentBuildsB = {
@@ -1793,9 +1792,7 @@ describe('build plugin test', () => {
 
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
                     // jobC is created without starting, so status is not QUEUED
-                    buildFactoryMock.create
-                        .onCall(1)
-                        .returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
+                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -1823,7 +1820,21 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
 
-                    buildFactoryMock.getLatestBuilds.resolves(buildMocks);
+                    const buildMocks = [
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS',
+                            id: 12345,
+                            eventId: '8888'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'SUCCESS',
+                            id: 123456,
+                            eventId: '8888'
+                        }
+                    ];
+
                     eventMock.getBuilds.resolves(buildMocks);
 
                     const parentBuildsB = {
@@ -1842,9 +1853,7 @@ describe('build plugin test', () => {
 
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
                     // jobC is created without starting, so status is not QUEUED
-                    buildFactoryMock.create
-                        .onCall(1)
-                        .returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
+                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;
@@ -1905,7 +1914,7 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(buildC);
 
-                    buildMocks = [
+                    const buildMocks = [
                         {
                             jobId: 1,
                             status: 'SUCCESS',
@@ -1921,7 +1930,7 @@ describe('build plugin test', () => {
                         buildC
                     ];
 
-                    buildFactoryMock.getLatestBuilds.resolves(buildMocks);
+                    eventMock.getBuilds.resolves(buildMocks);
                     buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
                     buildFactoryMock.get.withArgs(123455).resolves(buildC);
 
@@ -1949,7 +1958,7 @@ describe('build plugin test', () => {
                         { src: 'b', dest: 'c', join: true }
                     ];
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         buildMock,
                         {
                             id: 222,
@@ -2428,7 +2437,7 @@ describe('build plugin test', () => {
                     });
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             id: 12345,
@@ -2496,7 +2505,7 @@ describe('build plugin test', () => {
                     });
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             id: 12345,
@@ -2624,7 +2633,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    externalEventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             status: 'SUCCESS'
@@ -2659,7 +2668,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledOnce(buildFactoryMock.getLatestBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledTwice(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });
@@ -2760,7 +2769,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 3,
                             status: 'SUCCESS'
@@ -2774,7 +2783,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledOnce(buildFactoryMock.getLatestBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, jobCConfig);
                         assert.calledOnce(buildC.update);
@@ -2886,7 +2895,7 @@ describe('build plugin test', () => {
                         ]
                     };
                     buildMock.parentBuilds = {
-                        2: { eventId: '8887', jobs: { a: null } }
+                        2: { eventId: '8887', jobs: { a: 12345 } }
                     };
                     const buildC = {
                         jobId: 3,
@@ -2947,7 +2956,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             status: 'SUCCESS'
@@ -2963,7 +2972,8 @@ describe('build plugin test', () => {
                         {
                             jobId: 6,
                             status: 'ABORTED'
-                        }
+                        },
+                        buildC
                     ]);
                     jobBconfig.parentBuilds = {
                         123: {
@@ -2985,7 +2995,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.notCalled(eventFactoryMock.create);
-                        assert.calledOnce(buildFactoryMock.getLatestBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.notCalled(buildC.update);
                         assert.notCalled(updatedBuildC.start);
@@ -3023,7 +3033,7 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             id: 12345,
@@ -3090,7 +3100,7 @@ describe('build plugin test', () => {
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             id: 12345,
@@ -3360,7 +3370,7 @@ describe('build plugin test', () => {
                         { src: 'd', dest: 'c', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             id: 5,
                             jobId: 1,
@@ -3517,23 +3527,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    buildFactoryMock.getLatestBuilds.resolves([
-                        {
-                            id: 888,
-                            jobId: 1,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            id: 999,
-                            parentBuilds: {
-                                123: {
-                                    eventId: '8888',
-                                    jobs: { a: 12345, c: 45678 }
-                                }
-                            },
-                            jobId: 3,
-                            status: 'FAILED'
-                        },
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 4,
                             status: 'SUCCESS'
@@ -3567,7 +3561,7 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create, eventConfig);
-                        assert.calledOnce(buildFactoryMock.getLatestBuilds);
+                        assert.calledOnce(externalEventMock.getBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
@@ -3639,7 +3633,7 @@ describe('build plugin test', () => {
                         { src: 'c', dest: 'd', join: true }
                     ];
                     parentEventMock.workflowGraph.edges = eventMock.workflowGraph.edges;
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             id: 5,
                             jobId: 1,
@@ -3706,7 +3700,7 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
                     // job B is not done
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             eventId: '8888',
@@ -3753,7 +3747,7 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
 
                     // job B failed
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             eventId: '8888',
@@ -3823,7 +3817,7 @@ describe('build plugin test', () => {
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     buildE.update = sinon.stub().resolves(updatedBuildE);
 
-                    buildFactoryMock.getLatestBuilds.resolves([
+                    eventMock.getBuilds.resolves([
                         {
                             jobId: 1,
                             id: 12345,
