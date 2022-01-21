@@ -5443,7 +5443,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe.only('POST /builds/{id}/artifacts/unzip', () => {
+    describe('POST /builds/{id}/artifacts/unzip', () => {
         const id = 12345;
         const buildMock = {
             id,
