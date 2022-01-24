@@ -113,7 +113,7 @@
     "screwdriver-executor-queue": "^3.1.2",
     "screwdriver-executor-router": "^2.3.0",
     "screwdriver-logger": "^1.1.0",
-    "screwdriver-models": "^28.11.0",
+    "screwdriver-models": "^28.11.4",
     "screwdriver-notifications-email": "^2.2.0",
     "screwdriver-notifications-slack": "^3.2.1",
     "screwdriver-request": "^1.0.3",
