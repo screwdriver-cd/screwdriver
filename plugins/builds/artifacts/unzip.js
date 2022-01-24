@@ -18,6 +18,13 @@ module.exports = config => ({
         },
 
         handler: async (req, h) => {
+            if (!req.server.app.feature.unzipArtifacts) {
+                const data = {
+                    statusCode: 200,
+                    message: "This function is not enabled and will do nothing."
+                }
+                return h.response(data).code(200);
+            }
             const buildId = req.params.id;
             const { username, scope } = req.auth.credentials;
             const isBuild = scope.includes('build');
