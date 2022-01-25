@@ -382,7 +382,7 @@ async function startEvents(eventConfigs, eventFactory) {
 
     if (errorCount && errorCount === eventsCount) {
         // preserve current behavior of returning 500 on error
-        throw new Error('Failed to start eny events');
+        throw new Error('Failed to start any events');
     }
 
     return events;
