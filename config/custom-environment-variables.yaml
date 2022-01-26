@@ -385,6 +385,10 @@ multiBuildCluster:
   # Enabled multi build cluster feature or not
   enabled: MULTI_BUILD_CLUSTER_ENABLED
 
+unzipArtifacts:
+  # Enabled unzip artifacts feature or not
+  enabled: UNZIP_ARTIFACTS_ENABLED
+
 ecosystem:
   # URL for the User Interface
   ui: ECOSYSTEM_UI

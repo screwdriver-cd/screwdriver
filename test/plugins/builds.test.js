@@ -105,6 +105,7 @@ class LockMockObj {
 
 const lockMock = new LockMockObj();
 
+/* eslint-disable max-lines-per-function */
 describe('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
@@ -205,7 +206,10 @@ describe('build plugin test', () => {
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock,
-            bannerFactory: bannerFactoryMock
+            bannerFactory: bannerFactoryMock,
+            feature: {
+                unzipArtifacts: true
+            }
         };
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -326,6 +330,7 @@ describe('build plugin test', () => {
     describe('GET /builds/statuses?jobIds=&jobIds=&numBuilds=&offset=', () => {
         it('returns 200 when build statuses exist', () => {
             buildFactoryMock.getBuildStatuses.resolves(testBuildsStatuses);
+            server.unzipArtifactsEnabled = false;
 
             return server.inject('/builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0').then(reply => {
                 assert.calledWith(buildFactoryMock.getBuildStatuses, { jobIds: [1, 2], numBuilds: 3, offset: 0 });
@@ -5453,6 +5458,14 @@ describe('build plugin test', () => {
                 }
             };
             buildFactoryMock.get.resolves(buildMock);
+        });
+
+        it('returns 200 when the feature is not enabled', () => {
+            server.app.feature.unzipArtifacts = false;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+            });
         });
 
         it('returns 202 for an unzip request', () => {

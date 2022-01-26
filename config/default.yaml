@@ -272,6 +272,10 @@ multiBuildCluster:
   # Enabled multi build cluster feature or not
   enabled: false
 
+unzipArtifacts:
+  # Enabled unzip artifacts feature or not
+  enabled: false
+
 bookends:
   # Plugins for build setup
   setup:
