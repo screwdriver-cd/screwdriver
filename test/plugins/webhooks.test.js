@@ -200,7 +200,6 @@ describe('webhooks plugin test', () => {
             queueWebhookMock.executor.enqueueWebhook.resolves(null);
 
             return server.inject(options).then(() => {
-                assert.calledOnce(pipelineFactoryMock.scm.parseHook);
                 assert.notCalled(startHookEventMock);
                 assert.calledOnce(queueWebhookMock.executor.enqueueWebhook);
                 assert.calledWith(queueWebhookMock.executor.enqueueWebhook, {
@@ -220,7 +219,6 @@ describe('webhooks plugin test', () => {
             queueWebhookMock.executor.enqueueWebhook.rejects(err);
 
             return server.inject(options).then(() => {
-                assert.calledOnce(pipelineFactoryMock.scm.parseHook);
                 assert.calledOnce(startHookEventMock);
                 assert.calledWith(startHookEventMock, sinon.match.any, sinon.match.any, parsed);
                 assert.calledOnce(queueWebhookMock.executor.enqueueWebhook);
@@ -235,7 +233,6 @@ describe('webhooks plugin test', () => {
             pipelineFactoryMock.scm.parseHook.rejects(new Error('Invalid x-hub-signature'));
 
             return server.inject(options).then(reply => {
-                assert.calledOnce(pipelineFactoryMock.scm.parseHook);
                 assert.equal(reply.statusCode, 500);
             });
         });
