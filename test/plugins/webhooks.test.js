@@ -6,7 +6,6 @@ const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
-const hoek = require('@hapi/hoek');
 
 chai.use(require('chai-as-promised'));
 
@@ -36,7 +35,7 @@ describe('webhooks plugin test', () => {
         buildFactoryMock = sinon.stub();
         pipelineFactoryMock = {
             scm: {
-                parseHook: sinon.stub(),
+                parseHook: sinon.stub()
             }
         };
         userFactoryMock = sinon.stub();
@@ -46,7 +45,7 @@ describe('webhooks plugin test', () => {
                 enqueueWebhook: sinon.stub()
             },
             queueWebhookEnabled: false
-        }
+        };
 
         startHookEventMock = sinon.stub();
 
@@ -71,7 +70,7 @@ describe('webhooks plugin test', () => {
             auth: {
                 generateToken: () => 'iamtoken'
             }
-        }
+        };
 
         await server.register({
             plugin,
@@ -170,10 +169,10 @@ describe('webhooks plugin test', () => {
         it('returns 204 for unsupported event type', () => {
             reqHeaders['x-github-event'] = 'notSupported';
             reqHeaders['x-github-delivery'] = 'bar';
-            options['headers'] = {
+            options.headers = {
                 'x-github-event': 'notSupported',
                 'x-github-delivery': 'bar'
-            }
+            };
 
             pipelineFactoryMock.scm.parseHook.withArgs(reqHeaders, {}).resolves(null);
 
@@ -216,6 +215,7 @@ describe('webhooks plugin test', () => {
             startHookEventMock.resolves(null);
 
             const err = new Error('Not implemented');
+
             queueWebhookMock.queueWebhookEnabled = true;
             queueWebhookMock.executor.enqueueWebhook.rejects(err);
 
@@ -227,10 +227,10 @@ describe('webhooks plugin test', () => {
                 assert.calledWith(queueWebhookMock.executor.enqueueWebhook, {
                     ...parsed,
                     token: 'iamtoken'
-                })
+                });
             });
         });
-        
+
         it('returns 500 when something went wrong with parseHook', () => {
             pipelineFactoryMock.scm.parseHook.rejects(new Error('Invalid x-hub-signature'));
 

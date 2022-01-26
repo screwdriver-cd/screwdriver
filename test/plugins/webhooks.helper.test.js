@@ -2,7 +2,6 @@
 
 const chai = require('chai');
 const sinon = require('sinon');
-const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
@@ -273,24 +272,6 @@ describe('startHookEvent test', () => {
     const prRef = 'pull/1/merge';
     const scmDisplayName = 'github';
     const changedFiles = ['README.md'];
-    const decoratePipelineMock = pipeline => {
-        const decorated = hoek.clone(pipeline);
-
-        decorated.sync = sinon.stub();
-        decorated.getConfiguration = sinon.stub();
-        decorated.getJobs = sinon.stub().resolves([mainJobMock, jobMock]);
-        decorated.update = sinon.stub();
-        decorated.branch = pipeline.branch;
-
-        return decorated;
-    };
-    const getPipelineMocks = p => {
-        if (Array.isArray(p)) {
-            return p.map(decoratePipelineMock);
-        }
-
-        return decoratePipelineMock(p);
-    };
     let jobFactoryMock;
     let buildFactoryMock;
     let pipelineFactoryMock;
@@ -310,6 +291,24 @@ describe('startHookEvent test', () => {
     let name;
     let scmConfig;
     let workflowGraph;
+    const decoratePipelineMock = pipeline => {
+        const decorated = hoek.clone(pipeline);
+
+        decorated.sync = sinon.stub();
+        decorated.getConfiguration = sinon.stub();
+        decorated.getJobs = sinon.stub().resolves([mainJobMock, jobMock]);
+        decorated.update = sinon.stub();
+        decorated.branch = pipeline.branch;
+
+        return decorated;
+    };
+    const getPipelineMocks = p => {
+        if (Array.isArray(p)) {
+            return p.map(decoratePipelineMock);
+        }
+
+        return decoratePipelineMock(p);
+    };
 
     before(() => {
         mockery.enable({
@@ -357,7 +356,7 @@ describe('startHookEvent test', () => {
                     buildFactory: buildFactoryMock,
                     pipelineFactory: pipelineFactoryMock,
                     userFactory: userFactoryMock,
-                    eventFactory: eventFactoryMock        
+                    eventFactory: eventFactoryMock
                 }
             }
         };
@@ -365,12 +364,12 @@ describe('startHookEvent test', () => {
         responseHandler = {
             response: () => {
                 return {
-                    code: (status) => {
-                        return { statusCode: status }
+                    code: status => {
+                        return { statusCode: status };
                     }
-                }
+                };
             }
-        }
+        };
         scmConfig = {
             prNum: 1,
             token,
@@ -389,9 +388,9 @@ describe('startHookEvent test', () => {
             prSource: 'branch',
             prRef,
             pluginOptions: {
-                username: "sd-buildbot",
-                ignoreCommitsBy: ["batman", "superman"],
-                restrictPR: "fork",
+                username: 'sd-buildbot',
+                ignoreCommitsBy: ['batman', 'superman'],
+                restrictPR: 'fork',
                 chainPR: false
             }
         };
@@ -460,9 +459,7 @@ describe('startHookEvent test', () => {
         pipelineFactoryMock.list.resolves([pipelineMock]);
         pipelineMock.sync.resolves(pipelineMock);
         pipelineMock.getConfiguration.resolves(PARSED_CONFIG);
-        pipelineFactoryMock.scm.parseUrl
-            .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
-            .resolves(scmUri);
+        pipelineFactoryMock.scm.parseUrl.withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext }).resolves(scmUri);
         pipelineFactoryMock.scm.getChangedFiles.resolves(['README.md']);
         pipelineFactoryMock.scm.getCommitSha.resolves(latestSha);
         pipelineFactoryMock.scm.getCommitRefSha.resolves(sha);
@@ -740,7 +737,7 @@ describe('startHookEvent test', () => {
             mainJobMock.requires = '~release';
             reqHeaders['x-github-event'] = 'release';
             reqHeaders['x-github-delivery'] = parsed.hookId;
-            reqHeaders['content-length'] = '6632'
+            reqHeaders['content-length'] = '6632';
 
             pipelineMock.workflowGraph = workflowGraph;
             pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
@@ -1465,12 +1462,9 @@ describe('startHookEvent test', () => {
         it('throws error when failed', () => {
             eventFactoryMock.create.rejects(new Error('Failed to start'));
 
-            return startHookEvent(request, responseHandler, parsed).then(() => 
-                assert.fail()
-            )
-            .catch(err => 
-                assert.equal(err.message, 'Failed to start')
-            );
+            return startHookEvent(request, responseHandler, parsed)
+                .then(() => assert.fail())
+                .catch(err => assert.equal(err.message, 'Failed to start'));
         });
     });
 
@@ -1506,12 +1500,11 @@ describe('startHookEvent test', () => {
         it('throws error when pipeline model returns error', () => {
             pipelineFactoryMock.list.rejects(new Error('model error'));
 
-            return startHookEvent(request, responseHandler, parsed).then(() => {
-                assert.fail();
-            })
-            .catch(err => 
-                assert.equal(err.message, 'model error')
-            );
+            return startHookEvent(request, responseHandler, parsed)
+                .then(() => {
+                    assert.fail();
+                })
+                .catch(err => assert.equal(err.message, 'model error'));
         });
 
         describe('open pull request', () => {
@@ -1834,19 +1827,15 @@ describe('startHookEvent test', () => {
             it('throws error when failed', () => {
                 eventFactoryMock.create.rejects(new Error('Failed to start'));
 
-                return startHookEvent(request, responseHandler, parsed).then(() => 
-                    assert.fail()
-                )
-                .catch(err => 
-                    assert.equal(err.message, 'Failed to start')
-                );
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => assert.equal(err.message, 'Failed to start'));
             });
 
             it('creates empty event if pr from fork by default', () => {
                 expected.prSource = 'fork';
                 parsed.prSource = 'fork';
-                expected.skipMessage =
-                    'Skipping build since pipeline is configured to restrict fork and PR is fork';
+                expected.skipMessage = 'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledWith(eventFactoryMock.create, expected);
@@ -1857,7 +1846,7 @@ describe('startHookEvent test', () => {
             it('use restrictPR setting in pluginOptions', () => {
                 parsed.pluginOptions = {
                     username: 'testuser'
-                }
+                };
 
                 parsed.prSource = 'fork';
 
@@ -1887,8 +1876,7 @@ describe('startHookEvent test', () => {
 
             it('creates empty event if restricting all', () => {
                 pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
-                expected.skipMessage =
-                    'Skipping build since pipeline is configured to restrict all and PR is branch';
+                expected.skipMessage = 'Skipping build since pipeline is configured to restrict all and PR is branch';
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledWith(eventFactoryMock.create, expected);
@@ -1900,8 +1888,7 @@ describe('startHookEvent test', () => {
                 expected.prSource = 'fork';
                 parsed.prSource = 'fork';
                 pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
-                expected.skipMessage =
-                    'Skipping build since pipeline is configured to restrict fork and PR is fork';
+                expected.skipMessage = 'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledWith(eventFactoryMock.create, expected);
@@ -2273,8 +2260,7 @@ describe('startHookEvent test', () => {
             it('creates empty event if pr from fork by default', () => {
                 expected.prSource = 'fork';
                 parsed.prSource = 'fork';
-                expected.skipMessage =
-                    'Skipping build since pipeline is configured to restrict fork and PR is fork';
+                expected.skipMessage = 'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledWith(eventFactoryMock.create, expected);
@@ -2285,8 +2271,7 @@ describe('startHookEvent test', () => {
             it('creates empty event if restricting all', () => {
                 expected.prSource = 'branch';
                 pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
-                expected.skipMessage =
-                    'Skipping build since pipeline is configured to restrict all and PR is branch';
+                expected.skipMessage = 'Skipping build since pipeline is configured to restrict all and PR is branch';
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledWith(eventFactoryMock.create, expected);
@@ -2298,8 +2283,7 @@ describe('startHookEvent test', () => {
                 expected.prSource = 'fork';
                 parsed.prSource = 'fork';
                 pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'fork';
-                expected.skipMessage =
-                    'Skipping build since pipeline is configured to restrict fork and PR is fork';
+                expected.skipMessage = 'Skipping build since pipeline is configured to restrict fork and PR is fork';
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.calledWith(eventFactoryMock.create, expected);
@@ -2376,11 +2360,10 @@ describe('startHookEvent test', () => {
                 });
             });
 
-
             it('use restrictPR setting in pluginOptions', () => {
                 parsed.pluginOptions = {
                     username: 'testuser'
-                }
+                };
 
                 parsed.prSource = 'fork';
 
@@ -2411,12 +2394,9 @@ describe('startHookEvent test', () => {
             it('throws error when failed', () => {
                 eventFactoryMock.create.rejects(new Error('Failed to create event'));
 
-                return startHookEvent(request, responseHandler, parsed).then(() => 
-                    assert.fail()
-                )
-                .catch(err => 
-                    assert.equal(err.message, 'Failed to create event')
-                );
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => assert.equal(err.message, 'Failed to create event'));
             });
         });
 
@@ -2485,14 +2465,13 @@ describe('startHookEvent test', () => {
                     .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
                     .resolves([]);
 
-                return startHookEvent(request, responseHandler, parsed).then(() =>
-                    assert.fail()
-                )
-                .catch(err => {
-                    assert.equal(err.message, 'Failed to update');
-                    assert.calledOnce(jobMock.update);
-                    assert.strictEqual(jobMock.state, 'ENABLED');
-                });
+                return startHookEvent(request, responseHandler, parsed)
+                    .then(() => assert.fail())
+                    .catch(err => {
+                        assert.equal(err.message, 'Failed to update');
+                        assert.calledOnce(jobMock.update);
+                        assert.strictEqual(jobMock.state, 'ENABLED');
+                    });
             });
         });
     });

@@ -6,13 +6,10 @@ const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
-const hoek = require('@hapi/hoek');
 
 chai.use(require('chai-as-promised'));
 
 sinon.assert.expose(assert, { prefix: '' });
-
-const testWebhookConfigPush = require('./data/webhookConfigPush.json');
 
 describe('processHooks plugin test', () => {
     let jobFactoryMock;
@@ -37,7 +34,7 @@ describe('processHooks plugin test', () => {
         buildFactoryMock = sinon.stub();
         pipelineFactoryMock = {
             scm: {
-                parseHook: sinon.stub(),
+                parseHook: sinon.stub()
             }
         };
         userFactoryMock = sinon.stub();
