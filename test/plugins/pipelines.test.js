@@ -1715,7 +1715,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 201 and correct pipeline dat with deployKey when annotations set', () => {
+        it('returns 201 and correct pipeline data with deployKey when annotations set', () => {
             const pipelineMockLocal = {
                 ...pipelineMock, annotations: {
                     "screwdriver.cd/useDeployKey": true
