@@ -152,7 +152,7 @@ module.exports = () => ({
 
                 if (!deploySecret) {
                     const privateDeployKey = await pipelineFactory.scm.addDeployKey({
-                        scmContext : oldPipeline.scmContext,
+                        scmContext: oldPipeline.scmContext,
                         checkoutUrl: formattedCheckoutUrl,
                         token
                     });
