@@ -5,6 +5,7 @@ const schema = require('screwdriver-data-schema');
 const urlLib = require('url');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
 const { getUserPermissions } = require('../helper');
+const ANNOTATION_USE_DEPLOY_KEY = 'screwdriver.cd/useDeployKey';
 
 module.exports = () => ({
     method: 'POST',
@@ -89,7 +90,10 @@ module.exports = () => ({
 
                 await defaultCollection.update();
             }
-            if (autoKeysGeneration) {
+            // check if pipeline has deploy key annotation then create secrets
+            const deployKeyAnnotation = pipeline.annotations && pipeline.annotations[ANNOTATION_USE_DEPLOY_KEY]
+      
+            if (autoKeysGeneration || deployKeyAnnotation) {
                 const privateDeployKey = await pipelineFactory.scm.addDeployKey({
                     scmContext,
                     checkoutUrl,

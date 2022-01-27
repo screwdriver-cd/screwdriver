@@ -6,6 +6,7 @@ const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
 const { getUserPermissions } = require('../helper');
+const ANNOTATION_USE_DEPLOY_KEY = 'screwdriver.cd/useDeployKey';
 
 /**
  * Get user permissions on old pipeline
@@ -45,10 +46,11 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { checkoutUrl, rootDir, settings } = request.payload;
             const { id } = request.params;
-            const { pipelineFactory, userFactory } = request.server.app;
+            const { pipelineFactory, userFactory, secretFactory } = request.server.app;
             const { scmContext, username } = request.auth.credentials;
             const scmContexts = pipelineFactory.scm.getScmContexts();
             const { isValidToken } = request.server.plugins.pipelines;
+            const deployKeySecret = 'SD_SCM_DEPLOY_KEY';
 
             if (!isValidToken(id, request.auth.credentials)) {
                 return boom.unauthorized('Token does not have permission to this pipeline');
@@ -83,12 +85,15 @@ module.exports = () => ({
                 throw boom.forbidden(`User ${user.getFullDisplayName()} does not have admin permission for this repo`);
             }
 
+            let token;
+            let formattedCheckoutUrl;
+
             if (checkoutUrl || rootDir) {
-                const formattedCheckoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);
+                formattedCheckoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);
                 const sanitizedRootDir = sanitizeRootDir(request.payload.rootDir);
 
                 // get the user token
-                const token = await user.unsealToken();
+                token = await user.unsealToken();
                 // get the scm URI
                 const scmUri = await pipelineFactory.scm.parseUrl({
                     scmContext,
@@ -135,6 +140,32 @@ module.exports = () => ({
 
             // update pipeline
             const updatedPipeline = await oldPipeline.update();
+
+            // check if pipeline has deploy key annotation then create secrets
+            const deployKeyAnnotation = oldPipeline.annotations && oldPipeline.annotations[ANNOTATION_USE_DEPLOY_KEY]
+
+            if (deployKeyAnnotation) {
+                const deploySecret = await secretFactory.get({
+                    pipelineId: oldPipeline.id,
+                    name: deployKeySecret,
+                })
+
+                if (!deploySecret) {
+                    const privateDeployKey = await pipelineFactory.scm.addDeployKey({
+                        scmContext: oldPipeline.scmContext,
+                        checkoutUrl: formattedCheckoutUrl,
+                        token
+                    });
+                    const privateDeployKeyB64 = Buffer.from(privateDeployKey).toString('base64');
+
+                    await secretFactory.create({
+                        pipelineId: oldPipeline.id,
+                        name: deployKeySecret,
+                        value: privateDeployKeyB64,
+                        allowInPR: true
+                    });
+                }
+            }
 
             await updatedPipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
