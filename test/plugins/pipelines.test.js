@@ -1715,6 +1715,64 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 201 and correct pipeline data with deployKey when annotations set', () => {
+            const pipelineMockLocal = {
+                ...pipelineMock, annotations: {
+                    "screwdriver.cd/useDeployKey": true
+                }
+            }
+
+            pipelineFactoryMock.create.resolves(pipelineMockLocal);
+
+            let expectedLocation;
+            const testDefaultCollection = Object.assign(testCollection, { type: 'default' });
+
+            collectionFactoryMock.list
+                .withArgs({
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
+                })
+                .resolves([getCollectionMock(testDefaultCollection)]);
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/${testId}`
+                };
+                assert.deepEqual(reply.result, testPipeline);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(pipelineFactoryMock.create, {
+                    admins: {
+                        [username]: true
+                    },
+                    scmUri,
+                    scmContext
+                });
+                assert.calledWith(collectionFactoryMock.list, {
+                    params: {
+                        userId,
+                        type: 'default'
+                    }
+                });
+                assert.calledWith(pipelineFactoryMock.scm.addDeployKey,{
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token
+                })
+                assert.calledWith(secretFactoryMock.create, {
+                    pipelineId: 123,
+                    name: 'SD_SCM_DEPLOY_KEY',
+                    value: privateKeyB64,
+                    allowInPR: true
+                });
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
         it('formats the checkout url correctly', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
@@ -1883,6 +1941,8 @@ describe('pipeline plugin test', () => {
             name: 'screwdriver-cd/screwdriver',
             url: 'https://github.com/screwdriver-cd/data-model/tree/master'
         };
+        const privateKey = 'testkey';
+        const privateKeyB64 = Buffer.from(privateKey).toString('base64');
         let pipelineMock;
         let updatedPipelineMock;
         let userMock;
@@ -1914,6 +1974,8 @@ describe('pipeline plugin test', () => {
             updatedPipelineMock = hoek.clone(pipelineMock);
             updatedPipelineMock.addWebhooks.resolves(null);
 
+            secretFactoryMock.get.resolves(null);
+
             pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMock);
             pipelineFactoryMock.get.withArgs({ scmUri }).resolves(null);
             pipelineMock.update.resolves(updatedPipelineMock);
@@ -1922,6 +1984,7 @@ describe('pipeline plugin test', () => {
             pipelineFactoryMock.scm.parseUrl.resolves(scmUri);
             pipelineFactoryMock.scm.decorateUrl.resolves(scmRepo);
             pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com', 'gitlab:mygitlab']);
+            pipelineFactoryMock.scm.addDeployKey.resolves(privateKey);
         });
 
         it('returns 200 and correct pipeline data', () =>
@@ -1963,6 +2026,63 @@ describe('pipeline plugin test', () => {
                 });
                 assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and creates deployKey if it doesn\'t exist', () => {
+            const pipelineMockLocal = {
+                ...pipelineMock, annotations: {
+                    "screwdriver.cd/useDeployKey": true
+                }
+            }
+            pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMockLocal);
+            secretFactoryMock.get.resolves(null)
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledOnce(pipelineMockLocal.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.calledWith(pipelineFactoryMock.scm.addDeployKey,{
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token
+                })
+                assert.calledWith(secretFactoryMock.create, {
+                    pipelineId: 123,
+                    name: 'SD_SCM_DEPLOY_KEY',
+                    value: privateKeyB64,
+                    allowInPR: true
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and does not create deployKey if it already exists', () => {
+            const pipelineMockLocal = {
+                ...pipelineMock, annotations: {
+                    "screwdriver.cd/useDeployKey": true
+                }
+            }
+            pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMockLocal);
+            secretFactoryMock.get.resolves({})
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: ''
+                });
+                assert.calledOnce(pipelineMockLocal.update);
+                assert.calledOnce(updatedPipelineMock.addWebhooks);
+                assert.notCalled(pipelineFactoryMock.scm.addDeployKey);
+                assert.notCalled(secretFactoryMock.create);
                 assert.equal(reply.statusCode, 200);
             });
         });
