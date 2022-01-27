@@ -1464,7 +1464,7 @@ describe('startHookEvent test', () => {
 
             return startHookEvent(request, responseHandler, parsed)
                 .then(() => assert.fail())
-                .catch(err => assert.equal(err.message, 'Failed to start'));
+                .catch(err => assert.equal(err.message, 'Failed to start any events'));
         });
     });
 
@@ -1829,7 +1829,7 @@ describe('startHookEvent test', () => {
 
                 return startHookEvent(request, responseHandler, parsed)
                     .then(() => assert.fail())
-                    .catch(err => assert.equal(err.message, 'Failed to start'));
+                    .catch(err => assert.equal(err.message, 'Failed to start any events'));
             });
 
             it('creates empty event if pr from fork by default', () => {
@@ -2396,7 +2396,7 @@ describe('startHookEvent test', () => {
 
                 return startHookEvent(request, responseHandler, parsed)
                     .then(() => assert.fail())
-                    .catch(err => assert.equal(err.message, 'Failed to create event'));
+                    .catch(err => assert.equal(err.message, 'Failed to start any events'));
             });
         });
 
