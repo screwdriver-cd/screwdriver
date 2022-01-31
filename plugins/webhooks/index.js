@@ -65,7 +65,7 @@ const webhooksPlugin = {
                     const { pipelineFactory, queueWebhook } = request.server.app;
                     const { scm } = pipelineFactory;
                     const { executor, queueWebhookEnabled } = queueWebhook;
-                    let message = 'Unable to process this kind of event';
+                    const message = 'Unable to process this kind of event';
                     let hookId;
 
                     try {
@@ -79,6 +79,7 @@ const webhooksPlugin = {
                         parsed.pluginOptions = pluginOptions;
 
                         const { type } = parsed;
+
                         hookId = parsed.hookId;
 
                         request.log(['webhook', hookId], `Received event type ${type}`);
@@ -92,14 +93,13 @@ const webhooksPlugin = {
                                 return await executor.enqueueWebhook(parsed);
                             } catch (err) {
                                 // if enqueueWebhook is not implemented, an event starts without enqueuing
-                                if (err.message != 'Not implemented') {
+                                if (err.message !== 'Not implemented') {
                                     throw err;
                                 }
                             }
                         }
 
                         return await startHookEvent(request, h, parsed);
-
                     } catch (err) {
                         logger.error(`[${hookId}]: ${err}`);
 

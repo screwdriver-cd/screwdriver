@@ -1792,7 +1792,9 @@ describe('build plugin test', () => {
 
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
                     // jobC is created without starting, so status is not QUEUED
-                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
+                    buildFactoryMock.create
+                        .onCall(1)
+                        .returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
 
                     return server.inject(options).then(() => {
                         // create the builds
@@ -1853,7 +1855,9 @@ describe('build plugin test', () => {
 
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, parentBuilds: parentBuildsB });
                     // jobC is created without starting, so status is not QUEUED
-                    buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
+                    buildFactoryMock.create
+                        .onCall(1)
+                        .returns({ ...buildMock, status: 'CREATED', parentBuilds: parentBuildsC });
 
                     // for chainPR settings
                     pipelineMock.chainPR = true;

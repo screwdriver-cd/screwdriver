@@ -1717,10 +1717,11 @@ describe('pipeline plugin test', () => {
 
         it('returns 201 and correct pipeline data with deployKey when annotations set', () => {
             const pipelineMockLocal = {
-                ...pipelineMock, annotations: {
-                    "screwdriver.cd/useDeployKey": true
+                ...pipelineMock,
+                annotations: {
+                    'screwdriver.cd/useDeployKey': true
                 }
-            }
+            };
 
             pipelineFactoryMock.create.resolves(pipelineMockLocal);
 
@@ -1758,11 +1759,11 @@ describe('pipeline plugin test', () => {
                         type: 'default'
                     }
                 });
-                assert.calledWith(pipelineFactoryMock.scm.addDeployKey,{
+                assert.calledWith(pipelineFactoryMock.scm.addDeployKey, {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token
-                })
+                });
                 assert.calledWith(secretFactoryMock.create, {
                     pipelineId: 123,
                     name: 'SD_SCM_DEPLOY_KEY',
@@ -2030,14 +2031,16 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 and creates deployKey if it doesn\'t exist', () => {
-            const pipelineMockLocal = {
-                ...pipelineMock, annotations: {
-                    "screwdriver.cd/useDeployKey": true
+        it("returns 200 and creates deployKey if it doesn't exist", () => {
+            const updatedPipelineMockLocal = {
+                ...updatedPipelineMock,
+                annotations: {
+                    'screwdriver.cd/useDeployKey': true
                 }
-            }
-            pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMockLocal);
-            secretFactoryMock.get.resolves(null)
+            };
+
+            pipelineMock.update.resolves(updatedPipelineMockLocal);
+            secretFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
@@ -2046,13 +2049,13 @@ describe('pipeline plugin test', () => {
                     token,
                     rootDir: ''
                 });
-                assert.calledOnce(pipelineMockLocal.update);
+                assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(updatedPipelineMock.addWebhooks);
-                assert.calledWith(pipelineFactoryMock.scm.addDeployKey,{
+                assert.calledWith(pipelineFactoryMock.scm.addDeployKey, {
                     scmContext,
                     checkoutUrl: formattedCheckoutUrl,
                     token
-                })
+                });
                 assert.calledWith(secretFactoryMock.create, {
                     pipelineId: 123,
                     name: 'SD_SCM_DEPLOY_KEY',
@@ -2064,13 +2067,15 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 and does not create deployKey if it already exists', () => {
-            const pipelineMockLocal = {
-                ...pipelineMock, annotations: {
-                    "screwdriver.cd/useDeployKey": true
+            const updatedPipelineMockLocal = {
+                ...updatedPipelineMock,
+                annotations: {
+                    'screwdriver.cd/useDeployKey': true
                 }
-            }
-            pipelineFactoryMock.get.withArgs({ id }).resolves(pipelineMockLocal);
-            secretFactoryMock.get.resolves({})
+            };
+
+            pipelineMock.update.resolves(updatedPipelineMockLocal);
+            secretFactoryMock.get.resolves({});
 
             return server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
@@ -2079,7 +2084,7 @@ describe('pipeline plugin test', () => {
                     token,
                     rootDir: ''
                 });
-                assert.calledOnce(pipelineMockLocal.update);
+                assert.calledOnce(pipelineMock.update);
                 assert.calledOnce(updatedPipelineMock.addWebhooks);
                 assert.notCalled(pipelineFactoryMock.scm.addDeployKey);
                 assert.notCalled(secretFactoryMock.create);

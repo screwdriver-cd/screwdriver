@@ -1171,7 +1171,13 @@ async function startHookEvent(request, h, webhookConfig) {
             }
         }
 
-        const token = await obtainScmToken({ pluginOptions: webhookConfig.pluginOptions, userFactory, username, scmContext, scm });
+        const token = await obtainScmToken({
+            pluginOptions: webhookConfig.pluginOptions,
+            userFactory,
+            username,
+            scmContext,
+            scm
+        });
 
         if (action !== 'release' && action !== 'tag') {
             let scmUri;

@@ -13,7 +13,7 @@ const { startHookEvent } = require('../webhooks/helper');
  */
 const processHooksPlugin = {
     name: 'processHooks',
-    async register(server, options) {
+    async register(server) {
         server.route({
             method: 'POST',
             path: '/processHooks',

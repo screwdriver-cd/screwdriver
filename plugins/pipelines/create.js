@@ -90,9 +90,12 @@ module.exports = () => ({
 
                 await defaultCollection.update();
             }
+
+            const results = await pipeline.sync();
+
             // check if pipeline has deploy key annotation then create secrets
-            const deployKeyAnnotation = pipeline.annotations && pipeline.annotations[ANNOTATION_USE_DEPLOY_KEY]
-      
+            const deployKeyAnnotation = pipeline.annotations && pipeline.annotations[ANNOTATION_USE_DEPLOY_KEY];
+
             if (autoKeysGeneration || deployKeyAnnotation) {
                 const privateDeployKey = await pipelineFactory.scm.addDeployKey({
                     scmContext,
@@ -108,8 +111,6 @@ module.exports = () => ({
                     allowInPR: true
                 });
             }
-
-            const results = await pipeline.sync();
 
             await pipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
 
