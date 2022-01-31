@@ -28,7 +28,7 @@ When(/^the "zipped" job is started$/, { timeout: TIMEOUT }, function step() {
             token: this.jwt
         }
     })
-        .then((resp) => {
+        .then(resp => {
             Assert.equal(resp.statusCode, 201);
             this.eventId = resp.body.id;
         })
@@ -41,14 +41,14 @@ When(/^the "zipped" job is started$/, { timeout: TIMEOUT }, function step() {
                 }
             })
         )
-        .then((resp) => {
+        .then(resp => {
             Assert.equal(resp.statusCode, 200);
             this.buildId = resp.body[0].id;
         });
 });
 
 Then(/^the "zipped" build succeeds$/, { timeout: TIMEOUT }, function step() {
-    return this.waitForBuild(this.buildId).then((resp) => {
+    return this.waitForBuild(this.buildId).then(resp => {
         Assert.equal(resp.body.status, 'SUCCESS');
         Assert.equal(resp.statusCode, 200);
     });
@@ -77,7 +77,7 @@ Then(/^artifacts were found in the build$/, { timeout: TIMEOUT }, function step(
             token: this.jwt
         },
         retry: retryConfig
-    }).then((response) => {
+    }).then(response => {
         Assert.equal(response.statusCode, 200);
         Assert.equal(JSON.stringify(response.body), '{"name":"sample text 1"}');
     });
@@ -89,7 +89,7 @@ Then(/^artifacts were found in the build$/, { timeout: TIMEOUT }, function step(
             token: this.jwt
         },
         retry: retryConfig
-    }).then((response) => {
+    }).then(response => {
         Assert.equal(response.statusCode, 200);
         Assert.equal(JSON.stringify(response.body), '{"name":"sample text 2"}');
     });

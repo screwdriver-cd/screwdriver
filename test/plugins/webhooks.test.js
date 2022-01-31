@@ -78,7 +78,7 @@ describe('webhooks plugin test', () => {
                 enqueueWebhook: sinon.stub()
             },
             queueWebhookEnabled: false
-        }
+        };
 
         plugin = rewire('../../plugins/webhooks');
 
@@ -99,7 +99,7 @@ describe('webhooks plugin test', () => {
             auth: {
                 generateToken: () => 'iamtoken'
             }
-        }
+        };
 
         await server.register({
             plugin,
@@ -1348,7 +1348,6 @@ describe('webhooks plugin test', () => {
                 });
             });
 
-
             it('calls enqueueWebhook with webhookConfig when queueWebhookEnabled is true', () => {
                 queueWebhookMock.queueWebhookEnabled = true;
                 queueWebhookMock.executor.enqueueWebhook.resolves(null);
@@ -1363,6 +1362,7 @@ describe('webhooks plugin test', () => {
 
             it('returns 201 when executor.enqueueWebhook is not implemented', () => {
                 const err = new Error('Not implemented');
+
                 queueWebhookMock.queueWebhookEnabled = true;
                 queueWebhookMock.executor.enqueueWebhook.rejects(err);
 

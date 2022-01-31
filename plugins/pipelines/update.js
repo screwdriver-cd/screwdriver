@@ -141,35 +141,38 @@ module.exports = () => ({
             // update pipeline
             const updatedPipeline = await oldPipeline.update();
 
+            await updatedPipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
+
+            const result = await updatedPipeline.sync();
+
             // check if pipeline has deploy key annotation then create secrets
-            const deployKeyAnnotation = oldPipeline.annotations && oldPipeline.annotations[ANNOTATION_USE_DEPLOY_KEY]
+            // sync needs to happen before checking annotations
+            const deployKeyAnnotation =
+                updatedPipeline.annotations && updatedPipeline.annotations[ANNOTATION_USE_DEPLOY_KEY];
 
             if (deployKeyAnnotation) {
                 const deploySecret = await secretFactory.get({
-                    pipelineId: oldPipeline.id,
-                    name: deployKeySecret,
-                })
+                    pipelineId: updatedPipeline.id,
+                    name: deployKeySecret
+                });
+                // create only secret doesn't exist already
 
                 if (!deploySecret) {
                     const privateDeployKey = await pipelineFactory.scm.addDeployKey({
-                        scmContext: oldPipeline.scmContext,
+                        scmContext: updatedPipeline.scmContext,
                         checkoutUrl: formattedCheckoutUrl,
                         token
                     });
                     const privateDeployKeyB64 = Buffer.from(privateDeployKey).toString('base64');
 
                     await secretFactory.create({
-                        pipelineId: oldPipeline.id,
+                        pipelineId: updatedPipeline.id,
                         name: deployKeySecret,
                         value: privateDeployKeyB64,
                         allowInPR: true
                     });
                 }
             }
-
-            await updatedPipeline.addWebhooks(`${request.server.info.uri}/v4/webhooks`);
-
-            const result = await updatedPipeline.sync();
 
             return h.response(result.toJson()).code(200);
         },

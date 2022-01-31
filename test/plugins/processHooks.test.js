@@ -70,6 +70,7 @@ describe('processHooks plugin test', () => {
 
     beforeEach(async () => {
         const name = 'PR-1';
+
         mainJobMock = {
             id: 1,
             name: 'main',

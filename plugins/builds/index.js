@@ -530,7 +530,7 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
         }
 
         // If all join builds finished successfully and it's clear that a new build has not been started before, start new build
-        if ([ 'CREATED', null, undefined ].includes(newBuild.status)) {
+        if (['CREATED', null, undefined].includes(newBuild.status)) {
             newBuild.status = 'QUEUED';
             const queuedBuild = await newBuild.update();
 
@@ -1114,7 +1114,7 @@ const buildsPlugin = {
             tokenRoute(),
             metricsRoute(),
             artifactGetRoute(options),
-            artifactUnzipRoute(),
+            artifactUnzipRoute()
         ]);
     }
 };
