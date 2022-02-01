@@ -14,7 +14,7 @@ module.exports = config => ({
         tags: ['api', 'builds', 'artifacts'],
         auth: {
             strategies: ['token'],
-            scope: ['build']
+            scope: ['user', 'build']
         },
 
         handler: async (req, h) => {
@@ -26,9 +26,15 @@ module.exports = config => ({
                 return h.response(data).code(200);
             }
             const buildId = req.params.id;
-            const { username, scope } = req.auth.credentials;
+            const { username, scope, scmContext } = req.auth.credentials;
             const isBuild = scope.includes('build');
             const { buildFactory } = req.server.app;
+            const scmDisplayName = buildFactory.scm.getDisplayName({ scmContext })
+            const adminDetails = req.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+
+            if (scope.includes('user') && !adminDetails.isAdmin) {
+                return boom.forbidden(`User ${adminDetails.userDisplayName} does not have Screwdriver administrative privileges.`)
+            }
 
             if (isBuild && username !== buildId) {
                 return boom.forbidden(`Credential only valid for ${username}`);

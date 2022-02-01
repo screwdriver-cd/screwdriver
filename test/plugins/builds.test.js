@@ -138,6 +138,7 @@ describe('build plugin test', () => {
             create: sinon.stub(),
             list: sinon.stub(),
             scm: {
+                getDisplayName: sinon.stub().returns('github'),
                 getCommitSha: sinon.stub(),
                 getPrInfo: sinon.stub()
             },
@@ -258,7 +259,8 @@ describe('build plugin test', () => {
                     authConfig: {
                         jwtPrivateKey: 'boo'
                     },
-                    externalJoin: false
+                    externalJoin: false,
+                    admins: ['github:batman']
                 }
             },
             {
@@ -5443,6 +5445,7 @@ describe('build plugin test', () => {
 
     describe('POST /builds/{id}/artifacts/unzip', () => {
         const id = 12345;
+        const scmContext = 'github:github.com';
         const buildMock = {
             id,
             unzipArtifacts: sinon.stub().resolves(null)
@@ -5456,6 +5459,7 @@ describe('build plugin test', () => {
                 auth: {
                     credentials: {
                         username: id,
+                        scmContext,
                         scope: ['build']
                     },
                     strategy: ['token']
@@ -5479,12 +5483,34 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 202 for an unzip request by admin user', () => {
+            options.url = `/builds/${id}/artifacts/unzip`;
+            options.auth.credentials.scope = ['user'];
+            options.auth.credentials.username = 'batman';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 202);
+            });
+        });
+
         it('returns 403 when the build token have no permission for the artifacts', () => {
             options.auth.credentials.username = 6789;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.equal(reply.result.message, 'Credential only valid for 6789');
+            });
+        });
+
+        it('returns 403 when the not admin user request', () => {
+            options.url = `/builds/${id}/artifacts/unzip`;
+            options.auth.credentials.scope = ['user'];
+            options.auth.credentials.username = 'batman123';
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
             });
         });
 
