@@ -680,6 +680,38 @@ describe('event plugin test', () => {
             }
         );
 
+        it('returns 500 when scm host returns 500 error', () => {
+            const err = new Error();
+            err.status = 500;
+            userMock.getPermissions.throws(err);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, err.status);
+            });
+        });
+
+        it('returns 403 when scm host that user logged in does not match public repository scm host', () => {
+            const err = new Error('Scm host does not match');
+            userMock.getPermissions.throws(err);
+            pipelineMock.scmRepo = {private: false};
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.strictEqual(reply.result.message, err.message);
+            });
+        });
+
+        it('returns 404 when scm host that user logged in does not match private repository scm host', () => {
+            const err = new Error('Scm host does not match');
+            userMock.getPermissions.throws(err);
+            pipelineMock.scmRepo = {private: true};
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.strictEqual(reply.result.message, err.message);
+            });
+        });
+
         it('returns 201 when it successfully creates a PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.sha = testBuild.sha;

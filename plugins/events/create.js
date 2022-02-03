@@ -126,7 +126,16 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            const permissions = await user.getPermissions(scmUri);
+            let permissions;
+
+            try {
+                permissions = await user.getPermissions(scmUri);
+            } catch (err) {
+                const statusCode = (!pipeline.scmRepo || !pipeline.scmRepo.private) ? 403 : 404;
+                throw boom.boomify(err, {
+                    statusCode: err.status || statusCode
+                });
+            }
 
             // Update admins
             if (!prNum) {
