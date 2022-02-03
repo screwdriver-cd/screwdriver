@@ -376,7 +376,7 @@ async function startEvents(eventConfigs, eventFactory) {
             if (result.value) events.push(result.value);
         } else {
             errorCount += 1;
-            logger.error(`pipeline:${eventConfigs[i].pipelineId} error in starting event`, result.value);
+            logger.error(`pipeline:${eventConfigs[i].pipelineId} error in starting event`, result.reason);
         }
     });
 
