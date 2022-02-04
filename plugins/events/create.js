@@ -193,8 +193,8 @@ module.exports = () => ({
                 // User has good permissions, create an event
                 sha = await scm.getCommitSha(scmConfig);
             } catch (err) {
-                if (err.status) {
-                    throw boom.boomify(err, { statusCode: err.status });
+                if (err.statusCode) {
+                    throw boom.boomify(err, { statusCode: err.statusCode });
                 }
             }
 
