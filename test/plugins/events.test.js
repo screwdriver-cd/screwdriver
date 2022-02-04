@@ -666,6 +666,14 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 404 when it fails to get the pipeline', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it(
             'returns 403 when it fails to creates a PR event when ' +
                 'PR author only has permission to run PR and restrictPR is on',
@@ -679,6 +687,39 @@ describe('event plugin test', () => {
                 });
             }
         );
+
+        it('returns 500 when it fails to get user permission', () => {
+            const err = new Error();
+            userMock.getPermissions.rejects(err);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 403 when user does not have permission for public repository', () => {
+            const err = new Error('Error message');
+
+            err.statusCode = 403;
+            userMock.getPermissions.rejects(err);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, err.statusCode);
+                assert.strictEqual(reply.result.message, err.message);
+            });
+        });
+
+        it('returns 404 when user does not have permission for private repository', () => {
+            const err = new Error('Error message');
+
+            err.statusCode = 403;
+            userMock.getPermissions.rejects(err);
+            pipelineMock.scmRepo = {private: true};
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
 
         it('returns 201 when it successfully creates a PR event with parent event', () => {
             eventConfig.parentEventId = parentEventId;
@@ -769,7 +810,7 @@ describe('event plugin test', () => {
         it('returns 404 when the model encounters a branch not found error', () => {
             const testError = new Error('Branch not found');
 
-            testError.status = 404;
+            testError.statusCode = 404;
 
             eventFactoryMock.scm.getCommitSha.rejects(testError);
 
