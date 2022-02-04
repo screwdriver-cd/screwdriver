@@ -131,10 +131,7 @@ module.exports = () => ({
             try {
                 permissions = await user.getPermissions(scmUri);
             } catch (err) {
-                const statusCode = (!pipeline.scmRepo || !pipeline.scmRepo.private) ? 403 : 404;
-                throw boom.boomify(err, {
-                    statusCode: err.status || statusCode
-                });
+                throw boom.boomify(err, { statusCode: err.statusCode });
             }
 
             // Update admins
