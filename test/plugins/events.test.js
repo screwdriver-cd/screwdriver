@@ -680,34 +680,22 @@ describe('event plugin test', () => {
             }
         );
 
-        it('returns 500 when scm host returns 500 error', () => {
+        it('returns 500 when it fails to get user permission', () => {
             const err = new Error();
-            err.status = 500;
-            userMock.getPermissions.throws(err);
+            userMock.getPermissions.rejects(err);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, err.status);
+                assert.equal(reply.statusCode, 500);
             });
         });
 
-        it('returns 403 when scm host that user logged in does not match public repository scm host', () => {
-            const err = new Error('Scm host does not match');
-            userMock.getPermissions.throws(err);
-            pipelineMock.scmRepo = {private: false};
+        it('returns 403 when user does not have repository permission', () => {
+            const err = new Error('Error message');
+            err.statusCode = 403;
+            userMock.getPermissions.rejects(err);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
-                assert.strictEqual(reply.result.message, err.message);
-            });
-        });
-
-        it('returns 404 when scm host that user logged in does not match private repository scm host', () => {
-            const err = new Error('Scm host does not match');
-            userMock.getPermissions.throws(err);
-            pipelineMock.scmRepo = {private: true};
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, err.statusCode);
                 assert.strictEqual(reply.result.message, err.message);
             });
         });
@@ -801,7 +789,7 @@ describe('event plugin test', () => {
         it('returns 404 when the model encounters a branch not found error', () => {
             const testError = new Error('Branch not found');
 
-            testError.status = 404;
+            testError.statusCode = 404;
 
             eventFactoryMock.scm.getCommitSha.rejects(testError);
 
