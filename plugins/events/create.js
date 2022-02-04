@@ -115,6 +115,10 @@ module.exports = () => ({
                 userFactory.get({ username, scmContext })
             ]);
 
+            if (!pipeline) {
+                throw boom.notFound();
+            }
+
             payload.scmContext = pipeline.scmContext;
 
             // In pipeline scope, check if the token is allowed to the pipeline
@@ -131,6 +135,9 @@ module.exports = () => ({
             try {
                 permissions = await user.getPermissions(scmUri);
             } catch (err) {
+                if (err.statusCode === 403 && (pipeline.scmRepo && pipeline.scmRepo.private)) {
+                    throw boom.notFound();
+                }
                 throw boom.boomify(err, { statusCode: err.statusCode });
             }
 
