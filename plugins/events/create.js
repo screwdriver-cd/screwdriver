@@ -115,6 +115,10 @@ module.exports = () => ({
                 userFactory.get({ username, scmContext })
             ]);
 
+            if (!pipeline) {
+                throw boom.notFound();
+            }
+
             payload.scmContext = pipeline.scmContext;
 
             // In pipeline scope, check if the token is allowed to the pipeline
@@ -126,7 +130,16 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            const permissions = await user.getPermissions(scmUri);
+            let permissions;
+
+            try {
+                permissions = await user.getPermissions(scmUri);
+            } catch (err) {
+                if (err.statusCode === 403 && (pipeline.scmRepo && pipeline.scmRepo.private)) {
+                    throw boom.notFound();
+                }
+                throw boom.boomify(err, { statusCode: err.statusCode });
+            }
 
             // Update admins
             if (!prNum) {
@@ -187,8 +200,8 @@ module.exports = () => ({
                 // User has good permissions, create an event
                 sha = await scm.getCommitSha(scmConfig);
             } catch (err) {
-                if (err.status) {
-                    throw boom.boomify(err, { statusCode: err.status });
+                if (err.statusCode) {
+                    throw boom.boomify(err, { statusCode: err.statusCode });
                 }
             }
 
