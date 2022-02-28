@@ -38,6 +38,14 @@ Feature: Events
         And the "main" build succeeds
         And the "publish" build succeeds with the same eventId as the "main" build
 
+    Scenario: Create an event from the previous event when user restarts a job
+        And "calvin" is logged in
+        And the "main" job has a previous event
+        When the "main" job is restarted
+        Then an event is created with the parent event which is same as the previous event
+        And the "main" build succeeds
+        And the "publish" build succeeds with the same eventId as the "main" build
+
     @ignore
     Scenario: Create an event when a PR is opened
         When a pull request is opened
