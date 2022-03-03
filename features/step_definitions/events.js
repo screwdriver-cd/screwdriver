@@ -25,6 +25,7 @@ Given(/^"calvin" has admin permission to the pipeline$/, () => null);
 
 Given(/^the "main" job has a previous event$/, { timeout: TIMEOUT }, function step() {
     const jobName = 'main';
+
     return request({
         url: `${this.instance}/${this.namespace}/events`,
         method: 'POST',
@@ -92,18 +93,22 @@ Then(/^an event is created$/, { timeout: TIMEOUT }, function step() {
     }).then(response => Assert.equal(response.body[0].id, this.eventId));
 });
 
-Then(/^an event is created with the parent event which is same as the previous event$/, { timeout: TIMEOUT }, function step() {
-    return request({
-        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
-        method: 'GET',
-        context: {
-            token: this.jwt
-        }
-    }).then((response) => {
-        Assert.equal(response.body[0].id, this.eventId);
-        Assert.equal(response.body[0].parentEventId, this.previousEventId);
-    });
-});
+Then(
+    /^an event is created with the parent event which is same as the previous event$/,
+    { timeout: TIMEOUT },
+    function step() {
+        return request({
+            url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/events`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.equal(response.body[0].id, this.eventId);
+            Assert.equal(response.body[0].parentEventId, this.previousEventId);
+        });
+    }
+);
 
 Then(/^the "main" build succeeds$/, { timeout: TIMEOUT }, function step() {
     return this.waitForBuild(this.buildId).then(resp => {
