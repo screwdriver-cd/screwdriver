@@ -6,6 +6,7 @@ const urlLib = require('url');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
 const { getUserPermissions } = require('../helper');
 const ANNOTATION_USE_DEPLOY_KEY = 'screwdriver.cd/useDeployKey';
+const logger = require('screwdriver-logger');
 
 module.exports = () => ({
     method: 'POST',
@@ -30,12 +31,20 @@ module.exports = () => ({
             // fetch the user
             const user = await userFactory.get({ username, scmContext });
             const token = await user.unsealToken();
-            const scmUri = await pipelineFactory.scm.parseUrl({
-                scmContext,
-                rootDir,
-                checkoutUrl,
-                token
-            });
+
+            let scmUri;
+
+            try {
+                scmUri = await pipelineFactory.scm.parseUrl({
+                    scmContext,
+                    rootDir,
+                    checkoutUrl,
+                    token
+                });
+            } catch (error) {
+                logger.error(error.message);
+                throw boom.boomify(error, { statusCode: error.statusCode });
+            }
 
             // get the user permissions for the repo
             await getUserPermissions({ user, scmUri });
