@@ -690,6 +690,7 @@ describe('event plugin test', () => {
 
         it('returns 500 when it fails to get user permission', () => {
             const err = new Error();
+
             userMock.getPermissions.rejects(err);
 
             return server.inject(options).then(reply => {
@@ -714,7 +715,7 @@ describe('event plugin test', () => {
 
             err.statusCode = 403;
             userMock.getPermissions.rejects(err);
-            pipelineMock.scmRepo = {private: true};
+            pipelineMock.scmRepo = { private: true };
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);

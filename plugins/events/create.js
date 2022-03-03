@@ -135,7 +135,7 @@ module.exports = () => ({
             try {
                 permissions = await user.getPermissions(scmUri);
             } catch (err) {
-                if (err.statusCode === 403 && (pipeline.scmRepo && pipeline.scmRepo.private)) {
+                if (err.statusCode === 403 && pipeline.scmRepo && pipeline.scmRepo.private) {
                     throw boom.notFound();
                 }
                 throw boom.boomify(err, { statusCode: err.statusCode });

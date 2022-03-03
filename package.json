@@ -4,6 +4,7 @@
   "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
+    "pretest": "eslint . --quiet",
     "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --reporter mocha-multi-reporters --reporter-options configFile=./mocha.config.json --recursive --timeout 10000 --retries 1 --exit --allow-uncaught true --color true",
     "start": "./bin/server",
     "debug": "node --nolazy ./bin/server",
