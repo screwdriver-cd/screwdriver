@@ -1927,6 +1927,18 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 500);
             });
         });
+
+        it('catches and throws proper error object when parseUrl failed', () => {
+            const testError = new Error('ParseUrl Error');
+
+            testError.statusCode = 400;
+            pipelineFactoryMock.scm.parseUrl.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+                assert.equal(reply.result.message, 'ParseUrl Error');
+            });
+        });
     });
 
     describe('PUT /pipelines/{id}', () => {
