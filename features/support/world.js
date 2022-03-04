@@ -56,7 +56,7 @@ function ensurePipelineExists(config) {
             .then(response => {
                 this.jwt = response.body.token;
 
-                return this.createPipeline(config.repoName, branch);
+                return this.createPipeline(config.repoName, branch, config.rootDir);
             })
             .then(response => {
                 Assert.strictEqual(response.statusCode, 201);
@@ -75,7 +75,7 @@ function ensurePipelineExists(config) {
                     return this.deletePipeline(this.pipelineId).then(resDel => {
                         Assert.equal(resDel.statusCode, 204);
 
-                        return this.createPipeline(config.repoName, branch).then(resCre => {
+                        return this.createPipeline(config.repoName, branch, config.rootDir).then(resCre => {
                             Assert.equal(resCre.statusCode, 201);
 
                             this.pipelineId = resCre.body.id;
@@ -233,8 +233,8 @@ function CustomWorld({ attach, parameters }) {
                 token: this.jwt
             }
         });
-    this.createPipeline = (repoName, branch) =>
-        request({
+    this.createPipeline = (repoName, branch, rootDir = undefined) => {
+        const createConfig = {
             url: `${this.instance}/${this.namespace}/pipelines`,
             method: 'POST',
             context: {
@@ -243,7 +243,14 @@ function CustomWorld({ attach, parameters }) {
             json: {
                 checkoutUrl: `git@${this.scmHostname}:${this.testOrg}/${repoName}.git#${branch}`
             }
-        });
+        };
+
+        if (rootDir) {
+            createConfig.json.rootDir = rootDir;
+        }
+
+        return request(createConfig);
+    };
     this.deletePipeline = pipelineId =>
         request({
             url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}`,
