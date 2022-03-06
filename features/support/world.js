@@ -43,6 +43,7 @@ function promiseToWait(timeToWait) {
  * @param   {String}    [config.pipelineVarName]    Variable name for pipelineID
  * @param   {Object}    [config.table]              Table with job and requires data
  * @param   {String}    [config.jobName]            Name of the job
+ * @param   {String}    [config.rootDir]            Root directory where the source code lives
  * @param   {Boolean}   [config.shouldNotDeletePipeline] Whether or not to delete pipeline
  * @return {Promise}
  */
