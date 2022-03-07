@@ -39,6 +39,18 @@ Before(
     }
 );
 
+Before(
+    {
+        tags: '@sourceDirectory'
+    },
+    function hook() {
+        this.repoOrg = this.testOrg;
+        this.repoName = 'functional-sourceDirectory';
+        this.pipelineId = null;
+        this.builds = null;
+    }
+);
+
 Given(
     /^an existing pipeline on branch "([^"]*)" with the workflow jobs:$/,
     {
@@ -48,6 +60,27 @@ Given(
         await this.ensurePipelineExists({
             repoName: this.repoName,
             branch: branchName,
+            table,
+            shouldNotDeletePipeline: true
+        });
+
+        this.pipelines[branchName] = {
+            pipelineId: this.pipelineId,
+            jobs: this.jobs
+        };
+    }
+);
+
+Given(
+    /^an existing pipeline on branch "([^"]*)" setting source directory "([^"]*)" with the workflow jobs:$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(branchName, rootDir, table) {
+        await this.ensurePipelineExists({
+            repoName: this.repoName,
+            branch: branchName,
+            rootDir,
             table,
             shouldNotDeletePipeline: true
         });
