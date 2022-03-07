@@ -168,7 +168,7 @@ function createFile(branch, repoOwner, repoName, directoryName) {
  * @param  {String}   repoName          Name of the repository
  * @return {Promise}
  */
- function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
+function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
     return octokit.pulls.create({
         owner: repoOwner,
         repo: repoName,
@@ -177,7 +177,6 @@ function createFile(branch, repoOwner, repoName, directoryName) {
         base: targetBranch
     });
 }
-
 
 /**
  * Creates a lightweight tag.
