@@ -106,14 +106,15 @@ When(
     },
     function step(branch) {
         const postfix = new Date().getTime().toString();
-        const branchName = `${branch}-${postfix}`;
+        const sourceBranch = `${branch}-${postfix}`;
+        const targetBranch = 'master';
 
         return github
-            .createBranch(branchName, this.repoOrg, this.repoName)
-            .then(() => github.createFile(branchName, this.repoOrg, this.repoName))
-            .then(() => github.createPullRequest(branchName, this.repoOrg, this.repoName))
+            .createBranch(sourceBranch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(sourceBranch, this.repoOrg, this.repoName))
+            .then(() => github.createPullRequest(sourceBranch, targetBranch, this.repoOrg, this.repoName))
             .then(({ data }) => {
-                this.branch = branchName;
+                this.branch = sourceBranch;
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
             })
@@ -123,10 +124,29 @@ When(
     }
 );
 
-When(/^a pull request is opened to "(.*)" branch$/, (branch, callback) => {
-    // Write code here that turns the phrase above into concrete actions
-    callback(null, 'pending');
-});
+When(
+    /^a pull request is opened to "(.*)" branch$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(branch) {
+        const postfix = new Date().getTime().toString();
+        const sourceBranch = `${branch}-${postfix}`;
+
+        return github
+            .createBranch(sourceBranch, this.repoOrg, this.repoName)
+            .then(() => github.createFile(sourceBranch, this.repoOrg, this.repoName))
+            .then(() => github.createPullRequest(sourceBranch, branch, this.repoOrg, this.repoName))
+            .then(({ data }) => {
+                this.branch = sourceBranch;
+                this.pullRequestNumber = data.number;
+                this.sha = data.head.sha;
+            })
+            .catch(() => {
+                Assert.fail('Failed to create the Pull Request.');
+            });
+    }
+);
 
 Then(
     /^the "(.*)" job is triggered$/,
@@ -308,6 +328,30 @@ Then(
 );
 
 Then(
+    /^the "(.*)" PR job is not triggered$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
+        return sdapi
+            .findBuilds({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                jobName,
+                pullRequestNumber: this.pullRequestNumber,
+                jwt: this.jwt
+            })
+            .then(buildData => {
+                let result = buildData.body || [];
+
+                result = result.filter(item => item.sha === this.sha);
+
+                Assert.equal(result.length, 0, 'Unexpected PR job was triggered.');
+            });
+    }
+);
+
+Then(
     /^that "(.*)" build uses the same SHA as the "(.*)" build$/,
     {
         timeout: TIMEOUT
@@ -407,7 +451,7 @@ Then(
 
 After(
     {
-        tags: '@workflow-chainPR'
+        tags: '@workflow-chainPR or @workflow-PR'
     },
     function hook() {
         github
