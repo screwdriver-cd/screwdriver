@@ -79,7 +79,7 @@ Given(
         return github
             .createBranch(branch, this.repoOrg, this.repoName)
             .then(() => github.createFile(branch, this.repoOrg, this.repoName))
-            .then(() => github.createPullRequest(branch, this.repoOrg, this.repoName))
+            .then(() => github.createPullRequest(branch, 'master', this.repoOrg, this.repoName))
             .then(({ data }) => {
                 this.pullRequestNumber = data.number;
                 this.sha = data.head.sha;
@@ -121,7 +121,7 @@ When(/^a pull request is opened$/, { timeout: TIMEOUT }, function step() {
     return github
         .createBranch(branch, this.repoOrg, this.repoName)
         .then(() => github.createFile(branch, this.repoOrg, this.repoName))
-        .then(() => github.createPullRequest(branch, this.repoOrg, this.repoName))
+        .then(() => github.createPullRequest(branch, 'master', this.repoOrg, this.repoName))
         .then(({ data }) => {
             this.pullRequestNumber = data.number;
             this.sha = data.head.sha;

@@ -162,18 +162,19 @@ function createFile(branch, repoOwner, repoName, directoryName) {
 /**
  * Creates a pull request.
  * @method createPullRequest
- * @param  {String}   branch            The branch to create the file in
+ * @param  {String}   sourceBranch      The branch to create the file in
+ * @param  {String}   targetBranch      The base branch
  * @param  {String}   repoOwner         Owner of the repository
  * @param  {String}   repoName          Name of the repository
  * @return {Promise}
  */
-function createPullRequest(branch, repoOwner, repoName) {
+function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
     return octokit.pulls.create({
         owner: repoOwner,
         repo: repoName,
         title: '[DNM] testing',
-        head: branch,
-        base: 'master'
+        head: sourceBranch,
+        base: targetBranch
     });
 }
 

@@ -70,26 +70,30 @@ Feature: Workflow
 
     Scenario: Branch filtering (the master branch is committed)
         Given an existing pipeline on "master" branch with the workflow jobs:
-            | job       | requires          |
-            | SIMPLE    | ~commit           |
-            | STAGING   | ~commit:staging   |
-            | REGEX     | ~commit:/^.*$/    |
+            | job           | requires              |
+            | SIMPLE        | ~commit               |
+            | STAGING       | ~commit:staging       |
+            | REGEX         | ~commit:/^.*$/        |
+            | UNMATCH-REGEX | ~commit:/^unmatch$/   |
         When a new commit is pushed to "master" branch
         Then the "SIMPLE" job is triggered
         And the "REGEX" job is triggered
         And the "STAGING" job is not triggered
+        And the "UNMATCH-REGEX" job is not triggered
         And that "REGEX" build uses the same SHA as the "SIMPLE" build
 
     Scenario: Branch filtering (the staging branch is committed)
         Given an existing pipeline on "master" branch with the workflow jobs:
-            | job       | requires          |
-            | SIMPLE    | ~commit           |
-            | STAGING   | ~commit:staging   |
-            | REGEX     | ~commit:/^.*$/    |
+            | job           | requires              |
+            | SIMPLE        | ~commit               |
+            | STAGING       | ~commit:staging       |
+            | REGEX         | ~commit:/^.*$/        |
+            | UNMATCH-REGEX | ~commit:/^unmatch$/   |
         When a new commit is pushed to "staging" branch
         Then the "STAGING" job is triggered
         And the "REGEX" job is triggered
         And the "SIMPLE" job is not triggered
+        And the "UNMATCH-REGEX" job is not triggered
         And that "REGEX" build uses the same SHA as the "STAGING" build
 
     @workflow-chainPR
@@ -106,51 +110,41 @@ Feature: Workflow
         And that "AFTER-SIMPLE" PR build uses the same SHA as the "SIMPLE" PR build
         And the "AFTER-SIMPLE" PR build succeeded
 
-    @ignore
+    @workflow
+    @workflow-PR
     Scenario: Branch filtering (a pull request is opened to the master branch)
         Given an existing pipeline on "master" branch with the workflow jobs:
-            | job       | requires      |
-            | SIMPLE    | ~pr           |
-            | STAGING   | ~pr:staging   |
-            | REGEX     | ~pr:/^.*$/    |
-            | MASTER-PR | ~pr:master    |
+            | job               | requires          |
+            | SIMPLE            | ~pr               |
+            | STAGING           | ~pr:staging       |
+            | REGEX             | ~pr:/^.*$/        |
+            | UNMATCH-REGEX     | ~pr:/^unmatch$/   |
+            | MASTER-PR         | ~pr:master        |
+            | AFTER-MASTER-PR   | MASTER-PR         |
         When a pull request is opened to "master" branch
-        Then the "SIMPLE" job is triggered
-        And the "REGEX" job is triggered
-        And the "MASTER-PR" job is triggered
-        And the "STAGINNG" job is not triggered
-        And that "REGEX" build uses the same SHA as the "SIMPLE" build
-        And that "MASTER-PR" build uses the same SHA as the "SIMPLE" build
+        Then the "SIMPLE" PR job is triggered
+        And the "STAGING" PR job is not triggered
+        And the "REGEX" PR job is triggered
+        And the "UNMATCH-REGEX" PR job is not triggered
+        And the "MASTER-PR" PR job is triggered
+        And the "AFTER-MASTER-PR" PR job is not triggered
+        And that "REGEX" PR build uses the same SHA as the "SIMPLE" PR build
+        And that "MASTER-PR" PR build uses the same SHA as the "SIMPLE" PR build
 
-    @ignore
-    Scenario: Branch filtering (pr and filtered pr workflow)
-        Given an existing pipeline on "master" branch with the workflow jobs:
-            | job               | requires      |
-            | SIMPLE            | ~pr           |
-            | PARALLEL1         | SIMPLE        |
-            | MASTER-PR         | ~pr:master    |
-            | AFTER-MASTER-PR   | MASTER-PR     |
-        When a pull request is opened to "master" branch
-        Then the "SIMPLE" job is triggered
-        And the "MASTER-PR" job is triggered
-        And that "MASTER-PR" build uses the same SHA as the "SIMPLE" build
-        Then the "SIMPLE" build succeeded
-        And the "MASTER-PR" build succeeded
-        Then the "PARALLEL1" job is not triggered
-        And the "AFTER-MASTER-PR" job is triggered from "MASTER-PR"
-        And that "AFTER-MASTER-PR" build uses the same SHA as the "SIMPLE" build
-
-    @ignore
+    @workflow
+    @workflow-PR
     Scenario: Branch filtering (a pull request is opened to the staging branch)
         Given an existing pipeline on "master" branch with the workflow jobs:
-            | job       | requires      |
-            | SIMPLE    | ~pr           |
-            | STAGING   | ~pr:staging   |
-            | REGEX     | ~pr:/^.*$/    |
-            | MASTER-PR | ~pr:master    |
-        When a pull request is opened to staging branch
-        Then the "STAGING" job is triggered
-        And the "REGEX" job is triggered
-        And the "SIMPLE" job is not triggered
-        And the "MASTER-PR" job is not triggered
-        And that "REGEX" build uses the same SHA as the "STAGING" build
+            | job           | requires          |
+            | SIMPLE        | ~pr               |
+            | STAGING       | ~pr:staging       |
+            | REGEX         | ~pr:/^.*$/        |
+            | UNMATCH-REGEX | ~pr:/^unmatch$/   |
+            | MASTER-PR     | ~pr:master        |
+        When a pull request is opened to "staging" branch
+        Then the "STAGING" PR job is triggered
+        And the "REGEX" PR job is triggered
+        And the "UNMATCH-REGEX" PR job is not triggered
+        And the "SIMPLE" PR job is not triggered
+        And the "MASTER-PR" PR job is not triggered
+        And that "REGEX" PR build uses the same SHA as the "STAGING" PR build
