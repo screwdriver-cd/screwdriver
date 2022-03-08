@@ -132,3 +132,10 @@ Feature: Remote Trigger
       Then a new build from "job1" should be created to test that change
       And a new build from "job2" should not be created to test that change
 
+    @sourceDirectory
+    Scenario: sourceDirectory
+      Given an existing pipeline on branch "master" setting source directory "directory1" with the workflow jobs:
+            | job       | requires  |
+            | job1      | ~commit   |
+      When a new file is added to the "directory1" directory of the "master" branch
+      Then a new build from "job1" should be created to test that change
