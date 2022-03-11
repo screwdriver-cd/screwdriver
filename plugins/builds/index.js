@@ -718,11 +718,15 @@ const buildsPlugin = {
                         buildConfig.jobId = nextJob.id;
                         if (!isExternal) {
                             buildConfig.eventId = event.id;
-                        } else {
+                        } else if (Object.prototype.hasOwnProperty.call(pipelineJoinData[pid], 'event')) {
                             buildConfig.eventId = pipelineJoinData[pid].event.id;
+                        } else {
+                            buildConfig.envetId = undefined;
                         }
 
-                        deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                        if (buildConfig.eventId) {
+                            deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                        }
                     } catch (err) {
                         logger.error(
                             `Error in removeJoinBuilds:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
