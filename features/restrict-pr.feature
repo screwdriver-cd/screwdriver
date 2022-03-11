@@ -7,7 +7,7 @@ Feature: Restrict-pr
         -　The restrict-pr setting allows the following controls
         -- none: Start all PR build
         -- fork: Do not start PR build from fork
-        -- branch: Do not start PR build form same repository
+        -- branch: Do not start PR build from same repository
         -- all: Do not start all PR build
 
     Scenario: Create a pull request from the same repository
