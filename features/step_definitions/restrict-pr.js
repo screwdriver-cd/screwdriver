@@ -45,7 +45,7 @@ Given(
 );
 
 When(
-    /^a branch is created for test_branch on "([^"]*)" organization$/,
+    /^a branch is created "([^"]*)" organization$/,
     {
         timeout: TIMEOUT
     },
