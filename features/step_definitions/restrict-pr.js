@@ -19,7 +19,6 @@ Before(
         this.sourceBranch = null;
         this.jobName = 'main';
         this.pullRequestNumber = null;
-        this.sha = null;
         this.pipelines = {};
     }
 );
@@ -84,7 +83,6 @@ When(
             .createPullRequest(`${sourceOrg}:${this.sourceBranch}`, this.targetBranch, this.repoOrg, this.repoName)
             .then(({ data }) => {
                 this.pullRequestNumber = data.number;
-                this.sha = data.head.sha;
             })
             .catch(() => Assert.fail('Failed to create the Pull Request.'));
     }
@@ -99,8 +97,6 @@ Then(
         const build = await sdapi.searchForBuild({
             instance: this.instance,
             pipelineId: this.pipelines[rootDir].pipelineId,
-            desiredSha: this.sha,
-            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
             jobName: this.jobName,
             pullRequestNumber: this.pullRequestNumber,
             jwt: this.jwt
@@ -126,19 +122,20 @@ Then(
         timeout: TIMEOUT
     },
     async function step(rootDir) {
-        const build = await sdapi.findBuilds({
-            instance: this.instance,
-            pipelineId: this.pipelines[rootDir].pipelineId,
-            jobName: this.jobName,
-            pullRequestNumber: this.pullRequestNumber,
-            jwt: this.jwt
-        });
+        await sdapi.promiseToWait(3);
 
-        let result = build.body || [];
+        const build = await sdapi.findBuilds(
+            {
+                instance: this.instance,
+                pipelineId: this.pipelines[rootDir].pipelineId,
+                jobName: this.jobName,
+                pullRequestNumber: this.pullRequestNumber,
+                jwt: this.jwt
+            },
+            1
+        );
 
-        result = result.filter(item => item.sha === this.sha);
-
-        Assert.equal(result.length, 0, 'Unexpected job was triggered.');
+        Assert.equal(build.body.length, 0, 'Unexpected job was triggered.');
     }
 );
 
