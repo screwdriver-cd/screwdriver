@@ -4,6 +4,7 @@ const logger = require('screwdriver-logger');
 const workflowParser = require('screwdriver-workflow-parser');
 const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
+const hoek = require('@hapi/hoek');
 const getRoute = require('./get');
 const getBuildStatusesRoute = require('./getBuildStatuses');
 const updateRoute = require('./update');
@@ -719,10 +720,12 @@ const buildsPlugin = {
                         if (!isExternal) {
                             buildConfig.eventId = event.id;
                         } else {
-                            buildConfig.eventId = pipelineJoinData[pid].event.id;
+                            buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
                         }
 
-                        deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                        if (buildConfig.eventId) {
+                            deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                        }
                     } catch (err) {
                         logger.error(
                             `Error in removeJoinBuilds:${nextJobName} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
