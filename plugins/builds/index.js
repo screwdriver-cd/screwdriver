@@ -4,6 +4,7 @@ const logger = require('screwdriver-logger');
 const workflowParser = require('screwdriver-workflow-parser');
 const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
+const hoek = require('@hapi/hoek');
 const getRoute = require('./get');
 const getBuildStatusesRoute = require('./getBuildStatuses');
 const updateRoute = require('./update');
@@ -718,7 +719,7 @@ const buildsPlugin = {
                         buildConfig.jobId = nextJob.id;
                         if (!isExternal) {
                             buildConfig.eventId = event.id;
-                        } else if (Object.prototype.hasOwnProperty.call(pipelineJoinData[pid], 'event')) {
+                        } else if (hoek.reach(pipelineJoinData[pid], 'event')) {
                             buildConfig.eventId = pipelineJoinData[pid].event.id;
                         } else {
                             buildConfig.envetId = undefined;
