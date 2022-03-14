@@ -719,10 +719,8 @@ const buildsPlugin = {
                         buildConfig.jobId = nextJob.id;
                         if (!isExternal) {
                             buildConfig.eventId = event.id;
-                        } else if (hoek.reach(pipelineJoinData[pid], 'event')) {
-                            buildConfig.eventId = pipelineJoinData[pid].event.id;
                         } else {
-                            buildConfig.envetId = undefined;
+                            buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
                         }
 
                         if (buildConfig.eventId) {
