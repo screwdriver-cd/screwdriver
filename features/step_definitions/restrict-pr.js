@@ -125,16 +125,13 @@ Then(
         // Wait 3 seconds for build trigger
         await sdapi.promiseToWait(3);
 
-        const build = await sdapi.findBuilds(
-            {
-                instance: this.instance,
-                pipelineId: this.pipelines[rootDir].pipelineId,
-                jobName: this.jobName,
-                pullRequestNumber: this.pullRequestNumber,
-                jwt: this.jwt
-            },
-            1
-        );
+        const build = await sdapi.findBuilds({
+            instance: this.instance,
+            pipelineId: this.pipelines[rootDir].pipelineId,
+            jobName: this.jobName,
+            pullRequestNumber: this.pullRequestNumber,
+            jwt: this.jwt
+        });
 
         Assert.equal(build.body.length, 0, 'Unexpected job was triggered.');
     }
