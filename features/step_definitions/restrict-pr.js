@@ -122,6 +122,7 @@ Then(
         timeout: TIMEOUT
     },
     async function step(rootDir) {
+        // Wait 3 seconds for build trigger
         await sdapi.promiseToWait(3);
 
         const build = await sdapi.findBuilds(
