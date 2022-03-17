@@ -37,7 +37,7 @@ const formatCheckoutUrl = checkoutUrl => {
  * @return {String}                 Root dir with no leading/trailing slashes
  */
 const sanitizeRootDir = (rootDir = '') => {
-    return rootDir.replace(/^(\/+|.\/|..\/)|\/+$/g, '');
+    return rootDir.replace(/^(\/+|\.\/|\.\.\/)|\/+$/g, '');
 };
 
 /**
