@@ -1851,6 +1851,51 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('formats the rootDir correctly when rootDir has ../PATH format', () => {
+            options.payload.rootDir = '../src/app/component///////////';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'src/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('formats the rootDir correctly when top dir has single character format', () => {
+            options.payload.rootDir = 'a/app/component///////////';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'a/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('formats the rootDir correctly when top dir has 2-character format', () => {
+            options.payload.rootDir = 'ab/app/component///////////';
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(() => {
+                assert.calledWith(pipelineFactoryMock.scm.parseUrl, {
+                    scmContext,
+                    checkoutUrl: formattedCheckoutUrl,
+                    token,
+                    rootDir: 'ab/app/component'
+                });
+                assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
         it('returns 403 when the user does not have admin permissions', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
