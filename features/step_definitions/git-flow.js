@@ -177,14 +177,23 @@ When(
     }
 );
 
-When(/^a new commit is pushed$/, () => null);
-
-When(/^it is against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
+When(/^a new commit is pushed against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
     this.testBranch = 'master';
 
     return github.createFile(this.testBranch, this.repoOrg, this.repoName).then(({ data }) => {
         this.sha = data.commit.sha;
     });
+});
+
+When(/^a new Skip CI commit is pushed against the pipeline's branch$/, { timeout: TIMEOUT }, function step() {
+    this.testBranch = 'master';
+    const commitMessage = `[skip ci] ${new Date().toString()}`;
+
+    return github
+        .createFile(this.testBranch, this.repoOrg, this.repoName, undefined, commitMessage)
+        .then(({ data }) => {
+            this.sha = data.commit.sha;
+        });
 });
 
 When(

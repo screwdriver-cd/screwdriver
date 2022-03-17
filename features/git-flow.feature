@@ -34,9 +34,12 @@ Feature: Git Flow
         Then any existing builds should be stopped
 
     Scenario: New Commit
-        When a new commit is pushed
-        And it is against the pipeline's branch
+        When a new commit is pushed against the pipeline's branch
         Then a new build from "main" should be created to test that change
+
+    Scenario: New Skip CI Commit
+        When a new Skip CI commit is pushed against the pipeline's branch
+        Then a new build from "main" should not be created to test that change
 
     Scenario: New Tag
         When a tag "v1.0" is created
