@@ -139,6 +139,7 @@ function createBranch(branch, repoOwner, repoName) {
  * @param  {String}   [repoOwner]       Owner of the repository
  * @param  {String}   [repoName]        Name of the repository
  * @param  {String}   directoryName     Name of the directory
+ * @param  {String}   commitMessage     Commit message
  * @return {Promise}
  */
 function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
