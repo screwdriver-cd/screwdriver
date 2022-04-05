@@ -1079,6 +1079,21 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 404 when github repository does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Repository ${scmUri} does not exist`
+            };
+
+            userMock.getPermissions.rejects(error);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
         it('returns 500 when datastore fails', () => {
             eventFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
 
