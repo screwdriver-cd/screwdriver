@@ -83,6 +83,9 @@ module.exports = () => ({
                         });
                 })
                 .catch(err => {
+                    if (err.status === 404) {
+                        throw boom.notFound(err.message);
+                    }
                     throw err;
                 });
         },

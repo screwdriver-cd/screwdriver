@@ -1,5 +1,6 @@
 'use strict';
 
+const boom = require('@hapi/boom');
 const joi = require('joi');
 const logger = require('screwdriver-logger');
 const { startHookEvent } = require('./helper');
@@ -103,6 +104,9 @@ const webhooksPlugin = {
                     } catch (err) {
                         logger.error(`[${hookId}]: ${err}`);
 
+                        if (err.statusCode === 404) {
+                            throw boom.notFound(err.message);
+                        }
                         throw err;
                     }
                 }
