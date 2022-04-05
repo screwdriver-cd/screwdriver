@@ -46,14 +46,13 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            const permissions = await user.getPermissions(scmUri)
-            .catch(err => {
+            const permissions = await user.getPermissions(scmUri).catch(err => {
                 if (err.status === 404) {
                     throw boom.notFound(`Repository ${pipeline.scmUri} does not exist`);
                 } else {
                     throw err;
                 }
-             });
+            });
 
             // check if user has push access
             if (!permissions.push) {
