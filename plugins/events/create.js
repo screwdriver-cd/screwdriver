@@ -201,7 +201,7 @@ module.exports = () => ({
                 sha = await scm.getCommitSha(scmConfig);
             } catch (err) {
                 if (err.status && err.status === 404) {
-                    throw boom.notFound(err.message);
+                    throw boom.notFound(err.message, { statusCode: err.status });
                 } else {
                     throw boom.boomify(err, { statusCode: err.status });
                 }
