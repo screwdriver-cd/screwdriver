@@ -412,7 +412,7 @@ function parseJobInfo({ joinObj = {}, current, nextJobName, nextPipelineId }) {
  */
 async function getFinishedBuilds(event, buildFactory) {
     // FIXME: buildFactory.getLatestBuilds doesn't return build model
-    const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId });
+    const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId, readOnly: false });
 
     builds.forEach(b => {
         try {
