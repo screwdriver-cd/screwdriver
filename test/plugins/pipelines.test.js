@@ -1432,6 +1432,20 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 404 for updating a pipeline with branch that does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `User ${username} does not exist`
+            };
+
+            userMock.getPermissions.withArgs(scmUri).rejects(error);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
         it('returns 404 when user does not exist', () => {
             const error = {
                 statusCode: 404,
