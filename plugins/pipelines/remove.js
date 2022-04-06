@@ -64,7 +64,8 @@ module.exports = () => ({
                                     return Promise.resolve(null);
                                 }
 
-                                if (error.status === 404) {
+                                // When repository does not exist in scm, return 404
+                                if (error.statusCode === 404) {
                                     throw boom.notFound(`Repository ${pipeline.scmUri} does not exist`);
                                 }
                                 throw error;
