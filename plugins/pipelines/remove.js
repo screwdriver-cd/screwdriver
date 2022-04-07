@@ -64,10 +64,6 @@ module.exports = () => ({
                                     return Promise.resolve(null);
                                 }
 
-                                // When repository does not exist in scm, return 404
-                                if (error.statusCode === 404) {
-                                    throw boom.notFound(`Repository ${pipeline.scmUri} does not exist`);
-                                }
                                 throw error;
                             })
                             // user has good permissions, remove the pipeline
