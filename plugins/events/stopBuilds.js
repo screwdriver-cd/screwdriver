@@ -46,13 +46,7 @@ module.exports = () => ({
             }
 
             // Check permissions
-            const permissions = await user.getPermissions(pipeline.scmUri).catch(err => {
-                if (err.statusCode === 404) {
-                    throw boom.notFound(`Repository ${pipeline.scmUri} does not exist`);
-                } else {
-                    throw err;
-                }
-            });
+            const permissions = await user.getPermissions(pipeline.scmUri);
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
             const isPrOwner = hoek.reach(event, 'commit.author.username') === username;
 
