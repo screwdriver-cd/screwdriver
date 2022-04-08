@@ -64,7 +64,7 @@ module.exports = () => ({
                                     return Promise.resolve(null);
                                 }
 
-                                throw error;
+                                throw boom.boomify(error, { statusCode: error.statusCode });
                             })
                             // user has good permissions, remove the pipeline
                             .then(() => pipeline.remove())

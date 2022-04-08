@@ -46,12 +46,8 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            const permissions = await user.getPermissions(scmUri).catch(err => {
-                if (err.statusCode === 404) {
-                    throw boom.notFound('Repository does not exist');
-                } else {
-                    throw err;
-                }
+            const permissions = await user.getPermissions(scmUri).catch(error => {
+                throw boom.boomify(error, { statusCode: error.statusCode });
             });
 
             // check if user has push access
