@@ -1432,17 +1432,18 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 404 for updating a pipeline with branch that does not exist', () => {
+        it('returns 404 for updating a repository does not exist', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
-                message: `User ${username} does not exist`
+                message: 'Repository does not exist'
             };
 
             userMock.getPermissions.withArgs(scmUri).rejects(error);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
             });
         });
 

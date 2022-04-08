@@ -167,7 +167,9 @@ module.exports = () => ({
                         ...scmConfig
                     }),
                     scm.getPrInfo(scmConfig)
-                ]);
+                ]).catch(err => {
+                    throw boom.boomify(err, { statusCode: err.statusCode });
+                });
 
                 if (files && files.length) {
                     payload.changedFiles = files;

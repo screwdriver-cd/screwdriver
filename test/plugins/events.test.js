@@ -674,6 +674,37 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 404 when it fails to get prInfo', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Failed to getPrInfo'
+            };
+
+            const testError = new Error('Failed to getPrInfo');
+            testError.statusCode = 404;
+
+            eventConfig.prNum = '1';
+            options.payload.startFrom = 'PR-1:main';
+
+            eventFactoryMock.scm.getPrInfo.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                console.log(reply);
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when it fails to get the pipeline', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+
         it(
             'returns 403 when it fails to creates a PR event when ' +
                 'PR author only has permission to run PR and restrictPR is on',

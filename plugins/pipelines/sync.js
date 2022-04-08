@@ -48,7 +48,7 @@ module.exports = () => ({
             // Check the user's permission
             const permissions = await user.getPermissions(scmUri).catch(err => {
                 if (err.statusCode === 404) {
-                    throw boom.notFound(`Repository ${pipeline.scmUri} does not exist`);
+                    throw boom.notFound('Repository does not exist');
                 } else {
                     throw err;
                 }
