@@ -1,6 +1,5 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const joi = require('joi');
 const logger = require('screwdriver-logger');
 const { startHookEvent } = require('./helper');

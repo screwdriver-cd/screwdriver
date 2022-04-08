@@ -682,6 +682,7 @@ describe('event plugin test', () => {
             };
 
             const testError = new Error('Failed to getPrInfo');
+
             testError.statusCode = 404;
 
             eventConfig.prNum = '1';
@@ -703,7 +704,6 @@ describe('event plugin test', () => {
                 assert.equal(reply.statusCode, 404);
             });
         });
-
 
         it(
             'returns 403 when it fails to creates a PR event when ' +
