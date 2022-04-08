@@ -1432,7 +1432,7 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 404 for updating a repository does not exist', () => {
+        it('returns 404 when repository does not exist', () => {
             const error = {
                 statusCode: 404,
                 error: 'Not Found',
