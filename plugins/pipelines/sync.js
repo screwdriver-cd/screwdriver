@@ -46,7 +46,9 @@ module.exports = () => ({
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
             // Check the user's permission
-            const permissions = await user.getPermissions(scmUri);
+            const permissions = await user.getPermissions(scmUri).catch(error => {
+                throw boom.boomify(error, { statusCode: error.statusCode });
+            });
 
             // check if user has push access
             if (!permissions.push) {

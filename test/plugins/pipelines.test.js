@@ -792,6 +792,20 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 404 when repository does not exist, and not cluster admin', () => {
+            const testError = new Error('Not Found');
+
+            testError.statusCode = 404;
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            userMock.getPermissions.withArgs(scmUri).rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Not Found');
+            });
+        });
+
         it('returns 404 when user does not exist', () => {
             const error = {
                 statusCode: 404,
@@ -1429,6 +1443,20 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 when repository does not exist', () => {
+            const testError = new Error('Not Found');
+
+            testError.statusCode = 404;
+
+            screwdriverAdminDetailsMock.returns({ isAdmin: false });
+            userMock.getPermissions.withArgs(scmUri).rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Not Found');
             });
         });
 
@@ -3517,6 +3545,19 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when branch name is incorrect', () => {
+            const testError = new Error('Not Found');
+
+            testError.statusCode = 404;
+
+            userMock.getPermissions.withArgs(scmUri).rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Not Found');
             });
         });
 
