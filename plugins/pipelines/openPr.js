@@ -54,10 +54,6 @@ module.exports = () => ({
                                                 );
                                             }
                                         })
-                                        .catch(error => {
-                                            // 404 error throws, if branch name is incorrect
-                                            throw boom.boomify(error, { statusCode: error.statusCode });
-                                        })
                                         .then(() => {
                                             let scmUrl = checkoutUrl;
 
@@ -74,6 +70,10 @@ module.exports = () => ({
                                                 title,
                                                 message
                                             });
+                                        })
+                                        .catch(error => {
+                                            // 404 error throws, if branch name is incorrect
+                                            throw boom.boomify(error, { statusCode: error.statusCode });
                                         })
                                 );
                         })
