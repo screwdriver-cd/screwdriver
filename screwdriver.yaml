@@ -4,6 +4,7 @@ cache:
 shared:
     environment:
         DOCKER_REPO: screwdrivercd/screwdriver
+        DOCKER_MULTI_PLATFORM_BUILDS_ENABLED: 1
 jobs:
     main:
         image: node:12
