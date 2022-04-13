@@ -1088,6 +1088,17 @@ describe('startHookEvent test', () => {
                     ref: undefined,
                     meta: {}
                 });
+
+                const eventFactoryCreateArgs = [
+                    eventFactoryMock.create.getCall(0).args[0],
+                    eventFactoryMock.create.getCall(1).args[0],
+                    eventFactoryMock.create.getCall(2).args[0]
+                ];
+
+                assert.notStrictEqual(eventFactoryCreateArgs[0].meta, eventFactoryCreateArgs[1].meta);
+                assert.notStrictEqual(eventFactoryCreateArgs[1].meta, eventFactoryCreateArgs[2].meta);
+                assert.notStrictEqual(eventFactoryCreateArgs[2].meta, eventFactoryCreateArgs[0].meta);
+
                 assert.neverCalledWith(
                     eventFactoryMock.create,
                     sinon.match({
@@ -1171,6 +1182,14 @@ describe('startHookEvent test', () => {
                     ref: undefined,
                     meta: {}
                 });
+
+                const eventFactoryCreateArgs = [
+                    eventFactoryMock.create.getCall(0).args[0],
+                    eventFactoryMock.create.getCall(1).args[0]
+                ];
+
+                assert.notStrictEqual(eventFactoryCreateArgs[0].meta, eventFactoryCreateArgs[1].meta);
+
                 assert.neverCalledWith(
                     eventFactoryMock.create,
                     sinon.match({
@@ -1794,7 +1813,6 @@ describe('startHookEvent test', () => {
                         changedFiles,
                         releaseName: undefined,
                         ref: undefined,
-                        meta: {},
                         subscribedEvent: true,
                         subscribedSourceUrl: 'foo'
                     });
