@@ -542,15 +542,41 @@ describe('startHookEvent test', () => {
         });
 
         it('returns 201 on success on a regular expression', () => {
-            const tagWorkflowMock = {
+            const tagWorkflowMock1 = {
                 nodes: [{ name: '~tag:/^tag-test-/' }, { name: 'main' }],
                 edges: [{ src: '~tag:/^tag-test-/', dest: 'main' }]
             };
+            const tagWorkflowMock2 = {
+                nodes: [{ name: '~tag:/^.*$/' }, { name: 'main' }],
+                edges: [{ src: '~tag:/^.*$/', dest: 'main' }]
+            };
+
+            const pipelineMock1 = getPipelineMocks({
+                id: 'pipelineHash1',
+                scmUri: 'github.com:123456:master',
+                annotations: {},
+                admins: {
+                    baxterthehacker: false
+                },
+                workflowGraph: tagWorkflowMock1,
+                branch: Promise.resolve('master'),
+                jobs: Promise.resolve([mainJobMock])
+            });
+            const pipelineMock2 = getPipelineMocks({
+                id: 'pipelineHash2',
+                scmUri: 'github.com:123456:master',
+                annotations: {},
+                admins: {
+                    baxterthehacker: false
+                },
+                workflowGraph: tagWorkflowMock2,
+                branch: Promise.resolve('master'),
+                jobs: Promise.resolve([mainJobMock])
+            });
+
+            pipelineFactoryMock.list.resolves([pipelineMock1, pipelineMock2]);
 
             parsed.ref = 'tag-test-1';
-
-            pipelineMock.workflowGraph = tagWorkflowMock;
-            pipelineMock.jobs = Promise.resolve([mainJobMock]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
@@ -559,8 +585,9 @@ describe('startHookEvent test', () => {
                 assert.calledWith(pipelineFactoryMock.list, {
                     search: { field: 'scmUri', keyword: 'github.com:123456:%' }
                 });
+
                 assert.calledWith(eventFactoryMock.create, {
-                    pipelineId: pipelineMock.id,
+                    pipelineId: pipelineMock1.id,
                     type: 'pipeline',
                     webhooks: true,
                     username,
@@ -581,6 +608,40 @@ describe('startHookEvent test', () => {
                         }
                     }
                 });
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId: pipelineMock2.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext,
+                    sha,
+                    configPipelineSha: latestSha,
+                    startFrom: '~tag:tag-test-1',
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${username}`,
+                    changedFiles: undefined,
+                    ref: 'tag-test-1',
+                    releaseName: undefined,
+                    meta: {
+                        sd: {
+                            tag: {
+                                name: 'tag-test-1'
+                            }
+                        }
+                    }
+                });
+
+                const eventFactoryCreateArgs = [
+                    eventFactoryMock.create.getCall(0).args[0],
+                    eventFactoryMock.create.getCall(1).args[0]
+                ];
+
+                assert.notStrictEqual(eventFactoryCreateArgs[0].meta, eventFactoryCreateArgs[1].meta);
+
+                eventFactoryCreateArgs[0].meta.parameters = 'params-0';
+                eventFactoryCreateArgs[1].meta.parameters = 'params-1';
+                assert.strictEqual(eventFactoryCreateArgs[0].meta.parameters, 'params-0');
+                assert.strictEqual(eventFactoryCreateArgs[1].meta.parameters, 'params-1');
             });
         });
 
@@ -789,23 +850,49 @@ describe('startHookEvent test', () => {
         });
 
         it('returns 201 on success on a regular expression', () => {
-            const releaseWorkflowMock = {
+            const releaseWorkflowMock1 = {
                 nodes: [{ name: '~release:/^release-test-/' }, { name: 'main' }],
                 edges: [{ src: '~release:/^release-test-/', dest: 'main' }]
             };
+            const releaseWorkflowMock2 = {
+                nodes: [{ name: '~release:/^.*$/' }, { name: 'main' }],
+                edges: [{ src: '~release:/^.*$/', dest: 'main' }]
+            };
+
+            const pipelineMock1 = getPipelineMocks({
+                id: 'pipelineHash1',
+                scmUri: 'github.com:123456:master',
+                annotations: {},
+                admins: {
+                    baxterthehacker: false
+                },
+                workflowGraph: releaseWorkflowMock1,
+                branch: Promise.resolve('master'),
+                jobs: Promise.resolve([mainJobMock])
+            });
+            const pipelineMock2 = getPipelineMocks({
+                id: 'pipelineHash2',
+                scmUri: 'github.com:123456:master',
+                annotations: {},
+                admins: {
+                    baxterthehacker: false
+                },
+                workflowGraph: releaseWorkflowMock2,
+                branch: Promise.resolve('master'),
+                jobs: Promise.resolve([mainJobMock])
+            });
+
+            pipelineFactoryMock.list.resolves([pipelineMock1, pipelineMock2]);
 
             parsed.releaseName = 'release-test-1';
-
-            pipelineMock.workflowGraph = releaseWorkflowMock;
-            pipelineMock.jobs = Promise.resolve([mainJobMock]);
-            pipelineFactoryMock.list.resolves([pipelineMock]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                 assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
+
                 assert.calledWith(eventFactoryMock.create, {
-                    pipelineId: pipelineMock.id,
+                    pipelineId: pipelineMock1.id,
                     type: 'pipeline',
                     webhooks: true,
                     username,
@@ -831,6 +918,45 @@ describe('startHookEvent test', () => {
                         }
                     }
                 });
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId: pipelineMock2.id,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext,
+                    sha,
+                    configPipelineSha: latestSha,
+                    startFrom: '~release:release-test-1',
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${username}`,
+                    changedFiles: undefined,
+                    releaseName: 'release-test-1',
+                    ref: 'v0.0.1',
+                    meta: {
+                        sd: {
+                            release: {
+                                id: 123456,
+                                name: 'release-test-1',
+                                author: 'testuser'
+                            },
+                            tag: {
+                                name: 'v0.0.1'
+                            }
+                        }
+                    }
+                });
+
+                const eventFactoryCreateArgs = [
+                    eventFactoryMock.create.getCall(0).args[0],
+                    eventFactoryMock.create.getCall(1).args[0]
+                ];
+
+                assert.notStrictEqual(eventFactoryCreateArgs[0].meta, eventFactoryCreateArgs[1].meta);
+
+                eventFactoryCreateArgs[0].meta.parameters = 'params-0';
+                eventFactoryCreateArgs[1].meta.parameters = 'params-1';
+                assert.strictEqual(eventFactoryCreateArgs[0].meta.parameters, 'params-0');
+                assert.strictEqual(eventFactoryCreateArgs[1].meta.parameters, 'params-1');
             });
         });
 
@@ -1099,6 +1225,13 @@ describe('startHookEvent test', () => {
                 assert.notStrictEqual(eventFactoryCreateArgs[1].meta, eventFactoryCreateArgs[2].meta);
                 assert.notStrictEqual(eventFactoryCreateArgs[2].meta, eventFactoryCreateArgs[0].meta);
 
+                eventFactoryCreateArgs[0].meta.parameters = 'params-0';
+                eventFactoryCreateArgs[1].meta.parameters = 'params-1';
+                eventFactoryCreateArgs[2].meta.parameters = 'params-2';
+                assert.strictEqual(eventFactoryCreateArgs[0].meta.parameters, 'params-0');
+                assert.strictEqual(eventFactoryCreateArgs[1].meta.parameters, 'params-1');
+                assert.strictEqual(eventFactoryCreateArgs[2].meta.parameters, 'params-2');
+
                 assert.neverCalledWith(
                     eventFactoryMock.create,
                     sinon.match({
@@ -1189,6 +1322,11 @@ describe('startHookEvent test', () => {
                 ];
 
                 assert.notStrictEqual(eventFactoryCreateArgs[0].meta, eventFactoryCreateArgs[1].meta);
+
+                eventFactoryCreateArgs[0].meta.parameters = 'params-0';
+                eventFactoryCreateArgs[1].meta.parameters = 'params-1';
+                assert.strictEqual(eventFactoryCreateArgs[0].meta.parameters, 'params-0');
+                assert.strictEqual(eventFactoryCreateArgs[1].meta.parameters, 'params-1');
 
                 assert.neverCalledWith(
                     eventFactoryMock.create,
