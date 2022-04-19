@@ -78,7 +78,7 @@
     "@hapi/hoek": "^9.1.1",
     "@hapi/inert": "^6.0.4",
     "@hapi/vision": "^6.1.0",
-    "@promster/hapi": "^4.2.1",
+    "@promster/hapi": "^6.1.0",
     "async": "^3.2.2",
     "badge-maker": "^3.3.1",
     "config": "^1.31.0",

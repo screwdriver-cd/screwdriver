@@ -16,7 +16,7 @@ module.exports = {
         server.route({
             method: 'GET',
             path: '/metrics',
-            handler: (_, h) => h.response(getSummary()),
+            handler: async (_, h) => h.response(await getSummary()),
             config: {
                 plugins: {
                     'hapi-rate-limit': {
