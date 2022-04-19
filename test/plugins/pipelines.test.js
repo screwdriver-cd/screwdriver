@@ -3549,15 +3549,17 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 404 when branch name is incorrect', () => {
-            const testError = new Error('Not Found');
+            const testError = new Error('Branch not found');
 
             testError.statusCode = 404;
+
+            userFactoryMock.scm.openPr.rejects(testError);
 
             userMock.getPermissions.withArgs(scmUri).rejects(testError);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
-                assert.equal(reply.result.message, 'Not Found');
+                assert.equal(reply.result.message, 'Branch not found');
             });
         });
 
