@@ -422,8 +422,7 @@ async function createPREvents(options, request) {
         restrictPR,
         chainPR,
         ref,
-        releaseName,
-        meta
+        releaseName
     } = options;
     const { scm } = request.server.app.pipelineFactory;
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
@@ -525,7 +524,6 @@ async function createPREvents(options, request) {
                         changedFiles,
                         baseBranch: branch,
                         causeMessage: `Merged by ${username}`,
-                        meta,
                         releaseName,
                         ref,
                         subscribedEvent: true,
@@ -800,7 +798,6 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
         scmContext
     };
     const { restrictPR, chainPR } = pluginOptions;
-    const meta = createMeta(parsed);
 
     request.log(['webhook', hookId], `PR #${prNum} ${action} for ${fullCheckoutUrl}`);
 
@@ -842,8 +839,7 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
                 chainPR,
                 pipelines,
                 ref,
-                releaseName,
-                meta
+                releaseName
             };
 
             await batchUpdateAdmins({ userFactory, pipelines, username, scmContext, pipelineFactory });
@@ -887,7 +883,6 @@ async function createEvents(
     scmConfigFromHook
 ) {
     const { action, branch, sha, username, scmContext, changedFiles, type, releaseName, ref } = parsed;
-    const meta = createMeta(parsed);
 
     const pipelineTuples = await Promise.all(
         pipelines.map(async p => {
@@ -971,7 +966,7 @@ async function createEvents(
                     changedFiles,
                     baseBranch: branch,
                     causeMessage: `Merged by ${username}`,
-                    meta,
+                    meta: createMeta(parsed),
                     releaseName,
                     ref
                 };
