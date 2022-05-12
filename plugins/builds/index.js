@@ -1048,16 +1048,17 @@ const buildsPlugin = {
 
                 if (isCurrentPipeline) {
                     for (const nextJobName of Object.keys(pipelineJoinData[pid].jobs)) {
+                        const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
+                        let lock;
+
                         try {
                             const { isExternal } = pipelineJoinData[pid].jobs[nextJobName];
 
                             triggerCurrentPipelineAsExternal = triggerCurrentPipelineAsExternal || isExternal;
                             if (!isExternal) {
-                                const resource = `pipeline:${current.pipeline.id}:event:${current.event.id}`;
-                                const lock = await locker.lock(resource);
+                                lock = await locker.lock(resource);
 
                                 await triggerNextJobInSamePipeline(nextJobName, pipelineJoinData[pid].jobs);
-                                await locker.unlock(lock, resource);
                             }
                         } catch (err) {
                             logger.error(
@@ -1065,32 +1066,36 @@ const buildsPlugin = {
                                 err
                             );
                         }
+
+                        await locker.unlock(lock, resource);
                     }
                 }
                 if (triggerCurrentPipelineAsExternal || !isCurrentPipeline) {
+                    let resource;
+                    let lock;
+
                     try {
                         if (isCurrentPipeline) {
                             // force external trigger for jobs in same pipeline if user used external trigger syntax
                             delete pipelineJoinData[pid].event;
                         }
                         const extEvent = pipelineJoinData[pid].event;
-                        let lock;
-                        let resource;
 
                         // no need to lock if there is no external event
                         if (extEvent) {
-                            resource = `pipeline:${pid}:event:${pipelineJoinData[pid].event.id}`;
+                            resource = `pipeline:${pid}:event:${extEvent.id}`;
                             lock = await locker.lock(resource);
                         }
 
                         await triggerJobsInExternalPipeline(pid, pipelineJoinData[pid]);
-                        await locker.unlock(lock, resource);
                     } catch (err) {
                         logger.error(
                             `Error in triggerJobsInExternalPipeline:${pid} from pipeline:${current.pipeline.id}-${current.job.name}-event:${current.event.id} `,
                             err
                         );
                     }
+
+                    await locker.unlock(lock, resource);
                 }
             }
 

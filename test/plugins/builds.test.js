@@ -1970,6 +1970,55 @@ describe('build plugin test', () => {
                         assert.calledOnce(buildC.start);
                     });
                 });
+
+                describe('redis lock', () => {
+                    after(() => {
+                        lockMock.lock = sinon.stub();
+                        lockMock.unlock = sinon.stub();
+                    });
+
+                    beforeEach(() => {
+                        eventMock.workflowGraph = {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'c' },
+                                { src: 'b', dest: 'c' }
+                            ]
+                        };
+                    });
+
+                    it('unlock redis lock when trigger job succeeds', () => {
+                        lockMock.lock = sinon.stub();
+                        lockMock.unlock = sinon.stub();
+
+                        return server.inject(options).then(() => {
+                            const { lock, unlock } = lockMock;
+
+                            assert.calledOnce(lock);
+                            assert.calledOnce(unlock);
+                        });
+                    });
+
+                    it('unlock redis lock when trigger job fails', () => {
+                        lockMock.lock = sinon.stub().rejects();
+                        lockMock.unlock = sinon.stub();
+
+                        return server.inject(options).then(() => {
+                            const { lock, unlock } = lockMock;
+
+                            assert.calledOnce(lock);
+                            assert.calledOnce(unlock);
+                        });
+                    });
+                });
             });
 
             describe('join new flow', () => {
@@ -3778,6 +3827,9 @@ describe('build plugin test', () => {
                     });
                 });
                 it('delete join build if it was created before, and parent has some failures', () => {
+                    const localOptions = hoek.clone(options);
+
+                    localOptions.payload.status = 'FAILURE';
                     eventMock.workflowGraph.nodes = [
                         { name: '~pr' },
                         { name: '~commit' },
@@ -3795,8 +3847,6 @@ describe('build plugin test', () => {
                         { src: 'a', dest: 'e', join: true },
                         { src: 'd', dest: 'e', join: true }
                     ];
-
-                    options.payload.status = 'FAILURE';
 
                     const buildC = {
                         jobId: 3,
@@ -3844,10 +3894,68 @@ describe('build plugin test', () => {
                     buildFactoryMock.get.withArgs({ jobId: 3, eventId: '8888' }).resolves(buildC);
                     buildFactoryMock.get.withArgs({ jobId: 5, eventId: '8888' }).resolves(buildE);
 
-                    return newServer.inject(options).then(() => {
+                    return newServer.inject(localOptions).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.remove);
                         assert.calledOnce(buildE.remove);
+                    });
+                });
+
+                describe('redis lock', () => {
+                    after(() => {
+                        lockMock.lock = sinon.stub();
+                        lockMock.unlock = sinon.stub();
+                    });
+
+                    beforeEach(() => {
+                        eventFactoryMock.create.resolves({
+                            id: 2,
+                            builds: externalEventBuilds,
+                            getBuilds: sinon.stub().resolves(externalEventBuilds)
+                        });
+                        buildFactoryMock.get.withArgs(555).resolves({ id: 1234, status: 'SUCCESS' });
+                        eventMock.workflowGraph = {
+                            nodes: [
+                                { name: '~pr' },
+                                { name: '~commit' },
+                                { name: 'a', id: 1 },
+                                { name: 'b', id: 2 },
+                                { name: 'c', id: 3 },
+                                { name: 'sd@2:a', id: 4 }
+                            ],
+                            edges: [
+                                { src: '~pr', dest: 'a' },
+                                { src: '~commit', dest: 'a' },
+                                { src: 'a', dest: 'b' },
+                                { src: 'b', dest: 'c', join: true },
+                                { src: 'a', dest: 'sd@2:a' },
+                                { src: 'sd@2:a', dest: 'c', join: true }
+                            ]
+                        };
+                    });
+
+                    it('unlock redis lock when trigger job succeeds', () => {
+                        lockMock.lock = sinon.stub();
+                        lockMock.unlock = sinon.stub();
+
+                        return newServer.inject(options).then(() => {
+                            const { lock, unlock } = lockMock;
+
+                            assert.calledOnce(lock);
+                            assert.calledTwice(unlock);
+                        });
+                    });
+
+                    it('unlock redis lock when trigger job fails', () => {
+                        lockMock.lock = sinon.stub().rejects();
+                        lockMock.unlock = sinon.stub();
+
+                        return newServer.inject(options).then(() => {
+                            const { lock, unlock } = lockMock;
+
+                            assert.calledOnce(lock);
+                            assert.calledTwice(unlock);
+                        });
                     });
                 });
             });
