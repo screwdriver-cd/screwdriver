@@ -52,14 +52,14 @@ Three (3) options for executor:
  - Nomad (`nomad`)
 
 Three (3) options for SCM:
- - Github (`github`)
- - Gitlab (`gitlab`)
+ - GitHub (`github`)
+ - GitLab (`gitlab`)
  - Bitbucket (`bitbucket`)
 
 ### Prerequisites
 To use Screwdriver, you will need the following prerequisites:
 
-- Node v8.0.0 or higher
+- Node v12.0.0 or higher
 - [Kubernetes][kubectl] or [Docker][docker]
 
 ### From Source

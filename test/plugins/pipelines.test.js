@@ -13,6 +13,7 @@ const testCollection = require('./data/collection.json');
 const gitlabTestPipelines = require('./data/pipelinesFromGitlab.json');
 const testJob = require('./data/job.json');
 const testJobs = require('./data/jobs.json');
+const testStages = require('./data/stages.json');
 const testTriggers = require('./data/triggers.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
@@ -137,6 +138,22 @@ const getSecretsMocks = secrets => {
     return decorateJobMock(secrets);
 };
 
+const decorateStageMock = stage => {
+    const mock = hoek.clone(stage);
+
+    mock.toJson = sinon.stub().returns(stage);
+
+    return mock;
+};
+
+const getStagesMocks = stages => {
+    if (Array.isArray(stages)) {
+        return stages.map(decorateStageMock);
+    }
+
+    return decorateStageMock(stages);
+};
+
 const getUserMock = user => {
     const mock = hoek.clone(user);
 
@@ -170,6 +187,7 @@ describe('pipeline plugin test', () => {
     let tokenFactoryMock;
     let bannerFactoryMock;
     let jobFactoryMock;
+    let stageFactoryMock;
     let triggerFactoryMock;
     let secretFactoryMock;
     let bannerMock;
@@ -223,6 +241,9 @@ describe('pipeline plugin test', () => {
             create: sinon.stub().resolves(null),
             list: sinon.stub().resolves(null)
         };
+        stageFactoryMock = {
+            list: sinon.stub()
+        };
         tokenFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub()
@@ -261,6 +282,7 @@ describe('pipeline plugin test', () => {
         server.app = {
             eventFactory: eventFactoryMock,
             jobFactory: jobFactoryMock,
+            stageFactory: stageFactoryMock,
             triggerFactory: triggerFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             userFactory: userFactoryMock,
@@ -911,6 +933,76 @@ describe('pipeline plugin test', () => {
                 });
                 assert.deepEqual(reply.result, testJobs);
                 assert.equal(reply.statusCode, 200);
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/stages', () => {
+        const id = 123;
+        let options;
+        let pipelineMock;
+        let stagesMocks;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/stages`
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            stagesMocks = getStagesMocks(testStages);
+            stageFactoryMock.list.resolves(stagesMocks);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for getting stages', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: id
+                    }
+                });
+                assert.deepEqual(reply.result, testStages);
+            }));
+
+        it('returns 200 for getting stages with state passed in as query param', () => {
+            options.url = `/pipelines/${id}/stages?state=ARCHIVED`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        state: 'ARCHIVED'
+                    }
+                });
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 400 for passing in string as pipeline id', () => {
+            const stringId = 'test';
+
+            options.url = `/pipelines/${stringId}/stages`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('returns 404 for updating a pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', () => {
+            pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });

@@ -3,33 +3,26 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const { JOB_NAME } = schema.config.regex;
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
-const destSchema = schema.models.trigger.base.extract('dest');
-const triggerListSchema = joi
+const stageListSchema = joi
     .array()
-    .items(
-        joi.object({
-            jobName: JOB_NAME,
-            triggers: joi.array().items(destSchema)
-        })
-    )
-    .label('List of triggers');
+    .items(schema.models.stage.base)
+    .label('List of stages');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/pipelines/{id}/triggers',
+    path: '/pipelines/{id}/stages',
     options: {
-        description: 'Get all triggers for a given pipeline',
-        notes: 'Returns all triggers for a given pipeline',
-        tags: ['api', 'pipelines', 'triggers'],
+        description: 'Get all stages for a given pipeline',
+        notes: 'Returns all stages for a given pipeline',
+        tags: ['api', 'pipelines', 'stages'],
         auth: {
             strategies: ['token'],
             scope: ['user', 'build', 'pipeline']
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory, triggerFactory } = request.server.app;
+            const { pipelineFactory, stageFactory } = request.server.app;
             const pipelineId = request.params.id;
 
             return pipelineFactory
@@ -39,15 +32,23 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    return triggerFactory.getTriggers({ pipelineId });
+                    const config = {
+                        params: { pipelineId }
+                    };
+
+                    if (request.query.state) {
+                        config.params.state = request.query.state;
+                    }
+
+                    return stageFactory.list(config);
                 })
-                .then(triggers => h.response(triggers))
+                .then(stages => h.response(stages.map(s => s.toJson())))
                 .catch(err => {
                     throw err;
                 });
         },
         response: {
-            schema: triggerListSchema
+            schema: stageListSchema
         },
         validate: {
             params: joi.object({
