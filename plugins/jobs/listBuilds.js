@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const jobIdSchema = schema.models.job.base.extract('id');
+const statusSchema = schema.models.build.base.extract('status');
 const buildListSchema = joi
     .array()
     .items(schema.models.build.get)
@@ -23,7 +24,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.jobFactory;
-            const { sort, sortBy, page, count, fetchSteps, readOnly } = request.query;
+            const { sort, sortBy, page, count, fetchSteps, readOnly, status } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -38,6 +39,10 @@ module.exports = () => ({
 
                     if (sortBy) {
                         config.sortBy = sortBy;
+                    }
+
+                    if (status) {
+                        config.status = status;
                     }
 
                     if (page || count) {
@@ -79,7 +84,8 @@ module.exports = () => ({
                         .boolean()
                         .truthy('true')
                         .falsy('false')
-                        .default(true)
+                        .default(true),
+                    status: statusSchema
                 })
             )
         }

@@ -369,7 +369,7 @@ describe('job plugin test', () => {
         });
 
         it('pass in the correct params to getBuilds with all params', () => {
-            options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending&sortBy=id`;
+            options.url = `/jobs/${id}/builds?page=2&count=30&sort=ascending&sortBy=id&status=RUNNING`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -379,7 +379,8 @@ describe('job plugin test', () => {
                         page: 2
                     },
                     sort: 'ascending',
-                    sortBy: 'id'
+                    sortBy: 'id',
+                    status: 'RUNNING'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
