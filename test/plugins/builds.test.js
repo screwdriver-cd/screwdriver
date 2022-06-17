@@ -1471,7 +1471,8 @@ describe('build plugin test', () => {
                 const publishJobMock = {
                     id: publishJobId,
                     pipelineId,
-                    state: 'ENABLED'
+                    state: 'ENABLED',
+                    parsePRJobName: sinon.stub().returns('publish')
                 };
 
                 beforeEach(() => {
@@ -1511,6 +1512,7 @@ describe('build plugin test', () => {
 
                     jobMock.name = 'PR-15:main';
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves({ state: 'ENABLED' });
 
                     // flag should be true in chainPR events
                     pipelineMock.chainPR = true;
@@ -1535,6 +1537,45 @@ describe('build plugin test', () => {
                         });
                         // Events should not be created if there is no external pipeline
                         assert.notCalled(eventFactoryMock.create);
+                    });
+                });
+
+                it('triggers a PR job with no original job.', () => {
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username,
+                                scmContext,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    eventMock.pr = {
+                        ref: 'pull/15/merge',
+                        prSource: 'branch',
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
+
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(null);
+
+                    // flag should be true in chainPR events
+                    pipelineMock.chainPR = true;
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledOnce(buildFactoryMock.create);
                     });
                 });
 
@@ -1626,6 +1667,45 @@ describe('build plugin test', () => {
                         assert.notCalled(buildFactoryMock.create);
                     });
                 });
+
+                it('skips triggering if next job is a PR and its original disabled', () => {
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username,
+                                scmContext,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    eventMock.pr = {
+                        ref: 'pull/15/merge',
+                        prSource: 'branch',
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
+
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves({ state: 'DISABLED' });
+
+                    // flag should be true in chainPR events
+                    pipelineMock.chainPR = true;
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.notCalled(buildFactoryMock.create);
+                    });
+                });
             });
 
             describe('join', () => {
@@ -1647,9 +1727,14 @@ describe('build plugin test', () => {
                 const jobB = {
                     id: 2,
                     pipelineId,
-                    state: 'ENABLED'
+                    state: 'ENABLED',
+                    parsePRJobName: sinon.stub().returns('b')
                 };
-                const jobC = { ...jobB, id: 3 };
+                const jobC = {
+                    ...jobB,
+                    id: 3,
+                    parsePRJobName: sinon.stub().returns('c')
+                };
                 let buildMocks;
                 let jobBconfig;
                 let jobCconfig;
@@ -1857,7 +1942,9 @@ describe('build plugin test', () => {
                         url: 'https://github.com/screwdriver-cd/ui/pull/292'
                     };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves({ state: 'ENABLED' });
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves({ state: 'ENABLED' });
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
                     jobBconfig.prSource = 'branch';
@@ -2041,7 +2128,8 @@ describe('build plugin test', () => {
                 const jobB = {
                     id: 2,
                     pipelineId,
-                    state: 'ENABLED'
+                    state: 'ENABLED',
+                    parsePRJobName: sinon.stub().returns('b')
                 };
                 const jobC = {
                     ...jobB,
@@ -2055,7 +2143,8 @@ describe('build plugin test', () => {
                                 3: { eventId: 456, jobs: { a: 12345, b: 2345 } }
                             }
                         })
-                    )
+                    ),
+                    parsePRJobName: sinon.stub().returns('c')
                 };
                 const externalEventBuilds = [
                     {
@@ -3094,7 +3183,9 @@ describe('build plugin test', () => {
                     pipelineMock.chainPR = true;
                     eventMock.pr = { ref: 'pull/15/merge' };
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:b' }).resolves(jobB);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves({ state: 'ENABLED' });
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:c' }).resolves(jobC);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves({ state: 'ENABLED' });
                     jobMock.name = 'PR-15:a';
                     jobBconfig.prRef = 'pull/15/merge';
                     jobCconfig.prRef = 'pull/15/merge';

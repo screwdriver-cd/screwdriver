@@ -288,7 +288,21 @@ async function createInternalBuild(config) {
         baseBranch
     };
 
-    if (job.state === 'ENABLED') {
+    let jobState = job.state;
+
+    if (prRef) {
+        // Whether a job is enabled is determined by the state of the original job.
+        // If the original job does not exist, it will be enabled.
+        const originalJobName = job.parsePRJobName('job');
+        const originalJob = await jobFactory.get({
+            name: originalJobName,
+            pipelineId
+        });
+
+        jobState = originalJob ? originalJob.state : 'ENABLED';
+    }
+
+    if (jobState === 'ENABLED') {
         return buildFactory.create(internalBuildConfig);
     }
 
