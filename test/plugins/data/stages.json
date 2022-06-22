@@ -1,0 +1,20 @@
+[
+    {
+        "pipelineId": 12345,
+        "name": "setup",
+        "jobIds": [1, 2, 3, 4],
+        "state": "ACTIVE"
+    },
+    {
+        "pipelineId": 12345,
+        "name": "deploy",
+        "jobIds": [5, 6, 7],
+        "state": "ACTIVE"
+    },
+    {
+        "pipelineId": 12345,
+        "name": "test",
+        "jobIds": [],
+        "state": "ARCHIVED"
+    }
+]

@@ -12,6 +12,7 @@ const listRoute = require('./list');
 const badgeRoute = require('./badge');
 const jobBadgeRoute = require('./jobBadge');
 const listJobsRoute = require('./listJobs');
+const listStagesRoute = require('./listStages');
 const listTriggersRoute = require('./listTriggers');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
@@ -177,6 +178,7 @@ const pipelinesPlugin = {
             badgeRoute({ statusColor }),
             jobBadgeRoute({ statusColor }),
             listJobsRoute(),
+            listStagesRoute(),
             listTriggersRoute(),
             listSecretsRoute(),
             listEventsRoute(),
