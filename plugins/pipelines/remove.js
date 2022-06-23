@@ -29,10 +29,10 @@ module.exports = () => ({
                     if (!pipeline) {
                         throw boom.notFound('Pipeline does not exist');
                     }
-                    if (pipeline.configPipelineId) {
+                    if (pipeline.configPipelineId && pipeline.state !== 'INACTIVE') {
                         throw boom.forbidden(
                             'Child pipeline can only be removed' +
-                                `by modifying scmUrls in config pipeline ${pipeline.configPipelineId}`
+                                ` after removing it from scmUrls in config pipeline ${pipeline.configPipelineId}`
                         );
                     }
                     if (!user) {
