@@ -3,7 +3,7 @@
 
 ## Context
 
-Current screwdriver reacts and send user notification based on single job's status from given pipeline, and it lacks of way of reacting to a group of jobs status changes. For example, 
+Current Screwdriver reacts and send user notifications based on single job's status from a given pipeline, and it lacks of way of reacting to a group of jobs' status changes. For example, 
 
 ```
 Pipeline1: 
@@ -13,7 +13,7 @@ Pipeline1:
         -> [jobD, jobE]
 ```
 
-We can get notifaction from any individual jobs of `A,B,C,D,E`, but there's no way to get notification when both job B and C finishes, and there's no way to get notification when all jobs `A,B,C,D,E` finishes. Users can setup an "end job" to make sure that is the downstream job, i.e. `jobF`
+We can get notifications from any individual jobs `A,B,C,D,E`, but there's no way to get notifications when both job B and C finish, and there's no way to get notifications when all jobs `A,B,C,D,E` finish. Users can setup an "end job" to make sure that is the downstream job, i.e. `jobF`
 
 ```
 Pipeline1: 
@@ -23,18 +23,18 @@ Pipeline1:
         -> [jobD, jobE]/
 ```
 
-So, when `jobF` statu's changed, users will get a notification, which implys all jobs `A,B,C,D,E`'s statuses were updated.
+So, when `jobF`'s status changes, users will get a notification, which implies all jobs `A,B,C,D,E`'s statuses were updated.
 
 
 ## Proposal
 
-We see this as an unpleased developer experience issue and propose to add a notion of "stage" into the pipeline. 
+We see this as an unpleasant developer experience issue and propose to add a notion of "stage" into the pipeline. 
 
-So users can 
+So users can:
 
 1) Create logical groupings with jobs
-2) See visual aid on UI to reflect these groupings
-3) Emiliate the need of creating a single dangling job for notification purposes.
+2) See visual aids on the UI to reflect these groupings
+3) Eliminate the need to create a single dangling job for notification purposes
 
 
 ### Terminology & Definitions
@@ -51,7 +51,7 @@ Stage's definition is scoped to an event.
 
 Stages must be defined in the screwdriver.yaml at the Source Directory level, and PR events do not have a notion of stages.
 
-The current/ latest pipeline stage's are defined in the latest commit of Source Directory, if there's an event associated with it. For pipelines without any events, the stages are null even though the SCM has corresponding stages definition in the screwdriver.yaml.
+The current/latest pipeline stages are defined in the latest commit of Source Directory, if there's an event associated with it. For pipelines without any events, the stages are null even though the SCM has corresponding stage definition in the screwdriver.yaml.
 
 ### Usage
 
@@ -82,13 +82,14 @@ stages:
     # description: optional
     # color: optional
 ```
+
 #### Attributes
 
 description: optional, a string of text to describe what this stage is. 
 
-color: optional, a hex presentation of color value for this stage to be displayed on the UI, if not present, UI will present its color in the default [color sequence](NEED to updat the link). 
+color: optional, a hex presentation of color value for this stage to be displayed on the UI, if not present, UI will present its color in the default [color sequence](NEED to update the link). 
 
-
+jobs: list of job names that belong to a stage; one job should not be in multiple stages
 
 ## Details
 
@@ -96,10 +97,10 @@ Stage Table
 
 | id |jobIds | name | eventId |pipelineId | Other metadata|
 |---|---|---|---|---|---|
-|1|[1,3,4](jobIds dont change) | canary |null | p1| {color: description:, etc,.}|
+|1|[1,3,4](jobIds dont change) |canary |null |p1| {color: description:, etc,.}|
 |2|[p2_1,p2_3](jobIds dont change) |canary|e1 |p2 | {color: description:, etc,.}|
 |3|[1,3,4] (jobIds dont change)|production|null|p1| {color: description:, etc,.}|
-|4|[1,3,4] (jobIds dont change)|production|e2| p1|  {color: description:, etc,.}|
+|4|[1,3,4] (jobIds dont change)|production|e2|p1|  {color: description:, etc,.}|
 
 `Event` and `Pipeline` table can reference the Stage table's eventId and pipelineId column to retrieve data.
 
@@ -116,7 +117,7 @@ So, we have the following API exposed:
 
 `pipelines/:id/stages` 
 
-The stage from the particular event of a given pipeline
+The stage from the particular event of a given pipeline:
 
 `pipelines/:id/events/:eventId/stages`
 
