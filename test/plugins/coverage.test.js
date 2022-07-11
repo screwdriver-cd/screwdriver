@@ -4,6 +4,7 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const mockery = require('mockery');
+const { BookendInterface } = require('screwdriver-build-bookend');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -29,6 +30,14 @@ describe('coverage plugin test', () => {
 
     beforeEach(async () => {
         mockCoveragePlugin = {
+            config: {
+                sdApiUrl: 'http://cd.screwdriver.cd:9000',
+                sdUiUrl: 'http://cd.screwdriver.cd:9001',
+                sonarHost: '',
+                adminToken: '',
+                sonarEnterprise: false,
+                sonarGitAppName: 'test'
+            },
             getAccessToken: sinon.stub().resolves('faketoken'),
             getInfo: sinon.stub()
         };
@@ -38,6 +47,14 @@ describe('coverage plugin test', () => {
         pipelineFactoryMock = {
             get: sinon.stub()
         };
+
+        class CoverageBookendMock extends BookendInterface {
+            constructor() {
+                super();
+                this.coveragePlugin = mockCoveragePlugin;
+            }
+        }
+        mockery.registerMock('screwdriver-coverage-bookend', CoverageBookendMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/coverage');
@@ -125,6 +142,23 @@ describe('coverage plugin test', () => {
         it('returns 200 with projectKey and username and projectName', () => {
             options.url =
                 '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(mockCoveragePlugin.getAccessToken, {
+                    scope: 'job',
+                    buildCredentials: credentials,
+                    projectKey: 'job:123',
+                    projectName: 'd2lam/test:main',
+                    username: 'user-job-123'
+                });
+            });
+        });
+
+        it('returns 200 with projectKey and username and projectName and selfSonarHost and selfSonarAdminToken', () => {
+            options.url =
+                '/coverage/token?projectKey=job:123&username=user-job-123&scope=job&projectName=d2lam/test:main&selfSonarHost=http://mySonar&selfSonarAdminToken=faketoken';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
