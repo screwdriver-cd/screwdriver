@@ -939,15 +939,20 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/stages', () => {
         const id = 123;
+        const groupEventId = 222;
+        const eventId = 555;
         let options;
         let pipelineMock;
         let stagesMocks;
+        let events;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/stages`
             };
+            events = getEventsMocks(testEvents);
+            eventFactoryMock.list.resolves(events);
             pipelineMock = getPipelineMocks(testPipeline);
             stagesMocks = getStagesMocks(testStages);
             stageFactoryMock.list.resolves(stagesMocks);
@@ -959,21 +964,52 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
-                        pipelineId: id
+                        pipelineId: id,
+                        groupEventId
+                    }
+                });
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        parentEventId: null,
+                        type: 'pipeline'
+                    },
+                    paginate: {
+                        count: 1
                     }
                 });
                 assert.deepEqual(reply.result, testStages);
             }));
 
-        it('returns 200 for getting stages with state passed in as query param', () => {
-            options.url = `/pipelines/${id}/stages?state=ARCHIVED`;
+        it('returns 200 for getting stages with eventId passed in as query param', () => {
+            options.url = `/pipelines/${id}/stages?eventId=${eventId}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        id: eventId
+                    }
+                });
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        groupEventId
+                    }
+                });
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 for getting stages with groupEventId passed in as query param', () => {
+            options.url = `/pipelines/${id}/stages?groupEventId=${groupEventId}`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        state: 'ARCHIVED'
+                        groupEventId
                     }
                 });
                 assert.deepEqual(reply.result, testStages);
@@ -990,11 +1026,46 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 404 for updating a pipeline that does not exist', () => {
+        it('returns 404 for getting a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 for getting an event that does not exist', () => {
+            eventFactoryMock.list.resolves(null);
+
+            options.url = `/pipelines/${id}/stages?eventId=${eventId}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        id: eventId
+                    }
+                });
+                assert.notCalled(stageFactoryMock.list);
+            });
+        });
+
+        it('returns 404 for getting the latest commit event that does not exist', () => {
+            eventFactoryMock.list.resolves([]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        parentEventId: null,
+                        type: 'pipeline'
+                    },
+                    paginate: {
+                        count: 1
+                    }
+                });
+                assert.notCalled(stageFactoryMock.list);
             });
         });
 

@@ -36,5 +36,6 @@
         "url": "https://github.com/stjohn",
         "username": "stjohn"
     },
-    "baseBranch": "master"
+    "baseBranch": "master",
+    "groupEventId": 222
 }]
