@@ -18,7 +18,7 @@ const testTriggers = require('./data/triggers.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
-const testEvents = require('./data/events.json');
+const testEvents = require('./data/eventsWithGroupEventId.json');
 const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
 
