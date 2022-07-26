@@ -495,7 +495,13 @@ describe('startHookEvent test', () => {
             pipelineMock.workflowGraph = workflowGraph;
             pipelineMock.jobs = Promise.resolve([mainJobMock, jobMock]);
             pipelineFactoryMock.list
-                .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                .withArgs({
+                    search: {
+                        field: 'subscribedScmUrlsWithActions',
+                        keyword: `%${scmRepoId}:%`
+                    },
+                    params: { state: 'ACTIVE' }
+                })
                 .resolves([pipelineMock]);
             pipelineFactoryMock.list.resolves([pipelineMock]);
         });
@@ -514,7 +520,8 @@ describe('startHookEvent test', () => {
                 assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                 assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                 assert.calledWith(pipelineFactoryMock.list, {
-                    search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    search: { field: 'scmUri', keyword: 'github.com:123456:%' },
+                    params: { state: 'ACTIVE' }
                 });
                 assert.calledWith(eventFactoryMock.create, {
                     pipelineId: pipelineMock.id,
@@ -583,7 +590,8 @@ describe('startHookEvent test', () => {
                 assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                 assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                 assert.calledWith(pipelineFactoryMock.list, {
-                    search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    search: { field: 'scmUri', keyword: 'github.com:123456:%' },
+                    params: { state: 'ACTIVE' }
                 });
 
                 assert.calledWith(eventFactoryMock.create, {
@@ -659,7 +667,8 @@ describe('startHookEvent test', () => {
                 assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                 assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                 assert.calledWith(pipelineFactoryMock.list, {
-                    search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    search: { field: 'scmUri', keyword: 'github.com:123456:%' },
+                    params: { state: 'ACTIVE' }
                 });
                 assert.calledWith(eventFactoryMock.create, {
                     pipelineId: pipelineMock.id,
@@ -702,7 +711,8 @@ describe('startHookEvent test', () => {
                 assert.calledOnce(pipelineFactoryMock.scm.getCommitRefSha);
                 assert.calledWith(pipelineFactoryMock.scm.getCommitRefSha, sinon.match({ refType: 'tags' }));
                 assert.calledWith(pipelineFactoryMock.list, {
-                    search: { field: 'scmUri', keyword: 'github.com:123456:%' }
+                    search: { field: 'scmUri', keyword: 'github.com:123456:%' },
+                    params: { state: 'ACTIVE' }
                 });
                 assert.calledWith(eventFactoryMock.create, {
                     pipelineId: pipelineMock.id,
@@ -1160,7 +1170,10 @@ describe('startHookEvent test', () => {
 
             pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2, pMock3]);
             pipelineFactoryMock.list
-                .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                    params: { state: 'ACTIVE' }
+                })
                 .resolves([]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
@@ -1278,7 +1291,10 @@ describe('startHookEvent test', () => {
             pipelineFactoryMock.scm.getChangedFiles.resolves(['lib/test.js']);
             pipelineFactoryMock.list.resolves([pipelineMock, pMock1, pMock2]);
             pipelineFactoryMock.list
-                .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                    params: { state: 'ACTIVE' }
+                })
                 .resolves([]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
@@ -1391,7 +1407,10 @@ describe('startHookEvent test', () => {
                 .resolves('github.com:789123:master');
             pipelineFactoryMock.list.resolves([]);
             pipelineFactoryMock.list
-                .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' } })
+                .withArgs({
+                    search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
+                    params: { state: 'ACTIVE' }
+                })
                 .resolves([pipelineMock]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
@@ -1927,7 +1946,8 @@ describe('startHookEvent test', () => {
                 };
                 pipelineFactoryMock.list
                     .withArgs({
-                        search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' }
+                        search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
+                        params: { state: 'ACTIVE' }
                     })
                     .resolves([pipelineMock]);
                 eventFactoryMock.scm.getPrInfo.resolves({
@@ -2369,7 +2389,10 @@ describe('startHookEvent test', () => {
                 const abortMsg = 'Aborted because new commit was pushed to PR#1';
 
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({
+                        search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                        params: { state: 'ACTIVE' }
+                    })
                     .resolves([]);
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
@@ -2581,7 +2604,10 @@ describe('startHookEvent test', () => {
 
             it('returns 200 on success', () => {
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({
+                        search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                        params: { state: 'ACTIVE' }
+                    })
                     .resolves([]);
 
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
@@ -2602,7 +2628,10 @@ describe('startHookEvent test', () => {
 
             it('stops running builds', () => {
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({
+                        search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                        params: { state: 'ACTIVE' }
+                    })
                     .resolves([]);
 
                 return startHookEvent(request, responseHandler, parsed).then(() => {
@@ -2618,7 +2647,10 @@ describe('startHookEvent test', () => {
             it('throws error when failed', () => {
                 jobMock.update.rejects(new Error('Failed to update'));
                 pipelineFactoryMock.list
-                    .withArgs({ search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` } })
+                    .withArgs({
+                        search: { field: 'subscribedScmUrlsWithActions', keyword: `%${scmRepoId}:%` },
+                        params: { state: 'ACTIVE' }
+                    })
                     .resolves([]);
 
                 return startHookEvent(request, responseHandler, parsed)
