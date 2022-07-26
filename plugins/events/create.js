@@ -117,6 +117,8 @@ module.exports = () => ({
 
             if (!pipeline) {
                 throw boom.notFound();
+            } else if (pipeline.state === 'INACTIVE') {
+                throw boom.badRequest('Cannot create an event for an inactive pipeline');
             }
 
             payload.scmContext = pipeline.scmContext;
