@@ -2592,7 +2592,8 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.list, {
                     params: {
-                        configPipelineId: pipelineMock.id
+                        configPipelineId: pipelineMock.id,
+                        state: 'ACTIVE'
                     }
                 });
                 assert.calledThrice(pipelineFactoryMock.scm.getCommitSha);
