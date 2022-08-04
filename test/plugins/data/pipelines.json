@@ -27,8 +27,8 @@
         "scmContext": "github:github.com",
         "createTime": "2038-01-19T03:14:08.131Z",
         "admins": {
-            "d2lam": true,
-            "state": "ACTIVE"
-        }
+            "d2lam": true
+        },
+        "state": "ACTIVE"
     }
 ]
