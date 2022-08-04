@@ -7,7 +7,8 @@
         "admins": {
             "stjohn": true
         },
-        "lastEventId": 456
+        "lastEventId": 456,
+        "state": "ACTIVE"
     },
     {
         "id": 124,
@@ -17,7 +18,8 @@
         "admins": {
             "tkyi": true
         },
-        "lastEventId": 789
+        "lastEventId": 789,
+        "state": "ACTIVE"
     },
     {
         "id": 125,
@@ -26,6 +28,7 @@
         "createTime": "2038-01-19T03:14:08.131Z",
         "admins": {
             "d2lam": true
-        }
+        },
+        "state": "ACTIVE"
     }
 ]

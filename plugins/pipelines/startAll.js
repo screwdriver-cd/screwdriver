@@ -36,7 +36,8 @@ module.exports = () => ({
 
             const pipelines = await pipelineFactory.list({
                 params: {
-                    configPipelineId: id
+                    configPipelineId: id,
+                    state: 'ACTIVE'
                 }
             });
 
