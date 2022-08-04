@@ -13,7 +13,8 @@
         "admins": {
             "stjohn": true
         },
-        "lastEventId": 456
+        "lastEventId": 456,
+        "state": "ACTIVE"
     },
     {
         "id": 124,
@@ -32,7 +33,8 @@
         "settings": {
             "public": true
         },
-        "lastEventId": 789
+        "lastEventId": 789,
+        "state": "ACTIVE"
     },
     {
         "id": 125,
@@ -41,7 +43,8 @@
         "createTime": "2038-01-19T03:14:08.131Z",
         "admins": {
             "d2lam": true
-        }
+        },
+        "state": "ACTIVE"
     },
     {
         "id": 126,
@@ -57,6 +60,7 @@
         "admins": {
             "foo": true
         },
-        "lastEventId": 789
+        "lastEventId": 789,
+        "state": "ACTIVE"
     }
 ]
