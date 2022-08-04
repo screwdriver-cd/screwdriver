@@ -746,6 +746,7 @@ describe('pipeline plugin test', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testPipeline);
+            pipeline.state = 'ACTIVE';
             pipeline.remove.resolves(null);
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
@@ -791,11 +792,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the pipeline is child pipeline', () => {
+        it('returns 403 when the pipeline is active child pipeline', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Child pipeline can only be removed after removing it from scmUrls in config pipeline 123'
+            };
+
             pipeline.configPipelineId = 123;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 204 when inactive child pipeline is successfully deleted', () => {
+            pipeline.configPipelineId = 123;
+            pipeline.state = 'INACTIVE';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
             });
         });
 
@@ -2600,7 +2616,8 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.list, {
                     params: {
-                        configPipelineId: pipelineMock.id
+                        configPipelineId: pipelineMock.id,
+                        state: 'ACTIVE'
                     }
                 });
                 assert.calledThrice(pipelineFactoryMock.scm.getCommitSha);
