@@ -1554,6 +1554,14 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 204);
             }));
 
+        it('returns 204 with admin token', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
         it('returns 204 with pipeline token', () => {
             options.auth.credentials = {
                 username,
@@ -1682,6 +1690,14 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 204);
             }));
 
+        it('returns 204 for syncing webhooks with admin token', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
         it('returns 403 when user does not have push permission', () => {
             const error = {
                 statusCode: 403,
@@ -1763,6 +1779,14 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 204 for syncing pull requests with admin token', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+            });
+        });
 
         it('returns 403 when user does not have push permission', () => {
             const error = {

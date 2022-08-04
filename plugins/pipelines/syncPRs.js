@@ -21,7 +21,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { id } = request.params;
             const { pipelineFactory, userFactory } = request.server.app;
-            const { username, scmContext } = request.auth.credentials;
+            const { username, scmContext, scope } = request.auth.credentials;
 
             // Fetch the pipeline and user models
             const [pipeline, user] = await Promise.all([
@@ -36,11 +36,13 @@ module.exports = () => ({
                 throw boom.notFound(`User ${username} does not exist`);
             }
 
-            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
-            const scmUri = await getScmUri({ pipeline, pipelineFactory });
+            if (!scope.includes('admin')) {
+                // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+                const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
-            // Check the user's permission
-            await getUserPermissions({ user, scmUri, level: 'push' });
+                // Check the user's permission
+                await getUserPermissions({ user, scmUri, level: 'push' });
+            }
 
             await pipeline.syncPRs();
 

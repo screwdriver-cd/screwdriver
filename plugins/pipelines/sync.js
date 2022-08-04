@@ -22,7 +22,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { id } = request.params;
             const { pipelineFactory, userFactory } = request.server.app;
-            const { username, scmContext } = request.auth.credentials;
+            const { username, scmContext, scope } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
 
             if (!isValidToken(id, request.auth.credentials)) {
@@ -42,39 +42,41 @@ module.exports = () => ({
                 throw boom.notFound(`User ${username} does not exist`);
             }
 
-            // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
-            const scmUri = await getScmUri({ pipeline, pipelineFactory });
+            if (!scope.includes('admin')) {
+                // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
+                const scmUri = await getScmUri({ pipeline, pipelineFactory });
 
-            // Check the user's permission
-            const permissions = await user.getPermissions(scmUri).catch(error => {
-                throw boom.boomify(error, { statusCode: error.statusCode });
-            });
-
-            // check if user has push access
-            if (!permissions.push) {
-                // the user who is not permitted is deleted from admins table
-                const newAdmins = pipeline.admins;
-
-                delete newAdmins[username];
-                // This is needed to make admins dirty and update db
-                pipeline.admins = newAdmins;
-
-                return pipeline.update().then(() => {
-                    throw boom.forbidden(
-                        `User ${user.getFullDisplayName()} does not have push permission for this repo`
-                    );
+                // Check the user's permission
+                const permissions = await user.getPermissions(scmUri).catch(error => {
+                    throw boom.boomify(error, { statusCode: error.statusCode });
                 });
-            }
 
-            // user has good permissions, add the user as an admin
-            if (!pipeline.admins[username]) {
-                const newAdmins = pipeline.admins;
+                // check if user has push access
+                if (!permissions.push) {
+                    // the user who is not permitted is deleted from admins table
+                    const newAdmins = pipeline.admins;
 
-                newAdmins[username] = true;
-                // This is needed to make admins dirty and update db
-                pipeline.admins = newAdmins;
+                    delete newAdmins[username];
+                    // This is needed to make admins dirty and update db
+                    pipeline.admins = newAdmins;
 
-                await pipeline.update();
+                    return pipeline.update().then(() => {
+                        throw boom.forbidden(
+                            `User ${user.getFullDisplayName()} does not have push permission for this repo`
+                        );
+                    });
+                }
+
+                // user has good permissions, add the user as an admin
+                if (!pipeline.admins[username]) {
+                    const newAdmins = pipeline.admins;
+
+                    newAdmins[username] = true;
+                    // This is needed to make admins dirty and update db
+                    pipeline.admins = newAdmins;
+
+                    await pipeline.update();
+                }
             }
 
             try {
