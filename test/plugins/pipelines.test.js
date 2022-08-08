@@ -1568,15 +1568,9 @@ describe('pipeline plugin test', () => {
         it('returns 204 for updating a pipeline that exists', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
             }));
-
-        it('returns 204 with admin token', () => {
-            options.auth.credentials.scope.push('admin');
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 204);
-            });
-        });
 
         it('returns 204 with pipeline token', () => {
             options.auth.credentials = {
@@ -1588,6 +1582,19 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
+            });
+        });
+
+        it('returns 204 when user does not have push permission but is Screwdriver admin', () => {
+            options.auth.credentials.scope.push('admin');
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
             });
         });
 
@@ -1603,6 +1610,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
+                assert.calledOnce(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1622,6 +1631,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(reply.result, error);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1630,6 +1641,8 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1644,6 +1657,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.equal(reply.result.message, 'Not Found');
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1659,6 +1674,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1667,6 +1684,8 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
             });
         });
     });
