@@ -22,7 +22,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { id } = request.params;
             const { pipelineFactory, userFactory } = request.server.app;
-            const { username, scmContext } = request.auth.credentials;
+            const { username, scmContext, scope } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
 
             if (!isValidToken(id, request.auth.credentials)) {
@@ -44,30 +44,38 @@ module.exports = () => ({
 
             // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
             const scmUri = await getScmUri({ pipeline, pipelineFactory });
+            let hasPushPermissions = false;
+            let permissions;
 
-            // Check the user's permission
-            const permissions = await user.getPermissions(scmUri).catch(error => {
+            try {
+                // Get user permissions
+                permissions = await user.getPermissions(scmUri);
+            } catch (error) {
                 throw boom.boomify(error, { statusCode: error.statusCode });
-            });
+            }
 
             // check if user has push access
             if (!permissions.push) {
-                // the user who is not permitted is deleted from admins table
+                // user is not permitted, delete from admins table
                 const newAdmins = pipeline.admins;
 
                 delete newAdmins[username];
                 // This is needed to make admins dirty and update db
                 pipeline.admins = newAdmins;
 
-                return pipeline.update().then(() => {
+                await pipeline.update();
+
+                if (!scope.includes('admin')) {
                     throw boom.forbidden(
                         `User ${user.getFullDisplayName()} does not have push permission for this repo`
                     );
-                });
+                }
+            } else {
+                hasPushPermissions = true;
             }
 
             // user has good permissions, add the user as an admin
-            if (!pipeline.admins[username]) {
+            if (!pipeline.admins[username] && hasPushPermissions) {
                 const newAdmins = pipeline.admins;
 
                 newAdmins[username] = true;
@@ -78,7 +86,6 @@ module.exports = () => ({
             }
 
             try {
-                // user has good permissions, sync the pipeline
                 await pipeline.sync();
 
                 return h.response().code(204);
