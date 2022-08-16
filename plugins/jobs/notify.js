@@ -11,8 +11,8 @@ module.exports = () => ({
     method: 'POST',
     path: '/jobs/{id}/notify',
     options: {
-        description: 'Get a single pipeline',
-        notes: 'Returns a pipeline record',
+        description: 'Notify user about job status',
+        notes: 'Does nothing if notifaction setting was not set',
         tags: ['api', 'jobs'],
         auth: {
             strategies: ['token'],
@@ -21,12 +21,13 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { jobFactory, pipelineFactory } = request.server.app;
-            const { credentials } = req.auth;
+            const { credentials } = request.auth;
             const jobId = request.params.id;
             const job = await jobFactory.get(jobId);
+            const uiUrl = request.server.app.ecosystem.ui;
 
             if (!job) {
-                throw boom.notFound(`Job ${id} does not exist`);
+                throw boom.notFound(`Job ${jobId} does not exist`);
             }
 
             const pipelineId = job.pipelineId;
@@ -35,13 +36,13 @@ module.exports = () => ({
                 throw boom.forbidden('Token does not have permission for this pipeline');
             }
 
-            const pipeline = pipelineFactory.get(pipelineId);
+            const pipeline = await pipelineFactory.get(pipelineId);
 
             await request.server.events.emit('job_status', {
                 status: request.payload.status,
                 pipeline: pipeline.toJson(),
                 jobName: job.name,
-                pipelineLink: `/pipelines/${pipelineId}`,
+                pipelineLink: `${uiUrl}/pipelines/${pipelineId}`,
                 message: request.payload.message,
                 settings: job.permutations[0].settings
             });

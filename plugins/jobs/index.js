@@ -16,7 +16,15 @@ const notify = require('./notify');
 const jobsPlugin = {
     name: 'jobs',
     async register(server) {
-        server.route([getRoute(), updateRoute(), listBuildsRoute(), lastSuccessfulMeta(), metrics(), latestBuild(), notify()]);
+        server.route([
+            getRoute(),
+            updateRoute(),
+            listBuildsRoute(),
+            lastSuccessfulMeta(),
+            metrics(),
+            latestBuild(),
+            notify()
+        ]);
     }
 };
 
