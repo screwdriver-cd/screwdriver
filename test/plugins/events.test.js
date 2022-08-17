@@ -674,6 +674,23 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 400 when it the pipeline is inactive', () => {
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Cannot create an event for an inactive pipeline'
+            };
+            const pipeline = { ...pipelineMock };
+
+            pipeline.state = 'INACTIVE';
+
+            pipelineFactoryMock.get.resolves(pipeline);
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
         it('returns 404 when it fails to get prInfo', () => {
             const error = {
                 statusCode: 404,
@@ -691,7 +708,6 @@ describe('event plugin test', () => {
             eventFactoryMock.scm.getPrInfo.rejects(testError);
 
             return server.inject(options).then(reply => {
-                console.log(reply);
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
             });

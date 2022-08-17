@@ -5,5 +5,6 @@
   "createTime": "2038-01-19T03:14:08.131Z",
   "admins": {
     "stjohn": true
-  }
+  },
+  "state": "ACTIVE"
 }

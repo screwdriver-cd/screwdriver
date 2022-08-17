@@ -3,6 +3,8 @@
 const boom = require('@hapi/boom');
 const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
+const CoveragePlugin = require('screwdriver-coverage-bookend');
+
 module.exports = config => ({
     method: 'GET',
     path: '/coverage/token',
@@ -19,7 +21,7 @@ module.exports = config => ({
             const { jobFactory, pipelineFactory } = request.server.app;
             const buildCredentials = request.auth.credentials;
             const { jobId, pipelineId } = buildCredentials;
-            const { scope, projectKey, projectName, username } = request.query;
+            const { scope, projectKey, projectName, username, selfSonarHost, selfSonarAdminToken } = request.query;
             const tokenConfig = {
                 buildCredentials,
                 scope
@@ -61,6 +63,25 @@ module.exports = config => ({
                 }
 
                 tokenConfig.pipelineName = pipeline.name;
+            }
+
+            if (selfSonarHost && selfSonarAdminToken) {
+                const selfSonarConfig = {
+                    plugin: 'sonar',
+                    sonar: {
+                        sdApiUrl: config.coveragePlugin.config.sdApiUrl,
+                        sdUiUrl: config.coveragePlugin.config.sdUiUrl,
+                        sonarHost: selfSonarHost,
+                        adminToken: selfSonarAdminToken,
+                        sonarEnterprise: config.coveragePlugin.config.sonarEnterprise,
+                        sonarGitAppName: config.coveragePlugin.config.sonarGitAppName
+                    }
+                };
+
+                const selfSonar = new CoveragePlugin(selfSonarConfig);
+                const data = await selfSonar.coveragePlugin.getAccessToken(tokenConfig);
+
+                return h.response(data);
             }
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);

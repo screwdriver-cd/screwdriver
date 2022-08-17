@@ -18,7 +18,7 @@ const testTriggers = require('./data/triggers.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
-const testEvents = require('./data/events.json');
+const testEvents = require('./data/eventsWithGroupEventId.json');
 const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
 
@@ -746,6 +746,7 @@ describe('pipeline plugin test', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
 
             pipeline = getPipelineMocks(testPipeline);
+            pipeline.state = 'ACTIVE';
             pipeline.remove.resolves(null);
             pipelineFactoryMock.get.withArgs(id).resolves(pipeline);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
@@ -791,11 +792,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 403 when the pipeline is child pipeline', () => {
+        it('returns 403 when the pipeline is active child pipeline', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Child pipeline can only be removed after removing it from scmUrls in config pipeline 123'
+            };
+
             pipeline.configPipelineId = 123;
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 204 when inactive child pipeline is successfully deleted', () => {
+            pipeline.configPipelineId = 123;
+            pipeline.state = 'INACTIVE';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
             });
         });
 
@@ -939,15 +955,20 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/stages', () => {
         const id = 123;
+        const groupEventId = 222;
+        const eventId = 555;
         let options;
         let pipelineMock;
         let stagesMocks;
+        let events;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
                 url: `/pipelines/${id}/stages`
             };
+            events = getEventsMocks(testEvents);
+            eventFactoryMock.list.resolves(events);
             pipelineMock = getPipelineMocks(testPipeline);
             stagesMocks = getStagesMocks(testStages);
             stageFactoryMock.list.resolves(stagesMocks);
@@ -959,21 +980,52 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
-                        pipelineId: id
+                        pipelineId: id,
+                        groupEventId
+                    }
+                });
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        parentEventId: null,
+                        type: 'pipeline'
+                    },
+                    paginate: {
+                        count: 1
                     }
                 });
                 assert.deepEqual(reply.result, testStages);
             }));
 
-        it('returns 200 for getting stages with state passed in as query param', () => {
-            options.url = `/pipelines/${id}/stages?state=ARCHIVED`;
+        it('returns 200 for getting stages with eventId passed in as query param', () => {
+            options.url = `/pipelines/${id}/stages?eventId=${eventId}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        id: eventId
+                    }
+                });
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        groupEventId
+                    }
+                });
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 for getting stages with groupEventId passed in as query param', () => {
+            options.url = `/pipelines/${id}/stages?groupEventId=${groupEventId}`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        state: 'ARCHIVED'
+                        groupEventId
                     }
                 });
                 assert.deepEqual(reply.result, testStages);
@@ -990,11 +1042,46 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 404 for updating a pipeline that does not exist', () => {
+        it('returns 404 for getting a pipeline that does not exist', () => {
             pipelineFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 404 for getting an event that does not exist', () => {
+            eventFactoryMock.list.resolves(null);
+
+            options.url = `/pipelines/${id}/stages?eventId=${eventId}`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        id: eventId
+                    }
+                });
+                assert.notCalled(stageFactoryMock.list);
+            });
+        });
+
+        it('returns 404 for getting the latest commit event that does not exist', () => {
+            eventFactoryMock.list.resolves([]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(eventFactoryMock.list, {
+                    params: {
+                        pipelineId: id,
+                        parentEventId: null,
+                        type: 'pipeline'
+                    },
+                    paginate: {
+                        count: 1
+                    }
+                });
+                assert.notCalled(stageFactoryMock.list);
             });
         });
 
@@ -1481,6 +1568,8 @@ describe('pipeline plugin test', () => {
         it('returns 204 for updating a pipeline that exists', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
             }));
 
         it('returns 204 with pipeline token', () => {
@@ -1493,6 +1582,19 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
+            });
+        });
+
+        it('returns 204 when user does not have push permission but is Screwdriver admin', () => {
+            options.auth.credentials.scope.push('admin');
+            userMock.getPermissions.withArgs(scmUri).resolves({ push: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
             });
         });
 
@@ -1508,6 +1610,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
                 assert.deepEqual(reply.result, error);
+                assert.calledOnce(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1527,6 +1631,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 401);
                 assert.deepEqual(reply.result, error);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1535,6 +1641,8 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1549,6 +1657,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.equal(reply.result.message, 'Not Found');
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1564,6 +1674,8 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
                 assert.deepEqual(reply.result, error);
+                assert.notCalled(pipelineMock.update);
+                assert.notCalled(pipelineMock.sync);
             });
         });
 
@@ -1572,6 +1684,8 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+                assert.calledOnce(pipelineMock.update);
+                assert.calledOnce(pipelineMock.sync);
             });
         });
     });
@@ -1610,6 +1724,14 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 204 for syncing webhooks with admin token', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+            });
+        });
 
         it('returns 403 when user does not have push permission', () => {
             const error = {
@@ -1692,6 +1814,14 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 204 for syncing pull requests with admin token', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+            });
+        });
 
         it('returns 403 when user does not have push permission', () => {
             const error = {
@@ -2505,7 +2635,8 @@ describe('pipeline plugin test', () => {
             server.inject(options).then(reply => {
                 assert.calledWith(pipelineFactoryMock.list, {
                     params: {
-                        configPipelineId: pipelineMock.id
+                        configPipelineId: pipelineMock.id,
+                        state: 'ACTIVE'
                     }
                 });
                 assert.calledThrice(pipelineFactoryMock.scm.getCommitSha);
