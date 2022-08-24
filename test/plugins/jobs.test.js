@@ -8,6 +8,7 @@ const hoek = require('@hapi/hoek');
 const testBuilds = require('./data/builds.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testJob = require('./data/job.json');
+const testPipeline = require('./data/pipeline.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -45,6 +46,22 @@ const getJobMocks = jobs => {
     }
 
     return decorateJobMock(jobs);
+};
+
+const decoratePipelineMock = pipeline => {
+    const decorated = hoek.clone(pipeline);
+
+    decorated.toJson = sinon.stub().returns(pipeline);
+
+    return decorated;
+};
+
+const getPipelineMocks = pipeline => {
+    if (Array.isArray(pipeline)) {
+        return pipeline.map(decoratePipelineMock);
+    }
+
+    return decoratePipelineMock(pipeline);
 };
 
 const badgeMock = {
@@ -501,6 +518,84 @@ describe('job plugin test', () => {
                     status: 'SUCCESS'
                 });
                 assert.deepEqual(reply.result, {});
+            });
+        });
+    });
+
+    describe('POST /jobs/{id}/notify', () => {
+        const id = 1234;
+        const scmContext = 'github:github.com';
+        const mockPipelineId = testJob.pipelineId;
+        const mockStatus = 'FAILURE';
+        const mockMessage = 'mock message';
+        const mockUiUrl = 'mockui.com';
+        let options;
+        let jobMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: `/jobs/${id}/notify`,
+                payload: {
+                    status: mockStatus,
+                    message: mockMessage
+                },
+                auth: {
+                    credentials: {
+                        scope: ['pipeline'],
+                        scmContext,
+                        pipelineId: mockPipelineId
+                    },
+                    strategy: ['token']
+                }
+            };
+            server.app.ecosystem = {
+                ui: mockUiUrl
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            jobMock = getJobMocks(testJob);
+            jobMock.permutations = [
+                {
+                    settings: {
+                        email: 'foo@bar.com'
+                    }
+                }
+            ];
+            jobFactoryMock.get.withArgs(id).resolves(jobMock);
+        });
+
+        it('emits event job_status', () => {
+            server.events = {
+                emit: sinon.stub().resolves(null)
+            };
+
+            return server.inject(options).then(reply => {
+                assert.calledWith(server.events.emit, 'job_status', {
+                    status: mockStatus,
+                    pipeline: testPipeline,
+                    jobName: jobMock.name,
+                    pipelineLink: `${mockUiUrl}/pipelines/${mockPipelineId}`,
+                    message: mockMessage,
+                    settings: jobMock.permutations[0].settings
+                });
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 404 if job does not exist', () => {
+            jobFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 403 if pipeline token does not match job pipeline', () => {
+            options.auth.credentials.pipelineId = 555;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
             });
         });
     });

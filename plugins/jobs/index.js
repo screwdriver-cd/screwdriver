@@ -6,6 +6,7 @@ const listBuildsRoute = require('./listBuilds');
 const lastSuccessfulMeta = require('./lastSuccessfulMeta');
 const latestBuild = require('./latestBuild');
 const metrics = require('./metrics');
+const notify = require('./notify');
 
 /**
  * Job API Plugin
@@ -15,7 +16,15 @@ const metrics = require('./metrics');
 const jobsPlugin = {
     name: 'jobs',
     async register(server) {
-        server.route([getRoute(), updateRoute(), listBuildsRoute(), lastSuccessfulMeta(), metrics(), latestBuild()]);
+        server.route([
+            getRoute(),
+            updateRoute(),
+            listBuildsRoute(),
+            lastSuccessfulMeta(),
+            metrics(),
+            latestBuild(),
+            notify()
+        ]);
     }
 };
 
