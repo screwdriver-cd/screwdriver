@@ -90,9 +90,9 @@ describe('user plugin test', () => {
             };
             settings = {
                 1: {
-                    displayJobNameLength: 25,
                     showPRJobs: true
-                }
+                },
+                displayJobNameLength: 25
             };
         });
 
@@ -149,9 +149,9 @@ describe('user plugin test', () => {
                 payload: {
                     settings: {
                         1: {
-                            displayJobNameLength: 50,
                             showPRJobs: false
-                        }
+                        },
+                        displayJobNameLength: 50
                     }
                 },
                 auth: {
@@ -165,9 +165,9 @@ describe('user plugin test', () => {
             };
             settings = {
                 1: {
-                    displayJobNameLength: 50,
                     showPRJobs: false
-                }
+                },
+                displayJobNameLength: 50
             };
         });
 
