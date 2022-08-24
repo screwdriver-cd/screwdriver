@@ -22,22 +22,52 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory, stageFactory } = request.server.app;
+            const { pipelineFactory, stageFactory, eventFactory } = request.server.app;
             const pipelineId = request.params.id;
 
             return pipelineFactory
                 .get(pipelineId)
-                .then(pipeline => {
+                .then(async pipeline => {
                     if (!pipeline) {
-                        throw boom.notFound('Pipeline does not exist');
+                        throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                     }
 
                     const config = {
                         params: { pipelineId }
                     };
 
-                    if (request.query.state) {
-                        config.params.state = request.query.state;
+                    // Set groupEventId if provided
+                    if (request.query.groupEventId) {
+                        config.params.groupEventId = request.query.groupEventId;
+                    }
+                    // Get specific stages if eventId is provided
+                    else if (request.query.eventId) {
+                        const events = await eventFactory.list({ params: { id: request.query.eventId } });
+
+                        if (!events || Object.keys(events).length === 0) {
+                            throw boom.notFound(`Event ${request.query.eventId} does not exist`);
+                        }
+
+                        config.params.groupEventId = events[0].groupEventId;
+                    }
+                    // Get latest stages if eventId not provided
+                    else {
+                        const latestCommitEvents = await eventFactory.list({
+                            params: {
+                                pipelineId,
+                                parentEventId: null,
+                                type: 'pipeline'
+                            },
+                            paginate: {
+                                count: 1
+                            }
+                        });
+
+                        if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
+                            throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
+                        }
+
+                        config.params.groupEventId = latestCommitEvents[0].groupEventId;
                     }
 
                     return stageFactory.list(config);
@@ -53,7 +83,13 @@ module.exports = () => ({
         validate: {
             params: joi.object({
                 id: pipelineIdSchema
-            })
+            }),
+            query: schema.api.pagination.concat(
+                joi.object({
+                    eventId: pipelineIdSchema,
+                    groupEventId: pipelineIdSchema
+                })
+            )
         }
     }
 });
