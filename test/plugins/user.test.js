@@ -18,7 +18,7 @@ const getUserMock = user => {
     return mock;
 };
 
-describe('user plugin test', () => {
+describe.only('user plugin test', () => {
     let server;
     let plugin;
     let userFactoryMock;
