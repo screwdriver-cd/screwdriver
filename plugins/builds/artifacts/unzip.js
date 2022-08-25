@@ -18,7 +18,7 @@ module.exports = config => ({
         },
 
         handler: async (req, h) => {
-            if (!req.server.app.feature.unzipArtifacts) {
+            if (!req.server.app.unzipArtifacts) {
                 const data = {
                     statusCode: 200,
                     message: "This function is not enabled and will do nothing."
