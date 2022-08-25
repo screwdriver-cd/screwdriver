@@ -208,9 +208,7 @@ describe('build plugin test', () => {
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock,
             bannerFactory: bannerFactoryMock,
-            feature: {
-                unzipArtifacts: true
-            }
+            unzipArtifacts: true
         };
         server.auth.scheme('custom', () => ({
             authenticate: (request, h) =>
@@ -5670,7 +5668,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 200 when the feature is not enabled', () => {
-            server.app.feature.unzipArtifacts = false;
+            server.app.unzipArtifacts = false;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
