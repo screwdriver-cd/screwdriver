@@ -2659,6 +2659,48 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 403 if child pipeline does not have permission', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Failed to start some child pipelines due to lack of permissions.'
+            };
+
+            const noPermissionScmUri = 'github.com:12345:permission';
+            const pipelines = [
+                {
+                    id: 123,
+                    scmUri: 'github.com:12345:branchName',
+                    scmContext: 'github:github.com',
+                    createTime: '2038-01-19T03:14:08.131Z',
+                    admins: {
+                        stjohn: true
+                    },
+                    lastEventId: 456,
+                    state: 'ACTIVE'
+                },
+                {
+                    id: 123,
+                    scmUri: noPermissionScmUri,
+                    scmContext: 'github:github.com',
+                    createTime: '2038-01-19T03:14:08.131Z',
+                    admins: {
+                        stjohn: true
+                    },
+                    lastEventId: 456,
+                    state: 'ACTIVE'
+                }
+            ];
+
+            userMock.getPermissions.withArgs(noPermissionScmUri).resolves({ push: false });
+            pipelineFactoryMock.list.resolves(getPipelineMocks(pipelines));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
         it('returns 404 for updating a pipeline that does not exist', () => {
             pipelineFactoryMock.get.withArgs(id).resolves(null);
 

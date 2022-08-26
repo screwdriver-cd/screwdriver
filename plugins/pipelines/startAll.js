@@ -41,7 +41,7 @@ module.exports = () => ({
                 }
             });
 
-            await Promise.all(
+            const createEvents = await Promise.allSettled(
                 pipelines.map(async p => {
                     const pipelineToken = await p.token;
                     const pipelineScmContext = p.scmContext;
@@ -50,6 +50,8 @@ module.exports = () => ({
                         scmUri: p.scmUri,
                         token: pipelineToken
                     });
+
+                    await getUserPermissions({ user, scmUri: p.scmUri, level: 'push' });
 
                     await eventFactory.create({
                         pipelineId: p.id,
@@ -61,6 +63,12 @@ module.exports = () => ({
                     });
                 })
             );
+
+            const rejected = createEvents.filter(createEvent => createEvent.status === 'rejected');
+
+            if (rejected.length) {
+                throw boom.forbidden('Failed to start some child pipelines due to lack of permissions.');
+            }
 
             return h.response().code(201);
         },
