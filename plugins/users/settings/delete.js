@@ -23,7 +23,9 @@ module.exports = () => ({
                 throw boom.notFound('User does not exist');
             }
 
-            return h.response('Uuser settings reset successful').code(204);
+            return user.removeSettings().then(results => {
+                return h.response(results).code(200);
+            });
         }
     }
 });
