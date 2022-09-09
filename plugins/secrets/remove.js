@@ -33,11 +33,11 @@ module.exports = () => ({
 
                     // Make sure that user has permission before deleting
                     return canAccess(credentials, secret, 'admin', request.server.app)
-                        .then(() => {
+                        .then(async () => {
                             logger.info(
                                 `[Audit] user ${credentials.username}:${credentials.scmContext} deletes the secret key:${secret.name} from pipelineId:${secret.pipelineId}.`
                             );
-                            secret.remove();
+                            await secret.remove();
                         })
                         .then(() => h.response().code(204));
                 })

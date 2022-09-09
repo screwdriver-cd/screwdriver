@@ -68,11 +68,11 @@ module.exports = () => ({
                                 throw boom.boomify(error, { statusCode: error.statusCode });
                             })
                             // user has good permissions, remove the pipeline
-                            .then(() => {
+                            .then(async () => {
                                 logger.info(
                                     `[Audit] user ${user.username}:${scmContext} deletes the pipeline pipelineId:${request.params.id}, scmUri:${pipeline.scmUri}.`
                                 );
-                                pipeline.remove();
+                                await pipeline.remove();
                             })
                             .then(() => h.response().code(204))
                     );
