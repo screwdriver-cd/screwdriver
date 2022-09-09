@@ -2,6 +2,7 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const urlLib = require('url');
 const { getUserPermissions, getScmUri } = require('../helper');
 
@@ -56,6 +57,9 @@ module.exports = () => ({
                 throw boom.conflict(`Secret already exists with the ID: ${secret.id}`);
             }
 
+            logger.info(
+                `[Audit] user ${user.username}:${scmContext} creates the secret key:${request.payload.name} for pipelineId:${request.payload.pipelineId}.`
+            );
             const newSecret = await secretFactory.create(request.payload);
 
             const location = urlLib.format({
