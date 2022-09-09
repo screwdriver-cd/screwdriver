@@ -57,7 +57,9 @@ module.exports = () => ({
                 throw boom.conflict(`Secret already exists with the ID: ${secret.id}`);
             }
 
-            logger.info(`[Audit] user ${user.username}:${scmContext} creates the secret key:${request.payload.name} for pipelineId:${request.payload.pipelineId}.`);
+            logger.info(
+                `[Audit] user ${user.username}:${scmContext} creates the secret key:${request.payload.name} for pipelineId:${request.payload.pipelineId}.`
+            );
             const newSecret = await secretFactory.create(request.payload);
 
             const location = urlLib.format({

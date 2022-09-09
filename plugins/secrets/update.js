@@ -37,7 +37,10 @@ module.exports = () => ({
                                 secret[key] = request.payload[key];
                             });
 
-                            logger.info(`[Audit] user ${credentials.username}:${credentials.scmContext} updates the secret key:${secret.name} for pipelineId:${secret.pipelineId}.`);
+                            logger.info(
+                                `[Audit] user ${credentials.username}:${credentials.scmContext} updates the secret key:${secret.name} for pipelineId:${secret.pipelineId}.`
+                            );
+
                             return secret.update();
                         })
                         .then(() => {

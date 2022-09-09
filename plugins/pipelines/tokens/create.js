@@ -53,7 +53,9 @@ module.exports = () => ({
                 throw boom.conflict(`Token ${match.name} already exists`);
             }
 
-            logger.info(`[Audit] user ${username}:${scmContext} creates the token name:${request.payload.name} for pipelineId:${pipelineId}.`);
+            logger.info(
+                `[Audit] user ${username}:${scmContext} creates the token name:${request.payload.name} for pipelineId:${pipelineId}.`
+            );
             const token = await tokenFactory.create({
                 name: request.payload.name,
                 description: request.payload.description,

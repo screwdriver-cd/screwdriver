@@ -53,7 +53,9 @@ module.exports = () => ({
                 throw boom.forbidden('Pipeline does not own token');
             }
 
-            logger.info(`[Audit] user ${username}:${scmContext} refreshes the token name:${token.name} for pipelineId:${pipelineId}.`);
+            logger.info(
+                `[Audit] user ${username}:${scmContext} refreshes the token name:${token.name} for pipelineId:${pipelineId}.`
+            );
             const refreshed = await token.refresh();
 
             return h.response(refreshed.toJson()).code(200);

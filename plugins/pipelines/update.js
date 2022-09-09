@@ -139,8 +139,10 @@ module.exports = () => ({
                 oldPipeline.settings = { ...oldPipeline.settings, ...settings };
             }
 
-            if(checkoutUrl || rootDir){
-                logger.info(`[Audit] user ${user.username}:${scmContext} updates the scmUri for pipelineID:${id} to ${oldPipeline.scmUri}.`);
+            if (checkoutUrl || rootDir) {
+                logger.info(
+                    `[Audit] user ${user.username}:${scmContext} updates the scmUri for pipelineID:${id} to ${oldPipeline.scmUri}.`
+                );
             }
 
             // update pipeline

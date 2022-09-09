@@ -53,7 +53,10 @@ module.exports = () => ({
                 throw boom.forbidden('Pipeline does not own token');
             }
 
-            logger.info(`[Audit] user ${username}:${scmContext} deletes the token name:${token.name} for pipelineId:${pipeline.id}.`);
+            logger.info(
+                `[Audit] user ${username}:${scmContext} deletes the token name:${token.name} for pipelineId:${pipeline.id}.`
+            );
+
             return token.remove().then(() => h.response().code(204));
         },
         validate: {

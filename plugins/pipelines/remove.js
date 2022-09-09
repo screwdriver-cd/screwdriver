@@ -69,7 +69,9 @@ module.exports = () => ({
                             })
                             // user has good permissions, remove the pipeline
                             .then(() => {
-                                logger.info(`[Audit] user ${user.username}:${scmContext} deletes the pipeline pipelineId:${request.params.id}, scmUri:${pipeline.scmUri}.`);
+                                logger.info(
+                                    `[Audit] user ${user.username}:${scmContext} deletes the pipeline pipelineId:${request.params.id}, scmUri:${pipeline.scmUri}.`
+                                );
                                 pipeline.remove();
                             })
                             .then(() => h.response().code(204))
