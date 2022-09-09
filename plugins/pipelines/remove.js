@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const idSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
@@ -67,7 +68,10 @@ module.exports = () => ({
                                 throw boom.boomify(error, { statusCode: error.statusCode });
                             })
                             // user has good permissions, remove the pipeline
-                            .then(() => pipeline.remove())
+                            .then(() => {
+                                logger.info(`[Audit] user ${user.username}:${scmContext} deletes the pipeline pipelineId:${request.params.id}, scmUri:${pipeline.scmUri}.`);
+                                pipeline.remove();
+                            })
                             .then(() => h.response().code(204))
                     );
                 })

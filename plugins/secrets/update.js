@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const idSchema = schema.models.secret.base.extract('id');
 
 module.exports = () => ({
@@ -36,6 +37,7 @@ module.exports = () => ({
                                 secret[key] = request.payload[key];
                             });
 
+                            logger.info(`[Audit] user ${credentials.username}:${credentials.scmContext} updates the secret key:${secret.name} for pipelineId:${secret.pipelineId}.`);
                             return secret.update();
                         })
                         .then(() => {

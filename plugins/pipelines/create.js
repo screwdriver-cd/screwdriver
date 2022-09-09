@@ -67,6 +67,7 @@ module.exports = () => ({
                 scmUri
             };
 
+            logger.info(`[Audit] user ${user.username}:${scmContext} creates the pipeline for ${scmUri}.`);
             pipeline = await pipelineFactory.create(pipelineConfig);
 
             const collections = await collectionFactory.list({

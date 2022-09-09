@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const idSchema = schema.models.secret.base.extract('id');
 
 module.exports = () => ({
@@ -32,7 +33,10 @@ module.exports = () => ({
 
                     // Make sure that user has permission before deleting
                     return canAccess(credentials, secret, 'admin', request.server.app)
-                        .then(() => secret.remove())
+                    .then(() => { 
+                        logger.info(`[Audit] user ${credentials.username}:${credentials.scmContext} deletes the secret key:${secret.name} from pipelineId:${secret.pipelineId}.`);
+                        secret.remove();
+                    })
                         .then(() => h.response().code(204));
                 })
                 .catch(err => {
