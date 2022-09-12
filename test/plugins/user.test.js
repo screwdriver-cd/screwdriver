@@ -243,13 +243,13 @@ describe('user plugin test', () => {
             };
         });
 
-        it('exposes a route for updating user settings', () => {
+        it('exposes a route for resetting user settings', () => {
             userFactoryMock.get.resolves(userMock);
             userMock.updateSettings.resolves(settings);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, settings);
+                assert.deepEqual(reply.result, {});
             });
         });
 
