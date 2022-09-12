@@ -245,7 +245,7 @@ describe('user plugin test', () => {
 
         it('exposes a route for resetting user settings', () => {
             userFactoryMock.get.resolves(userMock);
-            userMock.updateSettings.resolves(settings);
+            userMock.removeSettings.resolves({});
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
