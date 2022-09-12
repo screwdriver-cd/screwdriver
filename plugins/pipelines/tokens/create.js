@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const urlLib = require('url');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const tokenCreateSchema = schema.models.token.create;
@@ -52,6 +53,9 @@ module.exports = () => ({
                 throw boom.conflict(`Token ${match.name} already exists`);
             }
 
+            logger.info(
+                `[Audit] user ${username}:${scmContext} creates the token name:${request.payload.name} for pipelineId:${pipelineId}.`
+            );
             const token = await tokenFactory.create({
                 name: request.payload.name,
                 description: request.payload.description,

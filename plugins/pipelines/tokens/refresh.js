@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const tokenIdSchema = schema.models.token.base.extract('id');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const { getUserPermissions, getScmUri } = require('../../helper');
@@ -52,6 +53,9 @@ module.exports = () => ({
                 throw boom.forbidden('Pipeline does not own token');
             }
 
+            logger.info(
+                `[Audit] user ${username}:${scmContext} refreshes the token name:${token.name} for pipelineId:${pipelineId}.`
+            );
             const refreshed = await token.refresh();
 
             return h.response(refreshed.toJson()).code(200);

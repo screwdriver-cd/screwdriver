@@ -3,6 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
+const logger = require('screwdriver-logger');
 const idSchema = schema.models.pipeline.base.extract('id');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
 const { getUserPermissions } = require('../helper');
@@ -136,6 +137,12 @@ module.exports = () => ({
 
             if (settings) {
                 oldPipeline.settings = { ...oldPipeline.settings, ...settings };
+            }
+
+            if (checkoutUrl || rootDir) {
+                logger.info(
+                    `[Audit] user ${user.username}:${scmContext} updates the scmUri for pipelineID:${id} to ${oldPipeline.scmUri}.`
+                );
             }
 
             // update pipeline
