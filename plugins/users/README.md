@@ -35,6 +35,10 @@ server.register({
 
 `PUT /users/{id}/settings`
 
+#### Delete all user's settings
+
+`DELETE /users/{id}/settings`
+
 **Arguments**
 
 * `settings` - An optional new object with user settings.
