@@ -14,6 +14,7 @@ const getUserMock = user => {
     mock.getPermissions = sinon.stub();
     mock.getSettings = sinon.stub();
     mock.updateSettings = sinon.stub();
+    mock.removeSettings = sinon.stub();
 
     return mock;
 };
@@ -92,7 +93,8 @@ describe('user plugin test', () => {
                 1: {
                     showPRJobs: true
                 },
-                displayJobNameLength: 25
+                displayJobNameLength: 25,
+                timestampFormat: 'LOCAL_TIMEZONE'
             };
         });
 
@@ -178,6 +180,77 @@ describe('user plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, settings);
+            });
+        });
+
+        it('throws error not found when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User does not exist'
+            };
+
+            userFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('throws error when get user call returns error', () => {
+            userFactoryMock.get.rejects(new Error('Failed'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('throws error when update user settings call returns error', () => {
+            userFactoryMock.get.resolves(userMock);
+            userMock.updateSettings.rejects(new Error('Failed'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('DELETE /user/settings', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/users/settings`,
+                payload: {
+                    settings: {}
+                },
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            settings = {
+                1: {
+                    showPRJobs: true
+                },
+                displayJobNameLength: 20,
+                timestampFormat: 'LOCAL_TIMEZONE'
+            };
+        });
+
+        it('exposes a route for resetting user settings', () => {
+            userFactoryMock.get.resolves(userMock);
+            userMock.removeSettings.resolves({});
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, {});
             });
         });
 
