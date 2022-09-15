@@ -14,6 +14,7 @@ const getUserMock = user => {
     mock.getPermissions = sinon.stub();
     mock.getSettings = sinon.stub();
     mock.updateSettings = sinon.stub();
+    mock.removeSettings = sinon.stub();
 
     return mock;
 };
