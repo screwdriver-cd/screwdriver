@@ -25,32 +25,44 @@ class Lock {
      * Constructor
      */
     constructor() {
-        if (parseBool(config.get('redisLock.enabled'))) {
-            const redisLockConfig = config.get('redisLock.options');
-            const connectionDetails = {
-                host: redisLockConfig.redisConnection.host,
-                options: {
-                    password:
-                        redisLockConfig.redisConnection.options && redisLockConfig.redisConnection.options.password,
-                    tls: redisLockConfig.redisConnection.options
-                        ? parseBool(redisLockConfig.redisConnection.options.tls)
-                        : false
-                },
-                port: redisLockConfig.redisConnection.port
-            };
+        if (!parseBool(config.get('redisLock.enabled'))) {
+            return;
+        }
 
-            try {
-                this.redis = new Redis(connectionDetails.port, connectionDetails.host, connectionDetails.options);
-                this.redlock = new Redlock([this.redis], {
-                    driftFactor: parseFloat(redisLockConfig.driftFactor),
-                    retryCount: parseInt(redisLockConfig.retryCount, 10),
-                    retryDelay: parseFloat(redisLockConfig.retryDelay),
-                    retryJitter: parseFloat(redisLockConfig.retryJitter)
+        const redisLockConfig = config.get('redisLock.options');
+        const connectionType = redisLockConfig.connectionType;
+
+        if (!connectionType && (connectionType !== 'redis' || connectionType !== 'redisCluster')) {
+            throw new Error(
+                `'${connectionType}' is not supported in connectionType, 'redis' or 'redisCluster' can be set for the queue.connectionType setting`
+            );
+        }
+
+        const redisConfig = redisLockConfig[`${connectionType}Connection`];
+        const redisOptions = {
+            password: redisConfig.options && redisConfig.options.password,
+            tls: redisConfig.options ? parseBool(redisConfig.options.tls) : false
+        };
+
+        try {
+            if (connectionType === 'redisCluster') {
+                this.redis = new Redis.Cluster(redisConfig.hosts, {
+                    redisOptions,
+                    slotsRefreshTimeout: parseInt(redisConfig.slotsRefreshTimeout, 10),
+                    clusterRetryStrategy: () => 100
                 });
-                this.ttl = parseFloat(redisLockConfig.ttl);
-            } catch (err) {
-                logger.error('Failed to initialize redlock', err);
+            } else {
+                this.redis = new Redis(redisConfig.port, redisConfig.host, redisOptions);
             }
+            this.redlock = new Redlock([this.redis], {
+                driftFactor: parseFloat(redisLockConfig.driftFactor),
+                retryCount: parseInt(redisLockConfig.retryCount, 10),
+                retryDelay: parseFloat(redisLockConfig.retryDelay),
+                retryJitter: parseFloat(redisLockConfig.retryJitter)
+            });
+            this.ttl = parseFloat(redisLockConfig.ttl);
+        } catch (err) {
+            logger.error('Failed to initialize redlock', err);
         }
     }
 
