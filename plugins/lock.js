@@ -32,9 +32,9 @@ class Lock {
         const redisLockConfig = config.get('redisLock.options');
         const connectionType = redisLockConfig.connectionType;
 
-        if (!connectionType && (connectionType !== 'redis' || connectionType !== 'redisCluster')) {
+        if (!connectionType || (connectionType !== 'redis' || connectionType !== 'redisCluster')) {
             throw new Error(
-                `'${connectionType}' is not supported in connectionType, 'redis' or 'redisCluster' can be set for the queue.connectionType setting`
+                `'connectionType ${connectionType}' is not supported, use 'redis' or 'redisCluster' for the queue.connectionType setting`
             );
         }
 
