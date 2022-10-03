@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
-const idSchema = schema.models.job.base.extract('id');
+const idSchema = schema.models.build.base.extract('id');
 const { getScmUri, getUserPermissions } = require('../helper');
 
 /**
