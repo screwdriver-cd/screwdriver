@@ -257,4 +257,29 @@ describe('lock plugin test', () => {
             assert.strictEqual(redis.options.clusterRetryStrategy(), 100);
         });
     });
+
+    describe('other redis type is specified', () => {
+        before(() => {
+            process.env.REDLOCK_ENABLED = true;
+            process.env.REDLOCK_REDIS_TYPE = 'unknown';
+        });
+
+        after(() => {
+            delete process.env.REDLOCK_ENABLED;
+            delete process.env.REDLOCK_REDIS_TYPE;
+        });
+
+        it('occurs an error', () => {
+            try {
+                /* eslint-disable global-require */
+                require('../../plugins/lock');
+                /* eslint-enable global-require */
+            } catch (err) {
+                assert.equal(
+                    err.message,
+                    "'connectionType unknown' is not supported, use 'redis' or 'redisCluster' for the queue.connectionType setting"
+                );
+            }
+        });
+    });
 });
