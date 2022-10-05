@@ -262,6 +262,8 @@ executor:
   queue:
     enabled: EXECUTOR_QUEUE_ENABLED
     options:
+      # redis or redisCluster(beta)
+      connectionType: QUEUE_REDIS_TYPE
       # Configuration of the redis instance containing resque
       redisConnection:
         host: QUEUE_REDIS_HOST
@@ -270,6 +272,14 @@ executor:
           password: QUEUE_REDIS_PASSWORD
           tls: QUEUE_REDIS_TLS_ENABLED
         database: QUEUE_REDIS_DATABASE
+      redisClusterConnection:
+        hosts:
+          __name: QUEUE_REDIS_CLUSTER_HOSTS
+          __format: json
+        options:
+          password: QUEUE_REDIS_PASSWORD
+          tls: QUEUE_REDIS_TLS_ENABLED
+        slotsRefreshTimeout: QUEUE_REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT
 
 
 queueWebhook:
@@ -427,6 +437,8 @@ redisLock:
     retryJitter: REDLOCK_RETRY_JITTER
     # the maximum time in milliseconds living of a key that has a timeout
     ttl: REDLOCK_TTL
+    # redis or redisCluster(beta)
+    connectionType: REDLOCK_REDIS_TYPE
     # Configuration of the redis instance
     redisConnection:
       host: REDLOCK_REDIS_HOST
@@ -435,6 +447,14 @@ redisLock:
         password: REDLOCK_REDIS_PASSWORD
         tls: REDLOCK_REDIS_TLS_ENABLED
       database: REDLOCK_REDIS_DATABASE
+    redisClusterConnection:
+      hosts:
+        __name: REDLOCK_REDIS_CLUSTER_HOSTS
+        __format: json
+      options:
+        password: REDLOCK_REDIS_PASSWORD
+        tls: REDLOCK_REDIS_TLS_ENABLED
+      slotsRefreshTimeout: REDLOCK_REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT
 
 # environment release information
 release:
