@@ -181,6 +181,8 @@ executor:
   queue:
     enabled: true
     options:
+      # redis or redisCluster(beta)
+      connectionType: redis
       # Configuration of the redis instance containing resque
       redisConnection:
         host: "127.0.0.1"
@@ -189,6 +191,12 @@ executor:
           password: "THIS-IS-A-PASSWORD"
           tls: false
         database: 0
+      redisClusterConnection:
+        hosts: []
+        options:
+          password: a-secure-password
+          tls: false
+        slotsRefreshTimeout: 1000
 
 queueWebhook:
   # Enabled events from webhook queue or not
@@ -358,6 +366,8 @@ redisLock:
     retryJitter: 200
     # the maximum time in milliseconds living of a key that has a timeout
     ttl: 20000
+    # redis or redisCluster(beta)
+    connectionType: redis
     # Configuration of the redis instance
     redisConnection:
       host: "127.0.0.1"
@@ -366,3 +376,9 @@ redisLock:
         password: "THIS-IS-A-PASSWORD"
         tls: false
       database: 0
+    redisClusterConnection:
+      hosts: []
+      options:
+        password: "THIS-IS-A-PASSWORD"
+        tls: false
+      slotsRefreshTimeout: 1000

@@ -13,6 +13,16 @@ class RedisMock {
     }
 }
 
+class RedisClusterMock {
+    constructor(hosts, options) {
+        this.hosts = hosts;
+        this.options = options;
+    }
+}
+
+RedisMock.Cluster = RedisClusterMock;
+
+/* eslint max-classes-per-file: ["error", 3] */
 class RedLockMock {
     constructor(redisList, options) {
         this.redisList = redisList;
@@ -86,6 +96,19 @@ describe('lock plugin test', () => {
     describe('redis options test', () => {
         before(() => {
             process.env.REDLOCK_ENABLED = true;
+        });
+
+        after(() => {
+            delete process.env.REDLOCK_ENABLED;
+            delete process.env.REDLOCK_REDIS_HOST;
+            delete process.env.REDLOCK_REDIS_PORT;
+            delete process.env.REDLOCK_REDIS_PASSWORD;
+            delete process.env.REDLOCK_REDIS_TLS_ENABLED;
+            delete process.env.REDLOCK_DRIFT_FACTOR;
+            delete process.env.REDLOCK_RETRY_COUNT;
+            delete process.env.REDLOCK_RETRY_DELAY;
+            delete process.env.REDLOCK_RETRY_JITTER;
+            delete process.env.REDLOCK_TTL;
         });
 
         it('default values test', () => {
@@ -171,6 +194,92 @@ describe('lock plugin test', () => {
                 retryJitter: 300
             });
             assert.equal(plugin.ttl, 40000);
+        });
+    });
+
+    describe('redis cluster options test', () => {
+        before(() => {
+            process.env.REDLOCK_ENABLED = true;
+            process.env.REDLOCK_REDIS_TYPE = 'redisCluster';
+        });
+
+        after(() => {
+            delete process.env.REDLOCK_ENABLED;
+            delete process.env.REDLOCK_REDIS_TYPE;
+            delete process.env.REDLOCK_REDIS_PASSWORD;
+            delete process.env.REDLOCK_REDIS_TLS_ENABLED;
+            delete process.env.REDIS_CLUSTER_HOSTS;
+            delete process.env.REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT;
+        });
+
+        it('default values test', () => {
+            /* eslint-disable global-require */
+            const plugin = require('../../plugins/lock');
+            /* eslint-enable global-require */
+
+            const { redis } = plugin;
+
+            console.log('default value for tls', process.env.REDLOCK_REDIS_TLS_ENABLED);
+
+            assert.deepEqual(redis.hosts, []);
+            assert.deepEqual(redis.options.redisOptions, {
+                password: 'THIS-IS-A-PASSWORD',
+                tls: false
+            });
+            assert.strictEqual(redis.options.slotsRefreshTimeout, 1000);
+            assert.strictEqual(redis.options.clusterRetryStrategy(), 100);
+        });
+
+        it('change options test', () => {
+            process.env.REDLOCK_REDIS_CLUSTER_HOSTS = '["127.0.0.1:6379", "127.0.0.2:6379", "127.0.0.3:6379"]';
+            process.env.REDLOCK_REDIS_CLUSTER_SLOTS_REFRESH_TIMEOUT = 100;
+            process.env.REDLOCK_REDIS_PASSWORD = 'password';
+            process.env.REDLOCK_REDIS_TLS_ENABLED = true;
+
+            process.env.REDLOCK_DRIFT_FACTOR = 0.02;
+            process.env.REDLOCK_RETRY_COUNT = 100;
+            process.env.REDLOCK_RETRY_DELAY = 200;
+            process.env.REDLOCK_RETRY_JITTER = 300;
+            process.env.REDLOCK_TTL = 40000;
+
+            /* eslint-disable global-require */
+            const plugin = require('../../plugins/lock');
+            /* eslint-enable global-require */
+
+            const { redis } = plugin;
+
+            assert.deepEqual(redis.hosts, ['127.0.0.1:6379', '127.0.0.2:6379', '127.0.0.3:6379']);
+            assert.deepEqual(redis.options.redisOptions, {
+                password: 'password',
+                tls: true
+            });
+            assert.strictEqual(redis.options.slotsRefreshTimeout, 100);
+            assert.strictEqual(redis.options.clusterRetryStrategy(), 100);
+        });
+    });
+
+    describe('other redis type is specified', () => {
+        before(() => {
+            process.env.REDLOCK_ENABLED = true;
+            process.env.REDLOCK_REDIS_TYPE = 'unknown';
+        });
+
+        after(() => {
+            delete process.env.REDLOCK_ENABLED;
+            delete process.env.REDLOCK_REDIS_TYPE;
+        });
+
+        it('occurs an error', () => {
+            try {
+                /* eslint-disable global-require */
+                require('../../plugins/lock');
+                /* eslint-enable global-require */
+            } catch (err) {
+                assert.equal(
+                    err.message,
+                    "'connectionType unknown' is not supported, use 'redis' or 'redisCluster' for the queue.connectionType setting"
+                );
+            }
         });
     });
 });
