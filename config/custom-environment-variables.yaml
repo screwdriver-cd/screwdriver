@@ -360,7 +360,7 @@ webhooks:
   maxBytes: WEBHOOK_MAX_BYTES
 
 bookends:
-  # Object keyed by cluster name with setup/teardown bookend in each.
+  # Object keyed by cluster name with value setup/teardown bookend.
   # Value of setup/teardown is list of module names, or objects { name, config } for instantiation to use in sd-setup/sd-teardown.
   # Example:
   # {
