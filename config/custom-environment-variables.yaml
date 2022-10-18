@@ -360,14 +360,21 @@ webhooks:
   maxBytes: WEBHOOK_MAX_BYTES
 
 bookends:
-  # List of module names, or objects { name, config } for instantiation to use in sd-setup
-  setup:
-    __name: BOOKENDS_SETUP
-    __format: json
-  # List of module names, or objects { name, config } for instantiation to use in sd-teardown
-  teardown:
-    __name: BOOKENDS_TEARDOWN
-    __format: json
+  # Object keyed by cluster name with value setup/teardown bookend.
+  # Value of setup/teardown is list of module names, or objects { name, config } for instantiation to use in sd-setup/sd-teardown.
+  # Example:
+  # {
+  #   "default": {
+  #       "setup": ["scm", "screwdriver-cache-bookend", "foo"],
+  #       "teardown": ["screwdriver-artifact-bookend", "screwdriver-cache-bookend"]
+  #   },
+  #   "clusterA": {
+  #       "setup": ["scm", "screwdriver-cache-bookend", "foo", "bar"],
+  #       "teardown": ["screwdriver-cache-bookend", {"name": "baz", "config": {}, "alias": "qux"}]
+  #   }
+  # }
+  __name: BOOKENDS
+  __format: json
 
 notifications:
   __name: NOTIFICATIONS

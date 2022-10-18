@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
@@ -99,7 +99,7 @@
     "prom-client": "^12.0.0",
     "redlock": "^4.1.0",
     "screwdriver-artifact-bookend": "^1.2.0",
-    "screwdriver-build-bookend": "^2.4.0",
+    "screwdriver-build-bookend": "^3.0.0",
     "screwdriver-cache-bookend": "^2.0.2",
     "screwdriver-command-validator": "^2.1.0",
     "screwdriver-config-parser": "^7.6.0",

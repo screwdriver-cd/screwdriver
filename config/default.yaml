@@ -286,12 +286,13 @@ unzipArtifacts:
 
 bookends:
   # Plugins for build setup
-  setup:
-    - scm
-    - screwdriver-cache-bookend
-  teardown:
-    - screwdriver-artifact-bookend
-    - screwdriver-cache-bookend
+  default:
+    setup:
+      - scm
+      - screwdriver-cache-bookend
+    teardown:
+      - screwdriver-artifact-bookend
+      - screwdriver-cache-bookend
 
 notifications:
   options:
