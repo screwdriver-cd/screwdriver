@@ -339,6 +339,13 @@ release:
     headerName: release
     headerValue: stable
 
+# Logging preferences
+log:
+  audit:
+    # set true to enable audit logs for all API calls
+    enabled: false
+    # add target scope tokens(pipeline, build, temporal, admin, guest, user)
+    scope: []
 
 # default cluster environment variables to inject into builds
 build:
