@@ -25,7 +25,12 @@ const loggingPlugin = {
                             args: [{ error: '*', log: '*', response: '*', request: '*' }]
                         },
                         {
-                            module: '@hapi/good-console'
+                            module: '@hapi/good-console',
+                            args: [
+                                {
+                                    color: false
+                                }
+                            ]
                         },
                         suppressAPITokens,
                         'stdout'
