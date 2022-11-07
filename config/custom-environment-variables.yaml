@@ -468,6 +468,16 @@ release:
   __name: RELEASE_ENVIRONMENT_VARIABLES
   __format: json
 
+# Logging preferences
+log:
+  audit:
+    # set true to enable audit logs for all API calls
+    enabled: LOG_AUDIT_ENABLED
+    # add target scope tokens(pipeline, build, temporal, admin, guest, user)
+    scope:
+      __name: LOG_AUDIT_SCOPE
+      __format: json
+
 build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES

@@ -44,6 +44,9 @@ ecosystem.api = httpdConfig.uri;
 
 const release = config.get('release');
 
+// Logging config
+const log = config.get('log');
+
 // Notification config
 const notificationConfig = config.get('notifications');
 
@@ -261,6 +264,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
             scm
         },
         release,
+        log,
         validator: {
             externalJoin: true,
             notificationsValidationErr
