@@ -393,6 +393,41 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 and all pipelines with matching ids', () => {
+            options.url = '/pipelines?ids[]=1&ids[]=2&ids[]=3&';
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'github:github.com',
+                        id: [1, 2, 3]
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(testPipelines));
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext: 'gitlab:mygitlab',
+                        id: [1, 2, 3]
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getPipelineMocks(gitlabTestPipelines));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testPipelines.concat(gitlabTestPipelines));
+            });
+        });
+
         it('returns 200 and filter private pipelines', () => {
             pipelineFactoryMock.scm.getScmContexts.returns(['github:github.com']);
             pipelineFactoryMock.list

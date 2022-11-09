@@ -7,6 +7,11 @@ const listSchema = joi
     .array()
     .items(schema.models.pipeline.get)
     .label('List of Pipelines');
+const pipelineIdsSchema = joi
+    .alternatives()
+    .try(joi.array().items(idSchema), idSchema)
+    .required();
+const IDS_KEY = 'ids[]';
 
 module.exports = () => ({
     method: 'GET',
@@ -21,30 +26,40 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const factory = request.server.app.pipelineFactory;
-            const scmContexts = factory.scm.getScmContexts();
+            const { pipelineFactory } = request.server.app;
+            const { sort, configPipelineId, sortBy, search, page, count } = request.query;
+            const scmContexts = pipelineFactory.scm.getScmContexts();
             let pipelineArray = [];
 
             scmContexts.forEach(scmContext => {
                 const config = {
                     params: { scmContext },
-                    sort: request.query.sort
+                    sort
                 };
 
-                if (request.query.configPipelineId) {
-                    config.params.configPipelineId = request.query.configPipelineId;
+                // Only return specific pipelines
+                if (request.query[IDS_KEY]) {
+                    const ids = request.query[IDS_KEY];
+
+                    config.params.id = Array.isArray(ids)
+                        ? ids.map(pipelineId => parseInt(pipelineId, 10))
+                        : [parseInt(ids, 10)];
                 }
 
-                if (request.query.sortBy) {
-                    config.sortBy = request.query.sortBy;
+                if (configPipelineId) {
+                    config.params.configPipelineId = configPipelineId;
                 }
 
-                if (request.query.search) {
+                if (sortBy) {
+                    config.sortBy = sortBy;
+                }
+
+                if (search) {
                     config.search = {
                         field: 'name',
                         // Do a fuzzy search for name: screwdriver-cd/ui
                         // See https://www.w3schools.com/sql/sql_like.asp for syntax
-                        keyword: `%${request.query.search}%`
+                        keyword: `%${search}%`
                     };
                 } else {
                     // default list all to 50 max count, according to schema.api.pagination
@@ -54,17 +69,17 @@ module.exports = () => ({
                     };
                 }
 
-                if (request.query.page) {
+                if (page) {
                     config.paginate = config.paginate || {};
-                    config.paginate.page = request.query.page;
+                    config.paginate.page = page;
                 }
 
-                if (request.query.count) {
+                if (count) {
                     config.paginate = config.paginate || {};
-                    config.paginate.count = request.query.count;
+                    config.paginate.count = count;
                 }
 
-                const pipelines = factory.list(config);
+                const pipelines = pipelineFactory.list(config);
 
                 pipelineArray = pipelineArray.concat(pipelines);
             });
@@ -76,7 +91,7 @@ module.exports = () => ({
                     let adminDetails;
 
                     if (scmContext) {
-                        const scmDisplayName = factory.scm.getDisplayName({ scmContext });
+                        const scmDisplayName = pipelineFactory.scm.getDisplayName({ scmContext });
 
                         adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
                     }
@@ -86,10 +101,11 @@ module.exports = () => ({
                     }
 
                     return allPipelines.filter(pipeline => {
-                        const setToPublic = pipeline.settings && pipeline.settings.public;
-                        const privatePipeline = pipeline.scmRepo && pipeline.scmRepo.private;
+                        const { settings, scmRepo, admins } = pipeline;
+                        const setToPublic = settings && settings.public;
+                        const privatePipeline = scmRepo && scmRepo.private;
 
-                        return !privatePipeline || setToPublic || pipeline.admins[username];
+                        return !privatePipeline || setToPublic || admins[username];
                     });
                 })
                 .then(allPipelines => h.response(allPipelines.map(p => p.toJson())))
@@ -103,7 +119,8 @@ module.exports = () => ({
         validate: {
             query: schema.api.pagination.concat(
                 joi.object({
-                    configPipelineId: idSchema
+                    configPipelineId: idSchema,
+                    'ids[]': pipelineIdsSchema.optional()
                 })
             )
         }
