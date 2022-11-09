@@ -33,6 +33,10 @@ server.register({
 
 `GET /pipelines?page={pageNumber}&count={countNumber}&configPipelineId={configPipelineId}&search={search}`
 
+Need to have array format for `ids` to only return pipelines with matching ids
+`GET /pipelines?search={search}&ids[]=12345&ids[]=55555`
+
+
 #### Get single pipeline
 
 `GET /pipelines/{id}`
