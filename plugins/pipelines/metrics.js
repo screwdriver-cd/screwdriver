@@ -102,7 +102,8 @@ module.exports = () => ({
                     endTime: joi.string().isoDate(),
                     aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year'),
                     'downtimeJobs[]': jobIdsSchema.optional(),
-                    'downtimeStatuses[]': statusesSchema.optional()
+                    'downtimeStatuses[]': statusesSchema.optional(),
+                    search: joi.forbidden() // we don't support search for Pipeline metrics
                 })
             )
         }

@@ -50,7 +50,11 @@ module.exports = () => ({
             params: joi.object({
                 name: nameSchema
             }),
-            query: schema.api.pagination
+            query: schema.api.pagination.concat(
+                joi.object({
+                    search: joi.forbidden() // we don't support search for Template list tags
+                })
+            )
         }
     }
 });

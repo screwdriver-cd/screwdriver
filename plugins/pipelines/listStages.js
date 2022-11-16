@@ -87,7 +87,8 @@ module.exports = () => ({
             query: schema.api.pagination.concat(
                 joi.object({
                     eventId: pipelineIdSchema,
-                    groupEventId: pipelineIdSchema
+                    groupEventId: pipelineIdSchema,
+                    search: joi.forbidden() // we don't support search for Pipeline list stages
                 })
             )
         }
