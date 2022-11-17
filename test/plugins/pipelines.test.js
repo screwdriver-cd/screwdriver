@@ -1290,7 +1290,7 @@ describe('pipeline plugin test', () => {
         it('returns 200 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.include(reply.payload, 'foo/bar: 1 unknown, 1 success, 1 failure');
+                assert.include(reply.payload, 'foo/bar: 1 success, 1 failure');
             }));
 
         it('returns 200 to for a valid PR build', () => {

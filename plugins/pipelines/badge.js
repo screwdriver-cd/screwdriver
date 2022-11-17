@@ -4,43 +4,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
 const logger = require('screwdriver-logger');
-const workflowParser = require('screwdriver-workflow-parser');
 const { getPipelineBadge } = require('./helper');
-
-/**
- * DFS the workflowGraph from the start point
- * @method dfs
- * @param  {Object} workflowGraph   workflowGraph
- * @param  {String} start           Start job name
- * @param  {String} prNum           PR number in case of PR trigger
- * @return {Set}                    A set of build ids that are visited
- */
-function dfs(workflowGraph, start, prNum) {
-    let nextJobsConfig;
-
-    if (start === '~pr') {
-        nextJobsConfig = {
-            trigger: start,
-            prNum
-        };
-    } else {
-        nextJobsConfig = {
-            trigger: start
-        };
-    }
-
-    const nextJobs = workflowParser.getNextJobs(workflowGraph, nextJobsConfig);
-
-    let visited = new Set(nextJobs);
-
-    nextJobs.forEach(job => {
-        const subJobs = dfs(workflowGraph, job);
-
-        visited = new Set([...visited, ...subJobs]);
-    });
-
-    return visited;
-}
 
 module.exports = config => ({
     method: 'GET',
@@ -95,15 +59,8 @@ module.exports = config => ({
                     return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
                 }
 
+                // Convert build statuses
                 const buildsStatus = builds.reverse().map(build => build.status.toLowerCase());
-                // Get downstream jobs
-                const nextJobs = dfs(lastEvent.workflowGraph, lastEvent.startFrom, lastEvent.prNum);
-                const workflowLength = nextJobs.size;
-
-                // Set empty build status to unknown
-                for (let i = builds.length; i < workflowLength; i += 1) {
-                    buildsStatus[i] = 'unknown';
-                }
 
                 return h
                     .response(
