@@ -2,8 +2,9 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const workflowParser = require('screwdriver-workflow-parser');
 const idSchema = schema.models.pipeline.base.extract('id');
+const logger = require('screwdriver-logger');
+const workflowParser = require('screwdriver-workflow-parser');
 const { getPipelineBadge } = require('./helper');
 
 /**
@@ -54,64 +55,71 @@ module.exports = config => ({
             }
         },
         handler: async (request, h) => {
-            const factory = request.server.app.pipelineFactory;
+            const { pipelineFactory, eventFactory } = request.server.app;
+            const pipelineId = request.params.id;
             const { statusColor } = config;
             const badgeConfig = {
                 statusColor
             };
             const contentType = 'image/svg+xml;charset=utf-8';
 
-            return factory
-                .get(request.params.id)
-                .then(pipeline => {
-                    if (!pipeline) {
-                        return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+            try {
+                // Get pipeline
+                const pipeline = await pipelineFactory.get(pipelineId);
+
+                if (!pipeline) {
+                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                }
+
+                // Get latest pipeline events
+                const latestEvents = await eventFactory.list({
+                    params: {
+                        pipelineId,
+                        parentEventId: null,
+                        type: 'pipeline'
+                    },
+                    paginate: {
+                        count: 1
                     }
+                });
 
-                    return pipeline.getEvents({ sort: 'ascending' }).then(allEvents => {
-                        const getLastEffectiveEvent = events => {
-                            const lastEvent = events.pop();
+                if (!latestEvents || Object.keys(latestEvents).length === 0) {
+                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                }
 
-                            if (!lastEvent) {
-                                return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
-                            }
+                // Only care about latest
+                const lastEvent = latestEvents[0];
+                const builds = await lastEvent.getBuilds({ readOnly: true });
 
-                            return lastEvent.getBuilds().then(builds => {
-                                if (!builds || builds.length < 1) {
-                                    return getLastEffectiveEvent(events);
-                                }
+                if (!builds || builds.length < 1) {
+                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                }
 
-                                const buildsStatus = builds.reverse().map(build => build.status.toLowerCase());
+                const buildsStatus = builds.reverse().map(build => build.status.toLowerCase());
+                // Get downstream jobs
+                const nextJobs = dfs(lastEvent.workflowGraph, lastEvent.startFrom, lastEvent.prNum);
+                const workflowLength = nextJobs.size;
 
-                                let workflowLength = 0;
+                // Set empty build status to unknown
+                for (let i = builds.length; i < workflowLength; i += 1) {
+                    buildsStatus[i] = 'unknown';
+                }
 
-                                if (lastEvent.workflowGraph) {
-                                    const nextJobs = dfs(lastEvent.workflowGraph, lastEvent.startFrom, lastEvent.prNum);
+                return h
+                    .response(
+                        getPipelineBadge(
+                            Object.assign(badgeConfig, {
+                                buildsStatus,
+                                label: pipeline.name
+                            })
+                        )
+                    )
+                    .header('Content-Type', contentType);
+            } catch (err) {
+                logger.error(`Failed to get badge for pipeline:${pipelineId}: ${err.message}`);
 
-                                    workflowLength = nextJobs.size;
-                                }
-
-                                for (let i = builds.length; i < workflowLength; i += 1) {
-                                    buildsStatus[i] = 'unknown';
-                                }
-
-                                return h
-                                    .response(
-                                        getPipelineBadge(
-                                            Object.assign(badgeConfig, {
-                                                buildsStatus,
-                                                label: pipeline.name
-                                            })
-                                        )
-                                    )
-                                    .header('Content-Type', contentType);
-                            });
-                        };
-
-                        return getLastEffectiveEvent(allEvents);
-                    });
-                })
-                .catch(() => h.response(getPipelineBadge(badgeConfig)));
+                return h.response(getPipelineBadge(badgeConfig));
+            }
         },
         validate: {
             params: joi.object({
