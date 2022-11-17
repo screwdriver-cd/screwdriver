@@ -81,7 +81,7 @@ module.exports = () => ({
 
             // check if the call wants compact data
             if (compact === 'true') {
-                // removing `config` trims most of the bytes
+                // removing these fields trims most of the bytes
                 config.exclude = ['usage', 'docker', 'habitat', 'binary'];
                 // using spread operator because params could be null
                 config.params = {

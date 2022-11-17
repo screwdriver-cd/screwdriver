@@ -5,6 +5,7 @@ const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
 const logger = require('screwdriver-logger');
 const { getPipelineBadge } = require('./helper');
+const BUILD_META_KEYWORD = '%"build":%';
 
 module.exports = config => ({
     method: 'GET',
@@ -42,6 +43,13 @@ module.exports = config => ({
                         parentEventId: null,
                         type: 'pipeline'
                     },
+                    // Make sure build exists for event, meta will be {} for skipped builds
+                    search: {
+                        field: 'meta',
+                        keyword: BUILD_META_KEYWORD
+                    },
+                    // removing these fields trims most of the bytes
+                    exclude: ['workflowGraph', 'meta', 'commit'],
                     paginate: {
                         count: 1
                     }
