@@ -67,7 +67,8 @@ module.exports = () => ({
                         .truthy('true')
                         .falsy('false')
                         .default(false),
-                    jobName: jobNameSchema
+                    jobName: jobNameSchema,
+                    search: joi.forbidden() // we don't support search for Pipeline list jobs
                 })
             )
         }

@@ -53,7 +53,11 @@ module.exports = () => ({
                 namespace: namespaceSchema,
                 name: nameSchema
             }),
-            query: schema.api.pagination
+            query: schema.api.pagination.concat(
+                joi.object({
+                    search: joi.forbidden() // we don't support search for Command list tag
+                })
+            )
         }
     }
 });

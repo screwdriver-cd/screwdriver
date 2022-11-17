@@ -62,7 +62,8 @@ module.exports = () => ({
                         .boolean()
                         .truthy('true')
                         .falsy('false')
-                        .default(true)
+                        .default(true),
+                    search: joi.forbidden() // we don't support search for Event list builds
                 })
             )
         }
