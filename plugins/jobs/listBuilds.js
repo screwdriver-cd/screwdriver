@@ -86,7 +86,7 @@ module.exports = () => ({
                         .falsy('false')
                         .default(true),
                     status: statusSchema,
-                    search: joi.forbidden() // we don't support search for list builds
+                    search: joi.forbidden() // we don't support search for Job list builds
                 })
             )
         }
