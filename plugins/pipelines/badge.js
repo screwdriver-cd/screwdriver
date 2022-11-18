@@ -52,7 +52,8 @@ module.exports = config => ({
                     exclude: ['workflowGraph', 'meta', 'commit'],
                     paginate: {
                         count: 1
-                    }
+                    },
+                    sort: 'descending'
                 });
 
                 if (!latestEvents || Object.keys(latestEvents).length === 0) {
