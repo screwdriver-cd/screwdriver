@@ -2,44 +2,10 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const workflowParser = require('screwdriver-workflow-parser');
 const idSchema = schema.models.pipeline.base.extract('id');
+const logger = require('screwdriver-logger');
 const { getPipelineBadge } = require('./helper');
-
-/**
- * DFS the workflowGraph from the start point
- * @method dfs
- * @param  {Object} workflowGraph   workflowGraph
- * @param  {String} start           Start job name
- * @param  {String} prNum           PR number in case of PR trigger
- * @return {Set}                    A set of build ids that are visited
- */
-function dfs(workflowGraph, start, prNum) {
-    let nextJobsConfig;
-
-    if (start === '~pr') {
-        nextJobsConfig = {
-            trigger: start,
-            prNum
-        };
-    } else {
-        nextJobsConfig = {
-            trigger: start
-        };
-    }
-
-    const nextJobs = workflowParser.getNextJobs(workflowGraph, nextJobsConfig);
-
-    let visited = new Set(nextJobs);
-
-    nextJobs.forEach(job => {
-        const subJobs = dfs(workflowGraph, job);
-
-        visited = new Set([...visited, ...subJobs]);
-    });
-
-    return visited;
-}
+const BUILD_META_KEYWORD = '%"build":%';
 
 module.exports = config => ({
     method: 'GET',
@@ -54,64 +20,72 @@ module.exports = config => ({
             }
         },
         handler: async (request, h) => {
-            const factory = request.server.app.pipelineFactory;
+            const { pipelineFactory, eventFactory } = request.server.app;
+            const pipelineId = request.params.id;
             const { statusColor } = config;
             const badgeConfig = {
                 statusColor
             };
             const contentType = 'image/svg+xml;charset=utf-8';
 
-            return factory
-                .get(request.params.id)
-                .then(pipeline => {
-                    if (!pipeline) {
-                        return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
-                    }
+            try {
+                // Get pipeline
+                const pipeline = await pipelineFactory.get(pipelineId);
 
-                    return pipeline.getEvents({ sort: 'ascending' }).then(allEvents => {
-                        const getLastEffectiveEvent = events => {
-                            const lastEvent = events.pop();
+                if (!pipeline) {
+                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                }
 
-                            if (!lastEvent) {
-                                return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
-                            }
+                // Get latest pipeline events
+                const latestEvents = await eventFactory.list({
+                    params: {
+                        pipelineId,
+                        parentEventId: null,
+                        type: 'pipeline'
+                    },
+                    // Make sure build exists for event, meta will be {} for skipped builds
+                    search: {
+                        field: 'meta',
+                        keyword: BUILD_META_KEYWORD
+                    },
+                    // removing these fields trims most of the bytes
+                    exclude: ['workflowGraph', 'meta', 'commit'],
+                    paginate: {
+                        count: 1
+                    },
+                    sort: 'descending'
+                });
 
-                            return lastEvent.getBuilds().then(builds => {
-                                if (!builds || builds.length < 1) {
-                                    return getLastEffectiveEvent(events);
-                                }
+                if (!latestEvents || Object.keys(latestEvents).length === 0) {
+                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                }
 
-                                const buildsStatus = builds.reverse().map(build => build.status.toLowerCase());
+                // Only care about latest
+                const lastEvent = latestEvents[0];
+                const builds = await lastEvent.getBuilds({ readOnly: true });
 
-                                let workflowLength = 0;
+                if (!builds || builds.length < 1) {
+                    return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
+                }
 
-                                if (lastEvent.workflowGraph) {
-                                    const nextJobs = dfs(lastEvent.workflowGraph, lastEvent.startFrom, lastEvent.prNum);
+                // Convert build statuses
+                const buildsStatus = builds.reverse().map(build => build.status.toLowerCase());
 
-                                    workflowLength = nextJobs.size;
-                                }
+                return h
+                    .response(
+                        getPipelineBadge(
+                            Object.assign(badgeConfig, {
+                                buildsStatus,
+                                label: pipeline.name
+                            })
+                        )
+                    )
+                    .header('Content-Type', contentType);
+            } catch (err) {
+                logger.error(`Failed to get badge for pipeline:${pipelineId}: ${err.message}`);
 
-                                for (let i = builds.length; i < workflowLength; i += 1) {
-                                    buildsStatus[i] = 'unknown';
-                                }
-
-                                return h
-                                    .response(
-                                        getPipelineBadge(
-                                            Object.assign(badgeConfig, {
-                                                buildsStatus,
-                                                label: pipeline.name
-                                            })
-                                        )
-                                    )
-                                    .header('Content-Type', contentType);
-                            });
-                        };
-
-                        return getLastEffectiveEvent(allEvents);
-                    });
-                })
-                .catch(() => h.response(getPipelineBadge(badgeConfig)));
+                return h.response(getPipelineBadge(badgeConfig));
+            }
         },
         validate: {
             params: joi.object({

@@ -1284,17 +1284,17 @@ describe('pipeline plugin test', () => {
             eventsPrMock = getEventsMocks(testEventsPr);
             eventsMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
             eventsPrMock[0].getBuilds.resolves(getBuildMocks(testBuilds));
-            pipelineMock.getEvents.resolves(eventsMock);
+            eventFactoryMock.list.resolves(eventsMock);
         });
 
         it('returns 200 to for a valid build', () =>
             server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.include(reply.payload, 'foo/bar: 1 unknown, 1 success, 1 failure');
+                assert.include(reply.payload, 'foo/bar: 1 success, 1 failure');
             }));
 
         it('returns 200 to for a valid PR build', () => {
-            pipelineMock.getEvents.resolves(eventsPrMock);
+            eventFactoryMock.list.resolves(eventsPrMock);
 
             return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -1312,7 +1312,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 to unknown for an event that does not exist', () => {
-            pipelineMock.getEvents.resolves([]);
+            eventFactoryMock.list.resolves([]);
 
             return server.inject(`/pipelines/${id}/badge`).then(reply => {
                 assert.equal(reply.statusCode, 200);
