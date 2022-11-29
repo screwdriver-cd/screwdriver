@@ -120,6 +120,49 @@ Given(
     }
 );
 
+Given(
+    /^a "([^"]+)" command$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(command) {
+        this.command = command;
+
+        return request({
+            url: `${this.instance}/v4/commands/${this.commandNamespace}/${this.command}`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        })
+            .then(response => {
+                Assert.equal(response.statusCode, 200);
+                this.numOfCommand = response.body.length;
+            })
+            .catch(err => {
+                Assert.strictEqual(err.statusCode, 404);
+                this.numOfCommand = 0;
+            });
+    }
+);
+
+Given(
+    /^the command exists$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        if (this.numOfCommand === 0) {
+            return this.startJob(`init-${this.command}`).then(result => {
+                Assert.equal(result, 'SUCCESS');
+                this.numOfCommand = 1;
+            });
+        }
+
+        return Promise.resolve();
+    }
+);
+
 When(
     /^execute (.+) job$/,
     {
@@ -173,6 +216,34 @@ When(
         }).then(response => {
             Assert.equal(response.statusCode, 200);
             Assert.include(response.body.command, `sd-cmd exec ${this.commandNamespace}/${this.command}@1 ${args}`);
+        });
+    }
+);
+
+When(
+    /^a pipeline with the "(right|wrong)" permission "(succeeds|fails)" to publish the command in "([^"]+)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(permission, status, jobName) {
+        if (permission === 'wrong') {
+            this.branchName = 'second';
+        }
+
+        return this.startJob(jobName).then(result => {
+            Assert.equal(result, status === 'succeeds' ? 'SUCCESS' : 'FAILURE');
+        });
+    }
+);
+
+When(
+    /^a pipeline "(succeeds|fails)" to validate the command in "([^"]+)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(status, jobName) {
+        return this.startJob(jobName).then(result => {
+            Assert.equal(result, status === 'succeeds' ? 'SUCCESS' : 'FAILURE');
         });
     }
 );
@@ -255,6 +326,56 @@ Then(
             }
         }).then(resp => {
             Assert.equal(resp.statusCode, 204);
+        });
+    }
+);
+
+Then(
+    /^the command "(is|is not)" stored$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(stored) {
+        return request({
+            url: `${this.instance}/v4/commands/${this.commandNamespace}/${this.command}`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        })
+            .then(response => {
+                Assert.equal(response.statusCode, 200);
+                const { length } = response.body;
+
+                if (stored === 'is') {
+                    Assert.equal(length, this.numOfCommand + 1);
+                }
+            })
+            .catch(err => {
+                if (stored === 'is not') {
+                    Assert.strictEqual(err.statusCode, 404);
+                } else {
+                    throw err;
+                }
+            });
+    }
+);
+
+Then(
+    /^the command is "(trusted|distrusted)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(trust) {
+        return request({
+            url: `${this.instance}/v4/commands/${this.commandNamespace}/${this.command}`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        }).then(response => {
+            Assert.equal(response.statusCode, 200);
+            Assert.equal(response.body[0].trusted, trust === 'trusted');
         });
     }
 );
