@@ -293,7 +293,7 @@ function cleanupBuilds(config) {
 }
 
 /**
- * Retrun specific build log
+ * Retrieve specific build logs
  *
  * @method findBuildStepLogs
  * @param  {Object}  config                     Configuration object
