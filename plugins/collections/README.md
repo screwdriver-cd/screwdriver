@@ -74,6 +74,20 @@ Example payload:
 }
 ```
 
+#### Add a pipeline to a collection
+
+`PUT /collections/{id}/pipelines/{pipelineId}`
+
+#### Remove one or more pipelines from a collection
+
+`DELETE /collections/{id}/pipelines?ids[]={pipelineId}`
+
+Examples:
+
+`DELETE /collections/123/pipelines?ids[]=11&ids[]=23` removes pipelines with `id` equal to `11` and `23` from the collection with `id` equal to `123`
+
+`DELETE /collections/123/pipelines` removes all the pipelines from the collection with `id` equal to `123`
+
 #### Delete a collection
 
 `DELETE /collections/{id}`
