@@ -74,9 +74,14 @@ Example payload:
 }
 ```
 
-#### Add a pipeline to a collection
+#### Add one or more pipelines to a collection
 
-`PUT /collections/{id}/pipelines/{pipelineId}`
+`PUT /collections/{id}/pipelines?ids[]={pipelineId}`
+
+Examples:
+
+`PUT /collections/123/pipelines?ids[]=11&ids[]=23` adds pipelines with `id` equal to `11` and `23` to the collection with `id` equal to `123`
+
 
 #### Remove one or more pipelines from a collection
 

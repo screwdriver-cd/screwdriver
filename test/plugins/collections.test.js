@@ -806,15 +806,17 @@ describe('collection plugin test', () => {
         });
     });
 
-    describe('PUT /collections/{id}/pipelines/{pipelineId}', () => {
+    describe('PUT /collections/{id}/pipelines', () => {
         const { id } = testCollection;
-        const pipelineIdToAdd = 145;
+        const pipelineIdToAddFirst = 234;
+        const pipelineIdToAddSecond = 235;
+        const pipelineIdToAddInvalid = 777;
         let options;
 
         beforeEach(() => {
             options = {
                 method: 'PUT',
-                url: `/collections/${id}/pipelines/${pipelineIdToAdd}`,
+                url: `/collections/${id}/pipelines?ids[]=${pipelineIdToAddFirst}&ids[]=${pipelineIdToAddSecond}&ids[]=${pipelineIdToAddInvalid}`,
                 auth: {
                     credentials: {
                         username,
@@ -832,15 +834,65 @@ describe('collection plugin test', () => {
                 scmContext,
                 id: userId
             });
-            pipelineFactoryMock.get.withArgs(pipelineIdToAdd).resolves({ id: pipelineIdToAdd });
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext,
+                        id: [pipelineIdToAddFirst, pipelineIdToAddSecond, pipelineIdToAddInvalid]
+                    }
+                })
+                .resolves([{ id: pipelineIdToAddFirst }, { id: pipelineIdToAddSecond }]);
         });
 
-        it('returns 204 when pipeline is successfully added', () =>
+        it('returns 204 when multiple pipelines are successfully added', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineFactoryMock.list);
                 assert.calledOnce(collectionMock.update);
-                assert.deepEqual(collectionMock.pipelineIds, [...testCollection.pipelineIds, pipelineIdToAdd]);
+                assert.deepEqual(collectionMock.pipelineIds, [
+                    ...testCollection.pipelineIds,
+                    pipelineIdToAddFirst,
+                    pipelineIdToAddSecond
+                ]);
             }));
+
+        it('returns 204 when one pipeline is successfully added', () => {
+            options.url = `/collections/${id}/pipelines?ids[]=${pipelineIdToAddFirst}`;
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext,
+                        id: [pipelineIdToAddFirst]
+                    }
+                })
+                .resolves([{ id: pipelineIdToAddFirst }]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, [...testCollection.pipelineIds, pipelineIdToAddFirst]);
+            });
+        });
+
+        it('returns 204 when pipeline does not exist', () => {
+            options.url = `/collections/${id}/pipelines?ids[]=${pipelineIdToAddInvalid}`;
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext,
+                        id: [pipelineIdToAddInvalid]
+                    }
+                })
+                .resolves([]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, testCollection.pipelineIds);
+            });
+        });
 
         it('returns 403 when user does not have permission', () => {
             const fakeUserId = 12;
@@ -853,6 +905,7 @@ describe('collection plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
+                assert.callCount(pipelineFactoryMock.list, 0);
                 assert.callCount(collectionMock.update, 0);
             });
         });
@@ -862,15 +915,17 @@ describe('collection plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.callCount(pipelineFactoryMock.list, 0);
                 assert.callCount(collectionMock.update, 0);
             });
         });
 
-        it('returns 404 when pipeline does not exist', () => {
-            pipelineFactoryMock.get.withArgs(pipelineIdToAdd).resolves(null);
+        it('returns 404 when pipelines to add are not specified', () => {
+            options.url = `/collections/${id}/pipelines`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.callCount(pipelineFactoryMock.list, 0);
                 assert.callCount(collectionMock.update, 0);
             });
         });
@@ -880,6 +935,7 @@ describe('collection plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+                assert.callCount(pipelineFactoryMock.list, 0);
                 assert.callCount(collectionMock.update, 0);
             });
         });

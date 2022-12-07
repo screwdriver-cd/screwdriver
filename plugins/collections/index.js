@@ -6,7 +6,7 @@ const listRoute = require('./list');
 const updateRoute = require('./update');
 const removeRoute = require('./remove');
 const removePipelinesRoute = require('./removePipelines');
-const addPipelineRoute = require('./addPipeline');
+const addPipelinesRoute = require('./addPipelines');
 
 /**
  * Collections API Plugin
@@ -25,7 +25,7 @@ const collectionsPlugin = {
             updateRoute(),
             removeRoute(),
             removePipelinesRoute(),
-            addPipelineRoute()
+            addPipelinesRoute()
         ]);
     }
 };
