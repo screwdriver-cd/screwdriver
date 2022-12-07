@@ -15,7 +15,7 @@ const updatedCollection = require('./data/updatedCollection.json');
 sinon.assert.expose(assert, { prefix: '' });
 
 const getMock = obj => {
-    const mock = { ...obj };
+    const mock = hoek.clone(obj);
 
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(obj);
@@ -426,12 +426,10 @@ describe('collection plugin test', () => {
             }));
 
         it('returns a collection only with pipelines that exist', () => {
-            const newTestCollection = { ...testCollection };
+            const newCollectionMock = getMock(testCollection);
 
             // Add a pipelineId which doesn't exist in testPipelines
-            newTestCollection.pipelineIds.push(126);
-            const newCollectionMock = getMock(newTestCollection);
-
+            newCollectionMock.pipelineIds.push(126);
             collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
 
             // Since there is no pipeline with id 126, it should only return
