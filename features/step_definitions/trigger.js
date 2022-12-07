@@ -51,6 +51,18 @@ Before(
     }
 );
 
+Before(
+    {
+        tags: '@require-or'
+    },
+    function hook() {
+        this.repoOrg = this.testOrg;
+        this.repoName = 'functional-require-or';
+        this.pipelineId = null;
+        this.builds = null;
+    }
+);
+
 Given(
     /^an existing pipeline on branch "([^"]*)" with the workflow jobs:$/,
     {
@@ -225,6 +237,43 @@ When(
         github.createFile(branchName, this.repoOrg, this.repoName, directoryName).then(response => {
             this.pipelines[branchName].sha = response.data.commit.sha;
         });
+    }
+);
+
+When(
+    /^start "([^"]*)" job$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(job) {
+        return request({
+            url: `${this.instance}/${this.namespace}/events`,
+            method: 'POST',
+            json: {
+                pipelineId: this.pipelineId,
+                startFrom: job
+            },
+            context: {
+                token: this.jwt
+            }
+        })
+            .then(resp => {
+                Assert.equal(resp.statusCode, 201);
+                this.eventId = resp.body.id;
+            })
+            .then(() =>
+                request({
+                    url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                    method: 'GET',
+                    context: {
+                        token: this.jwt
+                    }
+                })
+            )
+            .then(resp => {
+                Assert.equal(resp.statusCode, 200);
+                this.buildId = resp.body[0].id;
+            });
     }
 );
 

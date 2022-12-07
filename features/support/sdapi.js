@@ -292,10 +292,36 @@ function cleanupBuilds(config) {
     });
 }
 
+/**
+ * Retrieve specific build logs
+ *
+ * @method findBuildStepLogs
+ * @param  {Object}  config                     Configuration object
+ * @param  {String}  config.instance            Screwdriver instance to test against
+ * @param  {String}  config.buildId             Build ID to find the build step logs
+ * @param  {String}  config.stepName            The stepName we're looking for
+ * @param  {String}  config.jwt                 JWT for authenticating
+ * @return {Promise}                            A promise that resolves to an array of build step logs that
+ *                                              fulfill the given criteria. If nothing is found, an
+ *                                              empty array is returned
+ */
+function findBuildStepLogs(config) {
+    const { instance, stepName, buildId, jwt } = config;
+
+    return request({
+        method: 'GET',
+        url: `${instance}/v4/builds/${buildId}/steps/${stepName}/logs`,
+        context: {
+            token: jwt
+        }
+    });
+}
+
 module.exports = {
     cleanupToken,
     cleanupBuilds,
     findBuilds,
+    findBuildStepLogs,
     findJobs,
     findEventBuilds,
     searchForBuild,

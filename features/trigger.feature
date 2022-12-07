@@ -139,3 +139,17 @@ Feature: Remote Trigger
             | job1      | ~commit   |
       When a new file is added to the "directory1" directory of the "master" branch
       Then a new build from "job1" should be created to test that change
+
+    @require-or
+    Scenario: require-or
+        Given an existing pipeline on branch "master" with the workflow jobs:
+            | job       | requires     |
+            | job1      |  ~commit     |
+            | job2      |  ~commit     |
+            | OR        | ~job1, ~job2 |
+        When start "job1" job
+        And the "job1" build succeeded
+        Then the "OR" job is triggered
+        When start "job2" job
+        And the "job2" build succeeded
+        Then the "OR" job is triggered

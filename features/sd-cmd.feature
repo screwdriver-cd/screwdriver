@@ -38,3 +38,33 @@ Feature: Commands
     Scenario: Get list of explicit command versions
         When execute "list"
         Then get list of explicit versions matching that range with comma separated tags next to applicable tags
+
+    Scenario Outline: Validate a template
+        Then a pipeline "<status>" to validate the command in "<job>"
+
+        Examples:
+            | status   | job              |
+            | succeeds | validate-valid   |
+            | fails    | validate-invalid |
+
+    Scenario Outline: Hold trust status after publish a command
+        Given a "<command>" command
+        And the command exists
+        And the command is "<trust>"
+        When a pipeline with the "right" permission "succeeds" to publish the command in "<job>"
+        Then the command "is" stored
+        And the command is "<trust>"
+
+        Examples:
+            | command                  | trust      | job                |
+            | test-trusted-command     | trusted    | publish-trusted    |
+            | test-distrusted-command  | distrusted | publish-distrusted |
+
+    Scenario Outline: Publish a command by another pipeline
+        Given a "test-trusted-command" command
+        And the command exists
+        Then a pipeline with the "wrong" permission "fails" to publish the command in "<job>"
+
+        Examples:
+            | job             |
+            | publish-trusted |
