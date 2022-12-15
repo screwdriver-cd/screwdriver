@@ -15,7 +15,7 @@ const updatedCollection = require('./data/updatedCollection.json');
 sinon.assert.expose(assert, { prefix: '' });
 
 const getMock = obj => {
-    const mock = { ...obj };
+    const mock = hoek.clone(obj);
 
     mock.update = sinon.stub();
     mock.toJson = sinon.stub().returns(obj);
@@ -426,12 +426,10 @@ describe('collection plugin test', () => {
             }));
 
         it('returns a collection only with pipelines that exist', () => {
-            const newTestCollection = { ...testCollection };
+            const newCollectionMock = getMock(testCollection);
 
             // Add a pipelineId which doesn't exist in testPipelines
-            newTestCollection.pipelineIds.push(126);
-            const newCollectionMock = getMock(newTestCollection);
-
+            newCollectionMock.pipelineIds.push(126);
             collectionFactoryMock.get.withArgs(id).resolves(newCollectionMock);
 
             // Since there is no pipeline with id 126, it should only return
@@ -701,6 +699,249 @@ describe('collection plugin test', () => {
 
         it('returns 500 when call returns error', () => {
             collectionMock.remove.rejects('collectionRemoveError');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('DELETE /collections/{id}/pipelines', () => {
+        const { id } = testCollection;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/collections/${id}/pipelines?ids[]=123&ids[]=124`,
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
+                }
+            };
+
+            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
+        });
+
+        it('returns 204 when multiple pipelines are successfully removed', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, [125]);
+            }));
+
+        it('returns 204 when one pipeline is successfully removed', () => {
+            options.url = `/collections/${id}/pipelines?ids[]=125`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, [123, 124]);
+            });
+        });
+
+        it('returns 204 when all the pipelines are successfully removed', () => {
+            options.url = `/collections/${id}/pipelines`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, []);
+            });
+        });
+
+        it('returns 204 when pipeline to remove does not exist in the collection', () => {
+            options.url = `/collections/${id}/pipelines?ids[]=126`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, [123, 124, 125]);
+            });
+        });
+
+        it('returns 403 when user does not have permission', () => {
+            const fakeUserId = 12;
+            const fakeUserMock = getUserMock({
+                username,
+                userId: fakeUserId
+            });
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 404 when collection does not exist', () => {
+            collectionFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 500 when call returns error', () => {
+            collectionMock.update.rejects('collectionRemoveError');
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('PUT /collections/{id}/pipelines', () => {
+        const { id } = testCollection;
+        const pipelineIdToAddFirst = 234;
+        const pipelineIdToAddSecond = 235;
+        const pipelineIdToAddInvalid = 777;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: `/collections/${id}/pipelines?ids[]=${pipelineIdToAddFirst}&ids[]=${pipelineIdToAddSecond}&ids[]=${pipelineIdToAddInvalid}`,
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user']
+                    },
+                    strategy: 'token'
+                }
+            };
+
+            collectionFactoryMock.get.withArgs(id).resolves(collectionMock);
+
+            userMock = getUserMock({
+                username,
+                scmContext,
+                id: userId
+            });
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext,
+                        id: [pipelineIdToAddFirst, pipelineIdToAddSecond, pipelineIdToAddInvalid]
+                    }
+                })
+                .resolves([{ id: pipelineIdToAddFirst }, { id: pipelineIdToAddSecond }]);
+        });
+
+        it('returns 204 when multiple pipelines are successfully added', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, [
+                    ...testCollection.pipelineIds,
+                    pipelineIdToAddFirst,
+                    pipelineIdToAddSecond
+                ]);
+            }));
+
+        it('returns 204 when one pipeline is successfully added', () => {
+            options.url = `/collections/${id}/pipelines?ids[]=${pipelineIdToAddFirst}`;
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext,
+                        id: [pipelineIdToAddFirst]
+                    }
+                })
+                .resolves([{ id: pipelineIdToAddFirst }]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, [...testCollection.pipelineIds, pipelineIdToAddFirst]);
+            });
+        });
+
+        it('returns 204 when pipeline does not exist', () => {
+            options.url = `/collections/${id}/pipelines?ids[]=${pipelineIdToAddInvalid}`;
+            pipelineFactoryMock.list
+                .withArgs({
+                    params: {
+                        scmContext,
+                        id: [pipelineIdToAddInvalid]
+                    }
+                })
+                .resolves([]);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 204);
+                assert.calledOnce(pipelineFactoryMock.list);
+                assert.calledOnce(collectionMock.update);
+                assert.deepEqual(collectionMock.pipelineIds, testCollection.pipelineIds);
+            });
+        });
+
+        it('returns 403 when user does not have permission', () => {
+            const fakeUserId = 12;
+            const fakeUserMock = getUserMock({
+                username,
+                userId: fakeUserId
+            });
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(fakeUserMock);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.callCount(pipelineFactoryMock.list, 0);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 404 when collection does not exist', () => {
+            collectionFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.callCount(pipelineFactoryMock.list, 0);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 404 when pipelines to add are not specified', () => {
+            options.url = `/collections/${id}/pipelines`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.callCount(pipelineFactoryMock.list, 0);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.callCount(pipelineFactoryMock.list, 0);
+                assert.callCount(collectionMock.update, 0);
+            });
+        });
+
+        it('returns 500 when call returns error', () => {
+            collectionMock.update.rejects('collectionRemoveError');
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
