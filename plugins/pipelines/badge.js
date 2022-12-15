@@ -40,7 +40,6 @@ module.exports = config => ({
                 const latestEvents = await eventFactory.list({
                     params: {
                         pipelineId,
-                        parentEventId: null,
                         type: 'pipeline'
                     },
                     // Make sure build exists for event, meta will be {} for skipped builds
@@ -53,7 +52,8 @@ module.exports = config => ({
                     paginate: {
                         count: 1
                     },
-                    sort: 'descending'
+                    sort: 'descending',
+                    sortBy: 'createTime'
                 });
 
                 if (!latestEvents || Object.keys(latestEvents).length === 0) {
@@ -62,14 +62,14 @@ module.exports = config => ({
 
                 // Only care about latest
                 const lastEvent = latestEvents[0];
-                const builds = await lastEvent.getBuilds({ readOnly: true });
+                const builds = await lastEvent.getBuilds({ readOnly: true, sortBy: 'id', sort: 'descending' });
 
                 if (!builds || builds.length < 1) {
                     return h.response(getPipelineBadge(badgeConfig)).header('Content-Type', contentType);
                 }
 
                 // Convert build statuses
-                const buildsStatus = builds.reverse().map(build => build.status.toLowerCase());
+                const buildsStatus = builds.map(build => build.status.toLowerCase());
 
                 return h
                     .response(
