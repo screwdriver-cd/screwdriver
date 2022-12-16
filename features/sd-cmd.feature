@@ -40,7 +40,7 @@ Feature: Commands
         Then get list of explicit versions matching that range with comma separated tags next to applicable tags
 
     @ignore
-    Scenario Outline: Validate a template
+    Scenario Outline: Validate a command
         Then a pipeline "<status>" to validate the command in "<job>"
 
         Examples:

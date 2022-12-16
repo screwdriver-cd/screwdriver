@@ -1,4 +1,3 @@
-@ignore
 @parallel
 @build-cache
 
@@ -9,11 +8,11 @@ Feature: build-cache
 
     Scenario: Success cache is correctly created and cache exists
         Given an existing pipeline for build-cache
-        When the pipeline starts "create-cache" job
+        When start "creaet-cache" job
         And the "create-cache" build succeeded
         And the "check-event-and-pipeline" job is triggered
         Then the "check-event-and-pipeline" build succeeded
-        When the pipeline starts "check-job" job
+        When start "check-job" job
         And the "check-job" build succeeded
         Then start "check-job" job again and cache exists for job-level
 

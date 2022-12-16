@@ -21,6 +21,51 @@ Before(
         this.command = null;
         this.commandNamespace = 'screwdriver-cd-test';
 
+        this.startJob = jobName => {
+            return this.ensurePipelineExists({
+                repoName: this.repoName,
+                branch: this.branchName,
+                shouldNotDeletePipeline: true
+            })
+                .then(() =>
+                    request({
+                        url: `${this.instance}/${this.namespace}/events`,
+                        method: 'POST',
+                        json: {
+                            pipelineId: this.pipelineId,
+                            startFrom: jobName
+                        },
+                        context: {
+                            token: this.jwt
+                        }
+                    })
+                )
+                .then(response => {
+                    Assert.equal(response.statusCode, 201);
+                    this.eventId = response.body.id;
+                })
+                .then(() =>
+                    request({
+                        url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                        method: 'GET',
+                        context: {
+                            token: this.jwt
+                        }
+                    })
+                )
+                .then(response => {
+                    Assert.equal(response.statusCode, 200);
+                    this.buildId = response.body[0].id;
+
+                    return this.waitForBuild(this.buildId);
+                })
+                .then(response => {
+                    Assert.equal(response.statusCode, 200);
+
+                    return response.body.status;
+                });
+        };
+
         return request({
             // TODO : perform this in the before-hook for all func tests
             method: 'GET',
