@@ -140,7 +140,6 @@ Feature: Remote Trigger
       When a new file is added to the "directory1" directory of the "master" branch
       Then a new build from "job1" should be created to test that change
 
-    @ignore
     @require-or
     Scenario: require-or
         Given an existing pipeline on branch "master" with the workflow jobs:

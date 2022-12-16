@@ -39,8 +39,7 @@ Feature: Commands
         When execute "list"
         Then get list of explicit versions matching that range with comma separated tags next to applicable tags
 
-    @ignore
-    Scenario Outline: Validate a template
+    Scenario Outline: Validate a command
         Then a pipeline "<status>" to validate the command in "<job>"
 
         Examples:
@@ -48,7 +47,6 @@ Feature: Commands
             | succeeds | validate-valid   |
             | fails    | validate-invalid |
 
-    @ignore
     Scenario Outline: Hold trust status after publish a command
         Given a "<command>" command
         And the command exists
@@ -62,7 +60,6 @@ Feature: Commands
             | test-trusted-command     | trusted    | publish-trusted    |
             | test-distrusted-command  | distrusted | publish-distrusted |
 
-    @ignore
     Scenario Outline: Publish a command by another pipeline
         Given a "test-trusted-command" command
         And the command exists
