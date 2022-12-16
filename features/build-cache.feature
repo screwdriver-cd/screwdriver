@@ -8,7 +8,7 @@ Feature: build-cache
 
     Scenario: Success cache is correctly created and cache exists
         Given an existing pipeline for build-cache
-        When start "creaet-cache" job
+        When start "create-cache" job
         And the "create-cache" build succeeded
         And the "check-event-and-pipeline" job is triggered
         Then the "check-event-and-pipeline" build succeeded
