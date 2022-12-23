@@ -91,7 +91,7 @@
     "ioredis": "^5.2.3",
     "joi": "^17.7.0",
     "js-yaml": "^3.14.1",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "license-checker": "^17.0.0",
     "lodash.mergewith": "^4.6.2",
     "ndjson": "^1.4.3",
