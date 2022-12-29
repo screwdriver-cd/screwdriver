@@ -62,7 +62,7 @@ jobs:
             SD_API_HOST: beta.api.screwdriver.cd
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
             K8S_ENV_VALUE: beta_rc2_
-            TEST_USERNAME: sd-buildbot
+            TEST_USERNAME: sd-buildbot-functional
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
