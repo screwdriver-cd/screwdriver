@@ -54,6 +54,9 @@ jobs:
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
             - test: npm install && npm run functional-beta
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} npm run functional
         environment:
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
@@ -68,7 +71,7 @@ jobs:
             # Access key for functional tests
             - SD_API_TOKEN
             # Git access token
-            - GIT_TOKEN
+            - GIT_TOKEN_BETA
             # Talking to Kubernetes
             - K8S_TOKEN
 
