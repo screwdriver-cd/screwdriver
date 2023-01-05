@@ -17,11 +17,13 @@ Before(
     }
 );
 
-Given(/^an existing repository for secret with these users and permissions:$/, { timeout: TIMEOUT }, function step(
-    table
-) {
-    return this.ensurePipelineExists({ repoName: this.repoName }).then(() => table);
-});
+Given(
+    /^an existing repository for secret with these users and permissions:$/,
+    { timeout: TIMEOUT },
+    function step(table) {
+        return this.ensurePipelineExists({ repoName: this.repoName }).then(() => table);
+    }
+);
 
 Given(/^an existing pipeline with that repository with the workflow:$/, table => table);
 

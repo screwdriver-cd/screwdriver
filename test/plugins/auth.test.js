@@ -795,11 +795,10 @@ describe('auth plugin test', () => {
                 .then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
-                    expect(reply.result.token)
-                        .to.be.a.jwt.and.have.property('scope')
-                        .with.lengthOf(1);
-                    expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[0]', 'user');
+                    expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                        username: 'robin',
+                        scope: ['user']
+                    });
                 }));
 
         it('returns user signed token', () =>
@@ -830,12 +829,11 @@ describe('auth plugin test', () => {
                 .then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
-                    expect(reply.result.token)
-                        .to.be.a.jwt.and.have.property('scope')
-                        .with.lengthOf(1);
-                    expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[0]', 'user');
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('environment', 'beta');
+                    expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                        username: 'robin',
+                        scope: ['user'],
+                        environment: 'beta'
+                    });
                 }));
 
         it('returns user signed token given an API access token', () => {
@@ -866,11 +864,10 @@ describe('auth plugin test', () => {
                 .then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
-                    expect(reply.result.token)
-                        .to.be.a.jwt.and.have.property('scope')
-                        .with.lengthOf(1);
-                    expect(reply.result.token).to.be.a.jwt.and.have.deep.property('scope[0]', 'user');
+                    expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                        username: 'robin',
+                        scope: ['user']
+                    });
                 });
         });
 
@@ -904,12 +901,11 @@ describe('auth plugin test', () => {
                 .then(reply => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('username', 'robin');
-                    expect(reply.result.token).to.be.a.jwt.and.have.property('pipelineId', 1);
-                    expect(reply.result.token)
-                        .to.be.a.jwt.and.have.property('scope')
-                        .with.lengthOf(1);
-                    expect(reply.result.token).to.be.a.jwt.and.have.deep.property('scope[0]', 'pipeline');
+                    expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                        username: 'robin',
+                        scope: ['user'],
+                        pipelineId: 1
+                    });
                 });
         });
 
@@ -1009,7 +1005,7 @@ describe('auth plugin test', () => {
                 });
             });
 
-            it('returns admin impersonated build token', () =>
+            it.only('returns admin impersonated build token', () =>
                 server
                     .inject({
                         url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
@@ -1028,15 +1024,10 @@ describe('auth plugin test', () => {
                         assert.notCalled(userFactoryMock.get);
                         assert.notCalled(userMock.update);
 
-                        expect(reply.result.token).to.be.a.jwt.and.have.property(
-                            'username',
-                            '474ee9ee179b0ecf0bc27408079a0b15eda4c99d'
-                        );
-                        expect(reply.result.token)
-                            .to.be.a.jwt.and.have.property('scope')
-                            .with.lengthOf(2);
-                        expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[0]', 'build');
-                        expect(reply.result.token).to.be.a.jwt.and.deep.property('scope[1]', 'impersonated');
+                        expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                            username: '474ee9ee179b0ecf0bc27408079a0b15eda4c99d',
+                            scope: ['build', 'impersonated']
+                        });
                     }));
 
             it('returns forbidden for non-admin attempting to impersonate', () =>

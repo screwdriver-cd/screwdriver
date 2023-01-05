@@ -26,15 +26,8 @@ module.exports = () => ({
             const { isValidToken } = request.server.plugins.pipelines;
             const { updateAdmins } = request.server.plugins.events;
 
-            let {
-                pipelineId,
-                startFrom,
-                parentBuildId,
-                parentBuilds,
-                groupEventId,
-                parentEventId,
-                prNum
-            } = request.payload;
+            let { pipelineId, startFrom, parentBuildId, parentBuilds, groupEventId, parentEventId, prNum } =
+                request.payload;
 
             // restart case
             if (buildId) {
@@ -245,10 +238,7 @@ module.exports = () => ({
                 pathname: `${request.path}/${event.id}`
             });
 
-            return h
-                .response(event.toJson())
-                .header('Location', location)
-                .code(201);
+            return h.response(event.toJson()).header('Location', location).code(201);
         },
         validate: {
             payload: validationSchema.models.event.create

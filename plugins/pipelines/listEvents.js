@@ -3,10 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const eventListSchema = joi
-    .array()
-    .items(schema.models.event.get)
-    .label('List of events');
+const eventListSchema = joi.array().items(schema.models.event.get).label('List of events');
 const prNumSchema = schema.models.event.base.extract('prNum');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 

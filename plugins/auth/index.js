@@ -2,7 +2,7 @@
 
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
-const uuid = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 const contextsRoute = require('./contexts');
 const crumbRoute = require('./crumb');
 const keyRoute = require('./key');
@@ -12,10 +12,7 @@ const tokenRoute = require('./token');
 
 const DEFAULT_TIMEOUT = 2 * 60; // 2h in minutes
 const ALGORITHM = 'RS256';
-const JOI_BOOLEAN = joi
-    .boolean()
-    .truthy('true')
-    .falsy('false');
+const JOI_BOOLEAN = joi.boolean().truthy('true').falsy('false');
 
 /**
  *
@@ -56,18 +53,9 @@ const createDefaultCollection = async function createDefaultCollection(user, col
 const AUTH_PLUGIN_SCHEMA = joi.object().keys({
     jwtEnvironment: joi.string().default(''),
     https: JOI_BOOLEAN.required(),
-    cookiePassword: joi
-        .string()
-        .min(32)
-        .required(),
-    encryptionPassword: joi
-        .string()
-        .min(32)
-        .required(),
-    hashingPassword: joi
-        .string()
-        .min(32)
-        .required(),
+    cookiePassword: joi.string().min(32).required(),
+    encryptionPassword: joi.string().min(32).required(),
+    hashingPassword: joi.string().min(32).required(),
     allowGuestAccess: JOI_BOOLEAN.default(false),
     jwtPrivateKey: joi.string().required(),
     jwtPublicKey: joi.string().required(),
@@ -76,16 +64,9 @@ const AUTH_PLUGIN_SCHEMA = joi.object().keys({
     admins: joi.array().default([]),
     bell: joi.object().required(),
     scm: joi.object().required(),
-    sessionTimeout: joi
-        .number()
-        .integer()
-        .positive()
-        .default(120),
+    sessionTimeout: joi.number().integer().positive().default(120),
     oauthRedirectUri: joi.string().optional(),
-    sameSite: joi
-        .alternatives()
-        .try(JOI_BOOLEAN, joi.string())
-        .required(),
+    sameSite: joi.alternatives().try(JOI_BOOLEAN, joi.string()).required(),
     path: joi.string().required()
 });
 
@@ -151,7 +132,7 @@ const authPlugin = {
             jwt.sign(profile, pluginOptions.jwtPrivateKey, {
                 algorithm: ALGORITHM,
                 expiresIn: buildTimeout * 60, // must be in second
-                jwtid: uuid.v4()
+                jwtid: uuidv4()
             })
         );
 

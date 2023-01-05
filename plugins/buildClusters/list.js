@@ -2,10 +2,7 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi
-    .array()
-    .items(schema.models.buildCluster.get)
-    .label('List of build clusters');
+const listSchema = joi.array().items(schema.models.buildCluster.get).label('List of build clusters');
 
 module.exports = () => ({
     method: 'GET',

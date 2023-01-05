@@ -3,14 +3,8 @@
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.pipeline.base.extract('id');
-const listSchema = joi
-    .array()
-    .items(schema.models.pipeline.get)
-    .label('List of Pipelines');
-const pipelineIdsSchema = joi
-    .alternatives()
-    .try(joi.array().items(idSchema), idSchema)
-    .required();
+const listSchema = joi.array().items(schema.models.pipeline.get).label('List of Pipelines');
+const pipelineIdsSchema = joi.alternatives().try(joi.array().items(idSchema), idSchema).required();
 const IDS_KEY = 'ids[]';
 
 module.exports = () => ({

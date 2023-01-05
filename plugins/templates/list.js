@@ -2,10 +2,7 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi
-    .array()
-    .items(schema.models.template.get)
-    .label('List of templates');
+const listSchema = joi.array().items(schema.models.template.get).label('List of templates');
 const listCountSchema = joi
     .object()
     .keys({
@@ -17,10 +14,7 @@ const distinctSchema = joi
     .string()
     .valid(...Object.keys(schema.models.template.fields))
     .label('Field to return unique results by');
-const compactSchema = joi
-    .string()
-    .valid('', 'false', 'true')
-    .label('Flag to return compact data');
+const compactSchema = joi.string().valid('', 'false', 'true').label('Flag to return compact data');
 const namespaceSchema = schema.models.template.base.extract('namespace');
 const namespacesSchema = joi.array().items(joi.object().keys({ namespace: namespaceSchema }));
 

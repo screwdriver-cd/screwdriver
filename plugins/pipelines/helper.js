@@ -19,10 +19,7 @@ const formatCheckoutUrl = checkoutUrl => {
     // Check if branch name exists
     // Do not convert branch name to lowercase
     if (branchName) {
-        result = result
-            .split('#')[0]
-            .toLowerCase()
-            .concat(branchName);
+        result = result.split('#')[0].toLowerCase().concat(branchName);
     } else {
         result = result.toLowerCase();
     }

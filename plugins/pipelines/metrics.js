@@ -10,15 +10,9 @@ const DOWNTIME_STATUSES_KEY = 'downtimeStatuses[]';
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const pipelineMetricListSchema = joi.array().items(joi.object());
 const jobIdSchema = joi.string().regex(/^[0-9]+$/);
-const jobIdsSchema = joi
-    .alternatives()
-    .try(joi.array().items(jobIdSchema), jobIdSchema)
-    .required();
+const jobIdsSchema = joi.alternatives().try(joi.array().items(jobIdSchema), jobIdSchema).required();
 const statusSchema = schema.models.build.base.extract('status');
-const statusesSchema = joi
-    .alternatives()
-    .try(joi.array().items(statusSchema), statusSchema)
-    .required();
+const statusesSchema = joi.alternatives().try(joi.array().items(statusSchema), statusSchema).required();
 
 module.exports = () => ({
     method: 'GET',

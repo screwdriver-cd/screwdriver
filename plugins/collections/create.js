@@ -78,10 +78,7 @@ module.exports = () => ({
                             pathname: `${request.path}/${collection.id}`
                         });
 
-                        return h
-                            .response(collection.toJson())
-                            .header('Location', location)
-                            .code(201);
+                        return h.response(collection.toJson()).header('Location', location).code(201);
                     })
                     // something broke, respond with error
                     .catch(err => {

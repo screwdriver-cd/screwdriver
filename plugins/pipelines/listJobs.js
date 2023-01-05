@@ -3,10 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const jobListSchema = joi
-    .array()
-    .items(schema.models.job.get)
-    .label('List of jobs');
+const jobListSchema = joi.array().items(schema.models.job.get).label('List of jobs');
 const jobNameSchema = schema.models.job.base.extract('name');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
@@ -62,11 +59,7 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    archived: joi
-                        .boolean()
-                        .truthy('true')
-                        .falsy('false')
-                        .default(false),
+                    archived: joi.boolean().truthy('true').falsy('false').default(false),
                     jobName: jobNameSchema,
                     search: joi.forbidden() // we don't support search for Pipeline list jobs
                 })

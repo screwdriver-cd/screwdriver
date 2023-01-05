@@ -2,10 +2,7 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi
-    .array()
-    .items(schema.models.commandTag.base)
-    .label('List of command tags');
+const listSchema = joi.array().items(schema.models.commandTag.base).label('List of command tags');
 const namespaceSchema = schema.models.commandTag.base.extract('namespace');
 const nameSchema = schema.models.commandTag.base.extract('name');
 

@@ -72,10 +72,7 @@ module.exports = () => ({
 
             delete output.value;
 
-            return h
-                .response(output)
-                .header('Location', location)
-                .code(201);
+            return h.response(output).header('Location', location).code(201);
         },
         validate: {
             payload: schema.models.secret.create

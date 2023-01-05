@@ -5,10 +5,7 @@ const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.collection.base.extract('id');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
-const pipelineIdsSchema = joi
-    .alternatives()
-    .try(joi.array().items(pipelineIdSchema), pipelineIdSchema)
-    .required();
+const pipelineIdsSchema = joi.alternatives().try(joi.array().items(pipelineIdSchema), pipelineIdSchema).required();
 const IDS_KEY = 'ids[]';
 
 module.exports = () => ({

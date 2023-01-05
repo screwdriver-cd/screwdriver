@@ -190,10 +190,7 @@ module.exports = () => ({
                         pathname: `${request.path}/${command.id}`
                     });
 
-                    return h
-                        .response(command.toJson())
-                        .header('Location', location)
-                        .code(201);
+                    return h.response(command.toJson()).header('Location', location).code(201);
                 })
                 .catch(err => {
                     throw err;

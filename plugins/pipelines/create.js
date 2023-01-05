@@ -132,10 +132,7 @@ module.exports = () => ({
             });
             const data = await results.toJson();
 
-            return h
-                .response(data)
-                .header('Location', location)
-                .code(201);
+            return h.response(data).header('Location', location).code(201);
         },
         validate: {
             payload: schema.models.pipeline.create
