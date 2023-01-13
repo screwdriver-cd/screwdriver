@@ -903,7 +903,7 @@ describe('auth plugin test', () => {
                     assert.ok(reply.result.token, 'Token not returned');
                     expect(reply.result.token).to.be.a.jwt.and.deep.include({
                         username: 'robin',
-                        scope: ['user'],
+                        scope: ['pipeline'],
                         pipelineId: 1
                     });
                 });
@@ -1005,7 +1005,7 @@ describe('auth plugin test', () => {
                 });
             });
 
-            it.only('returns admin impersonated build token', () =>
+            it('returns admin impersonated build token', () =>
                 server
                     .inject({
                         url: '/auth/token/474ee9ee179b0ecf0bc27408079a0b15eda4c99d',

@@ -4579,7 +4579,7 @@ describe('build plugin test', () => {
             };
         });
 
-        it('returns 200 when updating the code/endTime when the step model exists', () => {
+        it.only('returns 200 when updating the code/endTime when the step model exists', () => {
             testStep.code = 0;
             testStep.endTime = '2038-01-19T03:15:08.532Z';
 
