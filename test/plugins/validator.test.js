@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 
 const testInput = require('./data/validator.input.json');
 const testOutput = require('./data/validator.output.json');
@@ -13,13 +12,6 @@ sinon.assert.expose(assert, { prefix: '' });
 describe('validator plugin test', () => {
     let plugin;
     let server;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         /* eslint-disable global-require */
@@ -35,12 +27,6 @@ describe('validator plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

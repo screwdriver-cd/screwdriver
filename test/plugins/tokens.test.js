@@ -2,7 +2,6 @@
 
 const { assert } = require('chai');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const { PassThrough } = require('stream');
 const sinon = require('sinon');
 const urlLib = require('url');
@@ -55,13 +54,6 @@ describe('token plugin test', () => {
     let plugin;
     let server;
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         tokenFactoryMock = {
             create: sinon.stub(),
@@ -107,12 +99,6 @@ describe('token plugin test', () => {
     afterEach(() => {
         server.stop();
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

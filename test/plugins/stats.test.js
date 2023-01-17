@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -12,13 +11,6 @@ describe('stats plugin test', () => {
     let server;
     let mockExecutorStats;
     let mockScmStats;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         mockExecutorStats = {
@@ -49,12 +41,6 @@ describe('stats plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

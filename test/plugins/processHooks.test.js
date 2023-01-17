@@ -3,7 +3,6 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
 
@@ -21,13 +20,6 @@ describe('processHooks plugin test', () => {
     let plugin;
     let server;
     const apiUri = 'http://foo.bar:12345';
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         jobFactoryMock = sinon.stub();
@@ -83,12 +75,6 @@ describe('processHooks plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {
