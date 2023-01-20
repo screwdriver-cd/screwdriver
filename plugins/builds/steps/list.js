@@ -3,10 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi
-    .array()
-    .items(schema.models.build.getStep)
-    .label('List of steps');
+const listSchema = joi.array().items(schema.models.build.getStep).label('List of steps');
 
 module.exports = () => ({
     method: 'GET',

@@ -6,7 +6,7 @@ const logger = require('screwdriver-logger');
 const ndjson = require('ndjson');
 const request = require('screwdriver-request');
 const schema = require('screwdriver-data-schema');
-const uuid = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
 const MAX_LINES_SMALL = 100;
 const MAX_LINES_BIG = 1000;
@@ -200,7 +200,7 @@ module.exports = config => ({
                         {
                             algorithm: 'RS256',
                             expiresIn: '300s',
-                            jwtid: uuid.v4()
+                            jwtid: uuidv4()
                         }
                     );
                     const { sort, type } = req.query;

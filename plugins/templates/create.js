@@ -69,10 +69,7 @@ module.exports = () => ({
                         pathname: `${request.path}/${template.id}`
                     });
 
-                    return h
-                        .response(template.toJson())
-                        .header('Location', location)
-                        .code(201);
+                    return h.response(template.toJson()).header('Location', location).code(201);
                 })
                 .catch(err => {
                     throw err;

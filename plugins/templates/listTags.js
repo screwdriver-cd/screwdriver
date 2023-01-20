@@ -2,10 +2,7 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi
-    .array()
-    .items(schema.models.templateTag.base)
-    .label('List of templates');
+const listSchema = joi.array().items(schema.models.templateTag.base).label('List of templates');
 const nameSchema = schema.models.templateTag.base.extract('name');
 
 module.exports = () => ({

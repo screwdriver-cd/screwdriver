@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const hoek = require('@hapi/hoek');
 const testBuilds = require('./data/builds.json');
 const testBuild = require('./data/buildWithSteps.json');
@@ -64,10 +63,6 @@ const getPipelineMocks = pipeline => {
     return decoratePipelineMock(pipeline);
 };
 
-const badgeMock = {
-    makeBadge: () => 'badge'
-};
-
 describe('job plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
@@ -78,13 +73,6 @@ describe('job plugin test', () => {
     let server;
     const dateNow = 1552597858211;
     const nowTime = new Date(dateNow).toISOString();
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         pipelineMock = {
@@ -114,7 +102,6 @@ describe('job plugin test', () => {
             get: sinon.stub().resolves(userMock)
         };
 
-        mockery.registerMock('badge-maker', badgeMock);
         /* eslint-disable global-require */
         plugin = require('../../plugins/jobs');
         /* eslint-enable global-require */
@@ -152,12 +139,6 @@ describe('job plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

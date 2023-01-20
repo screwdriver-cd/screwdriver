@@ -4,7 +4,6 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
-const mockery = require('mockery');
 const pipelineMock = require('./data/pipeline.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -30,13 +29,6 @@ describe('isAdmin plugin test', () => {
     const jobId = 333;
     const username = 'testuser';
     const { scmContext } = pipelineMock;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         // eslint-disable-next-line global-require
@@ -99,12 +91,6 @@ describe('isAdmin plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

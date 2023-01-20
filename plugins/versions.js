@@ -35,10 +35,7 @@ const versionsTemplate = {
                 }
                 const depArray = Object.keys(json).map(key => ({ name: key, ...json[key] }));
                 const depDisplay = depArray.map(dep => ({
-                    name: dep.name
-                        .split('@')
-                        .slice(0, -1)
-                        .join('@'),
+                    name: dep.name.split('@').slice(0, -1).join('@'),
                     repository: dep.repository || 'UNKNOWN',
                     licenses: dep.licenses || 'UNKNOWN'
                 }));

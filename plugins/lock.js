@@ -30,7 +30,7 @@ class Lock {
         }
 
         const redisLockConfig = config.get('redisLock.options');
-        const connectionType = redisLockConfig.connectionType;
+        const { connectionType } = redisLockConfig;
 
         if (!connectionType || (connectionType !== 'redis' && connectionType !== 'redisCluster')) {
             throw new Error(

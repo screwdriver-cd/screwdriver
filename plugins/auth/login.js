@@ -1,7 +1,7 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const uuid = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Add a guest route for those who want to be in read-only mode
@@ -31,7 +31,7 @@ function addGuestRoute(config) {
                         return boom.forbidden('Guest users are not allowed access');
                     }
 
-                    const username = `guest/${uuid.v4()}`;
+                    const username = `guest/${uuidv4()}`;
                     const profile = request.server.plugins.auth.generateProfile(username, null, ['user', 'guest'], {});
 
                     // Log that the user has authenticated

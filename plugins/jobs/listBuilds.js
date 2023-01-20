@@ -5,10 +5,7 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const jobIdSchema = schema.models.job.base.extract('id');
 const statusSchema = schema.models.build.base.extract('status');
-const buildListSchema = joi
-    .array()
-    .items(schema.models.build.get)
-    .label('List of builds');
+const buildListSchema = joi.array().items(schema.models.build.get).label('List of builds');
 
 module.exports = () => ({
     method: 'GET',
@@ -75,16 +72,8 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    readOnly: joi
-                        .boolean()
-                        .truthy('true')
-                        .falsy('false')
-                        .default(false),
-                    fetchSteps: joi
-                        .boolean()
-                        .truthy('true')
-                        .falsy('false')
-                        .default(true),
+                    readOnly: joi.boolean().truthy('true').falsy('false').default(false),
+                    fetchSteps: joi.boolean().truthy('true').falsy('false').default(true),
                     status: statusSchema,
                     search: joi.forbidden() // we don't support search for Job list builds
                 })

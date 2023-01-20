@@ -69,10 +69,7 @@ module.exports = () => ({
                 pathname: `${request.path}/${token.id}`
             });
 
-            return h
-                .response(token.toJson())
-                .header('Location', location)
-                .code(201);
+            return h.response(token.toJson()).header('Location', location).code(201);
         },
         validate: {
             params: joi.object({

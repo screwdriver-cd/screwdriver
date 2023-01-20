@@ -4,7 +4,6 @@ const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
-const mockery = require('mockery');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -27,13 +26,6 @@ describe('user plugin test', () => {
     let settings;
     const scmContext = 'github.com';
     const username = 'testuser';
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         // eslint-disable-next-line global-require
@@ -69,12 +61,6 @@ describe('user plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

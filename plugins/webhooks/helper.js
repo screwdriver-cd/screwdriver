@@ -22,7 +22,7 @@ function isReleaseOrTagFilteringEnabled(action, workflowGraph) {
     let isFilteringEnabled = true;
 
     workflowGraph.edges.forEach(edge => {
-        const releaseOrTagRegExp = action === 'release' ? new RegExp('^~(release)$') : new RegExp('^~(tag)$');
+        const releaseOrTagRegExp = action === 'release' ? /^~(release)$/ : /^~(tag)$/;
 
         if (edge.src.match(releaseOrTagRegExp)) {
             isFilteringEnabled = false;

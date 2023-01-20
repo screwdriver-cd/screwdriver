@@ -3,7 +3,6 @@
 const chai = require('chai');
 const { assert } = chai;
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const sinon = require('sinon');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -11,13 +10,6 @@ sinon.assert.expose(assert, { prefix: '' });
 describe('test shutdown plugin', () => {
     let plugin;
     let server;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         /* eslint-disable global-require */
@@ -33,12 +25,6 @@ describe('test shutdown plugin', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

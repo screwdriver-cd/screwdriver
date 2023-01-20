@@ -50,10 +50,7 @@ module.exports = () => ({
                                 pathname: `${request.path}/${buildCluster.id}`
                             });
 
-                            return h
-                                .response(buildCluster.toJson())
-                                .header('Location', location)
-                                .code(201);
+                            return h.response(buildCluster.toJson()).header('Location', location).code(201);
                         })
                         // something was botched
                         .catch(err => {
@@ -103,10 +100,7 @@ module.exports = () => ({
                             pathname: `${request.path}/${buildCluster.id}`
                         });
 
-                        return h
-                            .response(buildCluster.toJson())
-                            .header('Location', location)
-                            .code(201);
+                        return h.response(buildCluster.toJson()).header('Location', location).code(201);
                     })
                     // something was botched
                     .catch(err => {

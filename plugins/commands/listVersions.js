@@ -3,10 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const listSchema = joi
-    .array()
-    .items(schema.models.command.get)
-    .label('List of commands');
+const listSchema = joi.array().items(schema.models.command.get).label('List of commands');
 const nameSchema = schema.models.command.base.extract('name');
 const namespaceSchema = schema.models.command.base.extract('namespace');
 

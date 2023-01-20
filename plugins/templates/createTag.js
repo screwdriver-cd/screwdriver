@@ -60,10 +60,7 @@ module.exports = () => ({
                             pathname: `${request.path}/${newTag.id}`
                         });
 
-                        return h
-                            .response(newTag.toJson())
-                            .header('Location', location)
-                            .code(201);
+                        return h.response(newTag.toJson()).header('Location', location).code(201);
                     });
                 })
                 .catch(err => {

@@ -30,7 +30,7 @@ module.exports = () => ({
                 throw boom.notFound(`Job ${jobId} does not exist`);
             }
 
-            const pipelineId = job.pipelineId;
+            const { pipelineId } = job;
 
             if (pipelineId !== credentials.pipelineId) {
                 throw boom.forbidden('Token does not have permission for this pipeline');

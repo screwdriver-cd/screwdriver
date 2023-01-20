@@ -1,9 +1,9 @@
 'use strict';
 
 const { assert } = require('chai');
+const badgeMaker = require('badge-maker');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const hoek = require('@hapi/hoek');
 const urlLib = require('url');
 const testBuild = require('./data/build.json');
@@ -40,10 +40,6 @@ const getEventMock = event => {
     return decorated;
 };
 
-const badgeMock = {
-    makeBadge: format => `${format.label}: ${format.message}`
-};
-
 describe('event plugin test', () => {
     let bannerMock;
     let screwdriverAdminDetailsMock;
@@ -56,10 +52,7 @@ describe('event plugin test', () => {
     let server;
 
     before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
+        sinon.stub(badgeMaker, 'makeBadge').callsFake(format => `${format.label}: ${format.message}`);
     });
 
     beforeEach(async () => {
@@ -102,8 +95,6 @@ describe('event plugin test', () => {
             }
         };
 
-        mockery.registerMock('badge-maker', badgeMock);
-
         /* eslint-disable global-require */
         plugin = require('../../plugins/events');
         /* eslint-enable global-require */
@@ -141,12 +132,10 @@ describe('event plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
     });
 
     after(() => {
-        mockery.disable();
+        sinon.restore();
     });
 
     it('registers the plugin', () => {

@@ -4,9 +4,8 @@ const { assert } = require('chai');
 
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const hoek = require('@hapi/hoek');
-
+const rewiremock = require('rewiremock/node');
 const testPipeline = require('./data/pipeline.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -38,10 +37,6 @@ const getPipelineMocks = pipelines => {
     }
 
     return decoratePipelineMock(pipelines);
-};
-
-const badgeMock = {
-    makeBadge: () => 'badge'
 };
 
 const getUserMock = user => {
@@ -78,17 +73,6 @@ describe('DELETE /pipelines/1234/caches', () => {
     let authMock;
     let generateTokenMock;
     let generateProfileMock;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
-    after(() => {
-        mockery.disable();
-    });
 
     beforeEach(async () => {
         pipelineFactoryMock = {
@@ -128,16 +112,13 @@ describe('DELETE /pipelines/1234/caches', () => {
             list: sinon.stub()
         };
 
-        mockery.registerMock('screwdriver-request', mockRequestRetry);
-
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
 
-        mockery.registerMock('badge-maker', badgeMock);
+        plugin = rewiremock.proxy('../../plugins/pipelines', {
+            'screwdriver-request': mockRequestRetry
+        });
 
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/pipelines');
-        /* eslint-enable global-require */
         server = new hapi.Server({
             port: 1234
         });
@@ -197,8 +178,6 @@ describe('DELETE /pipelines/1234/caches', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
     });
 
     describe('with cache strategy s3', () => {

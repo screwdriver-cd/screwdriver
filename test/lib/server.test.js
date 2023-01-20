@@ -2,8 +2,8 @@
 
 const Assert = require('chai').assert;
 const boom = require('@hapi/boom');
-const mockery = require('mockery');
 const sinon = require('sinon');
+const rewiremock = require('rewiremock/node');
 
 describe('server case', () => {
     let hapiEngine;
@@ -38,23 +38,8 @@ describe('server case', () => {
         }
     };
 
-    before(() => {
-        mockery.enable({
-            warnOnUnregistered: false,
-            useCleanCache: true
-        });
-    });
-
-    beforeEach(() => {});
-
     afterEach(() => {
-        mockery.deregisterAll();
-        mockery.resetCache();
         hapiEngine = null;
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     describe('positive cases', () => {
@@ -63,14 +48,10 @@ describe('server case', () => {
         let server;
 
         before(() => {
-            registrationManMock = sinon.stub();
-
-            mockery.registerMock('./registerPlugins', registrationManMock);
-            /* eslint-disable global-require */
-            hapiEngine = require('../../lib/server');
-            /* eslint-enable global-require */
-
-            registrationManMock.resolves(null);
+            registrationManMock = sinon.stub().resolves(null);
+            hapiEngine = rewiremock.proxy('../../lib/server', {
+                '../../lib/registerPlugins': registrationManMock
+            });
 
             return hapiEngine({ httpd: { port: 12347 }, ...config })
                 .then(s => {
@@ -150,16 +131,13 @@ describe('server case', () => {
         let registrationManMock;
 
         beforeEach(() => {
-            registrationManMock = sinon.stub();
-            mockery.registerMock('./registerPlugins', registrationManMock);
-            /* eslint-disable global-require */
-            hapiEngine = require('../../lib/server');
-            /* eslint-enable global-require */
+            registrationManMock = sinon.stub().rejects(new Error('registrationMan fail'));
+            hapiEngine = rewiremock.proxy('../../lib/server', {
+                '../../lib/registerPlugins': registrationManMock
+            });
         });
 
         it('callsback errors with register plugins', () => {
-            registrationManMock.rejects(new Error('registrationMan fail'));
-
             return hapiEngine({
                 httpd: { port: 12347 },
                 ecosystem: {
@@ -178,53 +156,47 @@ describe('server case', () => {
         let hapiServer;
 
         beforeEach(async () => {
-            mockery.registerMock('./registerPlugins', server => {
-                server.route({
-                    method: 'GET',
-                    path: '/yes',
-                    handler: (_request, h) => h.response('OK')
-                });
-                server.route({
-                    method: 'GET',
-                    path: '/no',
-                    handler: () => {
-                        throw new Error('Not OK');
-                    }
-                });
-                server.route({
-                    method: 'GET',
-                    path: '/noStack',
-                    handler: () => {
-                        throw new Error('whatStackTrace');
-                    }
-                });
+            hapiEngine = rewiremock.proxy('../../lib/server', {
+                '../../lib/registerPlugins': server => {
+                    server.route({
+                        method: 'GET',
+                        path: '/yes',
+                        handler: (_request, h) => h.response('OK')
+                    });
+                    server.route({
+                        method: 'GET',
+                        path: '/no',
+                        handler: () => {
+                            throw new Error('Not OK');
+                        }
+                    });
+                    server.route({
+                        method: 'GET',
+                        path: '/noStack',
+                        handler: () => {
+                            throw new Error('whatStackTrace');
+                        }
+                    });
+                    server.route({
+                        method: 'GET',
+                        path: '/noWithResponse',
+                        handler: () => {
+                            throw boom.conflict('conflict', { conflictOn: 1 });
+                        }
+                    });
+                    server.plugins = {
+                        queue: {
+                            init: sinon.stub().resolves()
+                        },
+                        worker: {
+                            init: sinon.stub().resolves()
+                        }
+                    };
 
-                server.route({
-                    method: 'GET',
-                    path: '/noWithResponse',
-                    handler: () => {
-                        throw boom.conflict('conflict', { conflictOn: 1 });
-                    }
-                });
-
-                server.plugins = {
-                    queue: {
-                        init: sinon.stub().resolves()
-                    },
-                    worker: {
-                        init: sinon.stub().resolves()
-                    }
-                };
-
-                return Promise.resolve();
+                    return Promise.resolve();
+                }
             });
-
             srvConfig = { ...config, httpd: { port: 12348 } };
-
-            /* eslint-disable global-require */
-            hapiEngine = require('../../lib/server');
-            /* eslint-enable global-require */
-
             hapiServer = await hapiEngine(srvConfig);
         });
 

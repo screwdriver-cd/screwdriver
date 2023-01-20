@@ -89,10 +89,7 @@ module.exports = () => ({
                 pathname: `${request.path}/${event.id}`
             });
 
-            return h
-                .response(event.toJson())
-                .header('Location', location)
-                .code(200);
+            return h.response(event.toJson()).header('Location', location).code(200);
         },
         response: {
             schema: getSchema

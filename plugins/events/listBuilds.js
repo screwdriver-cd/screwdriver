@@ -3,10 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const buildListSchema = joi
-    .array()
-    .items(schema.models.build.get)
-    .label('List of builds');
+const buildListSchema = joi.array().items(schema.models.build.get).label('List of builds');
 const eventIdSchema = schema.models.event.base.extract('id');
 
 module.exports = () => ({
@@ -53,16 +50,8 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    readOnly: joi
-                        .boolean()
-                        .truthy('true')
-                        .falsy('false')
-                        .default(false),
-                    fetchSteps: joi
-                        .boolean()
-                        .truthy('true')
-                        .falsy('false')
-                        .default(true),
+                    readOnly: joi.boolean().truthy('true').falsy('false').default(false),
+                    fetchSteps: joi.boolean().truthy('true').falsy('false').default(true),
                     search: joi.forbidden() // we don't support search for Event list builds
                 })
             )

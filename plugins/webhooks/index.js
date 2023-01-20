@@ -29,19 +29,10 @@ const webhooksPlugin = {
             options,
             joi.object().keys({
                 username: joi.string().required(),
-                ignoreCommitsBy: joi
-                    .array()
-                    .items(joi.string())
-                    .optional(),
-                restrictPR: joi
-                    .string()
-                    .valid('all', 'none', 'branch', 'fork')
-                    .optional(),
+                ignoreCommitsBy: joi.array().items(joi.string()).optional(),
+                restrictPR: joi.string().valid('all', 'none', 'branch', 'fork').optional(),
                 chainPR: joi.boolean().optional(),
-                maxBytes: joi
-                    .number()
-                    .integer()
-                    .optional()
+                maxBytes: joi.number().integer().optional()
             }),
             'Invalid config for plugin-webhooks'
         );

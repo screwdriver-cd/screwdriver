@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testtemplate = require('./data/template.json');
@@ -64,13 +63,6 @@ describe('template plugin test', () => {
     let plugin;
     let server;
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         templateFactoryMock = {
             create: sinon.stub(),
@@ -120,12 +112,6 @@ describe('template plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

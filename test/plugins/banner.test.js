@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const testBanner = require('./data/banner.json');
 const testBanners = require('./data/banners.json');
 const testBannersActive = require('./data/banners-active.json');
@@ -35,13 +34,6 @@ describe('banner plugin test', () => {
     let plugin;
     let server;
     let scm;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         scm = {
@@ -99,12 +91,6 @@ describe('banner plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

@@ -2,7 +2,6 @@
 
 const chai = require('chai');
 const sinon = require('sinon');
-const mockery = require('mockery');
 const rewire = require('rewire');
 const { assert } = chai;
 const hoek = require('@hapi/hoek');
@@ -310,13 +309,6 @@ describe('startHookEvent test', () => {
         return decoratePipelineMock(p);
     };
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         jobFactoryMock = {
             get: sinon.stub(),
@@ -468,15 +460,6 @@ describe('startHookEvent test', () => {
         userMock.unsealToken.resolves(token);
 
         eventFactoryMock.create.resolves(eventMock);
-    });
-
-    afterEach(() => {
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     describe('tag event', () => {

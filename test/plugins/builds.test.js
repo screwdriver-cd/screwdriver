@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
+const rewiremock = require('rewiremock/node');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const nock = require('nock');
@@ -13,7 +13,6 @@ const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
-
 /* eslint-disable no-underscore-dangle */
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -125,13 +124,6 @@ describe('build plugin test', () => {
     let server;
     const logBaseUrl = 'https://store.screwdriver.cd';
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         buildFactoryMock = {
             get: sinon.stub(),
@@ -190,12 +182,13 @@ describe('build plugin test', () => {
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
 
-        mockery.registerMock('jsonwebtoken', jwtMock);
-        mockery.registerMock('badge-maker', badgeMock);
-        mockery.registerMock('../lock', lockMock);
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/builds');
-        /* eslint-enable global-require */
+        /* eslint-disable prettier/prettier */
+        plugin = rewiremock.proxy('../../plugins/builds', {
+            'jsonwebtoken': jwtMock,
+            'badge-maker': badgeMock,
+            '../../plugins/lock': lockMock
+        });
+        /* eslint-enable prettier/prettier */
         server = new hapi.Server({
             port: 12345,
             host: 'localhost'
@@ -270,12 +263,6 @@ describe('build plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {
@@ -2024,7 +2011,7 @@ describe('build plugin test', () => {
                         jobId: 3, // build is already created
                         parentBuildId: [222],
                         eventId: eventMock.id,
-                        parentBuilds: { '123': { jobs: { b: 222 } } },
+                        parentBuilds: { 123: { jobs: { b: 222 } } },
                         start: sinon.stub().resolves()
                     };
 
@@ -4345,7 +4332,7 @@ describe('build plugin test', () => {
                 assert.isArray(reply.result);
                 assert.equal(reply.result.length, 2);
                 assert.equal(reply.result[0].name, 'NPM_TOKEN');
-                assert.notDeepProperty(reply.result[0], 'value');
+                assert.notNestedProperty(reply.result[0], 'value');
             });
         });
 
@@ -4360,7 +4347,7 @@ describe('build plugin test', () => {
                 assert.isArray(reply.result);
                 assert.equal(reply.result.length, 2);
                 assert.equal(reply.result[0].name, 'NPM_TOKEN');
-                assert.deepProperty(reply.result[0], 'value');
+                assert.nestedProperty(reply.result[0], 'value');
             });
         });
 
@@ -4579,25 +4566,30 @@ describe('build plugin test', () => {
             };
         });
 
-        it('returns 200 when updating the code/endTime when the step model exists', () =>
-            server.inject(options).then(reply => {
+        it('returns 200 when updating the code/endTime when the step model exists', () => {
+            testStep.code = 0;
+            testStep.endTime = '2038-01-19T03:15:08.532Z';
+
+            return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 0);
-                assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
-            }));
+                assert.nestedPropertyVal(reply.result, 'name', 'install');
+                assert.nestedPropertyVal(reply.result, 'code', 0);
+                assert.deepNestedPropertyVal(reply.result, 'endTime', options.payload.endTime);
+            });
+        });
 
         it('returns 200 when updating the code without endTime when the step model exists', () => {
             delete options.payload.startTime;
             delete options.payload.endTime;
             delete testStep.startTime;
+            testStep.code = 0;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 0);
+                assert.nestedPropertyVal(reply.result, 'name', 'install');
+                assert.nestedPropertyVal(reply.result, 'code', 0);
                 assert.match(reply.result.endTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
-                assert.notDeepProperty(reply.result, 'startTime');
+                assert.notNestedProperty(reply.result, 'startTime');
             });
         });
 
@@ -4608,10 +4600,10 @@ describe('build plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.notDeepProperty(reply.result, 'code');
-                assert.deepProperty(reply.result, 'startTime', options.payload.startTime);
-                assert.notDeepProperty(reply.result, 'endTime');
+                assert.deepEqual(reply.result, {
+                    name: 'install',
+                    startTime: '2038-01-19T03:15:08.532Z'
+                });
             });
         });
 
@@ -4624,10 +4616,10 @@ describe('build plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.notDeepProperty(reply.result, 'code');
+                assert.nestedPropertyVal(reply.result, 'name', 'install');
+                assert.notNestedProperty(reply.result, 'code');
                 assert.match(reply.result.startTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
-                assert.notDeepProperty(reply.result, 'endTime');
+                assert.notNestedProperty(reply.result, 'endTime');
             });
         });
 
@@ -4640,7 +4632,7 @@ describe('build plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'lines', options.payload.lines);
+                assert.deepNestedPropertyVal(reply.result, 'lines', options.payload.lines);
             });
         });
 
@@ -4654,12 +4646,14 @@ describe('build plugin test', () => {
 
         it('returns 200 when updating with temporal token of same build', () => {
             options.auth.credentials.scope = ['temporal'];
+            testStep.code = 0;
+            testStep.endTime = '2038-01-19T03:15:08.532Z';
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.deepProperty(reply.result, 'name', 'test');
-                assert.deepProperty(reply.result, 'code', 0);
-                assert.deepProperty(reply.result, 'endTime', options.payload.endTime);
+                assert.nestedPropertyVal(reply.result, 'name', 'install');
+                assert.nestedPropertyVal(reply.result, 'code', 0);
+                assert.deepNestedPropertyVal(reply.result, 'endTime', options.payload.endTime);
             });
         });
 
@@ -5040,9 +5034,7 @@ describe('build plugin test', () => {
             nock('https://store.screwdriver.cd')
                 .get(`/v1/builds/${id}/${step}/log.0`)
                 .replyWithFile(200, `${__dirname}/data/step.long.log.ndjson`);
-            nock('https://store.screwdriver.cd')
-                .get(`/v1/builds/${id}/${step}/log.1`)
-                .reply(200, '');
+            nock('https://store.screwdriver.cd').get(`/v1/builds/${id}/${step}/log.1`).reply(200, '');
             options.url = `/builds/${id}/steps/${step}/logs?from=100`;
 
             return server.inject(options).then(reply => {
@@ -5112,10 +5104,7 @@ describe('build plugin test', () => {
                 startTime: '2038-01-19T03:15:09.114Z'
             });
             stepFactoryMock.get.withArgs({ buildId: id, name: 'test' }).resolves(stepMock);
-            nock('https://store.screwdriver.cd')
-                .get(`/v1/builds/${id}/test/log.0`)
-                .twice()
-                .reply(404);
+            nock('https://store.screwdriver.cd').get(`/v1/builds/${id}/test/log.0`).twice().reply(404);
             options.url = `/builds/${id}/steps/test/logs`;
 
             return server.inject(options).then(reply => {
@@ -5413,10 +5402,7 @@ describe('build plugin test', () => {
             const encodedArtifact = '%E3%81%BE%E3%81%AB%E3%81%B5%E3%81%87manife%E6%BC%A2%E5%AD%97';
             const url = `/v1/builds/12345/ARTIFACTS/${encodedArtifact}?token=sign&type=preview`;
 
-            nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
-                .get(url)
-                .reply(200);
+            nock(logBaseUrl).defaultReplyHeaders(headersMock).get(url).reply(200);
 
             options.url = `/builds/${id}/artifacts/${multiByteArtifact}`;
 
@@ -5429,10 +5415,7 @@ describe('build plugin test', () => {
         it('returns 200 for an artifact download request', () => {
             const url = `/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=download`;
 
-            nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
-                .get(url)
-                .reply(200);
+            nock(logBaseUrl).defaultReplyHeaders(headersMock).get(url).reply(200);
 
             options.url = `/builds/${id}/artifacts/${artifact}?type=download`;
 
@@ -5445,10 +5428,7 @@ describe('build plugin test', () => {
         it('returns 200 for an artifact preview request', () => {
             const url = `/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=preview`;
 
-            nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
-                .get(url)
-                .reply(200);
+            nock(logBaseUrl).defaultReplyHeaders(headersMock).get(url).reply(200);
 
             options.url = `/builds/${id}/artifacts/${artifact}?type=preview`;
 
@@ -5481,10 +5461,7 @@ describe('build plugin test', () => {
 
             options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
 
-            nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
-                .get(url)
-                .reply(404);
+            nock(logBaseUrl).defaultReplyHeaders(headersMock).get(url).reply(404);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
@@ -5497,10 +5474,7 @@ describe('build plugin test', () => {
 
             options.url = `/builds/${id}/artifacts/doesnotexist?type=preview`;
 
-            nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
-                .get(url)
-                .reply(502);
+            nock(logBaseUrl).defaultReplyHeaders(headersMock).get(url).reply(502);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);

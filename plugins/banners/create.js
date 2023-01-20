@@ -47,10 +47,7 @@ module.exports = () => ({
                         pathname: `${request.path}/${banner.id}`
                     });
 
-                    return h
-                        .response(banner.toJson())
-                        .header('Location', location)
-                        .code(201);
+                    return h.response(banner.toJson()).header('Location', location).code(201);
                 })
                 .catch(err => {
                     throw err;
