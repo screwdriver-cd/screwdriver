@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
@@ -41,10 +40,6 @@ const getSecretMock = secret => {
     return mock;
 };
 
-const badgeMock = {
-    makeBadge: () => 'badge'
-};
-
 describe('secret plugin test', () => {
     let secretFactoryMock;
     let userFactoryMock;
@@ -52,13 +47,6 @@ describe('secret plugin test', () => {
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         secretFactoryMock = {
@@ -75,8 +63,6 @@ describe('secret plugin test', () => {
         userFactoryMock = {
             get: sinon.stub()
         };
-
-        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/secrets');
@@ -117,12 +103,6 @@ describe('secret plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
+const rewiremock = require('rewiremock/node');
 const { BookendInterface } = require('screwdriver-build-bookend');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -20,13 +20,6 @@ describe('coverage plugin test', () => {
     let mockCoveragePlugin;
     let jobFactoryMock;
     let pipelineFactoryMock;
-
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
 
     beforeEach(async () => {
         mockCoveragePlugin = {
@@ -54,11 +47,10 @@ describe('coverage plugin test', () => {
                 this.coveragePlugin = mockCoveragePlugin;
             }
         }
-        mockery.registerMock('screwdriver-coverage-bookend', CoverageBookendMock);
 
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/coverage');
-        /* eslint-enable global-require */
+        plugin = rewiremock.proxy('../../plugins/coverage', {
+            'screwdriver-coverage-bookend': CoverageBookendMock
+        });
 
         server = new hapi.Server({
             port: 1234
@@ -89,12 +81,6 @@ describe('coverage plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

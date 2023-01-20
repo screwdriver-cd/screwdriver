@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
+const rewiremock = require('rewiremock/node');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testCollection = require('./data/collection.json');
@@ -84,13 +84,6 @@ describe('collection plugin test', () => {
     let plugin;
     let server;
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         collectionFactoryMock = {
             create: sinon.stub(),
@@ -125,11 +118,9 @@ describe('collection plugin test', () => {
         pipelineFactoryMock.get.callsFake(getPipelineMockFromId);
         pipelineFactoryMock.list.callsFake(listPipelines);
 
-        mockery.registerMock('screwdriver-logger', loggerMock);
-
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/collections');
-        /* eslint-enable global-require */
+        plugin = rewiremock.proxy('../../plugins/collections', {
+            'screwdriver-logger': loggerMock
+        });
         server = new hapi.Server({
             port: 1234
         });
@@ -151,12 +142,6 @@ describe('collection plugin test', () => {
     afterEach(() => {
         server.stop();
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

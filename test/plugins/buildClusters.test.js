@@ -3,7 +3,6 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testBuildCluster = require('./data/buildCluster.json');
@@ -30,10 +29,6 @@ const getMockBuildClusters = buildClusters => {
     return decorateBuildClusterObject(buildClusters);
 };
 
-const badgeMock = {
-    makeBadge: () => 'badge'
-};
-
 describe('buildCluster plugin test', () => {
     const username = 'myself';
     const scmContext = 'github:github.com';
@@ -55,13 +50,6 @@ describe('buildCluster plugin test', () => {
     let plugin;
     let server;
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         buildClusterFactoryMock = {
             create: sinon.stub(),
@@ -81,8 +69,6 @@ describe('buildCluster plugin test', () => {
             }
         };
         screwdriverAdminDetailsMock = sinon.stub().returns({ isAdmin: true });
-
-        mockery.registerMock('badge-maker', badgeMock);
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/buildClusters');
@@ -139,12 +125,6 @@ describe('buildCluster plugin test', () => {
     afterEach(() => {
         server.stop();
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

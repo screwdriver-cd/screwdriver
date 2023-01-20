@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
+const rewiremock = require('rewiremock/node');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const nock = require('nock');
@@ -13,7 +13,6 @@ const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
-
 /* eslint-disable no-underscore-dangle */
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -125,13 +124,6 @@ describe('build plugin test', () => {
     let server;
     const logBaseUrl = 'https://store.screwdriver.cd';
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         buildFactoryMock = {
             get: sinon.stub(),
@@ -190,12 +182,13 @@ describe('build plugin test', () => {
         generateProfileMock = sinon.stub();
         generateTokenMock = sinon.stub();
 
-        mockery.registerMock('jsonwebtoken', jwtMock);
-        mockery.registerMock('badge-maker', badgeMock);
-        mockery.registerMock('../lock', lockMock);
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/builds');
-        /* eslint-enable global-require */
+        /* eslint-disable prettier/prettier */
+        plugin = rewiremock.proxy('../../plugins/builds', {
+            'jsonwebtoken': jwtMock,
+            'badge-maker': badgeMock,
+            '../../plugins/lock': lockMock
+        });
+        /* eslint-enable prettier/prettier */
         server = new hapi.Server({
             port: 12345,
             host: 'localhost'
@@ -270,12 +263,6 @@ describe('build plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

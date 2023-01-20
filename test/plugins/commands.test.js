@@ -3,7 +3,7 @@
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
+const rewiremock = require('rewiremock/node');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const streamToPromise = require('stream-to-promise');
@@ -67,13 +67,6 @@ describe('command plugin test', () => {
     let plugin;
     let server;
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     beforeEach(async () => {
         commandFactoryMock = {
             create: sinon.stub(),
@@ -95,11 +88,9 @@ describe('command plugin test', () => {
         };
         requestMock = sinon.stub();
 
-        mockery.registerMock('screwdriver-request', requestMock);
-
-        /* eslint-disable global-require */
-        plugin = require('../../plugins/commands');
-        /* eslint-enable global-require */
+        plugin = rewiremock.proxy('../../plugins/commands', {
+            'screwdriver-request': requestMock
+        });
         server = new hapi.Server({
             port: 1234
         });
@@ -128,12 +119,6 @@ describe('command plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
     });
 
     it('registers the plugin', () => {

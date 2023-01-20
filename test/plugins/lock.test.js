@@ -1,8 +1,9 @@
 'use strict';
 
+const importFresh = require('import-fresh');
 const { assert } = require('chai');
 const sinon = require('sinon');
-const mockery = require('mockery');
+const rewiremock = require('rewiremock/node');
 
 /* eslint max-classes-per-file: ["error", 2] */
 class RedisMock {
@@ -33,20 +34,6 @@ class RedLockMock {
 sinon.assert.expose(assert, { prefix: '' });
 
 describe('lock plugin test', () => {
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-
-        mockery.registerMock('ioredis', RedisMock);
-        mockery.registerMock('redlock', RedLockMock);
-    });
-
-    afterEach(() => {
-        mockery.resetCache();
-    });
-
     describe('disable redis lock test', () => {
         it('default disable', () => {
             /* eslint-disable global-require */
@@ -60,9 +47,14 @@ describe('lock plugin test', () => {
         it('explicitly disable', () => {
             process.env.REDLOCK_ENABLED = 'false';
 
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
 
             assert.equal(plugin.redis, undefined);
             assert.equal(plugin.redlock, undefined);
@@ -73,9 +65,14 @@ describe('lock plugin test', () => {
         it('enabled by boolean true', () => {
             process.env.REDLOCK_ENABLED = true;
 
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
 
             assert.instanceOf(plugin.redis, RedisMock);
             assert.instanceOf(plugin.redlock, RedLockMock);
@@ -84,9 +81,14 @@ describe('lock plugin test', () => {
         it('enabled by string true', () => {
             process.env.REDLOCK_ENABLED = 'true';
 
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
 
             assert.instanceOf(plugin.redis, RedisMock);
             assert.instanceOf(plugin.redlock, RedLockMock);
@@ -112,10 +114,14 @@ describe('lock plugin test', () => {
         });
 
         it('default values test', () => {
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
-
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
             const { redis, redlock } = plugin;
 
             assert.strictEqual(redis.host, '127.0.0.1');
@@ -147,10 +153,14 @@ describe('lock plugin test', () => {
             process.env.REDLOCK_RETRY_JITTER = 300;
             process.env.REDLOCK_TTL = 40000;
 
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
-
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
             const { redis, redlock } = plugin;
 
             assert.strictEqual(redis.host, '127.0.0.2');
@@ -179,10 +189,14 @@ describe('lock plugin test', () => {
             process.env.REDLOCK_RETRY_JITTER = '300';
             process.env.REDLOCK_TTL = '40000';
 
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
-
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
             const { redis, redlock } = plugin;
 
             assert.strictEqual(redis.options.tls, true);
@@ -213,10 +227,14 @@ describe('lock plugin test', () => {
         });
 
         it('default values test', () => {
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
-
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
             const { redis } = plugin;
 
             console.log('default value for tls', process.env.REDLOCK_REDIS_TLS_ENABLED);
@@ -242,10 +260,14 @@ describe('lock plugin test', () => {
             process.env.REDLOCK_RETRY_JITTER = 300;
             process.env.REDLOCK_TTL = 40000;
 
-            /* eslint-disable global-require */
-            const plugin = require('../../plugins/lock');
-            /* eslint-enable global-require */
-
+            const testConfig = importFresh('config');
+            /* eslint-disable prettier/prettier */
+            const plugin = rewiremock.proxy('../../plugins/lock', {
+                'config': testConfig,
+                'ioredis': RedisMock,
+                'redlock': RedLockMock
+            });
+            /* eslint-enable prettier/prettier */
             const { redis } = plugin;
 
             assert.deepEqual(redis.hosts, ['127.0.0.1:6379', '127.0.0.2:6379', '127.0.0.3:6379']);
@@ -270,10 +292,16 @@ describe('lock plugin test', () => {
         });
 
         it('occurs an error', () => {
+            const testConfig = importFresh('config');
+
             try {
-                /* eslint-disable global-require */
-                require('../../plugins/lock');
-                /* eslint-enable global-require */
+                /* eslint-disable prettier/prettier */
+                rewiremock.proxy('../../plugins/lock', {
+                    'config': testConfig,
+                    'ioredis': RedisMock,
+                    'redlock': RedLockMock
+                });
+                /* eslint-enable prettier/prettier */
             } catch (err) {
                 assert.equal(
                     err.message,

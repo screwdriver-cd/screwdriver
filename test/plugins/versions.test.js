@@ -1,8 +1,9 @@
 'use strict';
 
 const { assert } = require('chai');
+const fs = require('fs');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
+const licenseChecker = require('license-checker');
 const sinon = require('sinon');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -11,19 +12,10 @@ describe('versions plugin test', () => {
     /**
      * Generate a new Hapi server with a specified init function
      * @method registerServer
-     * @param  {Function}       initFunction Function to set license-checker to use
      * @return {HapiServer}                  Hapi Server to use
      */
-    async function registerServer(initFunction) {
-        const mockChecker = {
-            init: initFunction
-        };
-        const mockFs = {
-            existsSync: sinon.stub()
-        };
-
-        mockery.registerMock('fs', mockFs);
-        mockery.registerMock('license-checker', mockChecker);
+    async function registerServer() {
+        sinon.stub(fs, 'existsSync').returns(false);
 
         /* eslint-disable global-require */
         const plugin = require('../../plugins/versions');
@@ -33,49 +25,35 @@ describe('versions plugin test', () => {
             port: 1234
         });
 
-        mockFs.existsSync.returns(false);
-
         await server.register({ plugin });
 
         return server;
     }
 
-    before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
-    });
-
     afterEach(() => {
-        mockery.deregisterAll();
-        mockery.resetCache();
-    });
-
-    after(() => {
-        mockery.disable();
+        sinon.restore();
     });
 
     describe('GET /versions', () => {
         it('returns 200 for a successful yaml', async () => {
-            const server = await registerServer(
-                sinon.stub().yieldsAsync(null, {
-                    'screwdriver-foo@0.1.2': {
-                        repository: 'bar',
-                        licenses: 'baz'
-                    },
-                    'fake1@1.2.3': {
-                        repository: 'bark1'
-                    },
-                    'fake2@2.3.4': {
-                        licenses: 'bark2'
-                    },
-                    'fake3@3.4.5': {
-                        repository: 'bark3',
-                        licenses: 'bark4'
-                    }
-                })
-            );
+            sinon.stub(licenseChecker, 'init').yieldsAsync(null, {
+                'screwdriver-foo@0.1.2': {
+                    repository: 'bar',
+                    licenses: 'baz'
+                },
+                'fake1@1.2.3': {
+                    repository: 'bark1'
+                },
+                'fake2@2.3.4': {
+                    licenses: 'bark2'
+                },
+                'fake3@3.4.5': {
+                    repository: 'bark3',
+                    licenses: 'bark4'
+                }
+            });
+
+            const server = await registerServer();
             const reply = await server.inject({ url: '/versions' });
 
             assert.equal(reply.statusCode, 200);
@@ -91,9 +69,12 @@ describe('versions plugin test', () => {
             );
         });
 
-        it('returns 500 for being unable to parse the package.json', () =>
-            registerServer(sinon.stub().yieldsAsync(new Error('foobar'))).catch(error => {
+        it('returns 500 for being unable to parse the package.json', () => {
+            sinon.stub(licenseChecker, 'init').yieldsAsync(new Error('foobar'));
+
+            registerServer().catch(error => {
                 assert.match(error.toString(), /Unable to load package dependencies: foobar/);
-            }));
+            });
+        });
     });
 });

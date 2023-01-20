@@ -1,9 +1,9 @@
 'use strict';
 
 const { assert } = require('chai');
+const badgeMaker = require('badge-maker');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const mockery = require('mockery');
 const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
@@ -175,10 +175,6 @@ const getCollectionMock = collection => {
     return mock;
 };
 
-const badgeMock = {
-    makeBadge: format => `${format.label}: ${format.message}`
-};
-
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
@@ -204,10 +200,7 @@ describe('pipeline plugin test', () => {
     const messageUser = `User ${username} does not exist`;
 
     before(() => {
-        mockery.enable({
-            useCleanCache: true,
-            warnOnUnregistered: false
-        });
+        sinon.stub(badgeMaker, 'makeBadge').callsFake(format => `${format.label}: ${format.message}`);
     });
 
     beforeEach(async () => {
@@ -271,8 +264,6 @@ describe('pipeline plugin test', () => {
         };
         screwdriverAdminDetailsMock = sinon.stub();
 
-        mockery.registerMock('badge-maker', badgeMock);
-
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
         /* eslint-enable global-require */
@@ -327,12 +318,10 @@ describe('pipeline plugin test', () => {
 
     afterEach(() => {
         server = null;
-        mockery.deregisterAll();
-        mockery.resetCache();
     });
 
     after(() => {
-        mockery.disable();
+        sinon.restore();
     });
 
     it('registers the plugin', () => {

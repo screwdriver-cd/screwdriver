@@ -92,7 +92,7 @@
     "joi": "^17.7.0",
     "js-yaml": "^3.14.1",
     "jsonwebtoken": "^8.5.1",
-    "license-checker": "^17.0.0",
+    "license-checker": "^25.0.1",
     "lodash.mergewith": "^4.6.2",
     "ndjson": "^2.0.0",
     "node-env-file": "^0.1.8",
@@ -148,6 +148,7 @@
     "eslint": "^8.28.0",
     "eslint-config-screwdriver": "^7.0.0",
     "form-data": "^4.0.0",
+    "import-fresh": "^3.3.0",
     "mocha": "^10.1.0",
     "mocha-multi-reporters": "^1.5.1",
     "mocha-sonarqube-reporter": "^1.0.2",
@@ -157,6 +158,7 @@
     "npm-auto-version": "^1.0.0",
     "nyc": "^15.1.0",
     "rewire": "^6.0.0",
+    "rewiremock": "^3.14.4",
     "sinon": "^15.0.0",
     "stream-to-promise": "^3.0.0"
   }
