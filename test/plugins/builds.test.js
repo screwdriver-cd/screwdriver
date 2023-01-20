@@ -4597,14 +4597,12 @@ describe('build plugin test', () => {
             delete options.payload.code;
             delete testStep.code;
             delete testStep.endTime;
-            testStep.endTime = options.payload.startTime;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, {
                     name: 'install',
-                    startTime: '2038-01-19T03:15:08.532Z',
-                    endTime: '2038-01-19T03:13:08.532Z'
+                    startTime: '2038-01-19T03:15:08.532Z'
                 });
             });
         });
