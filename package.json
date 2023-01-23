@@ -152,7 +152,6 @@
     "mocha": "^10.1.0",
     "mocha-multi-reporters": "^1.5.1",
     "mocha-sonarqube-reporter": "^1.0.2",
-    "mockery": "^2.1.0",
     "mz": "^2.7.0",
     "nock": "^13.2.9",
     "npm-auto-version": "^1.0.0",
