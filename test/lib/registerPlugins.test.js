@@ -7,7 +7,7 @@ const hoek = require('@hapi/hoek');
 
 sinon.assert.expose(Assert, { prefix: '' });
 
-describe.only('Register Unit Test Case', () => {
+describe('Register Unit Test Case', () => {
     const expectedPlugins = [
         '@hapi/inert',
         '@hapi/vision',
