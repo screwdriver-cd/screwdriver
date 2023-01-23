@@ -2,6 +2,7 @@
 
 const Assert = require('chai').assert;
 const rewiremock = require('rewiremock/node');
+const rewire = require('rewire');
 const sinon = require('sinon');
 const hoek = require('@hapi/hoek');
 
@@ -78,7 +79,7 @@ describe('Register Unit Test Case', () => {
         });
 
         /* eslint-disable global-require */
-        main = require('../../lib/registerPlugins');
+        main = rewire('../../lib/registerPlugins');
         /* eslint-enable global-require */
     });
 
@@ -176,7 +177,7 @@ describe('Register Unit Test Case', () => {
         notificationPlugins.forEach(() => Assert.calledTwice(serverMock.events.on));
     });
 
-    it.skip('registered scoped notifications plugins', () => {
+    it('registered scoped notifications plugins', async () => {
         const newConfig = {
             notifications: {
                 email: {
@@ -203,12 +204,15 @@ describe('Register Unit Test Case', () => {
             mocks[plugin] = sinon.stub();
             mocks[plugin].prototype.events = ['build_status'];
             mocks[plugin].prototype.notify = sinon.stub();
-            rewiremock(plugin).with(mocks[plugin]);
         });
 
-        return main(serverMock, newConfig).then(() => {
-            notificationPlugins.forEach(() => Assert.calledTwice(serverMock.events.on));
-        });
+        main.__set__('requireNotificationPlugin', configMock => mocks[configMock.scopedPackage]);
+
+        rewiremock.enable();
+        await main(serverMock, newConfig);
+        rewiremock.disable();
+
+        notificationPlugins.forEach(() => Assert.calledTwice(serverMock.events.on));
     });
 
     it('registered coverage as resource plugin if configured', async () => {
