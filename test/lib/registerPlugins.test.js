@@ -78,9 +78,7 @@ describe('Register Unit Test Case', () => {
             rewiremock(plugin).with(mocks[plugin]);
         });
 
-        /* eslint-disable global-require */
         main = rewire('../../lib/registerPlugins');
-        /* eslint-enable global-require */
     });
 
     afterEach(() => {
