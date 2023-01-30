@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:18.13
 
 # Screwdriver Version
 ARG VERSION=latest
