@@ -43,6 +43,12 @@ jobs:
             # Pushing tags to Git
             - GIT_KEY
     docker-publish:
+        annotations:
+            screwdriver.cd/cpu: HIGH
+            screwdriver.cd/ram: HIGH
+            screwdriver.cd/dockerEnabled: true
+            screwdriver.cd/dockerCpu: HIGH
+            screwdriver.cd/dockerRam: HIGH
         requires: publish
         template: sd/dind@latest
     # Deploy to our beta environment and run tests
