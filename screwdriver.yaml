@@ -44,8 +44,6 @@ jobs:
             - GIT_KEY
     docker-publish:
         annotations:
-            screwdriver.cd/cpu: HIGH
-            screwdriver.cd/ram: HIGH
             screwdriver.cd/dockerEnabled: true
             screwdriver.cd/dockerCpu: HIGH
             screwdriver.cd/dockerRam: HIGH
