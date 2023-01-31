@@ -106,7 +106,7 @@ const CachePlugin = require('screwdriver-cache-bookend');
 const cache = new CachePlugin();
 
 // Plugin to upload coverage
-const coverageConfig = config.get('coverage');
+const coverageConfig = hoek.clone(config.get('coverage'));
 const CoveragePlugin = require('screwdriver-coverage-bookend');
 const coverage = new CoveragePlugin(coverageConfig);
 
