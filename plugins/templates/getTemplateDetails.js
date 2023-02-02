@@ -15,7 +15,7 @@ module.exports = () => ({
         tags: ['api', 'templates'],
         auth: {
             strategies: ['token'],
-            scope: ['build', 'template', 'pipeline']
+            scope: ['user', 'build']
         },
 
         handler: async (request, h) => {
@@ -23,26 +23,12 @@ module.exports = () => ({
 
             return templateFactory
                 .get(request.params.id)
-                .then(async templateModel => {
-                    if (!templateModel) {
+                .then(async template => {
+                    if (!template) {
                         throw boom.notFound('Template does not exist');
                     }
 
-                    if (Array.isArray(templateFactory.environment)) {
-                        const data = await templateFactory.toJsonWithSteps();
-
-                        return h.response(data);
-                    }
-
-                    // convert environment obj to array
-                    const env = [];
-
-                    Object.keys(templateFactory.environment).forEach(name => {
-                        env.push({ [name]: templateFactory.environment[name] });
-                    });
-                    templateFactory.environment = env;
-
-                    return templateFactory.update().then(async m => h.response(await m.toJsonWithSteps()));
+                    return h.response(data);
                 })
                 .catch(err => {
                     throw err;
