@@ -345,6 +345,43 @@ describe('template plugin test', () => {
         });
     });
 
+    describe('GET /templates/id', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/templates/7969'
+            };
+        });
+
+        it('returns 200 and a template when given the template id', () => {
+            templateFactoryMock.get.resolves(getTemplateMocks(testtemplate));
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, testtemplate);
+                assert.calledWith(templateFactoryMock.getTemplateById, '7969');
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            templateFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            templateFactoryMock.get.rejects(new Error('some error'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
     describe('GET /templates/name', () => {
         let options;
 
