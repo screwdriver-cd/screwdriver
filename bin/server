@@ -27,7 +27,7 @@ function convertToBool(value) {
 }
 
 // Setup Authentication
-const authConfig = config.get('auth');
+const authConfig = hoek.clone(config.get('auth'));
 
 // Setup HTTPd
 const httpdConfig = config.get('httpd');
@@ -38,7 +38,7 @@ const shutdownConfig = config.get('shutdown');
 const webhooksConfig = config.get('webhooks');
 
 // Special urls for things like the UI
-const ecosystem = config.get('ecosystem');
+const ecosystem = hoek.clone(config.get('ecosystem'));
 
 ecosystem.api = httpdConfig.uri;
 
@@ -106,7 +106,7 @@ const CachePlugin = require('screwdriver-cache-bookend');
 const cache = new CachePlugin();
 
 // Plugin to upload coverage
-const coverageConfig = config.get('coverage');
+const coverageConfig = hoek.clone(config.get('coverage'));
 const CoveragePlugin = require('screwdriver-coverage-bookend');
 const coverage = new CoveragePlugin(coverageConfig);
 
@@ -134,7 +134,7 @@ const pipelineFactory = Models.PipelineFactory.getInstance({
 });
 
 // Setup Executor
-const executorConfig = config.get('executor');
+const executorConfig = hoek.clone(config.get('executor'));
 
 executorConfig[executorConfig.plugin].options.pipelineFactory = pipelineFactory;
 const ExecutorPlugin = require(`screwdriver-executor-${executorConfig.plugin}`);
