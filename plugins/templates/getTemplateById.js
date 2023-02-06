@@ -8,7 +8,7 @@ const idSchema = schema.models.template.base.extract('id');
 
 module.exports = () => ({
     method: 'GET',
-    path: '/template/{id}',
+    path: '/templates/{id}',
     options: {
         description: 'Get a single template',
         notes: 'Returns a template record',
