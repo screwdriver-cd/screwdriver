@@ -294,7 +294,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('GET /templates/name/versionOrTag', () => {
+    describe('GET /name/versionOrTag', () => {
         let options;
 
         beforeEach(() => {
@@ -345,13 +345,13 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('GET /templates/id', () => {
+    describe('GET /template/id', () => {
         let options;
 
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: '/templates/7969'
+                url: '/template/7969'
             };
         });
 
