@@ -356,7 +356,7 @@ describe('template plugin test', () => {
         });
 
         it('returns 200 and a template when given the template id', () => {
-            templateFactoryMock.get.resolves(testtemplate);
+            templateFactoryMock.get.resolves(getTemplateMocks(testtemplate));
 
             return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testtemplate);
