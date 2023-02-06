@@ -19,7 +19,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { templateFactory  } = request.server.app;
+            const { templateFactory } = request.server.app;
 
             return templateFactory
                 .get(request.params.id)
@@ -28,7 +28,7 @@ module.exports = () => ({
                         throw boom.notFound('Template does not exist');
                     }
 
-                    return h.response(data);
+                    return h.response(template);
                 })
                 .catch(err => {
                     throw err;
