@@ -294,7 +294,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe('GET /name/versionOrTag', () => {
+    describe('GET /templates/name/versionOrTag', () => {
         let options;
 
         beforeEach(() => {
