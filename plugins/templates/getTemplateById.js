@@ -22,7 +22,7 @@ module.exports = () => ({
             const { templateFactory } = request.server.app;
 
             return templateFactory
-                .get(request.params.id)
+                .get({ id: request.params.id })
                 .then(async template => {
                     if (!template) {
                         throw boom.notFound('Template does not exist');
