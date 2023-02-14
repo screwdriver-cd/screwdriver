@@ -360,7 +360,7 @@ describe('template plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testtemplate);
-                assert.calledWith(templateFactoryMock.getTemplateById, '7969');
+                assert.calledWith(templateFactoryMock.getTemplateById,  { id: 7969 });
                 assert.equal(reply.statusCode, 200);
             });
         });
