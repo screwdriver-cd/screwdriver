@@ -58,6 +58,18 @@ You can get a single template by providing the template name and the specific ve
 * `tag` - Tag of the template (e.g. `stable`, `latest`, etc)
 * `version` - Version of the template
 
+##### Get a single template using templateId
+
+You can get a single template by providing the template id.
+
+`GET /templates/{id}`
+
+###### Arguments
+
+'id'
+
+* `id` - Id of the template
+
 ##### Create a template
 Creating a template will store the template data (`config`, `name`, `version`, `description`, `maintainer`) into the datastore.
 
