@@ -35,7 +35,18 @@ auth:
   # Whitelist of users able to authenticate against the system
   # if empty, it allows everyone
   whitelist: []
+  # Deprecated. Instead, use sdAdmins which is more secure.
+  # List of users who should be given screwdriver admin privileges
+  # Values should follow '{scmDisplayName:scmUsername}' format
+  # Ex: ['github:john', 'bitbucket:john']
   admins: []
+  # List of users who should be given screwdriver admin privileges
+  # Values should follow '{scmDisplayName:scmUsername:scmUserId}' format
+  # Ex: ['github:john:12345', 'bitbucket:john:{98fsa1ba-0b91-4e3c-95ee-55899e933b0}']
+  sdAdmins: []
+  # When set to true, performs admin check using the users listed in 'sdAdmins'.
+  # When set to false, performs admin check using the users listed in 'admins'
+  adminCheckById: true
   # Default session timeout (in minutes)
   sessionTimeout: 120
   # SameSite Cookie Option

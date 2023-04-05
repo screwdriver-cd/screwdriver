@@ -5757,7 +5757,7 @@ describe('build plugin test', () => {
         it('returns 200 for a build that exists and can get token', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(generateProfileMock, '12345', 'github:github.com', ['build'], {
+                assert.calledWith(generateProfileMock, '12345', null, 'github:github.com', ['build'], {
                     isPR: false,
                     jobId: 1234,
                     pipelineId: 1,
@@ -5787,7 +5787,7 @@ describe('build plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(generateProfileMock, '12345', 'github:github.com', ['build'], {
+                assert.calledWith(generateProfileMock, '12345', null, 'github:github.com', ['build'], {
                     isPR: false,
                     jobId: 1234,
                     pipelineId: 1,

@@ -62,6 +62,8 @@ const AUTH_PLUGIN_SCHEMA = joi.object().keys({
     jwtQueueServicePublicKey: joi.string().required(),
     whitelist: joi.array().default([]),
     admins: joi.array().default([]),
+    sdAdmins: joi.array().default([]),
+    adminCheckById: JOI_BOOLEAN.default(true),
     bell: joi.object().required(),
     scm: joi.object().required(),
     sessionTimeout: joi.number().integer().positive().default(120),
@@ -95,12 +97,13 @@ const authPlugin = {
          * Generates a profile for storage in cookie and jwt
          * @method generateProfile
          * @param  {String}        username   Username of the person
+         * @param  {String}        scmUserId  User ID in the SCM
          * @param  {String}        scmContext Scm to which the person logged in belongs
          * @param  {Array}         scope      Scope for this profile (usually build or user)
          * @param  {Object}        metadata   Additonal information to tag along with the login
          * @return {Object}                   The profile to be stored in jwt and/or cookie
          */
-        server.expose('generateProfile', (username, scmContext, scope, metadata) => {
+        server.expose('generateProfile', (username, scmUserId, scmContext, scope, metadata) => {
             const profile = { username, scmContext, scope, ...(metadata || {}) };
 
             if (pluginOptions.jwtEnvironment) {
@@ -110,11 +113,20 @@ const authPlugin = {
             if (scmContext) {
                 const { scm } = pluginOptions;
                 const scmDisplayName = scm.getDisplayName({ scmContext });
-                const userDisplayName = `${scmDisplayName}:${username}`;
 
                 // Check admin
-                if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(userDisplayName)) {
-                    profile.scope.push('admin');
+                if (pluginOptions.adminCheckById) {
+                    const user = `${scmDisplayName}:${username}:${scmUserId}`;
+
+                    if (pluginOptions.sdAdmins.length > 0 && pluginOptions.sdAdmins.includes(user)) {
+                        profile.scope.push('admin');
+                    }
+                } else {
+                    const userDisplayName = `${scmDisplayName}:${username}`;
+
+                    if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(userDisplayName)) {
+                        profile.scope.push('admin');
+                    }
                 }
             }
 

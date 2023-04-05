@@ -269,42 +269,10 @@ describe('auth plugin test', () => {
                 });
                 /* eslint-enable global-require, import/no-dynamic-require */
             });
-
-            await server.register({
-                plugin,
-                options: {
-                    encryptionPassword,
-                    hashingPassword,
-                    cookiePassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    jwtQueueServicePublicKey,
-                    https: false,
-                    admins: ['github:batman', 'batman'],
-                    sameSite: false,
-                    bell: scm.scms,
-                    path: '/'
-                }
-            });
         });
 
         it('adds environment', () => {
-            const newServer = new hapi.Server({
-                port: 1234
-            });
-
-            newServer.app.userFactory = userFactoryMock;
-
-            authPlugins.forEach(async pluginName => {
-                /* eslint-disable global-require, import/no-dynamic-require */
-                await newServer.register({
-                    plugin: require(pluginName)
-                });
-                /* eslint-enable global-require, import/no-dynamic-require */
-            });
-
-            return newServer
+            return server
                 .register({
                     plugin,
                     options: {
@@ -323,30 +291,130 @@ describe('auth plugin test', () => {
                     }
                 })
                 .then(() => {
-                    const profile = newServer.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
+                    const profile = server.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
 
                     expect(profile.environment).to.equal('beta');
                 });
         });
 
-        it('adds admin scope for admins', () => {
-            const profile = server.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
+        describe('admin check using both SCM user name and SCM user ID', () => {
+            beforeEach(async () => {
+                await server.register({
+                    plugin,
+                    options: {
+                        encryptionPassword,
+                        hashingPassword,
+                        cookiePassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        jwtQueueServicePublicKey,
+                        https: false,
+                        admins: ['github:batman', 'batman'],
+                        sdAdmins: ['github:batman:1312'],
+                        adminCheckById: true,
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
+                    }
+                });
+            });
 
-            expect(profile.username).to.contain('batman');
-            expect(profile.scmContext).to.contain('github:github.com');
-            expect(profile.scope).to.contain('user');
-            expect(profile.scope).to.contain('admin');
-            expect(profile.environment).to.equal(undefined);
+            it('adds admin scope for admins', () => {
+                const profile = server.plugins.auth.generateProfile('batman', 1312, 'github:github.com', ['user'], {});
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:github.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('does not add admin scope for non-admins', () => {
+                const profile = server.plugins.auth.generateProfile('robin', null, 'github:mygithub.com', ['user'], {});
+
+                expect(profile.username).to.contain('robin');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.not.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('does not add admin scope for admins without SCM user id', () => {
+                const profile = server.plugins.auth.generateProfile(
+                    'batman',
+                    null,
+                    'github:mygithub.com',
+                    ['user'],
+                    {}
+                );
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.not.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
         });
 
-        it('does not add admin scope for non-admins', () => {
-            const profile = server.plugins.auth.generateProfile('robin', 'github:mygithub.com', ['user'], {});
+        describe('admin check with only SCM user name', () => {
+            beforeEach(async () => {
+                await server.register({
+                    plugin,
+                    options: {
+                        encryptionPassword,
+                        hashingPassword,
+                        cookiePassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        jwtQueueServicePublicKey,
+                        https: false,
+                        admins: ['github:batman', 'batman'],
+                        sdAdmins: ['github:batman:1312'],
+                        adminCheckById: false,
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
+                    }
+                });
+            });
 
-            expect(profile.username).to.contain('robin');
-            expect(profile.scmContext).to.contain('github:mygithub.com');
-            expect(profile.scope).to.contain('user');
-            expect(profile.scope).to.not.contain('admin');
-            expect(profile.environment).to.equal(undefined);
+            it('adds admin scope for admins', () => {
+                const profile = server.plugins.auth.generateProfile('batman', 1312, 'github:github.com', ['user'], {});
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:github.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('does not add admin scope for non-admins', () => {
+                const profile = server.plugins.auth.generateProfile('robin', null, 'github:mygithub.com', ['user'], {});
+
+                expect(profile.username).to.contain('robin');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.not.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('adds admin scope for admins without SCM user id', () => {
+                const profile = server.plugins.auth.generateProfile(
+                    'batman',
+                    null,
+                    'github:mygithub.com',
+                    ['user'],
+                    {}
+                );
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
         });
     });
 
