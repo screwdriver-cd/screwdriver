@@ -98,10 +98,13 @@ function addOAuthRoutes(config) {
                     {}
                 );
                 const scmDisplayName = await userFactory.scm.getDisplayName({ scmContext });
-                const userDisplayName = `${scmDisplayName}:${username}`;
+                const userDisplayName = config.authCheckById
+                    ? `${scmDisplayName}:${username}:${scmUserId}`
+                    : `${scmDisplayName}:${username}`;
+                const allowList = config.authCheckById ? config.allowList : config.whitelist;
 
                 // Check whitelist
-                if (config.whitelist.length > 0 && !config.whitelist.includes(userDisplayName)) {
+                if (allowList.length > 0 && !allowList.includes(userDisplayName)) {
                     return boom.forbidden(`User ${userDisplayName} is not allowed access`);
                 }
 

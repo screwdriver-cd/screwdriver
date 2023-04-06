@@ -32,9 +32,17 @@ auth:
   https: false
   # A flag to set if you want guests to browse your pipelines
   allowGuestAccess: false
-  # Whitelist of users able to authenticate against the system
+  # Deprecated. Instead, use allowList which is more secure.
+  # List of users able to authenticate against the system
   # if empty, it allows everyone
+  # Values should follow '{scmDisplayName:scmUsername}' format
+  # Ex: ['github:john', 'bitbucket:john']
   whitelist: []
+  # list of users able to authenticate against the system
+  # if empty, it allows everyone
+  # Values should follow '{scmDisplayName:scmUsername:scmUserId}' format
+  # Ex: ['github:john:12345', 'bitbucket:john:{98fsa1ba-0b91-4e3c-95ee-55899e933b0}']
+  allowList: []
   # Deprecated. Instead, use sdAdmins which is more secure.
   # List of users who should be given screwdriver admin privileges
   # Values should follow '{scmDisplayName:scmUsername}' format
@@ -44,9 +52,13 @@ auth:
   # Values should follow '{scmDisplayName:scmUsername:scmUserId}' format
   # Ex: ['github:john:12345', 'bitbucket:john:{98fsa1ba-0b91-4e3c-95ee-55899e933b0}']
   sdAdmins: []
-  # When set to true, performs admin check using the users listed in 'sdAdmins'.
-  # When set to false, performs admin check using the users listed in 'admins'
-  adminCheckById: true
+  # When set to true
+  #  - grant admin privileges to the users listed in 'sdAdmins'
+  #  - only authenticate the users listed in 'allowList'
+  # When set to false, performs
+  #  - grant admin privileges to the users listed in 'admins'
+  #  - only authenticate the users listed in 'whitelist'
+  authCheckById: true
   # Default session timeout (in minutes)
   sessionTimeout: 120
   # SameSite Cookie Option

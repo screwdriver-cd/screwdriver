@@ -60,10 +60,11 @@ const AUTH_PLUGIN_SCHEMA = joi.object().keys({
     jwtPrivateKey: joi.string().required(),
     jwtPublicKey: joi.string().required(),
     jwtQueueServicePublicKey: joi.string().required(),
+    authCheckById: JOI_BOOLEAN.default(true),
     whitelist: joi.array().default([]),
+    allowList: joi.array().default([]),
     admins: joi.array().default([]),
     sdAdmins: joi.array().default([]),
-    adminCheckById: JOI_BOOLEAN.default(true),
     bell: joi.object().required(),
     scm: joi.object().required(),
     sessionTimeout: joi.number().integer().positive().default(120),
@@ -115,7 +116,7 @@ const authPlugin = {
                 const scmDisplayName = scm.getDisplayName({ scmContext });
 
                 // Check admin
-                if (pluginOptions.adminCheckById) {
+                if (pluginOptions.authCheckById) {
                     const user = `${scmDisplayName}:${username}:${scmUserId}`;
 
                     if (pluginOptions.sdAdmins.length > 0 && pluginOptions.sdAdmins.includes(user)) {

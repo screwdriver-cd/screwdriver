@@ -31,13 +31,16 @@ auth:
   whitelist:
     __name: SECRET_WHITELIST
     __format: json
+  allowList:
+    __name: SECRET_ALLOW_LIST
+    __format: json
   admins:
     __name: SECRET_ADMINS
     __format: json
   sdAdmins:
-    __name: SECRET_ADMINS
+    __name: SECRET_SD_ADMINS
     __format: json
-  adminCheckById: ADMIN_CHECK_BY_ID
+  authCheckById: AUTH_CHECK_BY_ID
   # Default session timeout (in minutes)
   sessionTimeout: SESSION_TIMEOUT
   # Oauth redirect uri, configure this if your app is not running at root under the host
