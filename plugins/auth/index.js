@@ -114,20 +114,14 @@ const authPlugin = {
             if (scmContext) {
                 const { scm } = pluginOptions;
                 const scmDisplayName = scm.getDisplayName({ scmContext });
+                const userDisplayName = pluginOptions.authCheckById
+                    ? `${scmDisplayName}:${username}:${scmUserId}`
+                    : `${scmDisplayName}:${username}`;
+                const admins = pluginOptions.authCheckById ? pluginOptions.sdAdmins : pluginOptions.admins;
 
                 // Check admin
-                if (pluginOptions.authCheckById) {
-                    const user = `${scmDisplayName}:${username}:${scmUserId}`;
-
-                    if (pluginOptions.sdAdmins.length > 0 && pluginOptions.sdAdmins.includes(user)) {
-                        profile.scope.push('admin');
-                    }
-                } else {
-                    const userDisplayName = `${scmDisplayName}:${username}`;
-
-                    if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(userDisplayName)) {
-                        profile.scope.push('admin');
-                    }
+                if (admins.length > 0 && admins.includes(userDisplayName)) {
+                    profile.scope.push('admin');
                 }
             }
 

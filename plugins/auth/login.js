@@ -87,8 +87,7 @@ function addOAuthRoutes(config) {
                 const { userFactory } = request.server.app;
                 const { collectionFactory } = request.server.app;
                 const accessToken = request.auth.credentials.token;
-                const { username } = request.auth.credentials.profile;
-                const scmUserId = request.auth.credentials.profile.id;
+                const { username, id: scmUserId } = request.auth.credentials.profile;
 
                 const profile = request.server.plugins.auth.generateProfile(
                     username,
