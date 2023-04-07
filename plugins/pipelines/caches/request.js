@@ -36,7 +36,7 @@ async function invoke(request) {
     const { username, scmContext } = auth.credentials;
 
     const token = request.server.plugins.auth.generateToken(
-        request.server.plugins.auth.generateProfile(username, scmContext, ['sdapi'], { pipelineId })
+        request.server.plugins.auth.generateProfile(username, null, scmContext, ['sdapi'], { pipelineId })
     );
 
     const options = {
