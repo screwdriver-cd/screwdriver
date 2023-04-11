@@ -39,12 +39,11 @@ module.exports = () => ({
                 const job = await jobFactory.get(build.jobId);
                 const pipeline = pipelineFactory.get(job.pipelineId);
 
-                profile = request.server.plugins.auth.generateProfile(
-                    request.params.buildId,
-                    null,
-                    pipeline.scmContext,
-                    ['build', 'impersonated']
-                );
+                profile = request.server.plugins.auth.generateProfile({
+                    username: request.params.buildId,
+                    scmContext: pipeline.scmContext,
+                    scope: ['build', 'impersonated']
+                });
                 profile.token = request.server.plugins.auth.generateToken(profile);
 
                 request.cookieAuth.set(profile);

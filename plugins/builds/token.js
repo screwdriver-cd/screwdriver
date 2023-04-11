@@ -54,13 +54,12 @@ module.exports = () => ({
                     }
 
                     const token = request.server.plugins.auth.generateToken(
-                        request.server.plugins.auth.generateProfile(
-                            profile.username,
-                            null,
-                            profile.scmContext,
-                            ['build'],
-                            jwtInfo
-                        ),
+                        request.server.plugins.auth.generateProfile({
+                            username: profile.username,
+                            scmContext: profile.scmContext,
+                            scope: ['build'],
+                            metadata: jwtInfo
+                        }),
                         parseInt(buildTimeout, 10)
                     );
 

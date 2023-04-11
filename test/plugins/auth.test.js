@@ -291,7 +291,12 @@ describe('auth plugin test', () => {
                     }
                 })
                 .then(() => {
-                    const profile = server.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
+                    const profile = server.plugins.auth.generateProfile({
+                        username: 'batman',
+                        scmContext: 'github:github.com',
+                        scope: ['user'],
+                        metadata: {}
+                    });
 
                     expect(profile.environment).to.equal('beta');
                 });
@@ -321,7 +326,13 @@ describe('auth plugin test', () => {
             });
 
             it('adds admin scope for admins', () => {
-                const profile = server.plugins.auth.generateProfile('batman', 1312, 'github:github.com', ['user'], {});
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmUserId: 1312,
+                    scmContext: 'github:github.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
 
                 expect(profile.username).to.contain('batman');
                 expect(profile.scmContext).to.contain('github:github.com');
@@ -331,7 +342,12 @@ describe('auth plugin test', () => {
             });
 
             it('does not add admin scope for non-admins', () => {
-                const profile = server.plugins.auth.generateProfile('robin', null, 'github:mygithub.com', ['user'], {});
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'robin',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
 
                 expect(profile.username).to.contain('robin');
                 expect(profile.scmContext).to.contain('github:mygithub.com');
@@ -341,13 +357,12 @@ describe('auth plugin test', () => {
             });
 
             it('does not add admin scope for admins without SCM user id', () => {
-                const profile = server.plugins.auth.generateProfile(
-                    'batman',
-                    null,
-                    'github:mygithub.com',
-                    ['user'],
-                    {}
-                );
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
 
                 expect(profile.username).to.contain('batman');
                 expect(profile.scmContext).to.contain('github:mygithub.com');
@@ -381,7 +396,13 @@ describe('auth plugin test', () => {
             });
 
             it('adds admin scope for admins', () => {
-                const profile = server.plugins.auth.generateProfile('batman', 1312, 'github:github.com', ['user'], {});
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmUserId: 1312,
+                    scmContext: 'github:github.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
 
                 expect(profile.username).to.contain('batman');
                 expect(profile.scmContext).to.contain('github:github.com');
@@ -391,7 +412,12 @@ describe('auth plugin test', () => {
             });
 
             it('does not add admin scope for non-admins', () => {
-                const profile = server.plugins.auth.generateProfile('robin', null, 'github:mygithub.com', ['user'], {});
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'robin',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
 
                 expect(profile.username).to.contain('robin');
                 expect(profile.scmContext).to.contain('github:mygithub.com');
@@ -401,13 +427,12 @@ describe('auth plugin test', () => {
             });
 
             it('adds admin scope for admins without SCM user id', () => {
-                const profile = server.plugins.auth.generateProfile(
-                    'batman',
-                    null,
-                    'github:mygithub.com',
-                    ['user'],
-                    {}
-                );
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
 
                 expect(profile.username).to.contain('batman');
                 expect(profile.scmContext).to.contain('github:mygithub.com');
