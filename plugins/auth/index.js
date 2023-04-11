@@ -97,14 +97,16 @@ const authPlugin = {
         /**
          * Generates a profile for storage in cookie and jwt
          * @method generateProfile
-         * @param  {String}        username   Username of the person
-         * @param  {String}        scmUserId  User ID in the SCM
-         * @param  {String}        scmContext Scm to which the person logged in belongs
-         * @param  {Array}         scope      Scope for this profile (usually build or user)
-         * @param  {Object}        metadata   Additonal information to tag along with the login
-         * @return {Object}                   The profile to be stored in jwt and/or cookie
+         * @param  {Object}   config            Configuration object
+         * @param  {String}   config.username   Username of the person
+         * @param  {String}   config.scmUserId  User ID in the SCM
+         * @param  {String}   config.scmContext Scm to which the person logged in belongs
+         * @param  {Array}    config.scope      Scope for this profile (usually build or user)
+         * @param  {Object}   config.metadata   Additional information to tag along with the login
+         * @return {Object}                     The profile to be stored in jwt and/or cookie
          */
-        server.expose('generateProfile', (username, scmUserId, scmContext, scope, metadata) => {
+        server.expose('generateProfile', config => {
+            const { username, scmUserId, scmContext, scope, metadata } = config;
             const profile = { username, scmContext, scope, ...(metadata || {}) };
 
             if (pluginOptions.jwtEnvironment) {

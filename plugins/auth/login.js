@@ -32,13 +32,11 @@ function addGuestRoute(config) {
                     }
 
                     const username = `guest/${uuidv4()}`;
-                    const profile = request.server.plugins.auth.generateProfile(
+                    const profile = request.server.plugins.auth.generateProfile({
                         username,
-                        null,
-                        null,
-                        ['user', 'guest'],
-                        {}
-                    );
+                        scope: ['user', 'guest'],
+                        metadata: {}
+                    });
 
                     // Log that the user has authenticated
                     request.log(['auth'], `${username} has logged in`);
@@ -89,13 +87,13 @@ function addOAuthRoutes(config) {
                 const accessToken = request.auth.credentials.token;
                 const { username, id: scmUserId } = request.auth.credentials.profile;
 
-                const profile = request.server.plugins.auth.generateProfile(
+                const profile = request.server.plugins.auth.generateProfile({
                     username,
                     scmUserId,
                     scmContext,
-                    ['user'],
-                    {}
-                );
+                    scope: ['user'],
+                    metadata: {}
+                });
                 const scmDisplayName = await userFactory.scm.getDisplayName({ scmContext });
                 const userDisplayName = config.authCheckById
                     ? `${scmDisplayName}:${username}:${scmUserId}`
