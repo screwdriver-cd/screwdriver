@@ -60,8 +60,11 @@ const AUTH_PLUGIN_SCHEMA = joi.object().keys({
     jwtPrivateKey: joi.string().required(),
     jwtPublicKey: joi.string().required(),
     jwtQueueServicePublicKey: joi.string().required(),
+    authCheckById: JOI_BOOLEAN.default(true),
     whitelist: joi.array().default([]),
+    allowList: joi.array().default([]),
     admins: joi.array().default([]),
+    sdAdmins: joi.array().default([]),
     bell: joi.object().required(),
     scm: joi.object().required(),
     sessionTimeout: joi.number().integer().positive().default(120),
@@ -94,13 +97,16 @@ const authPlugin = {
         /**
          * Generates a profile for storage in cookie and jwt
          * @method generateProfile
-         * @param  {String}        username   Username of the person
-         * @param  {String}        scmContext Scm to which the person logged in belongs
-         * @param  {Array}         scope      Scope for this profile (usually build or user)
-         * @param  {Object}        metadata   Additonal information to tag along with the login
-         * @return {Object}                   The profile to be stored in jwt and/or cookie
+         * @param  {Object}   config            Configuration object
+         * @param  {String}   config.username   Username of the person
+         * @param  {String}   config.scmUserId  User ID in the SCM
+         * @param  {String}   config.scmContext Scm to which the person logged in belongs
+         * @param  {Array}    config.scope      Scope for this profile (usually build or user)
+         * @param  {Object}   config.metadata   Additional information to tag along with the login
+         * @return {Object}                     The profile to be stored in jwt and/or cookie
          */
-        server.expose('generateProfile', (username, scmContext, scope, metadata) => {
+        server.expose('generateProfile', config => {
+            const { username, scmUserId, scmContext, scope, metadata } = config;
             const profile = { username, scmContext, scope, ...(metadata || {}) };
 
             if (pluginOptions.jwtEnvironment) {
@@ -110,10 +116,13 @@ const authPlugin = {
             if (scmContext) {
                 const { scm } = pluginOptions;
                 const scmDisplayName = scm.getDisplayName({ scmContext });
-                const userDisplayName = `${scmDisplayName}:${username}`;
+                const userDisplayName = pluginOptions.authCheckById
+                    ? `${scmDisplayName}:${username}:${scmUserId}`
+                    : `${scmDisplayName}:${username}`;
+                const admins = pluginOptions.authCheckById ? pluginOptions.sdAdmins : pluginOptions.admins;
 
                 // Check admin
-                if (pluginOptions.admins.length > 0 && pluginOptions.admins.includes(userDisplayName)) {
+                if (admins.length > 0 && admins.includes(userDisplayName)) {
                     profile.scope.push('admin');
                 }
             }

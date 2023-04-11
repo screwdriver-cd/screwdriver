@@ -5757,12 +5757,17 @@ describe('build plugin test', () => {
         it('returns 200 for a build that exists and can get token', () =>
             server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(generateProfileMock, '12345', 'github:github.com', ['build'], {
-                    isPR: false,
-                    jobId: 1234,
-                    pipelineId: 1,
-                    eventId: 777,
-                    configPipelineId: 123
+                assert.calledWith(generateProfileMock, {
+                    username: '12345',
+                    scmContext: 'github:github.com',
+                    scope: ['build'],
+                    metadata: {
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123
+                    }
                 });
                 assert.calledWith(
                     generateTokenMock,
@@ -5787,13 +5792,18 @@ describe('build plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.calledWith(generateProfileMock, '12345', 'github:github.com', ['build'], {
-                    isPR: false,
-                    jobId: 1234,
-                    pipelineId: 1,
-                    eventId: 777,
-                    configPipelineId: 123,
-                    prParentJobId: 1000
+                assert.calledWith(generateProfileMock, {
+                    username: '12345',
+                    scmContext: 'github:github.com',
+                    scope: ['build'],
+                    metadata: {
+                        isPR: false,
+                        jobId: 1234,
+                        pipelineId: 1,
+                        eventId: 777,
+                        configPipelineId: 123,
+                        prParentJobId: 1000
+                    }
                 });
                 assert.calledWith(
                     generateTokenMock,

@@ -269,42 +269,10 @@ describe('auth plugin test', () => {
                 });
                 /* eslint-enable global-require, import/no-dynamic-require */
             });
-
-            await server.register({
-                plugin,
-                options: {
-                    encryptionPassword,
-                    hashingPassword,
-                    cookiePassword,
-                    scm,
-                    jwtPrivateKey,
-                    jwtPublicKey,
-                    jwtQueueServicePublicKey,
-                    https: false,
-                    admins: ['github:batman', 'batman'],
-                    sameSite: false,
-                    bell: scm.scms,
-                    path: '/'
-                }
-            });
         });
 
         it('adds environment', () => {
-            const newServer = new hapi.Server({
-                port: 1234
-            });
-
-            newServer.app.userFactory = userFactoryMock;
-
-            authPlugins.forEach(async pluginName => {
-                /* eslint-disable global-require, import/no-dynamic-require */
-                await newServer.register({
-                    plugin: require(pluginName)
-                });
-                /* eslint-enable global-require, import/no-dynamic-require */
-            });
-
-            return newServer
+            return server
                 .register({
                     plugin,
                     options: {
@@ -323,30 +291,155 @@ describe('auth plugin test', () => {
                     }
                 })
                 .then(() => {
-                    const profile = newServer.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
+                    const profile = server.plugins.auth.generateProfile({
+                        username: 'batman',
+                        scmContext: 'github:github.com',
+                        scope: ['user'],
+                        metadata: {}
+                    });
 
                     expect(profile.environment).to.equal('beta');
                 });
         });
 
-        it('adds admin scope for admins', () => {
-            const profile = server.plugins.auth.generateProfile('batman', 'github:github.com', ['user'], {});
+        describe('admin check using both SCM user name and SCM user ID', () => {
+            beforeEach(async () => {
+                await server.register({
+                    plugin,
+                    options: {
+                        encryptionPassword,
+                        hashingPassword,
+                        cookiePassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        jwtQueueServicePublicKey,
+                        https: false,
+                        admins: ['github:batman', 'batman'],
+                        sdAdmins: ['github:batman:1312'],
+                        authCheckById: true,
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
+                    }
+                });
+            });
 
-            expect(profile.username).to.contain('batman');
-            expect(profile.scmContext).to.contain('github:github.com');
-            expect(profile.scope).to.contain('user');
-            expect(profile.scope).to.contain('admin');
-            expect(profile.environment).to.equal(undefined);
+            it('adds admin scope for admins', () => {
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmUserId: 1312,
+                    scmContext: 'github:github.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:github.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('does not add admin scope for non-admins', () => {
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'robin',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
+
+                expect(profile.username).to.contain('robin');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.not.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('does not add admin scope for admins without SCM user id', () => {
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.not.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
         });
 
-        it('does not add admin scope for non-admins', () => {
-            const profile = server.plugins.auth.generateProfile('robin', 'github:mygithub.com', ['user'], {});
+        describe('admin check with only SCM user name', () => {
+            beforeEach(async () => {
+                await server.register({
+                    plugin,
+                    options: {
+                        encryptionPassword,
+                        hashingPassword,
+                        cookiePassword,
+                        scm,
+                        jwtPrivateKey,
+                        jwtPublicKey,
+                        jwtQueueServicePublicKey,
+                        https: false,
+                        admins: ['github:batman', 'batman'],
+                        sdAdmins: ['github:batman:1312'],
+                        authCheckById: false,
+                        sameSite: false,
+                        bell: scm.scms,
+                        path: '/'
+                    }
+                });
+            });
 
-            expect(profile.username).to.contain('robin');
-            expect(profile.scmContext).to.contain('github:mygithub.com');
-            expect(profile.scope).to.contain('user');
-            expect(profile.scope).to.not.contain('admin');
-            expect(profile.environment).to.equal(undefined);
+            it('adds admin scope for admins', () => {
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmUserId: 1312,
+                    scmContext: 'github:github.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:github.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('does not add admin scope for non-admins', () => {
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'robin',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
+
+                expect(profile.username).to.contain('robin');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.not.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
+
+            it('adds admin scope for admins without SCM user id', () => {
+                const profile = server.plugins.auth.generateProfile({
+                    username: 'batman',
+                    scmContext: 'github:mygithub.com',
+                    scope: ['user'],
+                    metadata: {}
+                });
+
+                expect(profile.username).to.contain('batman');
+                expect(profile.scmContext).to.contain('github:mygithub.com');
+                expect(profile.scope).to.contain('user');
+                expect(profile.scope).to.contain('admin');
+                expect(profile.environment).to.equal(undefined);
+            });
         });
     });
 
@@ -496,6 +589,7 @@ describe('auth plugin test', () => {
     describe('GET /auth/login/{scmContext}', () => {
         const id = '1234id5678';
         const username = 'batman';
+        const scmUserId = '12345scm';
         const scmContext = 'github:github.com';
         const token = 'qpekaljx';
         const user = {
@@ -513,7 +607,8 @@ describe('auth plugin test', () => {
                 credentials: {
                     profile: {
                         username,
-                        scmContext
+                        scmContext,
+                        id: scmUserId
                     },
                     token
                 },
@@ -675,60 +770,181 @@ describe('auth plugin test', () => {
                                 !!request.route.path.includes('/auth/')
                         }
                     });
-
-                    await server.register({
-                        plugin,
-                        options: {
-                            cookiePassword,
-                            encryptionPassword,
-                            hashingPassword,
-                            scm,
-                            jwtPrivateKey,
-                            jwtPublicKey,
-                            jwtQueueServicePublicKey,
-                            https: false,
-                            whitelist: ['github:batman'],
-                            sameSite: false,
-                            bell: scm.scms,
-                            path: '/'
-                        }
-                    });
                 });
 
                 afterEach(() => {
                     server = null;
                 });
 
-                it('returns forbidden for non-whitelisted user', () =>
-                    server
-                        .inject({
-                            url: '/auth/login/github:github.com',
-                            auth: {
-                                credentials: {
-                                    profile: {
-                                        username: 'dne'
-                                    }
-                                },
-                                strategy: ['token']
+                describe('check using both SCM user name and SCM user ID', () => {
+                    beforeEach(async () => {
+                        await server.register({
+                            plugin,
+                            options: {
+                                cookiePassword,
+                                encryptionPassword,
+                                hashingPassword,
+                                scm,
+                                jwtPrivateKey,
+                                jwtPublicKey,
+                                jwtQueueServicePublicKey,
+                                https: false,
+                                whitelist: ['github:batman'],
+                                allowList: ['github:batman:12345scm'],
+                                authCheckById: true,
+                                sameSite: false,
+                                bell: scm.scms,
+                                path: '/'
                             }
-                        })
-                        .then(reply => {
-                            assert.equal(reply.statusCode, 403, 'Login route should be available');
-                            assert.notOk(reply.result.token, 'Token not returned');
-                        }));
-
-                it('returns 200 for whitelisted user', () => {
-                    userFactoryMock.get.resolves(null);
-
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 302, 'Login route should be available');
-                        assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
-                        assert.calledWith(userFactoryMock.get, { username, scmContext });
-                        assert.calledWith(userFactoryMock.create, {
-                            username,
-                            scmContext,
-                            token
                         });
+                    });
+
+                    it('returns 200 for whitelisted user with SCM user ID', () => {
+                        userFactoryMock.get.resolves(null);
+
+                        return server.inject(options).then(reply => {
+                            assert.equal(reply.statusCode, 302, 'Login route should be available');
+                            assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
+                            assert.calledWith(userFactoryMock.get, { username, scmContext });
+                            assert.calledWith(userFactoryMock.create, {
+                                username,
+                                scmContext,
+                                token
+                            });
+                        });
+                    });
+
+                    it('returns forbidden for whitelisted user without SCM user ID', () => {
+                        return server
+                            .inject({
+                                url: '/auth/login/github:github.com',
+                                auth: {
+                                    credentials: {
+                                        profile: {
+                                            username: 'batman',
+                                            scmContext
+                                        },
+                                        token
+                                    },
+                                    strategy: ['token']
+                                }
+                            })
+                            .then(reply => {
+                                assert.equal(reply.statusCode, 403, 'Login route should be available');
+                                assert.notOk(reply.result.token, 'Token not returned');
+                                assert.equal(
+                                    reply.result.message,
+                                    'User github:batman:undefined is not allowed access'
+                                );
+                            });
+                    });
+
+                    it('returns forbidden for non-whitelisted user', () => {
+                        return server
+                            .inject({
+                                url: '/auth/login/github:github.com',
+                                auth: {
+                                    credentials: {
+                                        profile: {
+                                            username: 'dne'
+                                        }
+                                    },
+                                    strategy: ['token']
+                                }
+                            })
+                            .then(reply => {
+                                assert.equal(reply.statusCode, 403, 'Login route should be available');
+                                assert.notOk(reply.result.token, 'Token not returned');
+                                assert.equal(reply.result.message, 'User github:dne:undefined is not allowed access');
+                            });
+                    });
+                });
+
+                describe('check with only SCM user name', () => {
+                    beforeEach(async () => {
+                        await server.register({
+                            plugin,
+                            options: {
+                                cookiePassword,
+                                encryptionPassword,
+                                hashingPassword,
+                                scm,
+                                jwtPrivateKey,
+                                jwtPublicKey,
+                                jwtQueueServicePublicKey,
+                                https: false,
+                                whitelist: ['github:batman'],
+                                allowList: ['github:batman:12345scm'],
+                                authCheckById: false,
+                                sameSite: false,
+                                bell: scm.scms,
+                                path: '/'
+                            }
+                        });
+                    });
+
+                    it('returns 200 for whitelisted user with SCM user ID', () => {
+                        userFactoryMock.get.resolves(null);
+
+                        return server.inject(options).then(reply => {
+                            assert.equal(reply.statusCode, 302, 'Login route should be available');
+                            assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
+                            assert.calledWith(userFactoryMock.get, { username, scmContext });
+                            assert.calledWith(userFactoryMock.create, {
+                                username,
+                                scmContext,
+                                token
+                            });
+                        });
+                    });
+
+                    it('returns 200 for whitelisted user without SCM user ID', () => {
+                        userFactoryMock.get.resolves(null);
+
+                        return server
+                            .inject({
+                                url: '/auth/login/github:github.com',
+                                auth: {
+                                    credentials: {
+                                        profile: {
+                                            username: 'batman',
+                                            scmContext
+                                        },
+                                        token
+                                    },
+                                    strategy: ['token']
+                                }
+                            })
+                            .then(reply => {
+                                assert.equal(reply.statusCode, 302, 'Login route should be available');
+                                assert.isOk(reply.headers.location.match(/auth\/token/), 'Redirects to token');
+                                assert.calledWith(userFactoryMock.get, { username, scmContext });
+                                assert.calledWith(userFactoryMock.create, {
+                                    username,
+                                    scmContext,
+                                    token
+                                });
+                            });
+                    });
+
+                    it('returns forbidden for non-whitelisted user', () => {
+                        return server
+                            .inject({
+                                url: '/auth/login/github:github.com',
+                                auth: {
+                                    credentials: {
+                                        profile: {
+                                            username: 'dne'
+                                        }
+                                    },
+                                    strategy: ['token']
+                                }
+                            })
+                            .then(reply => {
+                                assert.equal(reply.statusCode, 403, 'Login route should be available');
+                                assert.notOk(reply.result.token, 'Token not returned');
+                                assert.equal(reply.result.message, 'User github:dne is not allowed access');
+                            });
                     });
                 });
             });

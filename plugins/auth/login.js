@@ -32,7 +32,11 @@ function addGuestRoute(config) {
                     }
 
                     const username = `guest/${uuidv4()}`;
-                    const profile = request.server.plugins.auth.generateProfile(username, null, ['user', 'guest'], {});
+                    const profile = request.server.plugins.auth.generateProfile({
+                        username,
+                        scope: ['user', 'guest'],
+                        metadata: {}
+                    });
 
                     // Log that the user has authenticated
                     request.log(['auth'], `${username} has logged in`);
@@ -81,14 +85,23 @@ function addOAuthRoutes(config) {
                 const { userFactory } = request.server.app;
                 const { collectionFactory } = request.server.app;
                 const accessToken = request.auth.credentials.token;
-                const { username } = request.auth.credentials.profile;
+                const { username, id: scmUserId } = request.auth.credentials.profile;
 
-                const profile = request.server.plugins.auth.generateProfile(username, scmContext, ['user'], {});
+                const profile = request.server.plugins.auth.generateProfile({
+                    username,
+                    scmUserId,
+                    scmContext,
+                    scope: ['user'],
+                    metadata: {}
+                });
                 const scmDisplayName = await userFactory.scm.getDisplayName({ scmContext });
-                const userDisplayName = `${scmDisplayName}:${username}`;
+                const userDisplayName = config.authCheckById
+                    ? `${scmDisplayName}:${username}:${scmUserId}`
+                    : `${scmDisplayName}:${username}`;
+                const allowList = config.authCheckById ? config.allowList : config.whitelist;
 
                 // Check whitelist
-                if (config.whitelist.length > 0 && !config.whitelist.includes(userDisplayName)) {
+                if (allowList.length > 0 && !allowList.includes(userDisplayName)) {
                     return boom.forbidden(`User ${userDisplayName} is not allowed access`);
                 }
 
