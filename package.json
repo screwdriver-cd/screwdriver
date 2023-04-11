@@ -119,7 +119,7 @@
     "screwdriver-notifications-slack": "^4.0.0",
     "screwdriver-request": "^2.0.1",
     "screwdriver-scm-base": "^8.0.0",
-    "screwdriver-scm-bitbucket": "^5.0.0",
+    "screwdriver-scm-bitbucket": "^5.0.1",
     "screwdriver-scm-github": "^12.0.0",
     "screwdriver-scm-gitlab": "^3.0.0",
     "screwdriver-scm-router": "^7.0.0",
