@@ -10,6 +10,7 @@ const listVersionsRoute = require('./listVersions');
 const listVersionsWithMetricsRouter = require('./listVersionsWithMetric');
 const removeRoute = require('./remove');
 const removeTagRoute = require('./removeTag');
+const removeVersionRoute = require('./removeVersion');
 const updateTrustedRoute = require('./updateTrusted');
 const getTemplateByIdRoute = require('./getTemplateById');
 
@@ -84,6 +85,7 @@ const templatesPlugin = {
             listVersionsWithMetricsRouter(),
             removeRoute(),
             removeTagRoute(),
+            removeVersionRoute(),
             updateTrustedRoute(),
             getTemplateByIdRoute()
         ]);
