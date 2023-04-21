@@ -990,7 +990,7 @@ describe('template plugin test', () => {
             });
         });
 
-        it('returns 403 when pipelineId does not match', () => {
+        it('returns 403 when build credential is from a PR', () => {
             options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
