@@ -37,13 +37,18 @@ module.exports = () => ({
                     return canRemove(credentials, template, 'admin', request.server.app)
                         .then(() => {
                             shouldUpdateLatest = template.latest;
-                            const templatePromises = [template.remove()];
-                            const tagPromises = tags.map(tag => tag.remove());
+                            const removeTemplatePromise = template.remove();
+                            const removeTagPromises = tags.map(tag => tag.remove());
 
-                            return Promise.all(templatePromises.concat(tagPromises)).then(() => {
+                            return Promise.all([removeTemplatePromise, ...removeTagPromises]).then(() => {
                                 if (shouldUpdateLatest) {
                                     return templateFactory
-                                        .list({ params: { name }, sort: 'descending', sortBy: 'createTime' })
+                                        .list({
+                                            params: { name },
+                                            sort: 'descending',
+                                            sortBy: 'createTime',
+                                            paginate: { count: 1 }
+                                        })
                                         .then(templates => {
                                             if (templates.length > 0) {
                                                 const newLatestTemplate = templates[0];

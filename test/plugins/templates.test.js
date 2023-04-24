@@ -1293,7 +1293,8 @@ describe('template plugin test', () => {
                 .withArgs({
                     params: { name: `${templateNameSpace}/${templateName}` },
                     sort: 'descending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    paginate: { count: 1 }
                 })
                 .resolves([testTemplateV2]);
 
