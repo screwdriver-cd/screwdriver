@@ -117,6 +117,20 @@ Deleting a template will delete a template and all of its associated tags and ve
 
 * `name` - Name of the template
 
+##### Delete a version
+
+Delete the template version and all of its associated tags.
+If the deleted version was the last published, the API would set the `latest` attribute of the previous version to `true`.
+
+`DELETE /templates/{name}/versions/{version}`
+
+###### Arguments
+
+'name', 'version'
+
+* `name` - Name of the template
+* `version` - Version of the template
+
 #### Template Tag
 Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`.
 

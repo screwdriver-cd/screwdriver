@@ -990,7 +990,7 @@ describe('template plugin test', () => {
             });
         });
 
-        it('returns 403 when pipelineId does not match', () => {
+        it('returns 403 when build credential is from a PR', () => {
             options.auth.credentials.isPR = true;
 
             return server.inject(options).then(reply => {
@@ -1130,6 +1130,240 @@ describe('template plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('DELETE /templates/{name}/versions/{version}', () => {
+        const scmUri = 'github.com:12345:branchName';
+        const username = 'myself';
+        const scmContext = 'github@github.com';
+        const templateNameSpace = 'test-namespace';
+        const templateName = 'test-template';
+        const templatePipelineId = 123;
+        const anotherPipelineId = 678;
+        const templateVersion1 = '1.0.0';
+        const templateVersion2 = '2.0.0';
+        let pipeline;
+        let options;
+        let userMock;
+        let testTemplateV1;
+        let testTemplateTag;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: `/templates/${templateNameSpace}%2F${templateName}/versions/${templateVersion1}`,
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user', '!guest']
+                    },
+                    strategy: ['token']
+                }
+            };
+            testTemplateV1 = decorateObj({
+                id: 1,
+                namespace: templateNameSpace,
+                name: templateName,
+                version: templateVersion1,
+                tag: 'stable',
+                pipelineId: templatePipelineId,
+                latest: false,
+                remove: sinon.stub().resolves(null)
+            });
+            testTemplateTag = decorateObj({
+                id: 1,
+                name: 'testtemplate',
+                tag: 'stable',
+                remove: sinon.stub().resolves(null)
+            });
+
+            userMock = getUserMock({ username, scmContext });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+
+            pipeline = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.withArgs(templatePipelineId).resolves(pipeline);
+
+            templateFactoryMock.get.resolves(testTemplateV1);
+            templateFactoryMock.get
+                .withArgs({ name: `${templateNameSpace}/${templateName}`, version: templateVersion1 })
+                .resolves(testTemplateV1);
+            templateTagFactoryMock.list.resolves([testTemplateTag]);
+        });
+
+        it('returns 400 when template version is invalid', () => {
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Invalid request params input'
+            };
+
+            options.url = `/templates/${templateNameSpace}%2F${templateName}/versions/1.0`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, error.statusCode);
+                assert.deepEqual(reply.result, error);
+                assert.isFalse(templateFactoryMock.get.called);
+            });
+        });
+
+        it('returns 404 when template version does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Template ${templateNameSpace}/${templateName} with version ${templateVersion1} does not exist`
+            };
+
+            templateFactoryMock.get.withArgs({ name: 'test-namespace/test-template', version: '1.0.0' }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, error.statusCode);
+                assert.deepEqual(reply.result, error);
+                assert.calledWith(templateFactoryMock.get, { name: 'test-namespace/test-template', version: '1.0.0' });
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User myself does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, error.statusCode);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Pipeline ${templatePipelineId} does not exist`
+            };
+
+            pipelineFactoryMock.get.withArgs(templatePipelineId).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, error.statusCode);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when user does not have admin permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User myself does not have admin access for this template'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, error.statusCode);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes template version and associated tags if user has pipeline admin credentials and template exists', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testTemplateV1.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('deletes template version and associated tags if user has Screwdriver admin credentials and template exists', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testTemplateV1.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('deletes template version and associated tags with valid credentials, and if deleted version was latest, update the previous version as the latest', () => {
+            const testTemplateV2 = decorateObj({
+                id: 1,
+                namespace: templateNameSpace,
+                name: templateName,
+                version: templateVersion2,
+                tag: 'stable',
+                pipelineId: templatePipelineId,
+                latest: false,
+                update: sinon.stub().resolves(null)
+            });
+
+            testTemplateV1.latest = true;
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+            templateFactoryMock.list
+                .withArgs({
+                    params: { name: `${templateNameSpace}/${templateName}` },
+                    sort: 'descending',
+                    sortBy: 'createTime',
+                    paginate: { count: 1 }
+                })
+                .resolves([testTemplateV2]);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testTemplateV1.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.calledOnce(testTemplateV2.update);
+                assert.isTrue(testTemplateV2.latest);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this template'
+            };
+
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = anotherPipelineId;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when build credential is from a PR', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this template'
+            };
+
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = templatePipelineId;
+            options.auth.credentials.isPR = true;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes template version and associated tags if build credentials provided and pipelineIds match', () => {
+            options.auth.credentials.scope = ['build'];
+            options.auth.credentials.pipelineId = templatePipelineId;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testTemplateV1.remove);
+                assert.calledOnce(testTemplateTag.remove);
+                assert.equal(reply.statusCode, 204);
             });
         });
     });
