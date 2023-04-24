@@ -4,7 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const nameSchema = schema.models.template.base.extract('name');
-const versionSchema = schema.models.template.base.extract('version');
+const exactVersionSchema = schema.config.template.exactVersion;
 
 module.exports = () => ({
     method: 'DELETE',
@@ -74,7 +74,7 @@ module.exports = () => ({
         validate: {
             params: joi.object({
                 name: nameSchema,
-                version: versionSchema
+                version: exactVersionSchema
             })
         }
     }

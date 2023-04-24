@@ -1193,6 +1193,22 @@ describe('template plugin test', () => {
             templateTagFactoryMock.list.resolves([testTemplateTag]);
         });
 
+        it('returns 400 when template version is invalid', () => {
+            const error = {
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Invalid request params input'
+            };
+
+            options.url = `/templates/${templateNameSpace}%2F${templateName}/versions/1.0`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, error.statusCode);
+                assert.deepEqual(reply.result, error);
+                assert.isFalse(templateFactoryMock.get.called);
+            });
+        });
+
         it('returns 404 when template version does not exist', () => {
             const error = {
                 statusCode: 404,
@@ -1203,7 +1219,7 @@ describe('template plugin test', () => {
             templateFactoryMock.get.withArgs({ name: 'test-namespace/test-template', version: '1.0.0' }).resolves(null);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, error.statusCode);
                 assert.deepEqual(reply.result, error);
                 assert.calledWith(templateFactoryMock.get, { name: 'test-namespace/test-template', version: '1.0.0' });
             });
@@ -1219,7 +1235,7 @@ describe('template plugin test', () => {
             userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, error.statusCode);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1234,7 +1250,7 @@ describe('template plugin test', () => {
             pipelineFactoryMock.get.withArgs(templatePipelineId).resolves(null);
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.statusCode, error.statusCode);
                 assert.deepEqual(reply.result, error);
             });
         });
@@ -1249,7 +1265,7 @@ describe('template plugin test', () => {
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
+                assert.equal(reply.statusCode, error.statusCode);
                 assert.deepEqual(reply.result, error);
             });
         });
