@@ -25,12 +25,20 @@ module.exports = () => ({
                 },
                 sort: request.query.sort
             };
+            const { startTime, endTime, page, count } = request.query;
 
-            if (request.query.page || request.query.count) {
+            if (page || count) {
                 config.paginate = {
-                    page: request.query.page,
-                    count: request.query.count
+                    page,
+                    count
                 };
+            }
+
+            if (startTime) {
+                config.startTime = startTime;
+            }
+            if (endTime) {
+                config.endTime = endTime;
             }
 
             return factory
@@ -56,7 +64,9 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    search: joi.forbidden() // we don't support search for Template list versions with metrics
+                    search: joi.forbidden(), // we don't support search for Template list versions with metrics,
+                    startTime: joi.string().isoDate(),
+                    endTime: joi.string().isoDate()
                 })
             )
         }

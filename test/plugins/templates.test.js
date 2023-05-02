@@ -473,6 +473,59 @@ describe('template plugin test', () => {
             });
         });
 
+        it('returns 200 and all versions and metrics for a template name with build count within the specified time interval', () => {
+            const startTime = '2023-01-01T01:47:27.863Z';
+            const endTime = '2023-01-30T01:47:27.863Z';
+
+            options.url = `/templates/screwdriver%2Fbuild/metrics?startTime=${startTime}&endTime=${endTime}`;
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    startTime,
+                    endTime,
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all versions and metrics for a template name with build count on or after the specified start time', () => {
+            const startTime = '2023-01-01T01:47:27.863Z';
+
+            options.url = `/templates/screwdriver%2Fbuild/metrics?startTime=${startTime}`;
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    startTime,
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 200 and all versions and metrics for a template name with build count on or before the specified end time', () => {
+            const endTime = '2023-01-30T01:47:27.863Z';
+
+            options.url = `/templates/screwdriver%2Fbuild/metrics?endTime=${endTime}`;
+            templateFactoryMock.listWithMetrics.resolves(testTemplateVersionsMetrics);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testTemplateVersionsMetrics);
+                assert.calledWith(templateFactoryMock.listWithMetrics, {
+                    params: { name: 'screwdriver/build' },
+                    endTime,
+                    sort: 'descending'
+                });
+            });
+        });
+
         it('returns 404 when template does not exist', () => {
             templateFactoryMock.listWithMetrics.resolves([]);
 
