@@ -33,19 +33,15 @@ module.exports = () => ({
                         params: { pipelineId }
                     };
 
-                    // Set groupEventId if provided
-                    if (request.query.groupEventId) {
-                        config.params.groupEventId = request.query.groupEventId;
-                    }
-                    // Get specific stages if eventId is provided
-                    else if (request.query.eventId) {
+                    // Set eventId if provided
+                    if (request.query.eventId) {
                         const events = await eventFactory.list({ params: { id: request.query.eventId } });
 
                         if (!events || Object.keys(events).length === 0) {
                             throw boom.notFound(`Event ${request.query.eventId} does not exist`);
                         }
 
-                        config.params.groupEventId = events[0].groupEventId;
+                        config.params.eventId = request.query.eventId;
                     }
                     // Get latest stages if eventId not provided
                     else {
@@ -64,7 +60,7 @@ module.exports = () => ({
                             throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
                         }
 
-                        config.params.groupEventId = latestCommitEvents[0].groupEventId;
+                        config.params.eventId = latestCommitEvents[0].id;
                     }
 
                     return stageFactory.list(config);
@@ -84,7 +80,6 @@ module.exports = () => ({
             query: schema.api.pagination.concat(
                 joi.object({
                     eventId: pipelineIdSchema,
-                    groupEventId: pipelineIdSchema,
                     search: joi.forbidden() // we don't support search for Pipeline list stages
                 })
             )

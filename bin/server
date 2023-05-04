@@ -216,6 +216,10 @@ const stageFactory = Models.StageFactory.getInstance({
     datastore,
     datastoreRO
 });
+const stageBuildFactory = Models.StageBuildFactory.getInstance({
+    datastore,
+    datastoreRO
+});
 const triggerFactory = Models.TriggerFactory.getInstance({
     datastore,
     datastoreRO
@@ -253,6 +257,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         eventFactory,
         collectionFactory,
         stageFactory,
+        stageBuildFactory,
         triggerFactory,
         banners: authConfig,
         builds: {

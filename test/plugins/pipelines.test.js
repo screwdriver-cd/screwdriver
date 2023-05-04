@@ -979,7 +979,6 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipelines/{id}/stages', () => {
         const id = 123;
-        const groupEventId = 222;
         const eventId = 555;
         let options;
         let pipelineMock;
@@ -1005,7 +1004,7 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        groupEventId
+                        eventId: 12345
                     }
                 });
                 assert.calledWith(eventFactoryMock.list, {
@@ -1034,22 +1033,22 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        groupEventId
+                        eventId
                     }
                 });
                 assert.deepEqual(reply.result, testStages);
             });
         });
 
-        it('returns 200 for getting stages with groupEventId passed in as query param', () => {
-            options.url = `/pipelines/${id}/stages?groupEventId=${groupEventId}`;
+        it('returns 200 for getting stages with eventId passed in as query param', () => {
+            options.url = `/pipelines/${id}/stages?eventId=${eventId}`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id,
-                        groupEventId
+                        eventId
                     }
                 });
                 assert.deepEqual(reply.result, testStages);
