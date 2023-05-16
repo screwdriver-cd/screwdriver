@@ -147,7 +147,7 @@ function isRestrictedPR(restriction, prSource) {
         case 'fork-admin':
             return prSource === 'fork';
         case 'none':
-        case 'non admin':
+        case 'none-admin':
         default:
             return false;
     }
