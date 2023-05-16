@@ -2073,6 +2073,25 @@ describe('startHookEvent test', () => {
                 });
             });
 
+            it('does not overwrite restrictPR setting in pluginOptions if set to admin', () => {
+                parsed.pluginOptions = {
+                    username: 'sd-buildbot',
+                    ignoreCommitsBy: ['batman', 'superman'],
+                    restrictPR: 'fork-admin',
+                    chainPR: false
+                };
+                parsed.prSource = 'fork';
+                expected.prSource = 'fork';
+                pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'none';
+                expected.skipMessage =
+                    'Skipping build since pipeline is configured to restrict fork-admin and PR is fork';
+
+                return startHookEvent(request, responseHandler, parsed).then(reply => {
+                    assert.calledWith(eventFactoryMock.create, expected);
+                    assert.equal(reply.statusCode, 201);
+                });
+            });
+
             it('creates empty event if restricting all', () => {
                 pipelineMock.annotations[ANNOT_RESTRICT_PR] = 'all';
                 expected.skipMessage = 'Skipping build since pipeline is configured to restrict all and PR is branch';
