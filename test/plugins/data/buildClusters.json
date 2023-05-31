@@ -7,7 +7,8 @@
     "maintainer": "foo@bar.com",
     "isActive": true,
     "description": "Build cluster for iOS team",
-    "weightage": 100
+    "weightage": 100,
+    "group": "on-prem"
 },
 {
     "id": 23456,
@@ -18,16 +19,18 @@
     "maintainer": "foo@bar.com",
     "isActive": true,
     "description": "West1 default build cluster",
-    "weightage": 80
+    "weightage": 80,
+    "group": "on-prem"
 },
 {
     "id": 34567,
-    "name": "west2",
+    "name": "aws.west2",
     "scmOrganizations": ["screwdriver-cd"],
     "scmContext": "github:github.com",
     "managedByScrewdriver": true,
     "maintainer": "foo@bar.com",
     "isActive": true,
     "description": "West2 default build cluster",
-    "weightage": 20
+    "weightage": 20,
+    "group": "on-prem"
 }]
