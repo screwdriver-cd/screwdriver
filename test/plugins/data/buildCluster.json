@@ -7,5 +7,6 @@
     "maintainer": "foo@bar.com",
     "isActive": true,
     "description": "Build cluster for iOS team",
-    "weightage": 100
+    "weightage": 100,
+    "group": "on-prem"
 }
