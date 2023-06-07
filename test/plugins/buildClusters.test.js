@@ -211,7 +211,8 @@ describe('buildCluster plugin test', () => {
             managedByScrewdriver: true,
             maintainer: 'foo@bar.com',
             weightage: 20,
-            scmContext
+            scmContext,
+            group: 'default'
         };
         let params = {
             name: 'iOS',
