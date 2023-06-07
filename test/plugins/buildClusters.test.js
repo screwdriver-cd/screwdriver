@@ -200,7 +200,8 @@ describe('buildCluster plugin test', () => {
             isActive: true,
             managedByScrewdriver: true,
             maintainer: 'foo@bar.com',
-            weightage: 20
+            weightage: 20,
+            group: 'default'
         };
         const internalParams = {
             name: 'k8s',
@@ -210,7 +211,8 @@ describe('buildCluster plugin test', () => {
             managedByScrewdriver: true,
             maintainer: 'foo@bar.com',
             weightage: 20,
-            scmContext
+            scmContext,
+            group: 'default'
         };
         let params = {
             name: 'iOS',
@@ -220,7 +222,8 @@ describe('buildCluster plugin test', () => {
             managedByScrewdriver: false,
             maintainer: 'foo@bar.com',
             weightage: 50,
-            scmContext
+            scmContext,
+            group: 'default'
         };
 
         let options;
