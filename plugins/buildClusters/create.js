@@ -17,8 +17,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
-            const { scm } = buildClusterFactory;
+            const { buildClusterFactory, bannerFactory } = request.server.app;
             const { username, scmContext: userContext } = request.auth.credentials;
             const { payload } = request;
             const { managedByScrewdriver, name, scmOrganizations } = payload;
@@ -63,34 +62,9 @@ module.exports = () => ({
                 return boom.badData(`No scmOrganizations provided for build cluster ${name}.`);
             }
 
-            // Must have admin permission on org(s) if adding org-specific build cluster
             return (
-                userFactory
-                    .get({ username, scmContext: userContext })
-                    .then(user => user.unsealToken())
-                    .then(token =>
-                        Promise.all(
-                            scmOrganizations.map(organization =>
-                                scm
-                                    .getOrgPermissions({
-                                        organization,
-                                        username,
-                                        token,
-                                        scmContext: payload.scmContext
-                                    })
-                                    .then(permissions => {
-                                        if (!permissions.admin) {
-                                            throw boom.forbidden(
-                                                `User ${username} does not have
-                                    administrative privileges on scm
-                                    organization ${organization}.`
-                                            );
-                                        }
-                                    })
-                            )
-                        )
-                    )
-                    .then(() => buildClusterFactory.create(payload))
+                buildClusterFactory
+                    .create(payload)
                     .then(buildCluster => {
                         // everything succeeded, inform the user
                         const location = urlLib.format({
