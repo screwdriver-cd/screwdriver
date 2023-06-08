@@ -18,8 +18,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { buildClusterFactory, bannerFactory, userFactory } = request.server.app;
-            const { scm } = buildClusterFactory;
+            const { buildClusterFactory, bannerFactory } = request.server.app;
             const { name } = request.params; // name of build cluster to update
             const { username, scmContext: userContext } = request.auth.credentials;
             const { payload } = request;
@@ -72,62 +71,28 @@ module.exports = () => ({
                 return boom.badData(`No scmOrganizations provided for build cluster ${name}.`);
             }
 
-            // Must have admin permission on org(s) if updating org-specific build cluster
-            return userFactory
-                .get({ username, scmContext: userContext })
-                .then(user =>
-                    Promise.all([
-                        user.unsealToken(),
-                        buildClusterFactory.list({
-                            params: {
-                                name,
-                                scmContext: payload.scmContext
-                            }
-                        })
-                    ]).then(([token, buildClusters]) => {
-                        if (!Array.isArray(buildClusters)) {
-                            throw boom.badData('Build cluster list returned non-array.');
-                        }
-                        if (buildClusters.length === 0) {
-                            throw boom.notFound(
-                                `Build cluster ${name} scmContext ${payload.scmContext} does not exist`
-                            );
-                        }
+            return buildClusterFactory
+                .list({
+                    params: {
+                        name,
+                        scmContext: payload.scmContext
+                    }
+                })
+                .then(buildClusters => {
+                    if (!Array.isArray(buildClusters)) {
+                        throw boom.badData('Build cluster list returned non-array.');
+                    }
+                    if (buildClusters.length === 0) {
+                        throw boom.notFound(`Build cluster ${name} scmContext ${payload.scmContext} does not exist`);
+                    }
+                    const buildCluster = buildClusters[0];
 
-                        // To update scmOrganizations, user need to have admin permissions on both old and new organizations
-                        const buildCluster = buildClusters[0];
-                        const orgs = buildCluster.scmOrganizations;
-                        const newOrgs = scmOrganizations || [];
-                        const combined = [...new Set([...orgs, ...newOrgs])];
+                    Object.assign(buildCluster, payload);
 
-                        return Promise.all(
-                            combined.map(organization =>
-                                scm
-                                    .getOrgPermissions({
-                                        organization,
-                                        username,
-                                        token,
-                                        scmContext: payload.scmContext
-                                    })
-                                    .then(permissions => {
-                                        if (!permissions.admin) {
-                                            throw boom.forbidden(
-                                                `User ${username} does not have
-                                            administrative privileges on scm
-                                            organization ${organization}.`
-                                            );
-                                        }
-                                    })
-                            )
-                        ).then(() => {
-                            Object.assign(buildCluster, payload);
-
-                            return buildCluster
-                                .update()
-                                .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
-                        });
-                    })
-                )
+                    return buildCluster
+                        .update()
+                        .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
+                })
                 .catch(err => {
                     throw err;
                 });
