@@ -55,7 +55,7 @@ module.exports = () => ({
                         throw boom.badData('Build cluster list returned non-array.');
                     }
                     if (buildClusters.length === 0) {
-                        throw boom.notFound(`Build cluster ${name}, scmContext ${payload.scmContext} does not exist`);
+                        throw boom.notFound(`Build cluster ${name}, scmContext ${userContext} does not exist`);
                     }
 
                     Object.assign(buildClusters[0], request.payload);
