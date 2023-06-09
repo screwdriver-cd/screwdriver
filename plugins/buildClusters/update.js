@@ -28,46 +28,18 @@ module.exports = () => ({
 
             // Check permissions
             // Must be Screwdriver admin to update Screwdriver build cluster
-            if (managedByScrewdriver) {
-                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: userContext });
-                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: userContext });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
-                if (!adminDetails.isAdmin) {
-                    return boom.forbidden(
-                        `User ${adminDetails.userDisplayName}
+            if (!adminDetails.isAdmin) {
+                return boom.forbidden(
+                    `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                    );
-                }
-
-                return buildClusterFactory
-                    .list({
-                        params: {
-                            name,
-                            scmContext: userContext
-                        }
-                    })
-                    .then(buildClusters => {
-                        if (!Array.isArray(buildClusters)) {
-                            throw boom.badData('Build cluster list returned non-array.');
-                        }
-                        if (buildClusters.length === 0) {
-                            throw boom.notFound(
-                                `Build cluster ${name}, scmContext ${payload.scmContext} does not exist`
-                            );
-                        }
-
-                        Object.assign(buildClusters[0], request.payload);
-
-                        return buildClusters[0]
-                            .update()
-                            .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
-                    })
-                    .catch(err => {
-                        throw err;
-                    });
+                );
             }
-            // Must provide scmOrganizations if not a Screwdriver cluster
-            if (scmOrganizations && scmOrganizations.length === 0) {
+
+            // Must provide scmOrganizations if not a Screwdriver managed cluster
+            if (!managedByScrewdriver && scmOrganizations && scmOrganizations.length === 0) {
                 return boom.badData(`No scmOrganizations provided for build cluster ${name}.`);
             }
 
@@ -75,7 +47,7 @@ module.exports = () => ({
                 .list({
                     params: {
                         name,
-                        scmContext: payload.scmContext
+                        scmContext: userContext
                     }
                 })
                 .then(buildClusters => {
@@ -83,13 +55,12 @@ module.exports = () => ({
                         throw boom.badData('Build cluster list returned non-array.');
                     }
                     if (buildClusters.length === 0) {
-                        throw boom.notFound(`Build cluster ${name} scmContext ${payload.scmContext} does not exist`);
+                        throw boom.notFound(`Build cluster ${name}, scmContext ${userContext} does not exist`);
                     }
-                    const buildCluster = buildClusters[0];
 
-                    Object.assign(buildCluster, payload);
+                    Object.assign(buildClusters[0], request.payload);
 
-                    return buildCluster
+                    return buildClusters[0]
                         .update()
                         .then(updatedBuildCluster => h.response(updatedBuildCluster.toJson()).code(200));
                 })
