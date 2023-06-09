@@ -260,10 +260,6 @@ describe('buildCluster plugin test', () => {
 
             userMock.unsealToken.resolves('iamtoken');
             buildClusterFactoryMock.create.resolves(buildClusterMock);
-            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
-                admin: true,
-                member: true
-            });
             userFactoryMock.get.resolves(userMock);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });

@@ -26,39 +26,17 @@ module.exports = () => ({
 
             // Check permissions
             // Must be Screwdriver admin to add Screwdriver build cluster
-            if (managedByScrewdriver) {
-                const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: payload.scmContext });
-                const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+            const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: payload.scmContext });
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
 
-                if (!adminDetails.isAdmin) {
-                    return boom.forbidden(
-                        `User ${adminDetails.userDisplayName}
+            if (!adminDetails.isAdmin) {
+                return boom.forbidden(
+                    `User ${adminDetails.userDisplayName}
                         does not have Screwdriver administrative privileges.`
-                    );
-                }
-
-                return (
-                    buildClusterFactory
-                        .create(payload)
-                        .then(buildCluster => {
-                            // everything succeeded, inform the user
-                            const location = urlLib.format({
-                                host: request.headers.host,
-                                port: request.headers.port,
-                                protocol: request.server.info.protocol,
-                                pathname: `${request.path}/${buildCluster.id}`
-                            });
-
-                            return h.response(buildCluster.toJson()).header('Location', location).code(201);
-                        })
-                        // something was botched
-                        .catch(err => {
-                            throw err;
-                        })
                 );
             }
-            // Must provide scmOrganizations if not a Screwdriver cluster
-            if (scmOrganizations && scmOrganizations.length === 0) {
+            // Must provide scmOrganizations if not a Screwdriver managed cluster
+            if (!managedByScrewdriver && scmOrganizations && scmOrganizations.length === 0) {
                 return boom.badData(`No scmOrganizations provided for build cluster ${name}.`);
             }
 
