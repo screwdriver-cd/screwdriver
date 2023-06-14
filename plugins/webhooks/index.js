@@ -30,7 +30,10 @@ const webhooksPlugin = {
             joi.object().keys({
                 username: joi.string().required(),
                 ignoreCommitsBy: joi.array().items(joi.string()).optional(),
-                restrictPR: joi.string().valid('all', 'none', 'branch', 'fork').optional(),
+                restrictPR: joi
+                    .string()
+                    .valid('all', 'none', 'branch', 'fork', 'all-admin', 'none-admin', 'branch-admin', 'fork-admin')
+                    .optional(),
                 chainPR: joi.boolean().optional(),
                 maxBytes: joi.number().integer().optional()
             }),

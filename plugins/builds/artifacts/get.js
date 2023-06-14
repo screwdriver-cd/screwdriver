@@ -92,7 +92,7 @@ module.exports = config => ({
             }),
             query: joi.object({
                 type: typeSchema
-            })
+            }).options({ allowUnknown: true })
         }
     }
 });

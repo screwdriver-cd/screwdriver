@@ -200,7 +200,8 @@ describe('buildCluster plugin test', () => {
             isActive: true,
             managedByScrewdriver: true,
             maintainer: 'foo@bar.com',
-            weightage: 20
+            weightage: 20,
+            group: 'default'
         };
         const internalParams = {
             name: 'k8s',
@@ -210,7 +211,8 @@ describe('buildCluster plugin test', () => {
             managedByScrewdriver: true,
             maintainer: 'foo@bar.com',
             weightage: 20,
-            scmContext
+            scmContext,
+            group: 'default'
         };
         let params = {
             name: 'iOS',
@@ -220,21 +222,15 @@ describe('buildCluster plugin test', () => {
             managedByScrewdriver: false,
             maintainer: 'foo@bar.com',
             weightage: 50,
-            scmContext
+            scmContext,
+            group: 'default'
         };
 
         let options;
         let userMock;
         let buildClusterMock;
-        let scmConfig;
 
         beforeEach(() => {
-            scmConfig = {
-                token: 'iamtoken',
-                scmContext,
-                organization: 'screwdriver-cd',
-                username
-            };
             options = {
                 method: 'POST',
                 url: '/buildclusters',
@@ -264,10 +260,6 @@ describe('buildCluster plugin test', () => {
 
             userMock.unsealToken.resolves('iamtoken');
             buildClusterFactoryMock.create.resolves(buildClusterMock);
-            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
-                admin: true,
-                member: true
-            });
             userFactoryMock.get.resolves(userMock);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
@@ -287,7 +279,6 @@ describe('buildCluster plugin test', () => {
                     id: buildClusterId,
                     other: 'dataToBeIncluded'
                 });
-                assert.calledWith(buildClusterFactoryMock.scm.getOrgPermissions, scmConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(buildClusterFactoryMock.create, params);
             });
@@ -311,7 +302,6 @@ describe('buildCluster plugin test', () => {
                     id: buildClusterId,
                     other: 'dataToBeIncluded'
                 });
-                assert.notCalled(buildClusterFactoryMock.scm.getOrgPermissions);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(buildClusterFactoryMock.create, params);
             });
@@ -322,20 +312,6 @@ describe('buildCluster plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 422);
-                assert.notCalled(buildClusterFactoryMock.scm.getOrgPermissions);
-                assert.notCalled(buildClusterFactoryMock.create);
-            });
-        });
-
-        it('returns 403 when the user is not an org admin for an external cluster', () => {
-            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
-                admin: false,
-                member: true
-            });
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
-                assert.calledWith(buildClusterFactoryMock.scm.getOrgPermissions, scmConfig);
                 assert.notCalled(buildClusterFactoryMock.create);
             });
         });
@@ -347,7 +323,6 @@ describe('buildCluster plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
-                assert.notCalled(buildClusterFactoryMock.scm.getOrgPermissions);
                 assert.notCalled(buildClusterFactoryMock.create);
             });
         });
@@ -379,7 +354,6 @@ describe('buildCluster plugin test', () => {
         let options;
         let updatedBuildClusterMock;
         let buildClustersMock;
-        let userMock;
 
         beforeEach(() => {
             buildClustersMock = getMockBuildClusters(testBuildClusters);
@@ -395,10 +369,6 @@ describe('buildCluster plugin test', () => {
                     strategy: ['token']
                 }
             };
-            userMock = {
-                username,
-                unsealToken: sinon.stub()
-            };
 
             updatedBuildClusterMock = getMockBuildClusters(updatedBuildCluster);
             buildClusterFactoryMock.list.resolves(buildClustersMock);
@@ -408,7 +378,6 @@ describe('buildCluster plugin test', () => {
                 admin: true,
                 member: true
             });
-            userFactoryMock.get.resolves(userMock);
             bannerFactoryMock.scm.getDisplayName.withArgs({ scmContext }).returns(scmDisplayName);
         });
 
@@ -455,23 +424,7 @@ describe('buildCluster plugin test', () => {
             });
         });
 
-        it('returns 403 when the user is not an org admin for an external cluster', () => {
-            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
-                admin: false,
-                member: true
-            });
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 403);
-                assert.notCalled(buildClusterFactoryMock.create);
-            });
-        });
-
         it('returns 422 when build cluster returns non-array for external cluster', () => {
-            buildClusterFactoryMock.scm.getOrgPermissions.resolves({
-                admin: false,
-                member: true
-            });
             buildClusterFactoryMock.list.resolves({});
 
             return server.inject(options).then(reply => {

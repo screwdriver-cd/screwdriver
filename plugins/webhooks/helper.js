@@ -138,11 +138,16 @@ async function batchUpdateAdmins({ userFactory, pipelines, username, scmContext,
 function isRestrictedPR(restriction, prSource) {
     switch (restriction) {
         case 'all':
+        case 'all-admin':
             return true;
         case 'branch':
+        case 'branch-admin':
+            return prSource === 'branch';
         case 'fork':
-            return prSource === restriction;
+        case 'fork-admin':
+            return prSource === 'fork';
         case 'none':
+        case 'none-admin':
         default:
             return false;
     }
@@ -248,10 +253,16 @@ function resolveChainPR(chainPR, pipeline) {
  */
 function getSkipMessageAndChainPR({ pipeline, prSource, restrictPR, chainPR }) {
     const defaultRestrictPR = restrictPR || 'none';
-    const restriction = pipeline.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
     const result = {
         resolvedChainPR: resolveChainPR(chainPR, pipeline)
     };
+    let restriction;
+
+    if (['all-admin', 'none-admin', 'branch-admin', 'fork-admin'].includes(defaultRestrictPR)) {
+        restriction = defaultRestrictPR;
+    } else {
+        restriction = pipeline.annotations[ANNOT_RESTRICT_PR] || defaultRestrictPR;
+    }
 
     // Check for restriction upfront
     if (isRestrictedPR(restriction, prSource)) {
