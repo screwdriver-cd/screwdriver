@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
-const { Before, Given, When, Then } = require('cucumber');
+const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 
