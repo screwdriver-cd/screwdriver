@@ -25,7 +25,11 @@ module.exports = () => ({
             const scmDisplayName = scm.getDisplayName({ scmContext });
 
             // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName, scmUserId);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
 
             // verify user is authorized to update banners
             // return unauthorized if not system admin

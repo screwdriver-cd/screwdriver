@@ -27,7 +27,11 @@ module.exports = () => ({
             // Check permissions
             // Must be Screwdriver admin to add Screwdriver build cluster
             const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: payload.scmContext });
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName, scmUserId);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
 
             if (!adminDetails.isAdmin) {
                 return boom.forbidden(

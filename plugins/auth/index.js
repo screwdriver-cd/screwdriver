@@ -205,23 +205,26 @@ const authPlugin = {
                             return { isValid: false, credentials: {} };
                         }
 
-                        let scmUser;
+                        let scmUser = {};
 
                         try {
                             scmUser = await scm.decorateAuthor({
                                 username: user.username,
                                 scmContext: user.scmContext,
-                                token: await user.unsealToken(),
+                                token: await user.unsealToken()
                             });
                         } catch (e) {
-                            request.log(['auth', 'error'], `Fails to find the user "${user.username}" in ${user.scmContext}.`);
+                            request.log(
+                                ['auth', 'error'],
+                                `Fails to find the user "${user.username}" in ${user.scmContext}.`
+                            );
                         }
 
                         await createDefaultCollection(user, collectionFactory);
 
                         profile = {
                             username: user.username,
-                            scmUserId: scmUser?.id,
+                            scmUserId: scmUser.id,
                             scmContext: user.scmContext,
                             scope: ['user']
                         };

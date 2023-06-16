@@ -87,7 +87,11 @@ module.exports = () => ({
                     if (scmContext) {
                         const scmDisplayName = pipelineFactory.scm.getDisplayName({ scmContext });
 
-                        adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName, scmUserId);
+                        adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                            username,
+                            scmDisplayName,
+                            scmUserId
+                        );
                     }
 
                     if (scope.includes('user') && adminDetails && adminDetails.isAdmin) {
