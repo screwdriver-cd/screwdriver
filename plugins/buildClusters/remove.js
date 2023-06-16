@@ -20,7 +20,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { buildClusterFactory, userFactory, bannerFactory } = request.server.app;
             const { name } = request.params;
-            const { username, scmContext } = request.auth.credentials;
+            const { username, scmContext, scmUserId } = request.auth.credentials;
             const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
 
             // Fetch the buildCluster and user models
@@ -46,7 +46,8 @@ module.exports = () => ({
 
                     const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                         username,
-                        scmDisplayName
+                        scmDisplayName,
+                        scmUserId
                     );
 
                     if (!adminDetails.isAdmin) {

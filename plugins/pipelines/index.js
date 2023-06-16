@@ -104,7 +104,7 @@ const pipelinesPlugin = {
          * @return {Object} pipeline
          */
         server.expose('canAccessPipeline', (credentials, pipelineId, permission, app) => {
-            const { username, scmContext, scope } = credentials;
+            const { username, scmContext, scope, scmUserId } = credentials;
             const { userFactory, pipelineFactory } = app;
 
             return pipelineFactory.get(pipelineId).then(pipeline => {
@@ -141,7 +141,8 @@ const pipelinesPlugin = {
                                 const scmDisplayName = pipelineFactory.scm.getDisplayName({ scmContext });
                                 const adminDetails = server.plugins.banners.screwdriverAdminDetails(
                                     username,
-                                    scmDisplayName
+                                    scmDisplayName,
+                                    scmUserId
                                 );
 
                                 if (adminDetails.isAdmin) {

@@ -23,21 +23,20 @@ const bannerPlugin = {
          * @param  {String}        scmDisplayName Scm display name of the person
          * @return {Object}                   Details including the display name and admin status of user
          */
-        server.expose('screwdriverAdminDetails', (username, scmDisplayName) => {
+        server.expose('screwdriverAdminDetails', (username, scmDisplayName, scmUserId) => {
             // construct object with defaults to store details
             const adminDetails = {
                 isAdmin: false
             };
 
             if (scmDisplayName) {
-                const adminsList = options.admins;
+                const userDisplayName = options.authCheckById
+                    ? `${scmDisplayName}:${username}:${scmUserId}`
+                    : `${scmDisplayName}:${username}`;
+                const admins = options.authCheckById ? options.sdAdmins : options.admins;
 
-                // construct displayable username string
-                adminDetails.userDisplayName = `${scmDisplayName}:${username}`;
-
-                // Check system configuration for list of system admins
-                // set admin status true if current user is identified to be a system admin
-                if (adminsList.length > 0 && adminsList.includes(adminDetails.userDisplayName)) {
+                // Check admin
+                if (admins.length > 0 && admins.includes(userDisplayName)) {
                     adminDetails.isAdmin = true;
                 }
             }

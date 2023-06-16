@@ -93,13 +93,13 @@ async function getBuildToUpdate(id, buildFactory) {
  */
 async function validateUserPermission(build, request) {
     const { jobFactory, userFactory, bannerFactory, pipelineFactory } = request.server.app;
-    const { username, scmContext } = request.auth.credentials;
+    const { username, scmContext, scmUserId } = request.auth.credentials;
 
     const { status: desiredStatus } = request.payload;
 
     const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
     // Check if Screwdriver admin
-    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+    const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName, scmUserId);
 
     // Check desired status
     if (adminDetails.isAdmin) {

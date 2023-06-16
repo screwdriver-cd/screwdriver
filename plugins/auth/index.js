@@ -107,7 +107,7 @@ const authPlugin = {
          */
         server.expose('generateProfile', config => {
             const { username, scmUserId, scmContext, scope, metadata } = config;
-            const profile = { username, scmContext, scope, ...(metadata || {}) };
+            const profile = { username, scmContext, scmUserId, scope, ...(metadata || {}) };
 
             if (pluginOptions.jwtEnvironment) {
                 profile.environment = pluginOptions.jwtEnvironment;
@@ -190,6 +190,7 @@ const authPlugin = {
                 try {
                     const { tokenFactory, userFactory, pipelineFactory, collectionFactory } = request.server.app;
                     const token = await tokenFactory.get({ value: tokenValue });
+                    const { scm } = pipelineFactory;
 
                     if (!token) {
                         return { isValid: false, credentials: {} };
@@ -204,10 +205,23 @@ const authPlugin = {
                             return { isValid: false, credentials: {} };
                         }
 
+                        let scmUser;
+
+                        try {
+                            scmUser = await scm.decorateAuthor({
+                                username: user.username,
+                                scmContext: user.scmContext,
+                                token: await user.unsealToken(),
+                            });
+                        } catch (e) {
+                            request.log(['auth', 'error'], `Fails to find the user "${user.username}" in ${user.scmContext}.`);
+                        }
+
                         await createDefaultCollection(user, collectionFactory);
 
                         profile = {
                             username: user.username,
+                            scmUserId: scmUser?.id,
                             scmContext: user.scmContext,
                             scope: ['user']
                         };

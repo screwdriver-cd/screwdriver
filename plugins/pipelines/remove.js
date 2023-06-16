@@ -21,8 +21,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { pipelineFactory, bannerFactory } = request.server.app;
             const { userFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { username, scmContext, scmUserId } = request.auth.credentials;
 
             // Fetch the pipeline and user models
             return Promise.all([pipelineFactory.get(request.params.id), userFactory.get({ username, scmContext })])
@@ -57,7 +56,8 @@ module.exports = () => ({
                                 // Lookup whether user is admin
                                 const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                                     username,
-                                    scmDisplayName
+                                    scmDisplayName,
+                                    scmUserId
                                 );
 
                                 // Allow cluster admins to remove pipeline

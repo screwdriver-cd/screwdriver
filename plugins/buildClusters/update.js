@@ -20,7 +20,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { buildClusterFactory, bannerFactory } = request.server.app;
             const { name } = request.params; // name of build cluster to update
-            const { username, scmContext: userContext } = request.auth.credentials;
+            const { username, scmContext: userContext, scmUserId } = request.auth.credentials;
             const { payload } = request;
             const { managedByScrewdriver, scmOrganizations } = payload;
 
@@ -29,7 +29,7 @@ module.exports = () => ({
             // Check permissions
             // Must be Screwdriver admin to update Screwdriver build cluster
             const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext: userContext });
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName, scmUserId);
 
             if (!adminDetails.isAdmin) {
                 return boom.forbidden(
