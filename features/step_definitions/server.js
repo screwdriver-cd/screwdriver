@@ -2,7 +2,7 @@
 
 const request = require('screwdriver-request');
 const Assert = require('chai').assert;
-const { Given, When, Then } = require('cucumber');
+const { Given, When, Then } = require('@cucumber/cucumber');
 
 Given(/^a running API server$/, next => next());
 

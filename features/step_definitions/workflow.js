@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then, After } = require('cucumber');
+const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 const { ID } = require('../support/constants');

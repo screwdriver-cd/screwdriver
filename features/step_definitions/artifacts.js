@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Then, When } = require('cucumber');
+const { Before, Then, When } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 
 const TIMEOUT = 240 * 1000;
