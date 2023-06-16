@@ -31,12 +31,14 @@ const getMockBuildClusters = buildClusters => {
 
 describe('buildCluster plugin test', () => {
     const username = 'myself';
+    const scmUserId = 123;
     const scmContext = 'github:github.com';
     const scmDisplayName = 'github';
     const buildClusterId = 12345;
     const name = 'iOS';
     const credentials = {
         scope: ['user'],
+        scmUserId,
         username,
         scmContext
     };
