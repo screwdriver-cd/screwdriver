@@ -213,11 +213,13 @@ const authPlugin = {
                                 scmContext: user.scmContext,
                                 token: await user.unsealToken()
                             });
-                        } catch (e) {
+                        } catch (err) {
                             request.log(
                                 ['auth', 'error'],
                                 `Fails to find the user "${user.username}" in ${user.scmContext}.`
                             );
+
+                            return { isValid: false, credentials: {} };
                         }
 
                         await createDefaultCollection(user, collectionFactory);
