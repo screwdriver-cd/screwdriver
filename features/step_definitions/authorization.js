@@ -2,7 +2,7 @@
 
 const Assert = require('chai').assert;
 const jwt = require('jsonwebtoken');
-const { Before, Given, Then } = require('cucumber');
+const { Before, Given, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { ID } = require('../support/constants');
 const TIMEOUT = 240 * 1000;

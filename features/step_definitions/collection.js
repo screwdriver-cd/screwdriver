@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, Then, When, After } = require('cucumber');
+const { Before, Given, Then, When, After } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { ID } = require('../support/constants');
 

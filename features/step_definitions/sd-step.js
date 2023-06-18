@@ -3,7 +3,7 @@
 /* eslint-disable no-unused-vars */
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then } = require('cucumber');
+const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 const { ID } = require('../support/constants');
