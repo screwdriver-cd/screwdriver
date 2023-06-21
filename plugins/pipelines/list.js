@@ -81,13 +81,17 @@ module.exports = () => ({
             return Promise.all(pipelineArray)
                 .then(pipelineArrays => [].concat(...pipelineArrays))
                 .then(allPipelines => {
-                    const { username, scope, scmContext } = request.auth.credentials;
+                    const { username, scope, scmContext, scmUserId } = request.auth.credentials;
                     let adminDetails;
 
                     if (scmContext) {
                         const scmDisplayName = pipelineFactory.scm.getDisplayName({ scmContext });
 
-                        adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+                        adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                            username,
+                            scmDisplayName,
+                            scmUserId
+                        );
                     }
 
                     if (scope.includes('user') && adminDetails && adminDetails.isAdmin) {

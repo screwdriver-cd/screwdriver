@@ -22,7 +22,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { eventFactory, pipelineFactory, userFactory } = request.server.app;
-            const { username, scmContext } = request.auth.credentials;
+            const { username, scmContext, scmUserId } = request.auth.credentials;
             const { isValidToken } = request.server.plugins.pipelines;
             const eventId = request.params.id;
             const { updateAdmins } = request.server.plugins.events;
@@ -47,7 +47,11 @@ module.exports = () => ({
 
             // Check permissions
             const permissions = await user.getPermissions(pipeline.scmUri);
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmContext);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmContext,
+                scmUserId
+            );
             const isPrOwner = hoek.reach(event, 'commit.author.username') === username;
 
             // PR author should be able to stop their own PR event
