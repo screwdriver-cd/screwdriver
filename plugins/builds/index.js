@@ -931,7 +931,11 @@ const buildsPlugin = {
                         .map(j => {
                             const existingBuild = externalGroupBuilds.find(b => b.jobId === nextJobs[j].id);
 
-                            return existingBuild && existingBuild.status !== 'CREATED' ? existingBuild : null;
+                            return existingBuild &&
+                                existingBuild.status !== 'CREATED' &&
+                                !existingBuild.parentBuildId.includes(current.build.id)
+                                ? existingBuild
+                                : null;
                         })
                         .filter(b => b !== null);
 
