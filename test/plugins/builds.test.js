@@ -3585,7 +3585,7 @@ describe('build plugin test', () => {
                         groupEventId: '8889',
                         parentBuildId: 12345,
                         parentBuilds: {
-                            123: { eventId: '8888', jobs: { a: 12345, c: 45678 } }
+                            123: { eventId: '8888', jobs: { a: 12344, c: 45678 } }
                         },
                         parentEventId: '8888',
                         pipelineId: '2',
@@ -3652,10 +3652,11 @@ describe('build plugin test', () => {
                         },
                         {
                             id: 999,
+                            parentBuildId: [12344, 45678],
                             parentBuilds: {
                                 123: {
                                     eventId: '8888',
-                                    jobs: { a: 12345, c: 45678 }
+                                    jobs: { a: 12344, c: 45678 }
                                 }
                             },
                             jobId: 3,
