@@ -2,6 +2,8 @@
 
 const joi = require('joi');
 const logger = require('screwdriver-logger');
+const boom = require('@hapi/boom');
+const { ValidationError } = require('joi');
 const { startHookEvent } = require('./helper');
 
 const DEFAULT_MAX_BYTES = 1048576;
@@ -97,7 +99,11 @@ const webhooksPlugin = {
                     } catch (err) {
                         logger.error(`[${hookId}]: ${err}`);
 
-                        throw err;
+                        if (err instanceof ValidationError) {
+                            throw boom.badData(err);
+                        }
+
+                        throw boom.boomify(err, { statusCode: err.statusCode });
                     }
                 }
             }

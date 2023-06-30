@@ -5,6 +5,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const rewire = require('rewire');
 const { assert } = chai;
+const { ValidationError } = require('joi');
 
 chai.use(require('chai-as-promised'));
 
@@ -220,6 +221,25 @@ describe('webhooks plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 404 when repository does not found', () => {
+            const testError = new Error('Cannot find repository');
+
+            testError.statusCode = 404;
+            pipelineFactoryMock.scm.parseHook.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 422 when webhook has wrong value', () => {
+            pipelineFactoryMock.scm.parseHook.rejects(new ValidationError('Invalid value'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 422);
             });
         });
     });
