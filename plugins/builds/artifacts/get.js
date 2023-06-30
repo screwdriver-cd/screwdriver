@@ -77,6 +77,10 @@ module.exports = config => ({
                         response.headers['content-type'] = headers['content-type'];
                         response.headers['content-disposition'] = headers['content-disposition'];
                         response.headers['content-length'] = headers['content-length'];
+                        
+                        // add security
+                        response.headers['x-content-type-options'] = 'nosniff';
+                        response.headers['strict-transport-security'] ='max-age=31536000';
 
                         return response;
                     });
