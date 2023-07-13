@@ -11,13 +11,30 @@ const WAIT_TIME = 3;
 
 Before(
     {
-        tags: '@workflow'
+        tags: '@workflow and (not @workflow-PR) and (not @workflow-chainPR)'        
     },
     function hook() {
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-workflow';
         this.pipelineId = null;
         this.builds = null;
+    }
+);
+
+Before(
+    {
+        tags: '@workflow-PR'
+    },
+    function hook() {
+        this.repoOrg = this.testOrg;
+        this.repoName = 'functional-workflow';
+        this.pipelineId = null;
+        this.builds = null;
+
+        return Promise.all([
+            github.removeBranch(this.repoOrg, this.repoName, 'staging-PR'),
+            github.removeBranch(this.repoOrg, this.repoName, 'master-PR')
+        ]).catch(err => Assert.strictEqual(404, err.status));
     }
 );
 
@@ -30,6 +47,7 @@ Before(
         this.repoName = 'functional-chainPR';
         this.pipelineId = null;
         this.builds = null;
+        github.removeBranch(this.repoOrg, this.repoName, 'testpr-PR').catch(err => Assert.strictEqual(404, err.status));
     }
 );
 
@@ -105,8 +123,7 @@ When(
         timeout: TIMEOUT
     },
     function step(branch) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `${branch}-${postfix}`;
+        const sourceBranch = `${branch}-PR`;
         const targetBranch = 'master';
 
         return github
@@ -130,8 +147,7 @@ When(
         timeout: TIMEOUT
     },
     function step(branch) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `${branch}-${postfix}`;
+        const sourceBranch = `${branch}-PR`;
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
@@ -446,22 +462,6 @@ Then(
             Assert.equal(resp.statusCode, 200);
             Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${prJobName}`);
         });
-    }
-);
-
-After(
-    {
-        tags: '@workflow-chainPR or @workflow-PR'
-    },
-    function hook() {
-        github
-            .closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber)
-            .then(() => {
-                github.removeBranch(this.repoOrg, this.repoName, this.branch);
-            })
-            .catch(() => {
-                Assert.fail('Failed to close Pull Request or remove branch.');
-            });
     }
 );
 
