@@ -11,7 +11,7 @@ const WAIT_TIME = 3;
 
 Before(
     {
-        tags: '@workflow and (not @workflow-PR) and (not @workflow-chainPR)'        
+        tags: '@workflow and (not @workflow-PR) and (not @workflow-chainPR)'
     },
     function hook() {
         this.repoOrg = this.testOrg;
