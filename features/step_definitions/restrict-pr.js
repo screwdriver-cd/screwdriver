@@ -20,7 +20,7 @@ Before(
         this.jobName = 'main';
         this.pullRequestNumber = null;
         this.pipelines = {};
-        
+
         return Promise.all([
             github.removeBranch(this.repoOrg, this.repoName, 'test-branch-PR'),
             github.removeBranch('screwdriver-cd', this.repoName, 'test-branch-PR')
