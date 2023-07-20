@@ -20,11 +20,6 @@ Before(
         this.jobName = 'main';
         this.pullRequestNumber = null;
         this.pipelines = {};
-
-        return Promise.all([
-            github.removeBranch(this.repoOrg, this.repoName, 'test-branch-PR'),
-            github.removeBranch('screwdriver-cd', this.repoName, 'test-branch-PR')
-        ]).catch(err => Assert.strictEqual(404, err.status));
     }
 );
 
@@ -58,7 +53,10 @@ When(
 
         this.sourceOrg = sourceOrg;
         this.sourceBranch = sourceBranch;
-
+        
+        await github.removeBranch(this.sourceOrg, this.repoName, this.sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
+        
         await github
             .createBranch(this.sourceBranch, this.sourceOrg, this.repoName)
             .catch(() => Assert.fail('Failed to create branch.'));

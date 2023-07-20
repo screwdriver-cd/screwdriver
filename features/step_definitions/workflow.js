@@ -11,30 +11,13 @@ const WAIT_TIME = 3;
 
 Before(
     {
-        tags: '@workflow and (not @workflow-PR) and (not @workflow-chainPR)'
+        tags: '@workflow'
     },
     function hook() {
         this.repoOrg = this.testOrg;
         this.repoName = 'functional-workflow';
         this.pipelineId = null;
         this.builds = null;
-    }
-);
-
-Before(
-    {
-        tags: '@workflow-PR'
-    },
-    function hook() {
-        this.repoOrg = this.testOrg;
-        this.repoName = 'functional-workflow';
-        this.pipelineId = null;
-        this.builds = null;
-
-        return Promise.all([
-            github.removeBranch(this.repoOrg, this.repoName, 'staging-PR'),
-            github.removeBranch(this.repoOrg, this.repoName, 'master-PR')
-        ]).catch(err => Assert.strictEqual(404, err.status));
     }
 );
 
@@ -47,7 +30,6 @@ Before(
         this.repoName = 'functional-chainPR';
         this.pipelineId = null;
         this.builds = null;
-        github.removeBranch(this.repoOrg, this.repoName, 'testpr-PR').catch(err => Assert.strictEqual(404, err.status));
     }
 );
 
@@ -122,9 +104,12 @@ When(
     {
         timeout: TIMEOUT
     },
-    function step(branch) {
+    async function step(branch) {
         const sourceBranch = `${branch}-PR`;
         const targetBranch = 'master';
+
+        await github.removeBranch(this.repoOrg, this.repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
@@ -146,8 +131,11 @@ When(
     {
         timeout: TIMEOUT
     },
-    function step(branch) {
+    async function step(branch) {
         const sourceBranch = `${branch}-PR`;
+
+        await github.removeBranch(this.repoOrg, this.repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
@@ -462,6 +450,22 @@ Then(
             Assert.equal(resp.statusCode, 200);
             Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${prJobName}`);
         });
+    }
+);
+
+After(
+    {
+        tags: '@workflow-chainPR or @workflow-PR'
+    },
+    function hook() {
+        github
+            .closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber)
+            .then(() => {
+                github.removeBranch(this.repoOrg, this.repoName, this.branch);
+            })
+            .catch(() => {
+                Assert.fail('Failed to close Pull Request or remove branch.');
+            });
     }
 );
 
