@@ -849,7 +849,7 @@ const buildsPlugin = {
             // Figure out if need to run stage teardown
             // If build is in stage
             if (currentNode && currentNode.stageName) {
-                const currentStageBuild = stageBuilds.filter(sb => sb.stageName === currentNode.stageName)[0];
+                const currentStageBuild = stageBuilds.find(sb => sb.stageName === currentNode.stageName);
 
                 // Set stageBuild status to running if setup
                 if (currentNode.name === `stage@${currentNode.stageName}:setup`) {
@@ -859,13 +859,7 @@ const buildsPlugin = {
                 } else {
                     //  else get all stage builds in workflow, compare number of stageBuilds to stage builds with status
                     // Get job names from stage workflow
-                    const workflowStageBuilds = [];
-
-                    current.flattenedWorkflowGraph.nodes.forEach(n => {
-                        if (n.stageName === currentNode.stageName) {
-                            workflowStageBuilds.push(n.name);
-                        }
-                    });
+                    const workflowStageBuilds = currentStageBuild.workflowGraph.nodes.map(n => return n.name);
 
                     // get all builds in current stage
                     const buildParentBuilds = current.build.parentBuilds;
@@ -896,7 +890,6 @@ const buildsPlugin = {
                             builds.forEach(async b => deleteBuild(b, buildFactory));
                             nextJobsTrigger = [`stage@${currentNode.stageName}:teardown`];
                         }
-                        // TODO: set final stage status
                     }
                 }
             }
