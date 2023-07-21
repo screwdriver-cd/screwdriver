@@ -33,35 +33,23 @@ module.exports = () => ({
                         params: { pipelineId }
                     };
 
-                    // Set eventId if provided
-                    if (request.query.eventId) {
-                        const events = await eventFactory.list({ params: { id: request.query.eventId } });
-
-                        if (!events || Object.keys(events).length === 0) {
-                            throw boom.notFound(`Event ${request.query.eventId} does not exist`);
-                        }
-
-                        config.params.eventId = request.query.eventId;
-                    }
                     // Get latest stages if eventId not provided
-                    else {
-                        const latestCommitEvents = await eventFactory.list({
-                            params: {
-                                pipelineId,
-                                parentEventId: null,
-                                type: 'pipeline'
-                            },
-                            paginate: {
-                                count: 1
-                            }
-                        });
-
-                        if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
-                            throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
+                    const latestCommitEvents = await eventFactory.list({
+                        params: {
+                            pipelineId,
+                            parentEventId: null,
+                            type: 'pipeline'
+                        },
+                        paginate: {
+                            count: 1
                         }
+                    });
 
-                        config.params.eventId = latestCommitEvents[0].id;
+                    if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
+                        throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
                     }
+
+                    config.params.eventId = latestCommitEvents[0].id;
 
                     return stageFactory.list(config);
                 })
