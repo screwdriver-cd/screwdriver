@@ -8,6 +8,7 @@ const hoek = require('@hapi/hoek');
 const urlLib = require('url');
 const testBuild = require('./data/build.json');
 const testBuilds = require('./data/builds.json');
+const testStageBuilds = require('./data/stageBuilds.json');
 const testEvent = require('./data/events.json')[0];
 const testEventPr = require('./data/eventsPr.json')[0];
 
@@ -23,6 +24,14 @@ const decorateBuildMock = build => {
     return mock;
 };
 
+const decorateStageBuildMock = stageBuild => {
+    const mock = hoek.clone(stageBuild);
+
+    mock.toJson = sinon.stub().returns(stageBuild);
+
+    return mock;
+};
+
 const getBuildMocks = builds => {
     if (Array.isArray(builds)) {
         return builds.map(decorateBuildMock);
@@ -31,10 +40,19 @@ const getBuildMocks = builds => {
     return decorateBuildMock(builds);
 };
 
+const getStageBuildMocks = stageBuilds => {
+    if (Array.isArray(stageBuilds)) {
+        return stageBuilds.map(decorateStageBuildMock);
+    }
+
+    return decorateStageBuildMock(stageBuilds);
+};
+
 const getEventMock = event => {
     const decorated = hoek.clone(event);
 
     decorated.getBuilds = sinon.stub();
+    decorated.getStageBuilds = sinon.stub();
     decorated.toJson = sinon.stub().returns(event);
 
     return decorated;
@@ -219,6 +237,49 @@ describe('event plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(event.getBuilds, { readOnly: true });
                 assert.deepEqual(reply.result, testBuilds);
+            });
+        });
+    });
+
+    describe('GET /events/{id}/stageBuilds', () => {
+        const id = 12345;
+        let options;
+        let event;
+        let stageBuilds;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/events/${id}/stageBuilds`
+            };
+
+            event = getEventMock(testEvent);
+            stageBuilds = getStageBuildMocks(testStageBuilds);
+
+            eventFactoryMock.get.withArgs(id).resolves(event);
+            event.getStageBuilds.resolves(stageBuilds);
+        });
+
+        it('returns 404 if event does not exist', () => {
+            eventFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 200 for getting stage builds', () =>
+            server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(event.getStageBuilds);
+                assert.deepEqual(reply.result, testStageBuilds);
+            }));
+
+        it('returns 500 when the datastore returns an error', () => {
+            event.getStageBuilds.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
             });
         });
     });
