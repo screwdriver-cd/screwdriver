@@ -108,7 +108,8 @@ When(
         const sourceBranch = `${branch}-PR`;
         const targetBranch = 'master';
 
-        await github.removeBranch(this.repoOrg, this.repoName, sourceBranch)
+        await github
+            .removeBranch(this.repoOrg, this.repoName, sourceBranch)
             .catch(err => Assert.strictEqual(404, err.status));
 
         return github
@@ -134,7 +135,8 @@ When(
     async function step(branch) {
         const sourceBranch = `${branch}-PR`;
 
-        await github.removeBranch(this.repoOrg, this.repoName, sourceBranch)
+        await github
+            .removeBranch(this.repoOrg, this.repoName, sourceBranch)
             .catch(err => Assert.strictEqual(404, err.status));
 
         return github

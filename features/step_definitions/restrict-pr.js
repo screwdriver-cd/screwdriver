@@ -53,10 +53,11 @@ When(
 
         this.sourceOrg = sourceOrg;
         this.sourceBranch = sourceBranch;
-        
-        await github.removeBranch(this.sourceOrg, this.repoName, this.sourceBranch)
+
+        await github
+            .removeBranch(this.sourceOrg, this.repoName, this.sourceBranch)
             .catch(err => Assert.strictEqual(404, err.status));
-        
+
         await github
             .createBranch(this.sourceBranch, this.sourceOrg, this.repoName)
             .catch(() => Assert.fail('Failed to create branch.'));
