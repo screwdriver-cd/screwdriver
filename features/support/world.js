@@ -1,7 +1,7 @@
 'use strict';
 
-const Assert = require('chai').assert;
 const path = require('path');
+const Assert = require('chai').assert;
 const env = require('node-env-file');
 const { setWorldConstructor } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');

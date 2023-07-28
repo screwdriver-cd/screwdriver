@@ -1,10 +1,10 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
-const urlLib = require('url');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 const tokenCreateSchema = schema.models.token.create;
 const { getUserPermissions, getScmUri } = require('../../helper');

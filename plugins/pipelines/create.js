@@ -1,8 +1,8 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const urlLib = require('url');
 const logger = require('screwdriver-logger');
 const { formatCheckoutUrl, sanitizeRootDir } = require('./helper');
 const { getUserPermissions } = require('../helper');

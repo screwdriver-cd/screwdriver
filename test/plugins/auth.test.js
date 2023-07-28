@@ -1,11 +1,11 @@
 'use strict';
 
+const fs = require('fs');
 const chai = require('chai');
 const { assert } = chai;
 const { expect } = chai;
 const hapi = require('@hapi/hapi');
 const sinon = require('sinon');
-const fs = require('fs');
 const hoek = require('@hapi/hoek');
 const jwt = require('jsonwebtoken');
 const testCollection = require('./data/collection.json');
