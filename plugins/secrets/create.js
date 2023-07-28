@@ -1,9 +1,9 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
-const urlLib = require('url');
 const { getUserPermissions, getScmUri } = require('../helper');
 
 module.exports = () => ({

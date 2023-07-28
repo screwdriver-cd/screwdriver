@@ -1,11 +1,11 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const validator = require('screwdriver-template-validator');
 const templateSchema = schema.api.templateValidator;
 const hoek = require('@hapi/hoek');
-const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',

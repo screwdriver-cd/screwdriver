@@ -1,10 +1,10 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.templateTag.base;
-const urlLib = require('url');
 
 /* Currently, only build scope is allowed to tag template due to security reasons.
  * The same pipeline that publishes the template has the permission to tag it.

@@ -2,11 +2,11 @@
 
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const validator = require('screwdriver-command-validator');
 const hoek = require('@hapi/hoek');
-const urlLib = require('url');
 const req = require('screwdriver-request');
 const VERSION_REGEX = schema.config.regex.VERSION;
 const DEFAULT_BYTES = 1024 * 1024 * 1024; // 1GB

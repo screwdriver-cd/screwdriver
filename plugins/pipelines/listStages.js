@@ -33,39 +33,23 @@ module.exports = () => ({
                         params: { pipelineId }
                     };
 
-                    // Set groupEventId if provided
-                    if (request.query.groupEventId) {
-                        config.params.groupEventId = request.query.groupEventId;
-                    }
-                    // Get specific stages if eventId is provided
-                    else if (request.query.eventId) {
-                        const events = await eventFactory.list({ params: { id: request.query.eventId } });
-
-                        if (!events || Object.keys(events).length === 0) {
-                            throw boom.notFound(`Event ${request.query.eventId} does not exist`);
+                    // Get latest stages
+                    const latestCommitEvents = await eventFactory.list({
+                        params: {
+                            pipelineId,
+                            parentEventId: null,
+                            type: 'pipeline'
+                        },
+                        paginate: {
+                            count: 1
                         }
+                    });
 
-                        config.params.groupEventId = events[0].groupEventId;
+                    if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
+                        throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
                     }
-                    // Get latest stages if eventId not provided
-                    else {
-                        const latestCommitEvents = await eventFactory.list({
-                            params: {
-                                pipelineId,
-                                parentEventId: null,
-                                type: 'pipeline'
-                            },
-                            paginate: {
-                                count: 1
-                            }
-                        });
 
-                        if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
-                            throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
-                        }
-
-                        config.params.groupEventId = latestCommitEvents[0].groupEventId;
-                    }
+                    config.params.eventId = latestCommitEvents[0].id;
 
                     return stageFactory.list(config);
                 })
@@ -83,8 +67,6 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    eventId: pipelineIdSchema,
-                    groupEventId: pipelineIdSchema,
                     search: joi.forbidden() // we don't support search for Pipeline list stages
                 })
             )

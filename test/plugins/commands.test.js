@@ -1,10 +1,10 @@
 'use strict';
 
+const urlLib = require('url');
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const rewiremock = require('rewiremock/node');
-const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const streamToPromise = require('stream-to-promise');
 const FormData = require('form-data');

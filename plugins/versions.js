@@ -1,9 +1,9 @@
 'use strict';
 
-const checker = require('license-checker');
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
+const checker = require('license-checker');
 const VError = require('verror');
 const schema = require('screwdriver-data-schema');
 
