@@ -1,10 +1,10 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const baseSchema = schema.models.commandTag.base;
-const urlLib = require('url');
 const VERSION_REGEX = schema.config.regex.VERSION;
 const exactVersionSchema = schema.models.commandTag.base.extract('version');
 const tagSchema = schema.models.commandTag.base.extract('tag');

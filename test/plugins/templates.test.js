@@ -1,9 +1,9 @@
 'use strict';
 
+const urlLib = require('url');
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testtemplate = require('./data/template.json');
 const testtemplates = require('./data/templates.json');

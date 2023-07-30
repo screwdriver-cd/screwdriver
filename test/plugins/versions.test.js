@@ -1,7 +1,7 @@
 'use strict';
 
-const { assert } = require('chai');
 const fs = require('fs');
+const { assert } = require('chai');
 const hapi = require('@hapi/hapi');
 const licenseChecker = require('license-checker');
 const sinon = require('sinon');

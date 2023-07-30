@@ -1,7 +1,7 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const urlLib = require('url');
+const boom = require('@hapi/boom');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
 const { getScmUri } = require('../helper');

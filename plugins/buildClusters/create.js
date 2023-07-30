@@ -1,7 +1,7 @@
 'use strict';
 
-const boom = require('@hapi/boom');
 const urlLib = require('url');
+const boom = require('@hapi/boom');
 const validationSchema = require('screwdriver-data-schema');
 
 module.exports = () => ({
