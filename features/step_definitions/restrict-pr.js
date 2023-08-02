@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
+const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 
@@ -49,11 +49,14 @@ When(
         timeout: TIMEOUT
     },
     async function step(sourceOrg) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `test-branch-${postfix}`;
+        const sourceBranch = 'test-branch-PR';
 
         this.sourceOrg = sourceOrg;
         this.sourceBranch = sourceBranch;
+
+        await github
+            .removeBranch(this.sourceOrg, this.repoName, this.sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         await github
             .createBranch(this.sourceBranch, this.sourceOrg, this.repoName)
@@ -134,21 +137,5 @@ Then(
         });
 
         Assert.equal(build.body.length, 0, 'Unexpected job was triggered.');
-    }
-);
-
-After(
-    {
-        tags: '@restrict-pr'
-    },
-    function hook() {
-        github
-            .closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber)
-            .then(() => {
-                github.removeBranch(this.sourceOrg, this.repoName, this.sourceBranch);
-            })
-            .catch(() => {
-                Assert.fail('Failed to close Pull Request or remove branch.');
-            });
     }
 );

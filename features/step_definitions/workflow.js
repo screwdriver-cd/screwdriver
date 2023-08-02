@@ -104,10 +104,13 @@ When(
     {
         timeout: TIMEOUT
     },
-    function step(branch) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `${branch}-${postfix}`;
+    async function step(branch) {
+        const sourceBranch = `${branch}-PR`;
         const targetBranch = 'master';
+
+        await github
+            .removeBranch(this.repoOrg, this.repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
@@ -129,9 +132,12 @@ When(
     {
         timeout: TIMEOUT
     },
-    function step(branch) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `${branch}-${postfix}`;
+    async function step(branch) {
+        const sourceBranch = `${branch}-PR`;
+
+        await github
+            .removeBranch(this.repoOrg, this.repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
