@@ -528,27 +528,31 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @return {Promise}                The newly updated/created build
  */
 async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId }) {
-    if (done) {
-        // Delete new build since previous build failed
-        if (hasFailure) {
-            logger.info(
-                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
-            );
-            await newBuild.remove();
-
-            return null;
-        }
-
-        // If all join builds finished successfully and it's clear that a new build has not been started before, start new build
-        if (['CREATED', null, undefined].includes(newBuild.status)) {
-            newBuild.status = 'QUEUED';
-            const queuedBuild = await newBuild.update();
-
-            return queuedBuild.start();
-        }
+    if (!done) {
+        return null;
+    }
+    if (!['CREATED', null, undefined].includes(newBuild.status)) {
+        // Possible build status group
+        // ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE', 'FROZEN', 'COLLAPSED', 'SUCCESS', 'FAILURE', 'ABORTED']
+        return null;
     }
 
-    return null;
+    // Delete new build since previous build failed
+    if (hasFailure) {
+        logger.info(
+            `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
+        );
+        await newBuild.remove();
+
+        return null;
+    }
+
+    // All join builds finished successfully and it's clear that a new build has not been started before.
+    // Start new build.
+    newBuild.status = 'QUEUED';
+    const queuedBuild = await newBuild.update();
+
+    return queuedBuild.start();
 }
 
 /**
