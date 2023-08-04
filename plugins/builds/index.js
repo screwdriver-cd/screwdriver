@@ -834,18 +834,22 @@ const buildsPlugin = {
                         parentBuilds,
                         parentBuildId: current.build.id
                     };
-                    let newBuild;
 
-                    try {
-                        newBuild = await createInternalBuild(internalBuildConfig);
-                    } catch (err) {
-                        logger.error(
-                            `Error in triggerNextJobs - pipeline:${current.pipeline.id}-${nextJobName} event:${event.id} `,
-                            err
-                        );
+                    const nextJob = await jobFactory.get({
+                        name: nextJobName,
+                        pipelineId: current.pipeline.id
+                    });
+
+                    const existNextBuild = await buildFactory.get({
+                        eventId: current.event.id,
+                        jobId: nextJob.id
+                    });
+
+                    if (['CREATED', null, undefined].includes(existNextBuild.status)) {
+                        existNextBuild.start();
                     }
 
-                    return newBuild;
+                    return createInternalBuild(internalBuildConfig);
                 }
 
                 logger.info(`Fetching finished builds for event ${event.id}`);
