@@ -845,8 +845,12 @@ const buildsPlugin = {
                         jobId: nextJob.id
                     });
 
-                    if (['CREATED', null, undefined].includes(existNextBuild.status)) {
-                        existNextBuild.start();
+                    if (existNextBuild) {
+                        if (['CREATED', null, undefined].includes(existNextBuild.status)) {
+                            existNextBuild.status = 'QUEUED';
+
+                            return (await existNextBuild.update()).start();
+                        }
                     }
 
                     return createInternalBuild(internalBuildConfig);
