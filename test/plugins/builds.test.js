@@ -1803,6 +1803,9 @@ describe('build plugin test', () => {
                     buildFactoryMock.get
                         .withArgs({ eventId: jobBconfig.eventId, jobId: jobBconfig.jobId })
                         .returns(null);
+                    buildFactoryMock.get
+                        .withArgs({ eventId: jobCconfig.eventId, jobId: jobCconfig.jobId })
+                        .returns(null);
                 });
 
                 it('triggers if not a join', () => {
@@ -1827,7 +1830,7 @@ describe('build plugin test', () => {
 
                     return server.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
-                        // assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                     });
                 });
 
@@ -2295,6 +2298,9 @@ describe('build plugin test', () => {
                     buildFactoryMock.get
                         .withArgs({ eventId: jobBconfig.eventId, jobId: jobBconfig.jobId })
                         .returns(null);
+                    buildFactoryMock.get
+                        .withArgs({ eventId: jobCconfig.eventId, jobId: jobCconfig.jobId })
+                        .returns(null);
 
                     newServer.app = {
                         buildFactory: buildFactoryMock,
@@ -2353,7 +2359,7 @@ describe('build plugin test', () => {
 
                     return newServer.inject(options).then(() => {
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
-                        // assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
+                        assert.calledWith(buildFactoryMock.create.secondCall, jobCconfig);
                     });
                 });
                 it('triggers next job as external when user used external syntax for same pipeline', () => {
