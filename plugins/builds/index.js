@@ -851,6 +851,8 @@ const buildsPlugin = {
 
                             return (await existNextBuild.update()).start();
                         }
+
+                        return existNextBuild;
                     }
 
                     return createInternalBuild(internalBuildConfig);
