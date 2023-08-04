@@ -548,9 +548,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
     // All join builds finished successfully and it's clear that a new build has not been started before.
     // Start new build.
     newBuild.status = 'QUEUED';
-    const queuedBuild = await newBuild.update();
+    await newBuild.update();
 
-    return queuedBuild.start();
+    return newBuild.start();
 }
 
 /**
@@ -852,9 +852,9 @@ const buildsPlugin = {
                     }
 
                     existNextBuild.status = 'QUEUED';
-                    const queuedBuild = await existNextBuild.update();
+                    await existNextBuild.update();
 
-                    return queuedBuild.start();
+                    return existNextBuild.start();
                 }
 
                 logger.info(`Fetching finished builds for event ${event.id}`);
