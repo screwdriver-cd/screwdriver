@@ -532,8 +532,6 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
         return null;
     }
     if (!['CREATED', null, undefined].includes(newBuild.status)) {
-        // Possible build status group
-        // ['RUNNING', 'QUEUED', 'BLOCKED', 'UNSTABLE', 'FROZEN', 'COLLAPSED', 'SUCCESS', 'FAILURE', 'ABORTED']
         return null;
     }
 
@@ -845,17 +843,18 @@ const buildsPlugin = {
                         jobId: nextJob.id
                     });
 
-                    if (existNextBuild) {
-                        if (['CREATED', null, undefined].includes(existNextBuild.status)) {
-                            existNextBuild.status = 'QUEUED';
+                    if (existNextBuild === null) {
+                        return createInternalBuild(internalBuildConfig);
+                    }
 
-                            return (await existNextBuild.update()).start();
-                        }
-
+                    if (!['CREATED', null, undefined].includes(existNextBuild.status)) {
                         return existNextBuild;
                     }
 
-                    return createInternalBuild(internalBuildConfig);
+                    existNextBuild.status = 'QUEUED';
+                    const queuedBuild = await existNextBuild.update();
+
+                    return queuedBuild.start();
                 }
 
                 logger.info(`Fetching finished builds for event ${event.id}`);
