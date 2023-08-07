@@ -128,7 +128,7 @@ executor:
         buildTimeout: 90
         # Default max build timeout (in minutes)
         maxBuildTimeout: 120
-        # k8s node selectors for approprate pod scheduling
+        # k8s node selectors for appropriate pod scheduling
         nodeSelectors: {}
         preferredNodeSelectors: {}
         # support for kata-containers-as-a-runtimeclass
@@ -182,7 +182,7 @@ executor:
         buildTimeout: 90
         # Default max build timeout (in minutes)
         maxBuildTimeout: 120
-        # k8s node selectors for approprate pod scheduling
+        # k8s node selectors for appropriate pod scheduling
         nodeSelectors: {}
         preferredNodeSelectors: {}
       # Launcher image to use
