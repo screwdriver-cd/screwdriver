@@ -88,6 +88,7 @@ module.exports = () => ({
 
             let token;
             let formattedCheckoutUrl;
+            const oldPipelineConfig = { ...oldPipeline };
 
             if (checkoutUrl || rootDir) {
                 formattedCheckoutUrl = formatCheckoutUrl(request.payload.checkoutUrl);
@@ -141,7 +142,7 @@ module.exports = () => ({
 
             if (checkoutUrl || rootDir) {
                 logger.info(
-                    `[Audit] user ${user.username}:${scmContext} updates the scmUri for pipelineID:${id} to ${oldPipeline.scmUri}.`
+                    `[Audit] user ${user.username}:${scmContext} updates the scmUri for pipelineID:${id} to ${oldPipeline.scmUri} from ${oldPipelineConfig.scmUri}.`
                 );
             }
 
