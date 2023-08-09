@@ -13,6 +13,7 @@ const removeTagRoute = require('./removeTag');
 const removeVersionRoute = require('./removeVersion');
 const updateTrustedRoute = require('./updateTrusted');
 const getTemplateByIdRoute = require('./getTemplateById');
+const getTemplateByIdWithMetricsRoute = require('./getTemplateByIdWithMetrics');
 
 /**
  * Template API Plugin
@@ -44,30 +45,41 @@ const templatesPlugin = {
                 return Promise.resolve(true);
             }
 
-            return pipelineFactory.get(template.pipelineId).then(pipeline => {
+            return pipelineFactory.get(template.pipelineId).then((pipeline) => {
                 if (!pipeline) {
-                    throw boom.notFound(`Pipeline ${template.pipelineId} does not exist`);
+                    throw boom.notFound(
+                        `Pipeline ${template.pipelineId} does not exist`
+                    );
                 }
 
                 if (scope.includes('user')) {
-                    return userFactory.get({ username, scmContext }).then(user => {
-                        if (!user) {
-                            throw boom.notFound(`User ${username} does not exist`);
-                        }
-
-                        return user.getPermissions(pipeline.scmUri).then(permissions => {
-                            if (!permissions[permission]) {
-                                throw boom.forbidden(
-                                    `User ${username} does not have ${permission} access for this template`
+                    return userFactory
+                        .get({ username, scmContext })
+                        .then((user) => {
+                            if (!user) {
+                                throw boom.notFound(
+                                    `User ${username} does not exist`
                                 );
                             }
 
-                            return true;
+                            return user
+                                .getPermissions(pipeline.scmUri)
+                                .then((permissions) => {
+                                    if (!permissions[permission]) {
+                                        throw boom.forbidden(
+                                            `User ${username} does not have ${permission} access for this template`
+                                        );
+                                    }
+
+                                    return true;
+                                });
                         });
-                    });
                 }
 
-                if (template.pipelineId !== credentials.pipelineId || credentials.isPR) {
+                if (
+                    template.pipelineId !== credentials.pipelineId ||
+                    credentials.isPR
+                ) {
                     throw boom.forbidden('Not allowed to remove this template');
                 }
 
@@ -87,7 +99,8 @@ const templatesPlugin = {
             removeTagRoute(),
             removeVersionRoute(),
             updateTrustedRoute(),
-            getTemplateByIdRoute()
+            getTemplateByIdRoute(),
+            getTemplateByIdWithMetricsRoute()
         ]);
     }
 };
