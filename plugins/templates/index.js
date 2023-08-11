@@ -13,7 +13,7 @@ const removeTagRoute = require('./removeTag');
 const removeVersionRoute = require('./removeVersion');
 const updateTrustedRoute = require('./updateTrusted');
 const getTemplateByIdRoute = require('./getTemplateById');
-const getTemplateByIdWithMetricsRoute = require('./getTemplateByIdWithMetrics');
+const getTemplateWithMetricsRoute = require('./getTemplateWithMetrics');
 
 /**
  * Template API Plugin
@@ -100,7 +100,7 @@ const templatesPlugin = {
             removeVersionRoute(),
             updateTrustedRoute(),
             getTemplateByIdRoute(),
-            getTemplateByIdWithMetricsRoute()
+            getTemplateWithMetricsRoute()
         ]);
     }
 };
