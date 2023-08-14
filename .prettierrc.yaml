@@ -1,1 +1,6 @@
 trailingComma: "none"
+printWidth: 100
+singleQuote: true
+tabWidth: 4
+arrowParens: "avoid"
+htmlWhitespaceSensitivity: "strict"

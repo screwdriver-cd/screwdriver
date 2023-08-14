@@ -12,8 +12,7 @@ module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/{versionOrTag}/metrics',
     options: {
-        description:
-            'Get a single template given template name and version or tag, with metrics',
+        description: 'Get a single template given template name and version or tag, with metrics',
         notes: 'Returns a template record with metrics',
         tags: ['api', 'templates'],
         auth: {
@@ -27,16 +26,14 @@ module.exports = () => ({
 
             return templateFactory
                 .getWithMetrics(`${name}@${versionOrTag}`)
-                .then((template) => {
+                .then(template => {
                     if (!template) {
-                        throw boom.notFound(
-                            `Template ${name}@${versionOrTag} does not exist`
-                        );
+                        throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
                     }
 
                     return h.response(template);
                 })
-                .catch((err) => {
+                .catch(err => {
                     throw err;
                 });
         },
