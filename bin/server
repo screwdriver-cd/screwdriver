@@ -254,6 +254,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         commandFactory,
         commandTagFactory,
         templateFactory,
+        pipelineTemplateFactory,
+        pipelineTemplateVersionFactory,
         templateTagFactory,
         pipelineFactory,
         jobFactory,
