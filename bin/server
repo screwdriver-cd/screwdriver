@@ -225,6 +225,17 @@ const buildClusterFactory = Models.BuildClusterFactory.getInstance({
     datastoreRO,
     scm
 });
+const pipelineTemplateFactory = Models.PipelineTemplateFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+const pipelineTemplateVersionFactory = Models.PipelineTemplateVersionFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+
 
 // @TODO run setup for SCM and Executor
 // datastoreConfig.ddlSync => sync datastore schema (ddl) via api (default: true)
@@ -240,6 +251,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         commandFactory,
         commandTagFactory,
         templateFactory,
+        pipelineTemplateFactory,
+        pipelineTemplateVersionFactory,
         templateTagFactory,
         pipelineFactory,
         jobFactory,
