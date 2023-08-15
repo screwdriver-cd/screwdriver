@@ -30,11 +30,12 @@ async function invoke(url) {
 
     try {
         const result = await requestRetry(options);
-        
-        return result.statusCode;
+
+        return { code: result.statusCode, body: result.body };
     } catch (err) {
         logger.error(`Failed to get ${url}: ${err.message}`);
-        return err.statusCode;
+
+        return { code: err.statusCode, body: err.message };
     };
 }
 
@@ -54,14 +55,20 @@ const statusPlugin = {
                 const { exhaustive } = request.query;
 
                 if (exhaustive) {
-                    const queueResponseCode = await invoke(`${request.server.app.ecosystem.queue}/v1/status`);
-                    if (queueResponseCode !== 200) {
-                        return h.response('SD Queue Service Unavailable').code(queueResponseCode);
-                    }
-                    const storeResponseCode = await invoke(`${request.server.app.ecosystem.store}/v1/status`);
-                    if (storeResponseCode !== 200) {
-                        return h.response('SD Store Unavailable').code(storeResponseCode);
-                    }
+                    const responses = await Promise.all([
+                        invoke(`${request.server.app.ecosystem.queue}/v1/status`),
+                        invoke(`${request.server.app.ecosystem.store}/v1/status`)
+                    ]);
+
+                    const response = responses.find(r => r.code !== 200);
+                    const code = response ? response.code : 200;
+
+                    return h.response({
+                        queue: responses[0].body,
+                        store: responses[1].body,
+                        api: 'OK'
+                    }).code(code);
+
                 }
                 return h.response('OK').code(200)
             },
