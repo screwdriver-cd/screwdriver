@@ -1,6 +1,6 @@
 {
   "name": "screwdriver-api",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "description": "API server for the Screwdriver.cd service",
   "main": "index.js",
   "scripts": {
@@ -116,7 +116,7 @@
     "screwdriver-logger": "^2.0.0",
     "screwdriver-models": "^29.6.0",
     "screwdriver-notifications-email": "^3.0.0",
-    "screwdriver-notifications-slack": "^4.0.0",
+    "screwdriver-notifications-slack": "^5.0.0",
     "screwdriver-request": "^2.0.1",
     "screwdriver-scm-base": "^8.1.0",
     "screwdriver-scm-bitbucket": "^5.0.1",
