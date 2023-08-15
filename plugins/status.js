@@ -6,7 +6,7 @@ const requestRetry = require('screwdriver-request');
 
 const RETRY_LIMIT = 2;
 const RETRY_DELAY = 5; // in seconds
-const HTTP_TIMEOUT = 1000 // in ms
+const HTTP_TIMEOUT = 1000; // in ms
 
 /**
  * Makes api call to the url endpoint
@@ -36,7 +36,7 @@ async function invoke(url) {
         logger.error(`Failed to get ${url}: ${err.message}`);
 
         return { code: err.statusCode, body: err.message };
-    };
+    }
 }
 
 /**
@@ -63,14 +63,16 @@ const statusPlugin = {
                     const response = responses.find(r => r.code !== 200);
                     const code = response ? response.code : 200;
 
-                    return h.response({
-                        queue: responses[0].body,
-                        store: responses[1].body,
-                        api: 'OK'
-                    }).code(code);
-
+                    return h
+                        .response({
+                            queue: responses[0].body,
+                            store: responses[1].body,
+                            api: 'OK'
+                        })
+                        .code(code);
                 }
-                return h.response('OK').code(200)
+
+                return h.response('OK').code(200);
             },
             config: {
                 description: 'API status',
