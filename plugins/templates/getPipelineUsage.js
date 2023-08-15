@@ -3,14 +3,14 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const getSchema = schema.models.template.get;
 const nameSchema = schema.models.template.base.extract('name');
 const versionSchema = schema.models.template.base.extract('version');
 const tagSchema = schema.models.templateTag.base.extract('tag');
 
 module.exports = () => ({
+    // TODO: change API path name to pipelineUsage
     method: 'GET',
-    path: '/templates/{name}/{versionOrTag}/metrics',
+    path: '/templates/{name}/{versionOrTag}/pipelineUsage',
     options: {
         description: 'Get a single template given template name and version or tag, with metrics',
         notes: 'Returns a template record with metrics',
@@ -25,7 +25,7 @@ module.exports = () => ({
             const { name, versionOrTag } = request.params;
 
             return templateFactory
-                .getWithMetrics(`${name}@${versionOrTag}`)
+                .getPipelineUsage(`${name}@${versionOrTag}`)
                 .then(template => {
                     if (!template) {
                         throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
@@ -38,15 +38,23 @@ module.exports = () => ({
                 });
         },
         response: {
-            schema: getSchema.keys({
-                metrics: joi.object({
-                    // TODO: update for other metrics
-                    pipelines: joi.object({
-                        count: joi.number(),
-                        pipelineIds: joi.array().items(joi.number()).required()
-                    })
+            schema: joi.array().items(
+                joi.object({
+                    id: joi.number().required(),
+                    name: joi.string().required(),
+                    scmRepo: joi
+                        .object({
+                            branch: joi.string().required(),
+                            name: joi.string().required(),
+                            url: joi.string().uri().required(),
+                            rootDir: joi.string().required(),
+                            private: joi.boolean().required()
+                        })
+                        .required(),
+                    lastRun: joi.alternatives().try(joi.string().isoDate(), joi.allow(null)),
+                    admins: joi.object().pattern(joi.string(), joi.boolean()).required()
                 })
-            })
+            )
         },
         validate: {
             params: joi.object({
