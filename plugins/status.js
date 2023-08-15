@@ -6,6 +6,7 @@ const requestRetry = require('screwdriver-request');
 
 const RETRY_LIMIT = 2;
 const RETRY_DELAY = 5; // in seconds
+const HTTP_TIMEOUT = 1000 // in ms
 
 /**
  * Makes api call to the url endpoint
@@ -23,7 +24,8 @@ async function invoke(url) {
             calculateDelay: ({ computedValue }) => (computedValue ? RETRY_DELAY * 1000 : 0) // in ms
         },
         method: 'GET',
-        responseType: 'text'
+        responseType: 'text',
+        timeout: HTTP_TIMEOUT
     };
 
     try {
