@@ -3,8 +3,6 @@ Pipeline template abstracts entire pipeline configuration into reusable modules 
 
 Github: https://github.com/screwdriver-cd/screwdriver/issues/2135
 
-Jira: https://jira.ouryahoo.com/browse/SCREWDRV-10254
-
 ## Table of Contents
 
 - [Requirements](#requirements)
