@@ -32,21 +32,26 @@ module.exports = () => ({
 
                     return pipelineTemplateFactory
                         .get({
-                            params: {
-                                name: config.template.name,
-                                namespace: config.template.namespace
-                            }
+                            name: config.template.name,
+                            namespace: config.template.namespace
                         })
                         .then(pipelineTemplate => {
                             const { pipelineId } = request.auth.credentials;
 
-                            if (!pipelineTemplate) {
-                                throw boom.notFound(`Pipeline does not exist`);
+                            if (pipelineTemplate) {
+                                if (pipelineTemplate.pipelineId !== pipelineId) {
+                                    throw boom.notFound(`Pipeline IDs do not match`);
+                                }
+                                // throw boom.notFound(`Pipeline does not exist`);
                             }
-                            if (pipelineTemplate.pipelineId === pipelineId) {
-                                return pipelineTemplateVersionFactory.create(config.template, pipelineTemplateFactory);
-                            }
-                            throw boom.notFound(`Pipeline IDs do not match`);
+
+                            return pipelineTemplateVersionFactory.create(
+                                {
+                                    ...config.template,
+                                    pipelineId
+                                },
+                                pipelineTemplateFactory
+                            );
                         });
                 })
                 .then(template => {
