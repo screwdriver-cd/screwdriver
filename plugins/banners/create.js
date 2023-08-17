@@ -1,8 +1,8 @@
 'use strict';
 
+const urlLib = require('url');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const urlLib = require('url');
 
 module.exports = () => ({
     method: 'POST',
@@ -18,13 +18,16 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const { bannerFactory } = request.server.app;
-            const { username } = request.auth.credentials;
-            const { scmContext } = request.auth.credentials;
+            const { username, scmContext, scmUserId } = request.auth.credentials;
             const { scm } = bannerFactory;
             const scmDisplayName = scm.getDisplayName({ scmContext });
 
             // lookup whether user is admin
-            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName);
+            const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
+                username,
+                scmDisplayName,
+                scmUserId
+            );
 
             // verify user is authorized to create banners
             // return unauthorized if not system admin

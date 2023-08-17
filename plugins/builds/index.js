@@ -535,27 +535,29 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @return {Promise}                The newly updated/created build
  */
 async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId }) {
-    if (done) {
-        // Delete new build since previous build failed
-        if (hasFailure) {
-            logger.info(
-                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
-            );
-            await newBuild.remove();
-
-            return null;
-        }
-
-        // If all join builds finished successfully and it's clear that a new build has not been started before, start new build
-        if (['CREATED', null, undefined].includes(newBuild.status)) {
-            newBuild.status = 'QUEUED';
-            const queuedBuild = await newBuild.update();
-
-            return queuedBuild.start();
-        }
+    if (!done) {
+        return null;
+    }
+    if (!['CREATED', null, undefined].includes(newBuild.status)) {
+        return null;
     }
 
-    return null;
+    // Delete new build since previous build failed
+    if (hasFailure) {
+        logger.info(
+            `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
+        );
+        await newBuild.remove();
+
+        return null;
+    }
+
+    // All join builds finished successfully and it's clear that a new build has not been started before.
+    // Start new build.
+    newBuild.status = 'QUEUED';
+    await newBuild.update();
+
+    return newBuild.start();
 }
 
 /**
@@ -926,18 +928,29 @@ const buildsPlugin = {
                         parentBuilds,
                         parentBuildId: current.build.id
                     };
-                    let newBuild;
 
-                    try {
-                        newBuild = await createInternalBuild(internalBuildConfig);
-                    } catch (err) {
-                        logger.error(
-                            `Error in triggerNextJobs - pipeline:${current.pipeline.id}-${nextJobName} event:${event.id} `,
-                            err
-                        );
+                    const nextJob = await jobFactory.get({
+                        name: nextJobName,
+                        pipelineId: current.pipeline.id
+                    });
+
+                    const existNextBuild = await buildFactory.get({
+                        eventId: current.event.id,
+                        jobId: nextJob.id
+                    });
+
+                    if (existNextBuild === null) {
+                        return createInternalBuild(internalBuildConfig);
                     }
 
-                    return newBuild;
+                    if (!['CREATED', null, undefined].includes(existNextBuild.status)) {
+                        return existNextBuild;
+                    }
+
+                    existNextBuild.status = 'QUEUED';
+                    await existNextBuild.update();
+
+                    return existNextBuild.start();
                 }
 
                 logger.info(`Fetching finished builds for event ${event.id}`);
@@ -1027,7 +1040,11 @@ const buildsPlugin = {
                         .map(j => {
                             const existingBuild = externalGroupBuilds.find(b => b.jobId === nextJobs[j].id);
 
-                            return existingBuild && existingBuild.status !== 'CREATED' ? existingBuild : null;
+                            return existingBuild &&
+                                existingBuild.status !== 'CREATED' &&
+                                !existingBuild.parentBuildId.includes(current.build.id)
+                                ? existingBuild
+                                : null;
                         })
                         .filter(b => b !== null);
 

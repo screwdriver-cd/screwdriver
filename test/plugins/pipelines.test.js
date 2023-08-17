@@ -1,10 +1,10 @@
 'use strict';
 
+const urlLib = require('url');
 const { assert } = require('chai');
 const badgeMaker = require('badge-maker');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
 const testPipelines = require('./data/pipelines.json');

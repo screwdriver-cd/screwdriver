@@ -128,7 +128,7 @@ executor:
         buildTimeout: 90
         # Default max build timeout (in minutes)
         maxBuildTimeout: 120
-        # k8s node selectors for approprate pod scheduling
+        # k8s node selectors for appropriate pod scheduling
         nodeSelectors: {}
         preferredNodeSelectors: {}
         # support for kata-containers-as-a-runtimeclass
@@ -182,7 +182,7 @@ executor:
         buildTimeout: 90
         # Default max build timeout (in minutes)
         maxBuildTimeout: 120
-        # k8s node selectors for approprate pod scheduling
+        # k8s node selectors for appropriate pod scheduling
         nodeSelectors: {}
         preferredNodeSelectors: {}
       # Launcher image to use
@@ -330,7 +330,22 @@ notifications:
   #   password: optional-password
   # # Slack notification when build finishes
   # slack:
-  #   token: your-slack-bot-token
+  #   # default workspace key
+  #   defaultWorkspace: workspace1
+  #   # Objects with slack token
+  #   workspaces:
+  #     # These keys are used in notification setting on screwdriver.yaml
+  #     # ex)
+  #     #  settings:
+  #     #    slack:
+  #     #      channels:
+  #     #        - test-channel-1
+  #     #        - workspace1:test-channel-2
+  #     #        - workspace2:test-channel-1
+  #     workspace1:
+  #       token: your-slack-bot-token1
+  #     workspace2:
+  #       token: your-slack-bot-token2
 ecosystem:
   # Externally routable URL for the User Interface
   ui: https://cd.screwdriver.cd

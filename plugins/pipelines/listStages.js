@@ -33,7 +33,7 @@ module.exports = () => ({
                         params: { pipelineId }
                     };
 
-                    // Get latest stages if eventId not provided
+                    // Get latest stages
                     const latestCommitEvents = await eventFactory.list({
                         params: {
                             pipelineId,
@@ -48,8 +48,6 @@ module.exports = () => ({
                     if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
                         throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
                     }
-
-                    config.params.eventId = latestCommitEvents[0].id;
 
                     return stageFactory.list(config);
                 })
@@ -67,7 +65,6 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    eventId: pipelineIdSchema,
                     search: joi.forbidden() // we don't support search for Pipeline list stages
                 })
             )

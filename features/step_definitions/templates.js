@@ -1,10 +1,10 @@
 'use strict';
 
-const fs = require('mz/fs');
 const path = require('path');
+const fs = require('mz/fs');
 const Assert = require('chai').assert;
 const request = require('screwdriver-request');
-const { Before, Given, Then, When } = require('cucumber');
+const { Before, Given, Then, When } = require('@cucumber/cucumber');
 
 const TIMEOUT = 240 * 1000;
 

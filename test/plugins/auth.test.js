@@ -1,11 +1,11 @@
 'use strict';
 
+const fs = require('fs');
 const chai = require('chai');
 const { assert } = chai;
 const { expect } = chai;
 const hapi = require('@hapi/hapi');
 const sinon = require('sinon');
-const fs = require('fs');
 const hoek = require('@hapi/hoek');
 const jwt = require('jsonwebtoken');
 const testCollection = require('./data/collection.json');
@@ -25,10 +25,12 @@ function getUserMock(user) {
     const result = {
         update: sinon.stub(),
         sealToken: sinon.stub(),
+        unsealToken: sinon.stub().returns('token'),
         getDisplayName: sinon.stub(),
         id: user.id,
         username: user.username,
-        token: user.token
+        token: user.token,
+        scmContext: user.scmContext
     };
 
     return result;
@@ -93,7 +95,8 @@ describe('auth plugin test', () => {
                     scope: ['admin:repo_hook', 'read:org', 'repo:status']
                 }
             },
-            autoDeployKeyGenerationEnabled: sinon.stub().returns(true)
+            autoDeployKeyGenerationEnabled: sinon.stub().returns(true),
+            decorateAuthor: sinon.stub()
         };
         userFactoryMock = {
             get: sinon.stub(),
@@ -335,6 +338,7 @@ describe('auth plugin test', () => {
                 });
 
                 expect(profile.username).to.contain('batman');
+                expect(profile.scmUserId).to.equal(1312);
                 expect(profile.scmContext).to.contain('github:github.com');
                 expect(profile.scope).to.contain('user');
                 expect(profile.scope).to.contain('admin');
@@ -344,12 +348,14 @@ describe('auth plugin test', () => {
             it('does not add admin scope for non-admins', () => {
                 const profile = server.plugins.auth.generateProfile({
                     username: 'robin',
+                    scmUserId: 1357,
                     scmContext: 'github:mygithub.com',
                     scope: ['user'],
                     metadata: {}
                 });
 
                 expect(profile.username).to.contain('robin');
+                expect(profile.scmUserId).to.equal(1357);
                 expect(profile.scmContext).to.contain('github:mygithub.com');
                 expect(profile.scope).to.contain('user');
                 expect(profile.scope).to.not.contain('admin');
@@ -359,12 +365,14 @@ describe('auth plugin test', () => {
             it('does not add admin scope for admins without SCM user id', () => {
                 const profile = server.plugins.auth.generateProfile({
                     username: 'batman',
+                    scmUserId: 1359,
                     scmContext: 'github:mygithub.com',
                     scope: ['user'],
                     metadata: {}
                 });
 
                 expect(profile.username).to.contain('batman');
+                expect(profile.scmUserId).to.equal(1359);
                 expect(profile.scmContext).to.contain('github:mygithub.com');
                 expect(profile.scope).to.contain('user');
                 expect(profile.scope).to.not.contain('admin');
@@ -405,6 +413,7 @@ describe('auth plugin test', () => {
                 });
 
                 expect(profile.username).to.contain('batman');
+                expect(profile.scmUserId).to.equal(1312);
                 expect(profile.scmContext).to.contain('github:github.com');
                 expect(profile.scope).to.contain('user');
                 expect(profile.scope).to.contain('admin');
@@ -414,12 +423,14 @@ describe('auth plugin test', () => {
             it('does not add admin scope for non-admins', () => {
                 const profile = server.plugins.auth.generateProfile({
                     username: 'robin',
+                    scmUserId: 1357,
                     scmContext: 'github:mygithub.com',
                     scope: ['user'],
                     metadata: {}
                 });
 
                 expect(profile.username).to.contain('robin');
+                expect(profile.scmUserId).to.equal(1357);
                 expect(profile.scmContext).to.contain('github:mygithub.com');
                 expect(profile.scope).to.contain('user');
                 expect(profile.scope).to.not.contain('admin');
@@ -429,12 +440,14 @@ describe('auth plugin test', () => {
             it('adds admin scope for admins without SCM user id', () => {
                 const profile = server.plugins.auth.generateProfile({
                     username: 'batman',
+                    scmUserId: 1359,
                     scmContext: 'github:mygithub.com',
                     scope: ['user'],
                     metadata: {}
                 });
 
                 expect(profile.username).to.contain('batman');
+                expect(profile.scmUserId).to.equal(1359);
                 expect(profile.scmContext).to.contain('github:mygithub.com');
                 expect(profile.scope).to.contain('user');
                 expect(profile.scope).to.contain('admin');
@@ -1029,7 +1042,8 @@ describe('auth plugin test', () => {
                                 {
                                     username: 'robin',
                                     scope: ['user'],
-                                    environment: 'beta'
+                                    environment: 'beta',
+                                    scmUserId: 1579
                                 },
                                 jwtPrivateKey,
                                 {
@@ -1046,6 +1060,7 @@ describe('auth plugin test', () => {
                     assert.equal(reply.statusCode, 200, 'Login route should be available');
                     assert.ok(reply.result.token, 'Token not returned');
                     expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                        scmUserId: 1579,
                         username: 'robin',
                         scope: ['user'],
                         environment: 'beta'
@@ -1054,75 +1069,33 @@ describe('auth plugin test', () => {
 
         it('returns user signed token given an API access token', () => {
             tokenMock.userId = id;
-            server
-                .inject({
-                    url: `/auth/token?api_token=${apiKey}`,
-                    auth: {
-                        credentials: {
-                            username: 'robin',
-                            scope: ['user'],
-                            token: jwt.sign(
-                                {
-                                    username: 'robin',
-                                    scope: ['user']
-                                },
-                                jwtPrivateKey,
-                                {
-                                    algorithm: 'RS256',
-                                    expiresIn: '2h',
-                                    jwtid: 'abc'
-                                }
-                            )
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200, 'Login route should be available');
-                    assert.ok(reply.result.token, 'Token not returned');
-                    expect(reply.result.token).to.be.a.jwt.and.deep.include({
-                        username: 'robin',
-                        scope: ['user']
-                    });
+            scm.decorateAuthor.resolves({ id: 1315 });
+            collectionFactoryMock.list.resolves([[1], [2]]);
+
+            return server.inject({ url: `/auth/token?api_token=${apiKey}` }).then(reply => {
+                assert.equal(reply.statusCode, 200, 'Login route should be available');
+                assert.ok(reply.result.token, 'Token not returned');
+                expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                    scmUserId: 1315,
+                    username: 'batman',
+                    scope: ['user'],
+                    scmContext: 'github:github.com'
                 });
+            });
         });
 
         it('returns pipeline signed token given an API access token', () => {
             tokenMock.pipelineId = pipelineId;
 
-            server
-                .inject({
-                    url: `/auth/token?api_token=${apiKey}`,
-                    auth: {
-                        credentials: {
-                            username: 'robin',
-                            scope: ['pipeline'],
-                            token: jwt.sign(
-                                {
-                                    username: 'robin',
-                                    pipelineId: 1,
-                                    scope: ['pipeline']
-                                },
-                                jwtPrivateKey,
-                                {
-                                    algorithm: 'RS256',
-                                    expiresIn: '2h',
-                                    jwtid: 'abc'
-                                }
-                            )
-                        },
-                        strategy: ['token']
-                    }
-                })
-                .then(reply => {
-                    assert.equal(reply.statusCode, 200, 'Login route should be available');
-                    assert.ok(reply.result.token, 'Token not returned');
-                    expect(reply.result.token).to.be.a.jwt.and.deep.include({
-                        username: 'robin',
-                        scope: ['pipeline'],
-                        pipelineId: 1
-                    });
+            return server.inject({ url: `/auth/token?api_token=${apiKey}` }).then(reply => {
+                assert.equal(reply.statusCode, 200, 'Login route should be available');
+                assert.ok(reply.result.token, 'Token not returned');
+                expect(reply.result.token).to.be.a.jwt.and.deep.include({
+                    username: 'batman',
+                    scope: ['pipeline'],
+                    pipelineId: 12345
                 });
+            });
         });
 
         it('fails to issue a jwt given an invalid application auth token', () => {

@@ -1,10 +1,10 @@
 'use strict';
 
+const urlLib = require('url');
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const rewiremock = require('rewiremock/node');
-const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const nock = require('nock');
 const rewire = require('rewire');
@@ -1473,6 +1473,7 @@ describe('build plugin test', () => {
                     };
                     buildMock.eventId = '8888';
                     eventMock.sha = testBuild.sha;
+                    buildFactoryMock.get.withArgs({ eventId: eventMock.id, jobId: publishJobId }).returns(null);
                 });
 
                 it('triggers next job in the chainPR workflow', () => {
@@ -2055,6 +2056,13 @@ describe('build plugin test', () => {
                         parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345, d: 123456 } } },
                         jobId: 3
                     };
+
+                    buildFactoryMock.get
+                        .withArgs({ eventId: jobBconfig.eventId, jobId: jobBconfig.jobId })
+                        .returns(null);
+                    buildFactoryMock.get
+                        .withArgs({ eventId: jobCconfig.eventId, jobId: jobCconfig.jobId })
+                        .returns(null);
                 });
 
                 it('triggers if not a join', () => {
@@ -2259,6 +2267,51 @@ describe('build plugin test', () => {
                     return server.inject(options).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(buildC.remove);
+                    });
+                });
+
+                it('not delete build if it was queued before, and join has some failures', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'c', join: true },
+                        { src: 'd', dest: 'c', join: true }
+                    ];
+
+                    const buildC = {
+                        jobId: 3, // job c was previously created
+                        remove: sinon.stub().resolves(null),
+                        eventId: '8888',
+                        id: 123455,
+                        parentBuilds: {},
+                        status: 'QUEUED'
+                    };
+
+                    buildC.update = sinon.stub().resolves(buildC);
+
+                    buildMocks = [
+                        {
+                            jobId: 1,
+                            status: 'SUCCESS',
+                            id: 12345,
+                            eventId: '8888'
+                        },
+                        {
+                            jobId: 4,
+                            status: 'FAILURE',
+                            id: 123456,
+                            eventId: '8888'
+                        },
+                        buildC
+                    ];
+
+                    buildFactoryMock.getLatestBuilds.resolves(buildMocks);
+                    buildFactoryMock.get.withArgs(123456).resolves(buildMocks[1]);
+                    buildFactoryMock.get.withArgs(123455).resolves(buildC);
+
+                    return server.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.notCalled(buildC.remove);
                     });
                 });
 
@@ -2498,6 +2551,13 @@ describe('build plugin test', () => {
                         port: 12345,
                         host: 'localhost'
                     });
+
+                    buildFactoryMock.get
+                        .withArgs({ eventId: jobBconfig.eventId, jobId: jobBconfig.jobId })
+                        .returns(null);
+                    buildFactoryMock.get
+                        .withArgs({ eventId: jobCconfig.eventId, jobId: jobCconfig.jobId })
+                        .returns(null);
 
                     newServer.app = {
                         buildFactory: buildFactoryMock,
@@ -2778,6 +2838,62 @@ describe('build plugin test', () => {
                             }
                         };
                         assert.calledWith(buildFactoryMock.create, jobBconfig);
+                    });
+                });
+
+                it('or triggers if next build is already exists', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'c', dest: 'b', join: true },
+                        { src: 'd', dest: 'b', join: true }
+                    ];
+
+                    const buildB = {
+                        jobId: jobB.id,
+                        id: 3,
+                        status: 'CREATED',
+                        start: sinon.stub().resolves(),
+                        update: sinon.stub().resolves()
+                    };
+
+                    jobFactoryMock.get.withArgs({ name: 'b', pipelineId }).returns(jobB);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: buildB.jobId }).returns(buildB);
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildB.start);
+                        assert.calledOnce(buildB.update);
+                        assert.equal(buildB.status, 'QUEUED');
+                    });
+                });
+
+                it('or triggers if next build is already queued', () => {
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'b' },
+                        { src: 'c', dest: 'b', join: true },
+                        { src: 'd', dest: 'b', join: true }
+                    ];
+
+                    const buildB = {
+                        jobId: jobB.id,
+                        id: 3,
+                        status: 'QUEUED',
+                        start: sinon.stub().resolves(),
+                        update: sinon.stub().resolves()
+                    };
+
+                    jobFactoryMock.get.withArgs({ name: 'b', pipelineId }).returns(jobB);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: buildB.jobId }).returns(buildB);
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.notCalled(buildB.start);
+                        assert.notCalled(buildB.update);
+                        assert.equal(buildB.status, 'QUEUED');
                     });
                 });
 
@@ -3842,7 +3958,7 @@ describe('build plugin test', () => {
                         groupEventId: '8889',
                         parentBuildId: 12345,
                         parentBuilds: {
-                            123: { eventId: '8888', jobs: { a: 12345, c: 45678 } }
+                            123: { eventId: '8888', jobs: { a: 12344, c: 45678 } }
                         },
                         parentEventId: '8888',
                         pipelineId: '2',
@@ -3909,10 +4025,11 @@ describe('build plugin test', () => {
                         },
                         {
                             id: 999,
+                            parentBuildId: [12344, 45678],
                             parentBuilds: {
                                 123: {
                                     eventId: '8888',
-                                    jobs: { a: 12345, c: 45678 }
+                                    jobs: { a: 12344, c: 45678 }
                                 }
                             },
                             jobId: 3,

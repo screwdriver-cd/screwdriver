@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then, After } = require('cucumber');
+const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 const { ID } = require('../support/constants');
@@ -104,10 +104,13 @@ When(
     {
         timeout: TIMEOUT
     },
-    function step(branch) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `${branch}-${postfix}`;
+    async function step(branch) {
+        const sourceBranch = `${branch}-PR`;
         const targetBranch = 'master';
+
+        await github
+            .removeBranch(this.repoOrg, this.repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
@@ -129,9 +132,12 @@ When(
     {
         timeout: TIMEOUT
     },
-    function step(branch) {
-        const postfix = new Date().getTime().toString();
-        const sourceBranch = `${branch}-${postfix}`;
+    async function step(branch) {
+        const sourceBranch = `${branch}-PR`;
+
+        await github
+            .removeBranch(this.repoOrg, this.repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
 
         return github
             .createBranch(sourceBranch, this.repoOrg, this.repoName)
@@ -446,22 +452,6 @@ Then(
             Assert.equal(resp.statusCode, 200);
             Assert.equal(resp.body.status, 'SUCCESS', `Unexpected build status: ${prJobName}`);
         });
-    }
-);
-
-After(
-    {
-        tags: '@workflow-chainPR or @workflow-PR'
-    },
-    function hook() {
-        github
-            .closePullRequest(this.repoOrg, this.repoName, this.pullRequestNumber)
-            .then(() => {
-                github.removeBranch(this.repoOrg, this.repoName, this.branch);
-            })
-            .catch(() => {
-                Assert.fail('Failed to close Pull Request or remove branch.');
-            });
     }
 );
 

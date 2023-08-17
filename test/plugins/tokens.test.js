@@ -1,10 +1,10 @@
 'use strict';
 
+const { PassThrough } = require('stream');
+const urlLib = require('url');
 const { assert } = require('chai');
 const hapi = require('@hapi/hapi');
-const { PassThrough } = require('stream');
 const sinon = require('sinon');
-const urlLib = require('url');
 const suppressAPITokens = require('../../plugins/tokens/filter');
 
 const testToken = require('./data/token.json');

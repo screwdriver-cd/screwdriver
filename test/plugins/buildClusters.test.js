@@ -1,9 +1,9 @@
 'use strict';
 
+const urlLib = require('url');
 const { assert } = require('chai');
 const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
-const urlLib = require('url');
 const hoek = require('@hapi/hoek');
 const testBuildCluster = require('./data/buildCluster.json');
 const testBuildClusters = require('./data/buildClusters.json');
@@ -31,12 +31,14 @@ const getMockBuildClusters = buildClusters => {
 
 describe('buildCluster plugin test', () => {
     const username = 'myself';
+    const scmUserId = 123;
     const scmContext = 'github:github.com';
     const scmDisplayName = 'github';
     const buildClusterId = 12345;
     const name = 'iOS';
     const credentials = {
         scope: ['user'],
+        scmUserId,
         username,
         scmContext
     };
