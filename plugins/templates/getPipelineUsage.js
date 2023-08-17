@@ -8,7 +8,6 @@ const versionSchema = schema.models.template.base.extract('version');
 const tagSchema = schema.models.templateTag.base.extract('tag');
 
 module.exports = () => ({
-    // TODO: change API path name to pipelineUsage
     method: 'GET',
     path: '/templates/{name}/{versionOrTag}/pipelineUsage',
     options: {
