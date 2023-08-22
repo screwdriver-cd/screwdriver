@@ -6,14 +6,16 @@ const schema = require('screwdriver-data-schema');
 const nameSchema = schema.models.template.base.extract('name');
 const versionSchema = schema.models.template.base.extract('version');
 const tagSchema = schema.models.templateTag.base.extract('tag');
+const getSchema = schema.api.pipelineUsage.get;
 
 module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/{versionOrTag}/pipelineUsage',
     options: {
-        description: 'Get a single template given template name and version or tag, with metrics',
-        notes: 'Returns a template record with metrics',
-        tags: ['api', 'templates'],
+        description:
+            'Get information for the pipelines that are being used by a specific template version.',
+        notes: 'Returns information aboout the pipelines using the template version.',
+        tags: ['api', 'templates', 'pipelines', 'metrics'],
         auth: {
             strategies: ['token'],
             scope: ['user', 'build']
@@ -37,23 +39,7 @@ module.exports = () => ({
                 });
         },
         response: {
-            schema: joi.array().items(
-                joi.object({
-                    id: joi.number().required(),
-                    name: joi.string().required(),
-                    scmRepo: joi
-                        .object({
-                            branch: joi.string().required(),
-                            name: joi.string().required(),
-                            url: joi.string().uri().required(),
-                            rootDir: joi.string().required(),
-                            private: joi.boolean().required()
-                        })
-                        .required(),
-                    lastRun: joi.alternatives().try(joi.string().isoDate(), joi.allow(null)),
-                    admins: joi.object().pattern(joi.string(), joi.boolean()).required()
-                })
-            )
+            schema: getSchema
         },
         validate: {
             params: joi.object({
