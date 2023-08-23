@@ -30,7 +30,7 @@ module.exports = () => ({
             return Promise.all([
                 pipelineFactory.get(pipelineId),
                 templateFactory.get({ name, version }),
-                templateTagFactory.get({ name, tag })
+                templateTagFactory.get({ name, tag, templateType: 'JOB' })
             ])
                 .then(([pipeline, template, templateTag]) => {
                     // If template doesn't exist, throw error
