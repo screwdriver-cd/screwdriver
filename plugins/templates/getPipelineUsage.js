@@ -10,7 +10,7 @@ const getSchema = schema.api.pipelineUsage.get;
 
 module.exports = () => ({
     method: 'GET',
-    path: '/templates/{name}/{versionOrTag}/pipelineUsage',
+    path: '/templates/{name}/{versionOrTag}/usage/pipelines',
     options: {
         description:
             'Get information for the pipelines that are being used by a specific template version.',
