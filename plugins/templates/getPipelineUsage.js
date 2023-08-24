@@ -12,8 +12,7 @@ module.exports = () => ({
     method: 'GET',
     path: '/templates/{name}/{versionOrTag}/usage/pipelines',
     options: {
-        description:
-            'Get information for the pipelines that are being used by a specific template version.',
+        description: 'Get information for the pipelines that are being used by a specific template version.',
         notes: 'Returns information aboout the pipelines using the template version.',
         tags: ['api', 'templates', 'pipelines', 'metrics'],
         auth: {
