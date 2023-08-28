@@ -48,7 +48,7 @@ jobs:
             screwdriver.cd/dockerCpu: HIGH
             screwdriver.cd/dockerRam: HIGH
         requires: publish
-        template: sd/dind@latest
+        template: sd/dind@2.0.20
     # Deploy to our beta environment and run tests
     beta:
         image: node:18
