@@ -1172,8 +1172,7 @@ describe('template plugin test', () => {
                 });
                 assert.calledWith(templateTagFactoryMock.get, {
                     name: 'testtemplate',
-                    tag: 'stable',
-                    templateType: 'JOB'
+                    tag: 'stable'
                 });
                 assert.calledWith(templateTagFactoryMock.create, {
                     name: 'testtemplate',
@@ -1201,8 +1200,7 @@ describe('template plugin test', () => {
                 });
                 assert.calledWith(templateTagFactoryMock.get, {
                     name: 'testtemplate',
-                    tag: 'stable',
-                    templateType: 'JOB'
+                    tag: 'stable'
                 });
                 assert.calledOnce(template.update);
                 assert.notCalled(templateTagFactoryMock.create);
