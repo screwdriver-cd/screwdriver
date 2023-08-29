@@ -434,7 +434,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe.only('GET /templates/name/versionOrTag/usage/pipelines', () => {
+    describe('GET /templates/name/versionOrTag/usage/pipelines', () => {
         let options;
 
         beforeEach(() => {
@@ -449,6 +449,16 @@ describe('template plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testPipelineUsage);
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(templateFactoryMock.getPipelineUsage, `screwdriver/build@1.7.3`);
+            });
+        });
+
+        it('returns 200 even if no pipelines are using the template version', () => {
+            templateFactoryMock.getPipelineUsage.resolves([]);
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, []);
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(templateFactoryMock.getPipelineUsage, `screwdriver/build@1.7.3`);
             });
