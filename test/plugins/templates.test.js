@@ -12,6 +12,7 @@ const testtemplateversions = require('./data/templateVersions.json');
 const testTemplateVersionsMetrics = require('./data/templateVersionsMetrics.json');
 const testTemplateWithNamespace = require('./data/templateWithNamespace.json');
 const testpipeline = require('./data/pipeline.json');
+const testPipelineUsage = require('./data/pipelineUsage.json');
 const TEMPLATE_INVALID = require('./data/template-validator.missing-version.json');
 const TEMPLATE_VALID = require('./data/template-validator.input.json');
 const TEMPLATE_VALID_NEW_VERSION = require('./data/template-create.input.json');
@@ -69,7 +70,8 @@ describe('template plugin test', () => {
             list: sinon.stub(),
             listWithMetrics: sinon.stub(),
             getTemplate: sinon.stub(),
-            get: sinon.stub()
+            get: sinon.stub(),
+            getPipelineUsage: sinon.stub()
         };
         templateTagFactoryMock = {
             create: sinon.stub(),
@@ -428,6 +430,36 @@ describe('template plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
+            });
+        });
+    });
+
+    describe.only('GET /templates/name/versionOrTag/usage/pipelines', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/templates/screwdriver%2Fbuild/1.7.3/usage/pipelines'
+            };
+        });
+
+        it('returns 200 and all pipelines that use the template version', () => {
+            templateFactoryMock.getPipelineUsage.resolves(testPipelineUsage);
+
+            return server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, testPipelineUsage);
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(templateFactoryMock.getPipelineUsage, `screwdriver/build@1.7.3`);
+            });
+        });
+
+        it('returns 404 when the template does not exist', () => {
+            templateFactoryMock.getPipelineUsage.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.calledWith(templateFactoryMock.getPipelineUsage, `screwdriver/build@1.7.3`);
             });
         });
     });
@@ -1243,7 +1275,10 @@ describe('template plugin test', () => {
 
             templateFactoryMock.get.resolves(testTemplateV1);
             templateFactoryMock.get
-                .withArgs({ name: `${templateNameSpace}/${templateName}`, version: templateVersion1 })
+                .withArgs({
+                    name: `${templateNameSpace}/${templateName}`,
+                    version: templateVersion1
+                })
                 .resolves(testTemplateV1);
             templateTagFactoryMock.list.resolves([testTemplateTag]);
         });
@@ -1276,7 +1311,10 @@ describe('template plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, error.statusCode);
                 assert.deepEqual(reply.result, error);
-                assert.calledWith(templateFactoryMock.get, { name: 'test-namespace/test-template', version: '1.0.0' });
+                assert.calledWith(templateFactoryMock.get, {
+                    name: 'test-namespace/test-template',
+                    version: '1.0.0'
+                });
             });
         });
 
