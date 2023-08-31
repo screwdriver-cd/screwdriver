@@ -465,10 +465,19 @@ describe('template plugin test', () => {
         });
 
         it('returns 404 when the template does not exist', () => {
-            templateFactoryMock.getPipelineUsage.resolves(null);
+            templateFactoryMock.getPipelineUsage.returns(Promise.reject(new Error('Template does not exist')));
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Template screwdriver/build@1.7.3 does not exist'
+            };
 
             return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 404);
+                const payload = JSON.parse(reply.payload);
+
+                Object.keys(error).forEach(k => {
+                    assert.equal(payload[k], error[k]);
+                });
                 assert.calledWith(templateFactoryMock.getPipelineUsage, `screwdriver/build@1.7.3`);
             });
         });

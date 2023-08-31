@@ -143,7 +143,7 @@ If the deleted version was the last published, the API would set the `latest` at
 * `name` - Name of the template
 * `version` - Version of the template
 
-###### Example payload
+###### Example response
 
 ```json
 [

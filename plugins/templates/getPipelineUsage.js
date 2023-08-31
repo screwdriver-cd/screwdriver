@@ -27,14 +27,14 @@ module.exports = () => ({
             return templateFactory
                 .getPipelineUsage(`${name}@${versionOrTag}`)
                 .then(template => {
-                    if (!template) {
-                        throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
-                    }
-
                     return h.response(template);
                 })
                 .catch(err => {
-                    throw err;
+                    if (err.message === 'Template does not exist') {
+                        throw boom.notFound(`Template ${name}@${versionOrTag} does not exist`);
+                    } else {
+                        throw err;
+                    }
                 });
         },
         response: {

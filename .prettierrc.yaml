@@ -1,5 +1,5 @@
 trailingComma: "none"
-printWidth: 100
+printWidth: 110
 singleQuote: true
 tabWidth: 4
 arrowParens: "avoid"

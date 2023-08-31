@@ -22,7 +22,7 @@
                 "count": 7
             },
             "pipelines": {
-                "count": 0
+                "count": 1
             }
         }
     },
@@ -49,7 +49,7 @@
                 "count": 9
             },
             "pipelines": {
-                "count": 0
+                "count": 1
             }
         }
     },
@@ -76,7 +76,7 @@
                 "count": 13
             },
             "pipelines": {
-                "count": 0
+                "count": 3
             }
         }
     }
