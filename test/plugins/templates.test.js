@@ -434,7 +434,7 @@ describe('template plugin test', () => {
         });
     });
 
-    describe.only('GET /templates/name/versionOrTag/usage/pipelines', () => {
+    describe('GET /templates/name/versionOrTag/usage/pipelines', () => {
         let options;
 
         beforeEach(() => {
