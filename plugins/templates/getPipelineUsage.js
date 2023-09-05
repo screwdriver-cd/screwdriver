@@ -26,8 +26,8 @@ module.exports = () => ({
 
             return templateFactory
                 .getPipelineUsage(`${name}@${versionOrTag}`)
-                .then(template => {
-                    return h.response(template);
+                .then(pipelines => {
+                    return h.response(pipelines);
                 })
                 .catch(err => {
                     if (err.message === 'Template does not exist') {
