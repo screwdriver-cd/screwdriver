@@ -138,12 +138,12 @@
     }
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^9.0.0",
     "@octokit/rest": "^19.0.5",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
     "chai-jwt": "^2.0.0",
     "coveralls": "^3.1.1",
-    "@cucumber/cucumber": "^9.0.0",
     "eslint": "^8.28.0",
     "eslint-config-screwdriver": "^7.0.0",
     "form-data": "^4.0.0",
