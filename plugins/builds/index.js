@@ -608,7 +608,7 @@ function fillParentBuilds(parentBuilds, current, builds, nextEvent) {
 
                 // parentBuild is in current event
                 if (+pid === current.pipeline.id) {
-                    workflowGraph = current.flattenedWorkflowGraph;
+                    workflowGraph = current.event.workflowGraph;
                 } else if (nextEvent) {
                     if (+pid !== nextEvent.pipelineId) {
                         // parentBuild is remote triggered from external event
@@ -619,7 +619,7 @@ function fillParentBuilds(parentBuilds, current, builds, nextEvent) {
                 } else {
                     // parentBuild is remote triggered from current Event
                     searchJob = `sd@${pid}:${searchJob}`;
-                    workflowGraph = current.flattenedWorkflowGraph;
+                    workflowGraph = current.event.workflowGraph;
                 }
                 joinJob = workflowGraph.nodes.find(node => node.name === searchJob);
 
@@ -656,13 +656,13 @@ function fillParentBuilds(parentBuilds, current, builds, nextEvent) {
  *                  }
  */
 async function createJoinObject(nextJobs, current, eventFactory) {
-    const { build, flattenedWorkflowGraph } = current;
+    const { build, event } = current;
     const joinObj = {};
 
     for (const jobName of nextJobs) {
         const jobInfo = getPipelineAndJob(jobName, current.pipeline.id);
         const { externalPipelineId: pid, externalJobName: jName, isExternal } = jobInfo;
-        const jId = flattenedWorkflowGraph.nodes.find(n => n.name === trimJobName(jobName)).id;
+        const jId = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName)).id;
 
         if (!joinObj[pid]) joinObj[pid] = {};
         const pipelineObj = joinObj[pid];
@@ -675,10 +675,10 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 
             if (externalEvent) {
                 pipelineObj.event = externalEvent;
-                jobs = workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: jName });
+                jobs = workflowParser.getSrcForJoin(event.workflowGraph, { jobName: jName });
             }
         } else {
-            jobs = workflowParser.getSrcForJoin(flattenedWorkflowGraph, { jobName });
+            jobs = workflowParser.getSrcForJoin(event.workflowGraph, { jobName });
         }
 
         if (!pipelineObj.jobs) pipelineObj.jobs = {};
@@ -734,25 +734,13 @@ const buildsPlugin = {
             const { pipeline, job, build } = config;
             const { eventFactory, buildFactory } = app;
             const event = await eventFactory.get({ id: build.eventId });
-            const stageBuilds = await event.getStageBuilds();
-            const stageWorkflowGraphs = {};
-
-            stageBuilds.forEach(stageBuild => {
-                stageWorkflowGraphs[stageBuild.stageId] = stageBuild.workflowGraph;
-            });
-
-            const flattenedWorkflowGraph = workflowParser.getFlattenedWorkflow(
-                event.workflowGraph,
-                stageWorkflowGraphs
-            );
             const current = {
                 pipeline,
                 job,
                 build,
-                event,
-                flattenedWorkflowGraph
+                event
             };
-            const nextJobsTrigger = workflowParser.getNextJobs(flattenedWorkflowGraph, {
+            const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
             });
@@ -823,30 +811,20 @@ const buildsPlugin = {
             const { eventFactory, pipelineFactory, buildFactory, jobFactory } = app;
             const event = await eventFactory.get({ id: build.eventId });
             const stageBuilds = await event.getStageBuilds();
-            const stageWorkflowGraphs = {};
 
-            stageBuilds.forEach(stageBuild => {
-                stageWorkflowGraphs[stageBuild.stageId] = stageBuild.workflowGraph;
-            });
-
-            const flattenedWorkflowGraph = workflowParser.getFlattenedWorkflow(
-                event.workflowGraph,
-                stageWorkflowGraphs
-            );
             const current = {
                 pipeline,
                 job,
                 build,
                 event,
-                stageBuilds,
-                flattenedWorkflowGraph
+                stageBuilds
             };
-            let nextJobsTrigger = workflowParser.getNextJobs(current.flattenedWorkflowGraph, {
+            let nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
             });
 
-            const currentNode = current.flattenedWorkflowGraph.nodes.find(n => n.name === current.job.name);
+            const currentNode = current.event.workflowGraph.nodes.find(n => n.name === current.job.name);
 
             // Figure out if need to run stage teardown
             // If build is in stage
@@ -861,7 +839,11 @@ const buildsPlugin = {
                 } else {
                     //  else get all stage builds in workflow, compare number of stageBuilds to stage builds with status
                     // Get job names from stage workflow
-                    const workflowStageBuilds = currentStageBuild.workflowGraph.nodes.map(n => return n.name);
+                    const workflowStageBuilds = current.event.workflowGraph.nodes
+                        .filter(n => n.stageName === currentStageBuild.stageName)
+                        .map(n => {
+                            return n.name;
+                        });
 
                     // get all builds in current stage
                     const buildParentBuilds = current.build.parentBuilds;
