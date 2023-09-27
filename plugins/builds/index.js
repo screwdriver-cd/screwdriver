@@ -675,7 +675,7 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 
             if (externalEvent) {
                 pipelineObj.event = externalEvent;
-                jobs = workflowParser.getSrcForJoin(event.workflowGraph, { jobName: jName });
+                jobs = workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: jName });
             }
         } else {
             jobs = workflowParser.getSrcForJoin(event.workflowGraph, { jobName });
