@@ -131,6 +131,38 @@ If the deleted version was the last published, the API would set the `latest` at
 * `name` - Name of the template
 * `version` - Version of the template
 
+##### Get Report of Pipelines that use a template version
+
+`GET /templates/{name}/{version}/usage/pipelines`
+
+
+###### Arguments
+
+'name', 'version'
+
+* `name` - Name of the template
+* `version` - Version of the template
+
+###### Example response
+
+```json
+[
+    {
+        id: 4,
+        name: 'nathom/sd-uses-template',
+        scmRepo: {
+          branch: 'main',
+          name: 'nathom/sd-uses-template',
+          url: 'https://github.com/nathom/sd-uses-template/tree/main/pipe2',
+          rootDir: 'pipe2',
+          private: false
+        },
+        lastRun: '2023-07-31T17:15:37.510Z',
+        admins: { nathom: true }
+    },
+]
+```
+
 #### Template Tag
 Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`.
 
