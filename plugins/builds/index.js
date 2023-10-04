@@ -243,6 +243,8 @@ async function createExternalBuild(config) {
  * @param  {Boolean}  [config.start]            Whether to start the build or not
  * @param  {Number}   [config.jobId]            Job ID
  * @param  {Object}   [config.event]            Event build belongs to
+ * @param  {Object}   [config.currentNode]      Current node
+ * @param  {Object}   [config.currentStageBuild]Current stage build
  * @return {Promise}
  */
 async function createInternalBuild(config) {
@@ -258,7 +260,9 @@ async function createInternalBuild(config) {
         start,
         baseBranch,
         parentBuildId,
-        jobId
+        jobId,
+        currentNode,
+        currentStageBuild
     } = config;
     const prRef = event.pr.ref ? event.pr.ref : '';
     const prSource = event.pr.prSource || '';
@@ -310,6 +314,12 @@ async function createInternalBuild(config) {
     }
 
     if (jobState === 'ENABLED') {
+        // Set stageBuild status to running if setup
+        if (currentNode.name === `stage@${currentNode.stageName}:setup`) {
+            currentStageBuild.status = 'RUNNING';
+            await currentStageBuild.update();
+        }
+
         return buildFactory.create(internalBuildConfig);
     }
 
@@ -826,54 +836,47 @@ const buildsPlugin = {
 
             const currentNode = current.event.workflowGraph.nodes.find(n => n.name === current.job.name);
 
+            current.node = currentNode;
+
             // Figure out if need to run stage teardown
             // If build is in stage
             if (currentNode && currentNode.stageName) {
                 const currentStageBuild = stageBuilds.find(sb => sb.stageName === currentNode.stageName);
 
-                // Set stageBuild status to running if setup
-                if (currentNode.name === `stage@${currentNode.stageName}:setup`) {
-                    currentStageBuild.status = 'RUNNING';
-                    await currentStageBuild.update();
-                    // Set stageBuild status if completed
-                } else {
-                    //  else get all stage builds in workflow, compare number of stageBuilds to stage builds with status
-                    // Get job names from stage workflow
-                    const workflowStageBuilds = current.event.workflowGraph.nodes
-                        .filter(n => n.stageName === currentStageBuild.stageName)
-                        .map(n => {
-                            return n.name;
-                        });
+                current.stageBuild = currentStageBuild;
 
-                    // get all builds in current stage
-                    const buildParentBuilds = current.build.parentBuilds;
-                    const stageDict = {};
-                    const eventBuilds = await current.event.getBuilds();
+                //  else get all stage builds in workflow, compare number of stageBuilds to stage builds with status
+                // Get job names from stage workflow
+                const workflowStageBuilds = currentStageBuild.workflowGraph.nodes.map(n => n.name);
 
-                    if (buildParentBuilds && buildParentBuilds[pipeline.id]) {
-                        workflowStageBuilds.forEach(b => {
-                            if (b !== `stage@${currentNode.stageName}:teardown`) {
-                                const buildId = buildParentBuilds[pipeline.id].jobs[b];
-                                const buildForStage = eventBuilds.filter(eb => eb.id === buildId);
+                // get all builds in current stage
+                const buildParentBuilds = current.build.parentBuilds;
+                const stageDict = {};
+                const eventBuilds = await current.event.getBuilds();
 
-                                stageDict[b] = buildForStage.length > 0 ? buildForStage[0] : undefined;
-                            }
-                        });
-                    }
+                if (buildParentBuilds && buildParentBuilds[pipeline.id]) {
+                    workflowStageBuilds.forEach(b => {
+                        if (b !== `stage@${currentNode.stageName}:teardown`) {
+                            const buildId = buildParentBuilds[pipeline.id].jobs[b];
+                            const buildForStage = eventBuilds.filter(eb => eb.id === buildId);
 
-                    // Make sure number of builds is same as expected number of stage jobs
-                    if (Object.values(stageDict).every(b => b !== undefined)) {
-                        // if (true) {
-                        const builds = Object.values(stageDict);
-                        // Check build statuses
-                        const stageIsDone = builds.every(b => isNotActiveBuild(b.status, b.endTime));
-                        const shouldRunStageTeardown = builds.some(b => hasTerminalBuild(b.status, b.endTime));
-
-                        // if any have terminal status or all no longer active, destroy created stage builds, set next job to teardown
-                        if (shouldRunStageTeardown || stageIsDone) {
-                            builds.forEach(async b => deleteBuild(b, buildFactory));
-                            nextJobsTrigger = [`stage@${currentNode.stageName}:teardown`];
+                            stageDict[b] = buildForStage.length > 0 ? buildForStage[0] : undefined;
                         }
+                    });
+                }
+
+                // Make sure number of builds is same as expected number of stage jobs
+                if (Object.values(stageDict).every(b => b !== undefined)) {
+                    // if (true) {
+                    const builds = Object.values(stageDict);
+                    // Check build statuses
+                    const stageIsDone = builds.every(b => isNotActiveBuild(b.status, b.endTime));
+                    const shouldRunStageTeardown = builds.some(b => hasTerminalBuild(b.status, b.endTime));
+
+                    // if any have terminal status or all no longer active, destroy created stage builds, set next job to teardown
+                    if (shouldRunStageTeardown || stageIsDone) {
+                        builds.forEach(async b => deleteBuild(b, buildFactory));
+                        nextJobsTrigger = [`stage@${currentNode.stageName}:teardown`];
                     }
                 }
             }
@@ -908,7 +911,9 @@ const buildsPlugin = {
                         event: current.event, // this is the parentBuild for the next build
                         baseBranch: current.event.baseBranch || null,
                         parentBuilds,
-                        parentBuildId: current.build.id
+                        parentBuildId: current.build.id,
+                        currentNode: current.node,
+                        currentStageBuild: current.stageBuild
                     };
 
                     const nextJob = await jobFactory.get({
@@ -971,7 +976,9 @@ const buildsPlugin = {
                         event: current.event, // this is the parentBuild for the next build
                         baseBranch: current.event.baseBranch || null,
                         parentBuilds,
-                        parentBuildId: current.build.id
+                        parentBuildId: current.build.id,
+                        currentNode: current.node,
+                        currentStageBuild: current.stageBuild
                     };
 
                     newBuild = await createInternalBuild(internalBuildConfig);
@@ -1105,7 +1112,9 @@ const buildsPlugin = {
                                 baseBranch: externalEvent.baseBranch || null,
                                 parentBuilds,
                                 parentBuildId: current.build.id,
-                                start: false
+                                start: false,
+                                currentNode: current.node,
+                                currentStageBuild: current.stageBuild
                             });
                         }
 

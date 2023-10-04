@@ -246,8 +246,7 @@ module.exports = () => ({
             const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
             // Guard against triggering non-successful or unstable builds
-            // Don't further trigger pipeline if intented to skip further jobs
-
+            // Don't further trigger pipeline if intend to skip further jobs
             if (newBuild.status !== 'SUCCESS' || skipFurther) {
                 // Check for failed jobs and remove any child jobs in created state
                 if (newBuild.status === 'FAILURE') {
