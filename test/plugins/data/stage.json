@@ -6,6 +6,5 @@
   "description": "Deploys canary job",
   "setup": [222],
   "teardown": [333],
-  "startFrom": ["main"],
   "archived": false
 }
