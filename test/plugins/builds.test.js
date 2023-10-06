@@ -12,6 +12,7 @@ const testBuild = require('./data/build.json');
 const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
+const testWorkflowGraphWithStages = require('./data/workflowGraphWithStages.json');
 const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
 /* eslint-disable no-underscore-dangle */
 
@@ -112,6 +113,7 @@ describe('build plugin test', () => {
     let jobFactoryMock;
     let pipelineFactoryMock;
     let stageFactoryMock;
+    let stageBuildFactoryMock;
     let eventFactoryMock;
     let bannerMock;
     let screwdriverAdminDetailsMock;
@@ -164,7 +166,11 @@ describe('build plugin test', () => {
             }
         };
         stageFactoryMock = {
-            list: sinon.stub().resolves({})
+            list: sinon.stub().resolves([])
+        };
+        stageBuildFactoryMock = {
+            list: sinon.stub().resolves([]),
+            create: sinon.stub().resolves({})
         };
         eventFactoryMock = {
             get: sinon.stub(),
@@ -202,6 +208,7 @@ describe('build plugin test', () => {
             stepFactory: stepFactoryMock,
             pipelineFactory: pipelineFactoryMock,
             stageFactory: stageFactoryMock,
+            stageBuildFactory: stageBuildFactoryMock,
             jobFactory: jobFactoryMock,
             userFactory: userFactoryMock,
             eventFactory: eventFactoryMock,
@@ -438,7 +445,6 @@ describe('build plugin test', () => {
                 },
                 pr: {},
                 getBuilds: sinon.stub(),
-                getStageBuilds: sinon.stub().resolves([]),
                 update: sinon.stub(),
                 toJson: sinon.stub().returns({ id: 123 })
             };
@@ -1551,7 +1557,7 @@ describe('build plugin test', () => {
 
                     jobMock = {
                         id: 1234,
-                        name: 'D',
+                        name: 'alpha-deploy',
                         pipelineId,
                         permutations: [
                             {
@@ -1565,7 +1571,7 @@ describe('build plugin test', () => {
                     };
                     buildMock.job = sinon.stub().resolves(jobMock)();
                     buildMock.parentBuilds = {
-                        123: { eventId: '8888', jobs: { 'stage@deploy:setup': 7777, C: 7778, D: 7779 } }
+                        123: { eventId: '8888', jobs: { 'stage@alpha:setup': 7777, C: 7778, D: 7779 } }
                     };
                     eventMock.getBuilds.resolves([
                         {
@@ -1593,69 +1599,8 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
-                    eventMock.getStageBuilds.resolves([
-                        {
-                            id: 1,
-                            stageId: 887,
-                            stageName: 'other',
-                            workflowGraph: {
-                                nodes: [
-                                    { name: 'stage@other:teardown', stageName: 'other' },
-                                    { name: 'main', stageName: 'other' },
-                                    { name: 'stage@other:setup', stageName: 'other' },
-                                    { name: 'publish', stageName: 'other' }
-                                ],
-                                edges: [{ src: 'main', dest: 'publish' }]
-                            }
-                        },
-                        {
-                            id: 2,
-                            stageId: 888,
-                            stageName: 'deploy',
-                            workflowGraph: {
-                                nodes: [
-                                    { name: 'C', stageName: 'deploy' },
-                                    { name: 'stage@deploy:setup', stageName: 'deploy' },
-                                    { name: 'D', stageName: 'deploy' },
-                                    { name: 'stage@deploy:teardown', stageName: 'deploy' }
-                                ],
-                                edges: [{ src: 'C', dest: 'D' }]
-                            }
-                        },
-                        {
-                            id: 3,
-                            stageId: 889,
-                            stageName: 'canary',
-                            workflowGraph: {
-                                nodes: [
-                                    { name: 'E', stageName: 'canary' },
-                                    { name: 'stage@canary:setup', stageName: 'canary' },
-                                    { name: 'F', stageName: 'canary' },
-                                    { name: 'stage@canary:teardown', stageName: 'canary' }
-                                ],
-                                edges: [{ src: 'E', dest: 'F' }]
-                            }
-                        }
-                    ]);
 
-                    eventMock.workflowGraph = {
-                        nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'foo' },
-                            { name: 'A' },
-                            { name: 'B' },
-                            { name: '~stage@other' },
-                            { name: '~stage@deploy' }
-                        ],
-                        edges: [
-                            { src: '~commit', dest: 'foo' },
-                            { src: 'foo', dest: 'A' },
-                            { src: 'stage@other', dest: 'B' },
-                            { src: 'foo', dest: 'B' },
-                            { src: 'A', dest: 'stage@deploy' }
-                        ]
-                    };
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
                     eventFactoryMock.get.resolves(eventMock);
 
                     return server.inject(options).then(reply => {
@@ -1667,17 +1612,11 @@ describe('build plugin test', () => {
                 it('triggers next job in the stage workflow if current is stage setup', () => {
                     const stageMock = {
                         id: 1,
-                        stageId: 887,
-                        stageName: 'other',
-                        workflowGraph: {
-                            nodes: [
-                                { name: 'stage@other:teardown', stageName: 'other' },
-                                { name: 'main', stageName: 'other' },
-                                { name: 'stage@other:setup', stageName: 'other' },
-                                { name: 'publish', stageName: 'other' }
-                            ],
-                            edges: [{ src: 'main', dest: 'publish' }]
-                        },
+                        name: 'beta'
+                    };
+                    const stageBuildMock = {
+                        id: 1,
+                        stageId: 1,
                         update: sinon.stub().resolves()
                     };
                     const status = 'SUCCESS';
@@ -1698,7 +1637,7 @@ describe('build plugin test', () => {
 
                     jobMock = {
                         id: 1234,
-                        name: 'stage@other:setup',
+                        name: 'stage@alpha:teardown',
                         pipelineId,
                         permutations: [
                             {
@@ -1726,60 +1665,19 @@ describe('build plugin test', () => {
                             status: 'SUCCESS'
                         }
                     ]);
-                    eventMock.getStageBuilds.resolves([
-                        stageMock,
-                        {
-                            id: 2,
-                            stageId: 888,
-                            stageName: 'deploy',
-                            workflowGraph: {
-                                nodes: [
-                                    { name: 'C', stageName: 'deploy' },
-                                    { name: 'stage@deploy:setup', stageName: 'deploy' },
-                                    { name: 'D', stageName: 'deploy' }
-                                ],
-                                edges: [{ src: 'C', dest: 'D' }]
-                            }
-                        },
-                        {
-                            id: 3,
-                            stageId: 889,
-                            stageName: 'canary',
-                            workflowGraph: {
-                                nodes: [
-                                    { name: 'E', stageName: 'canary' },
-                                    { name: 'stage@canary:setup', stageName: 'canary' },
-                                    { name: 'F', stageName: 'canary' }
-                                ],
-                                edges: [{ src: 'E', dest: 'F' }]
-                            }
-                        }
-                    ]);
 
-                    eventMock.workflowGraph = {
-                        nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'foo' },
-                            { name: 'A' },
-                            { name: 'B' },
-                            { name: '~stage@other' },
-                            { name: '~stage@deploy' }
-                        ],
-                        edges: [
-                            { src: '~commit', dest: 'foo' },
-                            { src: 'foo', dest: 'A' },
-                            { src: 'stage@other', dest: 'B' },
-                            { src: 'foo', dest: 'B' },
-                            { src: 'A', dest: 'stage@deploy' }
-                        ]
-                    };
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
                     eventFactoryMock.get.resolves(eventMock);
+                    stageFactoryMock.list.resolves([stageMock]);
+                    stageBuildFactoryMock.list.resolves([stageBuildMock]);
+                    testBuild.status = 'CREATED';
+                    buildMock = getBuildMock(testBuild);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
-                        assert.called(stageMock.update);
+                        assert.called(stageBuildFactoryMock.create);
                     });
                 });
 
