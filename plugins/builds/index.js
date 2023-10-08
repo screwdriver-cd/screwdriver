@@ -527,12 +527,13 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
     let stage;
 
     if (currentNode.stageName) {
-        stage = await stageFactory.list({
-            params: { pipelineId, stageName: currentNode.stageName, archived: false }
+        stage = await stageFactory.get({
+            pipelineId,
+            name: currentNode.stageName
         });
     }
 
-    return stage ? stage[0] : undefined;
+    return stage;
 }
 
 /**
@@ -565,8 +566,7 @@ async function handleStage(config) {
 
     const stageSetupName = getFullStageName({ stageName: stage.name, type: 'setup' });
     const stageTeardownName = getFullStageName({ stageName: stage.name, type: 'teardown' });
-    const stageBuilds = await stageBuildFactory.list({ params: { stageId: stage.id, eventId: event.id } });
-    const stageBuild = stageBuilds[0];
+    const stageBuild = await stageBuildFactory.get({ stageId: stage.id, eventId: event.id });
 
     // Create/run stage teardown if stage job failure and no other running jobs in stage
     if (hasFailure) {
@@ -588,9 +588,9 @@ async function handleStage(config) {
         const stageTeardownJob = await jobFactory.list({ params: { pipelineId, jobName: stageTeardownName } });
         const existingStageTeardownBuild = await buildFactory.list({
             params: { eventId: event.id, jobId: stageTeardownJob.id }
-        })[0];
+        });
 
-        if (existingStageTeardownBuild) {
+        if (existingStageTeardownBuild && existingStageTeardownBuild[0]) {
             return existingStageTeardownBuild;
         }
 
@@ -956,35 +956,120 @@ const buildsPlugin = {
                         pipelineId: current.pipeline.id
                     });
 
-                    let existNextBuild = await buildFactory.get({
+                    const existNextBuild = await buildFactory.get({
                         eventId: current.event.id,
                         jobId: nextJob.id
                     });
 
                     if (existNextBuild === null) {
+                        const nextBuildNode = current.event.workflowGraph.nodes.find(
+                            node => node.name === trimJobName(nextJobName)
+                        );
+                        const nextBuildStageName = nextBuildNode.stageName || undefined;
+
+                        // Next job is in a stage
+                        if (nextBuildStageName) {
+                            const nextBuildStage = await stageFactory.get({
+                                pipelineId: current.pipeline.id,
+                                name: nextBuildStageName
+                            });
+                            const stageSetupName = getFullStageName({ stageName: nextBuildStageName, type: 'setup' });
+
+                            // If next build is stage setup, create stageBuild and set to running
+                            if (nextBuildStage && nextJobName === stageSetupName) {
+                                await stageBuildFactory.create({
+                                    stageId: nextBuildStage.id,
+                                    eventId: current.event.id,
+                                    status: 'RUNNING'
+                                });
+                            }
+                        }
+
                         return createInternalBuild(internalBuildConfig);
                     }
 
-                    existNextBuild = await handleStage({
-                        done: true,
-                        hasFailure: false,
-                        jobName: nextJobName,
-                        newBuild: existNextBuild,
-                        jobFactory,
-                        buildFactory,
-                        pipelineId: current.pipeline.id,
-                        username,
-                        scmContext,
-                        event: current.event,
-                        stage: current.stage,
-                        stageFactory,
-                        stageBuildFactory
-                    });
-
-                    if (!['CREATED', null, undefined].includes(existNextBuild.status)) {
+                    if (!['CREATED', null, undefined].includes(existNextBuild.status) && !current.stage) {
                         return existNextBuild;
                     }
 
+                    // Current build is part of stage
+                    if (current.stage) {
+                        const stageBuild = await stageBuildFactory.get({
+                            stageId: current.stage.id,
+                            eventId: current.event.id
+                        });
+                        const stageTeardownName = getFullStageName({ stageName: current.stage.name, type: 'teardown' });
+
+                        //   if currentBuild is stage teardown with success, check stageBuild status
+                        if (current.job.name === stageTeardownName && current.build.status === 'SUCCESS') {
+                            //      if stageBuild status is failure/terminal,
+                            if (['FAILURE', 'ABORTED', 'COLLAPSED', 'UNSTABLE'].includes(stageBuild.status)) {
+                                // Remove next build
+                                logger.info(
+                                    `Failure occurred in upstream job, removing new build - build:${existNextBuild.id} pipeline:${current.pipeline.id}-${current.job.name} event:${existNextBuild.eventId} `
+                                );
+                                await existNextBuild.remove();
+
+                                return null;
+                            }
+
+                            return existNextBuild;
+                        }
+
+                        //   if nextBuild is teardown, just update stageBuild status to currentBuild status and return nextBuild
+                        if (nextJobName === stageTeardownName) {
+                            stageBuild.status = current.build.status;
+                            await stageBuild.update();
+
+                            return existNextBuild;
+                        }
+
+                        // TODO: fix terminal logic (move to build update file)
+                        //   if currentBuild is terminal, (if nextBuild is not teardown, )
+                        if (['FAILURE', 'ABORTED', 'COLLAPSED', 'UNSTABLE'].includes(current.build.status)) {
+                            //     delete nextBuild, update stageBuild status to current build status, create teardown build if it doesn't exist and return teardown build or return null
+                            // Remove next build
+                            logger.info(
+                                `Failure occurred in upstream job in stage:${current.stage}, removing new build - build:${existNextBuild.id} pipeline:${current.pipeline.id}-${current.job.name} event:${existNextBuild.eventId} `
+                            );
+                            await existNextBuild.remove();
+
+                            stageBuild.status = current.build.status;
+                            await stageBuild.update();
+
+                            // Check if stage teardown build already exists
+                            const stageTeardownJob = await jobFactory.list({
+                                params: { pipelineId: current.pipeline.id, jobName: stageTeardownName }
+                            });
+                            const existingStageTeardownBuild = await buildFactory.list({
+                                params: { eventId: current.event.id, jobId: stageTeardownJob.id }
+                            });
+
+                            // TODO: how does join know when to trigger join job? check if each upstream path is terminal?
+                            //
+                            //
+                            if (existingStageTeardownBuild && existingStageTeardownBuild[0]) {
+                                return existingStageTeardownBuild;
+                            }
+
+                            // Doesn't exist, create stage teardown job and return as next job
+                            const stageTeardownBuild = await createInternalBuild({
+                                jobFactory,
+                                buildFactory,
+                                pipelineId: current.pipeline.id,
+                                jobName: stageTeardownName,
+                                username,
+                                scmContext,
+                                event, // this is the parentBuild for the next build
+                                baseBranch: event.baseBranch || null,
+                                start: false
+                            });
+
+                            return stageTeardownBuild;
+                        }
+                    }
+
+                    // Current build is not part of stage
                     existNextBuild.status = 'QUEUED';
                     await existNextBuild.update();
 
