@@ -2948,7 +2948,7 @@ describe('build plugin test', () => {
                         configPipelineSha: 'abc123',
                         eventId: 8887,
                         jobId: 3,
-                        parentBuildId: 12345,
+                        parentBuildId: [12345],
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
                             2: { eventId: '8887', jobs: { a: 12345 } }
