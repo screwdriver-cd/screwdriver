@@ -971,7 +971,8 @@ const buildsPlugin = {
 
                             return existingBuild &&
                                 existingBuild.status !== 'CREATED' &&
-                                !existingBuild.parentBuildId.includes(current.build.id)
+                                !existingBuild.parentBuildId.includes(current.build.id) &&
+                                existingBuild.eventId !== current.event.parentEventId
                                 ? existingBuild
                                 : null;
                         })
