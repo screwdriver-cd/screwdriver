@@ -2948,7 +2948,7 @@ describe('build plugin test', () => {
                         configPipelineSha: 'abc123',
                         eventId: 8887,
                         jobId: 3,
-                        parentBuildId: 12345,
+                        parentBuildId: [12345],
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
                             2: { eventId: '8887', jobs: { a: 12345 } }
@@ -3665,6 +3665,7 @@ describe('build plugin test', () => {
                             { src: '~sd@2:a', dest: 'a' }
                         ]
                     };
+                    eventMock.parentEventId = 8887;
                     buildMock.parentBuilds = {
                         2: { eventId: '8887', jobs: { a: 12345 } }
                     };
@@ -3775,6 +3776,7 @@ describe('build plugin test', () => {
                                     jobs: { a: 12344, c: 45678 }
                                 }
                             },
+                            eventId: 8888,
                             jobId: 3,
                             status: 'FAILED'
                         },
