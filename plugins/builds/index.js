@@ -454,7 +454,8 @@ async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     );
 
     nextBuild.parentBuilds = newParentBuilds;
-    nextBuild.parentBuildId = Array.from(new Set([build.id, ...(nextBuild.parentBuildId || [])]));
+    // nextBuild.parentBuildId may be int or Array, so it needs to be flattened
+    nextBuild.parentBuildId = Array.from(new Set([build.id, nextBuild.parentBuildId || []].flat()));
 
     // FIXME: Is this needed ? Why not update once in handleNewBuild()
     return nextBuild.update();
