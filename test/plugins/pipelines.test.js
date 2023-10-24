@@ -2432,12 +2432,31 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 200 when update the pipeline for sonar badges', () => {
-            options.payload.badges = {
+            options.auth.credentials = {
+                username,
+                scmContext,
+                pipelineId: id,
+                scope: ['pipeline']
+            };
+
+            const badges = {
                 sonar: {
                     name: 'my-sonar-dashboard',
                     uri: 'https://sonar.screwdriver.cd/pipeline112233'
                 }
             };
+
+            options.payload.badges = badges;
+
+            const updatedPipelineMockLocal = {
+                ...updatedPipelineMock,
+                badges
+            };
+
+            updatedPipelineMockLocal.toJson = sinon.stub().returns(updatedPipelineMockLocal);
+            pipelineMock.sync.resolves(updatedPipelineMockLocal);
+
+            pipelineFactoryMock.get.withArgs({ id: `${id}` }).resolves(pipelineMock);
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.update);
