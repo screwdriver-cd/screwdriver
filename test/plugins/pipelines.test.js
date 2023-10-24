@@ -2431,6 +2431,22 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 when update the pipeline for sonar badges', () => {
+            options.payload.badges = {
+                sonar: {
+                    name: 'my-sonar-dashboard',
+                    uri: 'https://sonar.screwdriver.cd/pipeline112233'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.include(reply.payload, 'my-sonar-dashboard');
+                assert.include(reply.payload, 'https://sonar.screwdriver.cd/pipeline112233');
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 404 when the pipeline id is not found', () => {
             pipelineFactoryMock.get.withArgs({ id }).resolves(null);
 
