@@ -104,7 +104,7 @@
     "screwdriver-command-validator": "^3.0.0",
     "screwdriver-config-parser": "^8.0.1",
     "screwdriver-coverage-bookend": "^2.0.0",
-    "screwdriver-coverage-sonar": "^4.0.0",
+    "screwdriver-coverage-sonar": "^4.1.1",
     "screwdriver-data-schema": "^22.6.1",
     "screwdriver-datastore-sequelize": "^8.0.0",
     "screwdriver-executor-base": "^9.0.1",
