@@ -1,9 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
-
+const logger = require('screwdriver-logger');
 const CoveragePlugin = require('screwdriver-coverage-bookend');
+
+const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 module.exports = config => ({
     method: 'GET',
