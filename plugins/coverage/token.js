@@ -85,7 +85,7 @@ module.exports = config => ({
 
                 try {
                     const projectUrl = selfSonar.coveragePlugin.getProjectData(tokenConfig);
-                    let pipelineSonarBadge = {
+                    const pipelineSonarBadge = {
                         defaultName: pipelineId,
                         defaultUri: projectUrl
                     };
@@ -99,17 +99,18 @@ module.exports = config => ({
                     }
 
                     if (!pipeline.badges.sonar) {
-                        pipeline.badges.sonar = { 
+                        pipeline.badges.sonar = {
                             ...pipeline.badges.sonar,
                             ...pipelineSonarBadge
-                        }
+                        };
 
                         await pipeline.update();
                     }
 
-                    if (pipeline.badges.sonar.defaultName !== pipelineId ||
-                        pipeline.badges.sonar.defaultUri !== projectUrl) {
-
+                    if (
+                        pipeline.badges.sonar.defaultName !== pipelineId ||
+                        pipeline.badges.sonar.defaultUri !== projectUrl
+                    ) {
                         pipeline.badges.sonar.defaultName = pipelineId;
                         pipeline.badges.sonar.defaultUri = projectUrl;
 
