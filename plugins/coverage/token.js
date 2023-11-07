@@ -89,13 +89,13 @@ module.exports = config => ({
                         defaultName: pipelineId,
                         defaultUri: projectUrl
                     };
-                    let needPipelineUpdate = true;
+                    let shouldPipelineUpdate = true;
 
                     if (pipeline.badges && pipeline.badges.sonar && pipeline.badges.sonar.defaultName === pipelineId && pipeline.badges.sonar.defaultUri === projectUrl) {
-                        needPipelineUpdate = false;
+                        shouldPipelineUpdate = false;
                     }
 
-                    if (needPipelineUpdate) {
+                    if (shouldPipelineUpdate) {
                         if (pipeline.badges)
                             pipeline.badges.sonar = pipelineSonarBadge;
                         } else {
@@ -105,6 +105,7 @@ module.exports = config => ({
                         }
 
                         await pipeline.update(); 
+                        logger.info(`update pipeline:${pipeline.id}'s sonar badge with defaultName:${pipelineId}, defaultUri: ${projectUrl}`);
                     }
 
                 } catch (err) {
