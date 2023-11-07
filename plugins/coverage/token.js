@@ -62,7 +62,7 @@ module.exports = config => ({
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
-                tokenConfig.pipelineName = pipeline.name;             
+                tokenConfig.pipelineName = pipeline.name;
             }
 
             if (selfSonarHost && selfSonarAdminToken) {
@@ -83,10 +83,9 @@ module.exports = config => ({
 
                 try {
                     const projectUrl = selfSonar.coveragePlugin.getProjectData(tokenConfig);
-                    let pipelineSonarBadge = pipeline.badges['sonar'];
+                    const pipelineSonarBadge = pipeline.badges.sonar;
 
-                    if (pipelineSonarBadge.defaultName !== pipelineId ||
-                        pipelineSonarBadge.defaultUri !== projectUrl) {
+                    if (pipelineSonarBadge.defaultName !== pipelineId || pipelineSonarBadge.defaultUri !== projectUrl) {
                         pipelineSonarBadge.defaultName = pipelineId;
                         pipelineSonarBadge.defaultUri = projectUrl;
 
@@ -96,7 +95,7 @@ module.exports = config => ({
                     logger.error(`Failed to update pipeline:${pipeline.id}`, err);
 
                     throw err;
-                }   
+                }
 
                 return h.response(data);
             }
