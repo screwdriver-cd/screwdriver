@@ -54,9 +54,11 @@ module.exports = config => ({
                         : null;
             }
 
+            let pipeline;
+
             // Get pipeline name
             if (pipelineId && (!projectName || projectName.includes('undefined'))) {
-                const pipeline = await pipelineFactory.get(pipelineId);
+                pipeline = await pipelineFactory.get(pipelineId);
 
                 if (!pipeline) {
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
@@ -83,11 +85,33 @@ module.exports = config => ({
 
                 try {
                     const projectUrl = selfSonar.coveragePlugin.getProjectData(tokenConfig);
-                    const pipelineSonarBadge = pipeline.badges.sonar;
+                    let pipelineSonarBadge = {
+                        defaultName: pipelineId,
+                        defaultUri: projectUrl
+                    };
 
-                    if (pipelineSonarBadge.defaultName !== pipelineId || pipelineSonarBadge.defaultUri !== projectUrl) {
-                        pipelineSonarBadge.defaultName = pipelineId;
-                        pipelineSonarBadge.defaultUri = projectUrl;
+                    if (!pipeline.badges) {
+                        pipeline.badges = {
+                            sonar: pipelineSonarBadge
+                        };
+
+                        await pipeline.update();
+                    }
+
+                    if (!pipeline.badges.sonar) {
+                        pipeline.badges.sonar = { 
+                            ...pipeline.badges.sonar,
+                            ...pipelineSonarBadge
+                        }
+
+                        await pipeline.update();
+                    }
+
+                    if (pipeline.badges.sonar.defaultName !== pipelineId ||
+                        pipeline.badges.sonar.defaultUri !== projectUrl) {
+
+                        pipeline.badges.sonar.defaultName = pipelineId;
+                        pipeline.badges.sonar.defaultUri = projectUrl;
 
                         await pipeline.update();
                     }
