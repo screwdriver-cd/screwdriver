@@ -96,18 +96,14 @@ module.exports = config => ({
                         };
 
                         await pipeline.update();
-                    }
-
-                    if (!pipeline.badges.sonar) {
+                    } else if (!pipeline.badges.sonar) {
                         pipeline.badges.sonar = {
                             ...pipeline.badges.sonar,
                             ...pipelineSonarBadge
                         };
 
                         await pipeline.update();
-                    }
-
-                    if (
+                    } else if (
                         pipeline.badges.sonar.defaultName !== pipelineId ||
                         pipeline.badges.sonar.defaultUri !== projectUrl
                     ) {
