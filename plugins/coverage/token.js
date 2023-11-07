@@ -85,7 +85,7 @@ module.exports = config => ({
                 const data = await selfSonar.coveragePlugin.getAccessToken(tokenConfig);
                 const projectUrl = selfSonar.coveragePlugin.getProjectData(tokenConfig);
 
-                if (projectUrl) {          
+                if (projectUrl) {
                     try {
                         const pipelineSonarBadge = {
                             defaultName: pipelineId,
@@ -93,7 +93,12 @@ module.exports = config => ({
                         };
                         let shouldPipelineUpdate = true;
 
-                        if (pipeline.badges && pipeline.badges.sonar && pipeline.badges.sonar.defaultName === pipelineId && pipeline.badges.sonar.defaultUri === projectUrl) {
+                        if (
+                            pipeline.badges &&
+                            pipeline.badges.sonar &&
+                            pipeline.badges.sonar.defaultName === pipelineId &&
+                            pipeline.badges.sonar.defaultUri === projectUrl
+                        ) {
                             shouldPipelineUpdate = false;
                         }
 
@@ -103,13 +108,14 @@ module.exports = config => ({
                             } else {
                                 pipeline.badges = {
                                     sonar: pipelineSonarBadge
-                                }
+                                };
                             }
 
-                            await pipeline.update(); 
-                            logger.info(`update pipeline:${pipeline.id}'s sonar badge with defaultName:${pipelineId}, defaultUri: ${projectUrl}`);
+                            await pipeline.update();
+                            logger.info(
+                                `update pipeline:${pipeline.id}'s sonar badge with defaultName:${pipelineId}, defaultUri: ${projectUrl}`
+                            );
                         }
-
                     } catch (err) {
                         logger.error(`Failed to update pipeline:${pipeline.id}`, err);
 
