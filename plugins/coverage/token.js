@@ -92,7 +92,7 @@ module.exports = config => ({
                     let needPipelineUpdate = true;
 
                     if (pipeline.badges && pipeline.badges.sonar && pipeline.badges.sonar.defaultName === pipelineId && pipeline.badges.sonar.defaultUri === projectUrl) {
-                        let needPipelineUpdate = false;
+                        needPipelineUpdate = false;
                     }
 
                     if (needPipelineUpdate) {
@@ -104,7 +104,7 @@ module.exports = config => ({
                             }
                         }
 
-                        pipeline = await pipeline.update(); 
+                        await pipeline.update(); 
                     }
 
                 } catch (err) {
