@@ -5,7 +5,7 @@ const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.build.base.extract('id');
-const { getScmUri, getUserPermissions } = require('../helper');
+const { getScmUri, getUserPermissions, getFullStageName } = require('../helper');
 
 /**
  * Identify whether this build resulted in a previously failed job to become successful.
@@ -168,7 +168,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { buildFactory, eventFactory, jobFactory } = request.server.app;
+            const { buildFactory, eventFactory, jobFactory, stageFactory, stageBuildFactory } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
@@ -225,9 +225,34 @@ module.exports = () => ({
                 isFixed = isFixedBuild(build, jobFactory);
             }
 
+            // TODO (Sagar)
+            // Get Stage and stage build
+            const job = await build.job;
+            const stageInfo = job.permutations[0].stage;
+
+            if (stageInfo) {
+                const stage = await stageFactory.get({
+                    pipelineId: event.pipelineId,
+                    name: stageInfo.name
+                });
+
+                const stageBuild = await stageBuildFactory.get({
+                    stageId: stage.id,
+                    eventId: event.id
+                });
+
+                const stageTeardownName = getFullStageName({ stageName: stageInfo.name, type: 'teardown' });
+                const stageSetupName = getFullStageName({ stageName: stageInfo.name, type: 'setup' });
+
+                // If setup and job build status is RUNNING -> set stage build status to RUNNING
+                // If teardown and job build status is RUNNING -> set stage build status based on the outcome of teardown build
+                // If any job and current status is not FAILURE: desired status is [ABORTED, FAILURE] set it
+
+                // Update stage build status to build status ... except when the current build is stage teardown
+            }
+
             const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
 
-            const job = await newBuild.job;
             const pipeline = await job.pipeline;
 
             if (desiredStatus) {

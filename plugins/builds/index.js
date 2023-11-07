@@ -612,7 +612,7 @@ async function handleStage(config) {
 
     // Create stageBuild if newBuild is stage setup
     if (jobName === stageSetupName) {
-        await stageBuildFactory.create({ stageId: stage.id, eventId: event.id, status: 'RUNNING' });
+        await stageBuildFactory.create({ stageId: stage.id, eventId: event.id, status: 'CREATED' });
         // Set stageBuild status for SUCCESS
     } else if (jobName === stageTeardownName) {
         stageBuild.status = newBuild.status;
