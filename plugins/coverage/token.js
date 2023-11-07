@@ -89,33 +89,24 @@ module.exports = config => ({
                         defaultName: pipelineId,
                         defaultUri: projectUrl
                     };
+                    let needPipelineUpdate = true;
 
-                    if (!pipeline.badges) {
-                        pipeline.badges = {
-                            sonar: pipelineSonarBadge
-                        };
-
-                        await pipeline.update();
+                    if (pipeline.badges && pipeline.badges.sonar && pipeline.badges.sonar.defaultName === pipelineId && pipeline.badges.sonar.defaultUri === projectUrl) {
+                        let needPipelineUpdate = false;
                     }
 
-                    if (!pipeline.badges.sonar) {
-                        pipeline.badges.sonar = {
-                            ...pipeline.badges.sonar,
-                            ...pipelineSonarBadge
-                        };
+                    if (needPipelineUpdate) {
+                        if (pipeline.badges)
+                            pipeline.badges.sonar = pipelineSonarBadge;
+                        } else {
+                            pipeline.badges = {
+                                sonar: pipelineSonarBadge
+                            }
+                        }
 
-                        await pipeline.update();
-                    } 
-
-                    if (
-                        pipeline.badges.sonar.defaultName !== pipelineId ||
-                        pipeline.badges.sonar.defaultUri !== projectUrl
-                    ) {
-                        pipeline.badges.sonar.defaultName = pipelineId;
-                        pipeline.badges.sonar.defaultUri = projectUrl;
-
-                        await pipeline.update();
+                        pipeline = await pipeline.update(); 
                     }
+
                 } catch (err) {
                     logger.error(`Failed to update pipeline:${pipeline.id}`, err);
 
