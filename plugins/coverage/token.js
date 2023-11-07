@@ -97,7 +97,7 @@ module.exports = config => ({
                         }
 
                         if (shouldPipelineUpdate) {
-                            if (pipeline.badges)
+                            if (pipeline.badges) {
                                 pipeline.badges.sonar = pipelineSonarBadge;
                             } else {
                                 pipeline.badges = {
