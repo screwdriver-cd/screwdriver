@@ -54,7 +54,6 @@ module.exports = config => ({
                         ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
                         : null;
             }
-
             let pipeline;
 
             // Get pipeline name
@@ -85,7 +84,7 @@ module.exports = config => ({
                 const data = await selfSonar.coveragePlugin.getAccessToken(tokenConfig);
                 const projectUrl = selfSonar.coveragePlugin.getProjectData(tokenConfig);
 
-                if (projectUrl) {
+                if (pipeline && projectUrl) {
                     try {
                         const pipelineSonarBadge = {
                             defaultName: pipelineId,
@@ -117,7 +116,7 @@ module.exports = config => ({
                             );
                         }
                     } catch (err) {
-                        logger.error(`Failed to update pipeline:${pipeline.id}`, err);
+                        logger.error(`Failed to update pipeline:${pipelineId}`, err);
 
                         throw err;
                     }
