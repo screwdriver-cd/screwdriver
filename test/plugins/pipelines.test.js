@@ -1002,8 +1002,7 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
-                        pipelineId: id,
-                        eventId: 12345
+                        pipelineId: id
                     }
                 });
                 assert.calledWith(eventFactoryMock.list, {
