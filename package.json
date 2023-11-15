@@ -6,7 +6,7 @@
   "scripts": {
     "pretest": "eslint . --quiet",
     "test": "nyc --report-dir ./artifacts/coverage --reporter=lcov mocha --reporter mocha-multi-reporters --reporter-options configFile=./mocha.config.json --recursive --timeout 10000 --retries 1 --exit --allow-uncaught true --color true",
-    "test-debug": "mocha --inspect ./test/**/*.js",
+    "test-debug": "mocha --inspect-brk ./test/**/*.js",
     "start": "./bin/server",
     "debug": "node --nolazy ./bin/server",
     "profile": "node --prof ./bin/server",
@@ -105,7 +105,7 @@
     "screwdriver-config-parser": "^8.0.1",
     "screwdriver-coverage-bookend": "^2.0.0",
     "screwdriver-coverage-sonar": "^4.1.1",
-    "screwdriver-data-schema": "^22.9.3",
+    "screwdriver-data-schema": "^22.9.8",
     "screwdriver-datastore-sequelize": "^8.0.0",
     "screwdriver-executor-base": "^9.0.1",
     "screwdriver-executor-docker": "^6.0.0",
