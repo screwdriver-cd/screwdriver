@@ -109,8 +109,8 @@ async function getScmUri({ pipeline, pipelineFactory }) {
  * @param  {String} type                    Type of stage job, either 'setup' or 'teardown'
  * @return {String}                         Full stage name
  */
-function getFullStageName({ stageName, type }) {
-    return `${STAGE_PREFIX}${stageName}:${type}`;
+function getFullStageJobName({ stageName, jobName }) {
+    return `${STAGE_PREFIX}${stageName}:${jobName}`;
 }
 
 module.exports = {
