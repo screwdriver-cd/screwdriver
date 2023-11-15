@@ -119,5 +119,5 @@ module.exports = {
     getUserPermissions,
     setDefaultTimeRange,
     validTimeRange,
-    getFullStageName
+    getFullStageJobName
 };
