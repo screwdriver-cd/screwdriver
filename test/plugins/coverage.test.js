@@ -32,6 +32,7 @@ describe('coverage plugin test', () => {
                 sonarGitAppName: 'test'
             },
             getAccessToken: sinon.stub().resolves('faketoken'),
+            getProjectData: sinon.stub().resolves({ projectUrl: 'aabbcc', pipelineId: 1 }),
             getInfo: sinon.stub()
         };
         jobFactoryMock = {
