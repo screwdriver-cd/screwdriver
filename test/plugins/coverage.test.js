@@ -32,7 +32,9 @@ describe('coverage plugin test', () => {
                 sonarGitAppName: 'test'
             },
             getAccessToken: sinon.stub().resolves('faketoken'),
-            getProjectData: sinon.stub().resolves({ projectUrl: 'aabbcc', pipelineId: 1 }),
+            getProjectData: sinon
+                .stub()
+                .returns({ projectUrl: 'https://sonar.sd.cd/dashboard?id=pipeline%3A333', pipelineId: 1 }),
             getInfo: sinon.stub()
         };
         jobFactoryMock = {
@@ -90,8 +92,15 @@ describe('coverage plugin test', () => {
 
     describe('GET /coverage/token', () => {
         let options;
+        let pipelineMock;
 
         beforeEach(() => {
+            pipelineMock = {
+                id: 333,
+                name: 'd2lam/test',
+                update: sinon.stub()
+            };
+
             options = {
                 url: '/coverage/token',
                 auth: {
@@ -99,6 +108,7 @@ describe('coverage plugin test', () => {
                     strategy: ['token']
                 }
             };
+
             jobFactoryMock.get.resolves({
                 permutations: [
                     {
@@ -108,9 +118,8 @@ describe('coverage plugin test', () => {
                 name: 'main',
                 isPR: sinon.stub().returns(false)
             });
-            pipelineFactoryMock.get.resolves({
-                name: 'd2lam/test'
-            });
+
+            pipelineFactoryMock.get.resolves(pipelineMock);
         });
 
         it('returns 200', () => {
@@ -190,6 +199,37 @@ describe('coverage plugin test', () => {
                     pipelineName: 'd2lam/test',
                     buildCredentials: credentials
                 });
+            });
+        });
+
+        it('returns 200 with pipeline scope query param', () => {
+            options.url = '/coverage/token?scope=job';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, 'faketoken');
+                assert.calledWith(mockCoveragePlugin.getAccessToken, {
+                    scope: 'job',
+                    pipelineName: 'd2lam/test',
+                    buildCredentials: credentials
+                });
+            });
+        });
+
+        it('returns 200 with pipeline scope with projectKey to update pipeline projectUrl', () => {
+            options.url = '/coverage/token?projectKey=pipeline:333';
+
+            const expectedBadges = {
+                sonar: {
+                    defaultName: '333',
+                    defaultUri: 'https://sonar.sd.cd/dashboard?id=pipeline%3A333'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledOnce(pipelineMock.update);
+                assert.deepEqual(pipelineMock.badges, expectedBadges);
             });
         });
 
@@ -313,7 +353,7 @@ describe('coverage plugin test', () => {
         };
         const result = {
             coverage: '98.8',
-            projectUrl: 'https://sonar.sd.cd/dashboard?id=job%3A123'
+            projectUrl: 'https://sonar.sd.cd/dashboard?id=pipeline%3A333'
         };
 
         beforeEach(() => {
