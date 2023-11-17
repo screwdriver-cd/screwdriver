@@ -64,7 +64,7 @@ module.exports = config => ({
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
-                logger.info(`looking up pipeline:${pipelineId}, and found pipeline:${pipeline}`);
+                logger.info(`looking up pipeline from:${pipelineId}, and found pipeline:${pipeline}`);
 
                 tokenConfig.pipelineName = pipeline.name;
             }
@@ -84,61 +84,57 @@ module.exports = config => ({
 
                 const selfSonar = new CoveragePlugin(selfSonarConfig);
                 const data = await selfSonar.coveragePlugin.getAccessToken(tokenConfig);
-                const { projectUrl } = selfSonar.coveragePlugin.getProjectData(tokenConfig);
-
-                if (!pipeline && pipelineId) {
-                    pipeline = await pipelineFactory.get(pipelineId);
-
-                    logger.info(`looking up again, pipeline:${pipelineId}, and found pipeline: ${pipeline}`);
-                }
-
-                logger.info(
-                    `looking up pipeline:${pipelineId}, and found pipeline: ${pipeline} with projectUrl: ${projectUrl}`
-                );
-
-                if (pipeline && projectUrl) {
-                    try {
-                        const pipelineSonarBadge = {
-                            defaultName: pipelineId,
-                            defaultUri: projectUrl
-                        };
-                        let shouldPipelineUpdate = true;
-
-                        if (
-                            pipeline.badges &&
-                            pipeline.badges.sonar &&
-                            pipeline.badges.sonar.defaultName === pipelineId &&
-                            pipeline.badges.sonar.defaultUri === projectUrl
-                        ) {
-                            shouldPipelineUpdate = false;
-                        }
-
-                        if (shouldPipelineUpdate) {
-                            if (pipeline.badges) {
-                                pipeline.badges.sonar = pipelineSonarBadge;
-                            } else {
-                                pipeline.badges = {
-                                    sonar: pipelineSonarBadge
-                                };
-                            }
-
-                            await pipeline.update();
-
-                            logger.info(
-                                `update pipeline:${pipeline.id}'s sonar badge with defaultName:${pipelineId}, defaultUri: ${projectUrl}`
-                            );
-                        }
-                    } catch (err) {
-                        logger.error(`Failed to update pipeline:${pipelineId}`, err);
-
-                        throw err;
-                    }
-                }
 
                 return h.response(data);
             }
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
+            const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
+
+            if (!pipeline && pipelineId) {
+                pipeline = await pipelineFactory.get(pipelineId);
+
+                logger.info(`looking up again, pipeline:${pipelineId}, and found pipeline: ${pipeline}`);
+            }
+
+            if (pipeline && projectUrl) {
+                try {
+                    const pipelineSonarBadge = {
+                        defaultName: `${pipelineId}`, // ensure pipelineId is stored as String instead of Integer
+                        defaultUri: projectUrl
+                    };
+                    let shouldPipelineUpdate = true;
+
+                    if (
+                        pipeline.badges &&
+                        pipeline.badges.sonar &&
+                        pipeline.badges.sonar.defaultName === pipelineId &&
+                        pipeline.badges.sonar.defaultUri === projectUrl
+                    ) {
+                        shouldPipelineUpdate = false;
+                    }
+
+                    if (shouldPipelineUpdate) {
+                        if (pipeline.badges) {
+                            pipeline.badges.sonar = pipelineSonarBadge;
+                        } else {
+                            pipeline.badges = {
+                                sonar: pipelineSonarBadge
+                            };
+                        }
+
+                        await pipeline.update();
+                    }
+
+                    logger.info(
+                        `update pipeline:${pipeline.id}'s sonar badge with pipeline.badges, ${pipeline.badges}`
+                    );
+                } catch (err) {
+                    logger.error(`Failed to update pipeline:${pipelineId}`, err);
+
+                    throw err;
+                }
+            }
 
             return h.response(data);
         }
