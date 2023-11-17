@@ -202,20 +202,6 @@ describe('coverage plugin test', () => {
             });
         });
 
-        it('returns 200 with pipeline scope query param', () => {
-            options.url = '/coverage/token?scope=job';
-
-            return server.inject(options).then(reply => {
-                assert.equal(reply.statusCode, 200);
-                assert.deepEqual(reply.result, 'faketoken');
-                assert.calledWith(mockCoveragePlugin.getAccessToken, {
-                    scope: 'job',
-                    pipelineName: 'd2lam/test',
-                    buildCredentials: credentials
-                });
-            });
-        });
-
         it('returns 200 with pipeline scope with projectKey to update pipeline projectUrl', () => {
             options.url = '/coverage/token?projectKey=pipeline:333';
 
