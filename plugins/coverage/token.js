@@ -88,9 +88,13 @@ module.exports = config => ({
 
                 if (!pipeline && pipelineId) {
                     pipeline = await pipelineFactory.get(pipelineId);
+
+                    logger.info(`looking up again, pipeline:${pipelineId}, and found pipeline: ${pipeline}`);
                 }
 
-                logger.info(`looking up pipeline:${pipelineId}, and found pipeline: ${pipeline} with projectUrl: ${projectUrl}`);
+                logger.info(
+                    `looking up pipeline:${pipelineId}, and found pipeline: ${pipeline} with projectUrl: ${projectUrl}`
+                );
 
                 if (pipeline && projectUrl) {
                     try {
