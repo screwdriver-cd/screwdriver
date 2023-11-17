@@ -64,6 +64,8 @@ module.exports = config => ({
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
 
+                logger.info(`looking up pipeline:${pipelineId}, and found pipeline:${pipeline}`);
+
                 tokenConfig.pipelineName = pipeline.name;
             }
 
@@ -82,7 +84,13 @@ module.exports = config => ({
 
                 const selfSonar = new CoveragePlugin(selfSonarConfig);
                 const data = await selfSonar.coveragePlugin.getAccessToken(tokenConfig);
-                const projectUrl = selfSonar.coveragePlugin.getProjectData(tokenConfig);
+                const { projectUrl } = selfSonar.coveragePlugin.getProjectData(tokenConfig);
+
+                if (!pipeline) {
+                    pipeline = await pipelineFactory.get(pipelineId);
+                }
+
+                logger.info(`looking up pipeline:${pipelineId}, and found pipeline: ${pipeline} with projectUrl: ${projectUrl}`);
 
                 if (pipeline && projectUrl) {
                     try {
@@ -111,6 +119,7 @@ module.exports = config => ({
                             }
 
                             await pipeline.update();
+
                             logger.info(
                                 `update pipeline:${pipeline.id}'s sonar badge with defaultName:${pipelineId}, defaultUri: ${projectUrl}`
                             );
