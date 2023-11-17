@@ -86,7 +86,7 @@ module.exports = config => ({
                 const data = await selfSonar.coveragePlugin.getAccessToken(tokenConfig);
                 const { projectUrl } = selfSonar.coveragePlugin.getProjectData(tokenConfig);
 
-                if (!pipeline) {
+                if (!pipeline && pipelineId) {
                     pipeline = await pipelineFactory.get(pipelineId);
                 }
 
