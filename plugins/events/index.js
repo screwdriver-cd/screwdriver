@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const createRoute = require('./create');
 const getRoute = require('./get');
 const listBuildsRoute = require('./listBuilds');
+const listStageBuildsRoute = require('./listStageBuilds');
 const stopBuildsRoute = require('./stopBuilds');
 const metricsRoute = require('./metrics');
 
@@ -51,7 +52,14 @@ const eventsPlugin = {
             return Promise.resolve();
         });
 
-        server.route([createRoute(), getRoute(), listBuildsRoute(), stopBuildsRoute(), metricsRoute()]);
+        server.route([
+            createRoute(),
+            getRoute(),
+            listBuildsRoute(),
+            listStageBuildsRoute(),
+            stopBuildsRoute(),
+            metricsRoute()
+        ]);
     }
 };
 

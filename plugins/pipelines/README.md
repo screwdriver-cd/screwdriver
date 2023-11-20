@@ -121,9 +121,6 @@ Only PR events of specified PR number will be searched when `prNum` is set
 #### Get all stages for a single pipeline
 
 `GET /pipelines/{id}/stages`
-Will get latest commit event's stages if no event ID or group event ID is provided
-
-`GET /pipelines/{id}/stages?groupEventId={groupEventId}`
 
 `GET /pipelines/{id}/stages?eventId={eventId}`
 
