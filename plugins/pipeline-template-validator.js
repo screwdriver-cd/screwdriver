@@ -3,22 +3,22 @@
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const templateSchema = schema.api.templateValidator;
-const validator = require('screwdriver-template-validator').parseJobTemplate;
+const pipelineValidator = require('screwdriver-template-validator').parsePipelineTemplate;
 
 /**
- * Hapi Template Validator Plugin
- *  - Validates sd-template.yaml and returns the parsed template with any
+ * Hapi Pipeline Template Validator Plugin
+ *  - Validates sd-template.yaml and returns the parsed pipeline template with any
  *    errors associated with it
  * @method register
  * @param  {Hapi.Server}    server
  * @param  {Function} next
  */
-const templateValidatorPlugin = {
-    name: 'template-validator',
+const pipelineTemplateValidatorPlugin = {
+    name: 'pipeline-template-validator',
     async register(server) {
         server.route({
             method: 'POST',
-            path: '/validator/template',
+            path: '/validator/pipelineTemplate',
             options: {
                 description: 'Validate a given sd-template.yaml',
                 notes: 'returns the parsed config, validation errors, or both',
@@ -30,10 +30,9 @@ const templateValidatorPlugin = {
                 },
                 handler: async (request, h) => {
                     try {
-                        const { templateFactory } = request.server.app;
                         const { yaml: templateString } = request.payload;
 
-                        const result = await validator(templateString, templateFactory);
+                        const result = await pipelineValidator(templateString);
 
                         return h.response(result);
                     } catch (err) {
@@ -51,4 +50,4 @@ const templateValidatorPlugin = {
     }
 };
 
-module.exports = templateValidatorPlugin;
+module.exports = pipelineTemplateValidatorPlugin;

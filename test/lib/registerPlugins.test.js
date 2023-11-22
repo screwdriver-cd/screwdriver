@@ -17,6 +17,7 @@ describe('Register Unit Test Case', () => {
         '../../plugins/logging',
         '../../plugins/swagger',
         '../../plugins/template-validator',
+        '../../plugins/pipeline-template-validator',
         '../../plugins/command-validator',
         '../../plugins/promster',
         '../../plugins/metrics',
