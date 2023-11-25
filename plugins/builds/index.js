@@ -455,7 +455,8 @@ async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     );
 
     nextBuild.parentBuilds = newParentBuilds;
-    nextBuild.parentBuildId = [build.id].concat(nextBuild.parentBuildId || []);
+    // nextBuild.parentBuildId may be int or Array, so it needs to be flattened
+    nextBuild.parentBuildId = Array.from(new Set([build.id, nextBuild.parentBuildId || []].flat()));
 
     // FIXME: Is this needed ? Why not update once in handleNewBuild()
     return nextBuild.update();
@@ -789,6 +790,31 @@ async function createJoinObject(nextJobs, current, eventFactory) {
     }
 
     return joinObj;
+}
+
+/**
+ * Get parentBuildId from parentBuilds object
+ * @param {Object}  parentBuilds    Builds that triggered this build
+ * @param {Array}   joinListNames   Array of join job name
+ * @param {Number}  pipelineId      Pipeline ID
+ * @return {Array}                  Array of parentBuildId
+ */
+function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId }) {
+    const parentBuildIds = [];
+
+    for (let i = 0; i < joinListNames.length; i += 1) {
+        const name = joinListNames[i];
+        const joinInfo = getPipelineAndJob(name, pipelineId);
+
+        if (
+            parentBuilds[joinInfo.externalPipelineId] &&
+            parentBuilds[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName]
+        ) {
+            parentBuildIds.push(parentBuilds[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName]);
+        }
+    }
+
+    return Array.from(new Set([currentBuildId, ...parentBuildIds]));
 }
 
 /**
@@ -1183,7 +1209,8 @@ const buildsPlugin = {
 
                             return existingBuild &&
                                 existingBuild.status !== 'CREATED' &&
-                                !existingBuild.parentBuildId.includes(current.build.id)
+                                !existingBuild.parentBuildId.includes(current.build.id) &&
+                                existingBuild.eventId !== current.event.parentEventId
                                 ? existingBuild
                                 : null;
                         })
@@ -1241,6 +1268,9 @@ const buildsPlugin = {
 
                         fillParentBuilds(parentBuilds, current, externalGroupBuilds, externalEvent);
 
+                        const joinList = nextJobs[nextJobName].join;
+                        const joinListNames = joinList.map(j => j.name);
+
                         if (nextBuild) {
                             // update current build info in parentBuilds
                             // nextBuild is not build model, so fetch proper build
@@ -1252,6 +1282,13 @@ const buildsPlugin = {
                         } else {
                             // no existing build, so first time processing this job
                             // in the external pipeline's event
+                            const parentBuildId = getParentBuildIds({
+                                currentBuildId: current.build.id,
+                                parentBuilds,
+                                joinListNames,
+                                pipelineId: externalPipelineId
+                            });
+
                             newBuild = await createInternalBuild({
                                 jobFactory,
                                 buildFactory,
@@ -1263,15 +1300,14 @@ const buildsPlugin = {
                                 event: externalEvent, // this is the parentBuild for the next build
                                 baseBranch: externalEvent.baseBranch || null,
                                 parentBuilds,
-                                parentBuildId: current.build.id,
+                                parentBuildId,
                                 start: false
                             });
                         }
 
-                        const joinList = nextJobs[nextJobName].join;
                         const { hasFailure, done } = await getParentBuildStatus({
                             newBuild,
-                            joinListNames: joinList.map(j => j.name),
+                            joinListNames,
                             pipelineId: externalPipelineId,
                             buildFactory
                         });
