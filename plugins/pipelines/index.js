@@ -30,6 +30,7 @@ const getAdmin = require('./admins/get');
 const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
 const createTemplate = require('./templates/create');
+const validateTemplate = require('./templates/validate');
 
 /**
  * Pipeline API Plugin
@@ -197,7 +198,8 @@ const pipelinesPlugin = {
             getAdmin(),
             deleteCache(),
             openPrRoute(),
-            createTemplate()
+            createTemplate(),
+            validateTemplate()
         ]);
     }
 };
