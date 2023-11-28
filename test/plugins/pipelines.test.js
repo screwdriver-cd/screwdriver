@@ -21,6 +21,10 @@ const testSecrets = require('./data/secrets.json');
 const testEvents = require('./data/eventsWithGroupEventId.json');
 const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
+const testtemplate = require('./data/pipeline-template.json');
+const TEMPLATE_INVALID = require('./data/pipeline-template-validator.missing-version.json');
+const TEMPLATE_VALID = require('./data/pipeline-template-validator.input.json');
+const TEMPLATE_VALID_NEW_VERSION = require('./data/pipeline-template-create.input.json');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -175,6 +179,22 @@ const getCollectionMock = collection => {
     return mock;
 };
 
+const decorateObj = obj => {
+    const mock = hoek.clone(obj);
+
+    mock.toJson = sinon.stub().returns(obj);
+
+    return mock;
+};
+
+const getTemplateMocks = templates => {
+    if (Array.isArray(templates)) {
+        return templates.map(decorateObj);
+    }
+
+    return decorateObj(templates);
+};
+
 describe('pipeline plugin test', () => {
     let pipelineFactoryMock;
     let userFactoryMock;
@@ -189,6 +209,8 @@ describe('pipeline plugin test', () => {
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
+    let pipelineTemplateFactoryMock;
+    let pipelineTemplateVersionFactoryMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -263,6 +285,12 @@ describe('pipeline plugin test', () => {
             }
         };
         screwdriverAdminDetailsMock = sinon.stub();
+        pipelineTemplateFactoryMock = {
+            get: sinon.stub()
+        };
+        pipelineTemplateVersionFactoryMock = {
+            create: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -281,6 +309,8 @@ describe('pipeline plugin test', () => {
             tokenFactory: tokenFactoryMock,
             bannerFactory: bannerFactoryMock,
             secretFactory: secretFactoryMock,
+            pipelineTemplateFactory: pipelineTemplateFactoryMock,
+            pipelineTemplateVersionFactory: pipelineTemplateVersionFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
@@ -3847,5 +3877,230 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, error);
             });
         });
+    });
+
+    describe('POST /pipeline/template', () => {
+        let options;
+        let templateMock;
+        const testId = 123;
+        let expected;
+
+        beforeEach(() => {
+            options = {
+                method: 'POST',
+                url: '/pipeline/template',
+                payload: TEMPLATE_VALID,
+                auth: {
+                    credentials: {
+                        scope: ['build'],
+                        pipelineId: 123
+                    },
+                    strategy: ['token']
+                }
+            };
+
+            expected = {
+                namespace: 'template_namespace',
+                name: 'template_name',
+                version: '1.2.3',
+                description: 'template description',
+                maintainer: 'name@domain.org',
+                config: {
+                    jobs: { main: { steps: [{ init: 'npm install' }, { test: 'npm test' }] } },
+                    shared: {},
+                    parameters: {}
+                },
+                pipelineId: 123
+            };
+
+            templateMock = getTemplateMocks(testtemplate);
+            pipelineTemplateVersionFactoryMock.create.resolves(templateMock);
+            pipelineTemplateFactoryMock.get.resolves(templateMock);
+        });
+
+        it('returns 403 when pipelineId does not match', () => {
+            templateMock.pipelineId = 321;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            options.auth.credentials.isPR = true;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+            });
+        });
+
+        it('creates template if template does not exist yet', () => {
+            pipelineTemplateFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                const expectedLocation = new URL(
+                    `${options.url}/${testId}`,
+                    `${reply.request.server.info.protocol}://${reply.request.headers.host}`
+                ).toString();
+
+                assert.deepEqual(reply.result, testtemplate);
+                assert.strictEqual(reply.headers.location, expectedLocation);
+                assert.calledWith(pipelineTemplateFactoryMock.get, {
+                    name: 'template_name',
+                    namespace: 'template_namespace'
+                });
+                assert.calledWith(pipelineTemplateVersionFactoryMock.create, expected, pipelineTemplateFactoryMock);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('creates template if has good permission and it is a new version', () => {
+            options.payload = TEMPLATE_VALID_NEW_VERSION;
+            expected.version = '1.2';
+            pipelineTemplateFactoryMock.get.resolves(templateMock);
+
+            return server.inject(options).then(reply => {
+                const expectedLocation = new URL(
+                    `${options.url}/${testId}`,
+                    `${reply.request.server.info.protocol}://${reply.request.headers.host}`
+                ).toString();
+
+                assert.deepEqual(reply.result, testtemplate);
+                assert.strictEqual(reply.headers.location, expectedLocation);
+                assert.calledWith(pipelineTemplateFactoryMock.get, {
+                    name: 'template_name',
+                    namespace: 'template_namespace'
+                });
+                assert.calledWith(pipelineTemplateVersionFactoryMock.create, expected, pipelineTemplateFactoryMock);
+                assert.equal(reply.statusCode, 201);
+            });
+        });
+
+        it('returns 500 when the template model fails to get', () => {
+            const testError = new Error('templateModelGetError');
+
+            pipelineTemplateFactoryMock.get.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when the template model fails to create', () => {
+            const testError = new Error('templateModelCreateError');
+
+            pipelineTemplateVersionFactoryMock.create.rejects(testError);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 400 when the template is invalid', () => {
+            options.payload = TEMPLATE_INVALID;
+            pipelineTemplateFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+    });
+
+    describe('POST /pipeline/template/validate', () => {
+        it('returns OK for a successful template yaml', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/pipeline/template/validate',
+                    payload: TEMPLATE_VALID
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 200);
+
+                    const payload = JSON.parse(reply.payload);
+
+                    assert.deepEqual(payload, {
+                        errors: [],
+                        template: {
+                            namespace: 'template_namespace',
+                            name: 'template_name',
+                            version: '1.2.3',
+                            description: 'template description',
+                            maintainer: 'name@domain.org',
+                            config: {
+                                jobs: { main: { steps: [{ init: 'npm install' }, { test: 'npm test' }] } },
+                                shared: {},
+                                parameters: {}
+                            }
+                        }
+                    });
+                }));
+
+        it('returns OK and error yaml for bad yaml', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/pipeline/template/validate',
+                    payload: TEMPLATE_INVALID
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 200);
+
+                    const payload = JSON.parse(reply.payload);
+
+                    assert.deepEqual(payload.template, {
+                        namespace: 'template_namespace',
+                        name: 'template_name',
+                        description: 'template description',
+                        maintainer: 'name@domain.org',
+                        config: {
+                            jobs: { main: { steps: [{ init: 'npm install' }, { test: 'npm test' }] } }
+                        }
+                    });
+
+                    assert.deepEqual(payload.errors, [
+                        {
+                            context: {
+                                key: 'version',
+                                label: 'version'
+                            },
+                            message: '"version" is required',
+                            path: ['version'],
+                            type: 'any.required'
+                        }
+                    ]);
+                }));
+
+        it('returns BAD REQUEST for template that cannot be parsed', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/pipeline/template/validate',
+                    payload: {
+                        yaml: 'error: :'
+                    }
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 400);
+
+                    const payload = JSON.parse(reply.payload);
+
+                    assert.match(payload.message, /YAMLException/);
+                }));
+
+        it('returns BAD REQUEST for invalid API input', () =>
+            server
+                .inject({
+                    method: 'POST',
+                    url: '/pipeline/template/validate',
+                    payload: { yaml: 1 }
+                })
+                .then(reply => {
+                    assert.strictEqual(reply.statusCode, 400);
+
+                    const payload = JSON.parse(reply.payload);
+
+                    assert.match(payload.message, /Invalid request payload input/);
+                }));
     });
 });

@@ -3,7 +3,7 @@
 const urlLib = require('url');
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
-const validator = require('screwdriver-template-validator');
+const validator = require('screwdriver-template-validator').parseJobTemplate;
 const templateSchema = schema.api.templateValidator;
 const hoek = require('@hapi/hoek');
 

@@ -1,0 +1,3 @@
+{
+    "yaml": "{ \"namespace\": \"template_namespace\", \"name\": \"template_name\", \"description\": \"template description\", \"maintainer\": \"name@domain.org\", \"config\": { \"jobs\": { \"main\": { \"steps\": [ { \"init\": \"npm install\" }, { \"test\": \"npm test\" } ] } } } }"
+  }
