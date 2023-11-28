@@ -150,7 +150,7 @@ module.exports = () => ({
                 if (!oldPipeline.badges) {
                     oldPipeline.badges = badges;
                 } else {
-                    let newBadges = [];
+                    const newBadges = [];
 
                     Object.keys(oldPipeline.badges).forEach(badgeKey => {
                         newBadges[badgeKey] = {
