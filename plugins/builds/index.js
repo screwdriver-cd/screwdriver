@@ -845,7 +845,7 @@ const buildsPlugin = {
                  */
                 const isORTrigger = !joinListNames.includes(current.job.name);
 
-                if (joinListNames.length === 0 || isORTrigger) {
+                if (isORTrigger) {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
@@ -1069,7 +1069,7 @@ const buildsPlugin = {
                             });
                         }
 
-                        if (joinListNames.length === 0 || isORTrigger) {
+                        if (isORTrigger) {
                             if (!['CREATED', null, undefined].includes(newBuild.status)) {
                                 return newBuild;
                             }
