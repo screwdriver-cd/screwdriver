@@ -262,8 +262,6 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         userFactory,
         buildFactory,
         buildClusterFactory,
-        pipelineTemplateFactory,
-        pipelineTemplateVersionFactory,
         stepFactory,
         bannerFactory,
         secretFactory,
