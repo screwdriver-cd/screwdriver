@@ -3025,9 +3025,10 @@ describe('build plugin test', () => {
 
                 it('starts single external job with normal join when it circles back to original pipeline', () => {
                     // For a pipeline like this:
-                    //  ~sd@2:a -> a -> ~sd@2:c
+                    //  ~sd@2:a -> a -> ~sd@2:c (requires[ b, ~sd@123:a ])
+                    //  ~sd@2:b ------➚
                     // If user is at `a`, it should trigger `sd@2:c`
-                    // No join-job, so create
+                    // ~sd@123:a is or trigger, so create
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3068,7 +3069,7 @@ describe('build plugin test', () => {
                         parentBuildId: [12345],
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
-                            2: { eventId: '8887', jobs: { a: 12345 } }
+                            2: { eventId: '8887', jobs: { a: 12345, b: null } }
                         },
                         prRef: '',
                         prSource: '',
@@ -3115,7 +3116,7 @@ describe('build plugin test', () => {
                                 { src: '~commit', dest: 'a' },
                                 { src: 'a', dest: '~sd@123:c' },
                                 { src: '~sd@123:c', dest: 'c' },
-                                { src: 'b', dest: 'c', join: true },
+                                { src: 'b', dest: 'c', join: true }
                             ]
                         }
                     };
@@ -3136,7 +3137,7 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledOnce(buildFactoryMock.getLatestBuilds);
                         assert.calledOnce(buildFactoryMock.create);
-                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create, jobCConfig);
                         assert.calledOnce(buildC.update);
                         assert.calledOnce(updatedBuildC.start);
                     });

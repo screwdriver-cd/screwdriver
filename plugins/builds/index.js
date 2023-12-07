@@ -1070,6 +1070,10 @@ const buildsPlugin = {
                         }
 
                         if (joinListNames.length === 0 || isORTrigger) {
+                            if (!['CREATED', null, undefined].includes(newBuild.status)) {
+                                return newBuild;
+                            }
+
                             newBuild.status = 'QUEUED';
                             await newBuild.update();
 
