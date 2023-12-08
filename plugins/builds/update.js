@@ -124,7 +124,7 @@ async function validateUserPermission(build, request) {
 }
 
 /**
- *
+ * Set build status to desired status, set build statusMessage
  * @param {Object} build         Build Model
  * @param {String} desiredStatus New Status
  * @param {String} statusMessage User passed status message
@@ -175,6 +175,7 @@ module.exports = () => ({
             const isBuild = scope.includes('build') || scope.includes('temporal');
             const { triggerNextJobs, removeJoinBuilds } = request.server.plugins.builds;
 
+            // Check token permissions
             if (isBuild && username !== id) {
                 return boom.forbidden(`Credential only valid for ${username}`);
             }
@@ -226,7 +227,6 @@ module.exports = () => ({
             }
 
             const [newBuild, newEvent] = await Promise.all([build.update(), event.update(), stopFrozen]);
-
             const job = await newBuild.job;
             const pipeline = await job.pipeline;
 
