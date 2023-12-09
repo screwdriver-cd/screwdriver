@@ -259,7 +259,7 @@ Example payload:
 ```
 
 ##### Validate a pipeline template
-Validate a pipeline template and return a JSON containing the property ‘valid’ indicating if the template is valid or not
+Validate a pipeline template and return a JSON containing the boolean property ‘valid’ indicating if the template is valid or not
 
 `POST /pipeline/template/validate`
 
