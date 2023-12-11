@@ -20,7 +20,7 @@ const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 const locker = require('../lock');
-const { getFullStageName } = require('../helper');
+const { getFullStageJobName } = require('../helper');
 
 /**
  * Checks if job is external trigger
@@ -525,16 +525,16 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  */
 async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
     const currentNode = workflowGraph.nodes.find(node => node.name === trimJobName(jobName));
-    let stage;
+    let stage = null;
 
-    if (currentNode.stageName) {
+    if (currentNode && currentNode.stageName) {
         stage = await stageFactory.get({
             pipelineId,
             name: currentNode.stageName
         });
     }
 
-    return stage;
+    return Promise.resolve(stage);
 }
 
 /**
@@ -565,8 +565,8 @@ async function handleStage(config) {
         return newBuild;
     }
 
-    const stageSetupName = getFullStageName({ stageName: stage.name, type: 'setup' });
-    const stageTeardownName = getFullStageName({ stageName: stage.name, type: 'teardown' });
+    const stageSetupName = getFullStageJobName({ stageName: stage.name, jobName: 'setup' });
+    const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
     const stageBuild = await stageBuildFactory.get({ stageId: stage.id, eventId: event.id });
 
     // Create/run stage teardown if stage job failure and no other running jobs in stage
@@ -817,21 +817,47 @@ function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipeli
     return Array.from(new Set([currentBuildId, ...parentBuildIds]));
 }
 
-function handleStageFailure({ stage, nextJobName, current, buildConfig, deletePromises, jobFactory, buildFactory, username, scmContext }) {
-    const deletePromises = [];
+/**
+ * [handleStageFailure description]
+ * @param  {[type]} stage                        [description]
+ * @param  {[type]} nextJobName                  [description]
+ * @param  {[type]} current                      [description]
+ * @param  {[type]} buildConfig                  [description]
+ * @param  {[type]} deletePromises               [description]
+ * @param  {[type]} jobFactory                   [description]
+ * @param  {[type]} buildFactory                 [description]
+ * @param  {[type]} username                     [description]
+ * @param  {[type]} scmContext                   [description]
+ * @return {[type]}                [description]
+ */
+async function handleStageFailure({
+    nextJobName,
+    current,
+    buildConfig,
+    deletePromises,
+    jobFactory,
+    buildFactory,
+    username,
+    scmContext,
+    stageBuildFactory
+}) {
     // Get stage info
     const stageBuild = await stageBuildFactory.get({
         stageId: current.stage.id,
         eventId: current.event.id
     });
-    const stageTeardownName = getFullStageName({ stageName: current.stage.name, type: 'teardown' });
+    const stageTeardownName = getFullStageJobName({ stageName: current.stage.name, jobName: 'teardown' });
 
     if (nextJobName === stageTeardownName) {
         stageBuild.status = current.build.status;
         await stageBuild.update();
-    } else if (buildConfig.eventId) {
+
+        return stageBuild;
+    }
+    if (buildConfig.eventId) {
         //     delete nextBuild, update stageBuild status to current build status, create teardown build if it doesn't exist and return teardown build or return null
         // Remove next build
+        // TODO: figure out what to do with deletepromises
         deletePromises.push(deleteBuild(buildConfig, buildFactory));
 
         stageBuild.status = current.build.status;
@@ -849,9 +875,7 @@ function handleStageFailure({ stage, nextJobName, current, buildConfig, deletePr
             existingStageTeardownBuild.status = 'QUEUED';
             await existingStageTeardownBuild.update();
 
-            await existingStageTeardownBuild.start();
-
-            return deletePromises;
+            return existingStageTeardownBuild.start();
         }
 
         // Doesn't exist, create stage teardown job and return as next job
@@ -870,12 +894,10 @@ function handleStageFailure({ stage, nextJobName, current, buildConfig, deletePr
         stageTeardownBuild.status = 'QUEUED';
         await stageTeardownBuild.update();
 
-        await stageTeardownBuild.start();
-
-        return deletePromises;
+        return stageTeardownBuild.start();
     }
 
-    return deletePromises;
+    return stageBuild;
 }
 
 /**
@@ -901,8 +923,8 @@ const buildsPlugin = {
          * @return {Promise}                        Resolves to the removed build or null
          */
         server.expose('removeJoinBuilds', async (config, app) => {
-            const { pipeline, job, build } = config;
-            const { eventFactory, buildFactory } = app;
+            const { pipeline, job, build, username, scmContext } = config;
+            const { eventFactory, buildFactory, stageFactory, jobFactory, stageBuildFactory } = app;
             const event = await eventFactory.get({ id: build.eventId });
             const stage = await getStage({
                 stageFactory,
@@ -943,7 +965,17 @@ const buildsPlugin = {
 
                         //   if nextBuild is stage teardown, just update stageBuild status to currentBuild status and return nextBuild
                         if (current.stage) {
-                            const stageDeletePromise = await handleStageFailure({ stage, nextJobName, current, buildConfig, deletePromises, jobFactory, buildFactory, username, scmContext });
+                            const stageDeletePromise = await handleStageFailure({
+                                nextJobName,
+                                current,
+                                buildConfig,
+                                deletePromises,
+                                jobFactory,
+                                buildFactory,
+                                username,
+                                scmContext,
+                                stageBuildFactory
+                            });
 
                             deletePromises.concat(stageDeletePromise);
                         } else if (buildConfig.eventId) {
@@ -1000,7 +1032,6 @@ const buildsPlugin = {
                 jobName: job.name,
                 pipelineId: pipeline.id
             });
-
             const current = {
                 pipeline,
                 job,
@@ -1008,12 +1039,10 @@ const buildsPlugin = {
                 event,
                 stage
             };
-
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
             });
-
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
 
             // Helper function to handle triggering jobs in same pipeline
@@ -1070,14 +1099,17 @@ const buildsPlugin = {
                                 pipelineId: current.pipeline.id,
                                 name: nextBuildStageName
                             });
-                            const stageSetupName = getFullStageName({ stageName: nextBuildStageName, type: 'setup' });
+                            const stageSetupName = getFullStageJobName({
+                                stageName: nextBuildStageName,
+                                jobName: 'setup'
+                            });
 
                             // If next build is stage setup, create stageBuild and set to running
                             if (nextBuildStage && nextJobName === stageSetupName) {
                                 await stageBuildFactory.create({
                                     stageId: nextBuildStage.id,
                                     eventId: current.event.id,
-                                    status: 'RUNNING'
+                                    status: 'CREATED'
                                 });
                             }
                         }
@@ -1095,7 +1127,10 @@ const buildsPlugin = {
                             stageId: current.stage.id,
                             eventId: current.event.id
                         });
-                        const stageTeardownName = getFullStageName({ stageName: current.stage.name, type: 'teardown' });
+                        const stageTeardownName = getFullStageJobName({
+                            stageName: current.stage.name,
+                            jobName: 'teardown'
+                        });
 
                         //   if currentBuild is stage teardown with success, check stageBuild status
                         if (current.job.name === stageTeardownName && current.build.status === 'SUCCESS') {

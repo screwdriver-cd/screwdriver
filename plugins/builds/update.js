@@ -243,6 +243,8 @@ module.exports = () => ({
                 });
             }
 
+            console.log('after if desired status');
+
             const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
             // Guard against triggering non-successful or unstable builds
@@ -250,9 +252,14 @@ module.exports = () => ({
             if (newBuild.status !== 'SUCCESS' || skipFurther) {
                 // Check for failed jobs and remove any child jobs in created state
                 if (newBuild.status === 'FAILURE') {
-                    await removeJoinBuilds({ pipeline, job, build: newBuild }, request.server.app);
+                    await removeJoinBuilds(
+                        { pipeline, job, build: newBuild, username, scmContext },
+                        request.server.app
+                    );
                 }
             } else {
+                console.log('before triggerNextJobs');
+
                 await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext }, request.server.app);
             }
 

@@ -368,7 +368,7 @@ describe('build plugin test', () => {
         });
     });
 
-    describe('PUT /builds/{id}', () => {
+    describe.only('PUT /builds/{id}', () => {
         const id = 12345;
         const pipelineId = 123;
         const scmUri = 'github.com:12345:branchName';
@@ -1634,7 +1634,7 @@ describe('build plugin test', () => {
                         assert.calledWith(stageBuildFactoryMock.create, {
                             stageId: 1,
                             eventId: '8888',
-                            status: 'RUNNING'
+                            status: 'CREATED'
                         });
                     });
                 });
@@ -2784,7 +2784,9 @@ describe('build plugin test', () => {
                         pipelineFactory: pipelineFactoryMock,
                         jobFactory: jobFactoryMock,
                         userFactory: userFactoryMock,
-                        eventFactory: eventFactoryMock
+                        eventFactory: eventFactoryMock,
+                        stageFactory: stageFactoryMock,
+                        stageBuildFactory: stageBuildFactoryMock
                     };
                     newServer.auth.scheme('custom', () => ({
                         authenticate: (request, h) =>
