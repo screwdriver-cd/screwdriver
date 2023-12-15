@@ -31,6 +31,8 @@ const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
 const createTemplate = require('./templates/create');
 const validateTemplate = require('./templates/validate');
+const listTemplates = require('./templates/list');
+const listTemplateVersions = require('./templates/listVersions');
 
 /**
  * Pipeline API Plugin
@@ -199,7 +201,9 @@ const pipelinesPlugin = {
             deleteCache(),
             openPrRoute(),
             createTemplate(),
-            validateTemplate()
+            validateTemplate(),
+            listTemplates(),
+            listTemplateVersions()
         ]);
     }
 };
