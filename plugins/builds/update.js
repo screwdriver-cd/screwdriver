@@ -243,8 +243,6 @@ module.exports = () => ({
                 });
             }
 
-            console.log('after if desired status');
-
             const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
             // Guard against triggering non-successful or unstable builds
@@ -258,8 +256,6 @@ module.exports = () => ({
                     );
                 }
             } else {
-                console.log('before triggerNextJobs');
-
                 await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext }, request.server.app);
             }
 

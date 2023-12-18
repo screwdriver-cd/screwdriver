@@ -273,6 +273,7 @@ async function createInternalBuild(config) {
     } else {
         job = await jobFactory.get(jobId);
     }
+
     const internalBuildConfig = {
         jobId: job.id,
         sha: event.sha,
@@ -586,7 +587,7 @@ async function handleStage(config) {
         await newBuild.remove();
 
         // Check if stage teardown build already exists
-        const stageTeardownJob = await jobFactory.list({ params: { pipelineId, jobName: stageTeardownName } });
+        const stageTeardownJob = await jobFactory.list({ params: { pipelineId, name: stageTeardownName } });
         const existingStageTeardownBuild = await buildFactory.list({
             params: { eventId: event.id, jobId: stageTeardownJob.id }
         });
@@ -834,13 +835,13 @@ async function handleStageFailure({
     nextJobName,
     current,
     buildConfig,
-    deletePromises,
     jobFactory,
     buildFactory,
     username,
     scmContext,
     stageBuildFactory
 }) {
+    const stageDeletePromises = [];
     // Get stage info
     const stageBuild = await stageBuildFactory.get({
         stageId: current.stage.id,
@@ -852,30 +853,35 @@ async function handleStageFailure({
         stageBuild.status = current.build.status;
         await stageBuild.update();
 
-        return stageBuild;
+        return stageDeletePromises;
     }
     if (buildConfig.eventId) {
         //     delete nextBuild, update stageBuild status to current build status, create teardown build if it doesn't exist and return teardown build or return null
         // Remove next build
-        // TODO: figure out what to do with deletepromises
-        deletePromises.push(deleteBuild(buildConfig, buildFactory));
+        stageDeletePromises.push(deleteBuild(buildConfig, buildFactory));
 
         stageBuild.status = current.build.status;
         await stageBuild.update();
 
         // Check if stage teardown build already exists
         const stageTeardownJob = await jobFactory.list({
-            params: { pipelineId: current.pipeline.id, jobName: stageTeardownName }
-        });
-        const existingStageTeardownBuild = await buildFactory.list({
-            params: { eventId: current.event.id, jobId: stageTeardownJob.id }
+            params: { pipelineId: current.pipeline.id, name: stageTeardownName }
         });
 
-        if (existingStageTeardownBuild && existingStageTeardownBuild[0]) {
-            existingStageTeardownBuild.status = 'QUEUED';
-            await existingStageTeardownBuild.update();
+        let existingStageTeardownBuild;
 
-            return existingStageTeardownBuild.start();
+        if (stageTeardownJob) {
+            existingStageTeardownBuild = await buildFactory.list({
+                params: { eventId: current.event.id, jobId: stageTeardownJob.id }
+            });
+
+            if (existingStageTeardownBuild) {
+                existingStageTeardownBuild[0].status = 'QUEUED';
+                await existingStageTeardownBuild[0].update();
+                await existingStageTeardownBuild[0].start();
+
+                return stageDeletePromises;
+            }
         }
 
         // Doesn't exist, create stage teardown job and return as next job
@@ -893,11 +899,12 @@ async function handleStageFailure({
 
         stageTeardownBuild.status = 'QUEUED';
         await stageTeardownBuild.update();
+        await stageTeardownBuild.start();
 
-        return stageTeardownBuild.start();
+        return stageDeletePromises;
     }
 
-    return stageBuild;
+    return stageDeletePromises;
 }
 
 /**
@@ -939,12 +946,10 @@ const buildsPlugin = {
                 event,
                 stage
             };
-
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
             });
-
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
             const buildConfig = {};
             const deletePromises = [];
@@ -965,11 +970,10 @@ const buildsPlugin = {
 
                         //   if nextBuild is stage teardown, just update stageBuild status to currentBuild status and return nextBuild
                         if (current.stage) {
-                            const stageDeletePromise = await handleStageFailure({
+                            const stageDeletePromises = await handleStageFailure({
                                 nextJobName,
                                 current,
                                 buildConfig,
-                                deletePromises,
                                 jobFactory,
                                 buildFactory,
                                 username,
@@ -977,7 +981,7 @@ const buildsPlugin = {
                                 stageBuildFactory
                             });
 
-                            deletePromises.concat(stageDeletePromise);
+                            deletePromises.concat(stageDeletePromises);
                         } else if (buildConfig.eventId) {
                             deletePromises.push(deleteBuild(buildConfig, buildFactory));
                         }
@@ -989,6 +993,7 @@ const buildsPlugin = {
                     }
                 }
             }
+
             await Promise.all(deletePromises);
         });
 
