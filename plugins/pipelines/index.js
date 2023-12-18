@@ -29,6 +29,10 @@ const latestCommitEvent = require('./latestCommitEvent');
 const getAdmin = require('./admins/get');
 const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
+const createTemplate = require('./templates/create');
+const validateTemplate = require('./templates/validate');
+const listTemplates = require('./templates/list');
+const listTemplateVersions = require('./templates/listVersions');
 
 /**
  * Pipeline API Plugin
@@ -195,7 +199,11 @@ const pipelinesPlugin = {
             latestCommitEvent(),
             getAdmin(),
             deleteCache(),
-            openPrRoute()
+            openPrRoute(),
+            createTemplate(),
+            validateTemplate(),
+            listTemplates(),
+            listTemplateVersions()
         ]);
     }
 };

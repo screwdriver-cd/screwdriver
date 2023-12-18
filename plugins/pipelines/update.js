@@ -45,7 +45,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { checkoutUrl, rootDir, settings } = request.payload;
+            const { checkoutUrl, rootDir, settings, badges } = request.payload;
             const { id } = request.params;
             const { pipelineFactory, userFactory, secretFactory } = request.server.app;
             const { scmContext, username } = request.auth.credentials;
@@ -144,6 +144,23 @@ module.exports = () => ({
                 logger.info(
                     `[Audit] user ${user.username}:${scmContext} updates the scmUri for pipelineID:${id} to ${oldPipeline.scmUri} from ${oldPipelineConfig.scmUri}.`
                 );
+            }
+
+            if (badges) {
+                if (!oldPipeline.badges) {
+                    oldPipeline.badges = badges;
+                } else {
+                    const newBadges = {};
+
+                    Object.keys(oldPipeline.badges).forEach(badgeKey => {
+                        newBadges[badgeKey] = {
+                            ...oldPipeline.badges[badgeKey],
+                            ...badges[badgeKey]
+                        };
+                    });
+
+                    oldPipeline.badges = newBadges;
+                }
             }
 
             // update pipeline

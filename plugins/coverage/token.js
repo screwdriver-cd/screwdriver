@@ -1,9 +1,10 @@
 'use strict';
 
 const boom = require('@hapi/boom');
-const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
-
+const logger = require('screwdriver-logger');
 const CoveragePlugin = require('screwdriver-coverage-bookend');
+
+const COVERAGE_SCOPE_ANNOTATION = 'screwdriver.cd/coverageScope';
 
 module.exports = config => ({
     method: 'GET',
@@ -53,14 +54,17 @@ module.exports = config => ({
                         ? job.permutations[0].annotations[COVERAGE_SCOPE_ANNOTATION]
                         : null;
             }
+            let pipeline;
 
             // Get pipeline name
             if (pipelineId && (!projectName || projectName.includes('undefined'))) {
-                const pipeline = await pipelineFactory.get(pipelineId);
+                pipeline = await pipelineFactory.get(pipelineId);
 
                 if (!pipeline) {
                     throw boom.notFound(`Pipeline ${pipelineId} does not exist`);
                 }
+
+                logger.info(`looking up pipeline from:${pipelineId}, and found pipeline:${pipeline}`);
 
                 tokenConfig.pipelineName = pipeline.name;
             }
@@ -85,6 +89,52 @@ module.exports = config => ({
             }
 
             const data = await config.coveragePlugin.getAccessToken(tokenConfig);
+            const { projectUrl } = config.coveragePlugin.getProjectData(tokenConfig);
+
+            if (!pipeline && pipelineId) {
+                pipeline = await pipelineFactory.get(pipelineId);
+
+                logger.info(`looking up again, pipeline:${pipelineId}, and found pipeline: ${pipeline}`);
+            }
+
+            if (pipeline && projectUrl) {
+                try {
+                    const pipelineSonarBadge = {
+                        defaultName: `${pipelineId}`, // ensure pipelineId is stored as String instead of Integer
+                        defaultUri: projectUrl
+                    };
+                    let shouldPipelineUpdate = true;
+
+                    if (
+                        pipeline.badges &&
+                        pipeline.badges.sonar &&
+                        pipeline.badges.sonar.defaultName === pipelineId &&
+                        pipeline.badges.sonar.defaultUri === projectUrl
+                    ) {
+                        shouldPipelineUpdate = false;
+                    }
+
+                    if (shouldPipelineUpdate) {
+                        if (pipeline.badges) {
+                            pipeline.badges.sonar = pipelineSonarBadge;
+                        } else {
+                            pipeline.badges = {
+                                sonar: pipelineSonarBadge
+                            };
+                        }
+
+                        await pipeline.update();
+                    }
+
+                    logger.info(
+                        `update pipeline:${pipeline.id}'s sonar badge with pipeline.badges, ${pipeline.badges}`
+                    );
+                } catch (err) {
+                    logger.error(`Failed to update pipeline:${pipelineId}`, err);
+
+                    throw err;
+                }
+            }
 
             return h.response(data);
         }

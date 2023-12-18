@@ -189,6 +189,8 @@ describe('pipeline plugin test', () => {
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
+    let pipelineTemplateFactoryMock;
+    let pipelineTemplateVersionFactoryMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -263,6 +265,12 @@ describe('pipeline plugin test', () => {
             }
         };
         screwdriverAdminDetailsMock = sinon.stub();
+        pipelineTemplateFactoryMock = {
+            get: sinon.stub()
+        };
+        pipelineTemplateVersionFactoryMock = {
+            create: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -281,6 +289,8 @@ describe('pipeline plugin test', () => {
             tokenFactory: tokenFactoryMock,
             bannerFactory: bannerFactoryMock,
             secretFactory: secretFactoryMock,
+            pipelineTemplateFactory: pipelineTemplateFactoryMock,
+            pipelineTemplateVersionFactory: pipelineTemplateVersionFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }
@@ -1002,8 +1012,7 @@ describe('pipeline plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
-                        pipelineId: id,
-                        eventId: 12345
+                        pipelineId: id
                     }
                 });
                 assert.calledWith(eventFactoryMock.list, {
@@ -2428,6 +2437,41 @@ describe('pipeline plugin test', () => {
                     rootDir: ''
                 });
                 assert.calledWith(userMock.getPermissions, scmUri);
+            });
+        });
+
+        it('returns 200 when update the pipeline for sonar badges', () => {
+            options.auth.credentials = {
+                username,
+                scmContext,
+                pipelineId: id,
+                scope: ['pipeline']
+            };
+
+            const badges = {
+                sonar: {
+                    name: 'my-sonar-dashboard',
+                    uri: 'https://sonar.screwdriver.cd/pipeline112233'
+                }
+            };
+
+            options.payload.badges = badges;
+
+            const updatedPipelineMockLocal = {
+                ...updatedPipelineMock,
+                badges
+            };
+
+            updatedPipelineMockLocal.toJson = sinon.stub().returns(updatedPipelineMockLocal);
+            pipelineMock.sync.resolves(updatedPipelineMockLocal);
+
+            pipelineFactoryMock.get.withArgs({ id: `${id}` }).resolves(pipelineMock);
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.update);
+                assert.include(reply.payload, 'my-sonar-dashboard');
+                assert.include(reply.payload, 'https://sonar.screwdriver.cd/pipeline112233');
+                assert.equal(reply.statusCode, 200);
             });
         });
 

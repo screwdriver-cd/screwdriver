@@ -49,8 +49,6 @@ module.exports = () => ({
                         throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
                     }
 
-                    config.params.eventId = latestCommitEvents[0].id;
-
                     return stageFactory.list(config);
                 })
                 .then(stages => h.response(stages.map(s => s.toJson())))
