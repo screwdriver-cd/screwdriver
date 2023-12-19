@@ -256,6 +256,8 @@ module.exports = () => ({
                     );
                 }
             } else {
+                console.log('newBuild in update.js: ', newBuild);
+
                 await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext }, request.server.app);
             }
 

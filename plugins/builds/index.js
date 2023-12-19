@@ -274,6 +274,8 @@ async function createInternalBuild(config) {
         job = await jobFactory.get(jobId);
     }
 
+    console.log('job: ', job);
+
     const internalBuildConfig = {
         jobId: job.id,
         sha: event.sha,
@@ -484,6 +486,9 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
         let bId;
 
+        console.log('newBuild: ', newBuild);
+        console.log('upstream: ', upstream);
+
         if (
             upstream[joinInfo.externalPipelineId] &&
             upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName]
@@ -519,10 +524,11 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
 /**
  * Get stage for current node
- * @param  {[type]} stageFactory                [description]
- * @param  {[type]} workflowGraph               [description]
- * @param  {[type]} jobName                     [description]
- * @return {Stage}               [description]
+ * @param  {StageFactory}   stageFactory                Stage factory
+ * @param  {Object}         workflowGraph               Workflow graph
+ * @param  {String}         jobName                     Job name
+ * @param  {Number}         pipelineId                  Pipeline ID
+ * @return {Stage}                                      Stage for node
  */
 async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
     const currentNode = workflowGraph.nodes.find(node => node.name === trimJobName(jobName));
@@ -555,12 +561,11 @@ async function handleStage(config) {
         username,
         scmContext,
         event,
-        stageFactory,
+        stage,
         stageBuildFactory
     } = config;
 
-    // Get next build's stage
-    const stage = await getStage({ stageFactory, workflowGraph: event.workflowGraph, jobName, pipelineId });
+    console.log('stage: ', stage);
 
     if (!stage || !done || !['CREATED', null, undefined].includes(newBuild.status)) {
         return newBuild;
@@ -588,12 +593,15 @@ async function handleStage(config) {
 
         // Check if stage teardown build already exists
         const stageTeardownJob = await jobFactory.list({ params: { pipelineId, name: stageTeardownName } });
-        const existingStageTeardownBuild = await buildFactory.list({
-            params: { eventId: event.id, jobId: stageTeardownJob.id }
-        });
 
-        if (existingStageTeardownBuild && existingStageTeardownBuild[0]) {
-            return existingStageTeardownBuild;
+        if (stageTeardownJob) {
+            const existingStageTeardownBuild = await buildFactory.list({
+                params: { eventId: event.id, jobId: stageTeardownJob[0].id }
+            });
+
+            if (existingStageTeardownBuild && existingStageTeardownBuild[0]) {
+                return existingStageTeardownBuild[0];
+            }
         }
 
         // Doesn't exist, create stage teardown job and return as next job
@@ -1044,6 +1052,9 @@ const buildsPlugin = {
                 event,
                 stage
             };
+
+            console.log('stage: ', stage);
+
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
@@ -1161,6 +1172,8 @@ const buildsPlugin = {
                     return existNextBuild.start();
                 }
 
+                console.log('HANDLE JOIN CASE!!!');
+
                 // Handle join case. Fan-out/fan-in Workflow
                 logger.info(`Fetching finished builds for event ${event.id}`);
                 let finishedInternalBuilds = await getFinishedBuilds(current.event, buildFactory);
@@ -1239,6 +1252,8 @@ const buildsPlugin = {
                     buildFactory
                 });
 
+                console.log('HANDLE STAGE CASE!!!: ');
+
                 newBuild = await handleStage({
                     done,
                     hasFailure,
@@ -1251,7 +1266,6 @@ const buildsPlugin = {
                     scmContext,
                     event: current.event,
                     stage: current.stage,
-                    stageFactory,
                     stageBuildFactory
                 });
 
@@ -1409,7 +1423,6 @@ const buildsPlugin = {
                             scmContext,
                             event: current.event,
                             stage: current.stage,
-                            stageFactory,
                             stageBuildFactory
                         });
 

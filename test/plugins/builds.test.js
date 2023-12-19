@@ -107,7 +107,7 @@ class LockMockObj {
 const lockMock = new LockMockObj();
 
 /* eslint-disable max-lines-per-function */
-describe('build plugin test', () => {
+describe.only('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
     let userFactoryMock;
@@ -2622,7 +2622,7 @@ describe('build plugin test', () => {
                 });
             });
 
-            describe('join new flow', () => {
+            describe.only('join new flow', () => {
                 let newServer;
                 const options = {
                     method: 'PUT',
@@ -3957,6 +3957,7 @@ describe('build plugin test', () => {
                     });
                 });
 
+                // TODO: loook .only
                 it('triggers if all jobs in internal join are done with parent event', () => {
                     // For a pipeline like this:
                     //   -> b
@@ -4703,6 +4704,82 @@ describe('build plugin test', () => {
                         assert.calledOnce(updatedBuildC.remove);
                     });
                 });
+
+                // .only
+                it.only('does not trigger if jobs in join list fails, creates stage teardown', () => {
+                    const stageMock = {
+                        id: 1,
+                        name: 'gamma'
+                    };
+                    const parentBuilds = {
+                        123: {
+                            eventId: '8888',
+                            jobs: { a: 12345, d: 4 }
+                        }
+                    };
+                    const buildC = {
+                        jobId: 3,
+                        id: 3,
+                        eventId: '8888',
+                        status: 'CREATED',
+                        parentBuilds: { 123: { jobs: { a: 12345, b: 5555 }, eventId: '8888' } }
+                    };
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds,
+                        remove: sinon.stub().resolves()
+                    });
+                    const jobD = {
+                        ...jobB,
+                        id: 3,
+                        getLatestBuild: sinon.stub().resolves(
+                            getBuildMock({
+                                id: 12345,
+                                status: 'CREATED',
+                                parentBuilds: {
+                                    2: { eventId: 2, jobs: { 'gamma-test-integration': 555 } },
+                                    3: { eventId: 456, jobs: { 'gamma-test-integration': 12345, b: 2345 } }
+                                }
+                            })
+                        ),
+                        parsePRJobName: sinon.stub().returns('c')
+                    };
+
+                    jobFactoryMock.get.withArgs(6).resolves(jobD);
+                    jobFactoryMock.get.withArgs(3).resolves(jobD);
+                    buildMock.remove = sinon.stub().resolves(null);
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    jobMock.name = 'gamma-test-integration';
+                    jobMock.state = 'ENABLED';
+                    jobMock.getLatestBuild = sinon.stub().resolves(buildMock);
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    buildFactoryMock.create.onCall(1).resolves(buildC);
+                    buildFactoryMock.get.withArgs(4).resolves({ status: 'SUCCESS' });
+                    stageFactoryMock.get.resolves(stageMock);
+                    jobFactoryMock.get.resolves(jobMock);
+
+                    // job B failed
+                    buildFactoryMock.getLatestBuilds.resolves([
+                        {
+                            jobId: 1,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 2,
+                            eventId: '8888',
+                            status: 'FAILURE'
+                        },
+                        buildC
+                    ]);
+                    buildFactoryMock.get.withArgs(5555).resolves({ status: 'FAILURE' }); // d is done
+                    buildFactoryMock.get.withArgs(3).resolves(buildC); // d is done
+
+                    return newServer.inject(options).then(() => {
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledOnce(updatedBuildC.remove);
+                    });
+                });
+
                 it('delete join build if it was created before, and parent has some failures', () => {
                     const localOptions = hoek.clone(options);
 
