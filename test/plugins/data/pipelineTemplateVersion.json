@@ -1,0 +1,31 @@
+{
+    "id": 1,
+    "templateId": 1234,
+    "description": "An example template",
+    "version": "1.0.0",
+    "config": {
+        "jobs": {
+            "main": {
+                "image": "node:18",
+                "steps": [
+                    {
+                        "printLine": "echo 'Testing template creation V1'"
+                    }
+                ],
+                "requires": [
+                    "~pr",
+                    "~commit"
+                ]
+            }
+        }
+    },
+    "pipelineId": 123,
+    "namespace": "my-namespace",
+    "name": "example-template",
+    "maintainer": "example@gmail.com",
+    "templateType": "PIPELINE",
+    "trustedSinceVersion": "1.3.2",
+    "latestVersion": "1.3.2",
+    "createTime": "2023-06-12T21:52:22.706Z",
+    "updateTime": "2023-06-29T11:23:45.706Z"
+}
