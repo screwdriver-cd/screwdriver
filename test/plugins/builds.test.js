@@ -3757,6 +3757,89 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('triggers when the target build is present in both its own event and a child event, the latest being the child event', () => {
+                    // (Internal join restart case)
+                    // For a pipeline like this:
+                    // a -> d
+                    // b ->
+                    // c ->
+                    //
+                    // 1. `a` fails.
+                    // 2. `b` succeeds.
+                    // 3. Restart of `a` succeeds.
+                    // 4. `c` succeeds.
+                    // 5. `d` is triggered within the parent event
+                    //
+                    // Currently, the build of `d` is triggered in the parent event, not in the child event created by restart.
+                    // If you want to fix it so that it is triggered within a child event, please fix this test.
+
+                    const buildD = {
+                        jobId: 4,
+                        status: 'CREATED',
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888',
+                                jobs: { a: 12345 }
+                            }
+                        },
+                        start: sinon.stub().resolves(),
+                        eventId: '8888',
+                        id: 889
+                    };
+
+                    eventMock.workflowGraph.edges = [
+                        { src: '~commit', dest: 'a' },
+                        { src: '~commit', dest: 'b' },
+                        { src: '~commit', dest: 'c' },
+                        { src: 'a', dest: 'd', join: true },
+                        { src: 'b', dest: 'd', join: true },
+                        { src: 'c', dest: 'd', join: true }
+                    ];
+
+                    const updatedBuildD = Object.assign(buildD, {
+                        parentBuilds: {
+                            123: { eventId: '8888', jobs: { a: 12345, b: 12346, c: 12347 } }
+                        },
+                        start: sinon.stub().resolves()
+                    });
+
+                    buildD.update = sinon.stub().resolves(updatedBuildD);
+                    buildFactoryMock.getLatestBuilds.resolves([
+                        {
+                            jobId: 1,
+                            id: 12345,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 2,
+                            id: 12346,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 3,
+                            id: 12347,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            id: 12348,
+                            eventId: '8889',
+                            status: 'CREATED'
+                        }
+                    ]);
+
+                    buildFactoryMock.get.withArgs({ eventId: buildD.eventId, jobId: buildD.jobId }).returns(buildD);
+                    buildFactoryMock.get.withArgs(buildD.id).resolves(buildD);
+
+                    return newServer.inject(options).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(updatedBuildD.start);
+                    });
+                });
+
                 it('triggers if all jobs in external join are done with parent event', () => {
                     // (External join restart case)
                     // For pipelines like this:
