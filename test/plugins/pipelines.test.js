@@ -189,6 +189,8 @@ describe('pipeline plugin test', () => {
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
+    let pipelineTemplateFactoryMock;
+    let pipelineTemplateVersionFactoryMock;
     let plugin;
     let server;
     const password = 'this_is_a_password_that_needs_to_be_atleast_32_characters';
@@ -263,6 +265,12 @@ describe('pipeline plugin test', () => {
             }
         };
         screwdriverAdminDetailsMock = sinon.stub();
+        pipelineTemplateFactoryMock = {
+            get: sinon.stub()
+        };
+        pipelineTemplateVersionFactoryMock = {
+            create: sinon.stub()
+        };
 
         /* eslint-disable global-require */
         plugin = require('../../plugins/pipelines');
@@ -281,6 +289,8 @@ describe('pipeline plugin test', () => {
             tokenFactory: tokenFactoryMock,
             bannerFactory: bannerFactoryMock,
             secretFactory: secretFactoryMock,
+            pipelineTemplateFactory: pipelineTemplateFactoryMock,
+            pipelineTemplateVersionFactory: pipelineTemplateVersionFactoryMock,
             ecosystem: {
                 badges: '{{subject}}/{{status}}/{{color}}'
             }

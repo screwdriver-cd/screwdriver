@@ -1068,7 +1068,7 @@ const buildsPlugin = {
                  */
                 const isORTrigger = !joinListNames.includes(current.job.name);
 
-                if (joinListNames.length === 0 || isORTrigger) {
+                if (isORTrigger) {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
@@ -1177,12 +1177,27 @@ const buildsPlugin = {
                     finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
                 }
 
-                fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
-                // If next build is internal, look at the finished builds for this event
                 const nextJobId = joinObj[nextJobName].id;
-                const nextBuild = finishedInternalBuilds.find(
-                    b => b.jobId === nextJobId && b.eventId === current.event.id
-                );
+
+                let nextBuild;
+
+                // If next build is internal, look at the finished builds for this event
+                nextBuild = finishedInternalBuilds.find(b => b.jobId === nextJobId && b.eventId === current.event.id);
+
+                if (!nextBuild) {
+                    // If the build to join fails and it succeeds on restart, depending on the timing, the latest build will be that of a child event.
+                    // In that case, `nextBuild` will be null and will not be triggered even though there is a build that should be triggered.
+                    // Now we need to check for the existence of a build that should be triggered in its own event.
+                    nextBuild = await buildFactory.get({
+                        eventId: current.event.id,
+                        jobId: nextJobId
+                    });
+
+                    finishedInternalBuilds = finishedInternalBuilds.concat(nextBuild);
+                }
+
+                fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
+
                 let newBuild;
 
                 // Create next build
@@ -1328,6 +1343,7 @@ const buildsPlugin = {
 
                         const joinList = nextJobs[nextJobName].join;
                         const joinListNames = joinList.map(j => j.name);
+                        const isORTrigger = !joinListNames.includes(triggerName);
 
                         if (nextBuild) {
                             // update current build info in parentBuilds
@@ -1361,6 +1377,17 @@ const buildsPlugin = {
                                 parentBuildId,
                                 start: false
                             });
+                        }
+
+                        if (isORTrigger) {
+                            if (!['CREATED', null, undefined].includes(newBuild.status)) {
+                                return newBuild;
+                            }
+
+                            newBuild.status = 'QUEUED';
+                            await newBuild.update();
+
+                            return newBuild.start();
                         }
 
                         const { hasFailure, done } = await getParentBuildStatus({

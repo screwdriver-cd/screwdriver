@@ -206,3 +206,117 @@ handler: async (request, h) => {
     // ...
 }
 ```
+
+#### Pipeline Templates
+##### Get all pipeline templates
+
+`GET /pipeline/templates`
+
+Can use additional options for sorting, pagination and count:
+`GET /pipeline/templates?sort=ascending&sortBy=name&page=1&count=50`
+
+##### Get all versions for a pipeline template
+
+`GET /pipeline/templates/{namespace}/{name}/versions`
+
+Can use additional options for sorting, pagination and count:
+`GET /pipeline/templates/{namespace}/{name}/versions?sort=ascending&page=1&count=50`
+
+##### Create a pipeline template
+Creating a template will store the template meta (`name`, `namespace`, `maintainer`, `latestVersion`, `trustedSinceVersion`, `pipelineId`) and template version (`description`, `version`, `config`, `createTime`, `templateId`)  into the datastore.
+
+`version` will be auto-bumped. For example, if `mypipelinetemplate@1.0.0` already exists and the version passed in is `1.0.0`, the newly created template will be version `1.0.1`.
+
+
+`POST /pipeline/template`
+###### Arguments
+
+'name', 'namespace', 'version', 'description', 'maintainer', 'config'
+
+* `name` - Name of the template
+* `namespace` - Namespace of the template
+* `version` - Version of the template
+* `description` - Description of the template
+* `maintainer` - Maintainer of the template
+* `config` - Config of the template. This field is an object that includes `steps`, `image`, and optional `secrets`, `environments`. Similar to what's inside the `pipeline`
+
+Example payload:
+```json
+{
+    "name": "example-template",
+    "namespace": "my-namespace",
+    "version": "1.3.1",
+    "description": "An example template",
+    "maintainer": "example@gmail.com",
+    "config": {
+        "steps": [{
+            "echo": "echo hello"
+        }]
+    }
+}
+```
+
+##### Validate a pipeline template
+Validate a pipeline template and return a JSON containing the boolean property ‘valid’ indicating if the template is valid or not
+
+`POST /pipeline/template/validate`
+
+###### Arguments
+
+'name', 'namespace', 'version', 'description', 'maintainer', 'config'
+
+* `name` - Name of the template
+* `namespace` - Namespace of the template
+* `version` - Version of the template
+* `description` - Description of the template
+* `maintainer` - Maintainer of the template
+* `config` - Config of the template. This field is an object that includes `steps`, `image`, and optional `secrets`, `environments`. Similar to what's inside the `pipeline`
+
+Example payload:
+```json
+{
+    "name": "example-template",
+    "namespace": "my-namespace",
+    "version": "1.3.1",
+    "description": "An example template",
+    "maintainer": "example@gmail.com",
+    "config": {
+        "steps": [{
+            "echo": "echo hello"
+        }]
+    }
+}
+```
+
+#### Get a pipeline template by namespace and name
+
+`GET /pipeline/template/{namespace}/{name}`
+
+##### Get a specific pipeline template by id
+
+`GET /pipeline/template/{id}`
+
+##### Get version of a pipeline template by name, namespace, version or tag
+
+`GET /pipeline/template/{namespace}/{name}/{versionOrTag}`
+
+
+#### Template Tag
+Template tag allows fetching on template version by tag. For example, tag `mytemplate@1.1.0` as `stable`.
+
+##### Get all tags for a pipeline template by name, namespace
+
+`GET /pipeline/templates/{namespace}/{name}/tags`
+
+Can use additional options for sorting, pagination and count:
+`GET /pipeline/templates/{namespace}/{name}/tags?sort=ascending&sortBy=name&page=1&count=50`
+
+##### Create/Update a tag
+
+If the template tag already exists, it will update the tag with the new version. If the template tag doesn't exist yet, this endpoint will create the tag.
+
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the template.*
+
+`PUT /templates/{templateName}/tags/{tagName}` with the following payload
+
+* `version` - Exact version of the template (ex: `1.1.0`)
