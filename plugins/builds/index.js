@@ -545,14 +545,9 @@ async function handleStage(config) {
 
     const stageSetupName = getFullStageJobName({ stageName: stage.name, jobName: 'setup' });
     const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
-    const stageBuild = await stageBuildFactory.get({ stageId: stage.id, eventId: event.id });
 
     // Create/run stage teardown if stage job failure and no other running jobs in stage
     if (hasFailure) {
-        // Set stageBuild status for failure
-        stageBuild.status = newBuild.status;
-        await stageBuild.update();
-
         // New build is stage teardown job
         if (jobName === stageTeardownName) {
             return newBuild;
@@ -895,7 +890,7 @@ const buildsPlugin = {
          */
         server.expose('removeJoinBuilds', async (config, app) => {
             const { pipeline, job, build, username, scmContext, event, stage } = config;
-            const { eventFactory, buildFactory, jobFactory, stageBuildFactory } = app;
+            const { eventFactory, buildFactory, jobFactory, stageFactory, stageBuildFactory } = app;
             const current = {
                 pipeline,
                 job,
@@ -941,15 +936,22 @@ const buildsPlugin = {
                         } else if (buildConfig.eventId) {
                             const nextJobIsStageSetup = STAGE_SETUP_PATTERN.test(nextJobName);
 
-                            // Delete stageBuild if next job is stage setup
+                            // Delete next stageBuild if next job is stage setup
                             if (nextJobIsStageSetup) {
-                                const [, stageId] = nextJobName.match(STAGE_SETUP_PATTERN);
-                                const stageBuild = await stageBuildFactory.get({
-                                    stageId,
-                                    eventId: current.event.id
+                                const [, nextStageName] = nextJobName.match(STAGE_SETUP_PATTERN);
+                                const nextStage = await stageFactory.get({
+                                    name: nextStageName,
+                                    pipelineId: current.pipeline.id
                                 });
 
-                                await stageBuild.remove();
+                                if (nextStage) {
+                                    const nextStageBuild = await stageBuildFactory.get({
+                                        stageId: nextStage.id,
+                                        eventId: current.event.id
+                                    });
+
+                                    await nextStageBuild.remove();
+                                }
                             }
 
                             deletePromises.push(deleteBuild(buildConfig, buildFactory));

@@ -6,6 +6,7 @@ const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.build.base.extract('id');
 const { getScmUri, getUserPermissions } = require('../helper');
+const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+)(?::teardown)$/;
 
 /**
  * Identify whether this build resulted in a previously failed job to become successful.
@@ -275,6 +276,8 @@ module.exports = () => ({
                 jobName: job.name,
                 pipelineId: pipeline.id
             });
+            const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
+            let stageBuildHasFailure = false;
 
             if (stage) {
                 const stageBuild = await stageBuildFactory.get({
@@ -288,6 +291,8 @@ module.exports = () => ({
                         await stageBuild.update();
                     }
                 }
+
+                stageBuildHasFailure = ['FAILURE', 'ABORTED', 'UNSTABLE'].includes(stageBuild.status);
             }
 
             // Guard against triggering non-successful or unstable builds
@@ -300,7 +305,8 @@ module.exports = () => ({
                         request.server.app
                     );
                 }
-            } else {
+                // Do not continue downstream is current job is stage teardown and statusBuild has failure
+            } else if (!stage || !isStageTeardown || !stageBuildHasFailure) {
                 await triggerNextJobs(
                     { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
                     request.server.app

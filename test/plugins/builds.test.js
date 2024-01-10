@@ -107,7 +107,7 @@ class LockMockObj {
 const lockMock = new LockMockObj();
 
 /* eslint-disable max-lines-per-function */
-describe.only('build plugin test', () => {
+describe('build plugin test', () => {
     let buildFactoryMock;
     let stepFactoryMock;
     let userFactoryMock;
@@ -2622,7 +2622,7 @@ describe.only('build plugin test', () => {
                 });
             });
 
-            describe.only('join new flow', () => {
+            describe('join new flow', () => {
                 let newServer;
                 const options = {
                     method: 'PUT',
