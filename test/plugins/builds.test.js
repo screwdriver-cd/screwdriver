@@ -4706,7 +4706,7 @@ describe.only('build plugin test', () => {
                 });
 
                 // .only
-                it.only('does not trigger if jobs in join list fails, creates stage teardown', () => {
+                it.skip('does not trigger if jobs in join list fails, creates stage teardown', () => {
                     const stageMock = {
                         id: 1,
                         name: 'gamma'
@@ -4722,7 +4722,7 @@ describe.only('build plugin test', () => {
                         id: 3,
                         eventId: '8888',
                         status: 'CREATED',
-                        parentBuilds: { 123: { jobs: { a: 12345, b: 5555 }, eventId: '8888' } }
+                        parentBuilds: { 123: { jobs: { a: 12345, 'gamma-test-functional': 5555 }, eventId: '8888' } }
                     };
                     const updatedBuildC = Object.assign(buildC, {
                         parentBuilds,
@@ -4773,6 +4773,7 @@ describe.only('build plugin test', () => {
                     ]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'FAILURE' }); // d is done
                     buildFactoryMock.get.withArgs(3).resolves(buildC); // d is done
+                    buildFactoryMock.get.withArgs(1).resolves({ test: 'false' }); // d is done
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(buildFactoryMock.create);

@@ -21,6 +21,7 @@ const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 const locker = require('../lock');
 const { getFullStageJobName } = require('../helper');
+const STAGE_SETUP_PATTERN = /^stage@([\w-]+)(?::setup)$/;
 
 /**
  * Checks if job is external trigger
@@ -274,8 +275,6 @@ async function createInternalBuild(config) {
         job = await jobFactory.get(jobId);
     }
 
-    console.log('job: ', job);
-
     const internalBuildConfig = {
         jobId: job.id,
         sha: event.sha,
@@ -486,9 +485,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 
         let bId;
 
-        console.log('newBuild: ', newBuild);
-        console.log('upstream: ', upstream);
-
         if (
             upstream[joinInfo.externalPipelineId] &&
             upstream[joinInfo.externalPipelineId].jobs[joinInfo.externalJobName]
@@ -523,28 +519,6 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
 }
 
 /**
- * Get stage for current node
- * @param  {StageFactory}   stageFactory                Stage factory
- * @param  {Object}         workflowGraph               Workflow graph
- * @param  {String}         jobName                     Job name
- * @param  {Number}         pipelineId                  Pipeline ID
- * @return {Stage}                                      Stage for node
- */
-async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
-    const currentNode = workflowGraph.nodes.find(node => node.name === trimJobName(jobName));
-    let stage = null;
-
-    if (currentNode && currentNode.stageName) {
-        stage = await stageFactory.get({
-            pipelineId,
-            name: currentNode.stageName
-        });
-    }
-
-    return Promise.resolve(stage);
-}
-
-/**
  * [handleStage description]
  * @param  {[type]} config               [description]
  * @return {[type]}        [description]
@@ -564,8 +538,6 @@ async function handleStage(config) {
         stage,
         stageBuildFactory
     } = config;
-
-    console.log('stage: ', stage);
 
     if (!stage || !done || !['CREATED', null, undefined].includes(newBuild.status)) {
         return newBuild;
@@ -623,10 +595,6 @@ async function handleStage(config) {
     // Create stageBuild if newBuild is stage setup
     if (jobName === stageSetupName) {
         await stageBuildFactory.create({ stageId: stage.id, eventId: event.id, status: 'CREATED' });
-        // Set stageBuild status for SUCCESS
-    } else if (jobName === stageTeardownName) {
-        stageBuild.status = newBuild.status;
-        await stageBuild.update();
     }
 
     return newBuild;
@@ -846,30 +814,18 @@ async function handleStageFailure({
     jobFactory,
     buildFactory,
     username,
-    scmContext,
-    stageBuildFactory
+    scmContext
 }) {
     const stageDeletePromises = [];
-    // Get stage info
-    const stageBuild = await stageBuildFactory.get({
-        stageId: current.stage.id,
-        eventId: current.event.id
-    });
     const stageTeardownName = getFullStageJobName({ stageName: current.stage.name, jobName: 'teardown' });
 
     if (nextJobName === stageTeardownName) {
-        stageBuild.status = current.build.status;
-        await stageBuild.update();
-
         return stageDeletePromises;
     }
     if (buildConfig.eventId) {
-        //     delete nextBuild, update stageBuild status to current build status, create teardown build if it doesn't exist and return teardown build or return null
+        //     delete nextBuild, create teardown build if it doesn't exist and return teardown build or return null
         // Remove next build
         stageDeletePromises.push(deleteBuild(buildConfig, buildFactory));
-
-        stageBuild.status = current.build.status;
-        await stageBuild.update();
 
         // Check if stage teardown build already exists
         const stageTeardownJob = await jobFactory.list({
@@ -938,15 +894,8 @@ const buildsPlugin = {
          * @return {Promise}                        Resolves to the removed build or null
          */
         server.expose('removeJoinBuilds', async (config, app) => {
-            const { pipeline, job, build, username, scmContext } = config;
-            const { eventFactory, buildFactory, stageFactory, jobFactory, stageBuildFactory } = app;
-            const event = await eventFactory.get({ id: build.eventId });
-            const stage = await getStage({
-                stageFactory,
-                workflowGraph: event.workflowGraph,
-                jobName: job.name,
-                pipelineId: pipeline.id
-            });
+            const { pipeline, job, build, username, scmContext, event, stage } = config;
+            const { eventFactory, buildFactory, jobFactory, stageBuildFactory } = app;
             const current = {
                 pipeline,
                 job,
@@ -976,7 +925,7 @@ const buildsPlugin = {
                             buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
                         }
 
-                        //   if nextBuild is stage teardown, just update stageBuild status to currentBuild status and return nextBuild
+                        //   if nextBuild is stage teardown, just return nextBuild
                         if (current.stage) {
                             const stageDeletePromises = await handleStageFailure({
                                 nextJobName,
@@ -985,12 +934,24 @@ const buildsPlugin = {
                                 jobFactory,
                                 buildFactory,
                                 username,
-                                scmContext,
-                                stageBuildFactory
+                                scmContext
                             });
 
                             deletePromises.concat(stageDeletePromises);
                         } else if (buildConfig.eventId) {
+                            const nextJobIsStageSetup = STAGE_SETUP_PATTERN.test(nextJobName);
+
+                            // Delete stageBuild if next job is stage setup
+                            if (nextJobIsStageSetup) {
+                                const [, stageId] = nextJobName.match(STAGE_SETUP_PATTERN);
+                                const stageBuild = await stageBuildFactory.get({
+                                    stageId,
+                                    eventId: current.event.id
+                                });
+
+                                await stageBuild.remove();
+                            }
+
                             deletePromises.push(deleteBuild(buildConfig, buildFactory));
                         }
                     } catch (err) {
@@ -1036,15 +997,8 @@ const buildsPlugin = {
          * @return {Promise}                        Resolves to the newly created build or null
          */
         server.expose('triggerNextJobs', async (config, app) => {
-            const { pipeline, job, build } = config;
+            const { pipeline, job, build, event, stage } = config;
             const { eventFactory, pipelineFactory, buildFactory, jobFactory, stageFactory, stageBuildFactory } = app;
-            const event = await eventFactory.get({ id: build.eventId });
-            const stage = await getStage({
-                stageFactory,
-                workflowGraph: event.workflowGraph,
-                jobName: job.name,
-                pipelineId: pipeline.id
-            });
             const current = {
                 pipeline,
                 job,
@@ -1052,8 +1006,6 @@ const buildsPlugin = {
                 event,
                 stage
             };
-
-            console.log('stage: ', stage);
 
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,

@@ -155,6 +155,28 @@ function updateBuildStatus(build, desiredStatus, statusMessage, username) {
     }
 }
 
+/**
+ * Get stage for current node
+ * @param  {StageFactory}   stageFactory                Stage factory
+ * @param  {Object}         workflowGraph               Workflow graph
+ * @param  {String}         jobName                     Job name
+ * @param  {Number}         pipelineId                  Pipeline ID
+ * @return {Stage}                                      Stage for node
+ */
+async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
+    const currentNode = workflowGraph.nodes.find(node => node.name === jobName);
+    let stage = null;
+
+    if (currentNode && currentNode.stageName) {
+        stage = await stageFactory.get({
+            pipelineId,
+            name: currentNode.stageName
+        });
+    }
+
+    return Promise.resolve(stage);
+}
+
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -168,7 +190,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { buildFactory, eventFactory, jobFactory } = request.server.app;
+            const { buildFactory, eventFactory, jobFactory, stageFactory, stageBuildFactory } = request.server.app;
             const { id } = request.params;
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
@@ -245,21 +267,52 @@ module.exports = () => ({
 
             const skipFurther = /\[(skip further)\]/.test(newEvent.causeMessage);
 
+            // Update stageBuild status if it has changed;
+            // if stageBuild status is currently terminal, do not update
+            const stage = await getStage({
+                stageFactory,
+                workflowGraph: newEvent.workflowGraph,
+                jobName: job.name,
+                pipelineId: pipeline.id
+            });
+
+            if (stage) {
+                const stageBuild = await stageBuildFactory.get({
+                    stageId: stage.id,
+                    eventId: newEvent.id
+                });
+
+                if (stageBuild && stageBuild.status !== newBuild.status) {
+                    if (!['FAILURE', 'ABORTED', 'UNSTABLE'].includes(stageBuild.status)) {
+                        stageBuild.status = newBuild.status;
+                        await stageBuild.update();
+                    }
+                }
+            }
+
             // Guard against triggering non-successful or unstable builds
             // Don't further trigger pipeline if intend to skip further jobs
             if (newBuild.status !== 'SUCCESS' || skipFurther) {
                 // Check for failed jobs and remove any child jobs in created state
                 if (newBuild.status === 'FAILURE') {
                     await removeJoinBuilds(
-                        { pipeline, job, build: newBuild, username, scmContext },
+                        { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
                         request.server.app
                     );
                 }
             } else {
-                console.log('newBuild in update.js: ', newBuild);
-
-                await triggerNextJobs({ pipeline, job, build: newBuild, username, scmContext }, request.server.app);
+                await triggerNextJobs(
+                    { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
+                    request.server.app
+                );
             }
+
+            // Start stage teardown build
+            // TODO: Get stage teardown build
+            // if stage teardown build exists, and stageBuild.status is negative, and there are no active stage builds
+            // stageTeardownBuild.status = 'QUEUED';
+            // await stageTeardownBuild.update();
+            // await stageTeardownBuild.start();
 
             return h.response(await newBuild.toJsonWithSteps()).code(200);
         },
