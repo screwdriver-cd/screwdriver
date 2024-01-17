@@ -22,7 +22,7 @@ module.exports = () => ({
             scope: ['user', 'build']
         },
         handler: async (request, h) => {
-            const { pipelineTemplateVersionFactory } = request.server.app;
+            const { pipelineTemplateFactory, pipelineTemplateVersionFactory } = request.server.app;
             const config = {
                 params: request.params,
                 sort: request.query.sort
@@ -35,7 +35,7 @@ module.exports = () => ({
                 };
             }
 
-            const templates = await pipelineTemplateVersionFactory.list(config);
+            const templates = await pipelineTemplateVersionFactory.list(config, pipelineTemplateFactory);
 
             if (!templates || templates.length === 0) {
                 throw boom.notFound('Template does not exist');
