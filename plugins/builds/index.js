@@ -898,27 +898,12 @@ const buildsPlugin = {
                     finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
                 }
 
-                const nextJobId = joinObj[nextJobName].id;
-
-                let nextBuild;
-
-                // If next build is internal, look at the finished builds for this event
-                nextBuild = finishedInternalBuilds.find(b => b.jobId === nextJobId && b.eventId === current.event.id);
-
-                if (!nextBuild) {
-                    // If the build to join fails and it succeeds on restart, depending on the timing, the latest build will be that of a child event.
-                    // In that case, `nextBuild` will be null and will not be triggered even though there is a build that should be triggered.
-                    // Now we need to check for the existence of a build that should be triggered in its own event.
-                    nextBuild = await buildFactory.get({
-                        eventId: current.event.id,
-                        jobId: nextJobId
-                    });
-
-                    finishedInternalBuilds = finishedInternalBuilds.concat(nextBuild);
-                }
-
                 fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
-
+                // If next build is internal, look at the finished builds for this event
+                const nextJobId = joinObj[nextJobName].id;
+                const nextBuild = finishedInternalBuilds.find(
+                    b => b.jobId === nextJobId && b.eventId === current.event.id
+                );
                 let newBuild;
 
                 // Create next build
