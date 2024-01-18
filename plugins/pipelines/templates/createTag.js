@@ -18,7 +18,12 @@ module.exports = () => ({
             scope: ['build']
         },
         handler: async (request, h) => {
-            const { pipelineFactory, pipelineTemplateVersionFactory, pipelineTemplateTagFactory } = request.server.app;
+            const {
+                pipelineFactory,
+                pipelineTemplateFactory,
+                pipelineTemplateVersionFactory,
+                pipelineTemplateTagFactory
+            } = request.server.app;
 
             const { isPR, pipelineId } = request.auth.credentials;
 
@@ -28,7 +33,7 @@ module.exports = () => ({
 
             const [pipeline, template, templateTag] = await Promise.all([
                 pipelineFactory.get(pipelineId),
-                pipelineTemplateVersionFactory.get({ name, namespace, version }),
+                pipelineTemplateVersionFactory.get({ name, namespace, version }, pipelineTemplateFactory),
                 pipelineTemplateTagFactory.get({ name, namespace, tag })
             ]);
 
