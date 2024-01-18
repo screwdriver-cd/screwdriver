@@ -5,8 +5,10 @@ const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.build.base.extract('id');
-const { getScmUri, getUserPermissions } = require('../helper');
+const { getScmUri, getUserPermissions, getFullStageJobName } = require('../helper');
 const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+)(?::teardown)$/;
+const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
+const FINISHED_STATUSES = ['FAILURE', 'SUCCESS', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
 
 /**
  * Identify whether this build resulted in a previously failed job to become successful.
@@ -285,14 +287,14 @@ module.exports = () => ({
                     eventId: newEvent.id
                 });
 
-                if (stageBuild && stageBuild.status !== newBuild.status) {
-                    if (!['FAILURE', 'ABORTED', 'UNSTABLE'].includes(stageBuild.status)) {
+                if (stageBuild.status !== newBuild.status) {
+                    if (!TERMINAL_STATUSES.includes(stageBuild.status)) {
                         stageBuild.status = newBuild.status;
                         await stageBuild.update();
                     }
                 }
 
-                stageBuildHasFailure = ['FAILURE', 'ABORTED', 'UNSTABLE'].includes(stageBuild.status);
+                stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
             }
 
             // Guard against triggering non-successful or unstable builds
@@ -306,19 +308,59 @@ module.exports = () => ({
                     );
                 }
                 // Do not continue downstream is current job is stage teardown and statusBuild has failure
-            } else if (!stage || !isStageTeardown || !stageBuildHasFailure) {
+            } else if (newBuild.status === 'SUCCESS' && isStageTeardown && stageBuildHasFailure) {
+                await removeJoinBuilds(
+                    { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
+                    request.server.app
+                );
+            } else {
                 await triggerNextJobs(
                     { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
                     request.server.app
                 );
             }
 
-            // Start stage teardown build
-            // TODO: Get stage teardown build
-            // if stage teardown build exists, and stageBuild.status is negative, and there are no active stage builds
-            // stageTeardownBuild.status = 'QUEUED';
-            // await stageTeardownBuild.update();
-            // await stageTeardownBuild.start();
+            // Determine if stage teardown build should start
+            // (if stage teardown build exists, and stageBuild.status is negative,
+            // and there are no active stage builds, and teardown build is not started)
+            if (stage) {
+                const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
+                const stageTeardownJob = await jobFactory.get({
+                    params: { pipelineId: pipeline.id, name: stageTeardownName }
+                });
+                let stageTeardownBuild;
+
+                if (stageTeardownJob) {
+                    // Get stage teardown build
+                    stageTeardownBuild = await buildFactory.get({
+                        params: { eventId: newEvent.id, jobId: stageTeardownJob.id }
+                    });
+
+                    // Get all jobIds for jobs in the stage
+                    const stageJobIds = stage.jobIds;
+
+                    stageJobIds.push(stage.setup);
+
+                    // Get all builds in a stage
+                    const stageJobBuilds = await buildFactory.list({
+                        params: { jobId: stageJobIds, eventId: newEvent.id }
+                    });
+                    const stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
+
+
+                    // Start stage teardown build
+                    if (
+                        stageTeardownBuild &&
+                        stageTeardownBuild.status === 'CREATED' &&
+                        stageBuildHasFailure &&
+                        stageIsDone
+                    ) {
+                        stageTeardownBuild.status = 'QUEUED';
+                        await stageTeardownBuild.update();
+                        await stageTeardownBuild.start();
+                    }
+                }
+            }
 
             return h.response(await newBuild.toJsonWithSteps()).code(200);
         },

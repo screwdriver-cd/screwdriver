@@ -18,8 +18,6 @@ module.exports = () => ({
             scope: ['user', 'build']
         },
         handler: async (request, h) => {
-            console.log('request.params', request.params);
-
             const { namespace, name } = request.params;
             const { pipelineTemplateFactory } = request.server.app;
 

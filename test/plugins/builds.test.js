@@ -4935,7 +4935,10 @@ describe('build plugin test', () => {
                     const localOptions = hoek.clone(options);
                     const stageMock = {
                         id: 1,
-                        name: 'alpha'
+                        name: 'alpha',
+                        jobIds: [22, 33, 44],
+                        setup: 11,
+                        teardown: 55
                     };
                     const stageBuildMock = {
                         id: 1,
@@ -4977,7 +4980,7 @@ describe('build plugin test', () => {
                     buildMock = getBuildMock(testBuild);
                     buildMock.job = sinon.stub().resolves(jobMock)();
                     buildMock.update.resolves(buildMock);
-                    buildFactoryMock.get.resolves(buildMock);
+                    buildFactoryMock.get.withArgs(12345).resolves(buildMock);
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     buildFactoryMock.getLatestBuilds.resolves([
                         {
@@ -4994,15 +4997,22 @@ describe('build plugin test', () => {
                         },
                         buildC
                     ]);
+                    const stageTeardownBuildMock = {
+                        status: 'CREATED',
+                        start: sinon.stub().resolves(null),
+                        update: sinon.stub().resolves(null)
+                    };
+
                     stageFactoryMock.get.resolves(stageMock);
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
-                    buildFactoryMock.get.withArgs({ jobId: 3, eventId: '8888' }).resolves(buildC);
+                    buildFactoryMock.get.resolves(stageTeardownBuildMock);
                     buildFactoryMock.list.resolves([buildMock]);
 
                     return newServer.inject(localOptions).then(() => {
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledOnce(stageBuildMock.update);
-                        assert.calledOnce(buildMock.start);
+                        assert.calledOnce(stageTeardownBuildMock.update);
+                        assert.calledOnce(stageTeardownBuildMock.start);
                     });
                 });
 
