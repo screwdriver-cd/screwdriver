@@ -1013,9 +1013,12 @@ describe('pipeline plugin test', () => {
 
         it('returns 403 when pipelineId does not match', () => {
             templateMock1.pipelineId = 321;
-            testPipeline.pipelineId = 321;
-            pipeline = getPipelineMocks(testPipeline);
-            pipelineFactoryMock.get.withArgs(321).resolves(pipeline);
+            const tempPipeline = getPipelineMocks({
+                ...testPipeline,
+                id: 321
+            });
+
+            pipelineFactoryMock.get.withArgs(321).resolves(tempPipeline);
             pipelineTemplateFactoryMock.get.resolves(templateMock1);
 
             return server.inject(options).then(reply => {
