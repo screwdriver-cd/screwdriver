@@ -29,10 +29,18 @@ const latestCommitEvent = require('./latestCommitEvent');
 const getAdmin = require('./admins/get');
 const deleteCache = require('./caches/delete');
 const openPrRoute = require('./openPr');
-const createTemplate = require('./templates/create');
-const validateTemplate = require('./templates/validate');
-const listTemplates = require('./templates/list');
-const listTemplateVersions = require('./templates/listVersions');
+const createTemplateRoute = require('./templates/create');
+const validateTemplateRoute = require('./templates/validate');
+const listTemplatesRoute = require('./templates/list');
+const listTemplateVersionsRoute = require('./templates/listVersions');
+const listTagsRoute = require('./templates/listTags');
+const getTemplateRoute = require('./templates/get');
+const getTemplateByIdRoute = require('./templates/getTemplateById');
+const createTagRoute = require('./templates/createTag');
+const getVersionRoute = require('./templates/getVersion');
+const removeTemplateRoute = require('./templates/remove');
+const removeTemplateTagRoute = require('./templates/removeTag');
+const removeTemplateVersionRoute = require('./templates/removeVersion');
 
 /**
  * Pipeline API Plugin
@@ -171,6 +179,59 @@ const pipelinesPlugin = {
             });
         });
 
+        /**
+         * Throws error if a credential does not have permission to remove pipeline template
+         * If credential has access, resolves to true
+         * @method canRemove
+         * @param {Object}  credentials              Credential object from Hapi
+         * @param {String}  credentials.username     Username of the person logged in (or build ID)
+         * @param {String}  credentials.scmContext   Scm of the person logged in (or build ID)
+         * @param {Array}   credentials.scope        Scope of the credential (user, build, admin)
+         * @param {String}  [credentials.pipelineId] If credential is a build, this is the pipeline ID
+         * @param {Object}  pipelineTemplate         Target pipeline template object
+         * @param {String}  permission               Required permission level
+         * @param {String}  app                      Server app object
+         * @return {Promise}
+         */
+        server.expose('canRemove', async (credentials, pipelineTemplate, permission, app) => {
+            const { username, scmContext, scope } = credentials;
+            const { userFactory, pipelineFactory } = app;
+
+            if (credentials.scope.includes('admin')) {
+                return true;
+            }
+
+            const pipeline = await pipelineFactory.get(pipelineTemplate.pipelineId);
+
+            if (!pipeline) {
+                throw boom.notFound(`Pipeline ${pipelineTemplate.pipelineId} does not exist`);
+            }
+
+            if (scope.includes('user')) {
+                const user = await userFactory.get({ username, scmContext });
+
+                if (!user) {
+                    throw boom.notFound(`User ${username} does not exist`);
+                }
+
+                const permissions = await user.getPermissions(pipeline.scmUri);
+
+                if (!permissions[permission]) {
+                    throw boom.forbidden(
+                        `User ${username} does not have ${permission} access for this pipelineTemplate`
+                    );
+                }
+
+                return true;
+            }
+
+            if (pipelineTemplate.pipelineId !== credentials.pipelineId || credentials.isPR) {
+                throw boom.forbidden('Not allowed to remove this pipelineTemplate');
+            }
+
+            return true;
+        });
+
         server.route([
             createRoute(),
             removeRoute(),
@@ -200,10 +261,18 @@ const pipelinesPlugin = {
             getAdmin(),
             deleteCache(),
             openPrRoute(),
-            createTemplate(),
-            validateTemplate(),
-            listTemplates(),
-            listTemplateVersions()
+            createTemplateRoute(),
+            validateTemplateRoute(),
+            listTemplatesRoute(),
+            listTemplateVersionsRoute(),
+            listTagsRoute(),
+            getVersionRoute(),
+            getTemplateByIdRoute(),
+            getTemplateRoute(),
+            createTagRoute(),
+            removeTemplateRoute(),
+            removeTemplateTagRoute(),
+            removeTemplateVersionRoute()
         ]);
     }
 };
