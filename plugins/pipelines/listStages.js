@@ -19,7 +19,7 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory, stageFactory, eventFactory } = request.server.app;
+            const { pipelineFactory, stageFactory } = request.server.app;
             const pipelineId = request.params.id;
 
             return pipelineFactory
@@ -32,22 +32,6 @@ module.exports = () => ({
                     const config = {
                         params: { pipelineId }
                     };
-
-                    // Get latest stages
-                    const latestCommitEvents = await eventFactory.list({
-                        params: {
-                            pipelineId,
-                            parentEventId: null,
-                            type: 'pipeline'
-                        },
-                        paginate: {
-                            count: 1
-                        }
-                    });
-
-                    if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
-                        throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
-                    }
 
                     return stageFactory.list(config);
                 })
