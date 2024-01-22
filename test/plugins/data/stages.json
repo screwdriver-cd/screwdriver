@@ -5,18 +5,14 @@
         "name": "setup",
         "jobIds": [1, 2, 3, 4],
         "description": "Stage for setting up",
-        "archived": false,
-        "setup": [],
-        "teardown": []
+        "archived": false
     },
     {
         "id": 2,
         "pipelineId": 123,
         "name": "deploy",
         "jobIds": [5, 6, 7],
-        "archived": true,
-        "setup": [],
-        "teardown": []
+        "archived": true
     },
     {
         "id": 3,
@@ -24,7 +20,7 @@
         "name": "test",
         "jobIds": [],
         "archived": false,
-        "setup": [11],
-        "teardown": [12]
+        "setup": 11,
+        "teardown": 12
     }
 ]
