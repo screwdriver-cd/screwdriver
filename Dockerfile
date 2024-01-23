@@ -8,7 +8,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Install Screwdriver API
-RUN npm install screwdriver-api@$VERSION
+RUN npm install -d screwdriver-api@$VERSION
 WORKDIR /usr/src/app/node_modules/screwdriver-api
 
 # Setup configuration folder
