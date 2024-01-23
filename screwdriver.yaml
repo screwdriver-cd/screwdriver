@@ -49,6 +49,8 @@ jobs:
             screwdriver.cd/dockerRam: HIGH
         requires: publish
         template: sd/dind@2.0.20
+        steps:
+            - teardown-cp-logs: cp -r /root/.npm/_logs $SD_ARTIFACTS_DIR
     # Deploy to our beta environment and run tests
     beta:
         image: node:18
