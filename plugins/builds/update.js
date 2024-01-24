@@ -347,7 +347,6 @@ module.exports = () => ({
                     });
                     const stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
 
-
                     // Start stage teardown build
                     if (
                         stageTeardownBuild &&
