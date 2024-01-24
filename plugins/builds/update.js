@@ -345,7 +345,11 @@ module.exports = () => ({
                     const stageJobBuilds = await buildFactory.list({
                         params: { jobId: stageJobIds, eventId: newEvent.id }
                     });
-                    const stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
+                    let stageIsDone = false;
+
+                    if (stageJobBuilds && stageJobBuilds.length !== 0) {
+                        stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
+                    }
 
                     // Start stage teardown build
                     if (

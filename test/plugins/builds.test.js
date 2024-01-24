@@ -809,8 +809,16 @@ describe('build plugin test', () => {
             const publishJobId = 1235;
 
             let userMock;
+            let stageMock;
 
             beforeEach(() => {
+                stageMock = {
+                    id: 1,
+                    name: 'alpha',
+                    jobIds: [22, 33, 44],
+                    setup: 11,
+                    teardown: 55
+                };
                 jobMock = {
                     id: jobId,
                     name: 'main',
@@ -1539,106 +1547,6 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers next job in the workflow and creates stageBuild if next job is stage setup', () => {
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
-                    const stageBuildMock = {
-                        id: 1,
-                        stageId: 1,
-                        update: sinon.stub().resolves(),
-                        status: 'SUCCESS'
-                    };
-                    const status = 'SUCCESS';
-                    const options = {
-                        method: 'PUT',
-                        url: `/builds/${id}`,
-                        auth: {
-                            credentials: {
-                                username: id,
-                                scope: ['build'],
-                                scmContext
-                            },
-                            strategy: ['token']
-                        },
-                        payload: {
-                            status
-                        }
-                    };
-
-                    jobMock = {
-                        id: 1234,
-                        name: 'stage@alpha:teardown',
-                        pipelineId,
-                        permutations: [
-                            {
-                                settings: {
-                                    email: 'foo@bar.com'
-                                }
-                            }
-                        ],
-                        state: 'ENABLED',
-                        pipeline: sinon.stub().resolves(pipelineMock)(),
-                        getLatestBuild: sinon.stub().resolves(buildMock)
-                    };
-                    buildMock.job = sinon.stub().resolves(jobMock)();
-                    buildMock.parentBuilds = { 123: { eventId: '8888', jobs: { 'alpha-certify': 7777 } } };
-                    jobFactoryMock.get
-                        .withArgs({ pipelineId, name: 'stage@beta:setup' })
-                        .resolves({ id: 1234, state: 'ENABLED' });
-                    eventMock.getBuilds.resolves([
-                        {
-                            id: 1,
-                            eventId: '8888',
-                            jobId: 1,
-                            status: 'FAILURE'
-                        },
-                        {
-                            id: 7777,
-                            eventId: '8888',
-                            jobId: 4,
-                            status: 'SUCCESS'
-                        }
-                    ]);
-
-                    eventMock.workflowGraph = testWorkflowGraphWithStages;
-                    eventFactoryMock.get.resolves(eventMock);
-                    stageFactoryMock.get.resolves(stageMock);
-                    stageBuildFactoryMock.get.resolves(stageBuildMock);
-                    testBuild.status = 'CREATED';
-                    buildMock = getBuildMock(testBuild);
-                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(null);
-
-                    return server.inject(options).then(reply => {
-                        assert.equal(reply.statusCode, 200);
-                        assert.calledWith(buildFactoryMock.create, {
-                            jobId: 1234,
-                            sha: '58393af682d61de87789fb4961645c42180cec5a',
-                            parentBuildId: 12345,
-                            parentBuilds: {
-                                123: { eventId: '8888', jobs: { 'alpha-certify': 7777, 'stage@alpha:teardown': 12345 } }
-                            },
-                            eventId: '8888',
-                            username: 12345,
-                            configPipelineSha: 'abc123',
-                            scmContext: 'github:github.com',
-                            prRef: '',
-                            prSource: '',
-                            prInfo: '',
-                            start: true,
-                            baseBranch: null
-                        });
-                        // Events should not be created if there is no external pipeline
-                        assert.notCalled(eventFactoryMock.create);
-                        assert.calledWith(stageBuildFactoryMock.create, {
-                            stageId: 1,
-                            eventId: '8888',
-                            status: 'CREATED'
-                        });
-                    });
-                });
-
                 it('triggers next job in the stage workflow', () => {
                     const status = 'SUCCESS';
                     const options = {
@@ -1711,10 +1619,6 @@ describe('build plugin test', () => {
                 });
 
                 it('triggers next job in the stage workflow if current is successful stage teardown and stageBuild is success', () => {
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -1784,10 +1688,6 @@ describe('build plugin test', () => {
                 });
 
                 it('does not trigger next job in the stage workflow if current is successful stage teardown and stageBuild is terminal', () => {
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -1857,10 +1757,6 @@ describe('build plugin test', () => {
                 });
 
                 it('triggers next job in the stage workflow if next build is stage teardown', () => {
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -1930,10 +1826,6 @@ describe('build plugin test', () => {
                 });
 
                 it('triggers stage teardown if current stage build is terminal', () => {
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -4587,10 +4479,7 @@ describe('build plugin test', () => {
 
                 // .only
                 it.skip('does not trigger if jobs in join list fails, creates stage teardown', () => {
-                    const stageMock = {
-                        id: 1,
-                        name: 'gamma'
-                    };
+                    stageMock.name = 'gamma';
                     const parentBuilds = {
                         123: {
                             eventId: '8888',
@@ -4736,12 +4625,86 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('delete next stageBuild if next job is stage setup, and parent has some failures', () => {
+                    const localOptions = hoek.clone(options);
+                    const stageBuildMock = {
+                        remove: sinon.stub().resolves(null),
+                        update: sinon.stub().resolves(null)
+                    };
+
+                    localOptions.payload.status = 'FAILURE';
+                    eventMock.workflowGraph.nodes = [
+                        { name: '~pr' },
+                        { name: '~commit' },
+                        { name: 'a', id: 1, stageName: 'alpha' },
+                        { name: 'b', id: 2 },
+                        { name: 'stage@beta:setup', id: 3, steageName: 'beta' },
+                        { name: 'd', id: 4 },
+                        { name: 'e', id: 5 }
+                    ];
+                    eventMock.workflowGraph.edges = [
+                        { src: '~pr', dest: 'a' },
+                        { src: '~commit', dest: 'a' },
+                        { src: 'a', dest: 'stage@beta:setup', join: true },
+                        { src: 'd', dest: 'stage@beta:setup', join: true },
+                        { src: 'a', dest: 'e', join: true },
+                        { src: 'd', dest: 'e', join: true }
+                    ];
+
+                    const buildC = {
+                        jobId: 3,
+                        eventId: '8888',
+                        id: 3,
+                        status: 'CREATED',
+                        remove: sinon.stub().resolves(null)
+                    };
+                    const buildE = {
+                        jobId: 4,
+                        eventId: '8888',
+                        id: 4,
+                        status: 'CREATED',
+                        remove: sinon.stub().resolves(null)
+                    };
+                    const updatedBuildC = Object.assign(buildC, {
+                        parentBuilds: { 123: { eventId: '8888', jobs: { d: 5555, a: 12345 } } }
+                    });
+                    const updatedBuildE = Object.assign(buildE, {
+                        parentBuilds: { 123: { eventId: '8888', jobs: { d: 5555, a: 12345 } } }
+                    });
+
+                    buildC.update = sinon.stub().resolves(updatedBuildC);
+                    buildE.update = sinon.stub().resolves(updatedBuildE);
+                    buildFactoryMock.getLatestBuilds.resolves([
+                        {
+                            jobId: 1,
+                            id: 12345,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        },
+                        {
+                            jobId: 4,
+                            id: 5555,
+                            eventId: '8888',
+                            status: 'FAILURE'
+                        },
+                        buildC
+                    ]);
+                    stageMock = { id: 999, jobIds: [22, 33, 44] };
+                    buildFactoryMock.get.withArgs({ jobId: 3, eventId: '8888' }).resolves(buildC);
+                    buildFactoryMock.get.withArgs({ jobId: 5, eventId: '8888' }).resolves(buildE);
+                    stageFactoryMock.get.withArgs({ name: 'beta', pipelineId: 123 }).resolves(stageMock);
+                    stageBuildFactoryMock.get.resolves(stageBuildMock);
+
+                    return newServer.inject(localOptions).then(() => {
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildC.remove);
+                        assert.calledOnce(buildE.remove);
+                        assert.calledOnce(stageBuildMock.remove);
+                    });
+                });
+
                 it('create stage teardown and update stageBuild status if parent has some failures', () => {
                     const localOptions = hoek.clone(options);
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -4813,13 +4776,6 @@ describe('build plugin test', () => {
 
                 it('update/start stage teardown if it already exists and update stageBuild status if parent has some failures', () => {
                     const localOptions = hoek.clone(options);
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha',
-                        jobIds: [22, 33, 44],
-                        setup: 11,
-                        teardown: 55
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -4898,10 +4854,6 @@ describe('build plugin test', () => {
 
                 it('update stageBuild status if next job is stage teardown and parent has some failures', () => {
                     const localOptions = hoek.clone(options);
-                    const stageMock = {
-                        id: 1,
-                        name: 'alpha'
-                    };
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
