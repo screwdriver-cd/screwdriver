@@ -20,13 +20,16 @@ module.exports = () => ({
         },
         handler: async (request, h) => {
             const { namespace, name, versionOrTag } = request.params;
-            const { pipelineTemplateVersionFactory } = request.server.app;
+            const { pipelineTemplateFactory, pipelineTemplateVersionFactory } = request.server.app;
 
-            const pipelineTemplate = await pipelineTemplateVersionFactory.getWithMetadata({
-                name,
-                namespace,
-                versionOrTag
-            });
+            const pipelineTemplate = await pipelineTemplateVersionFactory.getWithMetadata(
+                {
+                    name,
+                    namespace,
+                    versionOrTag
+                },
+                pipelineTemplateFactory
+            );
 
             if (!pipelineTemplate) {
                 throw boom.notFound('Pipeline Template does not exist');

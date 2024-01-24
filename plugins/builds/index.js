@@ -992,7 +992,7 @@ const buildsPlugin = {
                  */
                 const isORTrigger = !joinListNames.includes(current.job.name);
 
-                if (isORTrigger) {
+                if (joinListNames.length === 0 || isORTrigger) {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
@@ -1235,7 +1235,6 @@ const buildsPlugin = {
 
                         const joinList = nextJobs[nextJobName].join;
                         const joinListNames = joinList.map(j => j.name);
-                        const isORTrigger = !joinListNames.includes(triggerName);
 
                         if (nextBuild) {
                             // update current build info in parentBuilds
@@ -1269,17 +1268,6 @@ const buildsPlugin = {
                                 parentBuildId,
                                 start: false
                             });
-                        }
-
-                        if (isORTrigger) {
-                            if (!['CREATED', null, undefined].includes(newBuild.status)) {
-                                return newBuild;
-                            }
-
-                            newBuild.status = 'QUEUED';
-                            await newBuild.update();
-
-                            return newBuild.start();
                         }
 
                         const { hasFailure, done } = await getParentBuildStatus({

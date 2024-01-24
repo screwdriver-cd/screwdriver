@@ -320,3 +320,44 @@ If the template tag already exists, it will update the tag with the new version.
 `PUT /templates/{templateName}/tags/{tagName}` with the following payload
 
 * `version` - Exact version of the template (ex: `1.1.0`)
+
+##### Delete a pipeline template
+Deleting a pipeline template will delete a template and all of its associated tags and versions.
+
+`DELETE /pipeline/templates/{namespace}/{name}`
+
+###### Arguments
+
+* `name` - Name of the template
+
+##### Delete a pipeline template version
+
+Delete the template version and all of its associated tags.
+If the deleted version was the latest version, the API would set the `latestVersion` attribute of the templateMeta to the previous version.
+
+`DELETE /pipeline/templates/{namespace}/{name}/versions/{version}`
+
+###### Arguments
+
+'namespace', 'name', 'version'
+
+* `namespace` - Namespace of the template
+* `name` - Name of the template
+* `version` - Version of the template
+
+
+##### Delete a pipeline template tag
+
+Delete the template tag. This does not delete the template itself.
+
+*Note: This endpoint is only accessible in `build` scope and the permission is tied to the pipeline that creates the template.*
+
+`DELETE /pipeline/templates/{namespace}/{name}/tags/{tag}`
+
+###### Arguments
+
+'namespace', 'name', 'tag'
+
+* `namespace` - Namespace of the template
+* `name` - Name of the template
+* `tag` - Tag name of the template
