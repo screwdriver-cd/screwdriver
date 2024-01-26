@@ -12,11 +12,6 @@ module.exports = () => ({
         description: 'Validate a given sd-template.yaml',
         notes: 'returns the parsed config, validation errors, or both',
         tags: ['api', 'validation', 'yaml'],
-        auth: {
-            strategies: ['token'],
-            scope: ['user', 'pipeline']
-        },
-
         handler: async (request, h) => {
             try {
                 const { yaml: templateString } = request.payload;
