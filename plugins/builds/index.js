@@ -845,7 +845,7 @@ const buildsPlugin = {
                  */
                 const isORTrigger = !joinListNames.includes(current.job.name);
 
-                if (joinListNames.length === 0 || isORTrigger) {
+                if (isORTrigger) {
                     const internalBuildConfig = {
                         jobFactory,
                         buildFactory,
@@ -1048,6 +1048,7 @@ const buildsPlugin = {
 
                         const joinList = nextJobs[nextJobName].join;
                         const joinListNames = joinList.map(j => j.name);
+                        const isORTrigger = !joinListNames.includes(triggerName);
 
                         if (nextBuild) {
                             // update current build info in parentBuilds
@@ -1083,22 +1084,30 @@ const buildsPlugin = {
                             });
                         }
 
-                        const { hasFailure, done } = await getParentBuildStatus({
-                            newBuild,
-                            joinListNames,
-                            pipelineId: externalPipelineId,
-                            buildFactory
-                        });
+                        if (isORTrigger) {
+                            if (['CREATED', null, undefined].includes(newBuild.status)) {
+                                newBuild.status = 'QUEUED';
+                                await newBuild.update();
+                                await newBuild.start();
+                            }
+                        } else {
+                            const { hasFailure, done } = await getParentBuildStatus({
+                                newBuild,
+                                joinListNames,
+                                pipelineId: externalPipelineId,
+                                buildFactory
+                            });
 
-                        // Check if external pipeline has Join
-                        // and join conditions are met
-                        await handleNewBuild({
-                            done,
-                            hasFailure,
-                            newBuild,
-                            jobName: nextJobName,
-                            pipelineId: externalPipelineId
-                        });
+                            // Check if external pipeline has Join
+                            // and join conditions are met
+                            await handleNewBuild({
+                                done,
+                                hasFailure,
+                                newBuild,
+                                jobName: nextJobName,
+                                pipelineId: externalPipelineId
+                            });
+                        }
                     }
 
                     return null;
