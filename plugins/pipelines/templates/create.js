@@ -12,10 +12,10 @@ module.exports = () => ({
         description: 'Create a new pipeline template',
         notes: 'Create a specific pipeline template',
         tags: ['api', 'pipelineTemplate'],
-        // auth: {
-        //     strategies: ['token'],
-        //     scope: ['build', 'user', 'pipeline']
-        // },
+        auth: {
+            strategies: ['token'],
+            scope: ['build']
+        },
         handler: async (request, h) => {
             const { pipelineTemplateVersionFactory, pipelineTemplateFactory } = request.server.app;
 
