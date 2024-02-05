@@ -323,7 +323,9 @@ describe('pipeline plugin test', () => {
                     `${reply.request.server.info.protocol}://${reply.request.headers.host}`
                 ).toString();
 
-                assert.deepEqual(reply.result, testTemplate);
+                assert.deepEqual(reply.result, {
+                    ...testTemplate
+                });
                 assert.strictEqual(reply.headers.location, expectedLocation);
                 assert.calledWith(pipelineTemplateFactoryMock.get, {
                     name: 'template_name',

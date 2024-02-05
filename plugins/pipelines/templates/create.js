@@ -16,7 +16,6 @@ module.exports = () => ({
             strategies: ['token'],
             scope: ['build']
         },
-
         handler: async (request, h) => {
             const { pipelineTemplateVersionFactory, pipelineTemplateFactory } = request.server.app;
 
@@ -39,7 +38,7 @@ module.exports = () => ({
                 throw boom.forbidden('Not allowed to publish this template');
             }
 
-            const template = await pipelineTemplateVersionFactory.create(
+            const templateVersion = await pipelineTemplateVersionFactory.create(
                 {
                     ...config.template,
                     pipelineId
@@ -48,11 +47,18 @@ module.exports = () => ({
             );
 
             const location = new URL(
-                `${request.path}/${template.id}`,
+                `${request.path}/${templateVersion.id}`,
                 `${request.server.info.protocol}://${request.headers.host}`
             ).toString();
 
-            return h.response(template.toJson()).header('Location', location).code(201);
+            return h
+                .response({
+                    namespace: config.template.namespace,
+                    name: config.template.name,
+                    ...templateVersion.toJson()
+                })
+                .header('Location', location)
+                .code(201);
         },
         validate: {
             payload: templateSchema.input
