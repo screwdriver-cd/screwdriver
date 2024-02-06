@@ -240,6 +240,18 @@ const pipelineTemplateVersionFactory = Models.PipelineTemplateVersionFactory.get
     scm
 });
 
+const pipelineTemplateTagFactory = Models.PipelineTemplateTagFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+
+const jobTemplateTagFactory = Models.JobTemplateTagFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+
 // @TODO run setup for SCM and Executor
 // datastoreConfig.ddlSync => sync datastore schema (ddl) via api (default: true)
 datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
@@ -256,6 +268,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         templateFactory,
         pipelineTemplateFactory,
         pipelineTemplateVersionFactory,
+        pipelineTemplateTagFactory,
+        jobTemplateTagFactory,
         templateTagFactory,
         pipelineFactory,
         jobFactory,
