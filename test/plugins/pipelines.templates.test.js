@@ -833,7 +833,7 @@ describe('pipeline plugin test', () => {
             pipeline = getPipelineMocks(testPipeline);
             pipelineFactoryMock.get.resolves(pipeline);
             templateMock = getTemplateMocks(testTemplate);
-            pipelineTemplateVersionFactoryMock.get.resolves(templateMock);
+            pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(templateMock);
         });
 
         it('creates template tag if template tag does not exist yet', () => {
@@ -848,7 +848,7 @@ describe('pipeline plugin test', () => {
                 assert.deepEqual(reply.result, hoek.merge({ id: 123 }, payload));
                 assert.strictEqual(reply.headers.location, expectedLocation);
                 assert.calledWith(
-                    pipelineTemplateVersionFactoryMock.get,
+                    pipelineTemplateVersionFactoryMock.getWithMetadata,
                     {
                         name: 'nodejs',
                         namespace: 'screwdriver',
@@ -884,7 +884,7 @@ describe('pipeline plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.deepEqual(reply.result.version, template.version);
                 assert.calledWith(
-                    pipelineTemplateVersionFactoryMock.get,
+                    pipelineTemplateVersionFactoryMock.getWithMetadata,
                     {
                         name: 'nodejs',
                         namespace: 'screwdriver',
@@ -906,7 +906,7 @@ describe('pipeline plugin test', () => {
         it('returns 403 when pipelineId does not match', () => {
             templateMock = getTemplateMocks(testTemplate);
             templateMock.pipelineId = 321;
-            pipelineTemplateVersionFactoryMock.get.resolves(templateMock);
+            pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(templateMock);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 403);
@@ -914,7 +914,7 @@ describe('pipeline plugin test', () => {
         });
 
         it('returns 404 when template does not exist', () => {
-            pipelineTemplateVersionFactoryMock.get.resolves(null);
+            pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 404);
