@@ -1199,16 +1199,17 @@ const buildsPlugin = {
                                 buildFactory
                             });
 
-                        // Check if external pipeline has Join
-                        // and join conditions are met
-                        await handleNewBuild({
-                            done,
-                            hasFailure,
-                            newBuild,
-                            jobName: nextJobName,
-                            pipelineId: externalPipelineId,
-                            stage: current.stage
-                        });
+                            // Check if external pipeline has Join
+                            // and join conditions are met
+                            await handleNewBuild({
+                                done,
+                                hasFailure,
+                                newBuild,
+                                jobName: nextJobName,
+                                pipelineId: externalPipelineId,
+                                stage: current.stage
+                            });
+                        }
                     }
 
                     return null;
