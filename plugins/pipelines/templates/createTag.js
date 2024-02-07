@@ -33,13 +33,13 @@ module.exports = () => ({
 
             const [pipeline, template, templateTag] = await Promise.all([
                 pipelineFactory.get(pipelineId),
-                pipelineTemplateVersionFactory.get({ name, namespace, version }, pipelineTemplateFactory),
+                pipelineTemplateVersionFactory.getWithMetadata({ name, namespace, version }, pipelineTemplateFactory),
                 pipelineTemplateTagFactory.get({ name, namespace, tag })
             ]);
 
             // If template doesn't exist, throw error
             if (!template) {
-                throw boom.notFound(`PipelineTemplate ${name}@${version} not found`);
+                throw boom.notFound(`PipelineTemplate ${namespace / name}@${version} not found`);
             }
 
             // check if build has permission to publish
