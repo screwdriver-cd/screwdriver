@@ -180,6 +180,30 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
     return Promise.resolve(stage);
 }
 
+/**
+ * Checks if all builds in stage are done running
+ * @param  {Factory}    buildFactory              Build factory
+ * @param  {Object}     stage                     Stage
+ * @param  {Number}     eventId                   Event ID
+ * @return {Boolean}              Flag if stage is done
+ */
+async function isStageDone({ buildFactory, stage, eventId }) {
+    // Get all jobIds for jobs in the stage
+    const stageJobIds = stage.jobIds;
+
+    stageJobIds.push(stage.setup);
+
+    // Get all builds in a stage
+    const stageJobBuilds = await buildFactory.list({ params: { jobId: stageJobIds, eventId } });
+    let stageIsDone = false;
+
+    if (stageJobBuilds && stageJobBuilds.length !== 0) {
+        stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
+    }
+
+    return stageIsDone;
+}
+
 module.exports = () => ({
     method: 'PUT',
     path: '/builds/{id}',
@@ -323,41 +347,19 @@ module.exports = () => ({
             // Determine if stage teardown build should start
             // (if stage teardown build exists, and stageBuild.status is negative,
             // and there are no active stage builds, and teardown build is not started)
-            if (stage) {
+            if (stage && FINISHED_STATUSES.includes(newBuild.status)) {
                 const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
-                const stageTeardownJob = await jobFactory.get({
-                    params: { pipelineId: pipeline.id, name: stageTeardownName }
+                const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
+                // Get stage teardown build
+                const stageTeardownBuild = await buildFactory.get({
+                    params: { eventId: newEvent.id, jobId: stageTeardownJob.id }
                 });
-                let stageTeardownBuild;
 
-                if (stageTeardownJob) {
-                    // Get stage teardown build
-                    stageTeardownBuild = await buildFactory.get({
-                        params: { eventId: newEvent.id, jobId: stageTeardownJob.id }
-                    });
+                // Start stage teardown build if stage is done
+                if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {
+                    const stageIsDone = await isStageDone({ buildFactory, stage, eventId: newEvent.id });
 
-                    // Get all jobIds for jobs in the stage
-                    const stageJobIds = stage.jobIds;
-
-                    stageJobIds.push(stage.setup);
-
-                    // Get all builds in a stage
-                    const stageJobBuilds = await buildFactory.list({
-                        params: { jobId: stageJobIds, eventId: newEvent.id }
-                    });
-                    let stageIsDone = false;
-
-                    if (stageJobBuilds && stageJobBuilds.length !== 0) {
-                        stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
-                    }
-
-                    // Start stage teardown build
-                    if (
-                        stageTeardownBuild &&
-                        stageTeardownBuild.status === 'CREATED' &&
-                        stageBuildHasFailure &&
-                        stageIsDone
-                    ) {
+                    if (stageIsDone) {
                         stageTeardownBuild.status = 'QUEUED';
                         await stageTeardownBuild.update();
                         await stageTeardownBuild.start();
