@@ -20,13 +20,22 @@ module.exports = () => ({
         },
         handler: async (request, h) => {
             const { namespace, name, versionOrTag } = request.params;
-            const { pipelineTemplateFactory, pipelineTemplateVersionFactory } = request.server.app;
+            const { pipelineTemplateFactory, pipelineTemplateVersionFactory, pipelineTemplateTagFactory } =
+                request.server.app;
+
+            const templateTag = await pipelineTemplateTagFactory.get({
+                name,
+                namespace,
+                tag: versionOrTag
+            });
+
+            const version = templateTag ? templateTag.version : versionOrTag;
 
             const pipelineTemplate = await pipelineTemplateVersionFactory.getWithMetadata(
                 {
                     name,
                     namespace,
-                    versionOrTag
+                    version
                 },
                 pipelineTemplateFactory
             );
