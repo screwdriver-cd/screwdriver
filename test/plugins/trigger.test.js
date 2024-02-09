@@ -162,4 +162,21 @@ describe('trigger test', () => {
         assert.isNotNull(upstreamEvent2);
         assert.deepEqual([build1.status, build2.status].sort(), ['SUCCESS', 'CREATED'].sort())
     });
+
+    it('trigger a remote join twice', async () => {
+        const pipeline1 = await pipelineFactoryMock.createFromFile('external-twice-parent.yaml');
+        const pipeline2 = await pipelineFactoryMock.createFromFile('external-twice-child1.yaml');
+        const pipeline3 = await pipelineFactoryMock.createFromFile('external-twice-child2.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: pipeline1.id,
+            startFrom: 'parent1'
+        });
+
+        // run all builds
+        await buildFactoryMock.run();
+
+        // Remote join does not belong to the restart event
+        assert.equal(event.getBuildOf('parent3').status, 'SUCCESS');
+    });
 });
