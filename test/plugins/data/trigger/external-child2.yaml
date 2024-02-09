@@ -6,7 +6,3 @@ shared:
 jobs:
   child1:
     requires: [ ~sd@1:parent1 ]
-  # child2:
-  #   requires: [ ~sd@1:parent2 ]
-  # child3:
-  #   requires: [ ~sd@2:child3 ]

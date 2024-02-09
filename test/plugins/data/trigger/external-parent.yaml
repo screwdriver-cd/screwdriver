@@ -8,7 +8,3 @@ jobs:
     requires: [ ~commit, ~pr ]
   parent2:
     requires: [ sd@2:child1, sd@3:child1 ]
-  # parent3:
-  #   requires: [ sd@2:child2, sd@3:child2 ]
-  # parent4:
-  #   requires: [ sd@2:child4 ]
