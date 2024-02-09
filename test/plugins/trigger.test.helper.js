@@ -65,6 +65,12 @@ class PipelineFactoryMock {
             }
         });
 
+        pipeline.getBuildsOf = jobName => {
+            return this.server.app.buildFactory.records.filter(build => {
+                return build && build.job.name === jobName && build.job.pipelineId === pipeline.id;
+            });
+        };
+
         this.records.push(pipeline);
 
         await this.syncTriggers();
@@ -72,6 +78,11 @@ class PipelineFactoryMock {
         return pipeline;
     }
 
+    get(id) {
+        return this.records[Number(id)];
+    }
+
+    // custom methods
     async createFromFile(fileName) {
         const yaml = fs.readFileSync(`${__dirname}/data/trigger/${fileName}`).toString();
 
@@ -112,10 +123,6 @@ class PipelineFactoryMock {
             pipeline.workflowGraph = workflowGraph;
         }
     };
-
-    get(id) {
-        return this.records[Number(id)];
-    }
 }
 
 class EventFactoryMock {
@@ -383,9 +390,37 @@ class JobFactoryMock {
 }
 
 class LockMock {
-    constructor() {
-        this.lock = sinon.stub();
-        this.unlock = sinon.stub();
+    locker = {};
+    delay = 0;
+
+    constructor(delay) {
+        if (delay) {
+            this.delay = delay;
+        }
+    }
+
+    async lock(resource) {
+        if (this.locker[resource]) {
+            return null;
+        }
+
+        this.locker[resource] = true;
+
+        return {
+            unlock: async () => setTimeout(() => {
+                this.locker[resource] = false;
+            }, this.delay),
+        };
+    }
+
+    async unlock(lock, _) {
+        if (lock) {
+            await lock.unlock();
+
+            return 1;
+        }
+
+        return null;
     }
 }
 

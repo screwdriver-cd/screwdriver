@@ -1,0 +1,20 @@
+shared:
+  image: node:20
+  steps:
+    - test: echo 'test'
+
+jobs:
+  a:
+    requires: [ ~commit, ~pr ]
+  b:
+    requires: [ ~a ]
+  c:
+    requires: [ ~a ]
+  d:
+    requires: [ ~a ]
+  e:
+    requires: [ b, c, d ]
+  f:
+    requires: [ b, c, ~d ]
+  g:
+    requires: [ b, ~c, ~d ]

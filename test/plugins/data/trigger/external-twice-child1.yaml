@@ -4,7 +4,7 @@ shared:
     - test: echo 'test'
 
 jobs:
-  child1:
-    requires: [ ~sd@1:parent1 ]
-  child2:
-    requires: [ ~sd@1:parent2 ]
+  a:
+    requires: [ ~sd@1:a ]
+  b:
+    requires: [ ~sd@1:b ]
