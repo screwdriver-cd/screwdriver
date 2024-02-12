@@ -24,7 +24,8 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { pipelineTemplateFactory, pipelineTemplateVersionFactory } = request.server.app;
             const config = {
-                params: request.params,
+                namespace: request.params.namespace,
+                name: request.params.name,
                 sort: request.query.sort
             };
 

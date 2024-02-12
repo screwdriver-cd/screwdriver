@@ -32,7 +32,7 @@ module.exports = () => ({
 
             const [tags, templateVersions] = await Promise.all([
                 pipelineTemplateTagFactory.list({ params: { namespace, name } }),
-                pipelineTemplateVersionFactory.list({ params: { namespace, name } }, pipelineTemplateFactory)
+                pipelineTemplateVersionFactory.list({ namespace, name }, pipelineTemplateFactory)
             ]);
 
             const canRemoveFlag = await canRemove(credentials, pipelineTemplate, 'admin', request.server.app);

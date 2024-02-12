@@ -568,10 +568,8 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(
                     pipelineTemplateVersionFactoryMock.list,
                     {
-                        params: {
-                            name: 'nodejs',
-                            namespace: 'screwdriver'
-                        },
+                        name: 'nodejs',
+                        namespace: 'screwdriver',
                         paginate: {
                             page: undefined,
                             count: 30
@@ -1011,10 +1009,8 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(
                     pipelineTemplateVersionFactoryMock.list,
                     {
-                        params: {
-                            name: 'nodejs',
-                            namespace: 'screwdriver'
-                        }
+                        name: 'nodejs',
+                        namespace: 'screwdriver'
                     },
                     pipelineTemplateFactoryMock
                 );
