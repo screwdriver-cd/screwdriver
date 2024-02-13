@@ -528,6 +528,7 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param  {Build}   newBuild       Next build
  * @param  {String}  [jobName]      Job name
  * @param  {String}  [pipelineId]   Pipeline ID
+ * @param  {Object}  [stage]        Stage
  * @return {Promise}                The newly updated/created build
  */
 async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stage }) {
@@ -740,7 +741,7 @@ async function checkStageTeardownBuild({ jobFactory, buildFactory, current, stag
         jobId: stageTeardownJob.id
     });
 
-    // Doesn't exist, create stage teardown job and return as next job
+    // Doesn't exist, create stage teardown job
     if (!existingStageTeardownBuild) {
         await createInternalBuild({
             jobFactory,

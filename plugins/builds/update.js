@@ -350,10 +350,7 @@ module.exports = () => ({
             if (stage && FINISHED_STATUSES.includes(newBuild.status)) {
                 const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
                 const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
-                // Get stage teardown build
-                const stageTeardownBuild = await buildFactory.get({
-                    params: { eventId: newEvent.id, jobId: stageTeardownJob.id }
-                });
+                const stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
 
                 // Start stage teardown build if stage is done
                 if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {

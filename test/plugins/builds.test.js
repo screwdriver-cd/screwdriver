@@ -1825,7 +1825,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers stage teardown if current stage build is terminal', () => {
+                it('triggers stage teardown if current stage build is terminal and stage teardown is not next build', () => {
                     const stageBuildMock = {
                         id: 1,
                         stageId: 1,
@@ -1846,6 +1846,17 @@ describe('build plugin test', () => {
                         payload: {
                             status
                         }
+                    };
+                    const mockBuildList = [
+                        { status: 'FAILURE' },
+                        { status: 'SUCCESS' },
+                        { status: 'SUCCESS' },
+                        { status: 'SUCCESS' }
+                    ];
+                    const stageTeardownBuildMock = {
+                        status: 'CREATED',
+                        start: sinon.stub().resolves(),
+                        update: sinon.stub().resolves()
                     };
 
                     jobMock = {
@@ -1885,12 +1896,21 @@ describe('build plugin test', () => {
                     stageBuildFactoryMock.get.resolves(stageBuildMock);
                     testBuild.status = 'FAILURE';
                     buildMock = getBuildMock(testBuild);
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId: 123, name: 'stage@alpha:teardown' })
+                        .resolves({ id: 9999 });
                     buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 9999 }).resolves(stageTeardownBuildMock);
+                    buildFactoryMock.list
+                        .withArgs({ params: { jobId: [22, 33, 44, 11], eventId: '8888' } })
+                        .resolves(mockBuildList);
 
                     return server.inject(options).then(reply => {
                         assert.equal(reply.statusCode, 200);
                         assert.notCalled(buildFactoryMock.create);
                         assert.notCalled(stageBuildFactoryMock.create);
+                        assert.calledOnce(stageTeardownBuildMock.start);
+                        assert.calledOnce(stageTeardownBuildMock.update);
                     });
                 });
 
