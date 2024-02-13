@@ -10,7 +10,7 @@ const {
     EventFactoryMock,
     BuildFactoryMock,
     JobFactoryMock,
-    LockMock,
+    LockMock
 } = require('./trigger.test.helper');
 
 describe('trigger test', () => {
@@ -31,18 +31,18 @@ describe('trigger test', () => {
     const loggerMock = {
         info: sinon.stub(),
         error: sinon.stub(),
-        warn: sinon.stub(),
+        warn: sinon.stub()
     };
 
     beforeEach(async () => {
         const plugin = rewiremock.proxy('../../plugins/builds', {
             '../../plugins/lock': lockMock,
-            'screwdriver-logger': loggerMock,
+            'screwdriver-logger': loggerMock
         });
 
         server = new hapi.Server({
             port: 12345,
-            host: 'localhost',
+            host: 'localhost'
         });
 
         buildFactoryMock = new BuildFactoryMock(server);
@@ -57,7 +57,7 @@ describe('trigger test', () => {
             eventFactory: eventFactoryMock,
             jobFactory: jobFactoryMock,
             bannerFactory: bannerFactoryMock,
-            triggerFactory: triggerFactory,
+            triggerFactory
         };
 
         server.auth.scheme('custom', () => ({
@@ -77,7 +77,7 @@ describe('trigger test', () => {
                 plugin,
                 options: {
                     ecosystem: {
-                        store: 'https://store.screwdriver.cd',
+                        store: 'https://store.screwdriver.cd'
                     },
                     authConfig: {
                         jwtPrivateKey: 'boo'
@@ -85,14 +85,12 @@ describe('trigger test', () => {
                     externalJoin: true,
                     admins: ['github:batman']
                 }
-            },
+            }
         ]);
     });
 
     afterEach(() => {
-        server.stop();
         server = null;
-        rewiremock.clear();
     });
 
     it('[ ~a ] is triggered', async () => {
@@ -100,7 +98,7 @@ describe('trigger test', () => {
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'hub',
+            startFrom: 'hub'
         });
 
         await event.getBuildOf('hub').complete('SUCCESS');
@@ -118,7 +116,7 @@ describe('trigger test', () => {
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'hub',
+            startFrom: 'hub'
         });
 
         await event.getBuildOf('hub').complete('SUCCESS');
@@ -137,7 +135,7 @@ describe('trigger test', () => {
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'hub',
+            startFrom: 'hub'
         });
 
         await event.getBuildOf('hub').complete('SUCCESS');
@@ -157,7 +155,7 @@ describe('trigger test', () => {
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'hub',
+            startFrom: 'hub'
         });
 
         await event.getBuildOf('hub').complete('SUCCESS');
@@ -173,7 +171,7 @@ describe('trigger test', () => {
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'hub',
+            startFrom: 'hub'
         });
 
         await event.getBuildOf('hub').complete('SUCCESS');
@@ -200,6 +198,7 @@ describe('trigger test', () => {
         await parentEvent.getBuildOf('a').complete('SUCCESS');
 
         const childEvent = childPipeline.getLatestEvent();
+
         assert.equal(childEvent.getBuildOf('target').status, 'RUNNING');
 
         await childEvent.getBuildOf('target').complete('SUCCESS');
@@ -219,6 +218,7 @@ describe('trigger test', () => {
         await parentEvent.getBuildOf('a').complete('SUCCESS');
 
         const childEvent = childPipeline.getLatestEvent();
+
         assert.equal(childEvent.getBuildOf('target').status, 'RUNNING');
 
         await childEvent.getBuildOf('target').complete('SUCCESS');
@@ -247,6 +247,7 @@ describe('trigger test', () => {
 
     it('[ ~sd@2:a ] is triggered in a upstream', async () => {
         const parentPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a-parent.yaml');
+
         await pipelineFactoryMock.createFromFile('~sd@2:a-child.yaml');
 
         const event = eventFactoryMock.create({
@@ -262,6 +263,7 @@ describe('trigger test', () => {
 
     it('[ sd@2:a ] is triggered in a upstream', async () => {
         const parentPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-parent.yaml');
+
         await pipelineFactoryMock.createFromFile('sd@2:a-child.yaml');
 
         const event = eventFactoryMock.create({
@@ -277,6 +279,7 @@ describe('trigger test', () => {
 
     it('[ sd@2:a, sd@3:a ] is triggered in a upstream', async () => {
         const parentPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-parent.yaml');
+
         await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-child.yaml');
         await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-child.yaml');
 
@@ -293,6 +296,7 @@ describe('trigger test', () => {
 
     it('[ sd@2:a, sd@2:b, sd@2:c ] is triggered in a upstream', async () => {
         const parentPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@2:b_sd@2:c-parent.yaml');
+
         await pipelineFactoryMock.createFromFile('sd@2:a_sd@2:b_sd@2:c-child.yaml');
 
         const event = eventFactoryMock.create({

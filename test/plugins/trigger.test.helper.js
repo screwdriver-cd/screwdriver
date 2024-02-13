@@ -1,5 +1,8 @@
 'use strict';
 
+/* eslint max-classes-per-file: off */
+/* eslint-disable */
+
 const configParser = require('screwdriver-config-parser');
 const fs = require('fs');
 const sinon = require('sinon');
@@ -7,13 +10,14 @@ const { assert } = require('chai');
 
 class TriggerFactoryMock {
     server;
+
     records = {};
 
     constructor(server) {
         this.server = server;
     }
 
-    create({src, dest}) {
+    create({ src, dest }) {
         if (!this.records[src]) {
             this.records[src] = [];
         }
@@ -28,6 +32,7 @@ class TriggerFactoryMock {
 
 class PipelineFactoryMock {
     server;
+
     records = [null];
 
     constructor(server) {
@@ -39,9 +44,9 @@ class PipelineFactoryMock {
             ...config,
             id: this.records.length,
             admin: {
-                unsealToken: sinon.stub().resolves('token'),
+                unsealToken: sinon.stub().resolves('token')
             },
-            toJson: sinon.stub(),
+            toJson: sinon.stub()
         };
 
         pipeline.toJson.returns({ ...pipeline });
@@ -52,7 +57,7 @@ class PipelineFactoryMock {
             jobs[name] = this.server.app.jobFactory.create({
                 name,
                 pipeline,
-                pipelineId: pipeline.id,
+                pipelineId: pipeline.id
             });
         });
 
@@ -66,9 +71,11 @@ class PipelineFactoryMock {
         });
 
         pipeline.getBuildsOf = jobName => {
-            return this.server.app.buildFactory.records.filter(build => {
-                return build && build.job.name === jobName && build.job.pipelineId === pipeline.id;
-            });
+            return (
+                this.server.app.buildFactory.records.filter(build => {
+                    return build && build.job.name === jobName && build.job.pipelineId === pipeline.id;
+                }) || null
+            );
         };
 
         pipeline.getLatestEvent = () => {
@@ -77,7 +84,7 @@ class PipelineFactoryMock {
             });
 
             return events ? events.slice(-1)[0] : null;
-        }
+        };
 
         this.records.push(pipeline);
 
@@ -95,6 +102,7 @@ class PipelineFactoryMock {
         const yaml = fs.readFileSync(`${__dirname}/data/trigger/${fileName}`).toString();
 
         const pipeline = await configParser({ yaml });
+
         pipeline.yaml = yaml;
 
         return this.create(pipeline);
@@ -107,12 +115,12 @@ class PipelineFactoryMock {
             const { workflowGraph } = await configParser({
                 yaml: pipeline.yaml,
                 triggerFactory: this.server.app.triggerFactory,
-                pipelineId: pipeline.id,
+                pipelineId: pipeline.id
             });
 
             workflowGraph.nodes.forEach(node => {
                 let pipelineId = pipeline.id;
-                let name = node.name;
+                let { name } = node;
 
                 if (name.startsWith('sd@') || name.startsWith('~sd@')) {
                     const [l, r] = name.split(':');
@@ -130,14 +138,16 @@ class PipelineFactoryMock {
 
             pipeline.workflowGraph = workflowGraph;
         }
-    };
+    }
 }
 
 class EventFactoryMock {
     server;
+
     records = [null];
+
     scm = {
-        getCommitSha: sinon.stub().resolves('github:github.com'),
+        getCommitSha: sinon.stub().resolves('github:github.com')
     };
 
     constructor(server) {
@@ -151,16 +161,17 @@ class EventFactoryMock {
             id: this.records.length,
             pr: {},
             update: sinon.stub(),
-            toJson: sinon.stub(),
+            toJson: sinon.stub()
         };
 
         const pipeline = this.server.app.pipelineFactory.get(event.pipelineId);
+
         event.workflowGraph = pipeline.workflowGraph;
         event.getBuilds = () => {
             return this.server.app.buildFactory.records.filter(build => {
                 return build && build.eventId == event.id;
             });
-        }
+        };
         event.update.returns(event);
         event.toJson.returns({ ...event });
 
@@ -174,14 +185,15 @@ class EventFactoryMock {
                 parentEventId: event.id,
                 parentBuilds: restartBuild.parentBuilds,
                 parentBuildId: restartBuild.parentBuildId,
-                startFrom: jobName,
+                startFrom: jobName
             });
 
             return restartEvent;
         };
         event.run = async () => {
             let build = null;
-            while (build = this.getRunningBuild(event.id)) {
+
+            while ((build = this.getRunningBuild(event.id))) {
                 await build.complete('SUCCESS');
             }
         };
@@ -214,7 +226,7 @@ class EventFactoryMock {
                 const build = this.server.app.buildFactory.create({
                     jobId: job.id,
                     eventId: event.id,
-                    ...config,
+                    ...config
                 });
 
                 build.start();
@@ -225,7 +237,7 @@ class EventFactoryMock {
     }
 
     get(config) {
-        const id = config instanceof Object ? config.id : Number(config)
+        const id = config instanceof Object ? config.id : Number(config);
 
         return this.records[id] || null;
     }
@@ -237,9 +249,11 @@ class EventFactoryMock {
     }
 
     getRunningBuild(eventId) {
-        return this.server.app.buildFactory.records.find(build => {
-            return build && build.isStarted && build.status === 'RUNNING' && build.eventId === eventId;
-        }) || null;
+        return (
+            this.server.app.buildFactory.records.find(build => {
+                return build && build.isStarted && build.status === 'RUNNING' && build.eventId === eventId;
+            }) || null
+        );
     }
 
     getChildEvents(parentEventId) {
@@ -249,8 +263,11 @@ class EventFactoryMock {
 
 class BuildFactoryMock {
     server;
+
     records = [null];
+
     uniquePairs = {};
+
     removedRecords = [];
 
     constructor(server) {
@@ -265,7 +282,7 @@ class BuildFactoryMock {
             id: this.records.length,
             update: sinon.stub(),
             toJson: sinon.stub(),
-            toJsonWithSteps: sinon.stub(),
+            toJsonWithSteps: sinon.stub()
         };
 
         build.update.returns(build);
@@ -302,6 +319,7 @@ class BuildFactoryMock {
         };
 
         const eventJobKey = `event${build.event.id}:job${build.job.id}`;
+
         if (!this.uniquePairs[eventJobKey]) {
             this.uniquePairs[eventJobKey] = true;
         } else {
@@ -328,9 +346,11 @@ class BuildFactoryMock {
             return this.records[id] || null;
         }
 
-        return this.records.find(build => {
-            return build && build.eventId === eventId && build.jobId === jobId;
-        }) || null;
+        return (
+            this.records.find(build => {
+                return build && build.eventId === eventId && build.jobId === jobId;
+            }) || null
+        );
     }
 
     getLatestBuilds(config) {
@@ -351,7 +371,8 @@ class BuildFactoryMock {
 
     async run() {
         let build = null;
-        while (build = this.getRunningBuild()) {
+
+        while ((build = this.getRunningBuild())) {
             await build.complete('SUCCESS');
         }
     }
@@ -359,6 +380,7 @@ class BuildFactoryMock {
 
 class JobFactoryMock {
     server;
+
     records = [null];
 
     constructor(server) {
@@ -372,7 +394,7 @@ class JobFactoryMock {
             id: this.records.length,
             toJson: sinon.stub(),
             getLatestBuild: sinon.stub().resolves([]),
-            state: 'ENABLED',
+            state: 'ENABLED'
         };
 
         this.records.push(job);
@@ -392,14 +414,17 @@ class JobFactoryMock {
             return this.records[id] || null;
         }
 
-        return this.records.find(job => {
-            return job && job.pipelineId == pipelineId && job.name == name;
-        }) || null;
+        return (
+            this.records.find(job => {
+                return job && job.pipelineId == pipelineId && job.name == name;
+            }) || null
+        );
     }
 }
 
 class LockMock {
     locker = {};
+
     delay = 0;
 
     constructor(delay) {
@@ -416,9 +441,10 @@ class LockMock {
         this.locker[resource] = true;
 
         return {
-            unlock: async () => setTimeout(() => {
-                this.locker[resource] = false;
-            }, this.delay),
+            unlock: async () =>
+                setTimeout(() => {
+                    this.locker[resource] = false;
+                }, this.delay)
         };
     }
 
@@ -433,11 +459,13 @@ class LockMock {
     }
 }
 
+/* eslint-disable */
+
 module.exports = {
     TriggerFactoryMock,
     PipelineFactoryMock,
     EventFactoryMock,
     BuildFactoryMock,
     JobFactoryMock,
-    LockMock,
+    LockMock
 };
