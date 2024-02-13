@@ -1,3 +1,1 @@
 extends: screwdriver
-parserOptions:
-  ecmaVersion: 13

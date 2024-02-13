@@ -185,6 +185,24 @@ describe('trigger test', () => {
         assert.equal(event.getBuildOf('target').status, 'SUCCESS');
     });
 
+    it('[ a, b ] is not triggered when b was failed', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+
+        const build = event.getBuildOf('target');
+
+        await event.getBuildOf('b').complete('FAILURE');
+        assert.equal(build.status, 'CREATED');
+        assert.isNull(event.getBuildOf('target'));
+    });
+
     it('[ ~sd@1:a ] is triggered in a downstream', async () => {
         const parentPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-parent.yaml');
         const childPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-child.yaml');
