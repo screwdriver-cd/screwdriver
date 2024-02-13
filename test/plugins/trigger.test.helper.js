@@ -71,6 +71,14 @@ class PipelineFactoryMock {
             });
         };
 
+        pipeline.getLatestEvent = () => {
+            const events = this.server.app.eventFactory.records.filter(event => {
+                return event && event.pipelineId == pipeline.id;
+            });
+
+            return events ? events.slice(-1)[0] : null;
+        }
+
         this.records.push(pipeline);
 
         await this.syncTriggers();
@@ -242,6 +250,7 @@ class EventFactoryMock {
 class BuildFactoryMock {
     server;
     records = [null];
+    uniquePairs = {};
     removedRecords = [];
 
     constructor(server) {
@@ -263,6 +272,7 @@ class BuildFactoryMock {
         build.toJson.returns({ ...build });
         build.toJsonWithSteps.resolves({});
         build.start = () => {
+            assert.isFalse(build.isStarted);
             build.isStarted = true;
             build.status = 'RUNNING';
         };
@@ -290,6 +300,13 @@ class BuildFactoryMock {
 
             assert.equal(response.statusCode, 200);
         };
+
+        const eventJobKey = `event${build.event.id}:job${build.job.id}`;
+        if (!this.uniquePairs[eventJobKey]) {
+            this.uniquePairs[eventJobKey] = true;
+        } else {
+            assert.fail(`Unique error: ${eventJobKey}`);
+        }
 
         this.records.push(build);
 
@@ -326,14 +343,6 @@ class BuildFactoryMock {
         });
 
         return Object.keys(builds).map(key => builds[key]);
-    }
-
-    createRunningBuild(config) {
-        return this.create({
-            ...config,
-            status: 'RUNNING',
-            isStarted: true
-        });
     }
 
     getRunningBuild() {

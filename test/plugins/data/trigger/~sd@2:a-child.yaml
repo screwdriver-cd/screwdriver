@@ -6,5 +6,3 @@ shared:
 jobs:
   a:
     requires: [ ~sd@1:a ]
-  b:
-    requires: [ ~sd@1:b ]

@@ -4,7 +4,11 @@ shared:
     - test: echo 'test'
 
 jobs:
-  a:
+  hub:
     requires: [ ~commit, ~pr ]
+  a:
+    requires: [ ~hub ]
   b:
-    requires: [ sd@2:a, sd@3:a ]
+    requires: [ ~hub ]
+  target:
+    requires: [ ~a, ~b ]

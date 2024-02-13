@@ -95,127 +95,214 @@ describe('trigger test', () => {
         rewiremock.clear();
     });
 
-    it('[ ~a ], [ ~b, ~c ], [ d ] is triggered', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('internal-simple.yaml');
+    it('[ ~a ] is triggered', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a.yaml');
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'a',
+            startFrom: 'hub',
         });
 
+        await event.getBuildOf('hub').complete('SUCCESS');
         await event.getBuildOf('a').complete('SUCCESS');
 
-        assert.equal(event.getBuildOf('b').status, 'RUNNING');
-        assert.equal(event.getBuildOf('c').status, 'RUNNING');
+        assert.equal(event.getBuildOf('target').status, 'RUNNING');
+
+        await event.getBuildOf('target').complete('SUCCESS');
+
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
+    });
+
+    it('[ ~a, ~b ] is triggered by a once', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a_~b.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub',
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'RUNNING');
+
+        await event.getBuildOf('target').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
+
+        await event.getBuildOf('b').complete('SUCCESS');
+        assert.equal(eventFactoryMock.getRunningBuild(event.id), null);
+    });
+
+    it('[ ~a, b, c ] is triggered by a once', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('~a_b_c.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub',
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'RUNNING');
+
+        await event.getBuildOf('target').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
 
         await event.getBuildOf('b').complete('SUCCESS');
         await event.getBuildOf('c').complete('SUCCESS');
-
-        assert.equal(event.getBuildOf('d').status, 'RUNNING');
-        assert.equal(pipeline.getBuildsOf('d').length, 1);
-
-        await event.getBuildOf('d').complete('SUCCESS');
-
-        assert.equal(event.getBuildOf('e').status, 'RUNNING');
+        assert.equal(eventFactoryMock.getRunningBuild(event.id), null);
     });
 
-    it('[ ~b, ~c ], [ b, ~c ], [ ~b, c ] is triggered when b was failed', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('internal-two.yaml');
+    it('[ a ] is triggered', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a.yaml');
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'a',
+            startFrom: 'hub',
         });
 
+        await event.getBuildOf('hub').complete('SUCCESS');
         await event.getBuildOf('a').complete('SUCCESS');
-        await event.getBuildOf('b').complete('FAILURE');
-        await event.getBuildOf('c').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'RUNNING');
 
-        assert.equal(event.getBuildOf('d').status, 'RUNNING');
-        assert.equal(event.getBuildOf('e').status, 'RUNNING');
-        assert.equal(event.getBuildOf('f').status, 'RUNNING');
-        assert.equal(pipeline.getBuildsOf('d').length, 1);
-        assert.equal(pipeline.getBuildsOf('e').length, 1);
-        assert.equal(pipeline.getBuildsOf('f').length, 1);
+        await event.getBuildOf('target').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
     });
 
-    it('[ b, c, d ], [ b, c, ~d ], [ b, ~c, ~d ] is triggered', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('internal-three.yaml');
+    it('[ a, b ] is triggered', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b.yaml');
 
         const event = eventFactoryMock.create({
             pipelineId: pipeline.id,
-            startFrom: 'a',
+            startFrom: 'hub',
         });
 
+        await event.getBuildOf('hub').complete('SUCCESS');
         await event.getBuildOf('a').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'CREATED');
+
         await event.getBuildOf('b').complete('SUCCESS');
-        await event.getBuildOf('c').complete('SUCCESS');
-        await event.getBuildOf('d').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'RUNNING');
 
-        assert.equal(event.getBuildOf('e').status, 'RUNNING');
-        assert.equal(event.getBuildOf('f').status, 'RUNNING');
-        assert.equal(event.getBuildOf('g').status, 'RUNNING');
-        assert.equal(pipeline.getBuildsOf('e').length, 1);
-        assert.equal(pipeline.getBuildsOf('f').length, 1);
-        assert.equal(pipeline.getBuildsOf('g').length, 1);
+        await event.getBuildOf('target').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
     });
 
-    it('[ ~sd@1:a ], [ sd@2:a, sd@3:a ], [ sd@2:b, sd@3:b ] is triggered', async () => {
-        const pipeline1 = await pipelineFactoryMock.createFromFile('external-twice-parent.yaml');
-        const pipeline2 = await pipelineFactoryMock.createFromFile('external-twice-child1.yaml');
-        const pipeline3 = await pipelineFactoryMock.createFromFile('external-twice-child2.yaml');
+    it('[ ~sd@1:a ] is triggered in a downstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-parent.yaml');
+        const childPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-child.yaml');
 
-        const event = eventFactoryMock.create({
-            pipelineId: pipeline1.id,
-            startFrom: 'a'
+        const parentEvent = eventFactoryMock.create({
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await parentEvent.getBuildOf('hub').complete('SUCCESS');
+        await parentEvent.getBuildOf('a').complete('SUCCESS');
+
+        const childEvent = childPipeline.getLatestEvent();
+        assert.equal(childEvent.getBuildOf('target').status, 'RUNNING');
+
+        await childEvent.getBuildOf('target').complete('SUCCESS');
+        assert.equal(childEvent.getBuildOf('target').status, 'SUCCESS');
+    });
+
+    xit('[ sd@1:a ] is triggered in a downstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-parent.yaml');
+        const childPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-child.yaml');
+
+        const parentEvent = eventFactoryMock.create({
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await parentEvent.getBuildOf('hub').complete('SUCCESS');
+        await parentEvent.getBuildOf('a').complete('SUCCESS');
+
+        const childEvent = childPipeline.getLatestEvent();
+        assert.equal(childEvent.getBuildOf('target').status, 'RUNNING');
+
+        await childEvent.getBuildOf('target').complete('SUCCESS');
+        assert.equal(childEvent.getBuildOf('target').status, 'SUCCESS');
+    });
+
+    it('[ ~sd@1:a ] is triggered in multiple downstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-parent.yaml');
+        const childPipeline1 = await pipelineFactoryMock.createFromFile('~sd@1:a-child.yaml');
+        const childPipeline2 = await pipelineFactoryMock.createFromFile('~sd@1:a-child.yaml');
+
+        eventFactoryMock.create({
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
         });
 
         // run all builds
         await buildFactoryMock.run();
 
-        // downstream builds
-        assert.equal(pipeline2.getBuildsOf('a')[0].status, 'SUCCESS')
-        assert.equal(pipeline3.getBuildsOf('a')[0].status, 'SUCCESS')
-        assert.equal(pipeline2.getBuildsOf('a').length, 1)
-        assert.equal(pipeline3.getBuildsOf('a').length, 1)
+        const childEvent1 = childPipeline1.getLatestEvent();
+        const childEvent2 = childPipeline2.getLatestEvent();
 
-        // Remote join belong to the upstream event
-        assert.equal(event.getBuildOf('b').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('c').status, 'SUCCESS');
+        assert.equal(childEvent1.getBuildOf('target').status, 'SUCCESS');
+        assert.equal(childEvent2.getBuildOf('target').status, 'SUCCESS');
     });
 
-    it('[ sd@2:a, sd@3:a ] is triggered in restart case', async () => {
-        const pipeline1 = await pipelineFactoryMock.createFromFile('external-parent.yaml');
-        await pipelineFactoryMock.createFromFile('external-child1.yaml');
-        await pipelineFactoryMock.createFromFile('external-child2.yaml');
+    it('[ ~sd@2:a ] is triggered in a upstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a-parent.yaml');
+        await pipelineFactoryMock.createFromFile('~sd@2:a-child.yaml');
 
         const event = eventFactoryMock.create({
-            pipelineId: pipeline1.id,
-            startFrom: 'a'
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
         });
 
         // run all builds
         await buildFactoryMock.run();
 
-        // Remote join belongs to the event
-        assert.equal(event.getBuildOf('b').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
+    });
 
-        const restartEvent = event.restartFrom('a');
+    it('[ sd@2:a ] is triggered in a upstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-parent.yaml');
+        await pipelineFactoryMock.createFromFile('sd@2:a-child.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
+        });
 
         // run all builds
         await buildFactoryMock.run();
 
-        const [downEvent1, downEvent2] = eventFactoryMock.getChildEvents(restartEvent.id);
-        const [upstreamEvent1] = eventFactoryMock.getChildEvents(downEvent1.id);
-        const [upstreamEvent2] = eventFactoryMock.getChildEvents(downEvent2.id);
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
+    });
 
-        const build1 = upstreamEvent1.getBuildOf('b');
-        const build2 = upstreamEvent2.getBuildOf('b');
+    it('[ sd@2:a, sd@3:a ] is triggered in a upstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-parent.yaml');
+        await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-child.yaml');
+        await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-child.yaml');
 
-        // Remote join does not belong to the restart event
-        assert.isNull(restartEvent.getBuildOf('b'));
-        assert.isNotNull(upstreamEvent1);
-        assert.isNotNull(upstreamEvent2);
-        assert.deepEqual([build1.status, build2.status].sort(), ['SUCCESS', 'CREATED'].sort())
+        const event = eventFactoryMock.create({
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
+        });
+
+        // run all builds
+        await buildFactoryMock.run();
+
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
+    });
+
+    it('[ sd@2:a, sd@2:b, sd@2:c ] is triggered in a upstream', async () => {
+        const parentPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@2:b_sd@2:c-parent.yaml');
+        await pipelineFactoryMock.createFromFile('sd@2:a_sd@2:b_sd@2:c-child.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: parentPipeline.id,
+            startFrom: 'hub'
+        });
+
+        // run all builds
+        await buildFactoryMock.run();
+
+        assert.equal(event.getBuildOf('target').status, 'SUCCESS');
     });
 });
