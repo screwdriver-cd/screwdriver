@@ -1015,7 +1015,9 @@ const buildsPlugin = {
                         jobId: nextJobId
                     });
 
-                    finishedInternalBuilds = finishedInternalBuilds.concat(nextBuild);
+                    if (nextBuild) {
+                        finishedInternalBuilds = finishedInternalBuilds.concat(nextBuild);
+                    }
                 }
 
                 fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
