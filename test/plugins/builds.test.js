@@ -4865,6 +4865,7 @@ describe('build plugin test', () => {
 
                     localOptions.payload.status = 'FAILURE';
                     eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    eventMock.getBuilds.resolves([{ status: 'FAILURE' }, { status: 'SUCCESS' }]);
                     eventFactoryMock.get.resolves(eventMock);
 
                     const buildC = {
