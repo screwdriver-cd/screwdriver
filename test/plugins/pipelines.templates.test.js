@@ -568,10 +568,8 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(
                     pipelineTemplateVersionFactoryMock.list,
                     {
-                        params: {
-                            name: 'nodejs',
-                            namespace: 'screwdriver'
-                        },
+                        name: 'nodejs',
+                        namespace: 'screwdriver',
                         paginate: {
                             page: undefined,
                             count: 30
@@ -760,6 +758,10 @@ describe('pipeline plugin test', () => {
 
     describe('GET /pipeline/template/{namespace}/{name}/{versionOrTag}', () => {
         let options;
+        const payload = {
+            version: '1.2.3'
+        };
+        const testTemplateTag = decorateObj(hoek.merge({ id: 123 }, payload));
 
         beforeEach(() => {
             options = {
@@ -775,14 +777,25 @@ describe('pipeline plugin test', () => {
                 }
             };
 
+            pipelineTemplateTagFactoryMock.get.resolves(null);
             pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(testTemplateVersionsGet);
         });
 
-        it('returns 200 for getting a template', () =>
+        it('returns 200 for getting a template with version', () =>
             server.inject(options).then(reply => {
                 assert.deepEqual(reply.result, testTemplateVersionsGet);
                 assert.equal(reply.statusCode, 200);
             }));
+
+        it('returns 200 for getting a template with tag', () => {
+            pipelineTemplateTagFactoryMock.get.resolves(testTemplateTag);
+            options.url = '/pipeline/template/screwdriver/nodejs/stable';
+
+            server.inject(options).then(reply => {
+                assert.deepEqual(reply.result, testTemplateVersionsGet);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
 
         it('returns 404 when template does not exist', () => {
             pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(null);
@@ -996,10 +1009,8 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(
                     pipelineTemplateVersionFactoryMock.list,
                     {
-                        params: {
-                            name: 'nodejs',
-                            namespace: 'screwdriver'
-                        }
+                        name: 'nodejs',
+                        namespace: 'screwdriver'
                     },
                     pipelineTemplateFactoryMock
                 );
