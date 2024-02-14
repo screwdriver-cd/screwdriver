@@ -437,8 +437,6 @@ class LockMock {
     }
 }
 
-/* eslint-disable */
-
 module.exports = {
     TriggerFactoryMock,
     PipelineFactoryMock,
