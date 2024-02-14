@@ -13,7 +13,7 @@ const {
     LockMock
 } = require('./trigger.test.helper');
 
-describe('trigger test', () => {
+describe('trigger tests', () => {
     let server = new hapi.Server();
     let buildFactoryMock = new BuildFactoryMock();
     let pipelineFactoryMock = new PipelineFactoryMock();
@@ -203,6 +203,26 @@ describe('trigger test', () => {
         assert.isNull(event.getBuildOf('target'));
     });
 
+    xit('[ a, c ] is not triggered when restart a b and only a was completed', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_c.yaml');
+
+        const event = eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        // run all builds
+        await buildFactoryMock.run();
+
+        const restartEvent = event.restartFrom('hub');
+
+        await restartEvent.getBuildOf('hub').complete('SUCCESS');
+        await restartEvent.getBuildOf('a').complete('SUCCESS');
+
+        assert.isNull(restartEvent.getBuildOf('c')); // restart build c is not triggered yet
+        assert.equal(restartEvent.getBuildOf('target').status, 'CREATED');
+    });
+
     it('[ ~sd@1:a ] is triggered in a downstream', async () => {
         const parentPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-parent.yaml');
         const childPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a-child.yaml');
@@ -326,5 +346,27 @@ describe('trigger test', () => {
         await buildFactoryMock.run();
 
         assert.equal(event.getBuildOf('target').status, 'SUCCESS');
+    });
+
+    describe('Tests for behavior not ideal', () => {
+        it('[ a, c ] is triggered when restart a b and only a was completed', async () => {
+            const pipeline = await pipelineFactoryMock.createFromFile('a_c.yaml');
+
+            const event = eventFactoryMock.create({
+                pipelineId: pipeline.id,
+                startFrom: 'hub'
+            });
+
+            // run all builds
+            await buildFactoryMock.run();
+
+            const restartEvent = event.restartFrom('hub');
+
+            await restartEvent.getBuildOf('hub').complete('SUCCESS');
+            await restartEvent.getBuildOf('a').complete('SUCCESS');
+
+            assert.isNull(restartEvent.getBuildOf('c')); // restart build b is not triggered yet
+            assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
+        });
     });
 });
