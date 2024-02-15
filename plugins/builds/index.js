@@ -730,7 +730,14 @@ function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipeli
  * @param  {String}     username                        Username
  * @param  {String}     scmContext                      SCM context
  */
-async function checkStageTeardownBuild({ jobFactory, buildFactory, current, stageTeardownName, username, scmContext }) {
+async function ensureStageTeardownBuildExists({
+    jobFactory,
+    buildFactory,
+    current,
+    stageTeardownName,
+    username,
+    scmContext
+}) {
     // Check if stage teardown build already exists
     const stageTeardownJob = await jobFactory.get({
         pipelineId: current.pipeline.id,
@@ -785,7 +792,7 @@ async function handleStageFailure({
         buildDeletePromises.push(deleteBuild(buildConfig, buildFactory));
     }
 
-    await checkStageTeardownBuild({
+    await ensureStageTeardownBuildExists({
         jobFactory,
         buildFactory,
         current,
