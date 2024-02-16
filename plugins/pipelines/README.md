@@ -122,8 +122,6 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/stages`
 
-`GET /pipelines/{id}/stages?eventId={eventId}`
-
 #### Get all pipeline secrets
 
 `GET /pipelines/{id}/secrets`

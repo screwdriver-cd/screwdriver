@@ -20,6 +20,7 @@ const tokenRoute = require('./token');
 const metricsRoute = require('./metrics');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 const locker = require('../lock');
+const { getFullStageJobName } = require('../helper');
 
 /**
  * Checks if job is external trigger
@@ -230,7 +231,7 @@ async function createExternalBuild(config) {
  * @param  {String}   [config.jobName]          Job name
  * @param  {String}   config.username           Username of build
  * @param  {String}   config.scmContext         SCM context
- * @param  {Object}   config.parentBuilds       Builds that triggered this build
+ * @param  {Object}   [config.parentBuilds]     Builds that triggered this build
  * @param  {String}   config.baseBranch         Branch name
  * @param  {Number}   [config.parentBuildId]    Parent build ID
  * @param  {Boolean}  [config.start]            Whether to start the build or not
@@ -272,6 +273,7 @@ async function createInternalBuild(config) {
     } else {
         job = await jobFactory.get(jobId);
     }
+
     const internalBuildConfig = {
         jobId: job.id,
         sha: event.sha,
@@ -526,9 +528,10 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param  {Build}   newBuild       Next build
  * @param  {String}  [jobName]      Job name
  * @param  {String}  [pipelineId]   Pipeline ID
+ * @param  {Object}  [stage]        Stage
  * @return {Promise}                The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId }) {
+async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stage }) {
     if (!done) {
         return null;
     }
@@ -538,10 +541,19 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId 
 
     // Delete new build since previous build failed
     if (hasFailure) {
-        logger.info(
-            `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
-        );
-        await newBuild.remove();
+        let stageTeardownName = '';
+
+        if (stage) {
+            stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
+        }
+
+        // New build is not stage teardown job
+        if (jobName !== stageTeardownName) {
+            logger.info(
+                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
+            );
+            await newBuild.remove();
+        }
 
         return null;
     }
@@ -710,6 +722,89 @@ function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipeli
 }
 
 /**
+ * Create stage teardown build if it doesn't already exist
+ * @param  {Factory}    jobFactory                      Job factory
+ * @param  {Factory}    buildFactory                    Build factory
+ * @param  {Object}     current                         Current object
+ * @param  {String}     stageTeardownName               Stage teardown name
+ * @param  {String}     username                        Username
+ * @param  {String}     scmContext                      SCM context
+ */
+async function ensureStageTeardownBuildExists({
+    jobFactory,
+    buildFactory,
+    current,
+    stageTeardownName,
+    username,
+    scmContext
+}) {
+    // Check if stage teardown build already exists
+    const stageTeardownJob = await jobFactory.get({
+        pipelineId: current.pipeline.id,
+        name: stageTeardownName
+    });
+    const existingStageTeardownBuild = await buildFactory.get({
+        eventId: current.event.id,
+        jobId: stageTeardownJob.id
+    });
+
+    // Doesn't exist, create stage teardown job
+    if (!existingStageTeardownBuild) {
+        await createInternalBuild({
+            jobFactory,
+            buildFactory,
+            pipelineId: current.pipeline.id,
+            jobName: stageTeardownName,
+            username,
+            scmContext,
+            event: current.event, // this is the parentBuild for the next build
+            baseBranch: current.event.baseBranch || null,
+            start: false
+        });
+    }
+}
+
+/**
+ * Delete nextBuild, create teardown build if it doesn't exist, and return teardown build or return null
+ * @param  {String}  nextJobName                  Next job name
+ * @param  {Object}  current                      Object with stage, event, pipeline info
+ * @param  {Object}  buildConfig                  Build config
+ * @param  {Factory} jobFactory                   Job factory
+ * @param  {Factory} buildFactory                 Build factory
+ * @param  {String}  username                     Username
+ * @param  {String}  scmContext                   Scm context
+ * @return {Array}                                Array of promises
+ */
+async function handleStageFailure({
+    nextJobName,
+    current,
+    buildConfig,
+    jobFactory,
+    buildFactory,
+    username,
+    scmContext
+}) {
+    const buildDeletePromises = [];
+    const stageTeardownName = getFullStageJobName({ stageName: current.stage.name, jobName: 'teardown' });
+
+    // Remove next build
+    if (buildConfig.eventId && nextJobName !== stageTeardownName) {
+        buildDeletePromises.push(deleteBuild(buildConfig, buildFactory));
+    }
+
+    await ensureStageTeardownBuildExists({
+        jobFactory,
+        buildFactory,
+        current,
+        stageTeardownName,
+        username,
+        scmContext
+    });
+
+    return buildDeletePromises;
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -732,21 +827,19 @@ const buildsPlugin = {
          * @return {Promise}                        Resolves to the removed build or null
          */
         server.expose('removeJoinBuilds', async (config, app) => {
-            const { pipeline, job, build } = config;
-            const { eventFactory, buildFactory } = app;
-            const event = await eventFactory.get({ id: build.eventId });
+            const { pipeline, job, build, username, scmContext, event, stage } = config;
+            const { eventFactory, buildFactory, jobFactory } = app;
             const current = {
                 pipeline,
                 job,
                 build,
-                event
+                event,
+                stage
             };
-
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
             });
-
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
             const buildConfig = {};
             const deletePromises = [];
@@ -765,7 +858,20 @@ const buildsPlugin = {
                             buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
                         }
 
-                        if (buildConfig.eventId) {
+                        //   if nextBuild is stage teardown, just return nextBuild
+                        if (current.stage) {
+                            const buildDeletePromises = await handleStageFailure({
+                                nextJobName,
+                                current,
+                                buildConfig,
+                                jobFactory,
+                                buildFactory,
+                                username,
+                                scmContext
+                            });
+
+                            deletePromises.concat(buildDeletePromises);
+                        } else if (buildConfig.eventId) {
                             deletePromises.push(deleteBuild(buildConfig, buildFactory));
                         }
                     } catch (err) {
@@ -776,6 +882,7 @@ const buildsPlugin = {
                     }
                 }
             }
+
             await Promise.all(deletePromises);
         });
 
@@ -810,21 +917,20 @@ const buildsPlugin = {
          * @return {Promise}                        Resolves to the newly created build or null
          */
         server.expose('triggerNextJobs', async (config, app) => {
-            const { pipeline, job, build } = config;
+            const { pipeline, job, build, event, stage } = config;
             const { eventFactory, pipelineFactory, buildFactory, jobFactory } = app;
-            const event = await eventFactory.get({ id: build.eventId });
             const current = {
                 pipeline,
                 job,
                 build,
-                event
+                event,
+                stage
             };
 
             const nextJobsTrigger = workflowParser.getNextJobs(current.event.workflowGraph, {
                 trigger: current.job.name,
                 chainPR: pipeline.chainPR
             });
-
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
 
             // Helper function to handle triggering jobs in same pipeline
@@ -877,12 +983,14 @@ const buildsPlugin = {
                         return existNextBuild;
                     }
 
+                    // Current build is not part of stage
                     existNextBuild.status = 'QUEUED';
                     await existNextBuild.update();
 
                     return existNextBuild.start();
                 }
 
+                // Handle join case. Fan-out/fan-in Workflow
                 logger.info(`Fetching finished builds for event ${event.id}`);
                 let finishedInternalBuilds = await getFinishedBuilds(current.event, buildFactory);
 
@@ -967,7 +1075,8 @@ const buildsPlugin = {
                     hasFailure,
                     newBuild,
                     jobName: nextJobName,
-                    pipelineId: current.pipeline.id
+                    pipelineId: current.pipeline.id,
+                    stage: current.stage
                 });
             };
 
@@ -1107,7 +1216,8 @@ const buildsPlugin = {
                                 hasFailure,
                                 newBuild,
                                 jobName: nextJobName,
-                                pipelineId: externalPipelineId
+                                pipelineId: externalPipelineId,
+                                stage: current.stage
                             });
                         }
                     }
@@ -1163,6 +1273,7 @@ const buildsPlugin = {
                         await locker.unlock(lock, resource);
                     }
                 }
+
                 if (triggerCurrentPipelineAsExternal || !isCurrentPipeline) {
                     let resource;
                     let lock;

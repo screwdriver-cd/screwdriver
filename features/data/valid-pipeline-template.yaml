@@ -1,0 +1,20 @@
+---
+namespace: template_namespace
+name: nodejs_main
+version: "1.1.2"
+description: |
+  Template for building a NodeJS module
+  Installs dependencies and runs tests
+maintainer: me@nowhere.com
+config:
+  shared:
+    image: node:18
+    environment:
+      KEYNAME: value
+    secrets:
+      - NPM_TOKEN
+  jobs:
+    main:
+      steps:
+        - init: npm install
+        - test: npm test
