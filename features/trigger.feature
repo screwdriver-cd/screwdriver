@@ -47,28 +47,6 @@ Feature: Remote Trigger
         Then the "fail_B_beta" job on branch "pipelineB" is not triggered
 
     @prod
-    Scenario: External join build is triggered after another build is successful.
-        Given an existing pipeline on branch "pipelineA" with job "success_A"
-        And an existing pipeline on branch "pipelineB" with the workflow jobs:
-            | job            | requires                         |
-            | or_join_B_prod | ~sd@?:success_A, ~sd@?:fail_A |
-        When the "success_A" job on branch "pipelineA" is started
-        And the "success_A" build succeeded
-        Then the "or_join_B_prod" job on branch "pipelineB" is started
-        And the "or_join_B_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
-
-    @beta
-    Scenario: External join build is triggered after another build is successful.
-        Given an existing pipeline on branch "pipelineA" with job "success_A"
-        And an existing pipeline on branch "pipelineB" with the workflow jobs:
-            | job            | requires                         |
-            | or_join_B_beta | ~sd@?:success_A, ~sd@?:fail_A |
-        When the "success_A" job on branch "pipelineA" is started
-        And the "success_A" build succeeded
-        Then the "or_join_B_beta" job on branch "pipelineB" is started
-        And the "or_join_B_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
-
-    @prod
     Scenario: External build is triggered after another build is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
         And an existing pipeline on branch "pipelineB" with the workflow jobs:
@@ -89,6 +67,28 @@ Feature: Remote Trigger
         And the "success_A" build succeeded
         Then the "success_B_or_beta" job on branch "pipelineB" is started
         And the "success_B_or_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
+
+    @prod
+    Scenario: External build is triggered after one of the builds is successful.
+        Given an existing pipeline on branch "pipelineA" with job "success_A"
+        And an existing pipeline on branch "pipelineB" with the workflow jobs:
+            | job                | requires                         |
+            | or_multiple_B_prod | ~sd@?:success_A, ~sd@?:fail_A    |
+        When the "success_A" job on branch "pipelineA" is started
+        And the "success_A" build succeeded
+        Then the "or_multiple_B_prod" job on branch "pipelineB" is started
+        And the "or_multiple_B_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
+
+    @beta
+    Scenario: External build is triggered after one of the builds is successful.
+        Given an existing pipeline on branch "pipelineA" with job "success_A"
+        And an existing pipeline on branch "pipelineB" with the workflow jobs:
+            | job                | requires                         |
+            | or_multiple_B_beta | ~sd@?:success_A, ~sd@?:fail_A |
+        When the "success_A" job on branch "pipelineA" is started
+        And the "success_A" build succeeded
+        Then the "or_multiple_B_beta" job on branch "pipelineB" is started
+        And the "or_multiple_B_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
     @prod
     Scenario: External build which requires single AND trigger is triggered after another build is successful.
@@ -218,33 +218,33 @@ Feature: Remote Trigger
         Then the "AFTERFAIL" job is not triggered
 
     @require-or
-    Scenario: JOIN OR
+    Scenario: MULTIPLE OR
         Given an existing pipeline on branch "master" with the workflow jobs:
             | job       | requires               |
             | PARALLEL1 |                        |
             | PARALLEL2 |                        |
-            | JOIN      | ~PARALLEL1, ~PARALLEL2 |
+            | MULTIPLE  | ~PARALLEL1, ~PARALLEL2 |
         When start "PARALLEL1" job
         And the "PARALLEL1" build succeeded
-        And the "JOIN" job is triggered
-        Then that "JOIN" build uses the same SHA as the "PARALLEL1" build
+        And the "MULTIPLE" job is triggered
+        Then that "MULTIPLE" build uses the same SHA as the "PARALLEL1" build
         When start "PARALLEL2" job
         And the "PARALLEL2" build succeeded
-        And the "JOIN" job is triggered
-        Then that "JOIN" build uses the same SHA as the "PARALLEL2" build
+        And the "MULTIPLE" job is triggered
+        Then that "MULTIPLE" build uses the same SHA as the "PARALLEL2" build
 
     @require-or
-    Scenario: JOIN OR ONCE
+    Scenario: MULTIPLE OR ONCE
         Given an existing pipeline on branch "master" with the workflow jobs:
             | job            | requires               |
             | SIMPLE         | ~commit                |
             | PARALLEL1      | ~SIMPLE                |
             | PARALLEL2      | ~SIMPLE                |
-            | JOIN           | ~PARALLEL1, ~PARALLEL2 |
+            | MULTIPLE       | ~PARALLEL1, ~PARALLEL2 |
         When start "SIMPLE" job
         And the "SIMPLE" build succeeded
         And the "PARALLEL1" job is triggered from "SIMPLE"
         And the "PARALLEL1" build succeeded
         And the "PARALLEL2" job is triggered from "SIMPLE"
         And the "PARALLEL2" build succeeded
-        Then the "JOIN" job is triggered once
+        Then the "MULTIPLE" job is triggered once
