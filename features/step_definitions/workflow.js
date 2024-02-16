@@ -200,6 +200,7 @@ Then(
                     Assert.fail(`${jobName} has been triggered more than twice.`);
                 }
                 const build = builds[0];
+
                 this.eventId = build.eventId;
                 const job = this.jobs.find(j => j.name === jobName);
 
