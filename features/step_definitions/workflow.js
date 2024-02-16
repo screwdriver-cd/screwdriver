@@ -181,6 +181,36 @@ Then(
 );
 
 Then(
+    /^the "(.*)" job is triggered once$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
+        return sdapi
+            .searchForBuilds({
+                instance: this.instance,
+                pipelineId: this.pipelineId,
+                desiredSha: this.sha,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName,
+                jwt: this.jwt
+            })
+            .then(builds => {
+                if (builds.length > 1) {
+                    Assert.fail(`${jobName} has been triggered more than twice.`);
+                }
+                const build = builds[0];
+                this.eventId = build.eventId;
+                const job = this.jobs.find(j => j.name === jobName);
+
+                Assert.equal(build.jobId, job.id);
+
+                this.buildId = build.id;
+            });
+    }
+);
+
+Then(
     /^the "(.*)" PR job is triggered$/,
     {
         timeout: TIMEOUT

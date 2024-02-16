@@ -68,6 +68,19 @@ Feature: Workflow
         Then the "JOIN" job is triggered from "PARALLEL1" and "PARALLEL2"
         And that "JOIN" build uses the same SHA as the "SIMPLE" build
 
+    Scenario: Join Failure
+        Given an existing pipeline on "failure" branch with the workflow jobs:
+            | job             | requires     |
+            | SIMPLE          | ~commit      |
+            | FAIL            | ~commit      |
+            | AFTER-FAIL-JOIN | SIMPLE, FAIL |
+        When a new commit is pushed to "failure" branch
+        Then the "SIMPLE" job is triggered
+        Then the "SIMPLE" build succeeded
+        Then the "FAIL" job is triggered
+        Then the "FAIL" build failed
+        Then the "AFTER-FAIL-JOIN" job is not triggered
+
     Scenario: Branch filtering (the master branch is committed)
         Given an existing pipeline on "master" branch with the workflow jobs:
             | job           | requires              |
