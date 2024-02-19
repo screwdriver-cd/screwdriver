@@ -43,8 +43,6 @@ module.exports = () => ({
                         config.params.type = 'pr';
                         config.params.prNum = request.query.prNum;
                     }
-                    config.sort = request.query.sort;
-                    config.sortBy = request.query.sortBy;
 
                     return pipeline.getEvents(config);
                 })
