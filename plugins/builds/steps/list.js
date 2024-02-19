@@ -3,7 +3,6 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const {isSchema} = require('joi');
 const listSchema = joi.array().items(schema.models.build.getStep).label('List of steps');
 const idSchema = schema.models.build.base.extract('id');
 
