@@ -23,7 +23,8 @@ module.exports = () => ({
                 params: {
                     name: request.params.name
                 },
-                sort: request.query.sort
+                sort: request.query.sort,
+                sortBy: request.query.sortBy
             };
 
             if (request.query.page || request.query.count) {
@@ -49,7 +50,8 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    search: joi.forbidden() // we don't support search for Template list tags
+                    search: joi.forbidden(), // we don't support search for Template list tags
+                    getCount: joi.forbidden()
                 })
             )
         }

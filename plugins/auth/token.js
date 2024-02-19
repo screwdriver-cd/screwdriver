@@ -2,6 +2,8 @@
 
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
+const joi = require('joi');
+const buildIdSchema = schema.models.build.base.extract('id');
 
 /**
  * Generate a new JSON Web Token
@@ -55,6 +57,11 @@ module.exports = () => ({
         },
         response: {
             schema: schema.api.auth.token
+        },
+        validate: {
+            params: joi.object({
+                buildId: buildIdSchema
+            })
         }
     }
 });

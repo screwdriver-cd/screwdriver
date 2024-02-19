@@ -43,6 +43,8 @@ module.exports = () => ({
                         config.params.type = 'pr';
                         config.params.prNum = request.query.prNum;
                     }
+                    config.sort = request.query.sort;
+                    config.sortBy = request.query.sortBy;
 
                     return pipeline.getEvents(config);
                 })
@@ -62,7 +64,8 @@ module.exports = () => ({
                 joi.object({
                     type: joi.string(),
                     prNum: prNumSchema,
-                    search: joi.forbidden() // we don't support search for Pipeline list events
+                    search: joi.forbidden(), // we don't support search for Pipeline list events
+                    getCount: joi.forbidden() // we don't support search for Pipeline list events
                 })
             )
         }
