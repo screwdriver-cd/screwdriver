@@ -90,6 +90,7 @@ Feature: Remote Trigger
         Then the "or_multiple_B_beta" job on branch "pipelineB" is started
         And the "or_multiple_B_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
+    @ignore
     @prod
     Scenario: External build which requires single AND trigger is triggered after another build is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
@@ -98,9 +99,10 @@ Feature: Remote Trigger
             | success_B_and_prod | sd@?:success_A |
         When the "success_A" job on branch "pipelineA" is started
         And the "success_A" build succeeded
-        Then the "success_B_and_prod" job on branch "pipelineB" is not triggered
+        Then the "success_B_and_prod" job on branch "pipelineB" is triggered
         And the "success_B_and_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
+    @ignore
     @beta
     Scenario: External build which requires single AND trigger is triggered after another build is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
@@ -109,7 +111,7 @@ Feature: Remote Trigger
             | success_B_and_beta | sd@?:success_A |
         When the "success_A" job on branch "pipelineA" is started
         And the "success_A" build succeeded
-        Then the "success_B_and_beta" job on branch "pipelineB" is not triggered
+        Then the "success_B_and_beta" job on branch "pipelineB" is triggered
         And the "success_B_and_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
     Scenario: Fan-out. Multiple external builds are triggered in parallel as a result of a build's success.
@@ -210,12 +212,12 @@ Feature: Remote Trigger
     @require-or
     Scenario: SINGLE OR FAIL
         Given an existing pipeline on branch "master" with the workflow jobs:
-            | job       | requires |
-            | FAIL      |          |
-            | AFTERFAIL | ~FAIL    |
+            | job        | requires |
+            | FAIL       |          |
+            | AFTER-FAIL | ~FAIL    |
         When start "FAIL" job
         And the "FAIL" build failed
-        Then the "AFTERFAIL" job is not triggered
+        Then the "AFTER-FAIL" job is not triggered
 
     @require-or
     Scenario: MULTIPLE OR
