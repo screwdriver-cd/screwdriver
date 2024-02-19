@@ -102,19 +102,24 @@ function ensurePipelineExists(config) {
 
                         Assert.ok(job, 'Given job does not exist on pipeline');
 
-                        const requiresList = expectedJobs[i].requires.split(/\s*,\s*/);
-                        const { requires } = job.permutations[0];
-
-                        for (let j = 0; j < requiresList.length; j += 1) {
-                            if (requiresList[j].includes(':')) {
-                                Assert.ok(
-                                    requires.some(r =>
-                                        r.split(':') ? r.split(':')[1] === requiresList[j].split(':')[1] : null
-                                    ),
-                                    'pipeline should have specific external edges'
-                                );
-                            } else {
-                                Assert.ok(requires.includes(requiresList[j]), 'pipeline should have specific edges');
+                        if (expectedJobs[i].requires.trim() !== '') {
+                            const requiresList = expectedJobs[i].requires.split(/\s*,\s*/);
+                            const { requires } = job.permutations[0];
+    
+                            for (let j = 0; j < requiresList.length; j += 1) {
+                                if (requiresList[j].includes(':')) {
+                                    Assert.ok(
+                                        requires.some(r =>
+                                            r.split(':') ? r.split(':')[1] === requiresList[j].split(':')[1] : null
+                                        ),
+                                        `pipeline should have specific external edges, but missing: ${requiresList[j]}`
+                                    );
+                                } else {
+                                    Assert.ok(
+                                        requires.includes(requiresList[j]),
+                                        `pipeline should have specific edges, but missing: ${requiresList[j]}`
+                                    );
+                                }
                             }
                         }
                     }
