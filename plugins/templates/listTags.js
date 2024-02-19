@@ -23,8 +23,7 @@ module.exports = () => ({
                 params: {
                     name: request.params.name
                 },
-                sort: request.query.sort,
-                sortBy: request.query.sortBy
+                sort: request.query.sort
             };
 
             if (request.query.page || request.query.count) {
