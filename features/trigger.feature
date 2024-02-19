@@ -97,7 +97,7 @@ Feature: Remote Trigger
             | job                | requires       |
             | success_B_and_prod | sd@?:success_A |
         When the "success_A" job on branch "pipelineA" is started
-        And the "success_A" build failed
+        And the "success_A" build succeeded
         Then the "success_B_and_prod" job on branch "pipelineB" is not triggered
         And the "success_B_and_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
@@ -108,7 +108,7 @@ Feature: Remote Trigger
             | job                | requires       |
             | success_B_and_beta | sd@?:success_A |
         When the "success_A" job on branch "pipelineA" is started
-        And the "success_A" build failed
+        And the "success_A" build succeeded
         Then the "success_B_and_beta" job on branch "pipelineB" is not triggered
         And the "success_B_and_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
