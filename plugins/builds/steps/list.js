@@ -66,7 +66,7 @@ module.exports = () => ({
         },
         validate: {
             params:joi.object({
-                id: isSchema
+                id: idSchema
             })
         }
     }
