@@ -193,7 +193,8 @@ Then(
                 desiredSha: this.sha,
                 desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
                 jobName,
-                jwt: this.jwt
+                jwt: this.jwt,
+                eventId: this.eventId
             })
             .then(builds => {
                 if (builds.length > 1) {
