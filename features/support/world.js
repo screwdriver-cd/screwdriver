@@ -105,7 +105,7 @@ function ensurePipelineExists(config) {
                         if (expectedJobs[i].requires.trim() !== '') {
                             const requiresList = expectedJobs[i].requires.split(/\s*,\s*/);
                             const { requires } = job.permutations[0];
-    
+
                             for (let j = 0; j < requiresList.length; j += 1) {
                                 if (requiresList[j].includes(':')) {
                                     Assert.ok(
