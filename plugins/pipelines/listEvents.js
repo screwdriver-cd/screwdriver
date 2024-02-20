@@ -62,7 +62,8 @@ module.exports = () => ({
                 joi.object({
                     type: joi.string(),
                     prNum: prNumSchema,
-                    search: joi.forbidden() // we don't support search for Pipeline list events
+                    search: joi.forbidden(), // we don't support search for Pipeline list events
+                    getCount: joi.forbidden() // we don't support getCount for Pipeline list events
                 })
             )
         }
