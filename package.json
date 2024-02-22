@@ -87,7 +87,7 @@
     "hapi-auth-bearer-token": "^8.0.0",
     "hapi-auth-jwt2": "^10.4.0",
     "hapi-rate-limit": "^7.1.0",
-    "hapi-swagger": "^15.0.0",
+    "hapi-swagger": "^17.2.1",
     "ioredis": "^5.2.3",
     "joi": "^17.7.0",
     "js-yaml": "^3.14.1",
