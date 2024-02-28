@@ -6,6 +6,7 @@ const configParser = require('screwdriver-config-parser');
 const fs = require('fs');
 const sinon = require('sinon');
 const { assert } = require('chai');
+const { getStageFromSetupJobName } = require('screwdriver-models/lib/helper');
 
 class TriggerFactoryMock {
     constructor(server) {
@@ -44,13 +45,30 @@ class PipelineFactoryMock {
 
         pipeline.toJson.returns({ ...pipeline });
 
-        const { jobs, workflowGraph } = pipeline;
+        const { jobs, stages, workflowGraph } = pipeline;
 
         Object.keys(jobs).forEach(name => {
             jobs[name] = this.server.app.jobFactory.create({
                 name,
                 pipeline,
                 pipelineId: pipeline.id
+            });
+        });
+
+        Object.keys(stages || {}).forEach(name => {
+            stages[name] = this.server.app.stageFactory.create({
+                setup: {
+                    image: 'node:20',
+                    steps: [],
+                },
+                teardown: {
+                    image: 'node:20',
+                    steps: [],
+                },
+                ...stages[name],
+                pipelineId: pipeline.id,
+                name,
+                archived: false,
             });
         });
 
@@ -143,7 +161,7 @@ class EventFactoryMock {
         };
     }
 
-    create(config) {
+    async create(config) {
         const event = {
             groupEventId: this.records.length,
             ...config,
@@ -161,14 +179,19 @@ class EventFactoryMock {
                 return build && parseInt(build.eventId, 10) === parseInt(event.id, 10);
             });
         };
+        event.getStageBuilds = async () => {
+            return this.server.app.stageBuildFactory.records.filter(build => {
+                return build && parseInt(build.eventId, 10) === parseInt(event.id, 10);
+            });
+        };
         event.update.returns(event);
         event.toJson.returns({ ...event });
 
         // Custom methods
-        event.restartFrom = jobName => {
+        event.restartFrom = async jobName => {
             const restartBuild = event.getBuildOf(jobName);
 
-            const restartEvent = this.create({
+            const restartEvent = await this.create({
                 pipelineId: pipeline.id,
                 groupEventId: event.groupEventId || event.id,
                 parentEventId: event.id,
@@ -211,16 +234,16 @@ class EventFactoryMock {
                 startJobs.push(startFrom);
             }
 
-            startJobs.forEach(name => {
-                const job = this.server.app.jobFactory.get({ name, pipelineId: pipeline.id });
-                const build = this.server.app.buildFactory.create({
+            for (const jobName of startJobs) {
+                const job = this.server.app.jobFactory.get({ name: jobName, pipelineId: pipeline.id });
+                const build = await this.server.app.buildFactory.create({
                     jobId: job.id,
                     eventId: event.id,
                     ...config
                 });
 
                 build.start();
-            });
+            }
         }
 
         return event;
@@ -259,7 +282,7 @@ class BuildFactoryMock {
         this.removedRecords = [];
     }
 
-    create(config) {
+    async create(config) {
         const build = {
             isStarted: false,
             status: 'CREATED',
@@ -284,6 +307,21 @@ class BuildFactoryMock {
         };
         build.job = build.job || this.server.app.jobFactory.get(build.jobId);
         build.event = build.event || this.server.app.eventFactory.get(build.eventId);
+
+        const nextStageName = getStageFromSetupJobName(build.job.name);
+
+        if (nextStageName) {
+            const stage = await this.server.app.stageFactory.get({
+                pipelineId: build.job.pipelineId,
+                name: nextStageName,
+            });
+
+            await this.server.app.stageBuildFactory.create({
+                stageId: stage.id,
+                eventId: build.event.id,
+                status: 'CREATED',
+            });
+        }
 
         build.complete = async status => {
             const response = await this.server.inject({
@@ -361,6 +399,60 @@ class BuildFactoryMock {
         while ((build = this.getRunningBuild())) {
             await build.complete('SUCCESS');
         }
+    }
+}
+
+class StageBuildFactoryMock {
+    constructor(server) {
+        this.server = server;
+        this.records = [null];
+    }
+
+    create(config) {
+        const stageBuild = {
+            ...config,
+            id: this.records.length,
+            update: sinon.stub(),
+        };
+
+        stageBuild.update.returns(stageBuild);
+        this.records.push(stageBuild);
+
+        return stageBuild;
+    }
+
+    async get(config) {
+        const { stageId, eventId } = config;
+
+        return this.records.find(stageBuild => {
+            return stageBuild && parseInt(stageBuild.stageId, 10) === parseInt(stageId, 10) && parseInt(stageBuild.eventId, 10) === parseInt(eventId, 10);
+        });
+    }
+}
+
+class StageFactoryMock {
+    constructor(server) {
+        this.server = server;
+        this.records = [null];
+    }
+
+    create(config) {
+        const stage = {
+            ...config,
+            id: this.records.length,
+        };
+
+        this.records.push(stage);
+
+        return stage;
+    }
+
+    async get(config) {
+        const { pipelineId, name } = config;
+
+        return this.records.find(stage => {
+            return stage && parseInt(stage.pipelineId, 10) === parseInt(pipelineId, 10) && stage.name === name;
+        }) || null;
     }
 }
 
@@ -442,6 +534,8 @@ module.exports = {
     PipelineFactoryMock,
     EventFactoryMock,
     BuildFactoryMock,
+    StageBuildFactoryMock,
+    StageFactoryMock,
     JobFactoryMock,
     LockMock
 };
