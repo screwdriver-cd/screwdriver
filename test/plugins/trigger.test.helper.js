@@ -59,16 +59,16 @@ class PipelineFactoryMock {
             stages[name] = this.server.app.stageFactory.create({
                 setup: {
                     image: 'node:20',
-                    steps: [],
+                    steps: []
                 },
                 teardown: {
                     image: 'node:20',
-                    steps: [],
+                    steps: []
                 },
                 ...stages[name],
                 pipelineId: pipeline.id,
                 name,
-                archived: false,
+                archived: false
             });
         });
 
@@ -313,13 +313,13 @@ class BuildFactoryMock {
         if (nextStageName) {
             const stage = await this.server.app.stageFactory.get({
                 pipelineId: build.job.pipelineId,
-                name: nextStageName,
+                name: nextStageName
             });
 
             await this.server.app.stageBuildFactory.create({
                 stageId: stage.id,
                 eventId: build.event.id,
-                status: 'CREATED',
+                status: 'CREATED'
             });
         }
 
@@ -412,7 +412,7 @@ class StageBuildFactoryMock {
         const stageBuild = {
             ...config,
             id: this.records.length,
-            update: sinon.stub(),
+            update: sinon.stub()
         };
 
         stageBuild.update.returns(stageBuild);
@@ -425,7 +425,11 @@ class StageBuildFactoryMock {
         const { stageId, eventId } = config;
 
         return this.records.find(stageBuild => {
-            return stageBuild && parseInt(stageBuild.stageId, 10) === parseInt(stageId, 10) && parseInt(stageBuild.eventId, 10) === parseInt(eventId, 10);
+            return (
+                stageBuild &&
+                parseInt(stageBuild.stageId, 10) === parseInt(stageId, 10) &&
+                parseInt(stageBuild.eventId, 10) === parseInt(eventId, 10)
+            );
         });
     }
 }
@@ -439,7 +443,7 @@ class StageFactoryMock {
     create(config) {
         const stage = {
             ...config,
-            id: this.records.length,
+            id: this.records.length
         };
 
         this.records.push(stage);
@@ -450,9 +454,11 @@ class StageFactoryMock {
     async get(config) {
         const { pipelineId, name } = config;
 
-        return this.records.find(stage => {
-            return stage && parseInt(stage.pipelineId, 10) === parseInt(pipelineId, 10) && stage.name === name;
-        }) || null;
+        return (
+            this.records.find(stage => {
+                return stage && parseInt(stage.pipelineId, 10) === parseInt(pipelineId, 10) && stage.name === name;
+            }) || null
+        );
     }
 }
 
