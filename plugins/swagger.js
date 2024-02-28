@@ -19,6 +19,7 @@ const swaggerPlugin = {
                         in: 'header'
                     }
                 },
+                OAS: 'v3.0',
                 // see https://github.com/glennjones/hapi-swagger/blob/master/optionsreference.md#json-json-endpoint-needed-to-create-ui
                 documentationRoutePlugins: {
                     'hapi-rate-limit': {
