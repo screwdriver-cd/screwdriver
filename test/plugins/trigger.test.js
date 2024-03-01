@@ -2491,7 +2491,7 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('stage@red:setup').status, 'RUNNING');
     });
 
-    xit('stage is triggered by stage', async () => {
+    it('stage is triggered by stage', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('stage-to-stage.yaml');
 
         const event = await eventFactoryMock.create({
