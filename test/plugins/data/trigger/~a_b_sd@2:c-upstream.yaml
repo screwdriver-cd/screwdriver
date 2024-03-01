@@ -8,5 +8,7 @@ jobs:
     requires: [ ~commit, ~pr ]
   a:
     requires: [ ~hub ]
+  b:
+    requires: [ ~hub ]
   target:
-    requires: [ sd@2:a, sd@2:b, sd@2:c ]
+    requires: [ ~a, b, sd@2:c ]

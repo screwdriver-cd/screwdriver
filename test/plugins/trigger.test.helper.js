@@ -94,7 +94,7 @@ class PipelineFactoryMock {
                 return event && parseInt(event.pipelineId, 10) === parseInt(pipeline.id, 10);
             });
 
-            return events ? events.slice(-1)[0] : null;
+            return events.slice(-1)[0] || null;
         };
 
         this.records.push(pipeline);
@@ -283,6 +283,14 @@ class BuildFactoryMock {
     }
 
     async create(config) {
+        const uniqueKey = `event${config.eventId}:job${config.jobId}`;
+
+        if (!this.uniquePairs[uniqueKey]) {
+            this.uniquePairs[uniqueKey] = true;
+        } else {
+            assert.fail(`Unique error: ${uniqueKey}`);
+        }
+
         const build = {
             isStarted: false,
             status: 'CREATED',
@@ -303,10 +311,15 @@ class BuildFactoryMock {
         };
         build.remove = () => {
             this.removedRecords.push(build);
+            this.uniquePairs[uniqueKey] = false;
             this.records[build.id] = null;
         };
         build.job = build.job || this.server.app.jobFactory.get(build.jobId);
         build.event = build.event || this.server.app.eventFactory.get(build.eventId);
+
+        if (!Array.isArray(build.parentBuildId)) {
+            build.parentBuildId = Array.from(new Set([build.parentBuildId || []].flat()));
+        }
 
         const nextStageName = getStageFromSetupJobName(build.job.name);
 
@@ -340,14 +353,6 @@ class BuildFactoryMock {
 
             assert.equal(response.statusCode, 200);
         };
-
-        const eventJobKey = `event${build.event.id}:job${build.job.id}`;
-
-        if (!this.uniquePairs[eventJobKey]) {
-            this.uniquePairs[eventJobKey] = true;
-        } else {
-            assert.fail(`Unique error: ${eventJobKey}`);
-        }
 
         this.records.push(build);
 
