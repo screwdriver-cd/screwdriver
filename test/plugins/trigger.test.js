@@ -1004,6 +1004,7 @@ describe('trigger tests', () => {
         await downstreamEvent.getBuildOf('a').complete('FAILURE');
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
     it('[ ~sd@1:a ] is triggered in a downstream when sd@1:a fails once and then restarts and succeeds', async () => {
@@ -1171,6 +1172,7 @@ describe('trigger tests', () => {
         await downstreamEvent.getBuildOf('a').complete('FAILURE');
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
     xit('[ sd@1:a ] is triggered in a downstream when sd@1:a fails once and then restarts and succeeds', async () => {
@@ -1271,7 +1273,7 @@ describe('trigger tests', () => {
         assert.equal(downstreamEvent.getBuildOf('target').status, 'RUNNING');
     });
 
-    it('[ ~sd@2:a, ~sd@2:b ] is triggered when sd@2:a fails and sd@2:b fails', async () => {
+    it('[ ~sd@2:a, ~sd@2:b ] is triggered when sd@2:a fails and sd@2:b succeeds', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~sd@2:b-upstream.yaml');
         const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~sd@2:b-downstream.yaml');
 
@@ -1480,6 +1482,7 @@ describe('trigger tests', () => {
         await downstreamEvent.getBuildOf('b').complete('FAILURE');
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
     it('[ sd@2:a, sd@2:b ] is triggered when sd@2:b fails once and then restarts and succeeds', async () => {
@@ -1526,6 +1529,7 @@ describe('trigger tests', () => {
 
         await downstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
 
+        assert.isNull(upstreamEvent.getBuildOf('target'));
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
@@ -1588,6 +1592,7 @@ describe('trigger tests', () => {
         await upstreamEvent.getBuildOf('b').complete('FAILURE');
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
     it('[ sd@2:a, b ] is triggered when sd@2:a succeeds and b fails and then restarts and succeeds', async () => {
@@ -1896,6 +1901,7 @@ describe('trigger tests', () => {
         await downstreamEvent.getBuildOf('c').complete('FAILURE');
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 0);
     });
 
     it('[ ~sd@2:a, sd@2:b, sd@2:c ] is triggered when sd@2:a fails and sd@2:b succeeds and sd@2:c restarts and succeeds ', async () => {

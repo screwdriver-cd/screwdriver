@@ -7,4 +7,4 @@ jobs:
   b:
     requires: [ ~sd@1:hub ]
   target:
-    requires: [ ~sd@1:a, b ]
+    requires: [ ~sd@1:a, ~b ]
