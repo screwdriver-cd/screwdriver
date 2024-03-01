@@ -2346,7 +2346,7 @@ describe('trigger tests', () => {
         assert.equal(downstreamPipeline.getBuildsOf('target').length, 1);
     });
 
-    xit('[ ~sd@1:a, sd@1:a, sd@1:b ] is triggered when a succeeds', async () => {
+    xit('[ ~sd@1:a, sd@1:a, sd@1:b ] is triggered when sd@1:a succeeds', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a_sd@1:a_sd@1:b-upstream.yaml');
         const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a_sd@1:a_sd@1:b-downstream.yaml');
 
@@ -2355,7 +2355,8 @@ describe('trigger tests', () => {
             startFrom: 'hub'
         });
 
-        await upstreamEvent.run();
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('SUCCESS');
 
         const downstreamEvent = downstreamPipeline.getLatestEvent();
 
