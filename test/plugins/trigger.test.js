@@ -1139,6 +1139,22 @@ describe('trigger tests', () => {
         assert.equal(downstreamEvent2.getBuildOf('target').status, 'RUNNING');
     });
 
+    xit('[ sd@1:a ] is not triggered in a downstream when sd@1:a fails', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('FAILURE');
+
+        assert.isNull(downstreamPipeline.getLatestEvent());
+        assert.equal(downstreamPipeline.getBuildsOf('target').length, 0);
+    });
+
     it('[ sd@2:a ] is not triggered in a upstream when sd@2:a fails', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-upstream.yaml');
         const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a-downstream.yaml');
@@ -1155,6 +1171,27 @@ describe('trigger tests', () => {
         await downstreamEvent.getBuildOf('a').complete('FAILURE');
 
         assert.isNull(upstreamEvent.getBuildOf('target'));
+    });
+
+    xit('[ sd@1:a ] is triggered in a downstream when sd@1:a fails once and then restarts and succeeds', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('FAILURE');
+
+        const upstreamRestartEvent = await upstreamEvent.restartFrom('a');
+
+        await upstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        assert.equal(downstreamEvent.getBuildsOf('target').status, 'RUNNING');
     });
 
     it('[ sd@2:a ] is triggered in a upstream when sd@2:a fails once and then restarts and succeeds', async () => {
@@ -1196,6 +1233,26 @@ describe('trigger tests', () => {
         assert.equal(downstreamEvent.getBuildOf('target').status, 'RUNNING');
     });
 
+    it('[ ~sd@2:a, ~sd@2:b ] is triggered when sd@2:a succeeds', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~sd@2:b-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~sd@2:b-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.run();
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('a').complete('SUCCESS');
+
+        assert.equal(upstreamEvent.id, upstreamPipeline.getLatestEvent().id);
+        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
+    });
+
     it('[ ~sd@1:a, ~sd@1:b ] is triggered when sd@1:a fails and sd@1:b succeeds', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a_~sd@1:b-upstream.yaml');
         const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a_~sd@1:b-downstream.yaml');
@@ -1212,6 +1269,27 @@ describe('trigger tests', () => {
         const downstreamEvent = downstreamPipeline.getLatestEvent();
 
         assert.equal(downstreamEvent.getBuildOf('target').status, 'RUNNING');
+    });
+
+    it('[ ~sd@2:a, ~sd@2:b ] is triggered when sd@2:a fails and sd@2:b fails', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~sd@2:b-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~sd@2:b-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.run();
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('a').complete('FAILURE');
+        await downstreamEvent.getBuildOf('b').complete('SUCCESS');
+
+        assert.equal(upstreamEvent.id, upstreamPipeline.getLatestEvent().id);
+        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
     });
 
     it('[ ~sd@1:a, ~sd@1:b ] is triggered twice in a downstream when sd@1:a and sd@1:b succeed', async () => {
@@ -1275,6 +1353,26 @@ describe('trigger tests', () => {
         assert.equal(downstreamEvent2.getBuildOf('target').status, 'RUNNING');
     });
 
+    it('[ ~sd@2:a, ~b ] is triggered when sd@2:a succeeds', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~b-upstream.yaml');
+        const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~b-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('SUCCESS');
+
+        const downstreamEvent = downstreamPipeline.getLatestEvent();
+
+        await downstreamEvent.getBuildOf('a').complete('SUCCESS');
+
+        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
+    });
+
     it('[ ~sd@1:a, ~b ] is triggered when b succeeds', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a_~b-upstream.yaml');
         const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@1:a_~b-downstream.yaml');
@@ -1291,6 +1389,24 @@ describe('trigger tests', () => {
         await downstreamEvent.getBuildOf('b').complete('SUCCESS');
 
         assert.equal(downstreamEvent.getBuildOf('target').status, 'RUNNING');
+    });
+
+    it('[ ~sd@2:a, ~b ] is triggered when b succeeds', async () => {
+        const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_~b-upstream.yaml');
+
+        await pipelineFactoryMock.createFromFile('~sd@2:a_~b-downstream.yaml');
+
+        const upstreamEvent = await eventFactoryMock.create({
+            pipelineId: upstreamPipeline.id,
+            startFrom: 'hub'
+        });
+
+        await upstreamEvent.getBuildOf('hub').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('a').complete('SUCCESS');
+        await upstreamEvent.getBuildOf('b').complete('SUCCESS');
+
+        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
+        assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
     });
 
     it('[ ~sd@1:a, ~b ] is triggered twice in downstream when sd@1:a and b succeed', async () => {
@@ -1493,7 +1609,7 @@ describe('trigger tests', () => {
 
         const upstreamRestartEvent = await upstreamEvent.restartFrom('b');
 
-        await upstreamRestartEvent.getBuildOf('b').complete('SUCCESS')
+        await upstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
 
         assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
@@ -1518,7 +1634,7 @@ describe('trigger tests', () => {
 
         const downstreamRestartEvent = await downstreamEvent.restartFrom('a');
 
-        await downstreamRestartEvent.getBuildOf('a').complete('SUCCESS')
+        await downstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
 
         assert.equal(upstreamEvent, upstreamPipeline.getLatestEvent());
         assert.isNull(upstreamEvent.getBuildOf('target'));
@@ -1600,8 +1716,8 @@ describe('trigger tests', () => {
 
     it('[ sd@2:a, sd@3:a ] is triggered', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-upstream.yaml');
-        const downstreamPipeline1 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
-        const downstreamPipeline2 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
 
         const upstreamEvent = await eventFactoryMock.create({
             pipelineId: upstreamPipeline.id,
@@ -1624,8 +1740,8 @@ describe('trigger tests', () => {
 
     it('[ sd@2:a, sd@3:a ] is not triggered when sd@2:a succeeds and sd@3:a fails', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-upstream.yaml');
-        const downstreamPipeline1 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
-        const downstreamPipeline2 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
 
         const upstreamEvent = await eventFactoryMock.create({
             pipelineId: upstreamPipeline.id,
@@ -1647,8 +1763,8 @@ describe('trigger tests', () => {
 
     it('[ sd@2:a, sd@3:a ] is not triggered when sd@3:a fails and sd@2:a restarts and succeeds ', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-upstream.yaml');
-        const downstreamPipeline1 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
-        const downstreamPipeline2 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
 
         const upstreamEvent = await eventFactoryMock.create({
             pipelineId: upstreamPipeline.id,
@@ -1675,8 +1791,8 @@ describe('trigger tests', () => {
 
     it('[ sd@2:a, sd@3:a ] is triggered when sd@2:a success and sd@3:a fails and then restarts and succeeds ', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-upstream.yaml');
-        const downstreamPipeline1 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
-        const downstreamPipeline2 =  await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
+        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
 
         const upstreamEvent = await eventFactoryMock.create({
             pipelineId: upstreamPipeline.id,
