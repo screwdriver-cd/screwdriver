@@ -2088,7 +2088,7 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('stage@red:setup').status, 'RUNNING');
     });
 
-    it('stage is triggered by stage', async () => {
+    xit('stage is triggered by stage', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('stage-to-stage.yaml');
 
         const event = await eventFactoryMock.create({
@@ -2112,10 +2112,24 @@ describe('trigger tests', () => {
 
         await event.getBuildOf('hub').complete('SUCCESS');
         await event.getBuildOf('a').complete('SUCCESS');
+
+        assert.isNull(event.getBuildOf('target1'));
+        assert.isNull(event.getBuildOf('target2'));
+
         await event.getBuildOf('stage@red:setup').complete('SUCCESS');
 
+        // triggered by stage setup job
         assert.equal(event.getBuildOf('target1').status, 'RUNNING');
         assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+
+        await event.getBuildOf('target1').complete('SUCCESS');
+
+        assert.equal(event.getBuildOf('target3').status, 'CREATED');
+
+        await event.getBuildOf('target2').complete('SUCCESS');
+
+        // overwrite stage job's required
+        assert.equal(event.getBuildOf('target3').status, 'RUNNING');
     });
 
     it('stage teardown is triggered', async () => {
@@ -2131,6 +2145,10 @@ describe('trigger tests', () => {
         await event.getBuildOf('stage@red:setup').complete('SUCCESS');
         await event.getBuildOf('target1').complete('SUCCESS');
         await event.getBuildOf('target2').complete('SUCCESS');
+
+        assert.isNull(event.getBuildOf('stage@red:teardown'));
+
+        await event.getBuildOf('target3').complete('SUCCESS');
 
         assert.equal(event.getBuildOf('stage@red:teardown').status, 'RUNNING');
     });

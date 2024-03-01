@@ -18,7 +18,7 @@ stages:
     jobs: [ d ]
   yellow:
     requires: [ ~stage@blue, ~stage@green ]
-    description: Third stage
+    description: Fourth stage
     jobs: [ e ]
 
 jobs:
