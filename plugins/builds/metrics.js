@@ -6,7 +6,13 @@ const schema = require('screwdriver-data-schema');
 const { setDefaultTimeRange, validTimeRange } = require('../helper');
 const MAX_DAYS = 180; // 6 months
 const buildIdSchema = schema.models.build.base.extract('id');
-const buildMetricListSchema = joi.array().items(joi.object());
+const buildMetricListSchema = joi.array().items(joi.object({
+    id: joi.number(),
+    name: joi.string(),
+    code: joi.number(),
+    duration: joi.number(),
+    createTime: joi.string().isoDate()
+}));
 
 module.exports = () => ({
     method: 'GET',
@@ -58,8 +64,8 @@ module.exports = () => ({
                 id: buildIdSchema
             }),
             query: joi.object({
-                startTime: joi.string().isoDate(),
-                endTime: joi.string().isoDate()
+                startTime: joi.string().isoDate().example('1970-01-01T15:00:00Z'),
+                endTime: joi.string().isoDate().example('1970-01-03T18:00:00Z')
             })
         }
     }

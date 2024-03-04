@@ -66,7 +66,9 @@ module.exports = () => ({
                 joi.object({
                     search: joi.forbidden(), // we don't support search for Template list versions with metrics,
                     startTime: joi.string().isoDate(),
-                    endTime: joi.string().isoDate()
+                    endTime: joi.string().isoDate(),
+                    getCount: joi.forbidden(),
+                    sortBy: joi.forbidden()
                 })
             )
         }

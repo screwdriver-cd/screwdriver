@@ -61,7 +61,9 @@ module.exports = () => ({
                 joi.object({
                     archived: joi.boolean().truthy('true').falsy('false').default(false),
                     jobName: jobNameSchema,
-                    search: joi.forbidden() // we don't support search for Pipeline list jobs
+                    search: joi.forbidden(), // we don't support search for Pipeline list jobs
+                    getCount: joi.forbidden(),
+                    sortBy: joi.forbidden()
                 })
             )
         }
