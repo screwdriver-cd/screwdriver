@@ -7,17 +7,16 @@ stages:
   red:
     requires: [ ~a ]
     description: First stage
-    jobs: [ b, c ]
+    jobs: [ target1, target2, target3 ]
 
 jobs:
   hub:
     requires: [ ~commit, ~pr ]
   a:
     requires: [ ~hub ]
-  b:
-    requires: [ ~stage@red:setup ]
-  c:
-    requires: [ b ]
-  target:
-    requires: [ ~stage@red:teardown ]
-
+  target1:
+    description: 'empty'
+  target2:
+    description: 'empty'
+  target3:
+    requires: [ target1, target2 ]
