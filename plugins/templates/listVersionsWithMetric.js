@@ -65,8 +65,10 @@ module.exports = () => ({
             query: schema.api.pagination.concat(
                 joi.object({
                     search: joi.forbidden(), // we don't support search for Template list versions with metrics,
-                    startTime: joi.string().isoDate(),
-                    endTime: joi.string().isoDate()
+                    startTime: joi.string().isoDate().example('1970-01-01T15:00:00Z'),
+                    endTime: joi.string().isoDate().example('1970-01-03T18:00:00Z'),
+                    getCount: joi.forbidden(),
+                    sortBy: joi.forbidden()
                 })
             )
         }
