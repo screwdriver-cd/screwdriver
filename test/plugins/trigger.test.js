@@ -1255,7 +1255,7 @@ describe('trigger tests', () => {
 
         const downstreamEvent = downstreamPipeline.getLatestEvent();
 
-        assert.equal(downstreamEvent.getBuildsOf('target').status, 'RUNNING');
+        assert.equal(downstreamEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ sd@2:a ] is triggered in a upstream when sd@2:a fails once and then restarts and succeeds', async () => {

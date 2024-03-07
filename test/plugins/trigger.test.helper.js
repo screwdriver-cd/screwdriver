@@ -4,11 +4,132 @@
 
 const configParser = require('screwdriver-config-parser');
 const fs = require('fs');
+const { Server } = require('@hapi/hapi');
 const sinon = require('sinon');
 const { assert } = require('chai');
 const { getStageFromSetupJobName } = require('screwdriver-models/lib/helper');
 
+/**
+ * Mock models for code completion
+ * (Not implement methods)
+ */
+class Pipeline {
+    constructor() {
+        this.id = 1;
+        this.workflowGraph = {
+            edges: [],
+            nodes: []
+        };
+    }
+
+    /**
+     * Test method: get <jobName> builds belonging to this pipeline
+     * @param {String} jobName
+     * @returns {Build[]}
+     */
+    getBuildsOf(jobName) {
+        assert.fail(`For code completion: getBuildsOf(${jobName})`);
+    }
+
+    /**
+     * Test method: get latest event belonging to this pipeline
+     * @param {void}
+     * @returns {Event}
+     */
+    getLatestEvent() {
+        assert.fail(`For code completion: getLatestEvent()`);
+    }
+}
+
+class Event {
+    constructor() {
+        this.id = 1;
+        this.workflowGraph = {
+            edges: [],
+            nodes: []
+        };
+    }
+
+    /**
+     * Test method: create restart event
+     * @param {String} jobName
+     * @returns {Promise<Event>}
+     */
+    async restartFrom(jobName) {
+        assert.fail(`For code completion: restartFrom(${jobName})`);
+    }
+
+    /**
+     * Test method: run all builds belonging to this event
+     * @param {void}
+     * @returns {Promise}
+     */
+    async run() {
+        assert.fail(`For code completion: run()`);
+    }
+
+    /**
+     * Test method: get <jobName> build belonging to this event
+     * @param {String} jobName
+     * @returns {Build}
+     */
+    getBuildOf(jobName) {
+        assert.fail(`For code completion: getBuildOf(${jobName})`);
+    }
+}
+
+class Job {
+    constructor() {
+        this.id = 1;
+        this.pipeline = new Pipeline();
+    }
+}
+
+// eslint-disable-next-line no-unused-vars
+class Build {
+    constructor() {
+        this.id = 1;
+        this.isStarted = false;
+        this.status = 'CREATED';
+        this.job = new Job();
+        this.event = new Event();
+    }
+
+    /**
+     * Test method: Send "PUT /builds/{id}" to update build status to <status>
+     * @param {String} status
+     * @returns {Promise}
+     */
+    async complete(status) {
+        assert.fail(`For code completion: complete(${status})`);
+    }
+}
+
+// eslint-disable-next-line no-unused-vars
+class CustomServer extends Server {
+    constructor(config) {
+        super(config);
+
+        this.app = {
+            buildFactory: new BuildFactoryMock(), // eslint-disable-line no-use-before-define
+            pipelineFactory: new PipelineFactoryMock(), // eslint-disable-line no-use-before-define
+            eventFactory: new EventFactoryMock(), // eslint-disable-line no-use-before-define
+            stageBuildFactory: new StageBuildFactoryMock(), // eslint-disable-line no-use-before-define
+            stageFactory: new StageFactoryMock(), // eslint-disable-line no-use-before-define
+            jobFactory: new JobFactoryMock(), // eslint-disable-line no-use-before-define
+            triggerFactory: new TriggerFactoryMock() // eslint-disable-line no-use-before-define
+        };
+    }
+}
+
+/**
+ * Mock factories
+ * Records are saved into arrays
+ */
 class TriggerFactoryMock {
+    /**
+     * @param {CustomServer} server
+     */
     constructor(server) {
         this.server = server;
         this.records = {};
@@ -28,11 +149,19 @@ class TriggerFactoryMock {
 }
 
 class PipelineFactoryMock {
+    /**
+     * @param {CustomServer} server
+     */
     constructor(server) {
         this.server = server;
         this.records = [null];
     }
 
+    /**
+     * Mock method: Create pipeline
+     * @param {Object} config
+     * @returns {Pipeline}
+     */
     async create(config) {
         const pipeline = {
             ...config,
@@ -108,7 +237,11 @@ class PipelineFactoryMock {
         return this.records[Number(id)];
     }
 
-    // custom methods
+    /**
+     * Test method: create pipeline from yaml file
+     * @param {String} fileName
+     * @returns {Promise<Pipeline>}
+     */
     async createFromFile(fileName) {
         const yaml = fs.readFileSync(`${__dirname}/data/trigger/${fileName}`).toString();
 
@@ -119,6 +252,11 @@ class PipelineFactoryMock {
         return this.create(pipeline);
     }
 
+    /**
+     * Test method: sync remote triggers
+     * @param {void}
+     * @returns {void}
+     */
     async syncTriggers() {
         for (let i = 1; i < this.records.length; i += 1) {
             const pipeline = this.records[i];
@@ -153,6 +291,9 @@ class PipelineFactoryMock {
 }
 
 class EventFactoryMock {
+    /**
+     * @param {CustomServer} server
+     */
     constructor(server) {
         this.server = server;
         this.records = [null];
@@ -161,6 +302,11 @@ class EventFactoryMock {
         };
     }
 
+    /**
+     * Mock method: Create event
+     * @param {Object} config
+     * @returns {Promise<Event>}
+     */
     async create(config) {
         const event = {
             groupEventId: this.records.length,
@@ -187,7 +333,7 @@ class EventFactoryMock {
         event.update.returns(event);
         event.toJson.returns({ ...event });
 
-        // Custom methods
+        // Test methods
         event.restartFrom = async jobName => {
             const restartBuild = event.getBuildOf(jobName);
 
@@ -249,18 +395,33 @@ class EventFactoryMock {
         return event;
     }
 
+    /**
+     * Mock method: Get event
+     * @param {Object} config
+     * @returns {Event}
+     */
     get(config) {
         const id = config instanceof Object ? config.id : Number(config);
 
         return this.records[id] || null;
     }
 
+    /**
+     * Mock method: get events
+     * @param {Object} config
+     * @returns {Event[]}
+     */
     async list({ params }) {
         const { parentEventId } = params;
 
         return this.getChildEvents(parentEventId);
     }
 
+    /**
+     * Test method: get one of running builds
+     * @param {Number} eventId
+     * @returns {Build}
+     */
     getRunningBuild(eventId) {
         return (
             this.server.app.buildFactory.records.find(build => {
@@ -269,12 +430,20 @@ class EventFactoryMock {
         );
     }
 
+    /**
+     * Test method: get child events
+     * @param {Number} parentEventId
+     * @returns {Event[]}
+     */
     getChildEvents(parentEventId) {
         return this.records.filter(event => event && event.parentEventId === parentEventId);
     }
 }
 
 class BuildFactoryMock {
+    /**
+     * @param {CustomServer} server
+     */
     constructor(server) {
         this.server = server;
         this.records = [null];
@@ -282,6 +451,11 @@ class BuildFactoryMock {
         this.removedRecords = [];
     }
 
+    /**
+     * Mock method: Create build
+     * @param {Object} config
+     * @returns {Build}
+     */
     async create(config) {
         const uniqueKey = `event${config.eventId}:job${config.jobId}`;
 
@@ -336,6 +510,7 @@ class BuildFactoryMock {
             });
         }
 
+        // Test method
         build.complete = async status => {
             const response = await this.server.inject({
                 method: 'PUT',
@@ -363,6 +538,11 @@ class BuildFactoryMock {
         return build;
     }
 
+    /**
+     * Mock method: get build
+     * @param {Object} config
+     * @returns {Build}
+     */
     get(config) {
         if (Number.isInteger(config)) {
             return this.records[config] || null;
@@ -381,6 +561,11 @@ class BuildFactoryMock {
         );
     }
 
+    /**
+     * Mock method: get latest build
+     * @param {Object} config
+     * @returns {Build[]}
+     */
     getLatestBuilds(config) {
         const builds = {};
 
@@ -393,10 +578,20 @@ class BuildFactoryMock {
         return Object.keys(builds).map(key => builds[key]);
     }
 
+    /**
+     * Test method: get running build
+     * @param {void}
+     * @returns {Build}
+     */
     getRunningBuild() {
         return this.records.find(build => build && build.isStarted && build.status === 'RUNNING') || null;
     }
 
+    /**
+     * Test method: run all builds
+     * @param {void}
+     * @returns {Promise}
+     */
     async run() {
         let build = null;
 
@@ -408,6 +603,9 @@ class BuildFactoryMock {
 }
 
 class StageBuildFactoryMock {
+    /**
+     * @param {CustomServer} server
+     */
     constructor(server) {
         this.server = server;
         this.records = [null];
@@ -468,11 +666,19 @@ class StageFactoryMock {
 }
 
 class JobFactoryMock {
+    /**
+     * @param {CustomServer} server
+     */
     constructor(server) {
         this.server = server;
         this.records = [null];
     }
 
+    /**
+     * Mock method: create job
+     * @param {Object} config
+     * @returns {Job}
+     */
     create(config) {
         const job = {
             ...config,
@@ -489,6 +695,11 @@ class JobFactoryMock {
         return job;
     }
 
+    /**
+     * Mock method: get job
+     * @param {Object} config
+     * @returns {Job}
+     */
     get(config) {
         if (Number.isInteger(config)) {
             return this.records[config] || null;
