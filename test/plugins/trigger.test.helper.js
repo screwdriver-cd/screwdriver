@@ -124,7 +124,7 @@ class CustomServer extends Server {
 
 /**
  * Mock factories
- * Recodes are saved into arrays
+ * Records are saved into arrays
  */
 class TriggerFactoryMock {
     /**
