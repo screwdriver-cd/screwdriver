@@ -13,7 +13,7 @@ const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const testWorkflowGraphWithStages = require('./data/workflowGraphWithStages.json');
-const rewireBuildsIndex = rewire('../../plugins/builds/index.js');
+const rewireBuildsIndex = rewire('../../plugins/builds/triggers/helpers.js');
 /* eslint-disable no-underscore-dangle */
 
 sinon.assert.expose(assert, { prefix: '' });
