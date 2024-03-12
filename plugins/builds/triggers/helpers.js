@@ -74,8 +74,6 @@ const Status = {
 async function deleteBuild(buildConfig, buildFactory) {
     const buildToDelete = await buildFactory.get(buildConfig);
 
-    console.log(buildToDelete);
-
     if (buildToDelete && buildToDelete.status === 'CREATED') {
         return buildToDelete.remove();
     }
@@ -588,7 +586,6 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
 
         if (stage) {
             stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
-            console.log(stageTeardownName);
         }
 
         // New build is not stage teardown job
