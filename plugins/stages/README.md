@@ -27,6 +27,18 @@ server.register({
 
 ### Routes
 
+#### Get all stages
+`page`, `count`, `sort`, `sortBy`, `name`, `pipelineId`, and `jobIds` optional
+
+`GET /stages?page={pageNumber}&count={countNumber}&pipelineId={pipelineId}&name={stageName}`
+
+Need to have array format for `jobIds` to only return stages with matching ids
+`GET /stages?jobIds[]=12345&jobIds[]=55555`
+
+#### Get single stage
+
+`GET /stages/{id}`
+
 #### Get a listing of all stage builds for a stage
 
 `GET /stages/{id}/stageBuilds`
