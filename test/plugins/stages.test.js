@@ -5,6 +5,7 @@ const sinon = require('sinon');
 const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
 const testStage = require('./data/stage.json');
+const testStages = require('./data/stages.json');
 const testStageBuilds = require('./data/stageBuilds.json');
 
 sinon.assert.expose(assert, { prefix: '' });
@@ -25,7 +26,15 @@ const getStageBuildMocks = stageBuilds => {
     return decorateObj(stageBuilds);
 };
 
-describe('stage plugin test', () => {
+const getStageMocks = stages => {
+    if (Array.isArray(stages)) {
+        return stages.map(decorateObj);
+    }
+
+    return decorateObj(stages);
+};
+
+describe.only('stage plugin test', () => {
     let stageFactoryMock;
     let stageBuildFactoryMock;
     let plugin;
@@ -33,7 +42,8 @@ describe('stage plugin test', () => {
 
     beforeEach(async () => {
         stageFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            list: sinon.stub()
         };
         stageBuildFactoryMock = {
             list: sinon.stub()
@@ -69,6 +79,191 @@ describe('stage plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.stages);
+    });
+
+    describe('GET /stages', () => {
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: '/stages?page=1&count=3',
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+        });
+
+        it('returns 200 and all stages', () => {
+            stageFactoryMock.list
+                .withArgs({
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getStageMocks(testStages));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 and all stages with matching ids', () => {
+            options.url = '/stages?jobIds[]=1&jobIds[]=2&jobIds[]=3&';
+            stageFactoryMock.list
+                .withArgs({
+                    params: {
+                        jobIds: [1, 2, 3]
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getStageMocks(testStages));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 and stages with pagination if no search parameter specified', () => {
+            options.url = '/stages';
+            stageFactoryMock.list
+                .withArgs({
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getStageMocks(testStages));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 and all stages when sort is set', () => {
+            options.url = '/stages?sort=ascending';
+            stageFactoryMock.list
+                .withArgs({
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'ascending'
+                })
+                .resolves(getStageMocks(testStages));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 and all stages when sortBy is set', () => {
+            options.url = '/stages?sort=ascending&sortBy=name';
+            stageFactoryMock.list
+                .withArgs({
+                    paginate: {
+                        page: 1,
+                        count: 50
+                    },
+                    sort: 'ascending',
+                    sortBy: 'name'
+                })
+                .resolves(getStageMocks(testStages));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 200 and all stages with matched name', () => {
+            options.url = '/stages?page=1&count=3&name=deploy';
+            stageFactoryMock.list
+                .withArgs({
+                    params: {
+                        name: 'deploy'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                })
+                .resolves(getStageMocks(testStages));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            stageFactoryMock.list.rejects(new Error('fittoburst'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /stages/{id}', () => {
+        const id = 123;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/stage/${id}`
+            };
+        });
+
+        it('returns 200 for get stage', () => {
+            stageFactoryMock.get.resolves(getStageMocks(testStage));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStage);
+            });
+        });
+
+        it('throws error not found when stage does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Stage 123 does not exist'
+            };
+
+            stageFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('throws error when call returns error', () => {
+            stageFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /stages/id/stageBuilds', () => {

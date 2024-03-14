@@ -3,7 +3,6 @@
 const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
-const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
@@ -70,6 +69,7 @@ When(
         }).then(resp => {
             Assert.equal(resp.statusCode, 201);
 
+            this.branchName = branchName;
             this.buildId = resp.body.id;
             this.eventId = resp.body.eventId;
         });
@@ -95,10 +95,10 @@ Then(
 
             this.stageBuildId = stageBuild.id;
             this.stageBuildStatus = stageBuild.status;
-        });
 
-        // Check stageBuild status
-        Assert.equal(this.stageBuildStatus, stageBuildStatus);
+            // Check stageBuild status
+            Assert.equal(this.stageBuildStatus, stageBuildStatus);
+        });
     }
 );
 
@@ -116,7 +116,7 @@ When(
             jwt: this.jwt
         });
 
-        const job = jobs.find(j => j.name === jobName);
+        const job = this.jobs.find(j => j.name === jobName);
 
         this.buildId = build.id;
         this.eventId = build.eventId;
@@ -140,7 +140,7 @@ Then(
             jwt: this.jwt
         });
 
-        const job = jobs.find(j => j.name === jobName);
+        const job = this.jobs.find(j => j.name === jobName);
 
         this.buildId = build.id;
         this.eventId = build.eventId;
@@ -183,6 +183,8 @@ Then(
             jobName,
             jwt: this.jwt
         });
+
+        this.branchName = branchName;
 
         let result = build.body || [];
 

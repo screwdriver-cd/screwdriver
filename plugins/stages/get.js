@@ -19,9 +19,9 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const factory = request.server.app.stageFactory;
+            const { stageFactory } = request.server.app;
 
-            return factory
+            return stageFactory
                 .get(request.params.id)
                 .then(model => {
                     if (!model) {

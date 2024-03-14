@@ -1,5 +1,6 @@
 'use strict';
 
+const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const jobIdSchema = schema.models.stage.base.extract('jobId');
 const listSchema = schema.models.stage.list;
@@ -56,9 +57,7 @@ module.exports = () => ({
             }
 
             // list params defaults to empty object in models if undefined
-            return stageFactory
-                .list(config)
-                .then(stages => h.response(stages.map(c => c.toJson())));
+            return stageFactory.list(config).then(stages => h.response(stages.map(c => c.toJson())));
         },
         response: {
             schema: listSchema

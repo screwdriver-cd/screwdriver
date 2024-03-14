@@ -5,12 +5,8 @@ Feature: Stage
     convey the nature of the jobs in the workflow graph. They can either
     set setup and teardown jobs explicitly or it will be created implicitly as a virtual job.
 
-    Eg: The following pipeline workflows:
-        stageFail1: (~commit) -> (hub) -> (a) -> (b) -> (c) -> (target)
-
-        stageFail2: (~commit) -> (hub) -> (a) -> (b) -> (c) -> (target)
-
-        stageSuccess1: (~commit) -> (hub) -> (a) -> (b) -> (c) -> (target)
+    Eg: The following pipeline workflow:
+        (~commit) -> (hub) -> (a) -> (b) -> (c) -> (target)
 
         Assume a, b, and c are part of a stage.
 
