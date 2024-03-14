@@ -7,6 +7,7 @@ const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
 const testTemplate = require('./data/pipeline-template.json');
+const testTemplateUntrusted = require('./data/pipeline-template-untrusted.json');
 const testTemplates = require('./data/pipelineTemplates.json');
 const testTemplateGet = testTemplates[0];
 const testTemplateVersions = require('./data/pipelineTemplateVersions.json');
@@ -1466,16 +1467,30 @@ describe('pipeline plugin test', () => {
                     trusted: true
                 }
             };
-            templateMock = getTemplateMocks(testTemplate);
+            templateMock = getTemplateMocks(testTemplateUntrusted);
             templateMock.update = sinon.stub().resolves(null);
             pipelineTemplateFactoryMock.get.resolves(templateMock);
         });
 
-        it('returns 204 for updating a pipeline template to trusted', () =>
+        it('returns 204 when updating a pipeline template to trusted', () =>
             server.inject(options).then(reply => {
                 assert.calledOnce(templateMock.update);
+                assert.isNotNull(templateMock.trustedSinceVersion);
                 assert.equal(reply.statusCode, 204);
             }));
+
+        it('returns 204 when updating a pipeline template to untrusted', () => {
+            templateMock = getTemplateMocks(testTemplate);
+            templateMock.update = sinon.stub().resolves(null);
+            pipelineTemplateFactoryMock.get.resolves(templateMock);
+            options.payload.trusted = false;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(templateMock.update);
+                assert.isNull(templateMock.trustedSinceVersion);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
 
         it('returns 404 when template does not exist', () => {
             const error = {
