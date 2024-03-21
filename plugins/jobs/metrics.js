@@ -62,8 +62,8 @@ module.exports = () => ({
                 id: jobIdSchema
             }),
             query: joi.object({
-                startTime: joi.string().isoDate(),
-                endTime: joi.string().isoDate(),
+                startTime: joi.string().isoDate().example('1970-01-01T15:00:00Z'),
+                endTime: joi.string().isoDate().example('1970-01-03T18:00:00Z'),
                 aggregateInterval: joi.string().valid('none', 'day', 'week', 'month', 'year').messages({
                     'any.only': '{{#label}} fails because it must be one of none, day, week, month, year'
                 })

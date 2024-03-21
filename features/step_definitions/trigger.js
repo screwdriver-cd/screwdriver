@@ -168,7 +168,7 @@ When(
 
 // no-op since the next test handles this case
 Then(
-    /^the "(?:success_B|parallel_B1|parallel_B2)" job on branch "(?:.*)" is started$/,
+    /^the "(?:success_B_.*|or_multiple_B_.*|parallel_B1|parallel_B2)" job on branch "(?:.*)" is started$/,
     { timeout: TIMEOUT },
     () => null
 );
