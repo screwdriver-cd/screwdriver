@@ -25,7 +25,7 @@ module.exports = () => ({
                 .get(request.params.id)
                 .then(model => {
                     if (!model) {
-                        throw boom.notFound('Stage does not exist');
+                        throw boom.notFound(`Stage ${request.params.id} does not exist`);
                     }
 
                     return h.response(model.toJson());

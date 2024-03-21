@@ -2,11 +2,10 @@
 
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const jobIdSchema = schema.models.stage.base.extract('jobId');
 const listSchema = schema.models.stage.list;
 const nameSchema = schema.models.stage.base.extract('name');
 const pipelineIdSchema = schema.models.stage.base.extract('pipelineId');
-const jobIdsSchema = joi.alternatives().try(joi.array().items(jobIdSchema), jobIdSchema).required();
+const jobIdsSchema = schema.models.stage.base.extract('jobIds');
 const JOB_IDS_KEY = 'jobIds[]';
 
 module.exports = () => ({
@@ -29,17 +28,24 @@ module.exports = () => ({
             if (request.query[JOB_IDS_KEY]) {
                 const jobIds = request.query[JOB_IDS_KEY];
 
-                config.params.jobIds = Array.isArray(jobIds)
-                    ? jobIds.map(jobId => parseInt(jobId, 10))
-                    : [parseInt(jobIds, 10)];
+                config.params = {
+                    ...config.params,
+                    jobIds: Array.isArray(jobIds) ? jobIds.map(jobId => parseInt(jobId, 10)) : [parseInt(jobIds, 10)]
+                };
             }
 
             if (name) {
-                config.params.name = name;
+                config.params = {
+                    ...config.params,
+                    name
+                };
             }
 
             if (pipelineId) {
-                config.params.pipelineId = pipelineId;
+                config.params = {
+                    ...config.params,
+                    pipelineId
+                };
             }
 
             if (sortBy) {
@@ -57,18 +63,25 @@ module.exports = () => ({
             }
 
             // list params defaults to empty object in models if undefined
-            return stageFactory.list(config).then(stages => h.response(stages.map(c => c.toJson())));
+            return stageFactory
+                .list(config)
+                .then(stages => h.response(stages.map(c => c.toJson())))
+                .catch(err => {
+                    throw err;
+                });
         },
         response: {
             schema: listSchema
         },
-        query: schema.api.pagination.concat(
-            joi.object({
-                name: nameSchema,
-                pipelineId: pipelineIdSchema,
-                'jobIds[]': jobIdsSchema.optional(),
-                search: joi.forbidden()
-            })
-        )
+        validate: {
+            query: schema.api.pagination.concat(
+                joi.object({
+                    name: nameSchema,
+                    pipelineId: pipelineIdSchema,
+                    'jobIds[]': jobIdsSchema.optional(),
+                    search: joi.forbidden()
+                })
+            )
+        }
     }
 });
