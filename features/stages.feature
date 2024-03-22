@@ -70,4 +70,5 @@ Feature: Stage
         And the "c" build succeeded
         Then the "~stage@simple_success" stageBuild status is "SUCCESS"
         And the "~stage@simple_success:teardown" job is started
-        And the "target" job is triggered and succeeds
+        And the "target" job is triggered
+        And the "target" build succeeded
