@@ -28,6 +28,7 @@ const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
     mock.toJsonWithSteps = sinon.stub().resolves(build);
+    mock.toJson = sinon.stub().returns(build);
 
     return mock;
 };
@@ -88,6 +89,7 @@ const decoratePipelineMock = pipeline => {
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
     mock.getEvents = sinon.stub();
+    mock.getBuilds = sinon.stub();
     mock.remove = sinon.stub();
     mock.admin = sinon.stub();
     mock.getFirstAdmin = sinon.stub();
@@ -1474,6 +1476,91 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the datastore returns an error', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
             pipelineMock.getEvents.rejects(new Error('getEventsError'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/builds', () => {
+        const id = '123';
+        let options;
+        let pipelineMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/builds`
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getBuilds.resolves(getBuildMocks(testBuilds));
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for getting builds', () => {
+            options.url = `/pipelines/${id}/builds`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds with pagination', () => {
+            options.url = `/pipelines/${id}/builds?count=30`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {
+                    paginate: { page: undefined, count: 30 }
+                });
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds with groupEventId', () => {
+            options.url = `/pipelines/${id}/builds?groupEventId=999`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, { params: { groupEventId: 999 } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and does not use latest flag if no groupEventId is set', () => {
+            options.url = `/pipelines/${id}/builds?latest=true`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 with groupEventId and latest', () => {
+            options.url = `/pipelines/${id}/builds?groupEventId=999&latest=true`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, { params: { groupEventId: 999, latest: true } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 404 for pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', () => {
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineMock.getBuilds.rejects(new Error('getBuildsError'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
