@@ -27,9 +27,12 @@ Feature: Stage
             | target    | ~stage@simple_fail:teardown  |
         When the "hub" job on branch "stageFail1" is started
         And the "hub" build succeeded
-        And the "a" job is triggered and succeeds
-        And the "b" job is triggered and succeeds
-        And the "c" job is triggered and fails
+        And the "a" job is triggered
+        And the "a" build succeeded
+        And the "b" job is triggered
+        And the "b" build succeeded
+        And the "c" job is triggered
+        And the "c" build failed
         Then the "~stage@simple_fail" stageBuild status is "FAILURE"
         And the "~stage@simple_fail:teardown" job is started
         And the "target" job on branch "stageFail1" is not started
@@ -42,8 +45,10 @@ Feature: Stage
             | target    | ~stage@incomplete_fail:teardown  |
         When the "hub" job on branch "stageFail2" is started
         And the "hub" build succeeded
-        And the "a" job is triggered and succeeds
-        And the "b" job is triggered and fails
+        And the "a" job is triggered
+        And the "a" build succeeded
+        And the "b" job is triggered
+        And the "b" build failed
         Then the "~stage@incomplete_fail" stageBuild status is "FAILURE"
         And the "~stage@incomplete_fail:teardown" job is started
         And the "c" job on branch "stageFail2" is not started
@@ -57,9 +62,12 @@ Feature: Stage
         | target    | ~stage@simple_success:teardown  |
         When the "hub" job on branch "stageSuccess1" is started
         And the "hub" build succeeded
-        And the "a" job is triggered and succeeds
-        And the "b" job is triggered and succeeds
-        And the "c" job is triggered and succeeds
+        And the "a" job is triggered
+        And the "a" build succeeded
+        And the "b" job is triggered
+        And the "b" build succeeded
+        And the "c" job is triggered
+        And the "c" build succeeded
         Then the "~stage@simple_success" stageBuild status is "SUCCESS"
         And the "~stage@simple_success:teardown" job is started
         And the "target" job is triggered and succeeds

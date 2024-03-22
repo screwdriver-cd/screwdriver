@@ -102,54 +102,6 @@ Then(
     }
 );
 
-When(
-    /^the "(a|b|c|target)" job is triggered and succeeds$/,
-    {
-        timeout: TIMEOUT
-    },
-    async function step(jobName) {
-        const build = await sdapi.searchForBuild({
-            instance: this.instance,
-            pipelineId: this.pipelineId,
-            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-            jobName,
-            jwt: this.jwt
-        });
-
-        const job = this.jobs.find(j => j.name === jobName);
-
-        this.buildId = build.id;
-        this.eventId = build.eventId;
-
-        Assert.equal(build.jobId, job.id);
-        Assert.equal(build.status, 'SUCCESS');
-    }
-);
-
-Then(
-    /^the "(a|b|c)" job is triggered and fails/,
-    {
-        timeout: TIMEOUT
-    },
-    async function step(jobName) {
-        const build = await sdapi.searchForBuild({
-            instance: this.instance,
-            pipelineId: this.pipelineId,
-            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-            jobName,
-            jwt: this.jwt
-        });
-
-        const job = this.jobs.find(j => j.name === jobName);
-
-        this.buildId = build.id;
-        this.eventId = build.eventId;
-
-        Assert.equal(build.jobId, job.id);
-        Assert.equal(build.status, 'FAILURE');
-    }
-);
-
 Then(
     /^the "([^"]*)" job is started$/,
     {
