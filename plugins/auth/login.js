@@ -105,6 +105,19 @@ function addOAuthRoutes(config) {
                     return boom.forbidden(`User ${userDisplayName} is not allowed access`);
                 }
 
+                // check enterprise github cloud
+                if (config.scm.gheCloud) {
+                    const isEnterpriseUser = await userFactory.scm.isEnterpriseUser({
+                        token: accessToken,
+                        login: username,
+                        slug: config.scm.gheCloudSlug
+                    });
+
+                    if (!isEnterpriseUser) {
+                        return boom.forbidden(`User ${username} is not allowed access`);
+                    }
+                }
+
                 // Log that the user has authenticated
                 request.log(['auth'], `${userDisplayName} has logged in via OAuth`);
 
