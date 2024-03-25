@@ -70,7 +70,9 @@ const AUTH_PLUGIN_SCHEMA = joi.object().keys({
     sessionTimeout: joi.number().integer().positive().default(120),
     oauthRedirectUri: joi.string().optional(),
     sameSite: joi.alternatives().try(JOI_BOOLEAN, joi.string()).required(),
-    path: joi.string().required()
+    path: joi.string().required(),
+    gheCloud: joi.boolean().optional().default(false),
+    gheCloudSlug: joi.string().optional()
 });
 
 /**
