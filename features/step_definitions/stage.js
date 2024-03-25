@@ -88,7 +88,7 @@ Then(
                 token: this.jwt
             }
         }).then(resp => {
-            Assert.equal(resp.statusCode, 201);
+            Assert.equal(resp.statusCode, 200);
 
             // Find stageBuild for stage
             const stageBuild = resp.body.find(sb => sb.id === this.stageId);
