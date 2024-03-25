@@ -106,11 +106,11 @@ function addOAuthRoutes(config) {
                 }
 
                 // check enterprise github cloud
-                if (config.gheCloud) {
+                if (config.scm.gheCloud) {
                     const isEnterpriseUser = await userFactory.scm.isEnterpriseUser({
                         token: accessToken,
                         login: username,
-                        slug: config.gheCloudSlug
+                        slug: config.scm.gheCloudSlug
                     });
 
                     if (!isEnterpriseUser) {

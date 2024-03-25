@@ -800,7 +800,11 @@ describe('auth plugin test', () => {
                                 cookiePassword,
                                 encryptionPassword,
                                 hashingPassword,
-                                scm,
+                                scm: {
+                                    ...scm,
+                                    gheCloud: true,
+                                    gheCloudSlug
+                                },
                                 jwtPrivateKey,
                                 jwtPublicKey,
                                 jwtQueueServicePublicKey,
@@ -808,9 +812,7 @@ describe('auth plugin test', () => {
                                 allowGuestAccess: true,
                                 sameSite: false,
                                 bell: scm.scms,
-                                path: '/',
-                                gheCloud: true,
-                                gheCloudSlug
+                                path: '/'
                             }
                         });
                     });
