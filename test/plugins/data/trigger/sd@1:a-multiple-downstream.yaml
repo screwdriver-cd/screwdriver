@@ -1,0 +1,10 @@
+shared:
+  image: node:20
+  steps:
+    - test: echo 'test'
+
+jobs:
+  target1:
+    requires: [ sd@1:a ]
+  target2:
+    requires: [ sd@1:a ]

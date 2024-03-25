@@ -330,20 +330,20 @@ describe('job plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     sort: 'descending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             }));
 
         it('returns 200 for getting builds with query params', () => {
-            options.url = `/jobs/${id}/builds?fetchSteps=false&readOnly=true`;
+            options.url = `/jobs/${id}/builds?fetchSteps=false&readOnly=false`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.calledWith(job.getBuilds, {
                     sort: 'descending',
-                    sortBy: 'createTime',
-                    readOnly: true
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -360,7 +360,8 @@ describe('job plugin test', () => {
                         page: 2
                     },
                     sort: 'ascending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });
@@ -378,6 +379,7 @@ describe('job plugin test', () => {
                     },
                     sort: 'ascending',
                     sortBy: 'id',
+                    readOnly: true,
                     status: 'RUNNING'
                 });
                 assert.deepEqual(reply.result, testBuilds);
@@ -395,7 +397,8 @@ describe('job plugin test', () => {
                         count: 30
                     },
                     sort: 'descending',
-                    sortBy: 'createTime'
+                    sortBy: 'createTime',
+                    readOnly: true
                 });
                 assert.deepEqual(reply.result, testBuilds);
             });

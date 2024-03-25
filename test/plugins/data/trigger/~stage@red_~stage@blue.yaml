@@ -1,0 +1,26 @@
+shared:
+  image: node:20
+  steps:
+    - test: echo 'test'
+
+stages:
+  red:
+    requires: [ ~a ]
+    description: First stage
+    jobs: [ b ]
+  blue:
+    requires: [ ~a ]
+    description: First stage
+    jobs: [ c ]
+
+jobs:
+  hub:
+    requires: [ ~commit, ~pr ]
+  a:
+    requires: [ ~hub ]
+  b:
+    description: empty
+  c:
+    description: empty
+  target:
+    requires: [ ~stage@red, ~stage@blue ]
