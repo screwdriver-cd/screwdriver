@@ -80,24 +80,19 @@ Then(
     /^the "(?:~stage@(simple_fail|incomplete_fail|simple_success))" stageBuild status is "(SUCCESS|FAILURE)"$/,
     { timeout: TIMEOUT },
     async function step(stage, stageBuildStatus) {
-        // Get stageBuilds for event
-        return request({
-            url: `${this.instance}/${this.namespace}/events/${this.eventId}/stageBuilds`,
-            method: 'GET',
-            context: {
-                token: this.jwt
-            }
-        }).then(resp => {
-            Assert.equal(resp.statusCode, 200);
+        const config = {
+            eventId:this.eventId,
+            jwt: this.jwt,
+            stageId: this.stageId,
+            instance: this.instance,
+            desiredStatus: stageBuildStatus
+        };
 
-            // Find stageBuild for stage
-            const stageBuild = resp.body.find(sb => sb.id === this.stageId);
+        return sdapi.waitForStageBuildStatus(config).then(stageBuild => {
+            Assert.equal(stageBuild.status, stageBuildStatus);
 
             this.stageBuildId = stageBuild.id;
             this.stageBuildStatus = stageBuild.status;
-
-            // Check stageBuild status
-            Assert.equal(this.stageBuildStatus, stageBuildStatus);
         });
     }
 );
