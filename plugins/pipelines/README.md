@@ -367,3 +367,23 @@ Delete the template tag. This does not delete the template itself.
 * `namespace` - Namespace of the template
 * `name` - Name of the template
 * `tag` - Tag name of the template
+
+##### Update a pipeline template's trusted property
+
+Update a pipeline template's trusted property
+
+`PUT /pipeline/templates/{namespace}/{name}/trusted`
+
+###### Arguments
+
+'namespace', 'name'
+
+* `namespace` - Namespace of the template
+* `name` - Name of the template
+
+Example payload:
+```json
+{
+    "trusted": true
+}
+```
