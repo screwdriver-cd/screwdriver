@@ -24,7 +24,7 @@ For more information about Screwdriver, check out our [homepage](http://screwdri
 
 ### Plugins
 
-This API comes preloaded with 16 (sixteen) resources:
+This API comes preloaded with 18 (eighteen) resources:
 
  - [auth](plugins/auth/README.md)
  - [banners](plugins/banners/README.md)
@@ -37,6 +37,8 @@ This API comes preloaded with 16 (sixteen) resources:
  - [jobs](plugins/jobs/README.md)
  - [pipelines](plugins/pipelines/README.md)
  - [secrets](plugins/secrets/README.md)
+ - [stages](plugins/stages/README.md)
+ - [stageBuilds](plugins/stageBuilds/README.md)
  - [templates](plugins/templates/README.md)
  - [tokens](plugins/tokens/README.md)
  - [webhooks](plugins/webhooks/README.md)

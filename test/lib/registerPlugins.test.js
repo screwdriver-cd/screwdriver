@@ -33,6 +33,7 @@ describe('Register Unit Test Case', () => {
         '../../plugins/jobs',
         '../../plugins/pipelines',
         '../../plugins/secrets',
+        '../../plugins/stages',
         '../../plugins/templates',
         '../../plugins/tokens',
         '../../plugins/users',
