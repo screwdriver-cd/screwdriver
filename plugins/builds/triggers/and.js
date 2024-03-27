@@ -29,9 +29,10 @@ class AndTrigger {
         this.currentBuild = config.build;
         this.username = config.username;
         this.scmContext = config.scmContext;
+        this.stage = config.stage;
     }
 
-    async run(nextJobName, joinObj, parentBuilds, joinListNames) {
+    async run(nextJobName, nextJobId, parentBuilds, joinListNames) {
         logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
         let finishedInternalBuilds = await getFinishedBuilds(this.currentEvent, this.buildFactory);
 
@@ -46,8 +47,6 @@ class AndTrigger {
 
             finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
         }
-
-        const nextJobId = joinObj[nextJobName].id;
 
         let nextBuild;
 
@@ -68,14 +67,7 @@ class AndTrigger {
             }
         }
 
-        const current = {
-            pipeline: this.currentPipeline,
-            job: this.currentJob,
-            build: this.currentBuild,
-            event: this.currentEvent
-        };
-
-        fillParentBuilds(parentBuilds, current, finishedInternalBuilds);
+        fillParentBuilds(parentBuilds, this.currentPipeline, this.currentEvent, finishedInternalBuilds);
 
         let newBuild;
 
@@ -98,7 +90,6 @@ class AndTrigger {
             newBuild = await createInternalBuild(internalBuildConfig);
         } else {
             // nextBuild is not build model, so fetch proper build
-
             newBuild = await updateParentBuilds({
                 joinParentBuilds: parentBuilds,
                 nextBuild: await this.buildFactory.get(nextBuild.id),
@@ -125,7 +116,7 @@ class AndTrigger {
             newBuild,
             jobName: nextJobName,
             pipelineId: this.currentPipeline.id,
-            stage: current.stage
+            stage: this.stage
         });
     }
 }

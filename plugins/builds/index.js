@@ -156,11 +156,6 @@ const buildsPlugin = {
             const { pipeline: currentPipeline, job: currentJob, build: currentBuild, stage } = config;
             const { eventFactory } = app;
             const currentEvent = await eventFactory.get({ id: currentBuild.eventId });
-            const nextJobsTrigger = workflowParser.getNextJobs(currentEvent.workflowGraph, {
-                trigger: currentJob.name,
-                chainPR: currentPipeline.chainPR
-            });
-
             const current = {
                 pipeline: currentPipeline,
                 job: currentJob,
@@ -168,6 +163,11 @@ const buildsPlugin = {
                 event: currentEvent,
                 stage
             };
+            const nextJobsTrigger = workflowParser.getNextJobs(currentEvent.workflowGraph, {
+                trigger: currentJob.name,
+                chainPR: currentPipeline.chainPR
+            });
+
             const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
 
             // Helper function to handle triggering jobs in same pipeline
@@ -175,17 +175,16 @@ const buildsPlugin = {
             const andTrigger = new AndTrigger(app, config, currentEvent);
 
             // Helper function to handle triggering jobs in external pipeline
-            const remoteTrigger = new RemoteTrigger(app, config);
-            const remoteJoin = new RemoteJoin(app, config);
+            const remoteTrigger = new RemoteTrigger(app, config, currentEvent);
+            const remoteJoin = new RemoteJoin(app, config, currentEvent);
 
             for (const [joinedPipelineId, joinedPipeline] of Object.entries(pipelineJoinData)) {
                 // typecast pid to number
                 let triggerCurrentPipelineAsExternal = false;
                 const isCurrentPipeline = strToInt(joinedPipelineId) === currentPipeline.id;
+                const nextJobs = joinedPipeline.jobs;
 
                 if (isCurrentPipeline) {
-                    const nextJobs = joinedPipeline.jobs;
-
                     for (const [nextJobName, nextJob] of Object.entries(nextJobs)) {
                         const { isExternal } = nextJob;
 
@@ -199,9 +198,12 @@ const buildsPlugin = {
 
                                 const { parentBuilds, joinListNames } = parseJobInfo({
                                     joinObj: nextJobs,
-                                    current,
+                                    currentBuild,
+                                    currentPipeline,
+                                    currentJob,
                                     nextJobName
                                 });
+                                const nextJobId = nextJob.id;
 
                                 // Handle no-join case. Sequential Workflow
                                 // Note: current job can be "external" in nextJob's perspective
@@ -213,9 +215,9 @@ const buildsPlugin = {
                                 const isORTrigger = !joinListNames.includes(current.job.name);
 
                                 if (isORTrigger) {
-                                    await orTrigger.run(nextJobName, nextJobs, parentBuilds);
+                                    await orTrigger.run(nextJobName, nextJobId, parentBuilds);
                                 } else {
-                                    await andTrigger.run(nextJobName, nextJobs, parentBuilds, joinListNames);
+                                    await andTrigger.run(nextJobName, nextJobId, parentBuilds, joinListNames);
                                 }
                             }
                         } catch (err) {
@@ -237,19 +239,17 @@ const buildsPlugin = {
                             // force external trigger for jobs in same pipeline if user used external trigger syntax
                             delete joinedPipeline.event;
                         }
-                        const extEvent = joinedPipeline.event;
-
+                        const triggerName = `sd@${current.pipeline.id}:${current.job.name}`;
                         // no need to lock if there is no external event
-                        if (extEvent) {
-                            resource = `pipeline:${joinedPipelineId}:event:${extEvent.id}`;
-                            lock = await locker.lock(resource);
-                        }
                         const externalEvent = joinedPipeline.event;
 
                         if (externalEvent) {
-                            await remoteJoin.run(joinedPipelineId, joinedPipeline, externalEvent);
+                            resource = `pipeline:${joinedPipelineId}:event:${externalEvent.id}`;
+                            lock = await locker.lock(resource);
+
+                            await remoteJoin.run(joinedPipelineId, triggerName, nextJobs, externalEvent);
                         } else {
-                            await remoteTrigger.run(joinedPipelineId);
+                            await remoteTrigger.run(joinedPipelineId, triggerName);
                         }
                     } catch (err) {
                         logger.error(

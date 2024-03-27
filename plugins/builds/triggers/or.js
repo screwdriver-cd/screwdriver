@@ -1,6 +1,6 @@
 'use strict';
 
-const { createInternalBuild } = require('./helpers');
+const { createInternalBuild, Status } = require('./helpers');
 
 // =============================================================================
 //
@@ -22,7 +22,7 @@ class OrTrigger {
         this.scmContext = config.scmContext;
     }
 
-    async run(nextJobName, joinObj, parentBuilds) {
+    async run(nextJobName, nextJobId, parentBuilds) {
         const internalBuildConfig = {
             jobFactory: this.jobFactory,
             buildFactory: this.buildFactory,
@@ -36,25 +36,20 @@ class OrTrigger {
             parentBuildId: this.currentBuild.id
         };
 
-        const nextJob = await this.jobFactory.get({
-            name: nextJobName,
-            pipelineId: this.currentPipeline.id
-        });
-
         const existNextBuild = await this.buildFactory.get({
             eventId: this.currentEvent.id,
-            jobId: nextJob.id
+            jobId: nextJobId
         });
 
         if (existNextBuild === null) {
             return createInternalBuild(internalBuildConfig);
         }
 
-        if (!['CREATED', null, undefined].includes(existNextBuild.status)) {
+        if (Status.isStarted(existNextBuild.status)) {
             return existNextBuild;
         }
 
-        existNextBuild.status = 'QUEUED';
+        existNextBuild.status = Status.QUEUED;
         await existNextBuild.update();
 
         return existNextBuild.start();

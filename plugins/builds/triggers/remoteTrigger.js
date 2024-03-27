@@ -1,6 +1,6 @@
 'use strict';
 
-const { parseJobInfo, createExternalBuild } = require('./helpers');
+const { parseJobInfo, createExternalEvent } = require('./helpers');
 // =============================================================================
 //
 //      Function
@@ -8,7 +8,7 @@ const { parseJobInfo, createExternalBuild } = require('./helpers');
 // =============================================================================
 
 class RemoteTrigger {
-    constructor(app, config) {
+    constructor(app, config, currentEvent) {
         this.eventFactory = app.eventFactory;
         this.buildFactory = app.buildFactory;
         this.jobFactory = app.jobFactory;
@@ -17,22 +17,17 @@ class RemoteTrigger {
         this.currentPipeline = config.pipeline;
         this.currentJob = config.job;
         this.currentBuild = config.build;
+        this.currentEvent = currentEvent;
         this.username = config.username;
         this.scmContext = config.scmContext;
     }
 
-    async run(externalPipelineId) {
-        const currentEvent = await this.eventFactory.get({ id: this.currentBuild.eventId });
-        const current = {
-            pipeline: this.currentPipeline,
-            job: this.currentJob,
-            build: this.currentBuild,
-            event: currentEvent
-        };
-
-        const triggerName = `sd@${current.pipeline.id}:${current.job.name}`;
-
-        const { parentBuilds } = parseJobInfo({ current });
+    async run(externalPipelineId, triggerName) {
+        const { parentBuilds } = parseJobInfo({
+            currentBuild: this.currentBuild,
+            currentPipeline: this.currentPipeline,
+            currentJob: this.currentJob
+        });
 
         // Simply create an external event if external job is not join job.
         // Straight external trigger flow.
@@ -41,14 +36,14 @@ class RemoteTrigger {
             eventFactory: this.eventFactory,
             externalPipelineId,
             startFrom: `~${triggerName}`,
-            parentBuildId: current.build.id,
+            parentBuildId: this.currentBuild.id,
             parentBuilds,
             causeMessage: `Triggered by ${triggerName}`,
-            parentEventId: current.event.id,
+            parentEventId: this.currentEvent.id,
             groupEventId: null
         };
 
-        return createExternalBuild(externalBuildConfig);
+        return createExternalEvent(externalBuildConfig);
     }
 }
 

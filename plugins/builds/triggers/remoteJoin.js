@@ -3,14 +3,15 @@
 const {
     parseJobInfo,
     createInternalBuild,
-    createExternalBuild,
+    createExternalEvent,
     getFinishedBuilds,
     getParallelBuilds,
     fillParentBuilds,
     updateParentBuilds,
     getParentBuildIds,
     getParentBuildStatus,
-    handleNewBuild
+    handleNewBuild,
+    Status
 } = require('./helpers');
 
 // =============================================================================
@@ -19,7 +20,7 @@ const {
 //
 // =============================================================================
 class RemoteJoin {
-    constructor(app, config) {
+    constructor(app, config, currentEvent) {
         this.eventFactory = app.eventFactory;
         this.buildFactory = app.buildFactory;
         this.jobFactory = app.jobFactory;
@@ -28,23 +29,12 @@ class RemoteJoin {
         this.currentPipeline = config.pipeline;
         this.currentJob = config.job;
         this.currentBuild = config.build;
+        this.currentEvent = currentEvent;
         this.username = config.username;
         this.scmContext = config.scmContext;
     }
 
-    async run(externalPipelineId, joinObj, initialExternalEvent) {
-        const currentEvent = await this.eventFactory.get({ id: this.currentBuild.eventId });
-        const current = {
-            pipeline: this.currentPipeline,
-            job: this.currentJob,
-            build: this.currentBuild,
-            event: currentEvent
-        };
-
-        const nextJobs = joinObj.jobs;
-        let nextJobNames = Object.keys(nextJobs);
-        const triggerName = `sd@${current.pipeline.id}:${current.job.name}`;
-
+    async run(externalPipelineId, triggerName, nextJobs, initialExternalEvent) {
         let currentExternalEvent = initialExternalEvent;
 
         if (!currentExternalEvent) {
@@ -55,14 +45,15 @@ class RemoteJoin {
         // fetch builds created due to restart
         const externalGroupBuilds = await getFinishedBuilds(currentExternalEvent, this.buildFactory);
 
+        let nextJobNames = Object.keys(nextJobs);
         const buildsToRestart = nextJobNames
             .map(j => {
                 const existingBuild = externalGroupBuilds.find(b => b.jobId === nextJobs[j].id);
 
                 return existingBuild &&
-                    existingBuild.status !== 'CREATED' &&
-                    !existingBuild.parentBuildId.includes(current.build.id) &&
-                    existingBuild.eventId !== current.event.parentEventId
+                    !Status.isCreated(existingBuild.status) &&
+                    !existingBuild.parentBuildId.includes(this.currentBuild.id) &&
+                    existingBuild.eventId !== this.currentEvent.parentEventId
                     ? existingBuild
                     : null;
             })
@@ -87,16 +78,16 @@ class RemoteJoin {
                 eventFactory: this.eventFactory,
                 externalPipelineId,
                 startFrom: `~${triggerName}`,
-                parentBuildId: current.build.id,
+                parentBuildId: this.currentBuild.id,
                 parentBuilds,
                 causeMessage: `Triggered by ${triggerName}`,
-                parentEventId: current.event.id,
+                parentEventId: this.currentEvent.id,
                 groupEventId: currentExternalEvent.id
             };
 
             // proceed with join jobs using new external event
             nextJobNames = nextJobNames.filter(j => nextJobs[j].join.length);
-            currentExternalEvent = await createExternalBuild(externalBuildConfig);
+            currentExternalEvent = await createExternalEvent(externalBuildConfig);
         }
 
         // create/start build for each of nextJobs
@@ -109,12 +100,20 @@ class RemoteJoin {
 
             const { parentBuilds } = parseJobInfo({
                 joinObj: nextJobs,
-                current,
+                currentBuild: this.currentBuild,
+                currentPipeline: this.currentPipeline,
+                currentJob: this.currentJob,
                 nextJobName,
                 nextPipelineId: externalPipelineId
             });
 
-            fillParentBuilds(parentBuilds, current, externalGroupBuilds, currentExternalEvent);
+            fillParentBuilds(
+                parentBuilds,
+                this.currentPipeline,
+                this.currentEvent,
+                externalGroupBuilds,
+                currentExternalEvent
+            );
 
             const joinList = nextJobs[nextJobName].join;
             const joinListNames = joinList.map(j => j.name);
@@ -126,13 +125,13 @@ class RemoteJoin {
                 newBuild = await updateParentBuilds({
                     joinParentBuilds: parentBuilds,
                     nextBuild: await this.buildFactory.get(nextBuild.id),
-                    build: current.build
+                    build: this.currentBuild
                 });
             } else {
                 // no existing build, so first time processing this job
                 // in the external pipeline's event
                 const parentBuildId = getParentBuildIds({
-                    currentBuildId: current.build.id,
+                    currentBuildId: this.currentBuild.id,
                     parentBuilds,
                     joinListNames,
                     pipelineId: externalPipelineId
@@ -155,8 +154,8 @@ class RemoteJoin {
             }
 
             if (isORTrigger) {
-                if (['CREATED', null, undefined].includes(newBuild.status)) {
-                    newBuild.status = 'QUEUED';
+                if (!Status.isStarted(newBuild.status)) {
+                    newBuild.status = Status.QUEUED;
                     await newBuild.update();
                     await newBuild.start();
                 }
