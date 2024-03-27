@@ -1241,7 +1241,7 @@ describe('pipeline plugin test', () => {
             templateTagsMock = getTagsMock(testTemplateTags);
             pipelineTemplateTagFactoryMock.list.resolves(templateTagsMock);
             templateVersionMock = getTagsMock(testTemplateVersionsGet);
-            pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(templateVersionMock);
+            pipelineTemplateVersionFactoryMock.get.resolves(templateVersionMock);
 
             templateMock = getTemplateMocks(testTemplate);
             pipelineTemplateFactoryMock.get.resolves(templateMock);
@@ -1270,13 +1270,13 @@ describe('pipeline plugin test', () => {
                 message: `PipelineTemplate ${templateNameSpace}/${templateName} with version ${templateVersion1} does not exist`
             };
 
-            pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(null);
+            pipelineTemplateVersionFactoryMock.get.resolves(null);
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, error.statusCode);
                 assert.deepEqual(reply.result, error);
                 assert.calledWith(
-                    pipelineTemplateVersionFactoryMock.getWithMetadata,
+                    pipelineTemplateVersionFactoryMock.get,
                     {
                         namespace: templateNameSpace,
                         name: templateName,
@@ -1367,7 +1367,7 @@ describe('pipeline plugin test', () => {
 
             userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
             templateVersionMock.latestVersion = templateVersion1;
-            pipelineTemplateVersionFactoryMock.getWithMetadata.resolves(templateVersionMock);
+            pipelineTemplateVersionFactoryMock.get.resolves(templateVersionMock);
             pipelineTemplateVersionFactoryMock.list
                 .withArgs(
                     {
