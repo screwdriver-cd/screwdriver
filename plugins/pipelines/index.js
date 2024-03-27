@@ -16,6 +16,7 @@ const listStagesRoute = require('./listStages');
 const listTriggersRoute = require('./listTriggers');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
+const listBuildsRoute = require('./listBuilds');
 const startAllRoute = require('./startAll');
 const createToken = require('./tokens/create');
 const updateToken = require('./tokens/update');
@@ -249,6 +250,7 @@ const pipelinesPlugin = {
             listTriggersRoute(),
             listSecretsRoute(),
             listEventsRoute(),
+            listBuildsRoute(),
             startAllRoute(),
             updateToken(),
             refreshToken(),
