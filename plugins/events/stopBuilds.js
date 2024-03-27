@@ -46,7 +46,17 @@ module.exports = () => ({
             }
 
             // Check permissions
-            const permissions = await user.getPermissions(pipeline.scmUri);
+            let permissions;
+
+            try {
+                permissions = await user.getPermissions(pipeline.scmUri);
+            } catch (err) {
+                if (err.statusCode === 403 && pipeline.scmRepo && pipeline.scmRepo.private) {
+                    throw boom.notFound();
+                }
+                throw boom.boomify(err, { statusCode: err.statusCode });
+            }
+
             const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(
                 username,
                 scmContext,
