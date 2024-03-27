@@ -26,7 +26,7 @@ module.exports = () => ({
                 request.server.app;
 
             const [templateVersion, tags] = await Promise.all([
-                pipelineTemplateVersionFactory.get({ namespace, name, version }, pipelineTemplateFactory),
+                pipelineTemplateVersionFactory.getWithMetadata({ namespace, name, version }, pipelineTemplateFactory),
                 pipelineTemplateTagFactory.list({ params: { namespace, name, version } })
             ]);
 
