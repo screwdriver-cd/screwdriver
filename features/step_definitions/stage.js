@@ -81,7 +81,7 @@ Then(
     { timeout: TIMEOUT },
     async function step(stage, stageBuildStatus) {
         const config = {
-            eventId:this.eventId,
+            eventId: this.eventId,
             jwt: this.jwt,
             stageId: this.stageId,
             instance: this.instance,
