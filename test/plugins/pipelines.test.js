@@ -943,6 +943,21 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 for getting jobs with type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pr`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%' }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
         it('returns 400 for wrong query format', () => {
             pipelineFactoryMock.get.resolves(null);
             options.url = `/pipelines/${id}/jobs?archived=blah`;
