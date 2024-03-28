@@ -1508,12 +1508,35 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 for getting builds without steps', () => {
+            options.url = `/pipelines/${id}/builds?fetchSteps=false`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 200 for getting builds with pagination', () => {
             options.url = `/pipelines/${id}/builds?count=30`;
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
                 assert.calledWith(pipelineMock.getBuilds, {
                     paginate: { page: undefined, count: 30 }
+                });
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds with sortBy', () => {
+            options.url = `/pipelines/${id}/builds?sortBy=createTime&readOnly=false`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {
+                    sortBy: 'createTime',
+                    readOnly: false
                 });
                 assert.deepEqual(reply.result, testBuilds);
                 assert.equal(reply.statusCode, 200);

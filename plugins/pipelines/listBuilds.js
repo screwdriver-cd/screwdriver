@@ -21,6 +21,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
+            const { sort, sortBy, page, count, fetchSteps, readOnly, groupEventId, latest } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -29,30 +30,43 @@ module.exports = () => ({
                         throw boom.notFound('Pipeline does not exist');
                     }
 
-                    const config = {};
+                    const config = readOnly
+                        ? { sort, sortBy: 'createTime', readOnly: true }
+                        : { sort, sortBy: 'createTime' };
 
-                    if (request.query.page || request.query.count) {
-                        config.paginate = {
-                            page: request.query.page,
-                            count: request.query.count
-                        };
+                    if (sortBy) {
+                        config.sortBy = sortBy;
                     }
 
-                    if (request.query.groupEventId) {
+                    if (page || count) {
+                        config.paginate = { page, count };
+                    }
+
+                    if (groupEventId) {
                         config.params = {
                             ...config.params,
-                            groupEventId: request.query.groupEventId
+                            groupEventId
                         };
 
                         // Latest flag only works in conjunction with groupEventId
-                        if (request.query.latest) {
-                            config.params.latest = request.query.latest;
+                        if (latest) {
+                            config.params.latest = latest;
                         }
                     }
 
                     return pipeline.getBuilds(config);
                 })
-                .then(builds => h.response(builds.map(b => b.toJson())))
+                .then(async builds => {
+                    let data;
+
+                    if (fetchSteps) {
+                        data = await Promise.all(builds.map(b => b.toJsonWithSteps()));
+                    } else {
+                        data = await Promise.all(builds.map(b => b.toJson()));
+                    }
+
+                    return h.response(data);
+                })
                 .catch(err => {
                     throw err;
                 });
@@ -66,6 +80,8 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
+                    readOnly: joi.boolean().truthy('true').falsy('false').default(true),
+                    fetchSteps: joi.boolean().truthy('true').falsy('false').default(true),
                     groupEventId: groupEventIdSchema,
                     latest: joi.boolean().truthy('true').falsy('false').default(false),
                     search: joi.forbidden(), // we don't support search for Pipeline list builds
