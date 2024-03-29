@@ -3,7 +3,6 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
-const buildListSchema = joi.array().items(schema.models.build.get).label('List of builds');
 const groupEventIdSchema = schema.models.event.base.extract('groupEventId');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
@@ -72,7 +71,7 @@ module.exports = () => ({
                 });
         },
         response: {
-            schema: buildListSchema
+            schema: joi.array()
         },
         validate: {
             params: joi.object({
