@@ -37,13 +37,19 @@ module.exports = () => ({
                         }
                     };
 
-                    if (type === 'pr') {
+                    if (type) {
                         config.search = {
                             field: 'name',
                             // Do a search for PR-%:% in job name
                             // See https://www.w3schools.com/sql/sql_like.asp for syntax
                             keyword: JOB_PR_PATTERN
                         };
+
+                        if (type === 'pipeline') {
+                            // Do a search for job name without PR-%:% pattern
+                            // See https://www.w3schools.com/sql/sql_not.asp for syntax
+                            config.search.inverse = true;
+                        }
                     }
                     if (jobName) {
                         config.params.name = jobName;
@@ -68,7 +74,7 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    type: joi.string(),
+                    type: joi.string().valid('', 'pr', 'pipeline').label('Job type filter (pr or pipeline)').optional(),
                     archived: joi.boolean().truthy('true').falsy('false').default(false),
                     jobName: jobNameSchema,
                     search: joi.forbidden(), // we don't support search for Pipeline list jobs

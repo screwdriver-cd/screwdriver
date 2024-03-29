@@ -106,10 +106,15 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
 
-#### Get all jobs (including pull requests jobs)
-`archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests). `type` is optional and can be set to `pr` to only return PR jobs.
+#### Get all jobs
 
-`GET /pipelines/{id}/jobs?archived={boolean}&type=pr`
+Arguments:
+
+* `archived` - Optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
+* `type` - Optional and can be set to `pr` or `pipeline` to only return PR jobs or non-PR jobs
+* `jobName` - Optional and can be set to only return only a single job
+
+`GET /pipelines/{id}/jobs?archived={boolean}&type={type}&jobName={jobName}`
 
 #### Get Pipeline Admin
 `GET /pipelines/{id}/admin`
