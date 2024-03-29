@@ -108,7 +108,7 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 #### Get all pipeline builds
 `page`, `count`, `sort`, `latest`, `sortBy`, `fetchSteps`, `readOnly`, and `groupEventId` are optional
-When `latest=true` and `groupEventId` is set, only latest builds in a pipeline based on groupEventId will be returned. `latest` and `groupEventId` must be set together
+When `latest=true` and `groupEventId` is set, only latest builds in a pipeline based on groupEventId will be returned. The `latest` parameter must be used in conjunction with the `groupEventId`.
 
 `GET /pipelines/{id}/builds?page={pageNumber}&count={countNumber}&sort={sort}&latest=true&groupEventId={groupEventId}&sortBy={sortBy}&fetchSteps=false&readOnly=false`
 
