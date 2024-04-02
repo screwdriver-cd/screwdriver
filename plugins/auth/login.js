@@ -111,7 +111,8 @@ function addOAuthRoutes(config) {
                 if (scmConfig && scmConfig.gheCloud) {
                     const isEnterpriseUser = await userFactory.scm.isEnterpriseUser({
                         token: accessToken,
-                        login: username
+                        login: username,
+                        scmContext
                     });
 
                     if (!isEnterpriseUser) {
