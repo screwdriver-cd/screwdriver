@@ -794,6 +794,8 @@ describe('auth plugin test', () => {
 
                 describe('gheCloud flag', async () => {
                     beforeEach(async () => {
+                        const scmsTemp = Object.assign({}, scm.scms['github:github.com']);
+
                         await server.register({
                             plugin,
                             options: {
@@ -802,8 +804,15 @@ describe('auth plugin test', () => {
                                 hashingPassword,
                                 scm: {
                                     ...scm,
-                                    gheCloud: true,
-                                    gheCloudSlug
+                                    scms: {
+                                        'github:github.com': {
+                                            config: {
+                                                ...scmsTemp,
+                                                gheCloud: true,
+                                                gheCloudSlug
+                                            }
+                                        }
+                                    }
                                 },
                                 jwtPrivateKey,
                                 jwtPublicKey,
@@ -834,8 +843,7 @@ describe('auth plugin test', () => {
                             });
                             assert.calledWith(scm.isEnterpriseUser, {
                                 token,
-                                login: username,
-                                slug: 'ghec-slug'
+                                login: username
                             });
                         });
                     });
@@ -849,8 +857,7 @@ describe('auth plugin test', () => {
                             assert.notCalled(userFactoryMock.get);
                             assert.calledWith(scm.isEnterpriseUser, {
                                 token,
-                                login: username,
-                                slug: 'ghec-slug'
+                                login: username
                             });
                         });
                     });
