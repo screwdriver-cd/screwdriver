@@ -106,6 +106,12 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
 
+#### Get all pipeline builds
+`page`, `count`, `sort`, `latest`, `sortBy`, `fetchSteps`, `readOnly`, and `groupEventId` are optional
+When `latest=true` and `groupEventId` is set, only latest builds in a pipeline based on groupEventId will be returned. The `latest` parameter must be used in conjunction with the `groupEventId`.
+
+`GET /pipelines/{id}/builds?page={pageNumber}&count={countNumber}&sort={sort}&latest=true&groupEventId={groupEventId}&sortBy={sortBy}&fetchSteps=false&readOnly=false`
+
 #### Get all jobs (including pull requests jobs)
 `archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
 
