@@ -843,7 +843,8 @@ describe('auth plugin test', () => {
                             });
                             assert.calledWith(scm.isEnterpriseUser, {
                                 token,
-                                login: username
+                                login: username,
+                                scmContext
                             });
                         });
                     });
@@ -857,7 +858,8 @@ describe('auth plugin test', () => {
                             assert.notCalled(userFactoryMock.get);
                             assert.calledWith(scm.isEnterpriseUser, {
                                 token,
-                                login: username
+                                login: username,
+                                scmContext
                             });
                         });
                     });
