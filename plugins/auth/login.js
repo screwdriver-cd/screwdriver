@@ -105,6 +105,21 @@ function addOAuthRoutes(config) {
                     return boom.forbidden(`User ${userDisplayName} is not allowed access`);
                 }
 
+                // check enterprise github cloud
+                const scmConfig = config.scm.scms[scmContext].config;
+
+                if (scmConfig && scmConfig.gheCloud) {
+                    const isEnterpriseUser = await userFactory.scm.isEnterpriseUser({
+                        token: accessToken,
+                        login: username,
+                        scmContext
+                    });
+
+                    if (!isEnterpriseUser) {
+                        return boom.forbidden(`User ${username} is not allowed access`);
+                    }
+                }
+
                 // Log that the user has authenticated
                 request.log(['auth'], `${userDisplayName} has logged in via OAuth`);
 
