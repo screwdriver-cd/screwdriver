@@ -7,6 +7,11 @@ const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 const { getFullStageJobName } = require('../../helper');
 
+/**
+ * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
+ * @typedef {import('screwdriver-models/lib/job').Job} Job
+ */
+
 const Status = {
     ABORTED: 'ABORTED',
     CREATED: 'CREATED',
@@ -243,23 +248,26 @@ async function createExternalEvent(config) {
 }
 
 /**
+ * @typedef {Object} Config
+ * @property {JobFactory} jobFactory                    Job Factory
+ * @property {BuildFactory} buildFactory                Build Factory
+ * @property {number} pipelineId                        Pipeline Id
+ * @property {string} jobName                           Job name
+ * @property {string} username                          Username of build
+ * @property {string} scmContext                        SCM context
+ * @property {Record<string, ParentBuild>} parentBuilds Builds that triggered this build
+ * @property {string|null} baseBranch                   Branch name
+ * @property {number} parentBuildId                     Parent build ID
+ * @property {boolean} start                            Whether to start the build or not
+ * @property {number|undefined} jobId                   Job ID
+ * @property {EventModel} event                         Event build belongs to
+ */
+/**
  * Create internal build. If config.start is false or not passed in then do not start the job
  * Need to pass in (jobName and pipelineId) or (jobId) to get job data
  * @method createInternalBuild
- * @param  {Object}   config                    Configuration object
- * @param  {Factory}  config.jobFactory         Job Factory
- * @param  {Factory}  config.buildFactory       Build Factory
- * @param  {Number}   [config.pipelineId]       Pipeline Id
- * @param  {String}   [config.jobName]          Job name
- * @param  {String}   config.username           Username of build
- * @param  {String}   config.scmContext         SCM context
- * @param  {Object}   [config.parentBuilds]     Builds that triggered this build
- * @param  {String}   config.baseBranch         Branch name
- * @param  {Number}   [config.parentBuildId]    Parent build ID
- * @param  {Boolean}  [config.start]            Whether to start the build or not
- * @param  {Number}   [config.jobId]            Job ID
- * @param  {Object}   [config.event]            Event build belongs to
- * @return {Promise}
+ * @param  {Config}   config                    Configuration object
+ * @return {Promise<BuildModel|null>}
  */
 async function createInternalBuild(config) {
     const {
@@ -278,6 +286,7 @@ async function createInternalBuild(config) {
     } = config;
     const { ref = '', prSource = '', prBranchName = '', url = '' } = event.pr;
     const prInfo = prBranchName ? { url, prBranchName } : '';
+    /** @type {Job} */
     const job = jobId
         ? await jobFactory.get(jobId)
         : await jobFactory.get({
@@ -393,11 +402,13 @@ function createParentBuildsObj(config) {
  * - parentBuilds: parent build information
  * - joinListNames: array of join jobs
  * - joinParentBuilds: parent build information for join jobs
- * @param  {Object} joinObj        Join object
- * @param  {Object} current        Object holding current event, job & pipeline
- * @param  {String} nextJobName    Next job's name
- * @param  {Number} nextPipelineId Next job's Pipeline Id
- * @return {Object}                With above information
+ * @param  {Record<string, Job>} joinObj        Join object
+ * @param  {BuildModel} currentBuild        Object holding current event, job & pipeline
+ * @param  {PipelineModel} currentPipeline        Object holding current event, job & pipeline
+ * @param  {Job} currentJob        Object holding current event, job & pipeline
+ * @param  {string} nextJobName    Next job's name
+ * @param  {number} nextPipelineId Next job's Pipeline Id
+ * @return {import("./types/index").JobInfo}                With above information
  */
 function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, nextJobName, nextPipelineId }) {
     const joinList = joinObj && joinObj[nextJobName] && joinObj[nextJobName].join ? joinObj[nextJobName].join : [];
@@ -660,11 +671,20 @@ function fillParentBuilds(parentBuilds, currentPipeline, currentEvent, builds, n
  * @param {Array}   nextJobs       List of jobs to run next from workflow parser.
  * @param {Object}  current        Object holding current job's build, event data
  * @param {Object}  eventFactory   Object for querying DB for event data
- * @return {Object} Object representing join data for next jobs grouped by pipeline id
- *                  {"pipeineId" : {event: "externalEventId",
- *                                  jobs: {"nextJobName": {"id": "jobId", join: ["a", "b"]
- *                                 }
- *                  }
+ * @return { import('../types/index').JoinPipelines } Object representing join data for next jobs grouped by pipeline id
+ *
+ * @example
+ * >>> await createJoinObject(...)
+ * {
+ *   "pipeineId" :{
+ *     event: "externalEventId",
+ *     jobs: {
+ *       "nextJobName": {
+ *         "id": "jobId"
+ *         join: ["a", "b"]
+ *     }
+ *   }
+ * }
  */
 async function createJoinObject(nextJobs, current, eventFactory) {
     const { build, event } = current;
@@ -841,6 +861,63 @@ function strToInt(text) {
     throw new Error(`Failed to cast '${text}' to integer`);
 }
 
+/**
+ * Categorize current pipeline and external pipeline (current handled as external) join data
+ *
+ * @param { Record<string, Jobs> } joinedPipelines
+ * @param {number} currentPipelineId
+ * @returns {Record<string, Jobs>}
+ */
+function extractCurrentPipelineJoinData(joinedPipelines, currentPipelineId) {
+    const currentPipelineJoinData = {};
+
+    Object.entries(joinedPipelines).forEach(([joinedPipelineId, joinedPipeline]) => {
+        if (strToInt(joinedPipelineId) === currentPipelineId) {
+            currentPipelineJoinData[joinedPipelineId] = joinedPipeline;
+        }
+    });
+
+    return currentPipelineJoinData;
+}
+
+/**
+ * Categorize current pipeline and external pipeline (current handled as external) join data
+ *
+ * @param { Record<string, Jobs> } joinedPipelines
+ * @param {number} currentPipelineId
+ * @returns {Record<string, Jobs>}
+ */
+function extractExternalPipelineJoinData(joinedPipelines, currentPipelineId) {
+    const externalPipelineJoinData = {};
+
+    Object.entries(joinedPipelines).forEach(([joinedPipelineId, joinedPipeline]) => {
+        const isCurrentPipeline = strToInt(joinedPipelineId) === currentPipelineId;
+        const currentPipelineAsExternal = Object.values(joinedPipeline.jobs).some(nextJob => nextJob.isExternal);
+
+        if (currentPipelineAsExternal || !isCurrentPipeline) {
+            externalPipelineJoinData[joinedPipelineId] = joinedPipeline;
+        }
+    });
+
+    return externalPipelineJoinData;
+}
+
+/**
+ *
+ * @param jobName
+ * @param pipelineId
+ * @param jobFactory
+ * @return {Promise<number>}
+ */
+async function getJobId(jobName, pipelineId, jobFactory) {
+    const job = await jobFactory.get({
+        name: jobName,
+        pipelineId
+    });
+
+    return job.id;
+}
+
 module.exports = {
     Status,
     parseJobInfo,
@@ -857,5 +934,8 @@ module.exports = {
     getParentBuildIds,
     strToInt,
     createEvent,
-    deleteBuild
+    deleteBuild,
+    getJobId,
+    extractCurrentPipelineJoinData,
+    extractExternalPipelineJoinData
 };
