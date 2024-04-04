@@ -1455,11 +1455,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 for getting events with pr Number', () => {
+        it('returns 200 for getting events with pr number', () => {
             options.url = `/pipelines/${id}/events?prNum=4`;
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with sha', () => {
+            options.url = `/pipelines/${id}/events?sha=ccc49349d3cffbd12ea9e3d41521480b4aa5de5f`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    search: {
+                        field: ['sha', 'configPipelineSha'],
+                        keyword: '%ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
+                    }
+                });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
             });
