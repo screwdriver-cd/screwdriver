@@ -115,7 +115,13 @@ When `latest=true` and `groupEventId` is set, only latest builds in a pipeline b
 #### Get all jobs (including pull requests jobs)
 `archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
 
-`GET /pipelines/{id}/jobs?archived={boolean}`
+Arguments:
+
+* `archived` - Optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
+* `type` - Optional and can be set to `pr` or `pipeline` to only return PR jobs or non-PR jobs
+* `jobName` - Optional and can be set to only return only a single job
+
+`GET /pipelines/{id}/jobs?archived={boolean}&type={type}&jobName={jobName}`
 
 #### Get Pipeline Admin
 `GET /pipelines/{id}/admin`
