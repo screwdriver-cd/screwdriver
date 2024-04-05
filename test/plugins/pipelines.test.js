@@ -931,7 +931,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 for getting jobs with jobNames', () => {
-            options.url = `/pipelines/${id}/jobs?jobName=deploy`;
+            options.url = `/pipelines/${id}/jobs?jobName=deploy&type=`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -940,6 +940,36 @@ describe('pipeline plugin test', () => {
                         archived: false,
                         name: 'deploy'
                     }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
+        it('returns 200 for getting jobs with pr type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pr`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%' }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
+        it('returns 200 for getting jobs with pipeline type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pipeline`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%', inverse: true }
                 });
                 assert.deepEqual(reply.result, testJobs);
             });
