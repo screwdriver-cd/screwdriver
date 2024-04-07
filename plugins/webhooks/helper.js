@@ -461,14 +461,14 @@ async function createPREvents(options, request) {
                 let configPipelineSha = '';
                 let subscribedConfigSha = '';
                 let eventConfig = {};
-
+                
                 // Check if the webhook event is from a subscribed repo and
                 // and fetch the source repo commit sha and save the subscribed sha
                 if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
                     subscribedConfigSha = sha;
 
                     try {
-                        sha = await pipelineFactory.scm.getCommitSha({
+                        configPipelineSha = await pipelineFactory.scm.getCommitSha({
                             scmUri: p.scmUri,
                             scmContext: scmConfig.scmContext,
                             token: scmConfig.token
@@ -480,8 +480,6 @@ async function createPREvents(options, request) {
                             logger.info(`skip create event for branch: ${b}`);
                         }
                     }
-
-                    configPipelineSha = sha;
                 } else {
                     try {
                         configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
@@ -540,7 +538,7 @@ async function createPREvents(options, request) {
                         username,
                         scmContext: scmConfig.scmContext,
                         startFrom: '~subscribe',
-                        sha,
+                        sha: configPipelineSha,
                         configPipelineSha,
                         changedFiles,
                         baseBranch: branch,
@@ -1185,7 +1183,7 @@ async function startHookEvent(request, h, webhookConfig) {
 
                 return h.response({ message }).code(204);
             }
-        }
+        }    
 
         const token = await obtainScmToken({
             pluginOptions: webhookConfig.pluginOptions,
