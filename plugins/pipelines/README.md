@@ -101,10 +101,17 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
-`page`, `count`, `sort`, and `prNum` are optional
-Only PR events of specified PR number will be searched when `prNum` is set
 
-`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
+Query Params:
+
+* `page` - *Optional* Specific page of the set to return
+* `count` - *Optional* Number of items per page
+* `sort` - *Optional* Sort rangekey by `ascending` or `descending` (default `descending`)
+* `type` - *Optional* Get pipeline or pr events (default `pipeline`)
+* `prNum` - *Optional* Return only PR events of specified PR number
+* `sha` - *Optional* Search `sha` and `configPipelineSha` for events
+
+`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
 
 #### Get all pipeline builds
 `page`, `count`, `sort`, `latest`, `sortBy`, `fetchSteps`, `readOnly`, and `groupEventId` are optional
