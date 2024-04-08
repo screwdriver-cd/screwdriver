@@ -50,9 +50,9 @@ module.exports = () => ({
                     if (sha) {
                         config.search = {
                             field: ['sha', 'configPipelineSha'],
-                            // Do a fuzzy search for sha
+                            // Do a search for sha
                             // See https://www.w3schools.com/sql/sql_like.asp for syntax
-                            keyword: `%${sha}%`
+                            keyword: `${sha}%`
                         };
                     }
 

@@ -109,7 +109,7 @@ Query Params:
 * `sort` - *Optional* Sort rangekey by `ascending` or `descending` (default `descending`)
 * `type` - *Optional* Get pipeline or pr events (default `pipeline`)
 * `prNum` - *Optional* Return only PR events of specified PR number
-* `sha` - *Optional* Fuzzy search `sha` and `configPipelineSha` for events
+* `sha` - *Optional* Search `sha` and `configPipelineSha` for events
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
 

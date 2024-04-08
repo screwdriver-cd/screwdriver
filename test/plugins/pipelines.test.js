@@ -1502,7 +1502,7 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(pipelineMock.getEvents, {
                     search: {
                         field: ['sha', 'configPipelineSha'],
-                        keyword: '%ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
+                        keyword: 'ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
                     }
                 });
                 assert.deepEqual(reply.result, testEvents);
