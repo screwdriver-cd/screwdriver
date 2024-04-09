@@ -5,7 +5,12 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const eventListSchema = joi.array().items(schema.models.event.get).label('List of events');
 const prNumSchema = schema.models.event.base.extract('prNum');
-const shaSchema = schema.models.event.base.extract('sha');
+const shaSchema = joi
+    .string()
+    .hex()
+    .max(40)
+    .description('SHA or partial SHA')
+    .example('ccc49349d3cffbd12ea9e3d41521480b4aa5de5f');
 const typeSchema = schema.models.event.base.extract('type');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
