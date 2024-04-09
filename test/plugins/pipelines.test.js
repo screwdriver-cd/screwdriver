@@ -931,7 +931,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 for getting jobs with jobNames', () => {
-            options.url = `/pipelines/${id}/jobs?jobName=deploy`;
+            options.url = `/pipelines/${id}/jobs?jobName=deploy&type=`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -940,6 +940,36 @@ describe('pipeline plugin test', () => {
                         archived: false,
                         name: 'deploy'
                     }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
+        it('returns 200 for getting jobs with pr type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pr`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%' }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
+        it('returns 200 for getting jobs with pipeline type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pipeline`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%', inverse: true }
                 });
                 assert.deepEqual(reply.result, testJobs);
             });
@@ -1455,11 +1485,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 for getting events with pr Number', () => {
+        it('returns 200 for getting events with pr number', () => {
             options.url = `/pipelines/${id}/events?prNum=4`;
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with sha', () => {
+            options.url = `/pipelines/${id}/events?sha=ccc49349d3cffbd12ea9e3d41521480b4aa5de5f`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    search: {
+                        field: ['sha', 'configPipelineSha'],
+                        keyword: 'ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
+                    }
+                });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
             });
