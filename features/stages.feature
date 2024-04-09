@@ -24,7 +24,7 @@ Feature: Stage
     Scenario: Downstream builds are not triggered if required stage is not successful.
         Given an existing pipeline on branch "stageFail1" with stage "simple_fail" with the workflow jobs:
             | job       | requires      |
-            | target    | ~stage@simple_fail:teardown  |
+            | target    | stage@simple_fail:teardown  |
         When the "hub" job on branch "stageFail1" is started
         And the "hub" build succeeded
         And the "a" job is triggered
@@ -33,8 +33,8 @@ Feature: Stage
         And the "b" build succeeded
         And the "c" job is triggered
         And the "c" build failed
-        Then the "~stage@simple_fail" stageBuild status is "FAILURE"
-        And the "~stage@simple_fail:teardown" job is started
+        Then the "stage@simple_fail" stageBuild status is "FAILURE"
+        And the "stage@simple_fail:teardown" job is started
         And the "target" job on branch "stageFail1" is not started
 
     Scenario: Downstream builds within a stage are not triggered if upstream build in stage is not successful.
@@ -49,8 +49,8 @@ Feature: Stage
         And the "a" build succeeded
         And the "b" job is triggered
         And the "b" build failed
-        Then the "~stage@incomplete_fail" stageBuild status is "FAILURE"
-        And the "~stage@incomplete_fail:teardown" job is started
+        Then the "stage@incomplete_fail" stageBuild status is "FAILURE"
+        And the "stage@incomplete_fail:teardown" job is started
         And the "c" job on branch "stageFail2" is not started
         And the "target" job on branch "stageFail2" is not started
 
@@ -59,7 +59,7 @@ Feature: Stage
         | job       | requires      |
         | b    | a  |
         | c    | b  |
-        | target    | ~stage@simple_success:teardown  |
+        | target    | stage@simple_success:teardown  |
         When the "hub" job on branch "stageSuccess1" is started
         And the "hub" build succeeded
         And the "a" job is triggered
@@ -68,7 +68,7 @@ Feature: Stage
         And the "b" build succeeded
         And the "c" job is triggered
         And the "c" build succeeded
-        Then the "~stage@simple_success" stageBuild status is "SUCCESS"
-        And the "~stage@simple_success:teardown" job is started
+        Then the "stage@simple_success" stageBuild status is "SUCCESS"
+        And the "stage@simple_success:teardown" job is started
         And the "target" job is triggered
         And the "target" build succeeded

@@ -77,7 +77,7 @@ When(
 );
 
 Then(
-    /^the "(?:~stage@(simple_fail|incomplete_fail|simple_success))" stageBuild status is "(SUCCESS|FAILURE)"$/,
+    /^the "(?:stage@(simple_fail|incomplete_fail|simple_success))" stageBuild status is "(SUCCESS|FAILURE)"$/,
     { timeout: TIMEOUT },
     async function step(stage, stageBuildStatus) {
         const config = {
