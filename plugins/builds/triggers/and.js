@@ -11,12 +11,37 @@ const {
     getFinishedBuilds
 } = require('./helpers');
 
-// =============================================================================
-//
-//      Function
-//
-// =============================================================================
+/**
+ * @typedef {import('screwdriver-models').EventFactory} EventFactory
+ * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
+ * @typedef {import('screwdriver-models').JobFactory} JobFactory
+ * @typedef {import('screwdriver-models').PipelineFactory} PipelineFactory
+ * @typedef {import('screwdriver-models/lib/pipeline').PipelineModel} PipelineModel
+ * @typedef {import('screwdriver-models/lib/event').EventModel} EventModel
+ * @typedef {import('screwdriver-models/lib/job').Job} JobModel
+ * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
+ * @typedef {import('screwdriver-models/lib/stage').StageModel} StageModel
+ */
+/**
+ * @property {EventFactory} eventFactory
+ * @property {BuildFactory} buildFactory
+ * @property {JobFactory} jobFactory
+ * @property {PipelineFactory} pipelineFactory
+ * @property {PipelineModel} currentPipeline
+ * @property {EventModel} currentEvent
+ * @property {JobModel} currentJob
+ * @property {BuildModel} currentBuild
+ * @property {number} username
+ * @property {string} scmContext
+ * @property {StageModel} stage
+ */
 class AndTrigger {
+    /**
+     * Trigger the next jobs of the current job
+     * @param {import('../types/index').ServerApp} app                      Server app object
+     * @param {import('../types/index').ServerConfig} config              Configuration object
+     * @param {import('screwdriver-models/lib/event').EventModel} currentEvent
+     */
     constructor(app, config, currentEvent) {
         this.eventFactory = app.eventFactory;
         this.buildFactory = app.buildFactory;
@@ -32,26 +57,52 @@ class AndTrigger {
         this.stage = config.stage;
     }
 
-    async run(nextJobName, nextJobId, parentBuilds, joinListNames) {
-        logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
-        let finishedInternalBuilds = await getFinishedBuilds(this.currentEvent, this.buildFactory);
+    /**
+     * Get finished builds related to current event
+     * @param {EventModel} event
+     * @param {BuildFactory} buildFactory
+     * @param {EventFactory} eventFactory
+     * @param {string} pipelineId
+     * @return {Promise<BuildModel[]|null>}
+     */
+    async fetchFinishedBuilds(event, buildFactory, eventFactory, pipelineId) {
+        const finishedBuilds = await getFinishedBuilds(event, buildFactory);
 
-        if (this.currentEvent.parentEventId) {
+        if (event.parentEventId) {
             // FIXME: On restart cases parentEventId should be fetched
             // from first event in the group
             const parallelBuilds = await getParallelBuilds({
-                eventFactory: this.eventFactory,
-                parentEventId: this.currentEvent.parentEventId,
-                pipelineId: this.currentPipeline.id
+                eventFactory,
+                parentEventId: event.parentEventId,
+                pipelineId
             });
 
-            finishedInternalBuilds = finishedInternalBuilds.concat(parallelBuilds);
+            finishedBuilds.push(...parallelBuilds);
         }
 
-        let nextBuild;
+        return finishedBuilds;
+    }
 
-        // If next build is internal, look at the finished builds for this event
-        nextBuild = finishedInternalBuilds.find(b => b.jobId === nextJobId && b.eventId === this.currentEvent.id);
+    /**
+     * Trigger the next jobs of the current job
+     * @param {string} nextJobName
+     * @param {string} nextJobId
+     * @param {Record<string, ParentBuild>} parentBuilds
+     * @param {string[]} joinListNames List of names to join
+     * @return {Promise<BuildModel|null>}
+     */
+    async run(nextJobName, nextJobId, parentBuilds, joinListNames) {
+        logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
+
+        const finishedBuilds = await this.fetchFinishedBuilds(
+            this.currentEvent,
+            this.buildFactory,
+            this.eventFactory,
+            this.currentPipeline.id
+        );
+
+        // Find the next build from the finished builds for this event
+        let nextBuild = finishedBuilds.find(b => b.jobId === nextJobId && b.eventId === this.currentEvent.id);
 
         if (!nextBuild) {
             // If the build to join fails and it succeeds on restart, depending on the timing, the latest build will be that of a child event.
@@ -63,11 +114,11 @@ class AndTrigger {
             });
 
             if (nextBuild) {
-                finishedInternalBuilds = finishedInternalBuilds.concat(nextBuild);
+                finishedBuilds.push(nextBuild);
             }
         }
 
-        fillParentBuilds(parentBuilds, this.currentPipeline, this.currentEvent, finishedInternalBuilds);
+        fillParentBuilds(parentBuilds, this.currentPipeline, this.currentEvent, finishedBuilds);
 
         let newBuild;
 
@@ -89,10 +140,9 @@ class AndTrigger {
 
             newBuild = await createInternalBuild(internalBuildConfig);
         } else {
-            // nextBuild is not build model, so fetch proper build
             newBuild = await updateParentBuilds({
                 joinParentBuilds: parentBuilds,
-                nextBuild: await this.buildFactory.get(nextBuild.id),
+                nextBuild,
                 build: this.currentBuild
             });
         }
@@ -121,11 +171,6 @@ class AndTrigger {
     }
 }
 
-// =============================================================================
-//
-//      module.exports
-//
-// =============================================================================
 module.exports = {
     AndTrigger
 };

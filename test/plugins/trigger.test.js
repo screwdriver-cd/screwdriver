@@ -903,7 +903,7 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('target').status, 'RUNNING');
     });
 
-    xit('[ ~a, a, b ] is triggered when a succeeds', async () => {
+    it('[ ~a, a, b ] is triggered when a succeeds', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('~a_a_b.yaml');
 
         const event = await eventFactoryMock.create({

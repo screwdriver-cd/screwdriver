@@ -27,6 +27,7 @@ const {
     parseJobInfo,
     handleStageFailure,
     getJobId,
+    isOrTrigger,
     extractExternalPipelineJoinData,
     extractCurrentPipelineJoinData
 } = require('./triggers/helpers');
@@ -110,10 +111,10 @@ async function triggerNextJobs(config, app) {
                      * 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
                      *    joinList doesn't include D, so start A
                      */
-                    if (joinListNames.includes(current.job.name)) {
-                        await andTrigger.run(nextJobName, nextJobId, parentBuilds, joinListNames);
-                    } else {
+                    if (isOrTrigger(currentEvent.workflowGraph, currentJob.name, nextJobName)) {
                         await orTrigger.run(nextJobName, nextJobId, parentBuilds);
+                    } else {
+                        await andTrigger.run(nextJobName, nextJobId, parentBuilds, joinListNames);
                     }
                 } catch (err) {
                     logger.error(

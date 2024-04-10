@@ -450,14 +450,22 @@ function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, next
  * @return {Promise}                            All finished builds
  */
 async function getFinishedBuilds(event, buildFactory) {
-    // FIXME: buildFactory.getLatestBuilds doesn't return build model
     const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId, readOnly: false });
 
     builds.forEach(b => {
         try {
+            b.environment = JSON.parse(b.environment);
             b.parentBuilds = JSON.parse(b.parentBuilds);
+            b.stats = JSON.parse(b.stats);
+            b.meta = JSON.parse(b.meta);
+            if (b.parentBuildId) {
+                // parentBuildId could be the string '123', the number 123, or an array
+                b.parentBuildId = Array.isArray(b.parentBuildId)
+                    ? b.parentBuildId.map(Number)
+                    : [Number(b.parentBuildId)];
+            }
         } catch (err) {
-            logger.error(`Failed to parse parentBuilds for ${b.id}`);
+            logger.error(`Failed to parse objects for ${b.id}`);
         }
     });
 
@@ -482,7 +490,6 @@ async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     // nextBuild.parentBuildId may be int or Array, so it needs to be flattened
     nextBuild.parentBuildId = Array.from(new Set([build.id, nextBuild.parentBuildId || []].flat()));
 
-    // FIXME: Is this needed ? Why not update once in handleNewBuild()
     return nextBuild.update();
 }
 
@@ -634,7 +641,6 @@ function fillParentBuilds(parentBuilds, currentPipeline, currentEvent, builds, n
                 } else if (nextEvent) {
                     if (+pid !== nextEvent.pipelineId) {
                         // parentBuild is remote triggered from external event
-                        // FIXME:: Will else condition ever be true ?
                         searchJob = `sd@${pid}:${searchJob}`;
                     }
                     workflowGraph = nextEvent.workflowGraph;
@@ -918,6 +924,19 @@ async function getJobId(jobName, pipelineId, jobFactory) {
     return job.id;
 }
 
+/**
+ *
+ * @param workflowGraph
+ * @param currentJobName
+ * @param nextJobName
+ * @return {boolean}
+ */
+function isOrTrigger(workflowGraph, currentJobName, nextJobName) {
+    return workflowGraph.edges.some(edge => {
+        return edge.src === currentJobName && edge.dest === nextJobName && edge.join !== true;
+    });
+}
+
 module.exports = {
     Status,
     parseJobInfo,
@@ -936,6 +955,7 @@ module.exports = {
     createEvent,
     deleteBuild,
     getJobId,
+    isOrTrigger,
     extractCurrentPipelineJoinData,
     extractExternalPipelineJoinData
 };
