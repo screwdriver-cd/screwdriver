@@ -20,7 +20,6 @@ Feature: Stage
         - Teardown build should run when any job in a stage is terminal; downstream jobs should not continue, and stageBuild should be updated accordingly
         - Setup build should run before a stage.
 
-
     Scenario: Downstream builds are not triggered if required stage is not successful.
         Given an existing pipeline on branch "stageFail1" with stage "simple_fail" with the workflow jobs:
             | job       | requires      |
@@ -40,9 +39,7 @@ Feature: Stage
     Scenario: Downstream builds within a stage are not triggered if upstream build in stage is not successful.
         Given an existing pipeline on branch "stageFail2" with stage "incomplete_fail" with the workflow jobs:
             | job       | requires      |
-            | b    | a  |
-            | c    | b  |
-            | target    | ~stage@incomplete_fail:teardown  |
+            | target    | stage@incomplete_fail:teardown  |
         When the "hub" job on branch "stageFail2" is started
         And the "hub" build succeeded
         And the "a" job is triggered
@@ -56,10 +53,8 @@ Feature: Stage
 
     Scenario: Downstream builds are triggered if required stage is successful.
         Given an existing pipeline on branch "stageSuccess1" with stage "simple_success" with the workflow jobs:
-        | job       | requires      |
-        | b    | a  |
-        | c    | b  |
-        | target    | stage@simple_success:teardown  |
+            | job       | requires      |
+            | target    | stage@simple_success:teardown  |
         When the "hub" job on branch "stageSuccess1" is started
         And the "hub" build succeeded
         And the "a" job is triggered
