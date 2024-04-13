@@ -3,6 +3,9 @@
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
+// const { scm } = require('screwdriver-data-schema/core');
+// const { not } = require('joi');
+// const { repo } = require('screwdriver-data-schema/core/scm');
 const { getReadOnlyInfo } = require('../helper');
 
 const ANNOT_NS = 'screwdriver.cd';
@@ -326,9 +329,13 @@ async function triggeredPipelines(
         }
     };
 
-    const pipelines = await pipelineFactory.list(listConfig);
+    console.log('scmUri from triggeredPipelines: ', scmUri);
+    console.log('scmBranch from triggeredPipelines: ', scmBranch);
 
+    const pipelines = await pipelineFactory.list(listConfig);
+    console.log('pipelines from triggeredPipelines: ', pipelines);
     const pipelinesWithSubscribedRepos = await pipelineFactory.list(externalRepoSearchConfig);
+    console.log('pipelinesWithSubscribedRepos from triggeredPipelines: ', pipelinesWithSubscribedRepos);
 
     let pipelinesOnCommitBranch = [];
     let pipelinesOnOtherBranch = [];
@@ -345,11 +352,20 @@ async function triggeredPipelines(
         }
     });
 
+    // need to get the pipelines that is in the same branch with the scmuri
+
+    console.log('pipelinesOnCommitBranch from triggeredPipelines: ', pipelinesOnCommitBranch);
+
     // Build runs regardless of changedFiles when release/tag trigger
     pipelinesOnCommitBranch = pipelinesOnCommitBranch.filter(
         p => ['release', 'tag'].includes(action) || hasChangesUnderRootDir(p, changedFiles)
     );
 
+    console.log('pipelinesOnCommitBranch from triggeredPipelines after filter: ', pipelinesOnCommitBranch);
+
+    console.log('pipelinesOnOtherBranch from triggeredPipelines: ', pipelinesOnOtherBranch);
+
+    // what does pipelinesOnOtherBranch do? where does it come from?
     pipelinesOnOtherBranch = pipelinesOnOtherBranch.filter(p => {
         let isReleaseOrTagFiltering = '';
 
@@ -362,10 +378,49 @@ async function triggeredPipelines(
             determineStartFrom(action, type, branch, null, releaseName, tagName, isReleaseOrTagFiltering)
         );
     });
+    console.log('pipelinesOnOtherBranch from triggeredPipelines after filter: ', pipelinesOnOtherBranch);
 
     const currentRepoPipelines = pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
 
-    return currentRepoPipelines.concat(pipelinesWithSubscribedRepos);
+    if (pipelinesOnCommitBranch.length === 0) {
+        return currentRepoPipelines;
+    }
+
+    // process the pipelinesWithSubscribedRepos only when the pipelinesOnCommitBranch is not empty
+    // pipelinesOnCommitBranch has the information to determine the triggering event of downstream subscribing repo
+    pipelinesWithSubscribedRepos.forEach(p => {
+        if (Array.isArray(p.subscribedScmUrlsWithActions)) {
+            p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
+                const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
+
+                if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
+                    const pipeline = pipelinesOnCommitBranch[0];
+                    const isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pipeline.workflowGraph);
+                    const startFrom = determineStartFrom(
+                        action,
+                        type,
+                        branch,
+                        null,
+                        releaseName,
+                        tagName,
+                        isReleaseOrTagFiltering
+                    );
+
+                    for (const subscribedAction of subscribedActions) {
+                        if (new RegExp(subscribedAction).test(startFrom)) {
+                            console.log('subscribedAction: ', subscribedAction);
+                            currentRepoPipelines.push(p);
+                            break;
+                        }
+                    }
+                }
+            });
+        } else {
+            console.log('subscribedScmUrlsWithActions is not an array');
+        }
+    });
+
+    return currentRepoPipelines;
 }
 
 /**
@@ -429,6 +484,7 @@ async function startEvents(eventConfigs, eventFactory) {
  * @return {Promise}
  */
 async function createPREvents(options, request) {
+    console.log('options from createPREvents: ', options);
     const {
         username,
         scmConfig,
@@ -445,11 +501,15 @@ async function createPREvents(options, request) {
         ref,
         releaseName
     } = options;
+
+    console.log('pipelines from createPREvents: ', pipelines);
     const { scm } = request.server.app.pipelineFactory;
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
-    let { sha } = options;
+    const { sha } = options;
+
+    console.log('sha from createPREvents: ', sha);
 
     scmConfig.prNum = prNum;
 
@@ -461,9 +521,14 @@ async function createPREvents(options, request) {
                 let configPipelineSha = '';
                 let subscribedConfigSha = '';
                 let eventConfig = {};
-                
+
+                console.log('pipeline name from createPREvents: ', p.name);
+                console.log('branch from createPREvents: ', p.branch);
                 // Check if the webhook event is from a subscribed repo and
                 // and fetch the source repo commit sha and save the subscribed sha
+
+                // todo: the logic here is a bit convoluted, we should refactor this
+
                 if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
                     subscribedConfigSha = sha;
 
@@ -480,8 +545,13 @@ async function createPREvents(options, request) {
                             logger.info(`skip create event for branch: ${b}`);
                         }
                     }
+
+                    // configPipelineSha = sha;
+                    console.log('subscribedConfigSha from createPREvents: ', subscribedConfigSha);
+                    console.log('configPipelineSha from createPREvents 1st case: ', configPipelineSha);
                 } else {
                     try {
+                        console.log('configPipelineSha from createPREvents 2nd case: ', configPipelineSha);
                         configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
                     } catch (err) {
                         if (err.status >= 500) {
@@ -556,6 +626,8 @@ async function createPREvents(options, request) {
                 if (skipMessage) {
                     eventConfig.skipMessage = skipMessage;
                 }
+
+                console.log('eventConfig from createPREvents: ', eventConfig);
 
                 return eventConfig;
             } catch (err) {
@@ -827,11 +899,14 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
             scmContext
         })
         .then(scmUri => {
+            console.log('scmUri from pullRequestEvent', scmUri);
             scmConfig.scmUri = scmUri;
 
             return triggeredPipelines(pipelineFactory, scmConfig, branch, type, action, changedFiles, releaseName, ref);
         })
         .then(async pipelines => {
+            console.log('pipelines from pullRequestEvent', pipelines);
+
             if (!pipelines || pipelines.length === 0) {
                 const message = `Skipping since Pipeline triggered by PRs against ${fullCheckoutUrl} does not exist`;
 
@@ -866,6 +941,8 @@ function pullRequestEvent(pluginOptions, request, h, parsed, token) {
             switch (action) {
                 case 'opened':
                 case 'reopened':
+                    console.log('got into pr opened or reopened');
+
                     return pullRequestOpened(options, request, h);
                 case 'synchronized':
                     return pullRequestSync(options, request, h);
@@ -1040,6 +1117,7 @@ async function createEvents(
         })
     );
 
+    console.log('eventCofigs from createEvents: ', eventConfigs);
     const events = await startEvents(eventConfigs, eventFactory);
 
     return events;
@@ -1058,6 +1136,8 @@ async function createEvents(
 async function pushEvent(request, h, parsed, skipMessage, token) {
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
+
+    console.log('parsed from pushEvent: ', parsed);
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -1085,6 +1165,9 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
             releaseName,
             ref
         );
+
+        console.log('pipelines from pushEvent: ', pipelines);
+
         let events = [];
 
         if (!pipelines || pipelines.length === 0) {
@@ -1183,7 +1266,10 @@ async function startHookEvent(request, h, webhookConfig) {
 
                 return h.response({ message }).code(204);
             }
-        }    
+        }
+
+        console.log('not skipping');
+        console.log('webhookConfig', webhookConfig);
 
         const token = await obtainScmToken({
             pluginOptions: webhookConfig.pluginOptions,
@@ -1231,6 +1317,9 @@ async function startHookEvent(request, h, webhookConfig) {
             // disregard skip ci for pull request events
             return pullRequestEvent(webhookConfig.pluginOptions, request, h, webhookConfig, token);
         }
+
+        console.log('this is not a pr event');
+        console.log('this is a push event');
 
         return pushEvent(request, h, webhookConfig, skipMessage, token);
     } catch (err) {
