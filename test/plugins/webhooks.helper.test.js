@@ -5,6 +5,7 @@ const sinon = require('sinon');
 const rewire = require('rewire');
 const { assert } = chai;
 const hoek = require('@hapi/hoek');
+const _ = require('lodash');
 
 chai.use(require('chai-as-promised'));
 
@@ -13,6 +14,8 @@ const RewiredWebhooksHelper = rewire('../../plugins/webhooks/helper.js');
 const ANNOT_RESTRICT_PR = RewiredWebhooksHelper.__get__('ANNOT_RESTRICT_PR');
 
 const PARSED_CONFIG = require('./data/github.parsedyaml.json');
+const { release } = require('os');
+const { subscribe } = require('diagnostics_channel');
 
 sinon.assert.expose(assert, { prefix: '' });
 
@@ -1414,36 +1417,36 @@ describe('startHookEvent test', () => {
             });
         });
 
-        it('returns 201 when the hook source triggers subscribed event', () => {
+        it('returns 201 when the hook source triggers subscribed event on commit', () => {
             pipelineFactoryMock.scm.parseUrl
                 .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
                 .resolves('github.com:789123:master');
-            let pMock6 = getPipelineMocks({
-                id: 'pipelineHash',
-                scmUri: 'github.com:789123:master',
-                annotations: {},
-                admins: {
-                    baxterthehacker: false
-                },
-                workflowGraph,
-                branch: Promise.resolve('master')
-            });
             pipelineFactoryMock.list
                 .withArgs({
                     search: { field: 'scmUri', keyword: 'github.com:789123:%' },
                     params: { state: 'ACTIVE' }
                 })
-                .resolves([pMock6]);
+                .resolves([getPipelineMocks({
+                    id: 'pipelineHash',
+                    scmUri: 'github.com:789123:master',
+                    annotations: {},
+                    admins: {
+                        baxterthehacker: false
+                    },
+                    workflowGraph,
+                    branch: Promise.resolve('master')
+                })]);
+            let pipelineMock2 = _.cloneDeep(pipelineMock);
+            pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['commit'] }];
             pipelineFactoryMock.list
                 .withArgs({
                     search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
                     params: { state: 'ACTIVE' }
                 })
-                .resolves([pipelineMock]);
+                .resolves([pipelineMock2]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
-                // there will be 1 event if the subscribed pipeline has no actions
                 assert.calledWith(eventFactoryMock.create, {
                     pipelineId,
                     type: 'pipeline',
@@ -1452,13 +1455,31 @@ describe('startHookEvent test', () => {
                     scmContext,
                     startFrom: '~commit',
                     sha,
-                    configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed', // not sure if this is correct sha
+                    configPipelineSha: latestSha,
                     changedFiles,
                     baseBranch: 'master',
                     causeMessage: `Merged by ${username}`,
                     meta: {},
                     releaseName: undefined,
                     ref: undefined,
+                });
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext,
+                    startFrom: '~subscribe',
+                    sha: latestSha,
+                    configPipelineSha: latestSha,
+                    changedFiles,
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${username}`,
+                    meta: {},
+                    releaseName: undefined,
+                    ref: undefined,
+                    subscribedEvent: true,
+                    subscribedConfigSha: sha
                 });
             });
         });
@@ -1970,28 +1991,29 @@ describe('startHookEvent test', () => {
                 pipelineMock.admins = {
                     baxterthehacker: true
                 };
-                let pMock6 = getPipelineMocks({
-                    id: 'pipelineHash',
-                    scmUri: 'github.com:789123:master',
-                    annotations: {},
-                    admins: {
-                        baxterthehacker: false
-                    },
-                    workflowGraph,
-                    branch: Promise.resolve('master')
-                });
                 pipelineFactoryMock.list
                     .withArgs({
                         search: { field: 'scmUri', keyword: 'github.com:789123:%' },
                         params: { state: 'ACTIVE' }
                     })
-                    .resolves([pMock6]);
+                    .resolves([getPipelineMocks({
+                        id: 'pipelineHash',
+                        scmUri: 'github.com:789123:master',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph,
+                        branch: Promise.resolve('master')
+                    })]);
+                let pipelineMock2 = _.cloneDeep(pipelineMock);
+                pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['pr']}];
                 pipelineFactoryMock.list
                     .withArgs({
                         search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
                         params: { state: 'ACTIVE' }
                     })
-                    .resolves([pipelineMock]);
+                    .resolves([pipelineMock2]);
                 eventFactoryMock.scm.getPrInfo.resolves({
                     url: 'foo'
                 });
@@ -2004,8 +2026,8 @@ describe('startHookEvent test', () => {
                         webhooks: true,
                         username,
                         scmContext,
-                        sha: '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c',
-                        configPipelineSha: 'a402964c054c610757794d9066c96cee1772daed',
+                        sha: sha,
+                        configPipelineSha: latestSha,
                         startFrom: '~pr',
                         changedFiles,
                         causeMessage: `Opened by github:${username}`,
@@ -2016,6 +2038,24 @@ describe('startHookEvent test', () => {
                         prInfo: { url: 'foo' },
                         prSource: 'branch',
                         baseBranch: 'master'
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
+                        type: 'pipeline',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        startFrom: '~subscribe',
+                        sha: latestSha,
+                        configPipelineSha: latestSha,
+                        changedFiles,
+                        baseBranch: 'master',
+                        causeMessage: `Merged by ${username}`,
+                        releaseName: undefined,
+                        ref: undefined,
+                        subscribedEvent: true,
+                        subscribedConfigSha: sha,
+                        subscribedSourceUrl: 'foo'
                     });
                 });
             });

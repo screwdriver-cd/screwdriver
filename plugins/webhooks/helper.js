@@ -329,13 +329,13 @@ async function triggeredPipelines(
         }
     };
 
-    console.log('scmUri from triggeredPipelines: ', scmUri);
-    console.log('scmBranch from triggeredPipelines: ', scmBranch);
+    // console.log('scmUri from triggeredPipelines: ', scmUri);
+    // console.log('scmBranch from triggeredPipelines: ', scmBranch);
 
     const pipelines = await pipelineFactory.list(listConfig);
-    console.log('pipelines from triggeredPipelines: ', pipelines);
+    // console.log('pipelines from triggeredPipelines: ', pipelines);
     const pipelinesWithSubscribedRepos = await pipelineFactory.list(externalRepoSearchConfig);
-    console.log('pipelinesWithSubscribedRepos from triggeredPipelines: ', pipelinesWithSubscribedRepos);
+    // console.log('pipelinesWithSubscribedRepos from triggeredPipelines: ', pipelinesWithSubscribedRepos);
 
     let pipelinesOnCommitBranch = [];
     let pipelinesOnOtherBranch = [];
@@ -351,8 +351,6 @@ async function triggeredPipelines(
             pipelinesOnOtherBranch.push(p);
         }
     });
-
-    // need to get the pipelines that is in the same branch with the scmuri
 
     console.log('pipelinesOnCommitBranch from triggeredPipelines: ', pipelinesOnCommitBranch);
 
@@ -538,6 +536,7 @@ async function createPREvents(options, request) {
                             scmContext: scmConfig.scmContext,
                             token: scmConfig.token
                         });
+                        // sha = configPipelineSha;
                     } catch (err) {
                         if (err.status >= 500) {
                             throw err;
@@ -552,6 +551,10 @@ async function createPREvents(options, request) {
                 } else {
                     try {
                         console.log('configPipelineSha from createPREvents 2nd case: ', configPipelineSha);
+                        // I think we dont need to have this
+                        // simply
+                        // configPipelineSha = sha;
+                        console.log('sha from createPREvents 2nd case: ', sha);
                         configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
                     } catch (err) {
                         if (err.status >= 500) {
