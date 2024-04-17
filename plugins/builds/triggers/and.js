@@ -4,7 +4,7 @@ const logger = require('screwdriver-logger');
 const {
     createInternalBuild,
     getParallelBuilds,
-    fillParentBuilds,
+    mergeParentBuilds,
     updateParentBuilds,
     getParentBuildStatus,
     handleNewBuild,
@@ -118,7 +118,7 @@ class AndTrigger {
             }
         }
 
-        fillParentBuilds(parentBuilds, this.currentPipeline, this.currentEvent, finishedBuilds);
+        const newParentBuilds = mergeParentBuilds(parentBuilds, finishedBuilds, this.currentEvent);
 
         let newBuild;
 
@@ -134,14 +134,14 @@ class AndTrigger {
                 scmContext: this.scmContext,
                 event: this.currentEvent, // this is the parentBuild for the next build
                 baseBranch: this.currentEvent.baseBranch || null,
-                parentBuilds,
+                parentBuilds: newParentBuilds,
                 parentBuildId: this.currentBuild.id
             };
 
             newBuild = await createInternalBuild(internalBuildConfig);
         } else {
             newBuild = await updateParentBuilds({
-                joinParentBuilds: parentBuilds,
+                joinParentBuilds: newParentBuilds,
                 nextBuild,
                 build: this.currentBuild
             });

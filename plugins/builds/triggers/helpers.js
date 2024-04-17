@@ -10,6 +10,8 @@ const { getFullStageJobName } = require('../../helper');
 /**
  * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
  * @typedef {import('screwdriver-models/lib/job').Job} Job
+ * @typedef {import('../types/index').JoinPipelines} JoinPipelines
+ * @typedef {import('../types/index').JoinJobs} JoinJobs
  */
 
 const Status = {
@@ -73,6 +75,23 @@ const Status = {
         return !['CREATED', null, undefined].includes(status);
     }
 };
+
+/**
+ * Converts a string to an integer.
+ * Throws an error if the string is not a valid integer representation.
+ *
+ * @param {string} text The string to be converted to an integer.
+ * @returns {number} The converted integer.
+ * @throws {Error} An error is thrown if the string can't be converted to a finite number.
+ */
+function strToInt(text) {
+    const value = Number.parseInt(text, 10);
+
+    if (Number.isFinite(value)) {
+        return value;
+    }
+    throw new Error(`Failed to cast '${text}' to integer`);
+}
 
 /**
  * Delete a build
@@ -620,52 +639,80 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 }
 
 /**
- * Fills parentBuilds object with missing job information
- * @param {Array}  parentBuilds
- * @param {Object} current       Holds current build/event data
- * @param {Array}  builds        Completed builds which is used to fill parentBuilds data
- * @param {Object} [nextEvent]     External event
+ * Merge parentBuilds object with missing job information from latest builds object
+ * @param {Object}  parentBuilds    parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
+ * @param {Object}  finishedBuilds  Completed builds which is used to fill parentBuilds data
+ * @param {Object}  currentEvent    Current event
+ * @param {Object}  nextEvent       Next triggered event (Remote trigger or Same pipeline event triggered as external)
+ * @returns {Object} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
+ *
+ * @example
+ * >>> mergeParentBuilds(...)
+ * {
+ *     "1": {
+ *         jobs: { "job-name-a": 1, "job-name-b": 2 }
+ *         eventId: 123
+ *     },
+ *     "2": {
+ *         jobs: { "job-name-a": 4, "job-name-b": 5 }
+ *         eventId: 456
+ *     },
+ * }
  */
-function fillParentBuilds(parentBuilds, currentPipeline, currentEvent, builds, nextEvent) {
-    Object.keys(parentBuilds).forEach(pid => {
-        Object.keys(parentBuilds[pid].jobs).forEach(jName => {
-            let joinJob;
+function mergeParentBuilds(parentBuilds, finishedBuilds, currentEvent, nextEvent) {
+    const newParentBuilds = {};
 
-            if (parentBuilds[pid].jobs[jName] === null) {
-                let workflowGraph;
-                let searchJob = trimJobName(jName);
+    Object.entries(parentBuilds).forEach(([pipelineId, builds]) => {
+        const newBuilds = {
+            jobs: {},
+            eventId: null
+        };
 
-                // parentBuild is in current event
-                if (+pid === currentPipeline.id) {
-                    workflowGraph = currentEvent.workflowGraph;
-                } else if (nextEvent) {
-                    if (+pid !== nextEvent.pipelineId) {
-                        // parentBuild is remote triggered from external event
-                        searchJob = `sd@${pid}:${searchJob}`;
+        Object.entries(builds.jobs).forEach(([jobName, build]) => {
+            if (build !== null) {
+                newBuilds.jobs[jobName] = build;
+
+                return;
+            }
+
+            let { workflowGraph } = currentEvent;
+            let nodeName = trimJobName(jobName);
+
+            if (strToInt(pipelineId) !== currentEvent.pipelineId) {
+                if (nextEvent) {
+                    if (strToInt(pipelineId) !== nextEvent.pipelineId) {
+                        nodeName = `sd@${pipelineId}:${nodeName}`;
                     }
                     workflowGraph = nextEvent.workflowGraph;
                 } else {
-                    // parentBuild is remote triggered from current Event
-                    searchJob = `sd@${pid}:${searchJob}`;
-                    workflowGraph = currentEvent.workflowGraph;
-                }
-                joinJob = workflowGraph.nodes.find(node => node.name === searchJob);
-
-                if (!joinJob) {
-                    logger.warn(`Job ${jName}:${pid} not found in workflowGraph for event ${currentEvent.id}`);
-                } else {
-                    const targetBuild = builds.find(b => b.jobId === joinJob.id);
-
-                    if (targetBuild) {
-                        parentBuilds[pid].jobs[jName] = targetBuild.id;
-                        parentBuilds[pid].eventId = targetBuild.eventId;
-                    } else {
-                        logger.warn(`Job ${jName}:${pid} not found in builds`);
-                    }
+                    nodeName = `sd@${pipelineId}:${nodeName}`;
                 }
             }
+
+            const targetJob = workflowGraph.nodes.find(node => node.name === nodeName);
+
+            if (!targetJob) {
+                logger.warn(`Job ${jobName}:${pipelineId} not found in workflowGraph for event ${currentEvent.id}`);
+
+                return;
+            }
+
+            const targetBuild = finishedBuilds.find(b => b.jobId === targetJob.id);
+
+            if (!targetBuild) {
+                logger.warn(`Job ${jobName}:${pipelineId} not found in builds`);
+
+                return;
+            }
+
+            newBuilds.jobs[jobName] = targetBuild.id;
+            newBuilds.eventId = targetBuild.eventId;
         });
+
+        newParentBuilds[pipelineId] = newBuilds;
     });
+
+    return newParentBuilds;
 }
 
 /**
@@ -677,7 +724,7 @@ function fillParentBuilds(parentBuilds, currentPipeline, currentEvent, builds, n
  * @param {Array}   nextJobs       List of jobs to run next from workflow parser.
  * @param {Object}  current        Object holding current job's build, event data
  * @param {Object}  eventFactory   Object for querying DB for event data
- * @return { import('../types/index').JoinPipelines } Object representing join data for next jobs grouped by pipeline id
+ * @return {Promise<import('../types/index').JoinPipelines>} Object representing join data for next jobs grouped by pipeline id
  *
  * @example
  * >>> await createJoinObject(...)
@@ -851,61 +898,55 @@ function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipeli
 }
 
 /**
- * Converts a string to an integer.
- * Throws an error if the string is not a valid integer representation.
+ * Extract a current pipeline's next jobs from pipeline join data
+ * (Next jobs triggered as external are not included)
  *
- * @param {string} text The string to be converted to an integer.
- * @returns {number} The converted integer.
- * @throws {Error} An error is thrown if the string can't be converted to a finite number.
- */
-function strToInt(text) {
-    const value = Number.parseInt(text, 10);
-
-    if (Number.isFinite(value)) {
-        return value;
-    }
-    throw new Error(`Failed to cast '${text}' to integer`);
-}
-
-/**
- * Categorize current pipeline and external pipeline (current handled as external) join data
- *
- * @param { Record<string, Jobs> } joinedPipelines
+ * @param {JoinPipelines} joinedPipelines
  * @param {number} currentPipelineId
- * @returns {Record<string, Jobs>}
+ * @returns {Record<string, import('../types/index').JoinJob>}
  */
 function extractCurrentPipelineJoinData(joinedPipelines, currentPipelineId) {
-    const currentPipelineJoinData = {};
+    const currentPipelineJoinData = joinedPipelines[currentPipelineId.toString()];
 
-    Object.entries(joinedPipelines).forEach(([joinedPipelineId, joinedPipeline]) => {
-        if (strToInt(joinedPipelineId) === currentPipelineId) {
-            currentPipelineJoinData[joinedPipelineId] = joinedPipeline;
-        }
-    });
+    if (currentPipelineJoinData === undefined) {
+        return {};
+    }
 
-    return currentPipelineJoinData;
+    return Object.fromEntries(Object.entries(currentPipelineJoinData.jobs).filter(([, join]) => !join.isExternal));
 }
 
 /**
- * Categorize current pipeline and external pipeline (current handled as external) join data
+ * Extract next jobs in current and external pipelines from pipeline join data
  *
- * @param { Record<string, Jobs> } joinedPipelines
+ * @param {JoinPipelines} joinedPipelines
  * @param {number} currentPipelineId
- * @returns {Record<string, Jobs>}
+ * @returns {JoinPipelines}
  */
-function extractExternalPipelineJoinData(joinedPipelines, currentPipelineId) {
-    const externalPipelineJoinData = {};
+function extractExternalJoinData(joinedPipelines, currentPipelineId) {
+    const externalJoinData = {};
 
     Object.entries(joinedPipelines).forEach(([joinedPipelineId, joinedPipeline]) => {
-        const isCurrentPipeline = strToInt(joinedPipelineId) === currentPipelineId;
-        const currentPipelineAsExternal = Object.values(joinedPipeline.jobs).some(nextJob => nextJob.isExternal);
+        const isExternalPipeline = strToInt(joinedPipelineId) !== currentPipelineId;
 
-        if (currentPipelineAsExternal || !isCurrentPipeline) {
-            externalPipelineJoinData[joinedPipelineId] = joinedPipeline;
+        if (isExternalPipeline) {
+            externalJoinData[joinedPipelineId] = joinedPipeline;
+        } else {
+            const nextJobsTriggeredAsExternal = Object.entries(joinedPipeline.jobs).filter(
+                ([, join]) => join.isExternal
+            );
+
+            if (nextJobsTriggeredAsExternal.length === 0) {
+                return;
+            }
+
+            externalJoinData[joinedPipelineId] = {
+                jobs: Object.fromEntries(nextJobsTriggeredAsExternal),
+                event: joinedPipeline.event
+            };
         }
     });
 
-    return externalPipelineJoinData;
+    return externalJoinData;
 }
 
 /**
@@ -937,12 +978,43 @@ function isOrTrigger(workflowGraph, currentJobName, nextJobName) {
     });
 }
 
+/**
+ *
+ * @param {JoinJobs} joinJobs
+ * @param {Job[]} externalFinishedBuilds
+ * @param {Event} currentEvent
+ * @param {Build} currentBuild
+ */
+function buildsToRestartFilter(joinJobs, externalFinishedBuilds, currentEvent, currentBuild) {
+    return Object.values(joinJobs.jobs)
+        .map(joinJob => {
+            // Next triggered job's build belonging to same event group
+            const existBuild = externalFinishedBuilds.find(build => build.jobId === joinJob.id);
+
+            // If there is no same job's build, then first time trigger
+            if (!existBuild) return null;
+
+            // CREATED build is not triggered yet
+            if (Status.isCreated(existBuild.status)) return null;
+
+            // Exist build is triggered from current build
+            // Prevent double triggering same build object
+            if (existBuild.parentBuildId.includes(currentBuild.id)) return null;
+
+            // Circle back trigger (Remote Join case)
+            if (existBuild.eventId === currentEvent.parentEventId) return null;
+
+            return existBuild;
+        })
+        .filter(build => build !== null);
+}
+
 module.exports = {
     Status,
     parseJobInfo,
     createInternalBuild,
     getParallelBuilds,
-    fillParentBuilds,
+    mergeParentBuilds,
     updateParentBuilds,
     getParentBuildStatus,
     handleNewBuild,
@@ -957,5 +1029,6 @@ module.exports = {
     getJobId,
     isOrTrigger,
     extractCurrentPipelineJoinData,
-    extractExternalPipelineJoinData
+    extractExternalJoinData,
+    buildsToRestartFilter
 };

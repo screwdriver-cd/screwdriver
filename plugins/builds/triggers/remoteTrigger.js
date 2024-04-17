@@ -1,11 +1,6 @@
 'use strict';
 
-const { parseJobInfo, createExternalEvent } = require('./helpers');
-// =============================================================================
-//
-//      Function
-//
-// =============================================================================
+const { Status, createInternalBuild } = require('./helpers');
 
 class RemoteTrigger {
     constructor(app, config, currentEvent) {
@@ -22,36 +17,41 @@ class RemoteTrigger {
         this.scmContext = config.scmContext;
     }
 
-    async run(externalPipelineId, triggerName) {
-        const { parentBuilds } = parseJobInfo({
-            currentBuild: this.currentBuild,
-            currentPipeline: this.currentPipeline,
-            currentJob: this.currentJob
+    async run(externalEvent, nextJobName, nextJobId, parentBuilds) {
+        /** @type {BuildModel|null} */
+        const nextBuild = await this.buildFactory.get({
+            eventId: externalEvent.id,
+            jobId: nextJobId
         });
 
-        // Simply create an external event if external job is not join job.
-        // Straight external trigger flow.
-        const externalBuildConfig = {
-            pipelineFactory: this.pipelineFactory,
-            eventFactory: this.eventFactory,
-            externalPipelineId,
-            startFrom: `~${triggerName}`,
-            parentBuildId: this.currentBuild.id,
-            parentBuilds,
-            causeMessage: `Triggered by ${triggerName}`,
-            parentEventId: this.currentEvent.id,
-            groupEventId: null
-        };
+        if (nextBuild !== null) {
+            if (Status.isStarted(nextBuild.status)) {
+                return nextBuild;
+            }
 
-        return createExternalEvent(externalBuildConfig);
+            nextBuild.status = Status.QUEUED;
+            await nextBuild.update();
+
+            return nextBuild.start();
+        }
+
+        return createInternalBuild({
+            jobFactory: this.jobFactory,
+            buildFactory: this.buildFactory,
+            pipelineId: externalEvent.pipelineId,
+            jobName: nextJobName,
+            jobId: nextJobId,
+            username: this.username,
+            scmContext: this.scmContext,
+            event: externalEvent,
+            baseBranch: externalEvent.baseBranch || null,
+            parentBuilds,
+            parentBuildId: this.currentBuild.id,
+            start: true
+        });
     }
 }
 
-// =============================================================================
-//
-//      module.exports
-//
-// =============================================================================
 module.exports = {
     RemoteTrigger
 };
