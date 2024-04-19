@@ -2,16 +2,29 @@
 
 const Assert = require('chai').assert;
 const { Octokit } = require('@octokit/rest');
-const octokit = new Octokit({
-    baseUrl: [
-        `https://${process.env.TEST_SCM_HOSTNAME || 'api.github.com'}`,
-        `${process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''}`
-    ].join(''),
-    auth: process.env.GIT_TOKEN
-});
-
+const { data } = require('node-env-file');
 const MAX_CONTENT_LENGTH = 354;
 const MAX_FILENAME_LENGTH = 17;
+
+let octokit;
+
+/**
+ * Retrieves or creates an instance of the Octokit client.
+ * @function getOctokit
+ * @returns {Octokit} The Octokit client instance.
+ */
+function getOctokit() {
+    if (!octokit) {
+        octokit = new Octokit({
+            baseUrl: [
+                `https://${process.env.TEST_SCM_HOSTNAME || 'api.github.com'}`,
+                `${process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''}`
+            ].join(''),
+            auth: process.env.GIT_TOKEN
+        });
+    }
+    return octokit;
+}
 
 /**
  * Creates a string of a given length with random alphanumeric characters
@@ -105,20 +118,18 @@ function closePullRequest(repoOwner, repoName, prNumber) {
  * @param  {String}     [repoName]         Name of the repository
  * @return {Promise}
  */
-function createBranch(branch, repoOwner, repoName) {
+function createBranch(branch, repoOwner, repoName, ref = 'heads/master') {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    // Create a branch from the tip of the master branch
     return octokit.git
         .getRef({
             owner,
             repo,
-            ref: 'heads/master'
+            ref
         })
         .then(referenceData => {
             const { sha } = referenceData.data.object;
-
             return octokit.git.createRef({
                 owner,
                 repo,
@@ -142,7 +153,7 @@ function createBranch(branch, repoOwner, repoName) {
  * @param  {String}   commitMessage     Commit message
  * @return {Promise}
  */
-function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
+async function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
     // eslint-disable-next-line new-cap
     const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
@@ -151,14 +162,22 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
     const filePath = directoryName || 'testfiles';
     const message = commitMessage || new Date().toString(); // default commit message is the current time
 
-    return octokit.repos.createOrUpdateFileContents({
+    // console.log('content:', content);
+    // console.log('filename:', filename);
+    // console.log('owner:', owner);
+    // console.log('repo:', repo);
+    // console.log('filePath:', filePath);
+    // console.log('message:', message);
+    // console.log('branch:', branch);
+
+    return await octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
         path: `${filePath}/${filename}`,
         message,
-        content: content.toString('base64'), // content needs to be transmitted in base64
+        content: Buffer.from(content).toString('base64'), // content needs to be transmitted in base64
         branch
-    });
+    })
 }
 
 /**
@@ -333,5 +352,6 @@ module.exports = {
     createRelease,
     getStatus,
     mergePullRequest,
-    removeBranch
+    removeBranch,
+    getOctokit
 };

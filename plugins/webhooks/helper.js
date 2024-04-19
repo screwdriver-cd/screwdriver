@@ -387,35 +387,34 @@ async function triggeredPipelines(
     // process the pipelinesWithSubscribedRepos only when the pipelinesOnCommitBranch is not empty
     // pipelinesOnCommitBranch has the information to determine the triggering event of downstream subscribing repo
     pipelinesWithSubscribedRepos.forEach(p => {
-        if (Array.isArray(p.subscribedScmUrlsWithActions)) {
-            p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
-                const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
+        if (!Array.isArray(p.subscribedScmUrlsWithActions)) {
+            return;
+        } 
+        p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
+            const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
 
-                if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
-                    const pipeline = pipelinesOnCommitBranch[0];
-                    const isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pipeline.workflowGraph);
-                    const startFrom = determineStartFrom(
-                        action,
-                        type,
-                        branch,
-                        null,
-                        releaseName,
-                        tagName,
-                        isReleaseOrTagFiltering
-                    );
+            if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
+                const pipeline = pipelinesOnCommitBranch[0];
+                const isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pipeline.workflowGraph);
+                const startFrom = determineStartFrom(
+                    action,
+                    type,
+                    branch,
+                    null,
+                    releaseName,
+                    tagName,
+                    isReleaseOrTagFiltering
+                );
 
-                    for (const subscribedAction of subscribedActions) {
-                        if (new RegExp(subscribedAction).test(startFrom)) {
-                            console.log('subscribedAction: ', subscribedAction);
-                            currentRepoPipelines.push(p);
-                            break;
-                        }
+                for (const subscribedAction of subscribedActions) {
+                    if (new RegExp(subscribedAction).test(startFrom)) {
+                        console.log('subscribedAction: ', subscribedAction);
+                        currentRepoPipelines.push(p);
+                        break;
                     }
                 }
-            });
-        } else {
-            console.log('subscribedScmUrlsWithActions is not an array');
-        }
+            }
+        });
     });
 
     return currentRepoPipelines;
