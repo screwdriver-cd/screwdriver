@@ -210,6 +210,7 @@ async function triggerNextJobs(config, app) {
                         nextJob.join.length > 0
                             ? nextJob.join
                             : workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: nextJobName });
+                    const joinListNames = joinList.map(j => j.name);
 
                     await remoteJoin.run(
                         externalEvent,
@@ -217,7 +218,7 @@ async function triggerNextJobs(config, app) {
                         nextJobId,
                         parentBuilds,
                         externalFinishedBuilds,
-                        joinList
+                        joinListNames
                     );
                 }
             } catch (err) {

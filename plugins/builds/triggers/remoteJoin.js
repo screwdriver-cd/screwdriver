@@ -25,7 +25,17 @@ class RemoteJoin {
         this.scmContext = config.scmContext;
     }
 
-    async run(externalEvent, nextJobName, nextJobId, parentBuilds, externalFinishedBuilds, joinList) {
+    /**
+     * Trigger the next external jobs of the current job
+     * @param {string} externalEvent Downstream pipeline's event
+     * @param {string} nextJobName
+     * @param {string} nextJobId
+     * @param {Record<string, ParentBuild>} parentBuilds
+     * @param {Array<BuildModel>} externalFinishedBuilds Builds of the downstream pipeline, where only the latest ones for each job are included that have the same groupEventId as the externalEvent
+     * @param {Array<string>} joinListNames
+     * @return {Promise<BuildModel|null>}
+     */
+    async run(externalEvent, nextJobName, nextJobId, parentBuilds, externalFinishedBuilds, joinListNames) {
         const externalPipelineId = externalEvent.pipelineId;
         // fetch builds created due to trigger
         const parallelBuilds = await getParallelBuilds({
@@ -46,8 +56,6 @@ class RemoteJoin {
             this.currentEvent,
             externalEvent
         );
-
-        const joinListNames = joinList.map(j => j.name);
 
         if (nextBuild) {
             // update current build info in parentBuilds

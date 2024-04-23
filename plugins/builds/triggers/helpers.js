@@ -461,7 +461,7 @@ function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, next
 }
 
 /**
- * Get finished builds in all parent events
+ * Get finished builds whose groupEventId is event.groupEventId. Only the latest build is retrieved for each job.
  * @param  {Event}      event                   Current event
  * @param  {Number}     [event.parentEventId]   Parent event ID
  * @param  {Number}     [event.groupEventId]    Group parent event ID
@@ -612,7 +612,7 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
 }
 
 /**
- * Get all builds with same parent event id
+ * Get all builds with a given event ID as the parentEventID
  * @param  {Factory}    eventFactory    Event factory
  * @param  {Number}     parentEventId   Parent event ID
  * @param  {Number}     pipelineId      Pipeline ID
