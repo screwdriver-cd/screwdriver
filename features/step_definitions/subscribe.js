@@ -1,136 +1,217 @@
 'use strict';
 
 const { Before, Given, When, Then } = require('@cucumber/cucumber');
-const request = require('screwdriver-request');
 const Assert = require('chai').assert;
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
+const RETRY = 5;
 
 Before(
-  {
-    tags: '@subscribe'
-  },
-  function hook() {
-    github.getOctokit();
-    this.repoOrg = this.testOrg;
-    this.pipelines = {};
-    this.pipelineId = null;
-    this.builds = null;
-    this.commitCreatedTimestamp = null;  
-  }
+    {
+        tags: '@subscribe'
+    },
+    function hook() {
+        github.getOctokit();
+        this.repoOrg = this.testOrg;
+        this.pipelines = {};
+        this.pipelineId = null;
+        this.subscribedConfigSha = null;
+        this.commitCreatedTimestamp = null;
+        this.prEvent = false;
+        this.pullRequestNumber = null;
+    }
 );
 
+Given(
+    /^an existing pipeline "([^"]*)" on branch "([^"]*)" with the following config$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(repoName, branchName, table) {
+        await this.ensurePipelineExists({
+            repoName,
+            branch: branchName,
+            table,
+            shouldNotDeletePipeline: true
+        });
+        const pipeline = await this.getPipeline(this.pipelineId);
+
+        this.pipelines[repoName] = {
+            ...pipeline.body,
+            branch: branchName,
+            jobs: this.jobs,
+            pipelineId: this.pipelineId
+        };
+    }
+);
 
 Given(
-  /^an existing pipeline "([^"]*)" on branch "([^"]*)" (to be subscribed|that subscribes)$/,
-  {
-    timeout: TIMEOUT
-  },
-  async function step(repoName, branchName, _) {  
-    console.log('branchName: ', branchName);
-    console.log('repoName: ', repoName);
-    await this.ensurePipelineExists({
-      repoName: repoName,
-      branch: 'main',
-      shouldNotDeletePipeline: true
-    });
-    this.pipelines[repoName] = {
-      pipelineId: this.pipelineId,
-      jobs: this.jobs,
-      branch: branchName
+    /^pipeline "([^"]*)" subscribes to "([^"]*)" trigger of "([^"]*)" against the main branch$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(subscribingRepoName, trigger, subscribedRepoName) {
+        const subscribingPipeline = this.pipelines[subscribingRepoName];
+        const subscribedPipeline = this.pipelines[subscribedRepoName];
+
+        // Assert that subscribingPipeline exists
+        Assert.exists(subscribingPipeline, `Subscribing pipeline '${subscribingRepoName}' does not exist`);
+        // Assert that subscribedPipeline exists
+        Assert.exists(subscribedPipeline, `Subscribed pipeline '${subscribedRepoName}' does not exist`);
+
+        // for this test, we only support one subscribed repo, hence expect length to be 1
+        Assert.lengthOf(
+            subscribingPipeline.subscribedScmUrlsWithActions,
+            1,
+            `Expected subscribedScmUrlsWithActions of subscribing repo '${subscribingRepoName}' to have length 1`
+        );
+
+        // ensure that the subscribed repo is expected with the config of the subscribing pipeline
+        Assert.equal(
+            subscribingPipeline.subscribedScmUrlsWithActions[0].scmUri,
+            subscribedPipeline.scmUri,
+            `Expected scmUri of subscribing repo '${subscribingRepoName}' to be the same as subscribed repo '${subscribedRepoName}'`
+        );
+
+        const subscribedScmActions = subscribingPipeline.subscribedScmUrlsWithActions
+            .map(item => item.actions)
+            .join(',');
+
+        // ensure that it is subscribed to the correct trigger
+        Assert.equal(
+            subscribedScmActions,
+            trigger,
+            `Expected scmUri of subscribing repo '${subscribingRepoName}' to be the same as subscribed repo '${subscribedRepoName}'`
+        );
     }
-    console.log(this.pipelines);
-  }
 );
 
 When(
-  /^a new commit is pushed to "([^"]*)" branch of pipeline "([^"]*)"$/,
-  {
-    timeout: TIMEOUT
-  },
-  function step(branchName, repoName) {
-    return github
-      .createBranch(branchName, this.repoOrg, repoName, 'heads/main')
-      .then(() => { 
-        this.commitCreatedTimestamp = new Date().getTime();
-        return github.createFile(branchName, this.repoOrg, repoName);
-      })
-      .then(({data}) => {
-        this.pipelines[repoName] = {
-          ...this.pipelines[repoName],
-          sha: data.commit.sha
-        };
-      })
-      .catch((err) => {
-        console.error('getting into error: ', err);
-      });
-  }
-)
+    /^a new commit is pushed to "([^"]*)" branch of repo "([^"]*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(branchName, repoName) {
+        this.prEvent = false;
 
-Then(
-  /^the "([^"]*)" job is triggered on branch "([^"]*)" of repo "([^"]*)"$/,
-  { timeout: TIMEOUT },
-  async function step(jobName, _, repoName) {
-    const { pipelineId, jobs, sha } = this.pipelines[repoName];
+        return github
+            .createBranch(branchName, this.repoOrg, repoName, 'heads/main')
+            .then(() => {
+                this.commitCreatedTimestamp = new Date().getTime();
 
-    //createtime should be very close to or even before the upstream pipeline
-    const build = await sdapi.searchForBuild({
-        instance: this.instance,
-        pipelineId,
-        desiredSha: sha,
-        desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-        jobName,
-        jwt: this.jwt
-    });
-
-    console.log('build: ', build);
-    const job = jobs.find(j => j.name === jobName);
-
-    console.log('this.commitCreatedTimestamp: ', this.commitCreatedTimestamp);
-    const buildCreatedTimestamp = new Date(build.createTime).getTime();
-
-    Assert.isAbove(buildCreatedTimestamp, this.commitCreatedTimestamp, 'Timestamp should be greater than commitCreatedTimestamp');
-
-    // this.buildId = build.id;
-    // this.pipelines[branchName].eventId = build.eventId;
-    // Assert.equal(build.jobId, job.id);
-}
+                return github.createFile(branchName, this.repoOrg, repoName);
+            })
+            .then(({ data }) => {
+                this.pipelines[repoName] = {
+                    ...this.pipelines[repoName],
+                    sha: data.commit.sha
+                };
+                this.subscribedConfigSha = data.commit.sha;
+            })
+            .catch(() => {
+                Assert.fail('Failed to create a commit.');
+            });
+    }
 );
 
 Then(
-  /^the "([^"]*)" job is not triggered on branch "([^"]*)" of repo "([^"]*)"$/,
-  { timeout: TIMEOUT },
-  async function step(jobName, _, repoName) {
-    console.log("job not triggered");
-    const { pipelineId, jobs, sha } = this.pipelines[repoName];
+    /^the "([^"]*)" job is triggered on branch "([^"]*)" of repo "([^"]*)"$/,
+    { timeout: TIMEOUT },
+    async function step(jobName, _, repoName) {
+        const { pipelineId } = this.pipelines[repoName];
 
-    console.log('pipelineId: ', pipelineId);
-    console.log('sha: ', sha);
+        const config = {
+            instance: this.instance,
+            pipelineId,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName,
+            jwt: this.jwt,
+            subscribedConfigSha: this.subscribedConfigSha
+        };
 
-    //createtime should be very close to or even before the upstream pipeline
-    const build = await sdapi.searchForBuild({
-        instance: this.instance,
-        pipelineId,
-        // desiredSha: sha,
-        desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-        jobName,
-        jwt: this.jwt
-    });
+        if (repoName.includes('parent')) {
+            delete config.subscribedConfigSha;
+            config.desiredSha = this.subscribedConfigSha;
+            if (this.prEvent) {
+                config.jobName = `PR-${this.pullRequestNumber}:${jobName}`;
+            }
+        }
 
-    console.log('build: ', build);
-    const job = jobs.find(j => j.name === jobName);
+        const build = await sdapi.searchForBuild(config, RETRY);
+        const buildCreatedTimestamp = new Date(build.createTime).getTime();
 
-    const buildCreatedTimestamp = new Date(build.createTime).getTime();
-    console.log('this.commitCreatedTimestamp: ', this.commitCreatedTimestamp);
+        // build created timestamp should be greater than commit created timestamp
+        Assert.isAbove(
+            buildCreatedTimestamp,
+            this.commitCreatedTimestamp,
+            'Timestamp should be greater than commitCreatedTimestamp'
+        );
+    }
+);
 
-    console.log('buildCreatedTimestamp: ', buildCreatedTimestamp);
+Then(
+    /^the "([^"]*)" job is not triggered on branch "([^"]*)" of repo "([^"]*)"$/,
+    { timeout: TIMEOUT },
+    async function step(jobName, _, repoName) {
+        const { pipelineId } = this.pipelines[repoName];
 
-    Assert.isBelow(buildCreatedTimestamp, this.commitCreatedTimestamp, 'Timestamp should be smaller than commitCreatedTimestamp');    
+        try {
+            const config = {
+                instance: this.instance,
+                pipelineId,
+                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+                jobName,
+                jwt: this.jwt,
+                subscribedConfigSha: this.subscribedConfigSha
+            };
 
-    // this.buildId = build.id;
-    // this.pipelines[branchName].eventId = build.eventId;
-    // Assert.equal(build.jobId, job.id);
-}
+            if (repoName.includes('parent')) {
+                delete config.subscribedConfigSha;
+                config.desiredSha = this.subscribedConfigSha;
+                if (this.prEvent) {
+                    config.jobName = `PR-${this.pullRequestNumber}:${jobName}`;
+                }
+            }
+
+            await sdapi.searchForBuild(config, RETRY);
+        } catch (err) {
+            Assert.equal(err.toString(), 'Error: Retry count exceeded');
+        }
+    }
+);
+
+When(
+    /^a pull request is opened from "(.*)" branch of repo "([^"]*)"$/,
+    {
+        timeout: TIMEOUT
+    },
+    async function step(branch, repoName) {
+        const sourceBranch = `${branch}-PR`;
+        const targetBranch = 'main';
+
+        this.prEvent = true;
+        await github
+            .removeBranch(this.repoOrg, repoName, sourceBranch)
+            .catch(err => Assert.strictEqual(404, err.status));
+
+        return github
+            .createBranch(sourceBranch, this.repoOrg, repoName, 'heads/main')
+            .then(() => github.createFile(sourceBranch, this.repoOrg, repoName))
+            .then(() => {
+                this.commitCreatedTimestamp = new Date().getTime();
+
+                return github.createPullRequest(sourceBranch, targetBranch, this.repoOrg, repoName);
+            })
+            .then(({ data }) => {
+                this.branch = sourceBranch;
+                this.pullRequestNumber = data.number;
+                this.sha = data.head.sha;
+                this.subscribedConfigSha = data.head.sha;
+            })
+            .catch(() => {
+                Assert.fail('Failed to create the Pull Request.');
+            });
+    }
 );

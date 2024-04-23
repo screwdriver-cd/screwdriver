@@ -2,7 +2,6 @@
 
 const Assert = require('chai').assert;
 const { Octokit } = require('@octokit/rest');
-const { data } = require('node-env-file');
 const MAX_CONTENT_LENGTH = 354;
 const MAX_FILENAME_LENGTH = 17;
 
@@ -23,6 +22,7 @@ function getOctokit() {
             auth: process.env.GIT_TOKEN
         });
     }
+
     return octokit;
 }
 
@@ -130,6 +130,7 @@ function createBranch(branch, repoOwner, repoName, ref = 'heads/master') {
         })
         .then(referenceData => {
             const { sha } = referenceData.data.object;
+
             return octokit.git.createRef({
                 owner,
                 repo,
@@ -153,7 +154,7 @@ function createBranch(branch, repoOwner, repoName, ref = 'heads/master') {
  * @param  {String}   commitMessage     Commit message
  * @return {Promise}
  */
-async function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
+function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
     // eslint-disable-next-line new-cap
     const content = new Buffer.alloc(MAX_CONTENT_LENGTH, randomString(MAX_CONTENT_LENGTH));
     const filename = randomString(MAX_FILENAME_LENGTH);
@@ -162,22 +163,14 @@ async function createFile(branch, repoOwner, repoName, directoryName, commitMess
     const filePath = directoryName || 'testfiles';
     const message = commitMessage || new Date().toString(); // default commit message is the current time
 
-    // console.log('content:', content);
-    // console.log('filename:', filename);
-    // console.log('owner:', owner);
-    // console.log('repo:', repo);
-    // console.log('filePath:', filePath);
-    // console.log('message:', message);
-    // console.log('branch:', branch);
-
-    return await octokit.repos.createOrUpdateFileContents({
+    return octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
         path: `${filePath}/${filename}`,
         message,
         content: Buffer.from(content).toString('base64'), // content needs to be transmitted in base64
         branch
-    })
+    });
 }
 
 /**

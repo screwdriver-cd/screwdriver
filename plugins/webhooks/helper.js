@@ -389,7 +389,7 @@ async function triggeredPipelines(
     pipelinesWithSubscribedRepos.forEach(p => {
         if (!Array.isArray(p.subscribedScmUrlsWithActions)) {
             return;
-        } 
+        }
         p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
             const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
 

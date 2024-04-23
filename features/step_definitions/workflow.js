@@ -61,7 +61,7 @@ Given(
 
                     [this.pipelineId] = str.match(ID);
                 })
-                .then(() => this.getPipeline(this.pipelineId))
+                .then(() => this.getPipelineJobs(this.pipelineId))
                 .then(response => {
                     const expectedJobs = table.hashes();
 
