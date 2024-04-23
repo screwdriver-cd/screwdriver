@@ -514,7 +514,6 @@ async function createPREvents(options, request) {
                             logger.info(`skip create event for branch: ${b}`);
                         }
                     }
-
                 } else {
                     try {
                         configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
