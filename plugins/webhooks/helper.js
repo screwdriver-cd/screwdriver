@@ -3,9 +3,6 @@
 const workflowParser = require('screwdriver-workflow-parser');
 const schema = require('screwdriver-data-schema');
 const logger = require('screwdriver-logger');
-// const { scm } = require('screwdriver-data-schema/core');
-// const { not } = require('joi');
-// const { repo } = require('screwdriver-data-schema/core/scm');
 const { getReadOnlyInfo } = require('../helper');
 
 const ANNOT_NS = 'screwdriver.cd';

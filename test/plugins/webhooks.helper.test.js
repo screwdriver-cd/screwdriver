@@ -1984,7 +1984,7 @@ describe('startHookEvent test', () => {
                 });
             });
 
-            it('returns 201 when the hook source triggers subscribed event 2', () => {
+            it('returns 201 when the hook source triggers subscribed event', () => {
                 pipelineFactoryMock.scm.parseUrl
                     .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
                     .resolves('github.com:789123:master');
