@@ -297,7 +297,7 @@ function waitForStageBuildStatus(config) {
         // Find stageBuild for stage
         const stageBuild = stageBuildData.find(sb => sb.stageId === stageId);
 
-        if (stageBuild.status === desiredStatus) {
+        if (stageBuild && stageBuild.status === desiredStatus) {
             return stageBuild;
         }
 
