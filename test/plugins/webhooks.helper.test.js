@@ -1876,7 +1876,7 @@ describe('startHookEvent test', () => {
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     // create count should't change with pMock5
-                    // assert.callCount(eventFactoryMock.create, 8);
+                    assert.callCount(eventFactoryMock.create, 3);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pMock1.id,
                         type: 'pr',
