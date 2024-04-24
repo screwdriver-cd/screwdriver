@@ -20,32 +20,19 @@ Before(
         this.stageName = null;
         this.stageId = null;
         this.hubJobId = null;
+        this.pipelines = {};
     }
 );
 
 Given(
-    /^an existing pipeline on branch "(stageFail1|stageFail2|stageSuccess1)" with stage "(simple_fail|incomplete_fail|simple_success)" with the workflow jobs:$/,
+    /^the pipeline has the following stages:$/,
     {
         timeout: TIMEOUT
     },
-    async function step(branchName, stageName, table) {
-        await this.ensurePipelineExists({
-            repoName: this.repoName,
-            branch: branchName,
-            table,
-            shouldNotDeletePipeline: true
+    async function step(table) {
+        await this.ensureStageExists({
+            table
         });
-
-        const resp = await request({
-            url: `${this.instance}/${this.namespace}/stages?name=${stageName}`,
-            method: 'GET',
-            context: {
-                token: this.jwt
-            }
-        });
-
-        this.stageName = stageName;
-        this.stageId = resp.body[0].id;
     }
 );
 

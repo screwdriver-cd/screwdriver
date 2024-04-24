@@ -16,14 +16,17 @@ Feature: Stage
         - Relation between jobs will still be defined using requires.
         - Jobs with empty requires (requires:[]) indicate the start of a stage.
         - Setup and teardown jobs can be implicitly or explicitly created.
-        - When a setup/teardown job is implicitly created, it will be virtual and will not actually run.
-        - Teardown build should run when any job in a stage is terminal; downstream jobs should not continue, and stageBuild should be updated accordingly
+        - Teardown build should run when execution of any job in a stage is not successful; downstream jobs should not continue, and stageBuild should be updated accordingly.
         - Setup build should run before a stage.
 
     Scenario: Downstream builds are not triggered if required stage is not successful.
-        Given an existing pipeline on branch "stageFail1" with stage "simple_fail" with the workflow jobs:
+        Given an existing pipeline on branch "stageFail1" with the workflow jobs:
             | job       | requires      |
             | target    | stage@simple_fail:teardown  |
+            | stage@simple_fail:setup | ~hub |
+        And the pipeline has the following stages:
+            | stage       | jobs   |
+            | simple_fail   | a, b, c |
         When the "hub" job on branch "stageFail1" is started
         And the "hub" build succeeded
         And the "a" job is triggered
@@ -37,9 +40,13 @@ Feature: Stage
         And the "target" job on branch "stageFail1" is not started
 
     Scenario: Downstream builds within a stage are not triggered if upstream build in stage is not successful.
-        Given an existing pipeline on branch "stageFail2" with stage "incomplete_fail" with the workflow jobs:
+        Given an existing pipeline on branch "stageFail2" with the workflow jobs:
             | job       | requires      |
             | target    | stage@incomplete_fail:teardown  |
+            | stage@incomplete_fail:setup | ~hub |
+        And the pipeline has the following stages:
+            | stage     | jobs           |
+            | incomplete_fail | a, b, c |
         When the "hub" job on branch "stageFail2" is started
         And the "hub" build succeeded
         And the "a" job is triggered
@@ -52,9 +59,13 @@ Feature: Stage
         And the "target" job on branch "stageFail2" is not started
 
     Scenario: Downstream builds are triggered if required stage is successful.
-        Given an existing pipeline on branch "stageSuccess1" with stage "simple_success" with the workflow jobs:
+        Given an existing pipeline on branch "stageSuccess1" with the workflow jobs:
             | job       | requires      |
             | target    | stage@simple_success:teardown  |
+            | stage@simple_success:setup | ~hub |
+        And the pipeline has the following stages:
+            | stage     | jobs           |
+            | simple_success | a, b, c |
         When the "hub" job on branch "stageSuccess1" is started
         And the "hub" build succeeded
         And the "a" job is triggered
