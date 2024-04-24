@@ -139,7 +139,9 @@ Arguments:
 
 #### Get all stages for a single pipeline
 
-`GET /pipelines/{id}/stages`
+`page`, `count`, `sort`, `sortBy`, and `name` optional
+
+`GET /pipelines/{id}/stages?page={pageNumber}&count={countNumber}&sort={sort}&name={stageName}`
 
 #### Get all pipeline secrets
 

@@ -2,7 +2,6 @@
 
 const getStageBuildsRoute = require('./stageBuilds/list');
 const getRoute = require('./get');
-const listRoute = require('./list');
 
 /**
  * Stage API Plugin
@@ -14,7 +13,7 @@ const listRoute = require('./list');
 const stagesPlugin = {
     name: 'stages',
     async register(server) {
-        server.route([getStageBuildsRoute(), getRoute(), listRoute()]);
+        server.route([getStageBuildsRoute(), getRoute()]);
     }
 };
 

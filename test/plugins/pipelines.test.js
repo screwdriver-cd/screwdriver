@@ -1028,7 +1028,15 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/pipelines/${id}/stages`
+                url: `/pipelines/${id}/stages`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
             };
             pipelineMock = getPipelineMocks(testPipeline);
             stagesMocks = getStagesMocks(testStages);
@@ -1042,12 +1050,64 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id
-                    }
+                    },
+                    sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testStages);
             }));
 
-        it('returns 400 for passing in string as pipeline id', () => {
+        it('returns 200 and all stages when sort is set', () => {
+            options.url = `/pipelines/${id}/stages?sort=ascending`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: id
+                    },
+                    sort: 'ascending'
+                });
+            });
+        });
+
+        it('returns 200 and all stages when sortBy is set', () => {
+            options.url = `/pipelines/${id}/stages?sort=ascending&sortBy=name`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: 123
+                    },
+                    sort: 'ascending',
+                    sortBy: 'name'
+                });
+            });
+        });
+
+        it('returns 200 and all stages with matched name', () => {
+            options.url = `/pipelines/${id}/stages?page=1&count=3&name=deploy`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: 123,
+                        name: 'deploy'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 400 for passing in string as pipeline ID', () => {
             const stringId = 'test';
 
             options.url = `/pipelines/${stringId}/stages`;
@@ -1067,6 +1127,14 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when the datastore returns an error', () => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            stageFactoryMock.list.rejects(new Error('fittoburst'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
