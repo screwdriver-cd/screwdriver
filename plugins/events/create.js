@@ -21,7 +21,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
             const { buildId, causeMessage, creator } = request.payload;
-            const { scmContext, username } = request.auth.credentials;
+            const { scmContext, username, scope } = request.auth.credentials;
             const { scm } = eventFactory;
             const { isValidToken } = request.server.plugins.pipelines;
             const { updateAdmins } = request.server.plugins.events;
@@ -79,6 +79,11 @@ module.exports = () => ({
 
             if (creator) {
                 payload.creator = creator;
+            } else if (scope.includes('pipeline')) {
+                payload.creator = {
+                    name: 'Pipeline Access Token', // Display name
+                    username
+                };
             }
 
             // Check for startFrom
