@@ -172,16 +172,14 @@ Then(
             config.desiredSha = this.sha;
         }
 
-        return sdapi
-            .searchForBuild(config)
-            .then(build => {
-                this.eventId = build.eventId;
-                const job = this.jobs.find(j => j.name === jobName);
+        return sdapi.searchForBuild(config).then(build => {
+            this.eventId = build.eventId;
+            const job = this.jobs.find(j => j.name === jobName);
 
-                Assert.equal(build.jobId, job.id);
+            Assert.equal(build.jobId, job.id);
 
-                this.buildId = build.id;
-            });
+            this.buildId = build.id;
+        });
     }
 );
 

@@ -1,8 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then } = require('@cucumber/cucumber');
-const request = require('screwdriver-request');
+const { Before, Given, Then } = require('@cucumber/cucumber');
 const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
