@@ -36,8 +36,8 @@ Feature: Stage
         And the "c" job is triggered
         And the "c" build failed
         Then the "stage@simple_fail" stageBuild status is "FAILURE"
-        And the "stage@simple_fail:teardown" job is started
-        And the "target" job on branch "stageFail1" is not started
+        And the "stage@simple_fail:teardown" job is triggered
+        And the "target" job is not triggered
 
     Scenario: Downstream builds within a stage are not triggered if upstream build in stage is not successful.
         Given an existing pipeline on branch "stageFail2" with the workflow jobs:
@@ -54,9 +54,9 @@ Feature: Stage
         And the "b" job is triggered
         And the "b" build failed
         Then the "stage@incomplete_fail" stageBuild status is "FAILURE"
-        And the "stage@incomplete_fail:teardown" job is started
-        And the "c" job on branch "stageFail2" is not started
-        And the "target" job on branch "stageFail2" is not started
+        And the "stage@incomplete_fail:teardown" job is triggered
+        And the "c" job is not triggered
+        And the "target" job is not triggered
 
     Scenario: Downstream builds are triggered if required stage is successful.
         Given an existing pipeline on branch "stageSuccess1" with the workflow jobs:
@@ -75,6 +75,6 @@ Feature: Stage
         And the "c" job is triggered
         And the "c" build succeeded
         Then the "stage@simple_success" stageBuild status is "SUCCESS"
-        And the "stage@simple_success:teardown" job is started
+        And the "stage@simple_success:teardown" job is triggered
         And the "target" job is triggered
         And the "target" build succeeded

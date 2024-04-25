@@ -36,33 +36,6 @@ Given(
     }
 );
 
-When(
-    /^the "(hub)" job on branch "(stageFail1|stageFail2|stageSuccess1)" is started$/,
-    {
-        timeout: TIMEOUT
-    },
-    function step(jobName, branchName) {
-        const jobId = jobName ? Object.values(this.jobs).find(val => val.name === jobName).id : this.jobId;
-
-        return request({
-            url: `${this.instance}/${this.namespace}/builds`,
-            method: 'POST',
-            json: {
-                jobId
-            },
-            context: {
-                token: this.jwt
-            }
-        }).then(resp => {
-            Assert.equal(resp.statusCode, 201);
-
-            this.branchName = branchName;
-            this.buildId = resp.body.id;
-            this.eventId = resp.body.eventId;
-        });
-    }
-);
-
 Then(
     /^the "(?:stage@(simple_fail|incomplete_fail|simple_success))" stageBuild status is "(SUCCESS|FAILURE)"$/,
     { timeout: TIMEOUT },
@@ -81,49 +54,5 @@ Then(
             this.stageBuildId = stageBuild.id;
             this.stageBuildStatus = stageBuild.status;
         });
-    }
-);
-
-Then(
-    /^the "([^"]*)" job is started$/,
-    {
-        timeout: TIMEOUT
-    },
-    async function step(jobName) {
-        const build = await sdapi.searchForBuild({
-            instance: this.instance,
-            pipelineId: this.pipelineId,
-            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-            jobName,
-            jwt: this.jwt
-        });
-
-        this.buildId = build.id;
-        this.eventId = build.eventId;
-
-        Assert.ok(build);
-    }
-);
-
-Then(
-    /^the "([^"]*)" job on branch "([^"]*)" is not started/,
-    {
-        timeout: TIMEOUT
-    },
-    async function step(jobName, branchName) {
-        const build = await sdapi.findBuilds({
-            instance: this.instance,
-            pipelineId: this.pipelineId,
-            jobName,
-            jwt: this.jwt
-        });
-
-        this.branchName = branchName;
-
-        let result = build.body || [];
-
-        result = result.filter(item => item.sha === this.sha);
-
-        Assert.equal(result.length, 0, 'Unexpected job was triggered.');
     }
 );

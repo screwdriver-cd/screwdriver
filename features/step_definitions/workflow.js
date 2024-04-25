@@ -160,15 +160,20 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName) {
+        const config = {
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName,
+            jwt: this.jwt
+        };
+
+        if (this.sha) {
+            config.desiredSha = this.sha;
+        }
+
         return sdapi
-            .searchForBuild({
-                instance: this.instance,
-                pipelineId: this.pipelineId,
-                desiredSha: this.sha,
-                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-                jobName,
-                jwt: this.jwt
-            })
+            .searchForBuild(config)
             .then(build => {
                 this.eventId = build.eventId;
                 const job = this.jobs.find(j => j.name === jobName);
