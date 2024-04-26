@@ -84,3 +84,72 @@ Feature: Stage
         And the "target" build succeeded
         And the "stage@simple_success:teardown" build succeeded
         And the "stage@simple_success" stageBuild status is "SUCCESS"
+
+    Scenario: Downstream builds are not triggered if stage setup job is not successful.
+        Given an existing pipeline on branch "setupFail" with the workflow jobs:
+            | job       | requires      |
+            | target    | stage@setup_fail:teardown  |
+            | stage@setup_fail:setup | ~hub |
+        And the pipeline has the following stages:
+            | stage     | jobs           |
+            | setup_fail | a, b, c |
+        When the "hub" job on branch "setupFail" is started
+        And the "hub" build succeeded
+        And the "stage@setup_fail:setup" job is triggered
+        And the "stage@setup_fail:setup" build failed
+        Then the "stage@setup_fail" stageBuild status is "FAILURE"
+        And the "stage@setup_fail:teardown" job is triggered
+        And the "a" job is not triggered
+        And the "target" job is not triggered
+        And the "stage@setup_fail:teardown" build succeeded
+        And the "stage@setup_fail" stageBuild status is "FAILURE"
+
+    Scenario: Downstream builds are not triggered if stage teardown job is not successful.
+        Given an existing pipeline on branch "teardownFail" with the workflow jobs:
+            | job       | requires      |
+            | target    | stage@teardown_fail:teardown  |
+            | stage@teardown_fail:setup | ~hub |
+        And the pipeline has the following stages:
+            | stage       | jobs   |
+            | teardown_fail   | a, b, c |
+        When the "hub" job on branch "teardownFail" is started
+        And the "hub" build succeeded
+        And the "a" job is triggered
+        And the "a" build succeeded
+        And the "b" job is triggered
+        And the "b" build succeeded
+        And the "c" job is triggered
+        And the "c" build succeeded
+        Then the "stage@teardown_fail" stageBuild status is "SUCCESS"
+        And the "stage@teardown_fail:teardown" job is triggered
+        And the "stage@teardown_fail:teardown" build failed
+        And the "stage@teardown_fail" stageBuild status is "FAILURE"
+        And the "target" job is not triggered
+
+    Scenario: Downstream stage is triggered if required stage is successful.
+        Given an existing pipeline on branch "twoStageSuccess" with the workflow jobs:
+            | job       | requires      |
+            | target    | stage@simple_success2:teardown  |
+            | stage@simple_success2:setup | stage@simple_success1:teardown  |
+            | stage@simple_success1:setup | ~hub |
+        And the pipeline has the following stages:
+            | stage     | jobs           |
+            | simple_success1 | a, b |
+            | simple_success2 | c, d |
+        When the "hub" job on branch "twoStageSuccess" is started
+        And the "hub" build succeeded
+        And the "a" job is triggered
+        And the "a" build succeeded
+        And the "b" job is triggered
+        And the "b" build succeeded
+        And the "stage@simple_success1:teardown" job is triggered
+        Then the "stage@simple_success1" stageBuild status is "SUCCESS"
+        And the "c" job is triggered
+        And the "c" build succeeded
+        And the "d" job is triggered
+        And the "d" build succeeded
+        And the "stage@simple_success2:teardown" job is triggered
+        And the "stage@simple_success2:teardown" build succeeded
+        And the "stage@simple_success2" stageBuild status is "SUCCESS"
+        And the "target" job is triggered
+        And the "target" build succeeded
