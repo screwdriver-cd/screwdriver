@@ -2,7 +2,7 @@
 
 /* eslint max-classes-per-file: off */
 
-const configParser = require('screwdriver-config-parser').parsePipelineTemplate;
+const configParser = require('screwdriver-config-parser').parsePipelineYaml;
 const fs = require('fs');
 const { Server } = require('@hapi/hapi');
 const sinon = require('sinon');

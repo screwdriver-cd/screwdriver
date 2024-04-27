@@ -1,6 +1,6 @@
 'use strict';
 
-const parser = require('screwdriver-config-parser').parsePipelineTemplate;
+const parser = require('screwdriver-config-parser').parsePipelineYaml;
 const schema = require('screwdriver-data-schema');
 const validatorSchema = schema.api.validator;
 
