@@ -398,8 +398,17 @@ describe('pipeline plugin test', () => {
                             description: 'template description',
                             maintainer: 'name@domain.org',
                             config: {
-                                jobs: { main: { steps: [{ init: 'npm install' }, { test: 'npm test' }] } },
-                                shared: {},
+                                jobs: {
+                                    main: {
+                                        steps: [{ init: 'npm install' }, { test: 'npm test' }],
+                                        annotations: {},
+                                        environment: {},
+                                        settings: {},
+                                        image: 'node:20',
+                                        secrets: [],
+                                        sourcePaths: []
+                                    }
+                                },
                                 parameters: {}
                             }
                         }
