@@ -271,7 +271,7 @@ describe('pipeline plugin test', () => {
                             annotations: {},
                             environment: {},
                             settings: {},
-                            image: undefined,
+                            image: 'node:20',
                             secrets: [],
                             sourcePaths: []
                         }
