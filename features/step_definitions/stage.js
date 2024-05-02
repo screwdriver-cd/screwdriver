@@ -12,7 +12,7 @@ Before(
     },
     function hook() {
         this.repoOrg = this.testOrg;
-        this.repoName = 'test-stage'; // functional-stage
+        this.repoName = 'functional-stage';
         this.buildId = null;
         this.eventId = null;
         this.pipelineId = null;
