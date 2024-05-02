@@ -794,7 +794,7 @@ describe('auth plugin test', () => {
 
                 describe('gheCloud flag', async () => {
                     beforeEach(async () => {
-                        const scmsTemp = Object.assign({}, scm.scms['github:github.com']);
+                        const scmsTemp = { ...scm.scms['github:github.com'] };
 
                         await server.register({
                             plugin,
