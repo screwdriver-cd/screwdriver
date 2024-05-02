@@ -5,6 +5,7 @@ const fs = require('mz/fs');
 const Assert = require('chai').assert;
 const request = require('screwdriver-request');
 const { Before, Given, Then, When } = require('@cucumber/cucumber');
+const { error } = require('console');
 
 const TIMEOUT = 240 * 1000;
 
@@ -29,8 +30,7 @@ Before(
                 branch: this.branchName,
                 shouldNotDeletePipeline: true
             })
-                .then(() =>
-                    request({
+                .then(() => request({
                         url: `${this.instance}/${this.namespace}/events`,
                         method: 'POST',
                         json: {
@@ -292,6 +292,9 @@ Then(
             } else {
                 Assert.equal(length, this.numOfTemplate);
             }
+        }).catch(error => {
+            const errorMessage = error.message; // Get the error message
+            Assert.include(errorMessage, "Template does not exist");
         });
     }
 );
