@@ -27,6 +27,11 @@ server.register({
 
 ### Routes
 
+#### Get single stage
+
+`GET /stages/{id}`
+
 #### Get a listing of all stage builds for a stage
 
 `GET /stages/{id}/stageBuilds`
+`GET /stages/{id}/stageBuilds?eventId={eventId}`

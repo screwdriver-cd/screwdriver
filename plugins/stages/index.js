@@ -1,6 +1,7 @@
 'use strict';
 
 const getStageBuildsRoute = require('./stageBuilds/list');
+const getRoute = require('./get');
 
 /**
  * Stage API Plugin
@@ -12,7 +13,7 @@ const getStageBuildsRoute = require('./stageBuilds/list');
 const stagesPlugin = {
     name: 'stages',
     async register(server) {
-        server.route([getStageBuildsRoute()]);
+        server.route([getStageBuildsRoute(), getRoute()]);
     }
 };
 
