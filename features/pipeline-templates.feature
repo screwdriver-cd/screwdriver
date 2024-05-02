@@ -21,10 +21,9 @@ Feature: Pipeline Templates
         template: node/test@1
 
     The user's config would be translated to:
-        shared:
-            image: node:18
         jobs:
             main:
+                image: node:18
                 steps:
                     - init: npm install
                     - test: npm test
