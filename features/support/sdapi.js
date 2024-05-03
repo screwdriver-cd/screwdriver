@@ -146,8 +146,18 @@ function findEventBuilds(config) {
  * @param  {String}  [config.eventId]           Event ID
  * @return {Promise}                            A build that fulfills the given criteria
  */
-function searchForBuild(config) {
-    const { instance, pipelineId, pullRequestNumber, desiredSha, desiredStatus, jwt, parentBuildId, eventId } = config;
+function searchForBuild(config, retry = 1000, retryCount = 0) {
+    const {
+        instance,
+        pipelineId,
+        pullRequestNumber,
+        desiredSha,
+        subscribedConfigSha,
+        desiredStatus,
+        jwt,
+        parentBuildId,
+        eventId
+    } = config;
     const jobName = config.jobName || 'main';
 
     return findBuilds({
@@ -161,6 +171,10 @@ function searchForBuild(config) {
 
         if (desiredSha) {
             result = result.filter(item => item.sha === desiredSha);
+        }
+
+        if (subscribedConfigSha) {
+            result = result.filter(item => item.subscribedConfigSha === subscribedConfigSha);
         }
 
         if (desiredStatus) {
@@ -179,7 +193,11 @@ function searchForBuild(config) {
             return result[0];
         }
 
-        return promiseToWait(WAIT_TIME).then(() => searchForBuild(config));
+        if (retryCount >= retry) {
+            return Promise.reject(new Error('Retry count exceeded'));
+        }
+
+        return promiseToWait(WAIT_TIME).then(() => searchForBuild(config, retry, retryCount + 1));
     });
 }
 
