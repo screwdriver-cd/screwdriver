@@ -1435,7 +1435,7 @@ describe('startHookEvent test', () => {
                         branch: Promise.resolve('master')
                     })
                 ]);
-            const pipelineMock2 = { ...pipelineMock };
+            const pipelineMock2 = JSON.parse(JSON.stringify(pipelineMock));
 
             pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['commit'] }];
             pipelineFactoryMock.list
@@ -2008,7 +2008,7 @@ describe('startHookEvent test', () => {
                             branch: Promise.resolve('master')
                         })
                     ]);
-                const pipelineMock2 = { ...pipelineMock };
+                const pipelineMock2 = JSON.parse(JSON.stringify(pipelineMock));
 
                 pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['pr'] }];
                 pipelineFactoryMock.list
