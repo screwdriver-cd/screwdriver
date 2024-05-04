@@ -5,7 +5,6 @@ const sinon = require('sinon');
 const rewire = require('rewire');
 const { assert } = chai;
 const hoek = require('@hapi/hoek');
-const _ = require('lodash');
 
 chai.use(require('chai-as-promised'));
 
@@ -1436,7 +1435,7 @@ describe('startHookEvent test', () => {
                         branch: Promise.resolve('master')
                     })
                 ]);
-            const pipelineMock2 = _.cloneDeep(pipelineMock);
+            const pipelineMock2 = { ...pipelineMock };
 
             pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['commit'] }];
             pipelineFactoryMock.list
@@ -2009,7 +2008,7 @@ describe('startHookEvent test', () => {
                             branch: Promise.resolve('master')
                         })
                     ]);
-                const pipelineMock2 = _.cloneDeep(pipelineMock);
+                const pipelineMock2 = { ...pipelineMock };
 
                 pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['pr'] }];
                 pipelineFactoryMock.list
