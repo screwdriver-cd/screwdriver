@@ -20,6 +20,7 @@ const locker = require('../lock');
 const { OrTrigger } = require('./triggers/or');
 const { AndTrigger } = require('./triggers/and');
 const { RemoteTrigger } = require('./triggers/remoteTrigger');
+const { RemoteJoin } = require('./triggers/remoteJoin');
 const {
     strToInt,
     createJoinObject,
@@ -31,10 +32,9 @@ const {
     extractExternalJoinData,
     extractCurrentPipelineJoinData,
     createExternalEvent,
-    getFinishedBuilds,
+    getBuildsForGroupEvent,
     buildsToRestartFilter
 } = require('./triggers/helpers');
-const { RemoteJoin } = require('./triggers/remoteJoin');
 
 /**
  * Delete a build
@@ -62,17 +62,14 @@ async function triggerNextJobs(config, app) {
     const currentPipeline = config.pipeline;
     const currentJob = config.job;
     const currentBuild = config.build;
-    const currentStage = config.stage;
     const { jobFactory, buildFactory, eventFactory, pipelineFactory } = app;
 
     /** @type {EventModel} */
     const currentEvent = await eventFactory.get({ id: currentBuild.eventId });
     const current = {
         pipeline: currentPipeline,
-        job: currentJob,
         build: currentBuild,
-        event: currentEvent,
-        stage: currentStage
+        event: currentEvent
     };
     /** @type Array<string> */
     const nextJobsTrigger = workflowParser.getNextJobs(currentEvent.workflowGraph, {
@@ -83,7 +80,7 @@ async function triggerNextJobs(config, app) {
 
     // Trigger OrTrigger and AndTrigger for current pipeline jobs.
     // Helper function to handle triggering jobs in same pipeline
-    const orTrigger = new OrTrigger(app, config, currentEvent);
+    const orTrigger = new OrTrigger(app, config);
     const andTrigger = new AndTrigger(app, config, currentEvent);
     const currentPipelineNextJobs = extractCurrentPipelineJoinData(pipelineJoinData, currentPipeline.id);
 
@@ -110,7 +107,7 @@ async function triggerNextJobs(config, app) {
              *    joinList doesn't include D, so start A
              */
             if (isOrTrigger(currentEvent.workflowGraph, currentJob.name, nextJobName)) {
-                await orTrigger.run(nextJobName, nextJobId, parentBuilds);
+                await orTrigger.run(currentEvent, currentPipeline.id, nextJobName, nextJobId, parentBuilds);
             } else {
                 await andTrigger.run(nextJobName, nextJobId, parentBuilds, joinListNames);
             }
@@ -125,13 +122,13 @@ async function triggerNextJobs(config, app) {
 
     // Trigger RemoteJoin and RemoteTrigger for current and external pipeline jobs.
     // Helper function to handle triggering jobs in external pipeline
-    const remoteTrigger = new RemoteTrigger(app, config, currentEvent);
+    const remoteTrigger = new RemoteTrigger(app, config);
     const remoteJoin = new RemoteJoin(app, config, currentEvent);
     const externalPipelineJoinData = extractExternalJoinData(pipelineJoinData, currentPipeline.id);
 
     for (const [joinedPipelineId, joinedPipeline] of Object.entries(externalPipelineJoinData)) {
         const isCurrentPipeline = strToInt(joinedPipelineId) === currentPipeline.id;
-        const remoteJoinName = `sd@${current.pipeline.id}:${current.job.name}`;
+        const remoteJoinName = `sd@${currentPipeline.id}:${currentJob.name}`;
         const remoteTriggerName = `~${remoteJoinName}`;
         let lock;
         let resource;
@@ -139,14 +136,9 @@ async function triggerNextJobs(config, app) {
         let externalEvent = joinedPipeline.event;
 
         // This includes CREATED builds too
-        const externalFinishedBuilds =
-            externalEvent !== undefined ? await getFinishedBuilds(externalEvent, buildFactory) : [];
-        const buildsToRestart = buildsToRestartFilter(
-            joinedPipeline,
-            externalFinishedBuilds,
-            currentEvent,
-            currentBuild
-        );
+        const groupEventBuilds =
+            externalEvent !== undefined ? await getBuildsForGroupEvent(externalEvent.groupEventId, buildFactory) : [];
+        const buildsToRestart = buildsToRestartFilter(joinedPipeline, groupEventBuilds, currentEvent, currentBuild);
         const isRestart = buildsToRestart.length > 0;
 
         // If user used external trigger syntax, the jobs are triggered as external
@@ -203,7 +195,13 @@ async function triggerNextJobs(config, app) {
 
             try {
                 if (isOrTrigger(externalEvent.workflowGraph, remoteTriggerName, nextJobName)) {
-                    await remoteTrigger.run(externalEvent, nextJobName, nextJobId, parentBuilds);
+                    await remoteTrigger.run(
+                        externalEvent,
+                        externalEvent.pipelineId,
+                        nextJobName,
+                        nextJobId,
+                        parentBuilds
+                    );
                 } else {
                     // Re get join list when first time remote trigger since external event was empty and cannot get workflow graph then
                     const joinList =
@@ -217,7 +215,7 @@ async function triggerNextJobs(config, app) {
                         nextJobName,
                         nextJobId,
                         parentBuilds,
-                        externalFinishedBuilds,
+                        groupEventBuilds,
                         joinListNames
                     );
                 }

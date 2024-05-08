@@ -461,15 +461,13 @@ function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, next
 }
 
 /**
- * Get finished builds whose groupEventId is event.groupEventId. Only the latest build is retrieved for each job.
- * @param  {Event}      event                   Current event
- * @param  {Number}     [event.parentEventId]   Parent event ID
- * @param  {Number}     [event.groupEventId]    Group parent event ID
+ * Get builds whose groupEventId is event.groupEventId. Only the latest build is retrieved for each job.
+ * @param  {Number}     groupEventId            Group parent event ID
  * @param  {Factory}    buildFactory            Build factory
  * @return {Promise}                            All finished builds
  */
-async function getFinishedBuilds(event, buildFactory) {
-    const builds = await buildFactory.getLatestBuilds({ groupEventId: event.groupEventId, readOnly: false });
+async function getBuildsForGroupEvent(groupEventId, buildFactory) {
+    const builds = await buildFactory.getLatestBuilds({ groupEventId, readOnly: false });
 
     builds.forEach(b => {
         try {
@@ -641,7 +639,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 /**
  * Merge parentBuilds object with missing job information from latest builds object
  * @param {Object}  parentBuilds    parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
- * @param {Object}  finishedBuilds  Completed builds which is used to fill parentBuilds data
+ * @param {Object}  relatedBuilds   Related builds which is used to fill parentBuilds data
  * @param {Object}  currentEvent    Current event
  * @param {Object}  nextEvent       Next triggered event (Remote trigger or Same pipeline event triggered as external)
  * @returns {Object} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
@@ -659,7 +657,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  *     },
  * }
  */
-function mergeParentBuilds(parentBuilds, finishedBuilds, currentEvent, nextEvent) {
+function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent) {
     const newParentBuilds = {};
 
     Object.entries(parentBuilds).forEach(([pipelineId, builds]) => {
@@ -697,7 +695,7 @@ function mergeParentBuilds(parentBuilds, finishedBuilds, currentEvent, nextEvent
                 return;
             }
 
-            const targetBuild = finishedBuilds.find(b => b.jobId === targetJob.id);
+            const targetBuild = relatedBuilds.find(b => b.jobId === targetJob.id);
 
             if (!targetBuild) {
                 logger.warn(`Job ${jobName}:${pipelineId} not found in builds`);
@@ -740,12 +738,11 @@ function mergeParentBuilds(parentBuilds, finishedBuilds, currentEvent, nextEvent
  * }
  */
 async function createJoinObject(nextJobs, current, eventFactory) {
-    const { build, event } = current;
-
+    const { build, event, pipeline } = current;
     const joinObj = {};
 
     for (const jobName of nextJobs) {
-        let nextJobPipelineId = current.pipeline.id;
+        let nextJobPipelineId = pipeline.id;
         let nextJobName = jobName;
         let isExternal = false;
 
@@ -763,7 +760,7 @@ async function createJoinObject(nextJobs, current, eventFactory) {
         const pipelineObj = joinObj[nextJobPipelineId];
         let jobs;
 
-        if (nextJobPipelineId !== current.pipeline.id) {
+        if (nextJobPipelineId !== pipeline.id) {
             jobs = [];
 
             const externalEvent = pipelineObj.event || (await getExternalEvent(build, nextJobPipelineId, eventFactory));
@@ -981,15 +978,15 @@ function isOrTrigger(workflowGraph, currentJobName, nextJobName) {
 /**
  *
  * @param {JoinJobs} joinJobs
- * @param {Job[]} externalFinishedBuilds
+ * @param {Job[]} groupEventBuilds
  * @param {Event} currentEvent
  * @param {Build} currentBuild
  */
-function buildsToRestartFilter(joinJobs, externalFinishedBuilds, currentEvent, currentBuild) {
+function buildsToRestartFilter(joinJobs, groupEventBuilds, currentEvent, currentBuild) {
     return Object.values(joinJobs.jobs)
         .map(joinJob => {
             // Next triggered job's build belonging to same event group
-            const existBuild = externalFinishedBuilds.find(build => build.jobId === joinJob.id);
+            const existBuild = groupEventBuilds.find(build => build.jobId === joinJob.id);
 
             // If there is no same job's build, then first time trigger
             if (!existBuild) return null;
@@ -1019,7 +1016,7 @@ module.exports = {
     getParentBuildStatus,
     handleNewBuild,
     handleStageFailure,
-    getFinishedBuilds,
+    getBuildsForGroupEvent,
     createJoinObject,
     createExternalEvent,
     getParentBuildIds,
