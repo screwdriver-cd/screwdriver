@@ -828,7 +828,8 @@ describe('build plugin test', () => {
                             settings: {}
                         }
                     ],
-                    pipeline: sinon.stub().resolves(pipelineMock)()
+                    pipeline: sinon.stub().resolves(pipelineMock)(),
+                    getLatestBuild: sinon.stub().resolves(buildMock)
                 };
                 userMock = {
                     username: 'foo',
@@ -1518,6 +1519,7 @@ describe('build plugin test', () => {
                     };
 
                     jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs(publishJobMock.id).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves({ state: 'ENABLED' });
 
@@ -1941,6 +1943,7 @@ describe('build plugin test', () => {
                     };
 
                     jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs(publishJobMock.id).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(null);
 
@@ -2034,6 +2037,7 @@ describe('build plugin test', () => {
 
                     publishJobMock.state = 'DISABLED';
 
+                    jobFactoryMock.get.withArgs(publishJobMock.id).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves(publishJobMock);
 
                     return server.inject(options).then(reply => {
@@ -2069,6 +2073,7 @@ describe('build plugin test', () => {
                     };
 
                     jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs(publishJobMock.id).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'publish' }).resolves({ state: 'DISABLED' });
 
@@ -2161,6 +2166,8 @@ describe('build plugin test', () => {
                     eventMock.baseBranch = 'master';
                     eventMock.sha = '58393af682d61de87789fb4961645c42180cec5a';
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
+                    jobFactoryMock.get.withArgs(jobB.id).resolves(jobB);
+                    jobFactoryMock.get.withArgs(jobC.id).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
                     jobMock.name = 'a';
@@ -2653,6 +2660,8 @@ describe('build plugin test', () => {
                     );
                     eventFactoryMock.get.withArgs({ id: 456 }).resolves(parentEventMock);
                     eventFactoryMock.get.withArgs(8888).resolves(parentEventMock);
+                    jobFactoryMock.get.withArgs(jobB.id).resolves(jobB);
+                    jobFactoryMock.get.withArgs(jobC.id).resolves(jobC);
                     jobFactoryMock.get.withArgs(6).resolves(jobC);
                     jobFactoryMock.get.withArgs(3).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
@@ -2756,7 +2765,8 @@ describe('build plugin test', () => {
                 it('triggers next job as external when user used external syntax for same pipeline', () => {
                     const expectedEventArgs = {
                         pipelineId: '123',
-                        startFrom: '~sd@123:a',
+                        startFrom: 'sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
                         parentBuildId: 12345,
@@ -2790,8 +2800,12 @@ describe('build plugin test', () => {
                         ]
                     };
 
+                    const externalEventMock = { ...eventMock };
+
+                    eventFactoryMock.create.resolves(externalEventMock);
+
                     return newServer.inject(options).then(() => {
-                        assert.notCalled(buildFactoryMock.create);
+                        assert.calledOnce(buildFactoryMock.create);
                         assert.calledOnce(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                     });
@@ -2800,7 +2814,8 @@ describe('build plugin test', () => {
                 it('triggers next next job when next job is external', () => {
                     const expectedEventArgs = {
                         pipelineId: '2',
-                        startFrom: '~sd@123:a',
+                        startFrom: 'sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
                         parentBuildId: 12345,
@@ -2815,38 +2830,59 @@ describe('build plugin test', () => {
                         username: 'foo',
                         sha: 'sha'
                     };
+                    const expectedBuildArgs = {
+                        jobId: 2,
+                        parentBuildId: 12345,
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888',
+                                jobs: {
+                                    a: 12345
+                                }
+                            }
+                        },
+                        eventId: 2,
+                        username: 12345,
+                        scmContext: 'github:github.com',
+                        prRef: '',
+                        prSource: '',
+                        prInfo: '',
+                        start: true,
+                        baseBranch: null,
+                        sha: 'sha',
+                        configPipelineSha: 'sha'
+                    };
+
                     const externalEventMock = {
                         id: 2,
                         builds: externalEventBuilds,
+                        workflowGraph: {
+                            nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'a', id: 2 }],
+                            edges: [{ src: '~sd@123:a', dest: 'a' }]
+                        },
+                        sha: 'sha',
+                        configPipelineSha: 'sha',
                         getBuilds: sinon.stub().resolves(externalEventBuilds)
                     };
 
                     eventFactoryMock.create.resolves(externalEventMock);
-                    buildFactoryMock.get.withArgs(555).resolves({ id: 1234, status: 'SUCCESS' });
+                    eventFactoryMock.list.resolves([]);
+                    buildFactoryMock.get.withArgs({ eventId: 2, jobId: 2 }).resolves(null);
+                    buildFactoryMock.create.withArgs(expectedBuildArgs).returns({ id: 5 });
                     eventMock.workflowGraph = {
-                        nodes: [
-                            { name: '~pr' },
-                            { name: '~commit' },
-                            { name: 'a', id: 1 },
-                            { name: 'b', id: 2 },
-                            { name: 'c', id: 3 },
-                            { name: 'sd@2:a', id: 4 }
-                        ],
+                        nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'a', id: 1 }, { name: 'sd@2:a', id: 2 }],
                         edges: [
                             { src: '~pr', dest: 'a' },
                             { src: '~commit', dest: 'a' },
-                            { src: 'a', dest: 'b' },
-                            { src: 'b', dest: 'c', join: true },
-                            { src: 'a', dest: 'sd@2:a' },
-                            { src: 'sd@2:a', dest: 'c', join: true }
+                            { src: 'a', dest: 'sd@2:a' }
                         ]
                     };
 
                     return newServer.inject(options).then(() => {
-                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
-                        assert.calledOnce(buildFactoryMock.create);
                         assert.calledOnce(eventFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
+                        assert.calledOnce(buildFactoryMock.create);
+                        assert.calledWith(buildFactoryMock.create, expectedBuildArgs);
                     });
                 });
 
@@ -2854,7 +2890,8 @@ describe('build plugin test', () => {
                     const expectedEventArgs = {
                         pipelineId: '2',
                         configPipelineSha: 'sha',
-                        startFrom: '~sd@123:a',
+                        startFrom: 'sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
                         parentBuildId: 12345,
@@ -2872,6 +2909,12 @@ describe('build plugin test', () => {
                     const externalEventMock = {
                         id: 2,
                         builds: externalEventBuilds,
+                        workflowGraph: {
+                            nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'a', id: 2 }],
+                            edges: [{ src: '~sd@123:a', dest: 'a' }]
+                        },
+                        sha: 'sha',
+                        configPipelineSha: 'sha',
                         getBuilds: sinon.stub().resolves(externalEventBuilds)
                     };
 
@@ -2928,6 +2971,7 @@ describe('build plugin test', () => {
                         })
                     );
                     eventFactoryMock.create.resolves(externalEventMock);
+                    eventFactoryMock.list.resolves([]);
                     buildFactoryMock.get.withArgs(555).resolves({ id: 1234, status: 'SUCCESS' });
                     eventMock.workflowGraph = {
                         nodes: [
@@ -2949,9 +2993,9 @@ describe('build plugin test', () => {
                     };
 
                     return newServer.inject(options).then(() => {
-                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
+                        assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
                     });
                 });
 
@@ -3191,6 +3235,7 @@ describe('build plugin test', () => {
                     const buildC = {
                         jobId: 3,
                         id: 3,
+                        eventId: '8889',
                         status: 'CREATED',
                         parentBuilds: {
                             2: {
@@ -3457,7 +3502,7 @@ describe('build plugin test', () => {
                         configPipelineSha: 'abc123',
                         eventId: 8887,
                         jobId: 3,
-                        parentBuildId: [12345],
+                        parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
                             2: { eventId: '8887', jobs: { a: 12345, b: null } }
@@ -3467,7 +3512,7 @@ describe('build plugin test', () => {
                         prInfo: '',
                         scmContext: 'github:github.com',
                         sha: '58393af682d61de87789fb4961645c42180cec5a',
-                        start: false,
+                        start: true,
                         username: 12345
                     };
 
@@ -3506,7 +3551,7 @@ describe('build plugin test', () => {
                                 { src: '~pr', dest: 'a' },
                                 { src: '~commit', dest: 'a' },
                                 { src: 'a', dest: '~sd@123:c' },
-                                { src: '~sd@123:c', dest: 'c' },
+                                { src: '~sd@123:a', dest: 'c' },
                                 { src: 'b', dest: 'c', join: true }
                             ]
                         }
@@ -3522,6 +3567,7 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.withArgs(8889).resolves({ ...externalEventMock, id: '8889' });
                     eventFactoryMock.list.resolves([{ ...externalEventMock, id: '8889' }]);
                     buildFactoryMock.create.onCall(0).resolves(buildC);
+                    buildFactoryMock.get.withArgs({ eventId: externalEventMock.id, jobId: 6 }).resolves(null);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
@@ -3529,8 +3575,6 @@ describe('build plugin test', () => {
                         assert.calledOnce(buildFactoryMock.getLatestBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(buildFactoryMock.create, jobCConfig);
-                        assert.calledOnce(buildC.update);
-                        assert.calledOnce(updatedBuildC.start);
                     });
                 });
 
@@ -3611,7 +3655,7 @@ describe('build plugin test', () => {
                         }
                     };
 
-                    eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.get.withArgs('8889').resolves(externalEventMock);
                     eventFactoryMock.list.resolves([{ ...externalEventMock, id: '8889' }]);
                     buildFactoryMock.create.onCall(0).returns({ ...buildMock, status: 'CREATED' });
                     buildFactoryMock.create.onCall(1).returns({ ...buildMock, status: 'CREATED' });
@@ -3692,12 +3736,14 @@ describe('build plugin test', () => {
                         pipelineId: '2',
                         scmContext: 'github:github.com',
                         sha: 'sha',
-                        startFrom: '~sd@123:a',
+                        startFrom: 'sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         username: 'foo'
                     };
 
                     eventFactoryMock.get.withArgs('8887').resolves(externalEventMock);
+                    eventFactoryMock.create.withArgs(eventConfig).resolves(externalEventMock);
                     eventFactoryMock.list.resolves([{ ...externalEventMock, id: '8889' }]);
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
@@ -4393,7 +4439,8 @@ describe('build plugin test', () => {
                         pipelineId: '2',
                         scmContext: 'github:github.com',
                         sha: 'sha',
-                        startFrom: '~sd@123:a',
+                        startFrom: 'sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         username: 'foo'
                     };
@@ -4986,9 +5033,14 @@ describe('build plugin test', () => {
                         eventFactoryMock.create.resolves({
                             id: 2,
                             builds: externalEventBuilds,
+                            workflowGraph: {
+                                nodes: [],
+                                edges: [{ src: '~sd@123:a', dest: 'a' }]
+                            },
                             getBuilds: sinon.stub().resolves(externalEventBuilds)
                         });
                         buildFactoryMock.get.withArgs(555).resolves({ id: 1234, status: 'SUCCESS' });
+                        eventFactoryMock.list.resolves([]);
                         eventMock.workflowGraph = {
                             nodes: [
                                 { name: '~pr' },

@@ -362,7 +362,7 @@ class EventFactoryMock {
 
         this.records.push(event);
 
-        if (config.startFrom) {
+        if (config.startFrom && !config.skipMessage) {
             const { startFrom } = config;
             const startJobs = [];
 

@@ -33,7 +33,8 @@ const {
     extractCurrentPipelineJoinData,
     createExternalEvent,
     getBuildsForGroupEvent,
-    buildsToRestartFilter
+    buildsToRestartFilter,
+    trimJobName
 } = require('./triggers/helpers');
 
 /**
@@ -77,6 +78,7 @@ async function triggerNextJobs(config, app) {
         chainPR: currentPipeline.chainPR
     });
     const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
+    const originalCurrentJobName = trimJobName(currentJob.name);
 
     // Trigger OrTrigger and AndTrigger for current pipeline jobs.
     // Helper function to handle triggering jobs in same pipeline
@@ -106,7 +108,7 @@ async function triggerNextJobs(config, app) {
              * 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
              *    joinList doesn't include D, so start A
              */
-            if (isOrTrigger(currentEvent.workflowGraph, currentJob.name, nextJobName)) {
+            if (isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName))) {
                 await orTrigger.run(currentEvent, currentPipeline.id, nextJobName, nextJobId, parentBuilds);
             } else {
                 await andTrigger.run(nextJobName, nextJobId, parentBuilds, joinListNames);
@@ -128,7 +130,7 @@ async function triggerNextJobs(config, app) {
 
     for (const [joinedPipelineId, joinedPipeline] of Object.entries(externalPipelineJoinData)) {
         const isCurrentPipeline = strToInt(joinedPipelineId) === currentPipeline.id;
-        const remoteJoinName = `sd@${currentPipeline.id}:${currentJob.name}`;
+        const remoteJoinName = `sd@${currentPipeline.id}:${originalCurrentJobName}`;
         const remoteTriggerName = `~${remoteJoinName}`;
         let lock;
         let resource;
@@ -149,7 +151,6 @@ async function triggerNextJobs(config, app) {
         // no need to lock if there is no external event
         if (externalEvent) {
             resource = `pipeline:${joinedPipelineId}:event:${externalEvent.id}`;
-            lock = await locker.lock(resource);
         }
 
         // Create a new external event
@@ -169,6 +170,8 @@ async function triggerNextJobs(config, app) {
                 parentBuilds,
                 causeMessage: `Triggered by ${remoteJoinName}`,
                 parentEventId: currentEvent.id,
+                startFrom: remoteJoinName,
+                skipMessage: 'Skip bulk external builds creation', // Don't start builds in eventFactory.
                 groupEventId: null
             };
 
@@ -194,6 +197,8 @@ async function triggerNextJobs(config, app) {
             });
 
             try {
+                if (resource) lock = await locker.lock(resource);
+
                 if (isOrTrigger(externalEvent.workflowGraph, remoteTriggerName, nextJobName)) {
                     await remoteTrigger.run(
                         externalEvent,
