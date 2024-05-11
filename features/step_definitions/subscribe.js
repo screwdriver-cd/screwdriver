@@ -13,7 +13,6 @@ Before(
         tags: '@subscribe'
     },
     function hook() {
-        github.getOctokit();
         this.repoOrg = this.testOrg;
         this.pipelines = {};
         this.pipelineId = null;
