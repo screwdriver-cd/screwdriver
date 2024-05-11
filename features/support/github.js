@@ -91,7 +91,9 @@ function removeBranch(repoOwner, repoName, branchName) {
         repo: repoName,
         ref: `heads/${branchName}`
     };
+
     octokit = getOctokit();
+
     return octokit.git.getRef(branchParams).then(() => octokit.git.deleteRef(branchParams));
 }
 
@@ -127,6 +129,7 @@ function createBranch(branch, repoOwner, repoName, ref = 'heads/master') {
     const repo = repoName || 'functional-git';
 
     octokit = getOctokit();
+
     return octokit.git
         .getRef({
             owner,
@@ -169,6 +172,7 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
     const message = commitMessage || new Date().toString(); // default commit message is the current time
 
     octokit = getOctokit();
+
     return octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
@@ -189,8 +193,8 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
  * @return {Promise}
  */
 function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
-
     octokit = getOctokit();
+
     return octokit.pulls.create({
         owner: repoOwner,
         repo: repoName,
@@ -214,6 +218,7 @@ function createTag(tag, branch, repoOwner, repoName) {
     const repo = repoName || 'functional-git';
 
     octokit = getOctokit();
+
     return octokit.git
         .getRef({
             owner,
@@ -343,6 +348,7 @@ function getStatus(repoOwner, repoName, sha) {
  */
 function mergePullRequest(repoOwner, repoName, prNumber) {
     octokit = getOctokit();
+
     return octokit.pulls.merge({
         owner: repoOwner,
         repo: repoName,
