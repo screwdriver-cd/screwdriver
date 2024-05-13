@@ -59,6 +59,8 @@ function cleanUpRepository(branch, tags, repoOwner, repoName) {
         ref: `heads/${branch}`
     };
 
+    octokit = getOctokit();
+
     const removeTagPromises = tags.map(tag => {
         const tagParams = {
             owner: repoOwner,
@@ -90,6 +92,8 @@ function removeBranch(repoOwner, repoName, branchName) {
         ref: `heads/${branchName}`
     };
 
+    octokit = getOctokit();
+
     return octokit.git.getRef(branchParams).then(() => octokit.git.deleteRef(branchParams));
 }
 
@@ -102,6 +106,8 @@ function removeBranch(repoOwner, repoName, branchName) {
  * @return {Promise}
  */
 function closePullRequest(repoOwner, repoName, prNumber) {
+    octokit = getOctokit();
+
     return octokit.pulls.update({
         owner: repoOwner,
         repo: repoName,
@@ -121,6 +127,8 @@ function closePullRequest(repoOwner, repoName, prNumber) {
 function createBranch(branch, repoOwner, repoName, ref = 'heads/master') {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
+
+    octokit = getOctokit();
 
     return octokit.git
         .getRef({
@@ -163,6 +171,8 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
     const filePath = directoryName || 'testfiles';
     const message = commitMessage || new Date().toString(); // default commit message is the current time
 
+    octokit = getOctokit();
+
     return octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
@@ -183,6 +193,8 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
  * @return {Promise}
  */
 function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
+    octokit = getOctokit();
+
     return octokit.pulls.create({
         owner: repoOwner,
         repo: repoName,
@@ -204,6 +216,8 @@ function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
 function createTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
+
+    octokit = getOctokit();
 
     return octokit.git
         .getRef({
@@ -238,6 +252,8 @@ function createTag(tag, branch, repoOwner, repoName) {
 function createAnnotatedTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
+
+    octokit = getOctokit();
 
     return octokit.git
         .getRef({
@@ -289,6 +305,8 @@ function createRelease(tagName, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
+    octokit = getOctokit();
+
     return octokit.repos
         .createRelease({
             owner,
@@ -311,6 +329,8 @@ function createRelease(tagName, repoOwner, repoName) {
  * @return {Promise}
  */
 function getStatus(repoOwner, repoName, sha) {
+    octokit = getOctokit();
+
     return octokit.repos.getCombinedStatusForRef({
         owner: repoOwner,
         repo: repoName,
@@ -327,6 +347,8 @@ function getStatus(repoOwner, repoName, sha) {
  * @return {Promise}
  */
 function mergePullRequest(repoOwner, repoName, prNumber) {
+    octokit = getOctokit();
+
     return octokit.pulls.merge({
         owner: repoOwner,
         repo: repoName,
@@ -345,6 +367,5 @@ module.exports = {
     createRelease,
     getStatus,
     mergePullRequest,
-    removeBranch,
-    getOctokit
+    removeBranch
 };
