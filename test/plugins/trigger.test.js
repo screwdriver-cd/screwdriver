@@ -2559,7 +2559,7 @@ describe('trigger tests', () => {
     });
 
     it('[ ~a ] is not triggered when chainPR disabled', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('~a-pr.yaml');
+        const pipeline = await pipelineFactoryMock.createFromFile('~a-PR.yaml');
 
         pipeline.addPRJobs(1);
         pipeline.chainPR = false;
