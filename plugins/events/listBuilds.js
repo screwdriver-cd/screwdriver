@@ -28,7 +28,6 @@ module.exports = () => ({
             }
 
             const config = readOnly ? { readOnly: true } : {};
-
             const buildsModel = await event.getBuilds(config);
 
             let data;

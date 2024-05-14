@@ -101,15 +101,34 @@ Example payload:
 `POST /pipelines/{id}/sync/pullrequests`
 
 #### Get all pipeline events
-`page`, `count`, `sort`, and `prNum` are optional
-Only PR events of specified PR number will be searched when `prNum` is set
 
-`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&prNum={prNumber}`
+Query Params:
+
+* `page` - *Optional* Specific page of the set to return
+* `count` - *Optional* Number of items per page
+* `sort` - *Optional* Sort rangekey by `ascending` or `descending` (default `descending`)
+* `type` - *Optional* Get pipeline or pr events (default `pipeline`)
+* `prNum` - *Optional* Return only PR events of specified PR number
+* `sha` - *Optional* Search `sha` and `configPipelineSha` for events
+
+`GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
+
+#### Get all pipeline builds
+`page`, `count`, `sort`, `latest`, `sortBy`, `fetchSteps`, `readOnly`, and `groupEventId` are optional
+When `latest=true` and `groupEventId` is set, only latest builds in a pipeline based on groupEventId will be returned. The `latest` parameter must be used in conjunction with the `groupEventId`.
+
+`GET /pipelines/{id}/builds?page={pageNumber}&count={countNumber}&sort={sort}&latest=true&groupEventId={groupEventId}&sortBy={sortBy}&fetchSteps=false&readOnly=false`
 
 #### Get all jobs (including pull requests jobs)
 `archived` is optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
 
-`GET /pipelines/{id}/jobs?archived={boolean}`
+Arguments:
+
+* `archived` - Optional and has a default value of `false`, which makes the endpoint not return archived jobs (e.g. closed pull requests)
+* `type` - Optional and can be set to `pr` or `pipeline` to only return PR jobs or non-PR jobs
+* `jobName` - Optional and can be set to only return only a single job
+
+`GET /pipelines/{id}/jobs?archived={boolean}&type={type}&jobName={jobName}`
 
 #### Get Pipeline Admin
 `GET /pipelines/{id}/admin`
@@ -120,7 +139,9 @@ Only PR events of specified PR number will be searched when `prNum` is set
 
 #### Get all stages for a single pipeline
 
-`GET /pipelines/{id}/stages`
+`page`, `count`, `sort`, `sortBy`, and `name` optional
+
+`GET /pipelines/{id}/stages?page={pageNumber}&count={countNumber}&sort={sort}&name={stageName}`
 
 #### Get all pipeline secrets
 
@@ -361,3 +382,23 @@ Delete the template tag. This does not delete the template itself.
 * `namespace` - Namespace of the template
 * `name` - Name of the template
 * `tag` - Tag name of the template
+
+##### Update a pipeline template's trusted property
+
+Update a pipeline template's trusted property
+
+`PUT /pipeline/templates/{namespace}/{name}/trusted`
+
+###### Arguments
+
+'namespace', 'name'
+
+* `namespace` - Namespace of the template
+* `name` - Name of the template
+
+Example payload:
+```json
+{
+    "trusted": true
+}
+```

@@ -4,7 +4,7 @@
   "name": "deploy",
   "jobIds": [1, 2, 3, 4],
   "description": "Deploys canary job",
-  "setup": [222],
-  "teardown": [333],
+  "setup": 222,
+  "teardown": 333,
   "archived": false
 }

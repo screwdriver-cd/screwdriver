@@ -62,15 +62,16 @@ Example payload:
 }
 ```
 
-#### Creates a build
-`POST /builds`
+#### Get build statuses
+`GET /builds/statuses`
 
-Example payload:
-```json
-{
-    "jobId": "d398fb192747c9a0124e9e5b4e6e8e841cf8c71c"
-}
-```
+`GET /builds/statuses?jobIds=1&jobIds=2&numBuilds=3&offset=0`
+
+Arguments:
+
+* `jobIds` - Job IDs for builds to fetch
+* `numBuilds` - Number of builds to load (default 1)
+* `offset` - Number of build statuses to skip (default 0)
 
 #### Updates a build
 `PUT /builds/{id}`

@@ -2,16 +2,29 @@
 
 const Assert = require('chai').assert;
 const { Octokit } = require('@octokit/rest');
-const octokit = new Octokit({
-    baseUrl: [
-        `https://${process.env.TEST_SCM_HOSTNAME || 'api.github.com'}`,
-        `${process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''}`
-    ].join(''),
-    auth: process.env.GIT_TOKEN
-});
-
 const MAX_CONTENT_LENGTH = 354;
 const MAX_FILENAME_LENGTH = 17;
+
+let octokit;
+
+/**
+ * Retrieves or creates an instance of the Octokit client.
+ * @function getOctokit
+ * @returns {Octokit} The Octokit client instance.
+ */
+function getOctokit() {
+    if (!octokit) {
+        octokit = new Octokit({
+            baseUrl: [
+                `https://${process.env.TEST_SCM_HOSTNAME || 'api.github.com'}`,
+                `${process.env.TEST_SCM_HOSTNAME ? '/api/v3' : ''}`
+            ].join(''),
+            auth: process.env.GIT_TOKEN
+        });
+    }
+
+    return octokit;
+}
 
 /**
  * Creates a string of a given length with random alphanumeric characters
@@ -46,6 +59,8 @@ function cleanUpRepository(branch, tags, repoOwner, repoName) {
         ref: `heads/${branch}`
     };
 
+    octokit = getOctokit();
+
     const removeTagPromises = tags.map(tag => {
         const tagParams = {
             owner: repoOwner,
@@ -77,6 +92,8 @@ function removeBranch(repoOwner, repoName, branchName) {
         ref: `heads/${branchName}`
     };
 
+    octokit = getOctokit();
+
     return octokit.git.getRef(branchParams).then(() => octokit.git.deleteRef(branchParams));
 }
 
@@ -89,6 +106,8 @@ function removeBranch(repoOwner, repoName, branchName) {
  * @return {Promise}
  */
 function closePullRequest(repoOwner, repoName, prNumber) {
+    octokit = getOctokit();
+
     return octokit.pulls.update({
         owner: repoOwner,
         repo: repoName,
@@ -105,16 +124,17 @@ function closePullRequest(repoOwner, repoName, prNumber) {
  * @param  {String}     [repoName]         Name of the repository
  * @return {Promise}
  */
-function createBranch(branch, repoOwner, repoName) {
+function createBranch(branch, repoOwner, repoName, ref = 'heads/master') {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
-    // Create a branch from the tip of the master branch
+    octokit = getOctokit();
+
     return octokit.git
         .getRef({
             owner,
             repo,
-            ref: 'heads/master'
+            ref
         })
         .then(referenceData => {
             const { sha } = referenceData.data.object;
@@ -151,12 +171,14 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
     const filePath = directoryName || 'testfiles';
     const message = commitMessage || new Date().toString(); // default commit message is the current time
 
+    octokit = getOctokit();
+
     return octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
         path: `${filePath}/${filename}`,
         message,
-        content: content.toString('base64'), // content needs to be transmitted in base64
+        content: Buffer.from(content).toString('base64'), // content needs to be transmitted in base64
         branch
     });
 }
@@ -171,6 +193,8 @@ function createFile(branch, repoOwner, repoName, directoryName, commitMessage) {
  * @return {Promise}
  */
 function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
+    octokit = getOctokit();
+
     return octokit.pulls.create({
         owner: repoOwner,
         repo: repoName,
@@ -192,6 +216,8 @@ function createPullRequest(sourceBranch, targetBranch, repoOwner, repoName) {
 function createTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
+
+    octokit = getOctokit();
 
     return octokit.git
         .getRef({
@@ -226,6 +252,8 @@ function createTag(tag, branch, repoOwner, repoName) {
 function createAnnotatedTag(tag, branch, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
+
+    octokit = getOctokit();
 
     return octokit.git
         .getRef({
@@ -277,6 +305,8 @@ function createRelease(tagName, repoOwner, repoName) {
     const owner = repoOwner || 'screwdriver-cd-test';
     const repo = repoName || 'functional-git';
 
+    octokit = getOctokit();
+
     return octokit.repos
         .createRelease({
             owner,
@@ -299,6 +329,8 @@ function createRelease(tagName, repoOwner, repoName) {
  * @return {Promise}
  */
 function getStatus(repoOwner, repoName, sha) {
+    octokit = getOctokit();
+
     return octokit.repos.getCombinedStatusForRef({
         owner: repoOwner,
         repo: repoName,
@@ -315,6 +347,8 @@ function getStatus(repoOwner, repoName, sha) {
  * @return {Promise}
  */
 function mergePullRequest(repoOwner, repoName, prNumber) {
+    octokit = getOctokit();
+
     return octokit.pulls.merge({
         owner: repoOwner,
         repo: repoName,

@@ -140,11 +140,11 @@ When(
 );
 
 When(
-    /^the "(fail_A|success_A|parallel_A)" job on branch "(?:.*)" is started$/,
+    /^the "(fail_A|success_A|parallel_A|hub)" job on branch "([^"]*)" is started$/,
     {
         timeout: TIMEOUT
     },
-    function step(jobName) {
+    function step(jobName, branchName) {
         const jobId = jobName ? this[`${jobName}JobId`] : this.jobId;
         const buildVarName = jobName ? `${jobName}BuildId` : 'buildId';
 
@@ -162,6 +162,8 @@ When(
 
             this[buildVarName] = resp.body.id;
             this.buildId = resp.body.id;
+            this.branchName = branchName;
+            this.eventId = resp.body.eventId;
         });
     }
 );

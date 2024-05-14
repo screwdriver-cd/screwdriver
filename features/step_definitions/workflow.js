@@ -61,7 +61,7 @@ Given(
 
                     [this.pipelineId] = str.match(ID);
                 })
-                .then(() => this.getPipeline(this.pipelineId))
+                .then(() => this.getPipelineJobs(this.pipelineId))
                 .then(response => {
                     const expectedJobs = table.hashes();
 
@@ -160,23 +160,26 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName) {
-        return sdapi
-            .searchForBuild({
-                instance: this.instance,
-                pipelineId: this.pipelineId,
-                desiredSha: this.sha,
-                desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
-                jobName,
-                jwt: this.jwt
-            })
-            .then(build => {
-                this.eventId = build.eventId;
-                const job = this.jobs.find(j => j.name === jobName);
+        const config = {
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName,
+            jwt: this.jwt
+        };
 
-                Assert.equal(build.jobId, job.id);
+        if (this.sha) {
+            config.desiredSha = this.sha;
+        }
 
-                this.buildId = build.id;
-            });
+        return sdapi.searchForBuild(config).then(build => {
+            this.eventId = build.eventId;
+            const job = this.jobs.find(j => j.name === jobName);
+
+            Assert.equal(build.jobId, job.id);
+
+            this.buildId = build.id;
+        });
     }
 );
 

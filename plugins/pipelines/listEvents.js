@@ -5,6 +5,13 @@ const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const eventListSchema = joi.array().items(schema.models.event.get).label('List of events');
 const prNumSchema = schema.models.event.base.extract('prNum');
+const shaSchema = joi
+    .string()
+    .hex()
+    .max(40)
+    .description('SHA or partial SHA')
+    .example('ccc49349d3cffbd12ea9e3d41521480b4aa5de5f');
+const typeSchema = schema.models.event.base.extract('type');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
 
 module.exports = () => ({
@@ -21,6 +28,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
+            const { page, count, sha, prNum } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -32,16 +40,25 @@ module.exports = () => ({
                     const eventType = request.query.type || 'pipeline';
                     const config = { params: { type: eventType } };
 
-                    if (request.query.page || request.query.count) {
+                    if (page || count) {
                         config.paginate = {
-                            page: request.query.page,
-                            count: request.query.count
+                            page,
+                            count
                         };
                     }
 
-                    if (request.query.prNum) {
+                    if (prNum) {
                         config.params.type = 'pr';
-                        config.params.prNum = request.query.prNum;
+                        config.params.prNum = prNum;
+                    }
+
+                    if (sha) {
+                        config.search = {
+                            field: ['sha', 'configPipelineSha'],
+                            // Do a search for sha
+                            // See https://www.w3schools.com/sql/sql_like.asp for syntax
+                            keyword: `${sha}%`
+                        };
                     }
 
                     return pipeline.getEvents(config);
@@ -60,8 +77,9 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    type: joi.string(),
+                    type: typeSchema,
                     prNum: prNumSchema,
+                    sha: shaSchema,
                     search: joi.forbidden(), // we don't support search for Pipeline list events
                     getCount: joi.forbidden() // we don't support getCount for Pipeline list events
                 })

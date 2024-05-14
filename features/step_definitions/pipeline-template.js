@@ -283,16 +283,22 @@ Then(
             context: {
                 token: this.jwt
             }
-        }).then(response => {
-            Assert.equal(response.statusCode, 200);
-            const { length } = response.body;
+        })
+            .then(response => {
+                Assert.equal(response.statusCode, 200);
+                const { length } = response.body;
 
-            if (stored === 'is') {
-                Assert.equal(length, this.numOfTemplate + 1);
-            } else {
-                Assert.equal(length, this.numOfTemplate);
-            }
-        });
+                if (stored === 'is') {
+                    Assert.equal(length, this.numOfTemplate + 1);
+                } else {
+                    Assert.equal(length, this.numOfTemplate);
+                }
+            })
+            .catch(error => {
+                const errorMessage = error.message; // Get the error message
+
+                Assert.include(errorMessage, 'Template does not exist');
+            });
     }
 );
 

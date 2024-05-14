@@ -16,6 +16,7 @@ const listStagesRoute = require('./listStages');
 const listTriggersRoute = require('./listTriggers');
 const listSecretsRoute = require('./listSecrets');
 const listEventsRoute = require('./listEvents');
+const listBuildsRoute = require('./listBuilds');
 const startAllRoute = require('./startAll');
 const createToken = require('./tokens/create');
 const updateToken = require('./tokens/update');
@@ -41,6 +42,7 @@ const getVersionRoute = require('./templates/getVersion');
 const removeTemplateRoute = require('./templates/remove');
 const removeTemplateTagRoute = require('./templates/removeTag');
 const removeTemplateVersionRoute = require('./templates/removeVersion');
+const updateTrustedRoute = require('./templates/updateTrusted');
 
 /**
  * Pipeline API Plugin
@@ -248,6 +250,7 @@ const pipelinesPlugin = {
             listTriggersRoute(),
             listSecretsRoute(),
             listEventsRoute(),
+            listBuildsRoute(),
             startAllRoute(),
             updateToken(),
             refreshToken(),
@@ -272,7 +275,8 @@ const pipelinesPlugin = {
             createTagRoute(),
             removeTemplateRoute(),
             removeTemplateTagRoute(),
-            removeTemplateVersionRoute()
+            removeTemplateVersionRoute(),
+            updateTrustedRoute()
         ]);
     }
 };

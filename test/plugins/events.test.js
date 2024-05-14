@@ -1116,6 +1116,80 @@ describe('event plugin test', () => {
             }
         );
 
+        it('returns 403 forbidden error when users scm host does not match', () => {
+            const e = new Error('Users scm host does not match');
+
+            e.statusCode = 403;
+
+            userMock.getPermissions.rejects(e);
+
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Users scm host does not match'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 not found error when users scm host does not match and the pipeline is private', () => {
+            pipelineMock.scmRepo = { private: true };
+
+            const e = new Error('Users scm host does not match');
+
+            e.statusCode = 403;
+
+            userMock.getPermissions.rejects(e);
+
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Not Found'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 500 error when get permission throws error', () => {
+            const e = new Error('Something happened');
+
+            e.statusCode = 500;
+
+            userMock.getPermissions.rejects(e);
+
+            const error = {
+                statusCode: 500,
+                error: 'Internal Server Error',
+                message: 'An internal server error occurred'
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.notCalled(event.getBuilds);
+                assert.notCalled(builds[0].update);
+                assert.notCalled(builds[1].update);
+                assert.notCalled(builds[2].update);
+                assert.notCalled(builds[3].update);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
         it('returns 200 when it successfully stops all event builds with pipeline token', () => {
             options.auth.credentials = {
                 scope: ['pipeline'],

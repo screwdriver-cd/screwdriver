@@ -7,6 +7,7 @@ const hapi = require('@hapi/hapi');
 const hoek = require('@hapi/hoek');
 const testPipeline = require('./data/pipeline.json');
 const testTemplate = require('./data/pipeline-template.json');
+const testTemplateUntrusted = require('./data/pipeline-template-untrusted.json');
 const testTemplates = require('./data/pipelineTemplates.json');
 const testTemplateGet = testTemplates[0];
 const testTemplateVersions = require('./data/pipelineTemplateVersions.json');
@@ -264,8 +265,17 @@ describe('pipeline plugin test', () => {
                 description: 'template description',
                 maintainer: 'name@domain.org',
                 config: {
-                    jobs: { main: { steps: [{ init: 'npm install' }, { test: 'npm test' }] } },
-                    shared: {},
+                    jobs: {
+                        main: {
+                            steps: [{ init: 'npm install' }, { test: 'npm test' }],
+                            annotations: {},
+                            environment: {},
+                            settings: {},
+                            image: 'node:20',
+                            secrets: [],
+                            sourcePaths: []
+                        }
+                    },
                     parameters: {}
                 },
                 pipelineId: 123
@@ -388,8 +398,17 @@ describe('pipeline plugin test', () => {
                             description: 'template description',
                             maintainer: 'name@domain.org',
                             config: {
-                                jobs: { main: { steps: [{ init: 'npm install' }, { test: 'npm test' }] } },
-                                shared: {},
+                                jobs: {
+                                    main: {
+                                        steps: [{ init: 'npm install' }, { test: 'npm test' }],
+                                        annotations: {},
+                                        environment: {},
+                                        settings: {},
+                                        image: 'node:20',
+                                        secrets: [],
+                                        sourcePaths: []
+                                    }
+                                },
                                 parameters: {}
                             }
                         }
@@ -1442,6 +1461,82 @@ describe('pipeline plugin test', () => {
                     assert.calledOnce(templateTag.remove);
                 });
                 assert.equal(reply.statusCode, 204);
+            });
+        });
+    });
+
+    describe('PUT /pipeline/templates/{namespace}/{name}/trusted', () => {
+        let options;
+        let templateMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'PUT',
+                url: '/pipeline/templates/screwdriver/nodejs/trusted',
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scope: ['admin']
+                    },
+                    strategy: ['token']
+                },
+                payload: {
+                    trusted: true
+                }
+            };
+            templateMock = getTemplateMocks(testTemplateUntrusted);
+            templateMock.update = sinon.stub().resolves(null);
+            pipelineTemplateFactoryMock.get.resolves(templateMock);
+        });
+
+        it('returns 204 when updating a pipeline template to trusted', () =>
+            server.inject(options).then(reply => {
+                assert.calledOnce(templateMock.update);
+                assert.isNotNull(templateMock.trustedSinceVersion);
+                assert.equal(reply.statusCode, 204);
+            }));
+
+        it('returns 204 when updating a pipeline template to untrusted', () => {
+            templateMock = getTemplateMocks(testTemplate);
+            templateMock.update = sinon.stub().resolves(null);
+            pipelineTemplateFactoryMock.get.resolves(templateMock);
+            options.payload.trusted = false;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(templateMock.update);
+                assert.isNull(templateMock.trustedSinceVersion);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('returns 404 when template does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Pipeline template screwdriver/nodejs does not exist'
+            };
+
+            pipelineTemplateFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when user does not have admin permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Insufficient scope'
+            };
+
+            options.auth.credentials.scope = ['user'];
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
             });
         });
     });

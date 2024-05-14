@@ -73,6 +73,7 @@ describe('auth plugin test', () => {
     const hashingPassword = 'this_is_another_password_that_needs_to_be_atleast_32_characters';
     const oauthRedirectUri = 'https://myhost.com/api';
     const authPlugins = ['@hapi/cookie', '@hapi/bell', 'hapi-auth-jwt2', 'hapi-auth-bearer-token'];
+    const gheCloudSlug = 'ghec-slug';
 
     beforeEach(async () => {
         scm = {
@@ -96,7 +97,8 @@ describe('auth plugin test', () => {
                 }
             },
             autoDeployKeyGenerationEnabled: sinon.stub().returns(true),
-            decorateAuthor: sinon.stub()
+            decorateAuthor: sinon.stub(),
+            isEnterpriseUser: sinon.stub().resolves(false)
         };
         userFactoryMock = {
             get: sinon.stub(),
@@ -750,6 +752,119 @@ describe('auth plugin test', () => {
                     assert.calledOnce(userMock.update);
                     assert.notCalled(userFactoryMock.create);
                 }));
+
+            describe('ghe cloud', () => {
+                beforeEach(async () => {
+                    server = new hapi.Server({
+                        port: 1234
+                    });
+
+                    server.app.userFactory = userFactoryMock;
+                    server.app.collectionFactory = collectionFactoryMock;
+
+                    authPlugins.forEach(async pluginName => {
+                        /* eslint-disable global-require, import/no-dynamic-require */
+                        await server.register({
+                            plugin: require(pluginName)
+                        });
+                        /* eslint-enable global-require, import/no-dynamic-require */
+                    });
+
+                    await server.register({
+                        /* eslint-disable global-require */
+                        plugin: require('@hapi/crumb'),
+                        /* eslint-enable global-require */
+                        options: {
+                            cookieOptions: {
+                                isSecure: false
+                            },
+                            restful: true,
+                            skip: request =>
+                                // Skip crumb validation when the request is authorized with jwt or the route is under webhooks
+                                !!request.headers.authorization ||
+                                !!request.route.path.includes('/webhooks') ||
+                                !!request.route.path.includes('/auth/')
+                        }
+                    });
+                });
+
+                afterEach(() => {
+                    server = null;
+                });
+
+                describe('gheCloud flag', async () => {
+                    beforeEach(async () => {
+                        const scmsTemp = { ...scm.scms['github:github.com'] };
+
+                        await server.register({
+                            plugin,
+                            options: {
+                                cookiePassword,
+                                encryptionPassword,
+                                hashingPassword,
+                                scm: {
+                                    ...scm,
+                                    scms: {
+                                        'github:github.com': {
+                                            config: {
+                                                ...scmsTemp,
+                                                gheCloud: true,
+                                                gheCloudSlug
+                                            }
+                                        }
+                                    }
+                                },
+                                jwtPrivateKey,
+                                jwtPublicKey,
+                                jwtQueueServicePublicKey,
+                                https: false,
+                                allowGuestAccess: true,
+                                sameSite: false,
+                                bell: scm.scms,
+                                path: '/'
+                            }
+                        });
+                    });
+
+                    it('returns 200 for enterprise users if gheCloud is enabled', () => {
+                        userFactoryMock.get.resolves(null);
+                        userFactoryMock.create.resolves({});
+                        scm.isEnterpriseUser.resolves(true);
+                        collectionFactoryMock.list.resolves([]);
+
+                        return server.inject(options).then(reply => {
+                            assert.equal(reply.statusCode, 302, 'Login route should be available');
+                            assert.equal(reply.headers.location, '/v4/auth/token');
+                            assert.calledWith(userFactoryMock.get, { username, scmContext });
+                            assert.calledWith(userFactoryMock.create, {
+                                username,
+                                scmContext,
+                                token
+                            });
+                            assert.calledWith(scm.isEnterpriseUser, {
+                                token,
+                                login: username,
+                                scmContext
+                            });
+                        });
+                    });
+                    it('returns forbidden for non enterprise users if gheCloud is enabled', () => {
+                        userFactoryMock.get.resolves(null);
+
+                        return server.inject(options).then(reply => {
+                            assert.equal(reply.statusCode, 403, 'Login route should be available');
+                            assert.notOk(reply.result.token, 'Token not returned');
+                            assert.equal(reply.result.message, `User ${username} is not allowed access`);
+                            assert.notCalled(userFactoryMock.get);
+                            assert.calledWith(scm.isEnterpriseUser, {
+                                token,
+                                login: username,
+                                scmContext
+                            });
+                        });
+                    });
+                });
+            });
 
             describe('with whitelist', () => {
                 beforeEach(async () => {

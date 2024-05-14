@@ -25,6 +25,14 @@ const getStageBuildMocks = stageBuilds => {
     return decorateObj(stageBuilds);
 };
 
+const getStageMocks = stages => {
+    if (Array.isArray(stages)) {
+        return stages.map(decorateObj);
+    }
+
+    return decorateObj(stages);
+};
+
 describe('stage plugin test', () => {
     let stageFactoryMock;
     let stageBuildFactoryMock;
@@ -33,7 +41,8 @@ describe('stage plugin test', () => {
 
     beforeEach(async () => {
         stageFactoryMock = {
-            get: sinon.stub()
+            get: sinon.stub(),
+            list: sinon.stub()
         };
         stageBuildFactoryMock = {
             list: sinon.stub()
@@ -69,6 +78,58 @@ describe('stage plugin test', () => {
 
     it('registers the plugin', () => {
         assert.isOk(server.registrations.stages);
+    });
+
+    describe('GET /stages/{id}', () => {
+        const id = 123;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/stages/${id}`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+        });
+
+        it('returns 200 for get stage', () => {
+            stageFactoryMock.get.resolves(getStageMocks(testStage));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStage);
+            });
+        });
+
+        it('throws error not found when stage does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Stage 123 does not exist'
+            };
+
+            stageFactoryMock.get.withArgs(id).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('throws error when call returns error', () => {
+            stageFactoryMock.get.withArgs(id).rejects(new Error('Failed'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
     });
 
     describe('GET /stages/id/stageBuilds', () => {

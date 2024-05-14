@@ -28,6 +28,7 @@ const decorateBuildMock = build => {
     const mock = hoek.clone(build);
 
     mock.toJsonWithSteps = sinon.stub().resolves(build);
+    mock.toJson = sinon.stub().returns(build);
 
     return mock;
 };
@@ -88,6 +89,7 @@ const decoratePipelineMock = pipeline => {
     mock.jobs = sinon.stub();
     mock.getJobs = sinon.stub();
     mock.getEvents = sinon.stub();
+    mock.getBuilds = sinon.stub();
     mock.remove = sinon.stub();
     mock.admin = sinon.stub();
     mock.getFirstAdmin = sinon.stub();
@@ -929,7 +931,7 @@ describe('pipeline plugin test', () => {
             }));
 
         it('returns 200 for getting jobs with jobNames', () => {
-            options.url = `/pipelines/${id}/jobs?jobName=deploy`;
+            options.url = `/pipelines/${id}/jobs?jobName=deploy&type=`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -938,6 +940,36 @@ describe('pipeline plugin test', () => {
                         archived: false,
                         name: 'deploy'
                     }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
+        it('returns 200 for getting jobs with pr type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pr`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%' }
+                });
+                assert.deepEqual(reply.result, testJobs);
+            });
+        });
+
+        it('returns 200 for getting jobs with pipeline type', () => {
+            options.url = `/pipelines/${id}/jobs?type=pipeline`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.calledWith(pipelineMock.getJobs, {
+                    params: {
+                        archived: false
+                    },
+                    search: { field: 'name', keyword: 'PR-%:%', inverse: true }
                 });
                 assert.deepEqual(reply.result, testJobs);
             });
@@ -996,7 +1028,15 @@ describe('pipeline plugin test', () => {
         beforeEach(() => {
             options = {
                 method: 'GET',
-                url: `/pipelines/${id}/stages`
+                url: `/pipelines/${id}/stages`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scmContext: 'github:github.com',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
             };
             pipelineMock = getPipelineMocks(testPipeline);
             stagesMocks = getStagesMocks(testStages);
@@ -1010,12 +1050,64 @@ describe('pipeline plugin test', () => {
                 assert.calledWith(stageFactoryMock.list, {
                     params: {
                         pipelineId: id
-                    }
+                    },
+                    sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testStages);
             }));
 
-        it('returns 400 for passing in string as pipeline id', () => {
+        it('returns 200 and all stages when sort is set', () => {
+            options.url = `/pipelines/${id}/stages?sort=ascending`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: id
+                    },
+                    sort: 'ascending'
+                });
+            });
+        });
+
+        it('returns 200 and all stages when sortBy is set', () => {
+            options.url = `/pipelines/${id}/stages?sort=ascending&sortBy=name`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: 123
+                    },
+                    sort: 'ascending',
+                    sortBy: 'name'
+                });
+            });
+        });
+
+        it('returns 200 and all stages with matched name', () => {
+            options.url = `/pipelines/${id}/stages?page=1&count=3&name=deploy`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.deepEqual(reply.result, testStages);
+                assert.calledWith(stageFactoryMock.list, {
+                    params: {
+                        pipelineId: 123,
+                        name: 'deploy'
+                    },
+                    paginate: {
+                        page: 1,
+                        count: 3
+                    },
+                    sort: 'descending'
+                });
+            });
+        });
+
+        it('returns 400 for passing in string as pipeline ID', () => {
             const stringId = 'test';
 
             options.url = `/pipelines/${stringId}/stages`;
@@ -1035,6 +1127,14 @@ describe('pipeline plugin test', () => {
 
         it('returns 500 when the datastore returns an error', () => {
             pipelineFactoryMock.get.rejects(new Error('icantdothatdave'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+
+        it('returns 500 when datastore fails', () => {
+            stageFactoryMock.list.rejects(new Error('fittoburst'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);
@@ -1453,11 +1553,26 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 for getting events with pr Number', () => {
+        it('returns 200 for getting events with pr number', () => {
             options.url = `/pipelines/${id}/events?prNum=4`;
             server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with sha', () => {
+            options.url = `/pipelines/${id}/events?sha=ccc49349d3cffbd12ea9e3d41521480b4aa5de5f`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    search: {
+                        field: ['sha', 'configPipelineSha'],
+                        keyword: 'ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
+                    }
+                });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1474,6 +1589,114 @@ describe('pipeline plugin test', () => {
         it('returns 500 when the datastore returns an error', () => {
             pipelineFactoryMock.get.resolves(pipelineMock);
             pipelineMock.getEvents.rejects(new Error('getEventsError'));
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+            });
+        });
+    });
+
+    describe('GET /pipelines/{id}/builds', () => {
+        const id = '123';
+        let options;
+        let pipelineMock;
+
+        beforeEach(() => {
+            options = {
+                method: 'GET',
+                url: `/pipelines/${id}/builds`
+            };
+            pipelineMock = getPipelineMocks(testPipeline);
+            pipelineMock.getBuilds.resolves(getBuildMocks(testBuilds));
+            pipelineFactoryMock.get.resolves(pipelineMock);
+        });
+
+        it('returns 200 for getting builds', () => {
+            options.url = `/pipelines/${id}/builds`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds without steps', () => {
+            options.url = `/pipelines/${id}/builds?fetchSteps=false`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds with pagination', () => {
+            options.url = `/pipelines/${id}/builds?count=30`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {
+                    paginate: { page: undefined, count: 30 }
+                });
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds with sortBy', () => {
+            options.url = `/pipelines/${id}/builds?sortBy=createTime&readOnly=false`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {
+                    sortBy: 'createTime',
+                    readOnly: false
+                });
+                assert.deepEqual(reply.result, testBuilds);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting builds with groupEventId', () => {
+            options.url = `/pipelines/${id}/builds?groupEventId=999`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, { params: { groupEventId: 999 } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 and does not use latest flag if no groupEventId is set', () => {
+            options.url = `/pipelines/${id}/builds?latest=true`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 with groupEventId and latest', () => {
+            options.url = `/pipelines/${id}/builds?groupEventId=999&latest=true`;
+            server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getBuilds);
+                assert.calledWith(pipelineMock.getBuilds, { params: { groupEventId: 999, latest: true } });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 404 for pipeline that does not exist', () => {
+            pipelineFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+            });
+        });
+
+        it('returns 500 when the datastore returns an error', () => {
+            pipelineFactoryMock.get.resolves(pipelineMock);
+            pipelineMock.getBuilds.rejects(new Error('getBuildsError'));
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 500);

@@ -29,9 +29,9 @@ module.exports = () => ({
                 }
             };
 
-            return stageFactory.get(config.params.stageId).then(async stage => {
+            return stageFactory.get(request.params.id).then(async stage => {
                 if (!stage) {
-                    throw boom.notFound(`Stage ${config.params.stageId} does not exist`);
+                    throw boom.notFound(`Stage ${request.params.id} does not exist`);
                 }
 
                 if (page || count) {
@@ -60,7 +60,9 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    eventId: eventIdSchema
+                    eventId: eventIdSchema,
+                    search: joi.forbidden(), // we don't support search for Stage list stageBuilds
+                    getCount: joi.forbidden()
                 })
             )
         }

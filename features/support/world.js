@@ -35,6 +35,39 @@ function promiseToWait(timeToWait) {
 }
 
 /**
+ * Ensure a stage exists with its jobs
+ * @param  {Object}    config
+ * @param  {Object}    config.table                Table with stage and jobs data
+ * @return {Promise}
+ */
+async function ensureStageExists({ table }) {
+    if (table && this.pipelineId) {
+        const expectedStages = table.hashes();
+
+        for (let i = 0; i < expectedStages.length; i += 1) {
+            const stage = await this.getStage(this.pipelineId, expectedStages[i].stage);
+            const expectedJobNames =
+                expectedStages[i].jobs.trim() !== '' ? expectedStages[i].jobs.split(/\s*,\s*/) : expectedStages[i].jobs;
+            const expectedJobIds = [];
+
+            this.stageName = stage.body[0].name;
+            this.stageId = stage.body[0].id;
+
+            // Map expected stage job names to jobIds
+            expectedJobNames.forEach(jobName => {
+                const job = this.jobs.find(j => j.name === jobName);
+
+                expectedJobIds.push(job.id);
+            });
+            // Check if each jobId exists in stage jobIds
+            const stageExists = expectedJobIds.every(id => stage.body[0].jobIds.includes(id));
+
+            Assert.ok(stageExists, 'Given jobs do not exist in stage');
+        }
+    }
+}
+
+/**
  * Ensure a pipeline exists, and get its jobs
  * @method ensurePipelineExists
  * @param   {Object}    config
@@ -64,7 +97,7 @@ function ensurePipelineExists(config) {
 
                 this.pipelineId = response.body.id;
 
-                return this.getPipeline(this.pipelineId);
+                return this.getPipelineJobs(this.pipelineId);
             })
             .catch(err => {
                 const [, str] = err.message.split(': ');
@@ -81,12 +114,12 @@ function ensurePipelineExists(config) {
 
                             this.pipelineId = resCre.body.id;
 
-                            return this.getPipeline(this.pipelineId);
+                            return this.getPipelineJobs(this.pipelineId);
                         });
                     });
                 }
 
-                return this.getPipeline(this.pipelineId);
+                return this.getPipelineJobs(this.pipelineId);
             })
             /* eslint-disable complexity */
             .then(response => {
@@ -161,6 +194,9 @@ function ensurePipelineExists(config) {
                         case 'parallel_B2':
                             this.parallel_B2JobId = job.id;
                             break;
+                        case 'hub':
+                            this.hubJobId = job.id;
+                            break;
                         default:
                             // main job
                             this.jobId = job.id;
@@ -231,9 +267,25 @@ function CustomWorld({ attach, parameters }) {
                     this.loginResponse = err;
                 })
         );
-    this.getPipeline = pipelineId =>
+    this.getPipelineJobs = pipelineId =>
         request({
             url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/jobs`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        });
+    this.getStage = (pipelineId, stageName) =>
+        request({
+            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}/stages?name=${stageName}`,
+            method: 'GET',
+            context: {
+                token: this.jwt
+            }
+        });
+    this.getPipeline = pipelineId =>
+        request({
+            url: `${this.instance}/${this.namespace}/pipelines/${pipelineId}`,
             method: 'GET',
             context: {
                 token: this.jwt
@@ -266,6 +318,7 @@ function CustomWorld({ attach, parameters }) {
             }
         });
     this.ensurePipelineExists = ensurePipelineExists;
+    this.ensureStageExists = ensureStageExists;
 }
 
 setWorldConstructor(CustomWorld);
