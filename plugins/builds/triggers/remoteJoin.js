@@ -50,7 +50,7 @@ class RemoteJoin extends JoinBase {
         groupEventBuilds.push(...parallelBuilds);
 
         // When restart case, should we create a new build ?
-        const nextBuild = groupEventBuilds.find(b => b.jobId === nextJobId);
+        const nextBuild = groupEventBuilds.find(b => b.jobId === nextJobId && b.eventId === externalEvent.id);
 
         const newParentBuilds = mergeParentBuilds(parentBuilds, groupEventBuilds, this.currentEvent, externalEvent);
 

@@ -65,6 +65,7 @@ class OrBase {
             buildFactory: this.buildFactory,
             pipelineId,
             jobName: nextJobName,
+            jobId: nextJobId,
             username: this.username,
             scmContext: this.scmContext,
             event,

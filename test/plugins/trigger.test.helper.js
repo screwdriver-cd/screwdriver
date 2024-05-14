@@ -3,6 +3,7 @@
 /* eslint max-classes-per-file: off */
 
 const configParser = require('screwdriver-config-parser');
+const workflowParser = require('screwdriver-workflow-parser');
 const fs = require('fs');
 const { Server } = require('@hapi/hapi');
 const sinon = require('sinon');
@@ -20,6 +21,7 @@ class Pipeline {
             edges: [],
             nodes: []
         };
+        this.chainPR = false;
     }
 
     /**
@@ -38,6 +40,15 @@ class Pipeline {
      */
     getLatestEvent() {
         assert.fail(`For code completion: getLatestEvent()`);
+    }
+
+    /**
+     * Test method: create PR jobs
+     * @param {Number}
+     * @returns {Event}
+     */
+    addPRJobs(prNum) {
+        assert.fail(`For code completion: addPRJobs(${prNum})`);
     }
 }
 
@@ -226,6 +237,20 @@ class PipelineFactoryMock {
             return events.slice(-1)[0] || null;
         };
 
+        pipeline.addPRJobs = prNum => {
+            Object.keys(jobs).forEach(name => {
+                const prJobName = `PR-${prNum}:${name}`;
+
+                if (!jobs[prJobName]) {
+                    jobs[prJobName] = this.server.app.jobFactory.create({
+                        name: prJobName,
+                        pipeline,
+                        pipelineId: pipeline.id
+                    });
+                }
+            });
+        };
+
         this.records.push(pipeline);
 
         await this.syncTriggers();
@@ -310,16 +335,16 @@ class EventFactoryMock {
     async create(config) {
         const event = {
             groupEventId: this.records.length,
+            pr: {},
             ...config,
             id: this.records.length,
-            pr: {},
             update: sinon.stub(),
             toJson: sinon.stub()
         };
 
         const pipeline = this.server.app.pipelineFactory.get(event.pipelineId);
 
-        event.workflowGraph = pipeline.workflowGraph;
+        event.workflowGraph = structuredClone(pipeline.workflowGraph);
         event.getBuilds = () => {
             return this.server.app.buildFactory.records.filter(build => {
                 return build && parseInt(build.eventId, 10) === parseInt(event.id, 10);
@@ -362,7 +387,23 @@ class EventFactoryMock {
 
         this.records.push(event);
 
-        if (config.startFrom) {
+        if (event.pr.ref) {
+            const { nodes } = event.workflowGraph;
+
+            Object.values(pipeline.jobs).forEach(job => {
+                if (job.name.startsWith('PR-')) {
+                    const jobName = job.parsePRJobName('job');
+
+                    nodes.forEach(node => {
+                        if (node.name === jobName) {
+                            node.id = job.id;
+                        }
+                    });
+                }
+            });
+        }
+
+        if (config.startFrom && !config.skipMessage) {
             const { startFrom } = config;
             const startJobs = [];
 
@@ -374,6 +415,16 @@ class EventFactoryMock {
                         startJobs.push(dest);
                     }
                 });
+            }
+
+            if (startFrom === '~pr') {
+                const prJobNames = workflowParser.getNextJobs(event.workflowGraph, {
+                    trigger: '~pr',
+                    prNum: 1,
+                    chainPR: pipeline.chainPR
+                });
+
+                startJobs.push(...prJobNames);
             }
 
             if (pipeline.jobs[startFrom]) {
@@ -691,6 +742,16 @@ class JobFactoryMock {
 
         this.records.push(job);
         job.toJson.returns({ ...job });
+        job.parsePRJobName = type => {
+            if (!job.name.startsWith('PR-')) return null;
+
+            const match = job.name.split(':');
+
+            if (type === 'pr') return match[0];
+            if (type === 'job') return match[1];
+
+            return assert.fail(`Invalid argument: job.parsePRJobName(${type})`);
+        };
 
         return job;
     }

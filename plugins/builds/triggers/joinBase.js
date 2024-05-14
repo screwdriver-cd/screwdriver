@@ -91,6 +91,7 @@ class JoinBase {
 
             return null;
         }
+
         /* CHECK IF ALL PARENT BUILDS OF NEW BUILD ARE DONE */
         const { hasFailure, done } = await getParentBuildStatus({
             newBuild,

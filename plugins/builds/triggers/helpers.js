@@ -168,6 +168,7 @@ async function createEvent(config) {
         eventFactory,
         pipelineId,
         startFrom,
+        skipMessage,
         causeMessage,
         parentBuildId,
         parentBuilds,
@@ -194,6 +195,7 @@ async function createEvent(config) {
     const payload = {
         pipelineId,
         startFrom,
+        skipMessage,
         type: 'pipeline',
         causeMessage,
         parentBuildId,
@@ -231,6 +233,7 @@ async function createEvent(config) {
  * @param  {Factory}  config.eventFactory       Event Factory
  * @param  {Number}   config.externalPipelineId External pipeline ID
  * @param  {String}   config.startFrom          External trigger to start from
+ * @param  {String}   config.skipMessage        If this is set then build won't be created
  * @param  {Number}   config.parentBuildId      Parent Build ID
  * @param  {Object}   config.parentBuilds       Builds that triggered this build
  * @param  {String}   config.causeMessage       Cause message of this event
@@ -244,6 +247,7 @@ async function createExternalEvent(config) {
         eventFactory,
         externalPipelineId,
         startFrom,
+        skipMessage,
         parentBuildId,
         parentBuilds,
         causeMessage,
@@ -256,6 +260,7 @@ async function createExternalEvent(config) {
         eventFactory,
         pipelineId: externalPipelineId,
         startFrom,
+        skipMessage,
         parentBuildId, // current build
         causeMessage,
         parentBuilds,
@@ -303,7 +308,7 @@ async function createInternalBuild(config) {
         parentBuildId,
         jobId
     } = config;
-    const { ref = '', prSource = '', prBranchName = '', url = '' } = event.pr;
+    const { ref = '', prSource = '', prBranchName = '', url = '' } = event.pr || {};
     const prInfo = prBranchName ? { url, prBranchName } : '';
     /** @type {Job} */
     const job = jobId
@@ -660,13 +665,13 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent) {
     const newParentBuilds = {};
 
-    Object.entries(parentBuilds).forEach(([pipelineId, builds]) => {
+    Object.entries(parentBuilds).forEach(([pipelineId, { jobs, eventId }]) => {
         const newBuilds = {
-            jobs: {},
-            eventId: null
+            jobs,
+            eventId
         };
 
-        Object.entries(builds.jobs).forEach(([jobName, build]) => {
+        Object.entries(jobs).forEach(([jobName, build]) => {
             if (build !== null) {
                 newBuilds.jobs[jobName] = build;
 
@@ -1027,5 +1032,6 @@ module.exports = {
     isOrTrigger,
     extractCurrentPipelineJoinData,
     extractExternalJoinData,
-    buildsToRestartFilter
+    buildsToRestartFilter,
+    trimJobName
 };
