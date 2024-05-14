@@ -480,6 +480,8 @@ async function getBuildsForGroupEvent(groupEventId, buildFactory) {
             b.parentBuilds = JSON.parse(b.parentBuilds);
             b.stats = JSON.parse(b.stats);
             b.meta = JSON.parse(b.meta);
+            b.parentBuildId = JSON.parse(b.parentBuildId);
+
             if (b.parentBuildId) {
                 // parentBuildId could be the string '123', the number 123, or an array
                 b.parentBuildId = Array.isArray(b.parentBuildId)

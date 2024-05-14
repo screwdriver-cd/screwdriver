@@ -2765,7 +2765,7 @@ describe('build plugin test', () => {
                 it('triggers next job as external when user used external syntax for same pipeline', () => {
                     const expectedEventArgs = {
                         pipelineId: '123',
-                        startFrom: 'sd@123:a',
+                        startFrom: '~sd@123:a',
                         skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
@@ -2814,7 +2814,7 @@ describe('build plugin test', () => {
                 it('triggers next next job when next job is external', () => {
                     const expectedEventArgs = {
                         pipelineId: '2',
-                        startFrom: 'sd@123:a',
+                        startFrom: '~sd@123:a',
                         skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
@@ -2890,7 +2890,7 @@ describe('build plugin test', () => {
                     const expectedEventArgs = {
                         pipelineId: '2',
                         configPipelineSha: 'sha',
-                        startFrom: 'sd@123:a',
+                        startFrom: '~sd@123:a',
                         skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         causeMessage: 'Triggered by sd@123:a',
@@ -3736,7 +3736,7 @@ describe('build plugin test', () => {
                         pipelineId: '2',
                         scmContext: 'github:github.com',
                         sha: 'sha',
-                        startFrom: 'sd@123:a',
+                        startFrom: '~sd@123:a',
                         skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         username: 'foo'
@@ -4439,7 +4439,7 @@ describe('build plugin test', () => {
                         pipelineId: '2',
                         scmContext: 'github:github.com',
                         sha: 'sha',
-                        startFrom: 'sd@123:a',
+                        startFrom: '~sd@123:a',
                         skipMessage: 'Skip bulk external builds creation',
                         type: 'pipeline',
                         username: 'foo'

@@ -170,7 +170,7 @@ async function triggerNextJobs(config, app) {
                 parentBuilds,
                 causeMessage: `Triggered by ${remoteJoinName}`,
                 parentEventId: currentEvent.id,
-                startFrom: remoteJoinName,
+                startFrom: remoteTriggerName,
                 skipMessage: 'Skip bulk external builds creation', // Don't start builds in eventFactory.
                 groupEventId: null
             };
