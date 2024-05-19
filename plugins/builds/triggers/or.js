@@ -14,7 +14,7 @@ const { OrBase } = require('./orBase');
  * @property {JobFactory} jobFactory
  * @property {PipelineFactory} pipelineFactory
  * @property {BuildModel} currentBuild
- * @property {number} username
+ * @property {string} username
  * @property {string} scmContext
  */
 class OrTrigger extends OrBase {
