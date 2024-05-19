@@ -23,7 +23,7 @@ class OrTrigger extends OrBase {
      * @param {EventModel} event
      * @param {number} pipelineId
      * @param {string} nextJobName
-     * @param {string} nextJobId
+     * @param {number} nextJobId
      * @param {Record<string, ParentBuild>} parentBuilds
      * @return {Promise<BuildModel|null>}
      */
