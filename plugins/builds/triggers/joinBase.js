@@ -7,25 +7,23 @@ const { createInternalBuild, updateParentBuilds, getParentBuildStatus, handleNew
  * @typedef {import('screwdriver-models').EventFactory} EventFactory
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
- * @typedef {import('screwdriver-models/lib/event').EventModel} EventModel
- * @typedef {import('screwdriver-models/lib/job').Job} JobModel
- * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
- * @typedef {import('screwdriver-models/lib/stage').StageModel} StageModel
+ * @typedef {import('screwdriver-models/lib/event')} Event
+ * @typedef {import('screwdriver-models/lib/build')} Build
+ * @typedef {import('screwdriver-models/lib/stage')} Stage
  */
-/**
- * @property {EventFactory} eventFactory
- * @property {BuildFactory} buildFactory
- * @property {JobFactory} jobFactory
- * @property {BuildModel} currentBuild
- * @property {number} username
- * @property {string} scmContext
- * @property {StageModel} stage
- */
+
 class JoinBase {
     /**
      * Base class for AND trigger and RemoteJoin
-     * @param {import('../types/index').ServerApp} app                      Server app object
-     * @param {import('../types/index').ServerConfig} config              Configuration object
+     * @param {Object} app Server app object
+     * @param {EventFactory} app.eventFactory Server app object
+     * @param {BuildFactory} app.buildFactory Server app object
+     * @param {JobFactory} app.jobFactory Server app object
+     * @param {Object} config Configuration object
+     * @param {Build} config.build
+     * @param {Stage} config.stage
+     * @param {String} config.username
+     * @param {String} config.scmContext
      */
     constructor(app, config) {
         this.eventFactory = app.eventFactory;
@@ -33,6 +31,7 @@ class JoinBase {
         this.jobFactory = app.jobFactory;
 
         this.currentBuild = config.build;
+        this.stage = config.stage;
         this.username = config.username;
         this.scmContext = config.scmContext;
     }
@@ -40,15 +39,15 @@ class JoinBase {
     /**
      * Create a build if the next build does not exist.
      * If the next build exists, trigger it if the conditions for triggering are met.
-     * @param  {number} pipelineId
-     * @param  {EventModel} event
-     * @param  {BuildModel} nextBuild
-     * @param  {string} nextJobName
-     * @param  {string} nextJobId
-     * @param  {Record<string, ParentBuild>} parentBuilds
-     * @param  {string} parentBuildId
-     * @param  {string[]} joinListNames
-     * @return {Promise<BuildModel[]|null>}
+     * @param {Number} pipelineId
+     * @param {Event} event
+     * @param {Build} nextBuild
+     * @param {String} nextJobName
+     * @param {String} nextJobId
+     * @param {import('./helpers').ParentBuilds} parentBuilds
+     * @param {String} parentBuildId
+     * @param {String[]} joinListNames
+     * @returns {Promise<Build[]|null>}
      */
     async processNextBuild({
         pipelineId,

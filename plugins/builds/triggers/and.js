@@ -8,27 +8,17 @@ const { getParallelBuilds, getBuildsForGroupEvent, mergeParentBuilds } = require
  * @typedef {import('screwdriver-models').EventFactory} EventFactory
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
- * @typedef {import('screwdriver-models/lib/event').EventModel} EventModel
- * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
- * @typedef {import('screwdriver-models/lib/stage').StageModel} StageModel
+ * @typedef {import('screwdriver-models/lib/event')} Event
+ * @typedef {import('screwdriver-models/lib/build')} Build
+ * @typedef {import('screwdriver-models/lib/stage')} Stage
  */
-/**
- * @property {EventFactory} eventFactory
- * @property {BuildFactory} buildFactory
- * @property {JobFactory} jobFactory
- * @property {BuildModel} currentBuild
- * @property {EventModel} currentEvent
- * @property {number} username
- * @property {string} scmContext
- * @property {number} pipelineId
- * @property {StageModel} stage
- */
+
 class AndTrigger extends JoinBase {
     /**
-     * Trigger the next jobs of the current job
-     * @param {import('../types/index').ServerApp} app                      Server app object
-     * @param {import('../types/index').ServerConfig} config              Configuration object
-     * @param {import('screwdriver-models/lib/event').EventModel} currentEvent
+     * @param {Object} app
+     * @param {Object} config
+     * @param {Stage} config.stage
+     * @param {Event} currentEvent
      */
     constructor(app, config, currentEvent) {
         super(app, config);
@@ -39,8 +29,8 @@ class AndTrigger extends JoinBase {
     }
 
     /**
-     * Get finished builds related to current event
-     * @return {Promise<BuildModel[]|null>}
+     * Get finished builds related to current event group
+     * @return {Promise<Build[]|null>}
      */
     async fetchRelatedBuilds() {
         const relatedBuilds = await getBuildsForGroupEvent(this.currentEvent.groupEventId, this.buildFactory);
@@ -62,13 +52,13 @@ class AndTrigger extends JoinBase {
 
     /**
      * Trigger the next jobs of the current job
-     * @param {string} nextJobName
-     * @param {string} nextJobId
-     * @param {Record<string, ParentBuild>} parentBuilds
-     * @param {string[]} joinListNames List of names to join
-     * @return {Promise<BuildModel|null>}
+     * @param {String} nextJobName
+     * @param {String} nextJobId
+     * @param {Record<String, Object>} parentBuilds
+     * @param {String[]} joinListNames
+     * @returns {Promise<Build>}
      */
-    async run(nextJobName, nextJobId, parentBuilds, joinListNames) {
+    async execute(nextJobName, nextJobId, parentBuilds, joinListNames) {
         logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
 
         const relatedBuilds = await this.fetchRelatedBuilds();

@@ -6,22 +6,21 @@ const { createInternalBuild, Status } = require('./helpers');
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
  * @typedef {import('screwdriver-models').PipelineFactory} PipelineFactory
- * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
- * @typedef {import('screwdriver-models/lib/event').EventModel} EventModel
+ * @typedef {import('screwdriver-models/lib/build')} Build
+ * @typedef {import('screwdriver-models/lib/event')} Event
  */
-/**
- * @property {BuildFactory} buildFactory
- * @property {JobFactory} jobFactory
- * @property {PipelineFactory} pipelineFactory
- * @property {BuildModel} currentBuild
- * @property {number} username
- * @property {string} scmContext
- */
+
 class OrBase {
     /**
      * Trigger the next jobs of the current job
-     * @param {import('../types/index').ServerApp} app          Server app object
-     * @param {import('../types/index').ServerConfig} config    Configuration object
+     * @param {Object} app Server app object
+     * @param {BuildFactory} app.buildFactory
+     * @param {JobFactory} app.jobFactory
+     * @param {PipelineFactory} app.pipelineFactory
+     * @param {Object} config Configuration object
+     * @param {Build} config.currentBuild
+     * @param {String} config.username
+     * @param {String} config.scmContext
      */
     constructor(app, config) {
         this.buildFactory = app.buildFactory;
@@ -35,15 +34,14 @@ class OrBase {
 
     /**
      * Trigger the next jobs of the current job
-     * @param {EventModel} event
-     * @param {number} pipelineId
-     * @param {string} nextJobName
-     * @param {string} nextJobId
-     * @param {Record<string, ParentBuild>} parentBuilds
-     * @return {Promise<BuildModel|null>}
+     * @param {Event} event
+     * @param {Number} pipelineId
+     * @param {String} nextJobName
+     * @param {Number} nextJobId
+     * @param {import('./helpers').ParentBuilds} parentBuilds
+     * @return {Promise<Build|null>}
      */
     async trigger(event, pipelineId, nextJobName, nextJobId, parentBuilds) {
-        /** @type {BuildModel|null} */
         const nextBuild = await this.buildFactory.get({
             eventId: event.id,
             jobId: nextJobId

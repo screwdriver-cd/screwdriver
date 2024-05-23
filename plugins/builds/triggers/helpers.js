@@ -8,10 +8,14 @@ const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 const { getFullStageJobName } = require('../../helper');
 
 /**
- * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
- * @typedef {import('screwdriver-models/lib/job').Job} Job
- * @typedef {import('../types/index').JoinPipelines} JoinPipelines
- * @typedef {import('../types/index').JoinJobs} JoinJobs
+ * @typedef {import('screwdriver-models').JobFactory} JobFactory
+ * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
+ * @typedef {import('screwdriver-models').EventFactory} EventFactory
+ * @typedef {import('screwdriver-models').PipelineFactory} PipelineFactory
+ * @typedef {import('screwdriver-models/lib/pipeline')} Pipeline
+ * @typedef {import('screwdriver-models/lib/event')} Event
+ * @typedef {import('screwdriver-models/lib/build')} Build
+ * @typedef {import('screwdriver-models/lib/job')} Job
  */
 
 const Status = {
@@ -80,8 +84,8 @@ const Status = {
  * Converts a string to an integer.
  * Throws an error if the string is not a valid integer representation.
  *
- * @param {string} text The string to be converted to an integer.
- * @returns {number} The converted integer.
+ * @param {String} text The string to be converted to an integer.
+ * @returns {Number} The converted integer.
  * @throws {Error} An error is thrown if the string can't be converted to a finite number.
  */
 function strToInt(text) {
@@ -95,11 +99,10 @@ function strToInt(text) {
 
 /**
  * Delete a build
- * @method delBuild
- * @param  {Object}  buildConfig  build object to delete
- * @param  {Object}  buildFactory build factory
- * @return {Promise}
- * */
+ * @param {Object} buildConfig build object to delete
+ * @param {BuildFactory} buildFactory build factory
+ * @returns {Promise}
+ */
 async function deleteBuild(buildConfig, buildFactory) {
     const buildToDelete = await buildFactory.get(buildConfig);
 
@@ -112,8 +115,8 @@ async function deleteBuild(buildConfig, buildFactory) {
 
 /**
  * Checks if job is external trigger
- * @param  {String}  jobName Job name
- * @return {Boolean}         If job name is external trigger or not
+ * @param {String} jobName Job name
+ * @returns {Boolean}
  */
 function isExternalTrigger(jobName) {
     return EXTERNAL_TRIGGER_ALL.test(jobName);
@@ -121,8 +124,8 @@ function isExternalTrigger(jobName) {
 
 /**
  * Get external pipelineId and job name from the `name`
- * @param  {String} name        Job name
- * @return {Object}             With pipeline id and job name
+ * @param {String} name Job name
+ * @returns {{externalPipelineId: String, externalJobName: String}}
  */
 function getExternalPipelineAndJob(name) {
     const [, externalPipelineId, externalJobName] = EXTERNAL_TRIGGER_ALL.exec(name);
@@ -132,10 +135,10 @@ function getExternalPipelineAndJob(name) {
 
 /**
  * Helper function to fetch external event from parentBuilds
- * @param  {Object} currentBuild     Build for current completed job
- * @param  {String} pipelineId       Pipeline ID for next job to be triggered.
- * @param  {Object} eventFactory     Factory for querying event data store.
- * @return {Object} External Event   Event where the next job to be triggered belongs to.
+ * @param {Build} currentBuild Build for current completed job
+ * @param {String} pipelineId Pipeline ID for next job to be triggered.
+ * @param {EventFactory} eventFactory Factory for querying event data store.
+ * @returns {Promise<Event>} Event where the next job to be triggered belongs to.
  */
 function getExternalEvent(currentBuild, pipelineId, eventFactory) {
     if (!currentBuild.parentBuilds || !currentBuild.parentBuilds[pipelineId]) {
@@ -149,18 +152,17 @@ function getExternalEvent(currentBuild, pipelineId, eventFactory) {
 
 /**
  * Create event for downstream pipeline that need to be rebuilt
- * @method createEvent
- * @param {Object}  config                  Configuration object
- * @param {Factory} config.pipelineFactory  Pipeline Factory
- * @param {Factory} config.eventFactory     Event Factory
- * @param {Number}  config.pipelineId       Pipeline to be rebuilt
- * @param {String}  config.startFrom        Job to be rebuilt
- * @param {String}  config.causeMessage     Caused message, e.g. triggered by 1234(buildId)
- * @param {String}  config.parentBuildId    ID of the build that triggers this event
- * @param {Object}  [config.parentBuilds]   Builds that triggered this build
- * @param {Number}  [config.parentEventId]  Parent event ID
- * @param {Number}  [config.groupEventId]   Group parent event ID
- * @return {Promise}                        Resolves to the newly created event
+ * @param {Object} config Configuration object
+ * @param {PipelineFactory} config.pipelineFactory Pipeline Factory
+ * @param {EventFactory} config.eventFactory Event Factory
+ * @param {Number} config.pipelineId Pipeline to be rebuilt
+ * @param {String} config.startFrom Job to be rebuilt
+ * @param {String} config.causeMessage Caused message, e.g. triggered by 1234(buildId)
+ * @param {String} config.parentBuildId ID of the build that triggers this event
+ * @param {Record<String, ParentBuild>} [config.parentBuilds] Builds that triggered this build
+ * @param {Number} [config.parentEventId] Parent event ID
+ * @param {Number} [config.groupEventId] Group parent event ID
+ * @returns {Promise<Event>} New event
  */
 async function createEvent(config) {
     const {
@@ -227,19 +229,18 @@ async function createEvent(config) {
 
 /**
  * Create external event (returns event with `builds` field)
- * @method createExternalEvent
- * @param  {Object}   config                    Configuration object
- * @param  {Factory}  config.pipelineFactory    Pipeline Factory
- * @param  {Factory}  config.eventFactory       Event Factory
- * @param  {Number}   config.externalPipelineId External pipeline ID
- * @param  {String}   config.startFrom          External trigger to start from
- * @param  {String}   config.skipMessage        If this is set then build won't be created
- * @param  {Number}   config.parentBuildId      Parent Build ID
- * @param  {Object}   config.parentBuilds       Builds that triggered this build
- * @param  {String}   config.causeMessage       Cause message of this event
- * @param  {Number}   [config.parentEventId]    Parent event ID
- * @param  {Number}   [config.groupEventId]     Group parent event ID
- * @return {Promise}
+ * @param {Object} config Configuration object
+ * @param {PipelineFactory} config.pipelineFactory Pipeline Factory
+ * @param {EventFactory} config.eventFactory Event Factory
+ * @param {Number} config.externalPipelineId External pipeline ID
+ * @param {String} config.startFrom External trigger to start from
+ * @param {String} config.skipMessage If this is set then build won't be created
+ * @param {Number} config.parentBuildId Parent Build ID
+ * @param {Object} config.parentBuilds Builds that triggered this build
+ * @param {String} config.causeMessage Cause message of this event
+ * @param {Number} [config.parentEventId] Parent event ID
+ * @param {Number} [config.groupEventId] Group parent event ID
+ * @returns {Promise<Event>}
  */
 async function createExternalEvent(config) {
     const {
@@ -272,26 +273,22 @@ async function createExternalEvent(config) {
 }
 
 /**
- * @typedef {Object} Config
- * @property {JobFactory} jobFactory                    Job Factory
- * @property {BuildFactory} buildFactory                Build Factory
- * @property {number} pipelineId                        Pipeline Id
- * @property {string} jobName                           Job name
- * @property {string} username                          Username of build
- * @property {string} scmContext                        SCM context
- * @property {Record<string, ParentBuild>} parentBuilds Builds that triggered this build
- * @property {string|null} baseBranch                   Branch name
- * @property {number} parentBuildId                     Parent build ID
- * @property {boolean} start                            Whether to start the build or not
- * @property {number|undefined} jobId                   Job ID
- * @property {EventModel} event                         Event build belongs to
- */
-/**
  * Create internal build. If config.start is false or not passed in then do not start the job
  * Need to pass in (jobName and pipelineId) or (jobId) to get job data
- * @method createInternalBuild
- * @param  {Config}   config                    Configuration object
- * @return {Promise<BuildModel|null>}
+ * @param {Object} config Configuration object
+ * @param {JobFactory} config.jobFactory Job Factory
+ * @param {BuildFactory} config.buildFactory Build Factory
+ * @param {Number} config.pipelineId Pipeline Id
+ * @param {String} config.jobName Job name
+ * @param {String} config.username Username of build
+ * @param {String} config.scmContext SCM context
+ * @param {Record<String, ParentBuild>} config.parentBuilds Builds that triggered this build
+ * @param {String|null} config.baseBranch Branch name
+ * @param {Number} config.parentBuildId Parent build ID
+ * @param {Boolean} config.start Whether to start the build or not
+ * @param {Number|undefined} config.jobId Job ID
+ * @param {EventModel} config.event Event build belongs to
+ * @returns {Promise<BuildModel|null>}
  */
 async function createInternalBuild(config) {
     const {
@@ -359,9 +356,8 @@ async function createInternalBuild(config) {
 /**
  * Return PR job or not
  * PR job name certainly has ":". e.g. "PR-1:jobName"
- * @method isPR
- * @param  {String}  jobName
- * @return {Boolean}
+ * @param {String} jobName
+ * @returns {Boolean}
  */
 function isPR(jobName) {
     return jobName.startsWith('PR-');
@@ -369,9 +365,8 @@ function isPR(jobName) {
 
 /**
  * Trim Job name to follow data-schema
- * @method trimJobName
- * @param  {String} jobName
- * @return {String} trimmed jobName
+ * @param {String} jobName
+ * @returns {String} trimmed jobName
  */
 function trimJobName(jobName) {
     if (isPR(jobName)) {
@@ -382,13 +377,21 @@ function trimJobName(jobName) {
 }
 
 /**
+ * @typedef {Object} ParentBuild
+ * @property {String} eventId
+ * @property {Record<String, Number>} jobs Job name and build ID
+ */
+/**
+ * @typedef {Record<String, ParentBuild>} ParentBuilds
+ */
+/**
  * Generates a parent builds object
- * @param  {Number} config.buildId          Build ID
- * @param  {Number} config.eventId          Event ID
- * @param  {Number} config.pipelineId       Pipeline ID
- * @param  {String} config.jobName          Job name
- * @param  {Array}  [config.joinListNames]  Job names in join list
- * @return {Object}                         Returns parent builds object
+ * @param {Number} config.buildId Build ID
+ * @param {Number} config.eventId Event ID
+ * @param {Number} config.pipelineId Pipeline ID
+ * @param {String} config.jobName Job name
+ * @param {Array} [config.joinListNames] Job names in join list
+ * @returns {ParentBuilds} Returns parent builds object
  */
 function createParentBuildsObj(config) {
     const { buildId, eventId, pipelineId, jobName, joinListNames } = config;
@@ -426,13 +429,14 @@ function createParentBuildsObj(config) {
  * - parentBuilds: parent build information
  * - joinListNames: array of join jobs
  * - joinParentBuilds: parent build information for join jobs
- * @param  {Record<string, Job>} joinObj        Join object
- * @param  {BuildModel} currentBuild        Object holding current event, job & pipeline
- * @param  {PipelineModel} currentPipeline        Object holding current event, job & pipeline
- * @param  {Job} currentJob        Object holding current event, job & pipeline
- * @param  {string} nextJobName    Next job's name
- * @param  {number} nextPipelineId Next job's Pipeline Id
- * @return {import("./types/index").JobInfo}                With above information
+ * @param {Object} arg
+ * @param {Object} arg.joinObj Join object
+ * @param {Build} arg.currentBuild Object holding current event, job & pipeline
+ * @param {Pipeline} arg.currentPipeline Object holding current event, job & pipeline
+ * @param {Job} arg.currentJob Object holding current event, job & pipeline
+ * @param {String} arg.nextJobName Next job's name
+ * @param {Number} arg.nextPipelineId Next job's Pipeline Id
+ * @returns {{parentBuilds: ParentBuilds, joinListNames: String[], joinParentBuilds: ParentBuilds}}
  */
 function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, nextJobName, nextPipelineId }) {
     const joinList = joinObj && joinObj[nextJobName] && joinObj[nextJobName].join ? joinObj[nextJobName].join : [];
@@ -467,9 +471,9 @@ function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, next
 
 /**
  * Get builds whose groupEventId is event.groupEventId. Only the latest build is retrieved for each job.
- * @param  {Number}     groupEventId            Group parent event ID
- * @param  {Factory}    buildFactory            Build factory
- * @return {Promise}                            All finished builds
+ * @param {Number} groupEventId Group parent event ID
+ * @param {BuildFactory} buildFactory Build factory
+ * @returns {Promise<Build[]>} All finished builds
  */
 async function getBuildsForGroupEvent(groupEventId, buildFactory) {
     const builds = await buildFactory.getLatestBuilds({ groupEventId, readOnly: false });
@@ -498,10 +502,11 @@ async function getBuildsForGroupEvent(groupEventId, buildFactory) {
 
 /**
  * Update parent builds info when next build already exists
- * @param  {Object} joinParentBuilds       Parent builds object for join job
- * @param  {Build}  nextBuild              Next build
- * @param  {Build}  build                  Build for current completed job
- * @return {Promise}                       Updated next build
+ * @param {Object} arg
+ * @param {ParentBuilds} arg.joinParentBuilds Parent builds object for join job
+ * @param {Build} arg.nextBuild Next build
+ * @param {Build} arg.build Build for current completed job
+ * @returns {Promise<Build>} Updated next build
  */
 async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
     // Override old parentBuilds info
@@ -519,11 +524,12 @@ async function updateParentBuilds({ joinParentBuilds, nextBuild, build }) {
 
 /**
  * Check if all parent builds of the new build are done
- * @param  {Build}      newBuild      Updated build
- * @param  {Array}      joinListNames Join list names
- * @param  {Number}     pipelineId    Pipeline ID
- * @param  {Factory}    buildFactory  Build factory
- * @return {Promise}                  Object with done and hasFailure statuses
+ * @param {Object} arg
+ * @param {Build} arg.newBuild Updated build
+ * @param {String[]} arg.joinListNames Join list names
+ * @param {Number} arg.pipelineId Pipeline ID
+ * @param {BuildFactory} arg.buildFactory Build factory
+ * @returns {Promise<{hasFailure: Boolean, done: Boolean}>} Object with done and hasFailure statuses
  */
 async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, buildFactory }) {
     const upstream = newBuild.parentBuilds || {};
@@ -531,17 +537,17 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
     // Get buildId
     const joinBuildIds = joinListNames.map(name => {
         let upstreamPipelineId = pipelineId;
-        let upsteamJobName = name;
+        let upstreamJobName = name;
 
         if (isExternalTrigger(name)) {
             const { externalPipelineId, externalJobName } = getExternalPipelineAndJob(name);
 
             upstreamPipelineId = externalPipelineId;
-            upsteamJobName = externalJobName;
+            upstreamJobName = externalJobName;
         }
 
-        if (upstream[upstreamPipelineId] && upstream[upstreamPipelineId].jobs[upsteamJobName]) {
-            return upstream[upstreamPipelineId].jobs[upsteamJobName];
+        if (upstream[upstreamPipelineId] && upstream[upstreamPipelineId].jobs[upstreamJobName]) {
+            return upstream[upstreamPipelineId].jobs[upstreamJobName];
         }
 
         return undefined;
@@ -580,13 +586,14 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  *          if failure, delete new build
  *          if no failure, start new build
  * Otherwise, do nothing
- * @param  {Boolean} done           If the build is done or not
- * @param  {Boolean} hasFailure     If the build has a failure or not
- * @param  {Build}   newBuild       Next build
- * @param  {String}  [jobName]      Job name
- * @param  {String}  [pipelineId]   Pipeline ID
- * @param  {Object}  [stage]        Stage
- * @return {Promise}                The newly updated/created build
+ * @param {Object} arg If the build is done or not
+ * @param {Boolean} arg.done If the build is done or not
+ * @param {Boolean} arg.hasFailure If the build has a failure or not
+ * @param {Build} arg.newBuild Next build
+ * @param {String|undefined} arg.jobName Job name
+ * @param {String|undefined} arg.pipelineId Pipeline ID
+ * @param {Object|undefined} arg.stage Stage
+ * @returns {Promise<Build|null>} The newly updated/created build
  */
 async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stage }) {
     if (!done || Status.isStarted(newBuild.status)) {
@@ -618,10 +625,11 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
 
 /**
  * Get all builds with a given event ID as the parentEventID
- * @param  {Factory}    eventFactory    Event factory
- * @param  {Number}     parentEventId   Parent event ID
- * @param  {Number}     pipelineId      Pipeline ID
- * @return {Promise}                    Array of builds with same parent event ID
+ * @param {Object} arg
+ * @param {EventFactory} eventFactory Event factory
+ * @param {Number} parentEventId Parent event ID
+ * @param {Number} pipelineId Pipeline ID
+ * @returns {Promise<Build[]>} Array of builds with same parent event ID
  */
 async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
     let parallelEvents = await eventFactory.list({
@@ -645,11 +653,11 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 
 /**
  * Merge parentBuilds object with missing job information from latest builds object
- * @param {Object}  parentBuilds    parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
- * @param {Object}  relatedBuilds   Related builds which is used to fill parentBuilds data
- * @param {Object}  currentEvent    Current event
- * @param {Object}  nextEvent       Next triggered event (Remote trigger or Same pipeline event triggered as external)
- * @returns {Object} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
+ * @param {ParentBuilds} parentBuilds parent builds
+ * @param {Build[]} relatedBuilds Related builds which is used to fill parentBuilds data
+ * @param {Event} currentEvent Current event
+ * @param {Event} nextEvent Next triggered event (Remote trigger or Same pipeline event triggered as external)
+ * @returns {ParentBuilds} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
  *
  * @example
  * >>> mergeParentBuilds(...)
@@ -721,34 +729,46 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
 }
 
 /**
+ * @typedef {Object} JoinPipeline
+ * @property {String} event event id
+ * @property {Record<String, {id: String, join: String[]}>} jobs
+ */
+/**
+ * @typedef {Record<String, JoinPipeline>} JoinPipelines
+ */
+
+/**
  * Create joinObject for nextJobs to trigger
  *   For A & D in nextJobs for currentJobName B, create
  *          {A:[B,C], D:[B,F], X: []} where [B,C] join on A,
  *              [B,F] join on D and X has no join
  *   This can include external jobs
- * @param {Array}   nextJobs       List of jobs to run next from workflow parser.
- * @param {Object}  current        Object holding current job's build, event data
- * @param {Object}  eventFactory   Object for querying DB for event data
- * @return {Promise<import('../types/index').JoinPipelines>} Object representing join data for next jobs grouped by pipeline id
+ * @param {String[]} nextJobNames List of jobs to run next from workflow parser.
+ * @param {Object} current Object holding current job's build, event data
+ * @param {Build} current.build Current build
+ * @param {Event} current.event Current event
+ * @param {Pipeline} current.pipeline Current pipeline
+ * @param {EventFactory}  eventFactory   Object for querying DB for event data
+ * @returns {Promise<JoinPipelines>} Object representing join data for next jobs grouped by pipeline id
  *
  * @example
  * >>> await createJoinObject(...)
  * {
- *   "pipeineId" :{
- *     event: "externalEventId",
+ *   "{pipelineId}" :{
+ *     event: "{externalEventId}",
  *     jobs: {
- *       "nextJobName": {
- *         "id": "jobId"
- *         join: ["a", "b"]
+ *       "{nextJobName}": {
+ *         id: "{jobId}"
+ *         join: ["{joinJobName1}", "{joinJobName2}"]
  *     }
  *   }
  * }
  */
-async function createJoinObject(nextJobs, current, eventFactory) {
+async function createJoinObject(nextJobNames, current, eventFactory) {
     const { build, event, pipeline } = current;
     const joinObj = {};
 
-    for (const jobName of nextJobs) {
+    for (const jobName of nextJobNames) {
         let nextJobPipelineId = pipeline.id;
         let nextJobName = jobName;
         let isExternal = false;
@@ -789,12 +809,14 @@ async function createJoinObject(nextJobs, current, eventFactory) {
 
 /**
  * Create stage teardown build if it doesn't already exist
- * @param  {Factory}    jobFactory                      Job factory
- * @param  {Factory}    buildFactory                    Build factory
- * @param  {Object}     current                         Current object
- * @param  {String}     stageTeardownName               Stage teardown name
- * @param  {String}     username                        Username
- * @param  {String}     scmContext                      SCM context
+ * @param {Object} arg
+ * @param {JobFactory} arg.jobFactory Job factory
+ * @param {BuildFactory} arg.buildFactory Build factory
+ * @param {Object} arg.current Current object
+ * @param {Event} arg.current.event Current event
+ * @param {String} arg.stageTeardownName Stage teardown name
+ * @param {String} arg.username Username
+ * @param {String} arg.scmContext SCM context
  */
 async function ensureStageTeardownBuildExists({
     jobFactory,
@@ -832,14 +854,15 @@ async function ensureStageTeardownBuildExists({
 
 /**
  * Delete nextBuild, create teardown build if it doesn't exist, and return teardown build or return null
- * @param  {String}  nextJobName                  Next job name
- * @param  {Object}  current                      Object with stage, event, pipeline info
- * @param  {Object}  buildConfig                  Build config
- * @param  {Factory} jobFactory                   Job factory
- * @param  {Factory} buildFactory                 Build factory
- * @param  {String}  username                     Username
- * @param  {String}  scmContext                   Scm context
- * @return {Array}                                Array of promises
+ * @param {Object} arg
+ * @param {String} arg.nextJobName Next job name
+ * @param {Object} arg.current Object with stage, event, pipeline info
+ * @param {Object} arg.buildConfig Build config
+ * @param {JobFactory} arg.jobFactory Job factory
+ * @param {BuildFactory} arg.buildFactory Build factory
+ * @param {String} arg.username Username
+ * @param {String} arg.scmContext Scm context
+ * @returns {Promise<Array>} Array of promises
  */
 async function handleStageFailure({
     nextJobName,
@@ -872,10 +895,11 @@ async function handleStageFailure({
 
 /**
  * Get parentBuildId from parentBuilds object
- * @param {Object}  parentBuilds    Builds that triggered this build
- * @param {Array}   joinListNames   Array of join job name
- * @param {Number}  pipelineId      Pipeline ID
- * @return {Array}                  Array of parentBuildId
+ * @param {Object} arg
+ * @param {ParentBuilds} arg.parentBuilds Builds that triggered this build
+ * @param {String[]} arg.joinListNames Array of join job name
+ * @param {Number} arg.pipelineId Pipeline ID
+ * @returns {String[]} Array of parentBuildId
  */
 function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipelineId }) {
     const parentBuildIds = joinListNames
@@ -906,8 +930,8 @@ function getParentBuildIds({ currentBuildId, parentBuilds, joinListNames, pipeli
  * (Next jobs triggered as external are not included)
  *
  * @param {JoinPipelines} joinedPipelines
- * @param {number} currentPipelineId
- * @returns {Record<string, import('../types/index').JoinJob>}
+ * @param {Number} currentPipelineId
+ * @returns {JoinPipeline}
  */
 function extractCurrentPipelineJoinData(joinedPipelines, currentPipelineId) {
     const currentPipelineJoinData = joinedPipelines[currentPipelineId.toString()];
@@ -923,7 +947,7 @@ function extractCurrentPipelineJoinData(joinedPipelines, currentPipelineId) {
  * Extract next jobs in current and external pipelines from pipeline join data
  *
  * @param {JoinPipelines} joinedPipelines
- * @param {number} currentPipelineId
+ * @param {Number} currentPipelineId
  * @returns {JoinPipelines}
  */
 function extractExternalJoinData(joinedPipelines, currentPipelineId) {
@@ -954,11 +978,11 @@ function extractExternalJoinData(joinedPipelines, currentPipelineId) {
 }
 
 /**
- *
- * @param jobName
- * @param pipelineId
- * @param jobFactory
- * @return {Promise<number>}
+ * Get job id from job name
+ * @param {String} jobName Job name
+ * @param {String} pipelineId Pipeline id
+ * @param {JobFactory} jobFactory Job factory
+ * @returns {Promise<Number>}
  */
 async function getJobId(jobName, pipelineId, jobFactory) {
     const job = await jobFactory.get({
@@ -970,11 +994,16 @@ async function getJobId(jobName, pipelineId, jobFactory) {
 }
 
 /**
- *
- * @param workflowGraph
- * @param currentJobName
- * @param nextJobName
- * @return {boolean}
+ * @typedef {Object} WorkflowGraph
+ * @property {Array<{src: String, dest: String, join: Boolean}} edges
+ * @property {Array<{name: String, id: Number}>} nodes
+ */
+/**
+ * Check trigger is OR trigger
+ * @param {WorkflowGraph} workflowGraph
+ * @param {String} currentJobName current job name
+ * @param {String} nextJobName next job name
+ * @returns {Boolean}
  */
 function isOrTrigger(workflowGraph, currentJobName, nextJobName) {
     return workflowGraph.edges.some(edge => {
@@ -983,14 +1012,15 @@ function isOrTrigger(workflowGraph, currentJobName, nextJobName) {
 }
 
 /**
- *
- * @param {JoinJobs} joinJobs
- * @param {Job[]} groupEventBuilds
- * @param {Event} currentEvent
- * @param {Build} currentBuild
+ * Filter builds to restart
+ * @param {JoinPipeline} joinPipeline join job names
+ * @param {Build[]} groupEventBuilds Builds belong to current event group
+ * @param {Event} currentEvent Current event
+ * @param {Build} currentBuild Current build
+ * @returns {Build[]}
  */
-function buildsToRestartFilter(joinJobs, groupEventBuilds, currentEvent, currentBuild) {
-    return Object.values(joinJobs.jobs)
+function buildsToRestartFilter(joinPipeline, groupEventBuilds, currentEvent, currentBuild) {
+    return Object.values(joinPipeline.jobs)
         .map(joinJob => {
             // Next triggered job's build belonging to same event group
             const existBuild = groupEventBuilds.find(build => build.jobId === joinJob.id);

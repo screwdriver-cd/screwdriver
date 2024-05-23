@@ -4,42 +4,33 @@ const { getParallelBuilds, mergeParentBuilds, getParentBuildIds } = require('./h
 const { JoinBase } = require('./joinBase');
 
 /**
- * @typedef {import('screwdriver-models').EventFactory} EventFactory
- * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
- * @typedef {import('screwdriver-models').JobFactory} JobFactory
- * @typedef {import('screwdriver-models/lib/event').EventModel} EventModel
- * @typedef {import('screwdriver-models/lib/build').BuildModel} BuildModel
- * @typedef {import('screwdriver-models/lib/stage').StageModel} StageModel
+ * @typedef {import('screwdriver-models/lib/event')} Event
+ * @typedef {import('screwdriver-models/lib/build')} Build
  */
-/**
- * @property {EventFactory} eventFactory
- * @property {BuildFactory} buildFactory
- * @property {JobFactory} jobFactory
- * @property {BuildModel} currentBuild
- * @property {EventModel} currentEvent
- * @property {number} username
- * @property {string} scmContext
- * @property {StageModel} stage
- */
+
 class RemoteJoin extends JoinBase {
+    /**
+     * @param {Object} app Application object
+     * @param {Object} config Config object
+     * @param {Event} currentEvent Current event
+     */
     constructor(app, config, currentEvent) {
         super(app, config);
 
         this.currentEvent = currentEvent;
-        this.stage = {};
     }
 
     /**
      * Trigger the next external jobs of the current job
-     * @param {string} externalEvent Downstream pipeline's event
-     * @param {string} nextJobName
-     * @param {string} nextJobId
-     * @param {Record<string, ParentBuild>} parentBuilds
-     * @param {Array<BuildModel>} groupEventBuilds Builds of the downstream pipeline, where only the latest ones for each job are included that have the same groupEventId as the externalEvent
-     * @param {Array<string>} joinListNames
-     * @return {Promise<BuildModel|null>}
+     * @param {Event} externalEvent Downstream pipeline's event
+     * @param {String} nextJobName
+     * @param {Number} nextJobId
+     * @param {import('./helpers').ParentBuilds} parentBuilds
+     * @param {Build[]} groupEventBuilds Builds of the downstream pipeline, where only the latest ones for each job are included that have the same groupEventId as the externalEvent
+     * @param {String[]} joinListNames
+     * @returns {Promise<Build|null>}
      */
-    async run(externalEvent, nextJobName, nextJobId, parentBuilds, groupEventBuilds, joinListNames) {
+    async execute(externalEvent, nextJobName, nextJobId, parentBuilds, groupEventBuilds, joinListNames) {
         // fetch builds created due to trigger
         const parallelBuilds = await getParallelBuilds({
             eventFactory: this.eventFactory,

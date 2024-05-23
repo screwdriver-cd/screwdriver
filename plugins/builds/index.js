@@ -109,9 +109,9 @@ async function triggerNextJobs(config, app) {
              *    joinList doesn't include D, so start A
              */
             if (isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName))) {
-                await orTrigger.run(currentEvent, currentPipeline.id, nextJobName, nextJobId, parentBuilds);
+                await orTrigger.execute(currentEvent, currentPipeline.id, nextJobName, nextJobId, parentBuilds);
             } else {
-                await andTrigger.run(nextJobName, nextJobId, parentBuilds, joinListNames);
+                await andTrigger.execute(nextJobName, nextJobId, parentBuilds, joinListNames);
             }
         } catch (err) {
             logger.error(
@@ -200,7 +200,7 @@ async function triggerNextJobs(config, app) {
                 if (resource) lock = await locker.lock(resource);
 
                 if (isOrTrigger(externalEvent.workflowGraph, remoteTriggerName, nextJobName)) {
-                    await remoteTrigger.run(
+                    await remoteTrigger.execute(
                         externalEvent,
                         externalEvent.pipelineId,
                         nextJobName,
@@ -215,7 +215,7 @@ async function triggerNextJobs(config, app) {
                             : workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: nextJobName });
                     const joinListNames = joinList.map(j => j.name);
 
-                    await remoteJoin.run(
+                    await remoteJoin.execute(
                         externalEvent,
                         nextJobName,
                         nextJobId,
