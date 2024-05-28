@@ -305,7 +305,6 @@ module.exports = () => ({
             let stageBuildHasFailure = false;
 
             if (stage) {
-                console.log('stage: ', stage);
                 const stageBuild = await stageBuildFactory.get({
                     stageId: stage.id,
                     eventId: newEvent.id
@@ -351,7 +350,6 @@ module.exports = () => ({
                 const stageTeardownName = getFullStageJobName({ stageName: stage.name, jobName: 'teardown' });
                 const stageTeardownJob = await jobFactory.get({ pipelineId: pipeline.id, name: stageTeardownName });
 
-                await new Promise(resolve => setTimeout(resolve, 1000));
                 const stageTeardownBuild = await buildFactory.get({ eventId: newEvent.id, jobId: stageTeardownJob.id });
 
                 // Start stage teardown build if stage is done
