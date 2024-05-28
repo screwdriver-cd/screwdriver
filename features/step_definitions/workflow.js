@@ -159,10 +159,7 @@ Then(
     {
         timeout: TIMEOUT
     },
-    async function step(jobName) {
-        if (jobName.endsWith('teardown')) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+    function step(jobName) {
         const config = {
             instance: this.instance,
             pipelineId: this.pipelineId,
@@ -189,6 +186,7 @@ Then(
                 this.buildId = build.id;
             });
         });
+
     }
 );
 
