@@ -159,10 +159,7 @@ Then(
     {
         timeout: TIMEOUT
     },
-    async function step(jobName) {
-        if (jobName.endsWith('teardown')) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+    function step(jobName) {
         const config = {
             instance: this.instance,
             pipelineId: this.pipelineId,
@@ -175,14 +172,21 @@ Then(
             config.desiredSha = this.sha;
         }
 
-        return sdapi.searchForBuild(config).then(build => {
-            this.eventId = build.eventId;
-            const job = this.jobs.find(j => j.name === jobName);
+        const sleepTime = jobName.endsWith('teardown') ? 1000 : 0;
 
-            Assert.equal(build.jobId, job.id);
+        return new Promise(resolve => {
+            setTimeout(resolve, sleepTime);
+        }).then(() => {
+            return sdapi.searchForBuild(config).then(build => {
+                this.eventId = build.eventId;
+                const job = this.jobs.find(j => j.name === jobName);
 
-            this.buildId = build.id;
+                Assert.equal(build.jobId, job.id);
+
+                this.buildId = build.id;
+            });
         });
+
     }
 );
 
