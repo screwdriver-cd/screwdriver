@@ -186,7 +186,6 @@ Then(
                 this.buildId = build.id;
             });
         });
-
     }
 );
 
