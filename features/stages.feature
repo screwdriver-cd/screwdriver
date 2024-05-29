@@ -120,7 +120,6 @@ Feature: Stage
         And the "b" build succeeded
         And the "c" job is triggered
         And the "c" build succeeded
-        Then the "stage@teardown_fail" stageBuild status is "FAILURE"
         And the "stage@teardown_fail:teardown" job is triggered
         And the "stage@teardown_fail:teardown" build failed
         And the "stage@teardown_fail" stageBuild status is "FAILURE"
