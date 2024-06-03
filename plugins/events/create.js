@@ -79,6 +79,9 @@ module.exports = () => ({
 
             if (creator) {
                 payload.creator = creator;
+                if (creator.username !== 'sd:scheduler') {
+                    payload.creator.username = username;
+                }
             } else if (scope.includes('pipeline')) {
                 payload.creator = {
                     name: 'Pipeline Access Token', // Display name

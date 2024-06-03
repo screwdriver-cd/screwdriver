@@ -416,11 +416,11 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 201 when it successfully creates an event with causeMessage and creator passed in', () => {
+        it('returns 201 when it successfully creates an event with causeMessage and scheduler creator passed in', () => {
             delete options.payload.parentBuildId;
             delete eventConfig.parentBuildId;
             eventConfig.causeMessage = 'Started by periodic build scheduler';
-            eventConfig.creator = { name: 'Screwdriver scheduler', username: 'scheduler' };
+            eventConfig.creator = { name: 'Screwdriver scheduler', username: 'sd:scheduler' };
             eventConfig.meta = {};
             options.payload = {
                 pipelineId,
@@ -428,7 +428,38 @@ describe('event plugin test', () => {
                 causeMessage: 'Started by periodic build scheduler',
                 creator: {
                     name: 'Screwdriver scheduler',
-                    username: 'scheduler'
+                    username: 'sd:scheduler'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with creator passed in not overwrite username', () => {
+            delete options.payload.parentBuildId;
+            delete eventConfig.parentBuildId;
+            eventConfig.causeMessage = 'Manually Started by foobar';
+            eventConfig.creator = { name: 'foo bar', username: 'myself' };
+            eventConfig.meta = {};
+            options.payload = {
+                pipelineId,
+                startFrom: '~commit',
+                causeMessage: 'Manually Started by foobar',
+                creator: {
+                    name: 'foo bar',
+                    username: 'foobar'
                 }
             };
 
