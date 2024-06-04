@@ -294,7 +294,7 @@ const buildsPlugin = {
 
                         //   if nextBuild is stage teardown, just return nextBuild
                         if (current.stage) {
-                            const buildDeletePromises = handleStageFailure({
+                            const buildDeletePromises = await handleStageFailure({
                                 nextJobName,
                                 current,
                                 buildConfig,
