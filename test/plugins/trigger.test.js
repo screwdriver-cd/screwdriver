@@ -2753,6 +2753,24 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('stage@red:teardown').status, 'RUNNING');
     });
 
+    it('stage teardown is triggered when some stage builds fail', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('stage.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+        await event.getBuildOf('stage@red:setup').complete('SUCCESS');
+        await event.getBuildOf('target1').complete('SUCCESS');
+        await event.getBuildOf('target2').complete('SUCCESS');
+        await event.getBuildOf('target3').complete('FAILURE');
+
+        assert.equal(event.getBuildOf('stage@red:teardown').status, 'RUNNING');
+    });
+
     it('[ ~stage@red:setup ] is triggered', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('~stage@red:setup.yaml');
 
