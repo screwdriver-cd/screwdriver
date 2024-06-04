@@ -8,6 +8,14 @@ stages:
     requires: [ ~a ]
     description: First stage
     jobs: [ target1, target2, target3 ]
+    setup:
+      image: node:14
+      steps:
+        -  init: echo 'red setup'
+    teardown:
+        image: node:14
+        steps:
+        -  init: echo 'red teardown'
 
 jobs:
   hub:

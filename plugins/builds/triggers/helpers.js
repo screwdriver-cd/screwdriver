@@ -601,17 +601,18 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param {Build} arg.newBuild Next build
  * @param {String|undefined} arg.jobName Job name
  * @param {String|undefined} arg.pipelineId Pipeline ID
- * @param {Object|undefined} arg.stage Stage
+ * @param {String|undefined} arg.stageName Stage name
+ * @param {Boolean} arg.isVirtualJob If the job is virtual or not
  * @returns {Promise<Build|null>} The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stage }) {
+async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stageName, isVirtualJob }) {
     if (!done || Status.isStarted(newBuild.status)) {
         return null;
     }
 
     // Delete new build since previous build failed
     if (hasFailure) {
-        const stageTeardownName = stage ? getFullStageJobName({ stageName: stage.name, jobName: 'teardown' }) : '';
+        const stageTeardownName = stageName ? getFullStageJobName({ stageName, jobName: 'teardown' }) : '';
 
         // New build is not stage teardown job
         if (jobName !== stageTeardownName) {
@@ -624,7 +625,14 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
         return null;
     }
 
-    // All join builds finished successfully and it's clear that a new build has not been started before.
+    // Bypass execution of the build if the job is virtual
+    if (isVirtualJob) {
+        newBuild.status = Status.SUCCESS;
+
+        return newBuild.update();
+    }
+
+    // All join builds finished successfully, and it's clear that a new build has not been started before.
     // Start new build.
     newBuild.status = Status.QUEUED;
     await newBuild.update();
@@ -790,7 +798,11 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
             isExternal = true;
         }
 
-        const jId = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName)).id;
+        const {
+            id: jId,
+            virtual: isVirtual,
+            stageName
+        } = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName));
 
         if (!joinObj[nextJobPipelineId]) joinObj[nextJobPipelineId] = {};
         const pipelineObj = joinObj[nextJobPipelineId];
@@ -810,7 +822,7 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
         }
 
         if (!pipelineObj.jobs) pipelineObj.jobs = {};
-        pipelineObj.jobs[nextJobName] = { id: jId, join: jobs, isExternal };
+        pipelineObj.jobs[nextJobName] = { id: jId, join: jobs, isExternal, isVirtual, stageName };
     }
 
     return joinObj;

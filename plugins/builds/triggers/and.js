@@ -56,9 +56,11 @@ class AndTrigger extends JoinBase {
      * @param {String} nextJobId
      * @param {Record<String, Object>} parentBuilds
      * @param {String[]} joinListNames
+     * @param {Boolean} isNextJobVirtual
+     * @param {String} nextJobStageName
      * @returns {Promise<Build>}
      */
-    async execute(nextJobName, nextJobId, parentBuilds, joinListNames) {
+    async execute(nextJobName, nextJobId, parentBuilds, joinListNames, isNextJobVirtual, nextJobStageName) {
         logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
 
         const relatedBuilds = await this.fetchRelatedBuilds();
@@ -90,7 +92,9 @@ class AndTrigger extends JoinBase {
             nextJobId,
             parentBuilds: newParentBuilds,
             parentBuildId: this.currentBuild.id,
-            joinListNames
+            joinListNames,
+            isNextJobVirtual,
+            nextJobStageName
         });
     }
 }

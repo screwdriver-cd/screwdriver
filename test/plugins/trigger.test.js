@@ -2812,7 +2812,7 @@ describe('trigger tests', () => {
     });
 
     it('stage setup is triggered', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('stage.yaml');
+        const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup.yaml');
 
         const event = await eventFactoryMock.create({
             pipelineId: pipeline.id,
@@ -2823,6 +2823,22 @@ describe('trigger tests', () => {
         await event.getBuildOf('a').complete('SUCCESS');
 
         assert.equal(event.getBuildOf('stage@red:setup').status, 'RUNNING');
+    });
+
+    it('stage implicit (virtual) setup is bypassed and its downstream is triggered', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('stage-implicit-setup.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+
+        assert.equal(event.getBuildOf('stage@red:setup').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('target1').status, 'RUNNING');
+        assert.equal(event.getBuildOf('target2').status, 'RUNNING');
     });
 
     it('stage is triggered by stage', async () => {
@@ -2840,7 +2856,7 @@ describe('trigger tests', () => {
     });
 
     it('stage jobs are triggered', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('stage.yaml');
+        const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup.yaml');
 
         const event = await eventFactoryMock.create({
             pipelineId: pipeline.id,
@@ -2870,7 +2886,7 @@ describe('trigger tests', () => {
     });
 
     it('stage teardown is triggered', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('stage.yaml');
+        const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup.yaml');
 
         const event = await eventFactoryMock.create({
             pipelineId: pipeline.id,
@@ -2890,8 +2906,32 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('stage@red:teardown').status, 'RUNNING');
     });
 
+    it('stage implicit (virtual) teardown is bypassed and its downstream is triggered', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('stage-implicit-setup.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('SUCCESS');
+
+        assert.equal(event.getBuildOf('stage@red:setup').status, 'SUCCESS');
+
+        await event.getBuildOf('target1').complete('SUCCESS');
+        await event.getBuildOf('target2').complete('SUCCESS');
+
+        assert.isNull(event.getBuildOf('stage@red:teardown'));
+
+        await event.getBuildOf('target3').complete('SUCCESS');
+
+        assert.equal(event.getBuildOf('stage@red:teardown').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('z').status, 'RUNNING');
+    });
+
     it('stage teardown is triggered when some stage builds fail', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('stage.yaml');
+        const pipeline = await pipelineFactoryMock.createFromFile('stage-explicit-setup.yaml');
 
         const event = await eventFactoryMock.create({
             pipelineId: pipeline.id,

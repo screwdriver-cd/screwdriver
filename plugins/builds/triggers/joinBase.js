@@ -9,7 +9,6 @@ const { createInternalBuild, updateParentBuilds, getParentBuildStatus, handleNew
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
  * @typedef {import('screwdriver-models/lib/event')} Event
  * @typedef {import('screwdriver-models/lib/build')} Build
- * @typedef {import('screwdriver-models/lib/stage')} Stage
  */
 
 class JoinBase {
@@ -21,7 +20,6 @@ class JoinBase {
      * @param {JobFactory} app.jobFactory Server app object
      * @param {Object} config Configuration object
      * @param {Build} config.build
-     * @param {Stage} config.stage
      * @param {String} config.username
      * @param {String} config.scmContext
      */
@@ -31,7 +29,6 @@ class JoinBase {
         this.jobFactory = app.jobFactory;
 
         this.currentBuild = config.build;
-        this.stage = config.stage;
         this.username = config.username;
         this.scmContext = config.scmContext;
     }
@@ -47,6 +44,8 @@ class JoinBase {
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {String} parentBuildId
      * @param {String[]} joinListNames
+     * @param {Boolean} isNextJobVirtual
+     * @param {String} nextJobStageName
      * @returns {Promise<Build[]|null>}
      */
     async processNextBuild({
@@ -57,7 +56,9 @@ class JoinBase {
         nextJobId,
         parentBuilds,
         parentBuildId,
-        joinListNames
+        joinListNames,
+        isNextJobVirtual,
+        nextJobStageName
     }) {
         let newBuild;
 
@@ -103,9 +104,10 @@ class JoinBase {
             done,
             hasFailure,
             newBuild,
-            nextJobName,
+            jobName: nextJobName,
             pipelineId,
-            stage: this.stage
+            isVirtualJob: isNextJobVirtual,
+            stageName: nextJobStageName
         });
     }
 }

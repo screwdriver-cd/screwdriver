@@ -39,10 +39,11 @@ class OrBase {
      * @param {String} nextJobName
      * @param {Number} nextJobId
      * @param {import('./helpers').ParentBuilds} parentBuilds
+     * @param {Boolean} isNextJobVirtual
      * @return {Promise<Build|null>}
      */
-    async trigger(event, pipelineId, nextJobName, nextJobId, parentBuilds) {
-        const nextBuild = await this.buildFactory.get({
+    async trigger(event, pipelineId, nextJobName, nextJobId, parentBuilds, isNextJobVirtual) {
+        let nextBuild = await this.buildFactory.get({
             eventId: event.id,
             jobId: nextJobId
         });
@@ -52,13 +53,20 @@ class OrBase {
                 return nextBuild;
             }
 
+            // Bypass execution of the build if the job is virtual
+            if (isNextJobVirtual) {
+                nextBuild.status = Status.SUCCESS;
+
+                return nextBuild.update();
+            }
+
             nextBuild.status = Status.QUEUED;
             await nextBuild.update();
 
             return nextBuild.start();
         }
 
-        return createInternalBuild({
+        nextBuild = await createInternalBuild({
             jobFactory: this.jobFactory,
             buildFactory: this.buildFactory,
             pipelineId,
@@ -70,8 +78,17 @@ class OrBase {
             baseBranch: event.baseBranch || null,
             parentBuilds,
             parentBuildId: this.currentBuild.id,
-            start: true
+            start: !isNextJobVirtual
         });
+
+        // Bypass execution of the build if the job is virtual
+        if (isNextJobVirtual) {
+            nextBuild.status = Status.SUCCESS;
+
+            nextBuild = nextBuild.update();
+        }
+
+        return nextBuild;
     }
 }
 

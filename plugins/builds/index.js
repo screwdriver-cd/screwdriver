@@ -35,7 +35,8 @@ const {
     getBuildsForGroupEvent,
     buildsToRestartFilter,
     trimJobName,
-    getParallelBuilds
+    getParallelBuilds,
+    Status
 } = require('./triggers/helpers');
 
 /**
@@ -87,10 +88,14 @@ async function triggerNextJobs(config, app) {
     const andTrigger = new AndTrigger(app, config, currentEvent);
     const currentPipelineNextJobs = extractCurrentPipelineJoinData(pipelineJoinData, currentPipeline.id);
 
+    const downstreamOfNextJobsToBeProcessed = [];
+
     for (const [nextJobName, nextJob] of Object.entries(currentPipelineNextJobs)) {
         const nextJobId = nextJob.id || (await getJobId(nextJobName, currentPipeline.id, jobFactory));
+        const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJob;
         const resource = `pipeline:${currentPipeline.id}:event:${currentEvent.id}`;
         let lock;
+        let nextBuild;
 
         try {
             lock = await locker.lock(resource);
@@ -110,9 +115,34 @@ async function triggerNextJobs(config, app) {
              *    joinList doesn't include D, so start A
              */
             if (isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName))) {
-                await orTrigger.execute(currentEvent, currentPipeline.id, nextJobName, nextJobId, parentBuilds);
+                nextBuild = await orTrigger.execute(
+                    currentEvent,
+                    currentPipeline.id,
+                    nextJobName,
+                    nextJobId,
+                    parentBuilds,
+                    isNextJobVirtual
+                );
             } else {
-                await andTrigger.execute(nextJobName, nextJobId, parentBuilds, joinListNames);
+                nextBuild = await andTrigger.execute(
+                    nextJobName,
+                    nextJobId,
+                    parentBuilds,
+                    joinListNames,
+                    isNextJobVirtual,
+                    nextJobStageName
+                );
+            }
+
+            if (isNextJobVirtual && nextBuild.status === Status.SUCCESS) {
+                downstreamOfNextJobsToBeProcessed.push({
+                    build: nextBuild,
+                    event: currentEvent,
+                    job: await nextBuild.job,
+                    pipeline: currentPipeline,
+                    scmContext: config.scmContext,
+                    username: config.username
+                });
             }
         } catch (err) {
             logger.error(
@@ -199,6 +229,7 @@ async function triggerNextJobs(config, app) {
 
         for (const [nextJobName, nextJob] of Object.entries(joinedPipeline.jobs)) {
             const nextJobId = nextJob.id || (await getJobId(nextJobName, currentPipeline.id, jobFactory));
+            const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJob;
 
             const { parentBuilds } = parseJobInfo({
                 joinObj: joinedPipeline.jobs,
@@ -209,16 +240,19 @@ async function triggerNextJobs(config, app) {
                 nextPipelineId: joinedPipelineId
             });
 
+            let nextBuild;
+
             try {
                 if (resource) lock = await locker.lock(resource);
 
                 if (isOrTrigger(externalEvent.workflowGraph, remoteTriggerName, nextJobName)) {
-                    await remoteTrigger.execute(
+                    nextBuild = await remoteTrigger.execute(
                         externalEvent,
                         externalEvent.pipelineId,
                         nextJobName,
                         nextJobId,
-                        parentBuilds
+                        parentBuilds,
+                        isNextJobVirtual
                     );
                 } else {
                     // Re get join list when first time remote trigger since external event was empty and cannot get workflow graph then
@@ -228,14 +262,29 @@ async function triggerNextJobs(config, app) {
                             : workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: nextJobName });
                     const joinListNames = joinList.map(j => j.name);
 
-                    await remoteJoin.execute(
+                    nextBuild = await remoteJoin.execute(
                         externalEvent,
                         nextJobName,
                         nextJobId,
                         parentBuilds,
                         groupEventBuilds,
-                        joinListNames
+                        joinListNames,
+                        isNextJobVirtual,
+                        nextJobStageName
                     );
+                }
+
+                if (isNextJobVirtual && nextBuild.status === Status.SUCCESS) {
+                    const nextJobModel = await nextBuild.job;
+
+                    downstreamOfNextJobsToBeProcessed.push({
+                        build: nextBuild,
+                        event: currentEvent,
+                        job: nextJobModel,
+                        pipeline: await nextJobModel.pipeline,
+                        scmContext: config.scmContext,
+                        username: config.username
+                    });
                 }
             } catch (err) {
                 logger.error(
@@ -246,6 +295,10 @@ async function triggerNextJobs(config, app) {
 
             await locker.unlock(lock, resource);
         }
+    }
+
+    for (const nextConfig of downstreamOfNextJobsToBeProcessed) {
+        await triggerNextJobs(nextConfig, app);
     }
 
     return null;
