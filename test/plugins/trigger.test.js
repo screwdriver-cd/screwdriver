@@ -1652,7 +1652,7 @@ describe('trigger tests', () => {
 
         const downstreamRestartEvent = await downstreamEvent.restartFrom('b');
 
-        assert.equal(await downstreamRestartEvent.getBuildOf('a'), null);
+        assert.isNull(downstreamRestartEvent.getBuildOf('a'));
         await downstreamRestartEvent.getBuildOf('b').complete('SUCCESS');
 
         const upstreamRestartEvent = upstreamPipeline.getLatestEvent();
