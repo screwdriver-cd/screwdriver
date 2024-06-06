@@ -1,6 +1,6 @@
 'use strict';
 
-const { getParallelBuilds, mergeParentBuilds, getParentBuildIds } = require('./helpers');
+const { mergeParentBuilds, getParentBuildIds } = require('./helpers');
 const { JoinBase } = require('./joinBase');
 
 /**
