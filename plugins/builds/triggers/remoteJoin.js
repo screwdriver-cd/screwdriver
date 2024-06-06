@@ -31,15 +31,6 @@ class RemoteJoin extends JoinBase {
      * @returns {Promise<Build|null>}
      */
     async execute(externalEvent, nextJobName, nextJobId, parentBuilds, groupEventBuilds, joinListNames) {
-        // fetch builds created due to trigger
-        const parallelBuilds = await getParallelBuilds({
-            eventFactory: this.eventFactory,
-            parentEventId: externalEvent.id,
-            pipelineId: externalEvent.pipelineId
-        });
-
-        groupEventBuilds.push(...parallelBuilds);
-
         // When restart case, should we create a new build ?
         const nextBuild = groupEventBuilds.find(b => b.jobId === nextJobId && b.eventId === externalEvent.id);
 

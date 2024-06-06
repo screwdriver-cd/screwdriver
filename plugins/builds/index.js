@@ -34,7 +34,8 @@ const {
     createExternalEvent,
     getBuildsForGroupEvent,
     buildsToRestartFilter,
-    trimJobName
+    trimJobName,
+    getParallelBuilds
 } = require('./triggers/helpers');
 
 /**
@@ -140,6 +141,18 @@ async function triggerNextJobs(config, app) {
         // This includes CREATED builds too
         const groupEventBuilds =
             externalEvent !== undefined ? await getBuildsForGroupEvent(externalEvent.groupEventId, buildFactory) : [];
+
+        // fetch builds created due to trigger
+        if (externalEvent) {
+            const parallelBuilds = await getParallelBuilds({
+                eventFactory,
+                parentEventId: externalEvent.id,
+                pipelineId: externalEvent.pipelineId
+            });
+
+            groupEventBuilds.push(...parallelBuilds);
+        }
+
         const buildsToRestart = buildsToRestartFilter(joinedPipeline, groupEventBuilds, currentEvent, currentBuild);
         const isRestart = buildsToRestart.length > 0;
 
