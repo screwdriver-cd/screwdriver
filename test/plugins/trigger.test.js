@@ -2596,7 +2596,7 @@ describe('trigger tests', () => {
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 1);
     });
 
-    it.only('[ ~sd@2:a, sd@2:a, sd@2:b ] is triggered in restart event when only sd@1:a restarts', async () => {
+    it('[ ~sd@2:a, sd@2:a, sd@2:b ] is triggered in restart event when only sd@1:a restarts', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_sd@2:a_sd@2:b-upstream.yaml');
         const downstreamPipeline = await pipelineFactoryMock.createFromFile('~sd@2:a_sd@2:a_sd@2:b-downstream.yaml');
 
