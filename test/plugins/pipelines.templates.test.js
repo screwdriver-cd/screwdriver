@@ -83,6 +83,7 @@ describe('pipeline plugin test', () => {
     let bannerMock;
     let screwdriverAdminDetailsMock;
     let scmMock;
+    let templateFactoryMock;
     let pipelineTemplateFactoryMock;
     let pipelineTemplateVersionFactoryMock;
     let pipelineTemplateTagFactoryMock;
@@ -160,6 +161,9 @@ describe('pipeline plugin test', () => {
             create: sinon.stub(),
             remove: sinon.stub()
         };
+        templateFactoryMock = {
+            getTemplate: sinon.stub().resolves({ templateId: 1234 })
+        };
         pipelineTemplateVersionFactoryMock = {
             create: sinon.stub(),
             list: sinon.stub(),
@@ -192,6 +196,7 @@ describe('pipeline plugin test', () => {
             tokenFactory: tokenFactoryMock,
             bannerFactory: bannerFactoryMock,
             secretFactory: secretFactoryMock,
+            templateFactory: templateFactoryMock,
             pipelineTemplateFactory: pipelineTemplateFactoryMock,
             pipelineTemplateVersionFactory: pipelineTemplateVersionFactoryMock,
             pipelineTemplateTagFactory: pipelineTemplateTagFactoryMock,
