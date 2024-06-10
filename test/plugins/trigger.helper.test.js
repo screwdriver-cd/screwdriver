@@ -7,8 +7,6 @@ const rewire = require('rewire');
 const logger = require('screwdriver-logger');
 const { Status } = require('../../plugins/builds/triggers/helpers');
 
-chai.use(require('chai-as-promised'));
-
 const RewiredTriggerHelper = rewire('../../plugins/builds/triggers/helpers.js');
 
 describe('createJoinObject function', () => {
