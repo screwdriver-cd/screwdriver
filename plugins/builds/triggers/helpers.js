@@ -464,8 +464,7 @@ function parseJobInfo({ joinObj, currentBuild, currentPipeline, currentJob, next
 
     return {
         parentBuilds,
-        joinListNames,
-        joinParentBuilds
+        joinListNames
     };
 }
 
@@ -480,11 +479,21 @@ async function getBuildsForGroupEvent(groupEventId, buildFactory) {
 
     builds.forEach(b => {
         try {
-            b.environment = JSON.parse(b.environment);
-            b.parentBuilds = JSON.parse(b.parentBuilds);
-            b.stats = JSON.parse(b.stats);
-            b.meta = JSON.parse(b.meta);
-            b.parentBuildId = JSON.parse(b.parentBuildId);
+            if (typeof b.environment === 'string') {
+                b.environment = JSON.parse(b.environment);
+            }
+            if (typeof b.parentBuilds === 'string') {
+                b.parentBuilds = JSON.parse(b.parentBuilds);
+            }
+            if (typeof b.stats === 'string') {
+                b.stats = JSON.parse(b.stats);
+            }
+            if (typeof b.meta === 'string') {
+                b.meta = JSON.parse(b.meta);
+            }
+            if (typeof b.parentBuildId === 'string') {
+                b.parentBuildId = JSON.parse(b.parentBuildId);
+            }
 
             if (b.parentBuildId) {
                 // parentBuildId could be the string '123', the number 123, or an array
