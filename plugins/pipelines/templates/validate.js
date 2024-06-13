@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const templateSchema = schema.api.templateValidator;
-const pipelineValidator = require('screwdriver-template-validator').parsePipelineTemplate;
+const pipelineValidator = require('screwdriver-template-validator').validatePipelineTemplate;
 
 module.exports = () => ({
     method: 'POST',
@@ -15,8 +15,8 @@ module.exports = () => ({
         handler: async (request, h) => {
             try {
                 const { yaml: templateString } = request.payload;
-
-                const result = await pipelineValidator(templateString);
+                const { templateFactory } = request.server.app;
+                const result = await pipelineValidator(templateString, templateFactory);
 
                 return h.response(result);
             } catch (err) {
