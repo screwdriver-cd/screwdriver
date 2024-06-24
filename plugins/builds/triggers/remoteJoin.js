@@ -32,7 +32,6 @@ class RemoteJoin extends JoinBase {
      * @param {String} nextJobStageName
      * @returns {Promise<Build|null>}
      */
-    async execute(externalEvent, nextJobName, nextJobId, parentBuilds, groupEventBuilds, joinListNames) {
     async execute(
         externalEvent,
         nextJobName,

@@ -798,11 +798,10 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
             isExternal = true;
         }
 
-        const {
-            id: jId,
-            virtual: isVirtual,
-            stageName
-        } = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName));
+        const node = event.workflowGraph.nodes.find(n => n.name === trimJobName(jobName));
+        const jId = node.id;
+        const isVirtual = node.virtual || false;
+        const stageName = node.stageName || null;
 
         if (!joinObj[nextJobPipelineId]) joinObj[nextJobPipelineId] = {};
         const pipelineObj = joinObj[nextJobPipelineId];
