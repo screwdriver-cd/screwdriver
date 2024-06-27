@@ -338,7 +338,7 @@ module.exports = () => ({
                 );
             } else {
                 await triggerNextJobs(
-                    { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
+                    { pipeline, job, build: newBuild, username, scmContext, event: newEvent },
                     request.server.app
                 );
             }

@@ -8,10 +8,26 @@ stages:
     requires: [ ~a ]
     description: First stage
     jobs: [ b ]
+    setup:
+      image: node:20
+      steps:
+        -  init: echo 'red setup'
+    teardown:
+      image: node:20
+      steps:
+        -  init: echo 'red teardown'
   blue:
     requires: [ ~a ]
     description: First stage
     jobs: [ c ]
+    setup:
+      image: node:20
+      steps:
+        -  init: echo 'blue setup'
+    teardown:
+      image: node:20
+      steps:
+        -  init: echo 'blue teardown'
 
 jobs:
   hub:

@@ -7,18 +7,18 @@ stages:
   red:
     requires: [ ~a ]
     description: First stage
-    jobs: [ b ]
-    setup:
-      image: node:20
-      steps:
-        -  init: echo 'red setup'
+    jobs: [ target1, target2, target3 ]
 
 jobs:
   hub:
     requires: [ ~commit, ~pr ]
   a:
     requires: [ ~hub ]
-  b:
-    description: empty
-  target:
-    requires: [ ~stage@red:setup ]
+  target1:
+    description: 'empty'
+  target2:
+    description: 'empty'
+  target3:
+    requires: [ target1, target2 ]
+  z:
+    requires: [ ~stage@red ]

@@ -28,9 +28,20 @@ class RemoteJoin extends JoinBase {
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {Build[]} groupEventBuilds Builds of the downstream pipeline, where only the latest ones for each job are included that have the same groupEventId as the externalEvent
      * @param {String[]} joinListNames
+     * @param {Boolean} isNextJobVirtual
+     * @param {String} nextJobStageName
      * @returns {Promise<Build|null>}
      */
-    async execute(externalEvent, nextJobName, nextJobId, parentBuilds, groupEventBuilds, joinListNames) {
+    async execute(
+        externalEvent,
+        nextJobName,
+        nextJobId,
+        parentBuilds,
+        groupEventBuilds,
+        joinListNames,
+        isNextJobVirtual,
+        nextJobStageName
+    ) {
         // When restart case, should we create a new build ?
         const nextBuild = groupEventBuilds.find(b => b.jobId === nextJobId && b.eventId === externalEvent.id);
 
@@ -51,7 +62,9 @@ class RemoteJoin extends JoinBase {
             nextJobId,
             parentBuilds: newParentBuilds,
             parentBuildId,
-            joinListNames
+            joinListNames,
+            isNextJobVirtual,
+            nextJobStageName
         });
     }
 }

@@ -57,7 +57,9 @@ describe('createJoinObject function', () => {
                             { id: 11, name: 'jobA' },
                             { id: 12, name: 'jobB' }
                         ],
-                        isExternal: false
+                        isExternal: false,
+                        isVirtual: false,
+                        stageName: null
                     }
                 }
             }
@@ -122,7 +124,9 @@ describe('createJoinObject function', () => {
                             { id: 22, name: 'sd@2:jobB' },
                             { id: 23, name: 'sd@2:jobC' }
                         ],
-                        isExternal: true
+                        isExternal: true,
+                        isVirtual: false,
+                        stageName: null
                     }
                 }
             }
@@ -158,8 +162,98 @@ describe('createJoinObject function', () => {
         const expected = {
             1: {
                 jobs: {
-                    jobB: { id: 12, join: [], isExternal: false },
-                    jobC: { id: 13, join: [], isExternal: false }
+                    jobB: { id: 12, join: [], isExternal: false, isVirtual: false, stageName: null },
+                    jobC: { id: 13, join: [], isExternal: false, isVirtual: false, stageName: null }
+                }
+            }
+        };
+
+        assert.deepEqual(result, expected);
+    });
+
+    it('should create join object for virtual jobs', async () => {
+        const nextJobNames = ['jobC'];
+        const current = {
+            build: { id: 1 },
+            event: {
+                workflowGraph: {
+                    nodes: [
+                        { name: '~commit' },
+                        { name: 'jobA', id: 11 },
+                        { name: 'jobB', id: 12 },
+                        { name: 'jobC', id: 13, virtual: true }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'jobA' },
+                        { src: '~commit', dest: 'jobB' },
+                        { src: 'jobA', dest: 'jobC', join: true },
+                        { src: 'jobB', dest: 'jobC', join: true }
+                    ]
+                }
+            },
+            pipeline: { id: 1 }
+        };
+
+        const result = await createJoinObject(nextJobNames, current, eventFactoryMock);
+
+        const expected = {
+            1: {
+                jobs: {
+                    jobC: {
+                        id: 13,
+                        join: [
+                            { id: 11, name: 'jobA' },
+                            { id: 12, name: 'jobB' }
+                        ],
+                        isExternal: false,
+                        isVirtual: true,
+                        stageName: null
+                    }
+                }
+            }
+        };
+
+        assert.deepEqual(result, expected);
+    });
+
+    it('should create join object for a stage job', async () => {
+        const nextJobNames = ['jobC'];
+        const current = {
+            build: { id: 1 },
+            event: {
+                workflowGraph: {
+                    nodes: [
+                        { name: '~commit' },
+                        { name: 'jobA', id: 11 },
+                        { name: 'jobB', id: 12 },
+                        { name: 'jobC', id: 13, virtual: true, stageName: 'red' }
+                    ],
+                    edges: [
+                        { src: '~commit', dest: 'jobA' },
+                        { src: '~commit', dest: 'jobB' },
+                        { src: 'jobA', dest: 'jobC', join: true },
+                        { src: 'jobB', dest: 'jobC', join: true }
+                    ]
+                }
+            },
+            pipeline: { id: 1 }
+        };
+
+        const result = await createJoinObject(nextJobNames, current, eventFactoryMock);
+
+        const expected = {
+            1: {
+                jobs: {
+                    jobC: {
+                        id: 13,
+                        join: [
+                            { id: 11, name: 'jobA' },
+                            { id: 12, name: 'jobB' }
+                        ],
+                        isExternal: false,
+                        isVirtual: true,
+                        stageName: 'red'
+                    }
                 }
             }
         };
@@ -1158,7 +1252,7 @@ describe('handleNewBuild function', () => {
             newBuild: newBuildMock,
             jobName: 'stage@deploy:teardown',
             pipelineId: 1,
-            stage: { name: 'deploy' }
+            stageName: 'deploy'
         });
 
         assert.isNull(result);
@@ -1178,6 +1272,19 @@ describe('handleNewBuild function', () => {
         assert.strictEqual(result.status, Status.QUEUED);
         sinon.assert.calledOnce(newBuildMock.update);
         sinon.assert.calledOnce(newBuildMock.start);
+    });
+
+    it('should skip the execution of virtual job and mark the build as successful', async () => {
+        await handleNewBuild({
+            done: true,
+            hasFailure: false,
+            newBuild: newBuildMock,
+            isVirtualJob: true
+        });
+
+        assert.strictEqual(newBuildMock.status, Status.SUCCESS);
+        sinon.assert.calledOnce(newBuildMock.update);
+        sinon.assert.notCalled(newBuildMock.start);
     });
 });
 
