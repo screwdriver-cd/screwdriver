@@ -3030,16 +3030,26 @@ describe('trigger tests', () => {
         await event.getBuildOf('hub').complete('SUCCESS');
         assert.equal(event.getBuildOf('a').status, 'RUNNING');
         assert.equal(event.getBuildOf('b').status, 'RUNNING');
+        assert.equal(event.getBuildOf('c').status, 'RUNNING');
 
         await event.getBuildOf('a').complete('SUCCESS');
-        assert.equal(event.getBuildOf('c1').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('c2').status, 'CREATED');
+        assert.equal(event.getBuildOf('d1').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d2').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d3').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d4').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d5').status, 'CREATED');
+        assert.equal(event.getBuildOf('d6').status, 'CREATED');
+        assert.equal(event.getBuildOf('d7').status, 'CREATED');
         assert.equal(event.getBuildOf('target1').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('target2').status, 'CREATED');
+        assert.equal(event.getBuildOf('target2').status, 'RUNNING');
 
         await event.getBuildOf('b').complete('SUCCESS');
-        assert.equal(event.getBuildOf('c2').status, 'SUCCESS');
-        assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d5').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d6').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d7').status, 'CREATED');
+
+        await event.getBuildOf('c').complete('SUCCESS');
+        assert.equal(event.getBuildOf('d7').status, 'SUCCESS');
     });
 
     describe('Tests for behavior not ideal', () => {

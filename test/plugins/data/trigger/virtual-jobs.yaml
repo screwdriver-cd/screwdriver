@@ -10,17 +10,40 @@ jobs:
         requires: [ ~hub ]
     b:
         requires: [ ~hub ]
-    c1:
+    c:
+        requires: [ ~hub ]
+    d1:
         requires: [ ~a ]
         annotations:
             screwdriver.cd/virtualJob: true
-    c2:
-        requires: [ a, b]
+    d2:
+        requires: [ ~a, ~b ]
         annotations:
             screwdriver.cd/virtualJob: true
+    d3:
+        requires: [ ~a, b ]
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d4:
+        requires: [ a, ~b ]
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d5:
+        requires: [ a, b ]
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d6:
+        requires: [ a, ~b, c ]
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d7:
+        requires: [ a, b, c ]
+        annotations:
+            screwdriver.cd/virtualJob: true
+
     target1:
-        requires: [ ~c1 ]
+        requires: [ ~d1 ]
         annotations:
             screwdriver.cd/virtualJob: true
     target2:
-        requires: [ c1, c2 ]
+        requires: [ ~d1 ]
