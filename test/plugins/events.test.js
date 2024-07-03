@@ -926,6 +926,23 @@ describe('event plugin test', () => {
             });
         });
 
+        it('update the current user permission and put the current user at the head of admins', () => {
+            pipelineMock.admins = {
+                foo: true,
+                myself: false,
+                bar: true,
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 201);
+
+                const { admins } = pipelineMock;
+
+                assert.deepEqual({ myself: true, foo: true, bar: true }, admins);
+                assert.deepEqual(['myself', 'foo', 'bar'], Object.keys(admins));
+            });
+        });
+
         it('returns 500 when the model encounters an error', () => {
             const testError = new Error('datastoreSaveError');
 

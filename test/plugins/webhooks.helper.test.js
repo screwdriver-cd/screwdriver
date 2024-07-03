@@ -1683,6 +1683,23 @@ describe('startHookEvent test', () => {
             });
         });
 
+        it('update the current user permission and put the current user at the head of admins', () => {
+            pipelineMock.admins = {
+                foo: true,
+                baxterthehacker: false,
+                bar: true,
+            };
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+
+                const { admins } = pipelineMock;
+
+                assert.deepEqual({ baxterthehacker: true, foo: true, bar: true }, admins);
+                assert.deepEqual(['baxterthehacker', 'foo', 'bar'], Object.keys(admins));
+            });
+        });
+
         it('throws error when failed', () => {
             eventFactoryMock.create.rejects(new Error('Failed to start'));
 
