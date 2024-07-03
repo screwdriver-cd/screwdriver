@@ -88,24 +88,30 @@ async function updateAdmins(userFactory, username, scmContext, pipeline, pipelin
     try {
         const user = await userFactory.get({ username, scmContext });
         const userPermissions = await user.getPermissions(pipeline.scmUri);
-        const newAdmins = pipeline.admins;
 
         // Delete user from admin list if bad permissions
         if (!userPermissions.push) {
+            const newAdmins = pipeline.admins;
+
             delete newAdmins[username];
             // This is needed to make admins dirty and update db
             pipeline.admins = newAdmins;
 
             return pipeline.update();
         }
-        // Add user as admin if permissions good and does not already exist
-        if (!pipeline.admins[username]) {
-            newAdmins[username] = true;
-            // This is needed to make admins dirty and update db
-            pipeline.admins = newAdmins;
 
-            return pipeline.update();
-        }
+        // Put current user at the head of admins to use its SCM token after this
+        // SCM token is got from the first pipeline admin
+        const newAdminNames = [username, ...Object.keys(pipeline.admins)];
+        const newAdmins = {};
+
+        newAdminNames.forEach(name => {
+            newAdmins[name] = true;
+        });
+
+        pipeline.admins = newAdmins;
+
+        return pipeline.update();
     } catch (err) {
         logger.info(err.message);
     }
