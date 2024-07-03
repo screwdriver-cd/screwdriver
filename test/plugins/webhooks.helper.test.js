@@ -1687,7 +1687,7 @@ describe('startHookEvent test', () => {
             pipelineMock.admins = {
                 foo: true,
                 baxterthehacker: false,
-                bar: true,
+                bar: true
             };
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {

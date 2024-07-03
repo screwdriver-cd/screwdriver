@@ -930,7 +930,7 @@ describe('event plugin test', () => {
             pipelineMock.admins = {
                 foo: true,
                 myself: false,
-                bar: true,
+                bar: true
             };
 
             return server.inject(options).then(reply => {
