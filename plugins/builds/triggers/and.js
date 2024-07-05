@@ -69,7 +69,7 @@ class AndTrigger extends JoinBase {
         let nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId === this.currentEvent.id);
 
         if (!nextBuild) {
-            // If the build to join fails and it succeeds on restart, depending on the timing, the latest build will be that of a child event.
+            // If the build to join restart, depending on the timing, the latest build will be that of a child event.
             // In that case, `nextBuild` will be null and will not be triggered even though there is a build that should be triggered.
             // Now we need to check for the existence of a build that should be triggered in its own event.
             nextBuild = await this.buildFactory.get({
@@ -82,11 +82,21 @@ class AndTrigger extends JoinBase {
             }
         }
 
+        if (!nextBuild) {
+            // If the build to join is in the child event, its event id is greater than current event.
+            nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId > this.currentEvent.id);
+        }
+
         const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent);
+        let nextEvent = this.currentEvent;
+
+        if (nextBuild) {
+            nextEvent = await this.eventFactory.get({ id: nextBuild.eventId });
+        }
 
         return this.processNextBuild({
             pipelineId: this.pipelineId,
-            event: this.currentEvent,
+            event: nextEvent,
             nextBuild,
             nextJobName,
             nextJobId,

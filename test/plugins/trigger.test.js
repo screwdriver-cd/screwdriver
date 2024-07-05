@@ -643,6 +643,32 @@ describe('trigger tests', () => {
         assert.equal(eventFactoryMock.getRunningBuild(restartEvent.id), null);
     });
 
+    it('[ a, b ] is triggered in restarted event when b fails once and then restarts and succeeds before a succeeds', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('b').complete('FAILURE');
+        assert.equal(event.getBuildOf('a').status, 'RUNNING');
+        assert.isNull(event.getBuildOf('target'));
+
+        const restartEvent = await event.restartFrom('b');
+
+        await restartEvent.getBuildOf('b').complete('SUCCESS');
+        assert.equal(restartEvent.getBuildOf('target').status, 'CREATED');
+        await event.getBuildOf('a').complete('SUCCESS');
+        assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
+        assert.isNull(event.getBuildOf('target'));
+
+        await restartEvent.getBuildOf('target').complete('SUCCESS');
+        assert.equal(restartEvent.getBuildOf('target').status, 'SUCCESS');
+        assert.equal(eventFactoryMock.getRunningBuild(restartEvent.id), null);
+    });
+
     it('[ a, b ] is not triggered when b was failed', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_b.yaml');
 
@@ -887,6 +913,44 @@ describe('trigger tests', () => {
         await event.getBuildOf('c').complete('SUCCESS');
 
         assert.equal(event.getBuildOf('target').status, 'RUNNING');
+    });
+
+    it('[ a, b, c ] is triggered in restarted event when a fails once and then restarts and succeeds before b,c succeeds', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b_c.yaml');
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('FAILURE');
+
+        const restartEvent = await event.restartFrom('a');
+
+        await restartEvent.getBuildOf('a').complete('SUCCESS');
+        await event.getBuildOf('b').complete('SUCCESS');
+        await event.getBuildOf('c').complete('SUCCESS');
+
+        assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
+    });
+
+    xit('[ a, b, c ] is triggered in restarted event when a fails once and then restarts and succeeds before c succeeds', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('a_b_c.yaml');
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        await event.getBuildOf('a').complete('FAILURE');
+        await event.getBuildOf('b').complete('SUCCESS');
+
+        const restartEvent = await event.restartFrom('a');
+
+        await restartEvent.getBuildOf('a').complete('SUCCESS');
+        await event.getBuildOf('c').complete('SUCCESS');
+
+        assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
     it('[ ~a, a ] is triggered', async () => {
