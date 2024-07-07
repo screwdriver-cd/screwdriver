@@ -32,14 +32,13 @@ describe('trigger tests', () => {
         }
     };
 
-    let loggerMock;
+    const loggerMock = {
+        info: sinon.stub(),
+        error: sinon.stub(),
+        warn: sinon.stub()
+    };
 
     beforeEach(async () => {
-        loggerMock = {
-            info: sinon.stub(),
-            error: sinon.stub(),
-            warn: sinon.stub()
-        };
         const plugin = rewiremock.proxy('../../plugins/builds', {
             '../../plugins/lock': lockMock,
             'screwdriver-logger': loggerMock
@@ -100,7 +99,6 @@ describe('trigger tests', () => {
 
     afterEach(() => {
         server = null;
-        sinon.restore();
     });
 
     it('[ ~a ] is triggered when a succeeds', async () => {
@@ -2034,88 +2032,6 @@ describe('trigger tests', () => {
         assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
         assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 2);
-    });
-
-    it('[ ~sd@2:a ] and [ ~sd@3:a ], [ ~sd@2:a ] is triggered and [ ~sd@3:a ] is not triggerd when sd@3 pipeline is deleted from DB', async () => {
-        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-upstream.yaml');
-        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@1:a-downstream.yaml');
-        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@1:a-downstream.yaml');
-
-        const upstreamEvent = await eventFactoryMock.create({
-            pipelineId: upstreamPipeline.id,
-            startFrom: 'hub'
-        });
-
-        // delete sd@2 pipeline
-        delete pipelineFactoryMock.records[Number(downstreamPipeline1.id)];
-
-        // run all builds
-        await upstreamEvent.run();
-
-        const downstreamEvent1 = downstreamPipeline1.getLatestEvent();
-        const downstreamEvent2 = downstreamPipeline2.getLatestEvent();
-
-        assert.equal(upstreamEvent.getBuildOf('a').status, 'SUCCESS');
-        assert.equal(downstreamEvent1, undefined);
-        assert.equal(downstreamEvent2.getBuildOf('target').status, 'RUNNING');
-        sinon.assert.calledOnceWithMatch(loggerMock.error, 'Error in createExternalEvent:2 from pipeline:1-a-event:1');
-    });
-
-    it('[ ~sd@2:a ] and [ ~sd@3:a ], [ ~sd@3:a ] is triggered and [ ~sd@2:a ] is not triggerd when sd@2 pipeline is deleted from DB', async () => {
-        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@1:a-upstream.yaml');
-        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@1:a-downstream.yaml');
-        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@1:a-downstream.yaml');
-
-        const upstreamEvent = await eventFactoryMock.create({
-            pipelineId: upstreamPipeline.id,
-            startFrom: 'hub'
-        });
-
-        // delete sd@3 pipeline
-        delete pipelineFactoryMock.records[Number(downstreamPipeline2.id)];
-
-        // run all builds
-        await upstreamEvent.run();
-
-        const downstreamEvent1 = downstreamPipeline1.getLatestEvent();
-        const downstreamEvent2 = downstreamPipeline2.getLatestEvent();
-
-        assert.equal(upstreamEvent.getBuildOf('a').status, 'SUCCESS');
-        assert.equal(downstreamEvent1.getBuildOf('target').status, 'RUNNING');
-        assert.equal(downstreamEvent2, undefined);
-        sinon.assert.calledOnceWithMatch(loggerMock.error, 'Error in createExternalEvent:3 from pipeline:1-a-event:1');
-    });
-
-    it('[ ~sd@2:a ], [ ~sd@3:a ], and [ ~sd@4:a ], [ sd@2:a, sd@4:a ] is triggered and [ ~sd@3:a ] is not triggerd when sd@3 pipeline is deleted from DB', async () => {
-        const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@4:a-upstream.yaml');
-        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@4:a-downstream.yaml');
-        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@4:a-downstream.yaml');
-        const downstreamPipeline3 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@4:a-downstream.yaml');
-
-        const upstreamEvent = await eventFactoryMock.create({
-            pipelineId: upstreamPipeline.id,
-            startFrom: 'hub'
-        });
-
-        // delete sd@3 pipeline
-        delete pipelineFactoryMock.records[Number(downstreamPipeline2.id)];
-
-        // run all builds
-        await upstreamEvent.run();
-
-        const downstreamEvent1 = downstreamPipeline1.getLatestEvent();
-        const downstreamEvent2 = downstreamPipeline2.getLatestEvent();
-        const downstreamEvent3 = downstreamPipeline3.getLatestEvent();
-
-        // run all builds
-        await downstreamEvent1.run();
-        await downstreamEvent3.run();
-
-        assert.equal(upstreamEvent.getBuildOf('target').status, 'RUNNING');
-        assert.equal(downstreamEvent1.getBuildOf('a').status, 'SUCCESS');
-        assert.equal(downstreamEvent2, undefined);
-        assert.equal(downstreamEvent3.getBuildOf('a').status, 'SUCCESS');
-        sinon.assert.calledOnceWithMatch(loggerMock.error, 'Error in createExternalEvent:3 from pipeline:1-a-event:1');
     });
 
     it('[ ~sd@2:a, sd@2:b, sd@2:c ] is triggered when sd@2:a succeeds', async () => {
