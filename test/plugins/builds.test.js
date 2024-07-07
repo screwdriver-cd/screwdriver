@@ -3028,33 +3028,11 @@ describe('build plugin test', () => {
                         sha: 'sha'
                     };
 
-                    const expectedBuildArgs = {
-                        jobId: 2,
-                        parentBuildId: 12345,
-                        parentBuilds: {
-                            123: {
-                                eventId: '8888',
-                                jobs: {
-                                    a: 12345
-                                }
-                            }
-                        },
-                        eventId: 2,
-                        username: 12345,
-                        scmContext: 'github:github.com',
-                        prRef: '',
-                        prSource: '',
-                        prInfo: '',
-                        start: true,
-                        baseBranch: null,
-                        sha: 'sha',
-                        configPipelineSha: 'sha'
-                    };
-
                     const expectedEventArgs2 = {
                         ...expectedEventArgs1,
                         pipelineId: '3'
                     };
+
                     const externalEventMock2 = {
                         id: 3,
                         builds: externalEventBuilds,
@@ -3078,7 +3056,7 @@ describe('build plugin test', () => {
                         username: 'foo',
                         sha: 'sha',
                         parentEventId: '8888',
-                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } },
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } }
                     };
 
                     const externalEventConfig2 = {
@@ -3092,7 +3070,7 @@ describe('build plugin test', () => {
                         username: 'foo',
                         sha: 'sha',
                         parentEventId: '8888',
-                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } },
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } }
                     };
 
                     eventFactoryMock.create.withArgs(externalEventConfig1).rejects();
@@ -3119,7 +3097,10 @@ describe('build plugin test', () => {
                     return newServer.inject(options).then(() => {
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs1);
                         assert.calledWith(eventFactoryMock.create.secondCall, expectedEventArgs2);
-                        sinon.assert.calledOnceWithMatch(loggerMock.error, 'Error in createExternalEvent:2 from pipeline:123-a-event:8888');
+                        sinon.assert.calledOnceWithMatch(
+                            loggerMock.error,
+                            'Error in createExternalEvent:2 from pipeline:123-a-event:8888'
+                        );
                     });
                 });
 
