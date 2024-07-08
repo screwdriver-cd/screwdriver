@@ -124,11 +124,17 @@ describe('build plugin test', () => {
     let generateTokenMock;
     let generateProfileMock;
     let bannerFactoryMock;
+    let loggerMock;
     let plugin;
     let server;
     const logBaseUrl = 'https://store.screwdriver.cd';
 
     beforeEach(async () => {
+        loggerMock = {
+            info: sinon.stub(),
+            error: sinon.stub(),
+            warn: sinon.stub()
+        };
         buildFactoryMock = {
             get: sinon.stub(),
             create: sinon.stub(),
@@ -195,6 +201,7 @@ describe('build plugin test', () => {
 
         /* eslint-disable prettier/prettier */
         plugin = rewiremock.proxy('../../plugins/builds', {
+            'screwdriver-logger': loggerMock,
             'jsonwebtoken': jwtMock,
             'badge-maker': badgeMock,
             '../../plugins/lock': lockMock
@@ -276,6 +283,7 @@ describe('build plugin test', () => {
 
     afterEach(() => {
         server = null;
+        sinon.restore();
     });
 
     it('registers the plugin', () => {
@@ -2737,6 +2745,7 @@ describe('build plugin test', () => {
                 });
 
                 afterEach(() => {
+                    sinon.restore();
                     newServer = null;
                 });
 
@@ -2996,6 +3005,102 @@ describe('build plugin test', () => {
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs);
                         assert.calledWith(buildFactoryMock.create.firstCall, jobBconfig);
+                    });
+                });
+
+                it('triggers other jobs even if one of the next external job is already deleted', () => {
+                    const expectedEventArgs1 = {
+                        pipelineId: '2',
+                        startFrom: '~sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
+                        type: 'pipeline',
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        parentEventId: '8888',
+                        parentBuilds: {
+                            123: {
+                                eventId: '8888',
+                                jobs: { a: 12345 }
+                            }
+                        },
+                        scmContext: 'github:github.com',
+                        username: 'foo',
+                        sha: 'sha'
+                    };
+
+                    const expectedEventArgs2 = {
+                        ...expectedEventArgs1,
+                        pipelineId: '3'
+                    };
+
+                    const externalEventMock2 = {
+                        id: 3,
+                        builds: externalEventBuilds,
+                        workflowGraph: {
+                            nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'a', id: 2 }],
+                            edges: [{ src: '~sd@123:a', dest: 'a' }]
+                        },
+                        sha: 'sha',
+                        configPipelineSha: 'sha',
+                        getBuilds: sinon.stub().resolves(externalEventBuilds)
+                    };
+
+                    const externalEventConfig1 = {
+                        pipelineId: '2',
+                        startFrom: '~sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
+                        type: 'pipeline',
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        scmContext: 'github:github.com',
+                        username: 'foo',
+                        sha: 'sha',
+                        parentEventId: '8888',
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } }
+                    };
+
+                    const externalEventConfig2 = {
+                        pipelineId: '3',
+                        startFrom: '~sd@123:a',
+                        skipMessage: 'Skip bulk external builds creation',
+                        type: 'pipeline',
+                        causeMessage: 'Triggered by sd@123:a',
+                        parentBuildId: 12345,
+                        scmContext: 'github:github.com',
+                        username: 'foo',
+                        sha: 'sha',
+                        parentEventId: '8888',
+                        parentBuilds: { 123: { eventId: '8888', jobs: { a: 12345 } } }
+                    };
+
+                    eventFactoryMock.create.withArgs(externalEventConfig1).rejects();
+                    eventFactoryMock.create.withArgs(externalEventConfig2).resolves(externalEventMock2);
+                    eventFactoryMock.list.resolves([]);
+                    eventMock.workflowGraph = {
+                        nodes: [
+                            { name: '~pr' },
+                            { name: '~commit' },
+                            { name: 'a', id: 1 },
+                            { name: 'c', id: 3 },
+                            { name: 'sd@2:a', id: 4 },
+                            { name: 'sd@3:a', id: 5 }
+                        ],
+                        edges: [
+                            { src: '~pr', dest: 'a' },
+                            { src: '~commit', dest: 'a' },
+                            { src: 'a', dest: 'sd@2:a' },
+                            { src: 'a', dest: 'sd@3:a' },
+                            { src: 'sd@3:a', dest: 'c', join: true }
+                        ]
+                    };
+
+                    return newServer.inject(options).then(() => {
+                        assert.calledWith(eventFactoryMock.create.firstCall, expectedEventArgs1);
+                        assert.calledWith(eventFactoryMock.create.secondCall, expectedEventArgs2);
+                        sinon.assert.calledOnceWithMatch(
+                            loggerMock.error,
+                            'Error in createExternalEvent:2 from pipeline:123-a-event:8888'
+                        );
                     });
                 });
 
