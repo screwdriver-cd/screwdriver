@@ -931,6 +931,7 @@ describe('trigger tests', () => {
         await event.getBuildOf('b').complete('SUCCESS');
         await event.getBuildOf('c').complete('SUCCESS');
 
+        assert.isNull(event.getBuildOf('target'));
         assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
@@ -950,6 +951,7 @@ describe('trigger tests', () => {
         await restartEvent.getBuildOf('a').complete('SUCCESS');
         await event.getBuildOf('c').complete('SUCCESS');
 
+        assert.isNull(event.getBuildOf('target'));
         assert.equal(restartEvent.getBuildOf('target').status, 'RUNNING');
     });
 
