@@ -93,7 +93,7 @@ async function triggerNextJobs(config, app) {
     for (const [nextJobName, nextJob] of Object.entries(currentPipelineNextJobs)) {
         const nextJobId = nextJob.id || (await getJobId(nextJobName, currentPipeline.id, jobFactory));
         const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJob;
-        const resource = `pipeline:${currentPipeline.id}:event:${currentEvent.id}`;
+        const resource = `pipeline:${currentPipeline.id}:groupEvent:${currentEvent.groupEventId}`;
         let lock;
         let nextBuild;
 

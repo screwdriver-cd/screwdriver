@@ -82,11 +82,21 @@ class AndTrigger extends JoinBase {
             }
         }
 
+        if (!nextBuild) {
+            // If the build to join is in the child event, its event id is greater than current event.
+            nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId > this.currentEvent.id);
+        }
+
         const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent);
+        let nextEvent = this.currentEvent;
+
+        if (nextBuild) {
+            nextEvent = await this.eventFactory.get({ id: nextBuild.eventId });
+        }
 
         return this.processNextBuild({
             pipelineId: this.pipelineId,
-            event: this.currentEvent,
+            event: nextEvent,
             nextBuild,
             nextJobName,
             nextJobId,
