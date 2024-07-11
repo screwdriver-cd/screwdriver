@@ -4,7 +4,7 @@ const urlLib = require('url');
 const boom = require('@hapi/boom');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
-const { getScmUri } = require('../helper');
+const { getScmUri, isStageTeardown } = require('../helper');
 
 module.exports = () => ({
     method: 'POST',
@@ -28,6 +28,11 @@ module.exports = () => ({
 
             let { pipelineId, startFrom, parentBuildId, parentBuilds, groupEventId, parentEventId, prNum } =
                 request.payload;
+
+            // Validation: Prevent event creation of startFrom is a stage teardown and parentEventID does not exist (start case)
+            if (isStageTeardown(startFrom) && !parentEventId) {
+                throw boom.badRequest('Event cannot be started from a stage teardown');
+            }
 
             // restart case
             if (buildId) {
