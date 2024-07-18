@@ -1,4 +1,6 @@
 @collections
+@parallel
+
 Feature: User Collections
 
     Users want to be able to view a set of pipelines that they most care about. These
@@ -15,7 +17,7 @@ Feature: User Collections
         Given an existing repository with these users and permissions:
             | name          | permission  |
             | calvin        | admin       |
-#            | miss wormwood | no access   |
+#           | miss wormwood | no access   |
         And an existing pipeline with that repository
 
     Scenario: Check Default Collection
@@ -26,33 +28,33 @@ Feature: User Collections
     Scenario: Create New Collection
         And "calvin" is logged in
         When they create a new collection "myCollection" with that pipeline
-        Then they can see that collection
-        And the collection contains that pipeline
+        Then they can see that "myCollection" collection
+        And the "myCollection" collection contains that pipeline
 
     Scenario: Update Existing Collection
         And "calvin" is logged in
-        When they create a new collection "myCollection"
-        Then they can see that collection
-        And the collection is empty
-        When they update the collection "myCollection" with that pipeline
-        Then they can see that collection
-        And the collection contains that pipeline
+        When they create a new collection "newCollection"
+        Then they can see that "newCollection" collection
+        And the "newCollection" collection is empty
+        When they update the collection "newCollection" with that pipeline
+        Then they can see that "newCollection" collection
+        And the "newCollection" collection contains that pipeline
 
     Scenario: Listing A User's Collection
         And "calvin" is logged in
-        And they have a collection "myCollection"
-        And they have a collection "anotherCollection"
+        And they have a collection "firstCollection"
+        And they have a collection "secondCollection"
         When they fetch all their collections
-        Then they can see those collections and the default collection
+        Then they can see "firstCollection" and "secondCollection" and the default collection
 
     Scenario: Deleting A Collection
         And "calvin" is logged in
-        And they have a collection "myCollection"
-        When they delete that collection
-        Then that collection no longer exists
+        And they have a collection "badCollection"
+        When they delete that "badCollection" collection
+        Then that "badCollection" collection no longer exists
 
     Scenario: Collections Are Unique
         And "calvin" is logged in
-        And they have a collection "myCollection"
-        When they create another collection with the same name "myCollection"
-        Then they receive an error regarding unique collections
+        And they have a collection "simpleCollection"
+        When they create another collection with the same name "simpleCollection"
+        Then they receive an error regarding unique collections for "simpleCollection"

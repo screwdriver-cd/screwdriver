@@ -1,4 +1,6 @@
 @artifacts
+@parallel
+
 Feature: Artifacts
 
     Screwdriver allows you to view and download the artifacts generated during the build process at a later time.
