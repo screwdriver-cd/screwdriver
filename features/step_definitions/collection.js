@@ -92,21 +92,25 @@ Then(/^they can see the default collection contains that pipeline$/, { timeout: 
     });
 });
 
-When(/^they create a new collection "([^"]*)" with that pipeline$/, { timeout: TIMEOUT }, function step(collectionName) {
-    return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true })
-        .then(() => {
-            const requestBody = {
-                name: collectionName,
-                pipelineIds: [this.pipelineId]
-            };
+When(
+    /^they create a new collection "([^"]*)" with that pipeline$/,
+    { timeout: TIMEOUT },
+    function step(collectionName) {
+        return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true })
+            .then(() => {
+                const requestBody = {
+                    name: collectionName,
+                    pipelineIds: [this.pipelineId]
+                };
 
-            return createCollection.call(this, requestBody);
-        })
-        .then(response => {
-            Assert.strictEqual(response.statusCode, 201);
-            this.collections[collectionName] = response.body.id;
-        });
-});
+                return createCollection.call(this, requestBody);
+            })
+            .then(response => {
+                Assert.strictEqual(response.statusCode, 201);
+                this.collections[collectionName] = response.body.id;
+            });
+    }
+);
 
 Then(/^they can see that "([^"]*)" collection$/, { timeout: TIMEOUT }, function step(collectionName) {
     return request({
@@ -205,15 +209,18 @@ When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step()
     });
 });
 
-Then(/^they can see "([^"]*)" and "([^"]*)" and the default collection$/, function step(firstCollectionName, secondCollectionName) {
-    const normalCollectionNames = this.allCollections.filter(c => c.type === 'normal').map(c => c.name);
-    const defaultCollection = this.allCollections.filter(c => c.type === 'default');
+Then(
+    /^they can see "([^"]*)" and "([^"]*)" and the default collection$/,
+    function step(firstCollectionName, secondCollectionName) {
+        const normalCollectionNames = this.allCollections.filter(c => c.type === 'normal').map(c => c.name);
+        const defaultCollection = this.allCollections.filter(c => c.type === 'default');
 
-    Assert.isAtLeast(normalCollectionNames.length, 2);
-    Assert.strictEqual(defaultCollection.length, 1);
-    Assert.ok(normalCollectionNames.includes(firstCollectionName));
-    Assert.ok(normalCollectionNames.includes(secondCollectionName));
-});
+        Assert.isAtLeast(normalCollectionNames.length, 2);
+        Assert.strictEqual(defaultCollection.length, 1);
+        Assert.ok(normalCollectionNames.includes(firstCollectionName));
+        Assert.ok(normalCollectionNames.includes(secondCollectionName));
+    }
+);
 
 When(/^they delete that "([^"]*)" collection$/, { timeout: TIMEOUT }, function step(collectionName) {
     return request({
@@ -240,12 +247,16 @@ Then(/^that "([^"]*)" collection no longer exists$/, { timeout: TIMEOUT }, funct
     });
 });
 
-When(/^they create another collection with the same name "([^"]*)"$/, { timeout: TIMEOUT }, function step(collectionName) {
-    return createCollection.call(this, { name: collectionName }).catch(err => {
-        Assert.isOk(err, 'Error should be returned');
-        this.lastResponse = err;
-    });
-});
+When(
+    /^they create another collection with the same name "([^"]*)"$/,
+    { timeout: TIMEOUT },
+    function step(collectionName) {
+        return createCollection.call(this, { name: collectionName }).catch(err => {
+            Assert.isOk(err, 'Error should be returned');
+            this.lastResponse = err;
+        });
+    }
+);
 
 Then(/^they receive an error regarding unique collections for "([^"]*)"$/, function step(collectionName) {
     Assert.strictEqual(this.lastResponse.statusCode, 409);
@@ -256,6 +267,9 @@ Then(/^they receive an error regarding unique collections for "([^"]*)"$/, funct
 
 After('@collections', function hook() {
     // Delete the collections created in the functional tests if they exist
-    const deletePromises = Object.values(this.collections).map(collectionId => deleteCollection.call(this, collectionId));
+    const deletePromises = Object.values(this.collections).map(collectionId =>
+        deleteCollection.call(this, collectionId)
+    );
+
     return Promise.all(deletePromises);
 });
