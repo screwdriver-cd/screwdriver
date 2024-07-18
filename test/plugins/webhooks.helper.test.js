@@ -267,6 +267,11 @@ describe('startHookEvent test', () => {
     const latestSha = 'a402964c054c610757794d9066c96cee1772daed';
     const username = 'baxterthehacker';
     const scmContext = 'github:github.com';
+    const scmRepo = {
+        branch: 'branch',
+        url: 'https://github.com/org/repo/tree/branch',
+        name: 'org/repo'
+    };
     const token = 'iamtoken';
     const prRef = 'pull/1/merge';
     const scmDisplayName = 'github';
@@ -410,6 +415,8 @@ describe('startHookEvent test', () => {
         pipelineMock = getPipelineMocks({
             id: pipelineId,
             scmUri,
+            token,
+            scmRepo,
             annotations: {},
             admins: {
                 baxterthehacker: false
@@ -1107,6 +1114,12 @@ describe('startHookEvent test', () => {
             startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, {
+                    scmUri,
+                    token,
+                    scmContext,
+                    scmRepo
+                });
                 assert.calledWith(eventFactoryMock.create, {
                     pipelineId,
                     type: 'pipeline',

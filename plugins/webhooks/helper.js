@@ -87,7 +87,7 @@ async function updateAdmins(userFactory, username, scmContext, pipeline, pipelin
 
     try {
         const user = await userFactory.get({ username, scmContext });
-        const userPermissions = await user.getPermissions(pipeline.scmUri);
+        const userPermissions = await user.getPermissions(pipeline.scmUri, user.scmContext, pipeline.scmRepo);
 
         // Delete user from admin list if bad permissions
         if (!userPermissions.push) {
@@ -999,6 +999,7 @@ async function createEvents(
                 const scmConfig = {
                     scmUri: pTuple.pipeline.scmUri,
                     token,
+                    scmRepo: pTuple.pipeline.scmRepo,
                     scmContext
                 };
                 // obtain pipeline's latest commit sha for branch specific job
