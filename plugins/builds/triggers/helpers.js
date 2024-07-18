@@ -335,14 +335,14 @@ async function createInternalBuild(config) {
 
     if (ref) {
         // Whether a job is enabled is determined by the state of the original job.
-        // If the original job does not exist, it will be enabled.
+        // If the original job does not exist or archived, it will be enabled.
         const originalJobName = job.parsePRJobName('job');
         const originalJob = await jobFactory.get({
             name: originalJobName,
             pipelineId
         });
 
-        jobState = originalJob ? originalJob.state : Status.ENABLED;
+        jobState = originalJob && !originalJob.archived ? originalJob.state : Status.ENABLED;
     }
 
     if (Status.isEnabled(jobState)) {
