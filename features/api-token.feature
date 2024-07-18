@@ -1,4 +1,5 @@
 @apitoken
+@parallel
 
 Feature: User API Token
 

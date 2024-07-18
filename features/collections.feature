@@ -1,4 +1,5 @@
 @collections
+@parallel
 
 Feature: User Collections
 
