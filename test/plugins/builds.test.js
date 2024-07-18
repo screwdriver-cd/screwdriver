@@ -2093,6 +2093,48 @@ describe('build plugin test', () => {
                         assert.notCalled(buildFactoryMock.create);
                     });
                 });
+
+                it('triggers a PR job with archived and disabled original job', () => {
+                    const username = id;
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username,
+                                scmContext,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    eventMock.pr = {
+                        ref: 'pull/15/merge',
+                        prSource: 'branch',
+                        prBranchName: 'prBranchName',
+                        url: 'https://github.com/screwdriver-cd/ui/pull/292'
+                    };
+
+                    jobMock.name = 'PR-15:main';
+                    jobFactoryMock.get.withArgs(publishJobMock.id).resolves(publishJobMock);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'PR-15:publish' }).resolves(publishJobMock);
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId, name: 'publish' })
+                        .resolves({ state: 'DISABLED', archived: true });
+
+                    // flag should be true in chainPR events
+                    pipelineMock.chainPR = true;
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledOnce(buildFactoryMock.create);
+                    });
+                });
             });
 
             describe('join', () => {
