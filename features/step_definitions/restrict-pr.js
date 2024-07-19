@@ -34,7 +34,7 @@ Given(
             branch: this.targetBranch,
             rootDir,
             table,
-            shouldNotDeletePipeline: false
+            shouldNotDeletePipeline: true
         });
 
         this.pipelines[rootDir] = {

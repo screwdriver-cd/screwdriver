@@ -1,4 +1,6 @@
 @sd-cmd
+@parallel
+
 Feature: Commands
 
     Users want to share binaries or scripts across multiple containers
