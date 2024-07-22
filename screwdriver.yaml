@@ -5,9 +5,47 @@ shared:
     environment:
         DOCKER_REPO: screwdrivercd/screwdriver
         DOCKER_MULTI_PLATFORM_BUILDS_ENABLED: 1
+    image: node:18
+    annotations:
+        beta_config: &beta_config
+            environment:
+                K8S_CONTAINER: screwdriver-api
+                K8S_IMAGE: screwdrivercd/screwdriver
+                K8S_HOST: kubernetes.default.svc
+                K8S_DEPLOYMENT: sdapi-beta
+                SD_API_HOST: beta.api.screwdriver.cd
+                K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
+                K8S_ENV_VALUE: beta_rc2_
+                TEST_USERNAME: sd-buildbot-functional
+                TEST_ORG: screwdriver-cd-test
+            secrets:
+                # Access key for functional tests
+                - SD_API_TOKEN_BETA
+                # Git access token
+                - GIT_TOKEN_BETA
+                # Talking to Kubernetes
+                - K8S_TOKEN
+        prod_config: &prod_config
+            environment:
+                K8S_CONTAINER: screwdriver-api
+                K8S_IMAGE: screwdrivercd/screwdriver
+                K8S_HOST: kubernetes.default.svc
+                K8S_DEPLOYMENT: sdapi
+                SD_API_HOST: api.screwdriver.cd
+                K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
+                K8S_ENV_VALUE: rc2_
+                TEST_USERNAME: sd-buildbot-functional
+                TEST_ORG: screwdriver-cd-test
+            secrets:
+                # Access key for functional tests
+                - SD_API_TOKEN_PROD
+                # Git access token
+                - GIT_TOKEN_PROD
+                # Talking to Kubernetes
+                - K8S_TOKEN
+
 jobs:
     main:
-        image: node:18
         annotations:
             screwdriver.cd/ram: TURBO
             screwdriver.cd/cpu: TURBO
@@ -32,7 +70,6 @@ jobs:
             - COVERALLS_REPO_TOKEN
 
     publish:
-        image: node:18
         requires: [main]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
@@ -43,6 +80,7 @@ jobs:
             - NPM_TOKEN
             # Pushing tags to Git
             - GIT_KEY
+    
     docker-publish:
         annotations:
             screwdriver.cd/dockerEnabled: true
@@ -50,9 +88,9 @@ jobs:
             screwdriver.cd/dockerRam: HIGH
         requires: publish
         template: sd/dind@2.0.20
+    
     # Deploy to our beta environment and run tests
     beta:
-        image: node:18
         requires: [docker-publish]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
@@ -61,27 +99,10 @@ jobs:
             - test: |
                 npm install
                 GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta
-        environment:
-            K8S_CONTAINER: screwdriver-api
-            K8S_IMAGE: screwdrivercd/screwdriver
-            K8S_HOST: kubernetes.default.svc
-            K8S_DEPLOYMENT: sdapi-beta
-            SD_API_HOST: beta.api.screwdriver.cd
-            K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
-            K8S_ENV_VALUE: beta_rc2_
-            TEST_USERNAME: sd-buildbot-functional
-            TEST_ORG: screwdriver-cd-test
-        secrets:
-            # Access key for functional tests
-            - SD_API_TOKEN_BETA
-            # Git access token
-            - GIT_TOKEN_BETA
-            # Talking to Kubernetes
-            - K8S_TOKEN
+        <<: *beta_config
 
     # Deploy to our prod environment and run tests
     prod:
-        image: node:18
         requires: [beta]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
@@ -90,20 +111,3 @@ jobs:
             - test: |
                 npm install
                 GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
-        environment:
-            K8S_CONTAINER: screwdriver-api
-            K8S_IMAGE: screwdrivercd/screwdriver
-            K8S_HOST: kubernetes.default.svc
-            K8S_DEPLOYMENT: sdapi
-            SD_API_HOST: api.screwdriver.cd
-            K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
-            K8S_ENV_VALUE: rc2_
-            TEST_USERNAME: sd-buildbot-functional
-            TEST_ORG: screwdriver-cd-test
-        secrets:
-            # Access key for functional tests
-            - SD_API_TOKEN_PROD
-            # Git access token
-            - GIT_TOKEN_PROD
-            # Talking to Kubernetes
-            - K8S_TOKEN
