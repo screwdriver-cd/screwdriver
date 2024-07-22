@@ -55,12 +55,12 @@ Before('@collections', function hook() {
     this.repoOrg = this.testOrg;
     this.repoName = 'functional-collections';
     this.pipelineId = null;
-
-    this.collections = {};
+    this.firstCollectionId = null;
+    this.secondCollectionId = null;
 });
 
 When(/^they check the default collection$/, { timeout: TIMEOUT }, function step() {
-    return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true }).then(() =>
+    return this.ensurePipelineExists({ repoName: this.repoName }).then(() =>
         request({
             url: `${this.instance}/${this.namespace}/collections`,
             method: 'GET',
@@ -92,44 +92,40 @@ Then(/^they can see the default collection contains that pipeline$/, { timeout: 
     });
 });
 
-When(
-    /^they create a new collection "([^"]*)" with that pipeline$/,
-    { timeout: TIMEOUT },
-    function step(collectionName) {
-        return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true })
-            .then(() => {
-                const requestBody = {
-                    name: collectionName,
-                    pipelineIds: [this.pipelineId]
-                };
+When(/^they create a new collection "myCollection" with that pipeline$/, { timeout: TIMEOUT }, function step() {
+    return this.ensurePipelineExists({ repoName: this.repoName })
+        .then(() => {
+            const requestBody = {
+                name: 'myCollection',
+                pipelineIds: [this.pipelineId]
+            };
 
-                return createCollection.call(this, requestBody);
-            })
-            .then(response => {
-                Assert.strictEqual(response.statusCode, 201);
-                this.collections[collectionName] = response.body.id;
-            });
-    }
-);
+            return createCollection.call(this, requestBody);
+        })
+        .then(response => {
+            Assert.strictEqual(response.statusCode, 201);
+            this.firstCollectionId = response.body.id;
+        });
+});
 
-Then(/^they can see that "([^"]*)" collection$/, { timeout: TIMEOUT }, function step(collectionName) {
+Then(/^they can see that collection$/, { timeout: TIMEOUT }, function step() {
     return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.collections[collectionName]}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
         context: {
             token: this.jwt
         }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
-        Assert.strictEqual(response.body.name, collectionName);
+        Assert.strictEqual(response.body.name, 'myCollection');
     });
 });
 
-Then(/^the "([^"]*)" collection contains that pipeline$/, { timeout: TIMEOUT }, function step(collectionName) {
+Then(/^the collection contains that pipeline$/, { timeout: TIMEOUT }, function step() {
     const pipelineId = parseInt(this.pipelineId, 10);
 
     return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.collections[collectionName]}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
         context: {
             token: this.jwt
@@ -140,16 +136,16 @@ Then(/^the "([^"]*)" collection contains that pipeline$/, { timeout: TIMEOUT }, 
     });
 });
 
-When(/^they create a new collection "([^"]*)"$/, { timeout: TIMEOUT }, function step(collectionName) {
-    return createCollection.call(this, { name: collectionName }).then(response => {
+When(/^they create a new collection "myCollection"$/, { timeout: TIMEOUT }, function step() {
+    return createCollection.call(this, { name: 'myCollection' }).then(response => {
         Assert.strictEqual(response.statusCode, 201);
-        this.collections[collectionName] = response.body.id;
+        this.firstCollectionId = response.body.id;
     });
 });
 
-Then(/^the "([^"]*)" collection is empty$/, { timeout: TIMEOUT }, function step(collectionName) {
+Then(/^the collection is empty$/, { timeout: TIMEOUT }, function step() {
     return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.collections[collectionName]}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
         context: {
             token: this.jwt
@@ -160,12 +156,12 @@ Then(/^the "([^"]*)" collection is empty$/, { timeout: TIMEOUT }, function step(
     });
 });
 
-When(/^they update the collection "([^"]*)" with that pipeline$/, { timeout: TIMEOUT }, function step(collectionName) {
-    return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true }).then(() => {
+When(/^they update the collection "myCollection" with that pipeline$/, { timeout: TIMEOUT }, function step() {
+    return this.ensurePipelineExists({ repoName: this.repoName }).then(() => {
         const pipelineId = parseInt(this.pipelineId, 10);
 
         return request({
-            url: `${this.instance}/${this.namespace}/collections/${this.collections[collectionName]}`,
+            url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
             method: 'PUT',
             context: {
                 token: this.jwt
@@ -179,20 +175,37 @@ When(/^they update the collection "([^"]*)" with that pipeline$/, { timeout: TIM
     });
 });
 
-Given(/^they have a collection "([^"]*)"$/, { timeout: TIMEOUT }, function step(collectionName) {
+Given(/^they have a collection "myCollection"$/, { timeout: TIMEOUT }, function step() {
     return createCollection
-        .call(this, { name: collectionName })
+        .call(this, { name: 'myCollection' })
         .then(response => {
             Assert.strictEqual(response.statusCode, 201);
 
-            this.collections[collectionName] = response.body.id;
+            this.firstCollectionId = response.body.id;
         })
         .catch(err => {
             Assert.strictEqual(err.statusCode, 409);
 
             const [, str] = err.message.split(': ');
 
-            [this.collections[collectionName]] = str.match(ID);
+            [this.firstCollectionId] = str.match(ID);
+        });
+});
+
+Given(/^they have a collection "anotherCollection"$/, { timeout: TIMEOUT }, function step() {
+    return createCollection
+        .call(this, { name: 'anotherCollection' })
+        .then(response => {
+            Assert.strictEqual(response.statusCode, 201);
+
+            this.secondCollectionId = response.body.id;
+        })
+        .catch(err => {
+            Assert.strictEqual(err.statusCode, 409);
+
+            const [, str] = err.message.split(': ');
+
+            [this.secondCollectionId] = str.match(ID);
         });
 });
 
@@ -205,26 +218,23 @@ When(/^they fetch all their collections$/, { timeout: TIMEOUT }, function step()
         }
     }).then(response => {
         Assert.strictEqual(response.statusCode, 200);
-        this.allCollections = response.body;
+        this.collections = response.body;
     });
 });
 
-Then(
-    /^they can see "([^"]*)" and "([^"]*)" and the default collection$/,
-    function step(firstCollectionName, secondCollectionName) {
-        const normalCollectionNames = this.allCollections.filter(c => c.type === 'normal').map(c => c.name);
-        const defaultCollection = this.allCollections.filter(c => c.type === 'default');
+Then(/^they can see those collections and the default collection$/, function step() {
+    const normalCollectionNames = this.collections.filter(c => c.type === 'normal').map(c => c.name);
+    const defaultCollection = this.collections.filter(c => c.type === 'default');
 
-        Assert.isAtLeast(normalCollectionNames.length, 2);
-        Assert.strictEqual(defaultCollection.length, 1);
-        Assert.ok(normalCollectionNames.includes(firstCollectionName));
-        Assert.ok(normalCollectionNames.includes(secondCollectionName));
-    }
-);
+    Assert.strictEqual(normalCollectionNames.length, 2);
+    Assert.strictEqual(defaultCollection.length, 1);
+    Assert.ok(normalCollectionNames.includes('myCollection'));
+    Assert.ok(normalCollectionNames.includes('anotherCollection'));
+});
 
-When(/^they delete that "([^"]*)" collection$/, { timeout: TIMEOUT }, function step(collectionName) {
+When(/^they delete that collection$/, { timeout: TIMEOUT }, function step() {
     return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.collections[collectionName]}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'DELETE',
         context: {
             token: this.jwt
@@ -234,42 +244,37 @@ When(/^they delete that "([^"]*)" collection$/, { timeout: TIMEOUT }, function s
     });
 });
 
-Then(/^that "([^"]*)" collection no longer exists$/, { timeout: TIMEOUT }, function step(collectionName) {
+Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step() {
     return request({
-        url: `${this.instance}/${this.namespace}/collections/${this.collections[collectionName]}`,
+        url: `${this.instance}/${this.namespace}/collections/${this.firstCollectionId}`,
         method: 'GET',
         context: {
             token: this.jwt
         }
     }).catch(err => {
         Assert.strictEqual(err.statusCode, 404);
-        this.collections[collectionName] = null;
+        this.firstCollectionId = null;
     });
 });
 
-When(
-    /^they create another collection with the same name "([^"]*)"$/,
-    { timeout: TIMEOUT },
-    function step(collectionName) {
-        return createCollection.call(this, { name: collectionName }).catch(err => {
-            Assert.isOk(err, 'Error should be returned');
-            this.lastResponse = err;
-        });
-    }
-);
+When(/^they create another collection with the same name "myCollection"$/, { timeout: TIMEOUT }, function step() {
+    return createCollection.call(this, { name: 'myCollection' }).catch(err => {
+        Assert.isOk(err, 'Error should be returned');
+        this.lastResponse = err;
+    });
+});
 
-Then(/^they receive an error regarding unique collections for "([^"]*)"$/, function step(collectionName) {
+Then(/^they receive an error regarding unique collections$/, function step() {
     Assert.strictEqual(this.lastResponse.statusCode, 409);
     Assert.isTrue(
-        this.lastResponse.message.includes(`Collection already exists with the ID: ${this.collections[collectionName]}`)
+        this.lastResponse.message.includes(`Collection already exists with the ID: ${this.firstCollectionId}`)
     );
 });
 
 After('@collections', function hook() {
     // Delete the collections created in the functional tests if they exist
-    const deletePromises = Object.values(this.collections).map(collectionId =>
-        deleteCollection.call(this, collectionId)
-    );
-
-    return Promise.all(deletePromises);
+    return Promise.all([
+        deleteCollection.call(this, this.firstCollectionId),
+        deleteCollection.call(this, this.secondCollectionId)
+    ]);
 });
