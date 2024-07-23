@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const dayjs = require('dayjs');
 const STAGE_PREFIX = 'stage@';
-const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+)(?::teardown)$/;
+const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+):teardown$/;
 
 /**
  * Set default start time and end time

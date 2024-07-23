@@ -29,7 +29,7 @@ module.exports = () => ({
             let { pipelineId, startFrom, parentBuildId, parentBuilds, groupEventId, parentEventId, prNum } =
                 request.payload;
 
-            // Validation: Prevent event creation of startFrom is a stage teardown and parentEventID does not exist (start case)
+            // Validation: Prevent event creation if startFrom is a stage teardown and parentEventID does not exist (start case)
             if (isStageTeardown(startFrom) && !parentEventId) {
                 throw boom.badRequest('Event cannot be started from a stage teardown');
             }
