@@ -102,13 +102,180 @@ jobs:
         <<: *beta_config
     
     beta-no-workflow-test:
-        requires: [beta]
         steps:
             - test: |
                 npm install
                 GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-no-workflow
         <<: *beta_config
-           
+
+    beta-apitoken-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-apitoken
+        <<: *beta_config
+
+    beta-artifacts-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-artifacts
+        <<: *beta_config
+
+    beta-auth-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-auth
+        <<: *beta_config
+
+    beta-build-cache-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-build-cache
+        <<: *beta_config
+
+    beta-collections-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-collections
+        <<: *beta_config
+
+    beta-environments-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-environments
+        <<: *beta_config
+
+    beta-events-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-events
+        <<: *beta_config
+
+    beta-executorqueue-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-executorqueue
+        <<: *beta_config
+
+    beta-gitflow-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-gitflow
+        <<: *beta_config
+
+    beta-metadata-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-metadata
+        <<: *beta_config
+
+    beta-pipelinetemplate-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-pipelinetemplate
+        <<: *beta_config
+
+    beta-pipelinetoken-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-pipelinetoken
+        <<: *beta_config
+
+    beta-restrict-pr-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-restrict-pr
+        <<: *beta_config
+
+    beta-sd-cmd-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-sd-cmd
+        <<: *beta_config
+
+    beta-sd-step-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-sd-step
+        <<: *beta_config
+    
+    beta-secrets-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-secrets
+        <<: *beta_config
+
+    beta-stage-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-stage
+        <<: *beta_config
+
+    beta-subscribe-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-subscribe
+        <<: *beta_config
+
+    beta-templates-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-templates
+        <<: *beta_config
+
+    beta-trigger-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-trigger
+        <<: *beta_config
+
+    beta-user-teardown-step-test:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-user-teardown-step
+        <<: *beta_config
+    
     beta-workflow-test:
         requires: [beta]
         steps:
@@ -119,7 +286,29 @@ jobs:
 
     # Deploy to our prod environment and run tests
     prod:
-        requires: [beta-no-workflow-test, beta-workflow-test]
+        requires: 
+            - beta-apitoken-test
+            - beta-artifacts-test
+            - beta-auth-test
+            - beta-build-cache-test
+            - beta-collections-test
+            - beta-environments-test
+            - beta-events-test
+            - beta-executorqueue-test
+            - beta-gitflow-test
+            - beta-metadata-test
+            - beta-pipelinetemplate-test
+            - beta-pipelinetoken-test
+            - beta-restrict-pr-test
+            - beta-sd-cmd-test
+            - beta-sd-step-test
+            - beta-secrets-test
+            - beta-stage-test
+            - beta-subscribe-test
+            - beta-templates-test
+            - beta-trigger-test
+            - beta-user-teardown-step-test
+            - beta-workflow-test
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
