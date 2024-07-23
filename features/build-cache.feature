@@ -1,5 +1,5 @@
-@build-cache
 @parallel
+@build-cache
 
 Feature: build-cache
 
