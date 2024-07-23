@@ -1,4 +1,6 @@
 @user-teardown-step
+@part2
+
 Feature: User Teardown Steps
 
     Users want to be able to define teardown steps which will be run regardless of whether

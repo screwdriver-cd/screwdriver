@@ -1,4 +1,7 @@
 @collections
+@part1
+@parallel
+
 Feature: User Collections
 
     Users want to be able to view a set of pipelines that they most care about. These

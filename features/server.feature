@@ -1,3 +1,6 @@
+@server
+@part1
+
 Feature: API Server
 
 Scenario: Server is running

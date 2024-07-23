@@ -1,4 +1,6 @@
 @executorqueue
+@part2
+
 Feature: Executor Queue
 
     Users want their build to enqueue for later execution if all the execution engines are

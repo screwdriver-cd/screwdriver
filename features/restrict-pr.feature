@@ -1,4 +1,6 @@
 @restrict-pr
+@part1
+
 Feature: Restrict-pr
 
     The user wants to control the execution of the PR job depending on the source and destination of the Pull Request.

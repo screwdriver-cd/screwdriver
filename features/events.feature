@@ -1,4 +1,6 @@
 @events
+@part1
+
 Feature: Events
 
     The most straight-forward change to a pipeline is by committing code. It has

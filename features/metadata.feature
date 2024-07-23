@@ -1,4 +1,6 @@
 @metadata
+@part2
+
 Feature: Metadata
 
     Users want to pass structured data between their builds.

@@ -1,4 +1,6 @@
 @trigger
+@part1
+
 Feature: Remote Trigger
 
     Users should be allowed to tie together workflows from different build pipelines so that they can

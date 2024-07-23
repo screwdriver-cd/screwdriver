@@ -1,4 +1,6 @@
 @stage
+@part2
+
 Feature: Stage
 
     Users should be allowed to tie together jobs from the same pipeline so that they can

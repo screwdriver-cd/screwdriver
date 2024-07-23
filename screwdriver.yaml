@@ -101,20 +101,21 @@ jobs:
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
         <<: *beta_config
     
-    beta-no-workflow-test:
+    beta-part1-test:
         requires: [beta]
         steps:
             - test: |
                 npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-no-workflow
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-part1
         <<: *beta_config
     
-    beta-workflow-test:
-        requires: [beta-no-workflow-test]
+    beta-part2-test:
+        requires: [beta-part1-test]
         steps:
+            - pause: sleep 120
             - test: |
                 npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-workflow
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-part2
         <<: *beta_config    
 
     # Deploy to our prod environment and run tests

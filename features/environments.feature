@@ -1,4 +1,6 @@
 @environments
+@part2
+
 Feature: Environments
 
     Screwdriver exports a set of environment variables that you can rely on during build runtime

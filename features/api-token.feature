@@ -1,4 +1,6 @@
 @apitoken
+@part1
+
 Feature: User API Token
 
     A user API token can be created and used in place of a password when

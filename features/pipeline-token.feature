@@ -1,5 +1,7 @@
-@ignore
 @pipelinetoken
+@part2
+@ignore
+
 Feature: Pipeline Token
 
     A Pipeline token can be created and used in place of a password when
