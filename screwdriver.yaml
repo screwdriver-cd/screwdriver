@@ -5,9 +5,9 @@ shared:
     environment:
         DOCKER_REPO: screwdrivercd/screwdriver
         DOCKER_MULTI_PLATFORM_BUILDS_ENABLED: 1
-    image: node:18
     annotations:
         beta_config: &beta_config
+            image: node:18
             environment:
                 K8S_CONTAINER: screwdriver-api
                 K8S_IMAGE: screwdrivercd/screwdriver
@@ -26,6 +26,7 @@ shared:
                 # Talking to Kubernetes
                 - K8S_TOKEN
         prod_config: &prod_config
+            image: node:18
             environment:
                 K8S_CONTAINER: screwdriver-api
                 K8S_IMAGE: screwdrivercd/screwdriver
@@ -46,6 +47,7 @@ shared:
 
 jobs:
     main:
+        image: node:18
         annotations:
             screwdriver.cd/ram: TURBO
             screwdriver.cd/cpu: TURBO
@@ -71,6 +73,7 @@ jobs:
 
     publish:
         requires: [main]
+        image: node:18
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install-ci: npm install npm-auto-version
