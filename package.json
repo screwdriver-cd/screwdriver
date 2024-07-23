@@ -13,6 +13,9 @@
     "functional": "cucumber-js --format=progress --tags '(not @ignore) and (not @beta)' --retry 2 --fail-fast --exit",
     "functional-beta": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast --exit",
     "functional-dev": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod)' --retry 2 --fail-fast --exit",
+    "functional-beta": "npm run functional-beta-except-workflow && npm run functional-beta-workflow",
+    "functional-beta-except-workflow": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod) and (not @workflow)' --retry 2 --fail-fast --exit",
+    "functional-beta-workflow": "cucumber-js --format=progress --tags '(not @ignore) and (not @prod) and @workflow' --retry 2 --fail-fast --exit",
     "create-test-user": "node -e 'require(\"./features/scripts/create-test-user.js\")()'",
     "diagrams": "find ./design/diagrams -type f -name \\*.puml -print0 | xargs -0 -n 1 -I DIAGRAM puml generate DIAGRAM -o DIAGRAM.png",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
