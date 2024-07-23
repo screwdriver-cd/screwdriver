@@ -98,67 +98,25 @@ jobs:
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
         <<: *beta_config
     
-    beta-apitoken-test:
+    beta-no-workflow-test:
         requires: [beta]
         steps:
             - test: |
                 npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-apitoken
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-no-workflow
         <<: *beta_config
-
-    beta-artifacts-test:
+           
+    beta-workflow-test:
         requires: [beta]
         steps:
             - test: |
                 npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-artifacts
-        <<: *beta_config
-
-    beta-auth-test:
-        requires: [beta]
-        steps:
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-auth
-        <<: *beta_config
-    
-    beta-build-cache-test:
-        requires: [beta]
-        steps:
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-build-cache
-        <<: *beta_config
-
-    beta-collections-test:
-        requires: [beta]
-        steps:
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-collections
-        <<: *beta_config
-
-    beta-environments-test:
-        requires: [beta]
-        steps:
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-environments
-        <<: *beta_config
-
-    beta-events-test:
-        requires: [beta]
-        steps:
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-events
-        <<: *beta_config
-
-    
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-workflow
+        <<: *beta_config    
 
     # Deploy to our prod environment and run tests
     prod:
-        requires: [beta]
+        requires: [beta-no-workflow-test, beta-workflow-test]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
