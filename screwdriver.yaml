@@ -120,7 +120,7 @@ jobs:
 
     # Deploy to our prod environment and run tests
     prod:
-        requires: [beta-workflow-test]
+        requires: [beta-part2-test]
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
