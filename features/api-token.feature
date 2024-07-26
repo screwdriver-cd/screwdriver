@@ -1,6 +1,4 @@
 @apitoken
-@parallel
-
 Feature: User API Token
 
     A user API token can be created and used in place of a password when
@@ -26,28 +24,28 @@ Feature: User API Token
         And the "tiger" token's 'last used' property is updated
 
     Scenario: List API Tokens
-        Given "calvin" owns an existing API token named "lion"
+        Given "calvin" owns an existing API token named "tiger"
         When he lists all his tokens
-        Then his "lion" token is in the list
+        Then his "tiger" token is in the list
         And his token is safely described
 
     Scenario: Edit API Token Labels
-        Given "calvin" owns an existing API token named "bunny"
+        Given "calvin" owns an existing API token named "tiger"
         When he changes the label associated with the token
         Then his token will have that new label
         And the token's 'last used' property will not be updated
 
     Scenario: Revoke API Token
-        Given "calvin" owns an existing API token named "cat"
+        Given "calvin" owns an existing API token named "tiger"
         When he revokes the token
         And the token is used to log in
         Then the login attempt fails
 
     Scenario: Refresh API Token
-        Given "calvin" owns an existing API token named "dog"
+        Given "calvin" owns an existing API token named "tiger"
         When he refreshes the token
         And the old token value is used to log in
         Then the login attempt fails
         When the new token value is used to log in
         Then a valid JWT is received that represents "calvin"
-        And the "dog" token's 'last used' property is updated
+        And the "tiger" token's 'last used' property is updated

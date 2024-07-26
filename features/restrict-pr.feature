@@ -1,4 +1,3 @@
-@parallel
 @restrict-pr
 Feature: Restrict-pr
 
