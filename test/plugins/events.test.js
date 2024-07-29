@@ -722,6 +722,7 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -743,6 +744,10 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, {
+                    ...scmConfig,
+                    prNum: Number(options.payload.prNum)
+                });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -764,6 +769,7 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -901,6 +907,7 @@ describe('event plugin test', () => {
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -946,6 +953,7 @@ describe('event plugin test', () => {
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -1030,6 +1038,7 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.create);
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: '1' });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
