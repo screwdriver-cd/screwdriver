@@ -291,29 +291,19 @@ describe('event plugin test', () => {
         let expectedLocation;
         let scmConfig;
         let userMock;
+        let pipelineMock;
         let meta;
         const username = 'myself';
         const parentBuildId = 12345;
         const pipelineId = 123;
         const scmContext = 'github:github.com';
+        const scmRepo = {
+            branch: 'branch',
+            url: 'https://github.com/org/repo/tree/branch',
+            name: 'org/repo'
+        };
         const scmUri = 'github.com:12345:branchName';
         const checkoutUrl = 'git@github.com:screwdriver-cd/data-model.git#master';
-        const pipelineMock = {
-            id: pipelineId,
-            checkoutUrl,
-            scmContext: 'github:github.com',
-            update: sinon.stub().resolves(),
-            admins: { foo: true, bar: true },
-            admin: Promise.resolve({
-                username: 'foo',
-                unsealToken: sinon.stub().resolves('token')
-            }),
-            scmUri,
-            chainPR: false,
-            annotations: {
-                'screwdriver.cd/restrictPR': 'none'
-            }
-        };
         const parentBuilds = { 123: { eventId: 8888, jobs: { main: 12345 } } };
         const prInfo = {
             sha: testBuild.sha,
@@ -330,10 +320,28 @@ describe('event plugin test', () => {
                 unsealToken: sinon.stub().resolves('iamtoken'),
                 getFullDisplayName: sinon.stub().returns('Memys Elfandi')
             };
+            pipelineMock = {
+                id: pipelineId,
+                checkoutUrl,
+                scmContext: 'github:github.com',
+                scmRepo,
+                update: sinon.stub().resolves(),
+                admins: { foo: true, bar: true },
+                admin: Promise.resolve({
+                    username: 'foo',
+                    unsealToken: sinon.stub().resolves('token')
+                }),
+                scmUri,
+                chainPR: false,
+                annotations: {
+                    'screwdriver.cd/restrictPR': 'none'
+                }
+            };
             scmConfig = {
                 prNum: null,
                 scmContext: 'github:github.com',
                 scmUri,
+                scmRepo,
                 token: 'iamtoken'
             };
             meta = {
@@ -409,6 +417,7 @@ describe('event plugin test', () => {
                 };
                 assert.calledWith(buildFactoryMock.get, 1234);
                 assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
@@ -440,6 +449,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
@@ -471,6 +481,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
@@ -487,6 +498,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
@@ -505,6 +517,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
@@ -527,6 +540,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
@@ -567,6 +581,7 @@ describe('event plugin test', () => {
                 };
                 assert.calledWith(buildFactoryMock.get, 1234);
                 assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
@@ -609,6 +624,7 @@ describe('event plugin test', () => {
                 };
                 assert.calledWith(buildFactoryMock.get, 1234);
                 assert.calledWith(jobFactoryMock.get, 222);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
@@ -645,6 +661,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
@@ -681,6 +698,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.notCalled(eventFactoryMock.scm.getPrInfo);
@@ -700,9 +718,11 @@ describe('event plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -720,9 +740,14 @@ describe('event plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, {
+                    ...scmConfig,
+                    prNum: Number(options.payload.prNum)
+                });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -740,9 +765,11 @@ describe('event plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -875,10 +902,12 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -898,6 +927,7 @@ describe('event plugin test', () => {
                     pathname: `${options.url}/12345`
                 };
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
                 assert.calledWith(eventFactoryMock.scm.getCommitSha, scmConfig);
@@ -919,9 +949,11 @@ describe('event plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 201);
+                assert.calledWith(userMock.getPermissions, scmUri, scmContext, scmRepo);
                 assert.calledWith(eventFactoryMock.create, eventConfig);
                 assert.calledOnce(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: eventConfig.prNum });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
@@ -1006,6 +1038,7 @@ describe('event plugin test', () => {
                 assert.notCalled(eventFactoryMock.create);
                 assert.notCalled(eventFactoryMock.scm.getCommitSha);
                 assert.calledOnce(eventFactoryMock.scm.getPrInfo);
+                assert.calledWith(eventFactoryMock.scm.getPrInfo, { ...scmConfig, prNum: '1' });
                 assert.calledOnce(eventFactoryMock.scm.getChangedFiles);
             });
         });
