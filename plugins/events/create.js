@@ -136,7 +136,7 @@ module.exports = () => ({
             let permissions;
 
             try {
-                permissions = await user.getPermissions(scmUri);
+                permissions = await user.getPermissions(scmUri, pipeline.scmContext, pipeline.scmRepo);
             } catch (err) {
                 if (err.statusCode === 403 && pipeline.scmRepo && pipeline.scmRepo.private) {
                     throw boom.notFound();
@@ -155,6 +155,7 @@ module.exports = () => ({
                 prNum,
                 scmContext: pipeline.scmContext,
                 scmUri: pipeline.scmUri,
+                scmRepo: pipeline.scmRepo,
                 token
             };
 
