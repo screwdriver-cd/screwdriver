@@ -632,6 +632,58 @@ describe('event plugin test', () => {
             });
         });
 
+        it('returns 400 bad request error when startFrom is stage teardown and parent event is not specified', () => {
+            options.payload.startFrom = 'stage@integration:teardown';
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 400);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with parent event and the startFrom is a stage teardown', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            eventConfig.startFrom = 'stage@integration:teardown';
+            options.payload.parentEventId = parentEventId;
+            options.payload.startFrom = 'stage@integration:teardown';
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
+        it('returns 201 when it successfully creates an event with parent event and the startFrom is not a stage teardown', () => {
+            eventConfig.parentEventId = parentEventId;
+            eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
+            eventConfig.sha = getEventMock(testEvent).sha;
+            eventConfig.baseBranch = 'master';
+            options.payload.parentEventId = parentEventId;
+
+            return server.inject(options).then(reply => {
+                expectedLocation = {
+                    host: reply.request.headers.host,
+                    port: reply.request.headers.port,
+                    protocol: reply.request.server.info.protocol,
+                    pathname: `${options.url}/12345`
+                };
+                assert.equal(reply.statusCode, 201);
+                assert.calledWith(eventFactoryMock.create, eventConfig);
+                assert.strictEqual(reply.headers.location, urlLib.format(expectedLocation));
+                assert.notCalled(eventFactoryMock.scm.getPrInfo);
+            });
+        });
+
         it('returns 201 when it creates an event with parent event for child pipeline', () => {
             eventConfig.parentEventId = parentEventId;
             eventConfig.workflowGraph = getEventMock(testEvent).workflowGraph;
