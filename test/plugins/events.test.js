@@ -632,7 +632,7 @@ describe('event plugin test', () => {
             });
         });
 
-        it('returns 400 bad request error when startFrom is teardown', () => {
+        it('returns 400 bad request error when startFrom is stage teardown and parent event is not specified', () => {
             options.payload.startFrom = 'stage@integration:teardown';
 
             return server.inject(options).then(reply => {
