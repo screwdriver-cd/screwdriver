@@ -1648,5 +1648,4 @@ describe('command plugin test', () => {
             });
         });
     });
-
 });
