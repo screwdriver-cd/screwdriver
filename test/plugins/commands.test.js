@@ -1440,4 +1440,6 @@ describe('command plugin test', () => {
             });
         });
     });
+
+    describe('', () => {});
 });
