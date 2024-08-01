@@ -1441,5 +1441,69 @@ describe('command plugin test', () => {
         });
     });
 
-    describe('', () => {});
+    describe('DELETE /commands/namespace/name/versions/version', () => {
+        const pipelineId = 123;
+        const scmUri = 'github.com:12345:branchName';
+        const username = 'myself';
+        const scmContext = 'github@github.com';
+        let pipeline;
+        let options;
+        let userMock;
+        let testCommand;
+        let testCommandTag;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar/versions/1.0.0',
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user', '!guest']
+                    },
+                    strategy: 'token'
+                }
+            };
+            testCommand = decorateObj({
+                id: 1,
+                namespace: 'foo',
+                name: 'bar',
+                tag: 'stable',
+                version: '1.0.0',
+                pipelineId,
+                remove: sinon.stub().resolves(null)
+            });
+            testCommandTag = decorateObj({
+                id: 1,
+                remove: sinon.stub().resolves(null)
+            });
+
+            userMock = getUserMock({ username, scmContext });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+
+            pipeline = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipeline);
+
+            commandFactoryMock.list.resolves([testCommand]);
+            commandTagFactoryMock.list.resolves([testCommandTag]);
+            requestMock.resolves({ statusCode: 204 });
+        });
+
+        it('returns 404 when command does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Command bar with version 1.0.0 in namespace foo does not exist'
+            };
+
+            commandFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+    });
+
 });
