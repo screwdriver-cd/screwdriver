@@ -1440,4 +1440,212 @@ describe('command plugin test', () => {
             });
         });
     });
+
+    describe('DELETE /commands/namespace/name/versions/version', () => {
+        const pipelineId = 123;
+        const scmUri = 'github.com:12345:branchName';
+        const username = 'myself';
+        const scmContext = 'github@github.com';
+        let pipeline;
+        let options;
+        let userMock;
+        let testCommand;
+        let testCommandTag;
+
+        beforeEach(() => {
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar/versions/1.0.0',
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        scope: ['user', '!guest']
+                    },
+                    strategy: 'token'
+                }
+            };
+            testCommand = decorateObj({
+                id: 1,
+                namespace: 'foo',
+                name: 'bar',
+                tag: 'stable',
+                version: '1.0.0',
+                pipelineId,
+                remove: sinon.stub().resolves(null)
+            });
+            testCommandTag = decorateObj({
+                id: 1,
+                remove: sinon.stub().resolves(null)
+            });
+
+            userMock = getUserMock({ username, scmContext });
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(userMock);
+
+            pipeline = getPipelineMocks(testpipeline);
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(pipeline);
+
+            commandFactoryMock.get.resolves(testCommand);
+            commandTagFactoryMock.list.resolves([testCommandTag]);
+            requestMock.resolves({ statusCode: 204 });
+        });
+
+        it('returns 404 when command does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'Command bar with version 1.0.0 in namespace foo does not exist'
+            };
+
+            commandFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 when user does not have admin permissions', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'User myself does not have admin access for this command'
+            };
+
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: false });
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when user does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: 'User myself does not exist'
+            };
+
+            userFactoryMock.get.withArgs({ username, scmContext }).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 404 when pipeline does not exist', () => {
+            const error = {
+                statusCode: 404,
+                error: 'Not Found',
+                message: `Pipeline ${pipelineId} does not exist`
+            };
+
+            pipelineFactoryMock.get.withArgs(pipelineId).resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes command if user has pipeline admin credentials and command exists', () => {
+            userMock.getPermissions.withArgs(scmUri).resolves({ admin: true });
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testCommand.remove);
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('deletes command if user has Screwdriver admin credentials and command exists', () => {
+            options.auth.credentials.scope.push('admin');
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testCommand.remove);
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+
+        it('returns 403 when build credential pipelineId does not match target pipelineId', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this command'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar/versions/1.0.0',
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId: 1337,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('returns 403 if it is a PR build', () => {
+            const error = {
+                statusCode: 403,
+                error: 'Forbidden',
+                message: 'Not allowed to remove this command'
+            };
+
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar/versions/1.0.0',
+                auth: {
+                    credentials: {
+                        isPR: true,
+                        username,
+                        scmContext,
+                        pipelineId,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
+                }
+            };
+            options.auth.credentials.isPR = true;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 403);
+                assert.deepEqual(reply.result, error);
+            });
+        });
+
+        it('deletes command if build credentials provided and pipelineIds match', () => {
+            options = {
+                method: 'DELETE',
+                url: '/commands/foo/bar/versions/1.0.0',
+                auth: {
+                    credentials: {
+                        username,
+                        scmContext,
+                        pipelineId,
+                        scope: ['build']
+                    },
+                    strategy: 'token'
+                }
+            };
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(testCommand.remove);
+                assert.calledOnce(testCommandTag.remove);
+                assert.equal(reply.statusCode, 204);
+            });
+        });
+    });
 });
