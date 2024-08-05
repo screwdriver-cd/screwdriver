@@ -262,7 +262,6 @@ describe('pipeline plugin test', () => {
                     strategy: ['token']
                 }
             };
-
             expected = {
                 namespace: 'template_namespace',
                 name: 'template_name',
@@ -281,7 +280,11 @@ describe('pipeline plugin test', () => {
                             sourcePaths: []
                         }
                     },
-                    parameters: {}
+                    parameters: {},
+                    workflowGraph: {
+                        nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'main' }],
+                        edges: []
+                    }
                 },
                 pipelineId: 123
             };

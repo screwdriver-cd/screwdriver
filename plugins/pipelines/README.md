@@ -110,8 +110,12 @@ Query Params:
 * `type` - *Optional* Get pipeline or pr events (default `pipeline`)
 * `prNum` - *Optional* Return only PR events of specified PR number
 * `sha` - *Optional* Search `sha` and `configPipelineSha` for events
+* `id` - *Optional* Fetch specific event ID; alternatively can use greater than(`gt:`) or less than(`lt:`) prefix
 
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
+
+`GET /pipelines/{id}/events?id=gt:{eventId}&count={countNumber}` (greater than eventId)
+`GET /pipelines/{id}/events?id=lt:{eventId}&count={countNumber}` (less than eventId)
 
 #### Get all pipeline builds
 `page`, `count`, `sort`, `latest`, `sortBy`, `fetchSteps`, `readOnly`, and `groupEventId` are optional
