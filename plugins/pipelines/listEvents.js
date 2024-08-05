@@ -13,6 +13,12 @@ const shaSchema = joi
     .example('ccc49349d3cffbd12ea9e3d41521480b4aa5de5f');
 const typeSchema = schema.models.event.base.extract('type');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
+const INEQUALITY_SIGNS = /^(gt|lt):([\d]+)$/;
+const queryIdSchema = joi
+    .alternatives()
+    .try(pipelineIdSchema, joi.string().regex(INEQUALITY_SIGNS))
+    .label('Query ID schema')
+    .example('gt:12345');
 
 module.exports = () => ({
     method: 'GET',
@@ -28,7 +34,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
-            const { page, count, sha, prNum } = request.query;
+            const { page, count, sha, prNum, id } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -61,6 +67,11 @@ module.exports = () => ({
                         };
                     }
 
+                    // Event id filter
+                    if (id) {
+                        config.params.id = id;
+                    }
+
                     return pipeline.getEvents(config);
                 })
                 .then(events => h.response(events.map(e => e.toJson())))
@@ -80,6 +91,7 @@ module.exports = () => ({
                     type: typeSchema,
                     prNum: prNumSchema,
                     sha: shaSchema,
+                    id: queryIdSchema,
                     search: joi.forbidden(), // we don't support search for Pipeline list events
                     getCount: joi.forbidden() // we don't support getCount for Pipeline list events
                 })
