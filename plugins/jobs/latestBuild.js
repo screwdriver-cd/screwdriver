@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const idSchema = schema.models.job.base.extract('id');
+const getSchema = schema.models.build.get;
 const statusSchema = schema.models.build.base.extract('status');
 
 module.exports = () => ({
@@ -44,7 +45,7 @@ module.exports = () => ({
                 });
         },
         response: {
-            schema: joi.object()
+            schema: getSchema
         },
         validate: {
             params: joi.object({

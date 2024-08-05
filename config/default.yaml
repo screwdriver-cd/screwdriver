@@ -315,6 +315,7 @@ bookends:
       - screwdriver-cache-bookend
     teardown:
       - screwdriver-artifact-bookend
+      - screwdriver-coverage-bookend
       - screwdriver-cache-bookend
 
 notifications:

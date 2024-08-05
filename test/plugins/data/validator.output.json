@@ -90,7 +90,7 @@
         "edges": [
             { "src": "~pr", "dest": "main" },
             { "src": "~commit", "dest": "main" },
-            { "src": "main", "dest": "publish" }
+            { "src": "main", "dest": "publish", "join": true }
         ]
     }
 }

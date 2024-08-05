@@ -1,0 +1,10 @@
+shared:
+  image: node:20
+  steps:
+    - test: echo 'test'
+
+jobs:
+  b:
+    requires: [ ~sd@1:hub ]
+  c:
+    requires: [ ~sd@1:hub ]

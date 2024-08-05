@@ -61,7 +61,7 @@ Given(
 
                     [this.pipelineId] = str.match(ID);
                 })
-                .then(() => this.getPipeline(this.pipelineId))
+                .then(() => this.getPipelineJobs(this.pipelineId))
                 .then(response => {
                     const expectedJobs = table.hashes();
 
@@ -160,16 +160,57 @@ Then(
         timeout: TIMEOUT
     },
     function step(jobName) {
+        const config = {
+            instance: this.instance,
+            pipelineId: this.pipelineId,
+            desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
+            jobName,
+            jwt: this.jwt
+        };
+
+        if (this.sha) {
+            config.desiredSha = this.sha;
+        }
+
+        const sleepTime = jobName.endsWith('teardown') ? 1000 : 0;
+
+        return new Promise(resolve => {
+            setTimeout(resolve, sleepTime);
+        }).then(() => {
+            return sdapi.searchForBuild(config).then(build => {
+                this.eventId = build.eventId;
+                const job = this.jobs.find(j => j.name === jobName);
+
+                Assert.equal(build.jobId, job.id);
+
+                this.buildId = build.id;
+            });
+        });
+    }
+);
+
+Then(
+    /^the "(.*)" job is triggered once$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step(jobName) {
         return sdapi
-            .searchForBuild({
+            .searchForBuilds({
                 instance: this.instance,
                 pipelineId: this.pipelineId,
                 desiredSha: this.sha,
                 desiredStatus: ['QUEUED', 'RUNNING', 'SUCCESS', 'FAILURE'],
                 jobName,
-                jwt: this.jwt
+                jwt: this.jwt,
+                eventId: this.eventId
             })
-            .then(build => {
+            .then(builds => {
+                if (builds.length > 1) {
+                    Assert.fail(`${jobName} has been triggered more than twice.`);
+                }
+                const build = builds[0];
+
                 this.eventId = build.eventId;
                 const job = this.jobs.find(j => j.name === jobName);
 

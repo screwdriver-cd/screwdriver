@@ -1,0 +1,14 @@
+[{
+    "id": 7969,
+    "name": "screwdriver/pipeline",
+    "tag": "stable",
+    "version": "0.0.4",
+    "templateType": "PIPELINE"
+},
+{
+    "id": 7970,
+    "name": "screwdriver/pipeline",
+    "tag": "latest",
+    "version": "1.0.5",
+    "templateType": "PIPELINE"
+}]

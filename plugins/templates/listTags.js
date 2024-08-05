@@ -49,7 +49,8 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    search: joi.forbidden() // we don't support search for Template list tags
+                    search: joi.forbidden(), // we don't support search for Template list tags
+                    getCount: joi.forbidden()
                 })
             )
         }

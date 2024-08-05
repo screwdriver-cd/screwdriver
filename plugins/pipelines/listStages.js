@@ -4,7 +4,8 @@ const boom = require('@hapi/boom');
 const joi = require('joi');
 const schema = require('screwdriver-data-schema');
 const pipelineIdSchema = schema.models.pipeline.base.extract('id');
-const stageListSchema = joi.array().items(schema.models.stage.base).label('List of stages');
+const nameSchema = schema.models.stage.base.extract('name');
+const stageListSchema = schema.models.stage.list;
 
 module.exports = () => ({
     method: 'GET',
@@ -19,7 +20,8 @@ module.exports = () => ({
         },
 
         handler: async (request, h) => {
-            const { pipelineFactory, stageFactory, eventFactory } = request.server.app;
+            const { pipelineFactory, stageFactory } = request.server.app;
+            const { name, sort, sortBy, page, count } = request.query;
             const pipelineId = request.params.id;
 
             return pipelineFactory
@@ -30,26 +32,30 @@ module.exports = () => ({
                     }
 
                     const config = {
-                        params: { pipelineId }
+                        params: { pipelineId },
+                        sort
                     };
 
-                    // Get latest stages
-                    const latestCommitEvents = await eventFactory.list({
-                        params: {
-                            pipelineId,
-                            parentEventId: null,
-                            type: 'pipeline'
-                        },
-                        paginate: {
-                            count: 1
-                        }
-                    });
-
-                    if (!latestCommitEvents || Object.keys(latestCommitEvents).length === 0) {
-                        throw boom.notFound(`Latest event does not exist for pipeline ${pipelineId}`);
+                    if (name) {
+                        config.params = {
+                            ...config.params,
+                            name
+                        };
                     }
 
-                    config.params.eventId = latestCommitEvents[0].id;
+                    if (sortBy) {
+                        config.sortBy = sortBy;
+                    }
+
+                    if (page) {
+                        config.paginate = config.paginate || {};
+                        config.paginate.page = page;
+                    }
+
+                    if (count) {
+                        config.paginate = config.paginate || {};
+                        config.paginate.count = count;
+                    }
 
                     return stageFactory.list(config);
                 })
@@ -67,6 +73,7 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
+                    name: nameSchema,
                     search: joi.forbidden() // we don't support search for Pipeline list stages
                 })
             )

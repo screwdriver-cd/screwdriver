@@ -6,8 +6,8 @@
         "jobIds": [1, 2, 3, 4],
         "description": "Stage for setting up",
         "archived": false,
-        "setup": [],
-        "teardown": []
+        "setup": 11,
+        "teardown": 12
     },
     {
         "id": 2,
@@ -15,16 +15,16 @@
         "name": "deploy",
         "jobIds": [5, 6, 7],
         "archived": true,
-        "setup": [],
-        "teardown": []
+        "setup": 13,
+        "teardown": 14
     },
     {
         "id": 3,
         "pipelineId": 123,
         "name": "test",
-        "jobIds": [],
+        "jobIds": [9],
         "archived": false,
-        "setup": [11],
-        "teardown": [12]
+        "setup": 15,
+        "teardown": 16
     }
 ]

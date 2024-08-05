@@ -72,10 +72,11 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    readOnly: joi.boolean().truthy('true').falsy('false').default(false),
+                    readOnly: joi.boolean().truthy('true').falsy('false').default(true),
                     fetchSteps: joi.boolean().truthy('true').falsy('false').default(true),
                     status: statusSchema,
-                    search: joi.forbidden() // we don't support search for Job list builds
+                    search: joi.forbidden(), // we don't support search for Job list builds
+                    getCount: joi.forbidden()
                 })
             )
         }

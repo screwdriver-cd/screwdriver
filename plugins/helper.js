@@ -2,6 +2,8 @@
 
 const boom = require('@hapi/boom');
 const dayjs = require('dayjs');
+const STAGE_PREFIX = 'stage@';
+const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+):teardown$/;
 
 /**
  * Set default start time and end time
@@ -102,10 +104,31 @@ async function getScmUri({ pipeline, pipelineFactory }) {
     return scmUri;
 }
 
+/**
+ * Returns full stage name with correct formatting and setup or teardown suffix (e.g. stage@deploy:setup)
+ * @param  {String} stageName               Stage name
+ * @param  {String} type                    Type of stage job, either 'setup' or 'teardown'
+ * @return {String}                         Full stage name
+ */
+function getFullStageJobName({ stageName, jobName }) {
+    return `${STAGE_PREFIX}${stageName}:${jobName}`;
+}
+
+/**
+ * Check if the job is teardown job with teardown suffix
+ * @param  {String} jobName                 Job name
+ * @return {Boolean}
+ */
+function isStageTeardown(jobName) {
+    return STAGE_TEARDOWN_PATTERN.test(jobName);
+}
+
 module.exports = {
     getReadOnlyInfo,
     getScmUri,
     getUserPermissions,
     setDefaultTimeRange,
-    validTimeRange
+    validTimeRange,
+    getFullStageJobName,
+    isStageTeardown
 };

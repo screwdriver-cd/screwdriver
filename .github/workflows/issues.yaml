@@ -1,0 +1,21 @@
+name: Issue Workflow
+
+on:
+  issues:
+    types:
+      - labeled
+      - opened
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run similarity analysis
+        if: (github.event.action == 'labeled' && contains(github.event.issue.labels.*.name, 'triage')) || (github.event.action == 'opened')
+        uses: actions-cool/issues-similarity-analysis@main
+        with:
+          filter-threshold: 0.8
+          title-excludes: 'bug, not, 1234'
+          comment-title: '### Similar issues'
+          comment-body: '${index}. ${similarity} #${number}'

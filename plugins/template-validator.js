@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const schema = require('screwdriver-data-schema');
 const templateSchema = schema.api.templateValidator;
-const validator = require('screwdriver-template-validator');
+const validator = require('screwdriver-template-validator').parseJobTemplate;
 
 /**
  * Hapi Template Validator Plugin

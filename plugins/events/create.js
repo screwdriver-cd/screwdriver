@@ -4,7 +4,7 @@ const urlLib = require('url');
 const boom = require('@hapi/boom');
 const validationSchema = require('screwdriver-data-schema');
 const ANNOT_RESTRICT_PR = 'screwdriver.cd/restrictPR';
-const { getScmUri } = require('../helper');
+const { getScmUri, isStageTeardown } = require('../helper');
 
 module.exports = () => ({
     method: 'POST',
@@ -21,13 +21,18 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { buildFactory, jobFactory, eventFactory, pipelineFactory, userFactory } = request.server.app;
             const { buildId, causeMessage, creator } = request.payload;
-            const { scmContext, username } = request.auth.credentials;
+            const { scmContext, username, scope } = request.auth.credentials;
             const { scm } = eventFactory;
             const { isValidToken } = request.server.plugins.pipelines;
             const { updateAdmins } = request.server.plugins.events;
 
             let { pipelineId, startFrom, parentBuildId, parentBuilds, groupEventId, parentEventId, prNum } =
                 request.payload;
+
+            // Validation: Prevent event creation if startFrom is a stage teardown and parentEventID does not exist (start case)
+            if (isStageTeardown(startFrom) && !parentEventId) {
+                throw boom.badRequest('Event cannot be started from a stage teardown');
+            }
 
             // restart case
             if (buildId) {
@@ -79,6 +84,14 @@ module.exports = () => ({
 
             if (creator) {
                 payload.creator = creator;
+                if (creator.username !== 'sd:scheduler') {
+                    payload.creator.username = username;
+                }
+            } else if (scope.includes('pipeline')) {
+                payload.creator = {
+                    name: 'Pipeline Access Token', // Display name
+                    username
+                };
             }
 
             // Check for startFrom
@@ -128,7 +141,7 @@ module.exports = () => ({
             let permissions;
 
             try {
-                permissions = await user.getPermissions(scmUri);
+                permissions = await user.getPermissions(scmUri, pipeline.scmContext, pipeline.scmRepo);
             } catch (err) {
                 if (err.statusCode === 403 && pipeline.scmRepo && pipeline.scmRepo.private) {
                     throw boom.notFound();
@@ -147,6 +160,7 @@ module.exports = () => ({
                 prNum,
                 scmContext: pipeline.scmContext,
                 scmUri: pipeline.scmUri,
+                scmRepo: pipeline.scmRepo,
                 token
             };
 

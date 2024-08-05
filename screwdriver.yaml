@@ -16,6 +16,7 @@ jobs:
             - ~commit
             - ~sd@73:publish #artifact-bookend https://cd.screwdriver.cd/pipelines/73
             - ~sd@9:publish  #models https://cd.screwdriver.cd/pipelines/9
+            - ~sd@529:publish  #workflow-parser https://cd.screwdriver.cd/pipelines/529
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - install: npm install

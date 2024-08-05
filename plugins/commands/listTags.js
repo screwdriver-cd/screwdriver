@@ -52,7 +52,9 @@ module.exports = () => ({
             }),
             query: schema.api.pagination.concat(
                 joi.object({
-                    search: joi.forbidden() // we don't support search for Command list tag
+                    search: joi.forbidden(), // we don't support search for Command list tag
+                    getCount: joi.forbidden(),
+                    sortBy: joi.forbidden()
                 })
             )
         }

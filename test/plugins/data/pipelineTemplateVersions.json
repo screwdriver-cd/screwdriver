@@ -1,0 +1,51 @@
+[
+    {
+        "id": 1,
+        "templateId": 123,
+        "description": "An example template",
+        "version": "1.0.0",
+        "config": {
+            "jobs": {
+                "main": {
+                    "image": "node:18",
+                    "steps": [
+                        {
+                            "printLine": "echo 'Testing template creation V1'"
+                        }
+                    ],
+                    "requires": [
+                        "~pr",
+                        "~commit"
+                    ]
+                }
+            }
+        },
+        "createTime": "2023-06-12T21:52:22.706Z"
+    },
+    {
+        "id": 2,
+        "templateId": 123,
+        "description": "An example template",
+        "version": "2.0.0",
+        "config": {
+            "jobs": {
+                "main": {
+                    "image": "node:18",
+                    "steps": [
+                        {
+                            "printLine": "echo 'Testing template creation V1'"
+                        },
+                        {
+                            "printLine2": "echo 'Testing template creation V2'"
+                        }
+                    ],
+                    "requires": [
+                        "~pr",
+                        "~commit"
+                    ]
+                }
+            }
+        },
+        "createTime": "2023-06-12T21:52:22.706Z"
+    }
+]

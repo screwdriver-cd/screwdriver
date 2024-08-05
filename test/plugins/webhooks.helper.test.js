@@ -267,6 +267,11 @@ describe('startHookEvent test', () => {
     const latestSha = 'a402964c054c610757794d9066c96cee1772daed';
     const username = 'baxterthehacker';
     const scmContext = 'github:github.com';
+    const scmRepo = {
+        branch: 'branch',
+        url: 'https://github.com/org/repo/tree/branch',
+        name: 'org/repo'
+    };
     const token = 'iamtoken';
     const prRef = 'pull/1/merge';
     const scmDisplayName = 'github';
@@ -410,6 +415,8 @@ describe('startHookEvent test', () => {
         pipelineMock = getPipelineMocks({
             id: pipelineId,
             scmUri,
+            token,
+            scmRepo,
             annotations: {},
             admins: {
                 baxterthehacker: false
@@ -1107,6 +1114,12 @@ describe('startHookEvent test', () => {
             startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
                 assert.notCalled(pipelineFactoryMock.scm.getCommitRefSha);
+                assert.calledWith(pipelineFactoryMock.scm.getCommitSha, {
+                    scmUri,
+                    token,
+                    scmContext,
+                    scmRepo
+                });
                 assert.calledWith(eventFactoryMock.create, {
                     pipelineId,
                     type: 'pipeline',
@@ -1414,7 +1427,7 @@ describe('startHookEvent test', () => {
             });
         });
 
-        it('returns 201 when the hook source triggers subscribed event', () => {
+        it('returns 201 when the hook source triggers subscribed event on commit', () => {
             pipelineFactoryMock.scm.parseUrl
                 .withArgs({ checkoutUrl: fullCheckoutUrl, token, scmContext })
                 .resolves('github.com:789123:master');
@@ -1423,13 +1436,27 @@ describe('startHookEvent test', () => {
                     search: { field: 'scmUri', keyword: 'github.com:789123:%' },
                     params: { state: 'ACTIVE' }
                 })
-                .resolves([]);
+                .resolves([
+                    getPipelineMocks({
+                        id: 'pipelineHash',
+                        scmUri: 'github.com:789123:master',
+                        annotations: {},
+                        admins: {
+                            baxterthehacker: false
+                        },
+                        workflowGraph,
+                        branch: Promise.resolve('master')
+                    })
+                ]);
+            const pipelineMock2 = { ...pipelineMock };
+
+            pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['commit'] }];
             pipelineFactoryMock.list
                 .withArgs({
                     search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
                     params: { state: 'ACTIVE' }
                 })
-                .resolves([pipelineMock]);
+                .resolves([pipelineMock2]);
 
             return startHookEvent(request, responseHandler, parsed).then(reply => {
                 assert.equal(reply.statusCode, 201);
@@ -1439,17 +1466,33 @@ describe('startHookEvent test', () => {
                     webhooks: true,
                     username,
                     scmContext,
-                    sha: latestSha,
+                    startFrom: '~commit',
+                    sha,
                     configPipelineSha: latestSha,
-                    subscribedConfigSha: sha,
-                    startFrom: '~subscribe',
+                    changedFiles,
                     baseBranch: 'master',
                     causeMessage: `Merged by ${username}`,
+                    meta: {},
+                    releaseName: undefined,
+                    ref: undefined
+                });
+                assert.calledWith(eventFactoryMock.create, {
+                    pipelineId,
+                    type: 'pipeline',
+                    webhooks: true,
+                    username,
+                    scmContext,
+                    startFrom: '~subscribe',
+                    sha: latestSha,
+                    configPipelineSha: latestSha,
                     changedFiles,
+                    baseBranch: 'master',
+                    causeMessage: `Merged by ${username}`,
+                    meta: {},
                     releaseName: undefined,
                     ref: undefined,
-                    meta: {},
-                    subscribedEvent: true
+                    subscribedEvent: true,
+                    subscribedConfigSha: sha
                 });
             });
         });
@@ -1653,6 +1696,23 @@ describe('startHookEvent test', () => {
             });
         });
 
+        it('update the current user permission and put the current user at the head of admins', () => {
+            pipelineMock.admins = {
+                foo: true,
+                baxterthehacker: false,
+                bar: true
+            };
+
+            return startHookEvent(request, responseHandler, parsed).then(reply => {
+                assert.equal(reply.statusCode, 201);
+
+                const { admins } = pipelineMock;
+
+                assert.deepEqual({ baxterthehacker: true, foo: true, bar: true }, admins);
+                assert.deepEqual(['baxterthehacker', 'foo', 'bar'], Object.keys(admins));
+            });
+        });
+
         it('throws error when failed', () => {
             eventFactoryMock.create.rejects(new Error('Failed to start'));
 
@@ -1845,7 +1905,7 @@ describe('startHookEvent test', () => {
                 return startHookEvent(request, responseHandler, parsed).then(reply => {
                     assert.equal(reply.statusCode, 201);
                     // create count should't change with pMock5
-                    assert.callCount(eventFactoryMock.create, 8);
+                    assert.callCount(eventFactoryMock.create, 3);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId: pMock1.id,
                         type: 'pr',
@@ -1966,13 +2026,27 @@ describe('startHookEvent test', () => {
                         search: { field: 'scmUri', keyword: 'github.com:789123:%' },
                         params: { state: 'ACTIVE' }
                     })
-                    .resolves([]);
+                    .resolves([
+                        getPipelineMocks({
+                            id: 'pipelineHash',
+                            scmUri: 'github.com:789123:master',
+                            annotations: {},
+                            admins: {
+                                baxterthehacker: false
+                            },
+                            workflowGraph,
+                            branch: Promise.resolve('master')
+                        })
+                    ]);
+                const pipelineMock2 = { ...pipelineMock };
+
+                pipelineMock2.subscribedScmUrlsWithActions = [{ scmUri: 'github.com:789123:master', actions: ['pr'] }];
                 pipelineFactoryMock.list
                     .withArgs({
                         search: { field: 'subscribedScmUrlsWithActions', keyword: '%github.com:789123:%' },
                         params: { state: 'ACTIVE' }
                     })
-                    .resolves([pipelineMock]);
+                    .resolves([pipelineMock2]);
                 eventFactoryMock.scm.getPrInfo.resolves({
                     url: 'foo'
                 });
@@ -1981,20 +2055,39 @@ describe('startHookEvent test', () => {
                     assert.equal(reply.statusCode, 201);
                     assert.calledWith(eventFactoryMock.create, {
                         pipelineId,
+                        type: 'pr',
+                        webhooks: true,
+                        username,
+                        scmContext,
+                        sha,
+                        configPipelineSha: latestSha,
+                        startFrom: '~pr',
+                        changedFiles,
+                        causeMessage: `Opened by github:${username}`,
+                        chainPR: false,
+                        prRef: 'pull/1/merge',
+                        prNum: 2,
+                        prTitle: 'Update the README with new information',
+                        prInfo: { url: 'foo' },
+                        prSource: 'branch',
+                        baseBranch: 'master'
+                    });
+                    assert.calledWith(eventFactoryMock.create, {
+                        pipelineId,
                         type: 'pipeline',
                         webhooks: true,
                         username,
                         scmContext,
+                        startFrom: '~subscribe',
                         sha: latestSha,
                         configPipelineSha: latestSha,
-                        subscribedConfigSha: sha,
-                        startFrom: '~subscribe',
+                        changedFiles,
                         baseBranch: 'master',
                         causeMessage: `Merged by ${username}`,
-                        changedFiles,
                         releaseName: undefined,
                         ref: undefined,
                         subscribedEvent: true,
+                        subscribedConfigSha: sha,
                         subscribedSourceUrl: 'foo'
                     });
                 });

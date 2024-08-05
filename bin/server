@@ -216,11 +216,37 @@ const stageFactory = Models.StageFactory.getInstance({
     datastore,
     datastoreRO
 });
+const stageBuildFactory = Models.StageBuildFactory.getInstance({
+    datastore,
+    datastoreRO
+});
 const triggerFactory = Models.TriggerFactory.getInstance({
     datastore,
     datastoreRO
 });
 const buildClusterFactory = Models.BuildClusterFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+const pipelineTemplateFactory = Models.PipelineTemplateFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+const pipelineTemplateVersionFactory = Models.PipelineTemplateVersionFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+
+const pipelineTemplateTagFactory = Models.PipelineTemplateTagFactory.getInstance({
+    datastore,
+    datastoreRO,
+    scm
+});
+
+const jobTemplateTagFactory = Models.JobTemplateTagFactory.getInstance({
     datastore,
     datastoreRO,
     scm
@@ -240,6 +266,10 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         commandFactory,
         commandTagFactory,
         templateFactory,
+        pipelineTemplateFactory,
+        pipelineTemplateVersionFactory,
+        pipelineTemplateTagFactory,
+        jobTemplateTagFactory,
         templateTagFactory,
         pipelineFactory,
         jobFactory,
@@ -253,6 +283,7 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
         eventFactory,
         collectionFactory,
         stageFactory,
+        stageBuildFactory,
         triggerFactory,
         banners: authConfig,
         builds: {

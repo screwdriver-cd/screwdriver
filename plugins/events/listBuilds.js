@@ -28,7 +28,6 @@ module.exports = () => ({
             }
 
             const config = readOnly ? { readOnly: true } : {};
-
             const buildsModel = await event.getBuilds(config);
 
             let data;
@@ -52,7 +51,8 @@ module.exports = () => ({
                 joi.object({
                     readOnly: joi.boolean().truthy('true').falsy('false').default(false),
                     fetchSteps: joi.boolean().truthy('true').falsy('false').default(true),
-                    search: joi.forbidden() // we don't support search for Event list builds
+                    search: joi.forbidden(), // we don't support search for Event list builds
+                    getCount: joi.forbidden()
                 })
             )
         }

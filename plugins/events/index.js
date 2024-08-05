@@ -4,6 +4,7 @@ const boom = require('@hapi/boom');
 const createRoute = require('./create');
 const getRoute = require('./get');
 const listBuildsRoute = require('./listBuilds');
+const listStageBuildsRoute = require('./listStageBuilds');
 const stopBuildsRoute = require('./stopBuilds');
 const metricsRoute = require('./metrics');
 
@@ -26,10 +27,10 @@ const eventsPlugin = {
          * @return {Promise}                Updates the pipeline admins and throws an error if not an admin
          */
         server.expose('updateAdmins', ({ permissions, pipeline, username }) => {
-            const newAdmins = pipeline.admins;
-
             // Delete user from admin list if bad permissions
             if (!permissions.push) {
+                const newAdmins = pipeline.admins;
+
                 delete newAdmins[username];
                 // This is needed to make admins dirty and update db
                 pipeline.admins = newAdmins;
@@ -39,19 +40,28 @@ const eventsPlugin = {
                 });
             }
 
-            // Add user as admin if permissions good and does not already exist
-            if (!pipeline.admins[username]) {
-                newAdmins[username] = true;
-                // This is needed to make admins dirty and update db
-                pipeline.admins = newAdmins;
+            // Put current user at the head of admins to use its SCM token after this
+            // SCM token is got from the first pipeline admin
+            const newAdminNames = [username, ...Object.keys(pipeline.admins)];
+            const newAdmins = {};
 
-                return pipeline.update();
-            }
+            newAdminNames.forEach(name => {
+                newAdmins[name] = true;
+            });
 
-            return Promise.resolve();
+            pipeline.admins = newAdmins;
+
+            return pipeline.update();
         });
 
-        server.route([createRoute(), getRoute(), listBuildsRoute(), stopBuildsRoute(), metricsRoute()]);
+        server.route([
+            createRoute(),
+            getRoute(),
+            listBuildsRoute(),
+            listStageBuildsRoute(),
+            stopBuildsRoute(),
+            metricsRoute()
+        ]);
     }
 };
 

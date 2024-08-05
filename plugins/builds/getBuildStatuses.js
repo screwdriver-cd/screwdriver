@@ -3,7 +3,7 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const stringSchema = joi.string().regex(/^[0-9]+$/);
-const jobIdsSchema = joi.alternatives().try(joi.array().items(stringSchema), stringSchema).required();
+const jobIdsSchema = joi.alternatives().try(joi.array().items(stringSchema), stringSchema).example(123345).required();
 
 module.exports = () => ({
     method: 'GET',
@@ -46,8 +46,8 @@ module.exports = () => ({
         validate: {
             query: joi.object({
                 jobIds: jobIdsSchema,
-                numBuilds: stringSchema,
-                offset: stringSchema
+                numBuilds: joi.number().integer().positive().default(1),
+                offset: joi.number().integer().min(0).default(0)
             })
         }
     }

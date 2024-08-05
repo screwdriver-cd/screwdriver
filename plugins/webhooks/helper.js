@@ -87,25 +87,31 @@ async function updateAdmins(userFactory, username, scmContext, pipeline, pipelin
 
     try {
         const user = await userFactory.get({ username, scmContext });
-        const userPermissions = await user.getPermissions(pipeline.scmUri);
-        const newAdmins = pipeline.admins;
+        const userPermissions = await user.getPermissions(pipeline.scmUri, user.scmContext, pipeline.scmRepo);
 
         // Delete user from admin list if bad permissions
         if (!userPermissions.push) {
+            const newAdmins = pipeline.admins;
+
             delete newAdmins[username];
             // This is needed to make admins dirty and update db
             pipeline.admins = newAdmins;
 
             return pipeline.update();
         }
-        // Add user as admin if permissions good and does not already exist
-        if (!pipeline.admins[username]) {
-            newAdmins[username] = true;
-            // This is needed to make admins dirty and update db
-            pipeline.admins = newAdmins;
 
-            return pipeline.update();
-        }
+        // Put current user at the head of admins to use its SCM token after this
+        // SCM token is got from the first pipeline admin
+        const newAdminNames = [username, ...Object.keys(pipeline.admins)];
+        const newAdmins = {};
+
+        newAdminNames.forEach(name => {
+            newAdmins[name] = true;
+        });
+
+        pipeline.admins = newAdmins;
+
+        return pipeline.update();
     } catch (err) {
         logger.info(err.message);
     }
@@ -327,7 +333,6 @@ async function triggeredPipelines(
     };
 
     const pipelines = await pipelineFactory.list(listConfig);
-
     const pipelinesWithSubscribedRepos = await pipelineFactory.list(externalRepoSearchConfig);
 
     let pipelinesOnCommitBranch = [];
@@ -365,7 +370,43 @@ async function triggeredPipelines(
 
     const currentRepoPipelines = pipelinesOnCommitBranch.concat(pipelinesOnOtherBranch);
 
-    return currentRepoPipelines.concat(pipelinesWithSubscribedRepos);
+    if (pipelinesOnCommitBranch.length === 0) {
+        return currentRepoPipelines;
+    }
+
+    // process the pipelinesWithSubscribedRepos only when the pipelinesOnCommitBranch is not empty
+    // pipelinesOnCommitBranch has the information to determine the triggering event of downstream subscribing repo
+    pipelinesWithSubscribedRepos.forEach(p => {
+        if (!Array.isArray(p.subscribedScmUrlsWithActions)) {
+            return;
+        }
+        p.subscribedScmUrlsWithActions.forEach(subscribedScmUriWithAction => {
+            const { scmUri: subscribedScmUri, actions: subscribedActions } = subscribedScmUriWithAction;
+
+            if (pipelinesOnCommitBranch[0].scmUri === subscribedScmUri) {
+                const pipeline = pipelinesOnCommitBranch[0];
+                const isReleaseOrTagFiltering = isReleaseOrTagFilteringEnabled(action, pipeline.workflowGraph);
+                const startFrom = determineStartFrom(
+                    action,
+                    type,
+                    branch,
+                    null,
+                    releaseName,
+                    tagName,
+                    isReleaseOrTagFiltering
+                );
+
+                for (const subscribedAction of subscribedActions) {
+                    if (new RegExp(subscribedAction).test(startFrom)) {
+                        currentRepoPipelines.push(p);
+                        break;
+                    }
+                }
+            }
+        });
+    });
+
+    return currentRepoPipelines;
 }
 
 /**
@@ -445,11 +486,12 @@ async function createPREvents(options, request) {
         ref,
         releaseName
     } = options;
+
     const { scm } = request.server.app.pipelineFactory;
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const scmDisplayName = scm.getDisplayName({ scmContext: scmConfig.scmContext });
     const userDisplayName = `${scmDisplayName}:${username}`;
-    let { sha } = options;
+    const { sha } = options;
 
     scmConfig.prNum = prNum;
 
@@ -462,13 +504,11 @@ async function createPREvents(options, request) {
                 let subscribedConfigSha = '';
                 let eventConfig = {};
 
-                // Check if the webhook event is from a subscribed repo and
-                // and fetch the source repo commit sha and save the subscribed sha
                 if (uriTrimmer(scmConfig.scmUri) !== uriTrimmer(p.scmUri)) {
                     subscribedConfigSha = sha;
 
                     try {
-                        sha = await pipelineFactory.scm.getCommitSha({
+                        configPipelineSha = await pipelineFactory.scm.getCommitSha({
                             scmUri: p.scmUri,
                             scmContext: scmConfig.scmContext,
                             token: scmConfig.token
@@ -480,8 +520,6 @@ async function createPREvents(options, request) {
                             logger.info(`skip create event for branch: ${b}`);
                         }
                     }
-
-                    configPipelineSha = sha;
                 } else {
                     try {
                         configPipelineSha = await pipelineFactory.scm.getCommitSha(scmConfig);
@@ -540,7 +578,7 @@ async function createPREvents(options, request) {
                         username,
                         scmContext: scmConfig.scmContext,
                         startFrom: '~subscribe',
-                        sha,
+                        sha: configPipelineSha,
                         configPipelineSha,
                         changedFiles,
                         baseBranch: branch,
@@ -961,6 +999,7 @@ async function createEvents(
                 const scmConfig = {
                     scmUri: pTuple.pipeline.scmUri,
                     token,
+                    scmRepo: pTuple.pipeline.scmRepo,
                     scmContext
                 };
                 // obtain pipeline's latest commit sha for branch specific job
@@ -1060,6 +1099,7 @@ async function createEvents(
 async function pushEvent(request, h, parsed, skipMessage, token) {
     const { eventFactory, pipelineFactory, userFactory } = request.server.app;
     const { hookId, checkoutUrl, branch, scmContext, type, action, changedFiles, releaseName, ref } = parsed;
+
     const fullCheckoutUrl = `${checkoutUrl}#${branch}`;
     const scmConfig = {
         scmUri: '',
@@ -1087,6 +1127,7 @@ async function pushEvent(request, h, parsed, skipMessage, token) {
             releaseName,
             ref
         );
+
         let events = [];
 
         if (!pipelines || pipelines.length === 0) {
