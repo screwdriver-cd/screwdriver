@@ -18,7 +18,8 @@ const testTriggers = require('./data/triggers.json');
 const testBuild = require('./data/buildWithSteps.json');
 const testBuilds = require('./data/builds.json').slice(0, 2);
 const testSecrets = require('./data/secrets.json');
-const testEvents = require('./data/eventsWithGroupEventId.json');
+const testEvents = require('./data/events.json');
+const testEventsWithGroupEventId = require('./data/eventsWithGroupEventId.json');
 const testEventsPr = require('./data/eventsPr.json');
 const testTokens = require('./data/pipeline-tokens.json');
 
@@ -1532,7 +1533,8 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting events', () => {
             options.url = `/pipelines/${id}/events?type=pr`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, { params: { type: 'pr' } });
                 assert.deepEqual(reply.result, testEvents);
@@ -1542,7 +1544,8 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting events with pagination', () => {
             options.url = `/pipelines/${id}/events?type=pr&count=30`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, {
                     params: { type: 'pr' },
@@ -1555,7 +1558,8 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting events with pr number', () => {
             options.url = `/pipelines/${id}/events?prNum=4`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' } });
                 assert.deepEqual(reply.result, testEvents);
@@ -1563,11 +1567,27 @@ describe('pipeline plugin test', () => {
             });
         });
 
-        it('returns 200 for getting events with sha', () => {
-            options.url = `/pipelines/${id}/events?sha=ccc49349d3cffbd12ea9e3d41521480b4aa5de5f`;
-            server.inject(options).then(reply => {
+        it('returns 200 for getting events with id less than 888', () => {
+            options.url = `/pipelines/${id}/events?id=lt:888&count=5`;
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, {
+                    params: { id: 'lt:888', type: 'pipeline' },
+                    paginate: { page: undefined, count: 5 }
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
+        it('returns 200 for getting events with sha', () => {
+            options.url = `/pipelines/${id}/events?sha=ccc49349d3cffbd12ea9e3d41521480b4aa5de5f`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { type: 'pipeline' },
                     search: {
                         field: ['sha', 'configPipelineSha'],
                         keyword: 'ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
@@ -1613,9 +1633,10 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting builds', () => {
             options.url = `/pipelines/${id}/builds`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
-                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.calledWith(pipelineMock.getBuilds, { sort: 'descending', sortBy: 'createTime', readOnly: true });
                 assert.deepEqual(reply.result, testBuilds);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1623,9 +1644,10 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting builds without steps', () => {
             options.url = `/pipelines/${id}/builds?fetchSteps=false`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
-                assert.calledWith(pipelineMock.getBuilds, {});
+                assert.calledWith(pipelineMock.getBuilds, { sort: 'descending', sortBy: 'createTime', readOnly: true });
                 assert.deepEqual(reply.result, testBuilds);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1633,9 +1655,13 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting builds with pagination', () => {
             options.url = `/pipelines/${id}/builds?count=30`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
                 assert.calledWith(pipelineMock.getBuilds, {
+                    sort: 'descending',
+                    sortBy: 'createTime',
+                    readOnly: true,
                     paginate: { page: undefined, count: 30 }
                 });
                 assert.deepEqual(reply.result, testBuilds);
@@ -1645,12 +1671,10 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting builds with sortBy', () => {
             options.url = `/pipelines/${id}/builds?sortBy=createTime&readOnly=false`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
-                assert.calledWith(pipelineMock.getBuilds, {
-                    sortBy: 'createTime',
-                    readOnly: false
-                });
+                assert.calledWith(pipelineMock.getBuilds, { sort: 'descending', sortBy: 'createTime' });
                 assert.deepEqual(reply.result, testBuilds);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1658,30 +1682,43 @@ describe('pipeline plugin test', () => {
 
         it('returns 200 for getting builds with groupEventId', () => {
             options.url = `/pipelines/${id}/builds?groupEventId=999`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
-                assert.calledWith(pipelineMock.getBuilds, { params: { groupEventId: 999 } });
-                assert.deepEqual(reply.result, testEvents);
+                assert.calledWith(pipelineMock.getBuilds, {
+                    sort: 'descending',
+                    sortBy: 'createTime',
+                    readOnly: true,
+                    params: { groupEventId: 999 }
+                });
+                assert.deepEqual(reply.result, testEventsWithGroupEventId);
                 assert.equal(reply.statusCode, 200);
             });
         });
 
         it('returns 200 and does not use latest flag if no groupEventId is set', () => {
             options.url = `/pipelines/${id}/builds?latest=true`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
-                assert.calledWith(pipelineMock.getBuilds, {});
-                assert.deepEqual(reply.result, testEvents);
+                assert.calledWith(pipelineMock.getBuilds, { sort: 'descending', sortBy: 'createTime', readOnly: true });
+                assert.deepEqual(reply.result, testEventsWithGroupEventId);
                 assert.equal(reply.statusCode, 200);
             });
         });
 
         it('returns 200 with groupEventId and latest', () => {
             options.url = `/pipelines/${id}/builds?groupEventId=999&latest=true`;
-            server.inject(options).then(reply => {
+
+            return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getBuilds);
-                assert.calledWith(pipelineMock.getBuilds, { params: { groupEventId: 999, latest: true } });
-                assert.deepEqual(reply.result, testEvents);
+                assert.calledWith(pipelineMock.getBuilds, {
+                    sort: 'descending',
+                    sortBy: 'createTime',
+                    readOnly: true,
+                    params: { groupEventId: 999, latest: true }
+                });
+                assert.deepEqual(reply.result, testEventsWithGroupEventId);
                 assert.equal(reply.statusCode, 200);
             });
         });
