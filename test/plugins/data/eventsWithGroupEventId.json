@@ -1,41 +1,81 @@
 [{
-    "id": 12345,
-    "type": "pipeline",
-    "pipelineId": 1234,
-    "startFrom": "~commit",
-    "sha": "ccc49349d3cffbd12ea9e3d41521480b4aa5de5f",
+    "cause": "Started by user foo",
     "createTime": "2038-01-19T03:14:08.131Z",
-    "commit": {
-        "url": "https://link.to/commitDiff",
-        "message": "some commit message that is here",
-        "author": {
-            "avatar": "https://avatars.githubusercontent.com/u/1234567?v=3",
-            "name": "Batman",
-            "url": "https://internal-ghe.mycompany.com/imbatman",
-            "username": "imbatman"
+    "endTime": "2038-01-19T03:16:10.131Z",
+    "id": 12345,
+    "jobId": 1234,
+    "meta": {
+        "coverage": {
+            "test": 100
         }
     },
-    "workflowGraph": {
-        "nodes": [
-            { "name": "~pr" },
-            { "name": "~commit" },
-            { "name": "main" },
-            { "name": "publish" },
-            { "name": "beta" }
-        ],
-        "edges": [
-            { "src": "~commit", "dest": "main" },
-            { "src": "main", "dest": "publish" },
-            { "src": "publish", "dest": "beta" }
-        ]
-    },
-    "causeMessage": "Merge pull request #26 from screwdriver-cd/models",
-    "creator": {
-        "avatar": "https://avatars.githubusercontent.com/u/2042?v=3",
-        "name": "St John",
-        "url": "https://github.com/stjohn",
-        "username": "stjohn"
-    },
-    "baseBranch": "master",
-    "groupEventId": 222
+    "number": 1,
+    "parameters": {},
+    "sha": "58393af682d61de87789fb4961645c42180cec5a",
+    "startTime": "2038-01-19T03:15:08.131Z",
+    "status": "SUCCESS",
+    "steps": [
+        {
+            "code": 0,
+            "endTime": "2038-01-19T03:15:08.532Z",
+            "name": "sd-setup",
+            "startTime": "2038-01-19T03:15:08.131Z"
+        },
+        {
+            "code": 1,
+            "endTime": "2038-01-19T03:15:09.114Z",
+            "name": "install",
+            "startTime": "2038-01-19T03:15:08.532Z"
+        },
+        {
+            "name": "test"
+        },
+        {
+            "name": "publish"
+        },
+        {
+            "code": 0,
+            "endTime": "2038-01-19T03:15:10.130Z",
+            "name": "sd-cleanup",
+            "startTime": "2038-01-19T03:15:09.115Z"
+        }
+    ]
+},
+{
+    "cause": "Started by user foo",
+    "createTime": "2038-01-19T03:17:08.131Z",
+    "endTime": "2038-01-19T03:19:10.131Z",
+    "id": 12346,
+    "jobId": 1234,
+    "number": 1,
+    "parameters": {},
+    "sha": "58393af682d61de87789fb4961645c42180cec5a",
+    "startTime": "2038-01-19T03:18:08.131Z",
+    "status": "FAILURE",
+    "steps": [
+        {
+            "code": 0,
+            "endTime": "2038-01-19T03:15:08.532Z",
+            "name": "sd-setup",
+            "startTime": "2038-01-19T03:15:08.131Z"
+        },
+        {
+            "code": 5,
+            "endTime": "2038-01-19T03:15:09.114Z",
+            "name": "install",
+            "startTime": "2038-01-19T03:15:08.532Z"
+        },
+        {
+            "name": "test"
+        },
+        {
+            "name": "publish"
+        },
+        {
+            "code": 0,
+            "endTime": "2038-01-19T03:15:10.130Z",
+            "name": "sd-cleanup",
+            "startTime": "2038-01-19T03:15:09.115Z"
+        }
+    ]
 }]
