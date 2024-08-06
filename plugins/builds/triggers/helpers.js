@@ -6,6 +6,7 @@ const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
 const { getFullStageJobName } = require('../../helper');
+const STAGE_SETUP_PATTERN = /^stage@([\w-]+)(?::setup)$/;
 
 /**
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
@@ -1063,6 +1064,38 @@ function buildsToRestartFilter(joinPipeline, groupEventBuilds, currentEvent, cur
         .filter(build => build !== null);
 }
 
+/**
+ * Check if the job is setup job with setup suffix
+ * @param  {String} jobName                 Job name
+ * @return {Boolean}
+ */
+function isStageSetup(jobName) {
+    return STAGE_SETUP_PATTERN.test(jobName);
+}
+
+/**
+ * Check if the job is a stage job
+ * @param  {String} jobName                 Job name
+ * @param  {Object} workflowGraph           Workflow Graph
+ * @return {Boolean}
+ */
+function isStageJob(workflowGraph, jobName) {
+    const jobNode = workflowGraph.nodes.find(n => n.name === jobName);
+
+    return jobNode.stageName !== undefined;
+}
+
+/**
+ * Check if the current job is a stage setup and the next job is a non-setup stage job
+ * @param {String} triggerJob                Current job
+ * @param {String} startFrom                 Next job
+ * @param {Object} workflowGraph             Workflow Graph
+ * @return {Boolean}
+ */
+function isStartFromMiddleOfStage(triggerJob, startFrom, workflowGraph) {
+    return isStageSetup(triggerJob) && !isStageSetup(startFrom) && isStageJob(workflowGraph, startFrom);
+}
+
 module.exports = {
     Status,
     parseJobInfo,
@@ -1085,5 +1118,6 @@ module.exports = {
     extractCurrentPipelineJoinData,
     extractExternalJoinData,
     buildsToRestartFilter,
-    trimJobName
+    trimJobName,
+    isStartFromMiddleOfStage
 };

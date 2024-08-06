@@ -36,6 +36,7 @@ const {
     buildsToRestartFilter,
     trimJobName,
     getParallelBuilds,
+    isStartFromMiddleOfStage,
     Status
 } = require('./triggers/helpers');
 
@@ -77,7 +78,8 @@ async function triggerNextJobs(config, app) {
     /** @type Array<string> */
     const nextJobsTrigger = workflowParser.getNextJobs(currentEvent.workflowGraph, {
         trigger: currentJob.name,
-        chainPR: currentPipeline.chainPR
+        chainPR: currentPipeline.chainPR,
+        startFrom: currentEvent.startFrom
     });
     const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
     const originalCurrentJobName = trimJobName(currentJob.name);
@@ -114,7 +116,10 @@ async function triggerNextJobs(config, app) {
              * 2. ([~D,B,C]->A) currentJob=D, nextJob=A, joinList(A)=[B,C]
              *    joinList doesn't include D, so start A
              */
-            if (isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName))) {
+            if (
+                isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName)) ||
+                isStartFromMiddleOfStage(currentJob.name, currentEvent.startFrom, currentEvent.workflowGraph)
+            ) {
                 nextBuild = await orTrigger.execute(
                     currentEvent,
                     currentPipeline.id,
