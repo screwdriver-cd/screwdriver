@@ -115,6 +115,7 @@ Query Params:
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
 
 `GET /pipelines/{id}/events?id=gt:{eventId}&count={countNumber}` (greater than eventId)
+
 `GET /pipelines/{id}/events?id=lt:{eventId}&count={countNumber}` (less than eventId)
 
 #### Get all pipeline builds
