@@ -17,7 +17,7 @@ const INEQUALITY_SIGNS = /^(gt|lt):([\d]+)$/;
 const queryIdSchema = joi
     .alternatives()
     .try(pipelineIdSchema, joi.string().regex(INEQUALITY_SIGNS))
-    .label('Query ID schema')
+    .description('Event ID; alternatively can use greater than(gt:) or less than(lt:) prefix')
     .example('gt:12345');
 
 module.exports = () => ({
