@@ -1086,22 +1086,16 @@ function getStageName(workflowGraph, jobName) {
 
 /**
  * Check if the current job is a stage setup and the next job is a non-setup job in the same stage
- * @param {String} triggerJob                Current job
- * @param {String} startFrom                 Next job
+ * @param {String} currentJobName            Current job
+ * @param {String} eventStartFrom            Event StartFrom job
  * @param {Object} workflowGraph             Workflow Graph
  * @return {Boolean}
  */
-function isStartFromMiddleOfStage(triggerJob, startFrom, workflowGraph) {
-    if (isStageSetup(triggerJob)) {
-        const startFromStageName = getStageName(workflowGraph, triggerJob);
-        const triggerStageName = getStageName(workflowGraph, triggerJob);
+function isStartFromMiddleOfCurrentStage(currentJobName, eventStartFrom, workflowGraph) {
+    const startFromStageName = getStageName(workflowGraph, eventStartFrom);
+    const currentStageName = getStageName(workflowGraph, currentJobName);
 
-        if (!isStageSetup(startFrom) && startFromStageName === triggerStageName) {
-            return true;
-        }
-    }
-
-    return false;
+    return isStageSetup(currentJobName) && !isStageSetup(eventStartFrom) && startFromStageName === currentStageName;
 }
 
 module.exports = {
@@ -1127,5 +1121,5 @@ module.exports = {
     extractExternalJoinData,
     buildsToRestartFilter,
     trimJobName,
-    isStartFromMiddleOfStage
+    isStartFromMiddleOfCurrentStage
 };

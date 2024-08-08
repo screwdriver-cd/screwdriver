@@ -36,7 +36,7 @@ const {
     buildsToRestartFilter,
     trimJobName,
     getParallelBuilds,
-    isStartFromMiddleOfStage,
+    isStartFromMiddleOfCurrentStage,
     Status
 } = require('./triggers/helpers');
 
@@ -118,7 +118,7 @@ async function triggerNextJobs(config, app) {
              */
             if (
                 isOrTrigger(currentEvent.workflowGraph, originalCurrentJobName, trimJobName(nextJobName)) ||
-                isStartFromMiddleOfStage(currentJob.name, currentEvent.startFrom, currentEvent.workflowGraph)
+                isStartFromMiddleOfCurrentStage(currentJob.name, currentEvent.startFrom, currentEvent.workflowGraph)
             ) {
                 nextBuild = await orTrigger.execute(
                     currentEvent,
