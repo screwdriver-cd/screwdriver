@@ -1628,7 +1628,7 @@ describe('build plugin test', () => {
                     });
                 });
 
-                it('triggers the startFrom job after the stage setup job if the startFrom job is a non-setup stage job', () => {
+                it('triggers the startFrom job after the stage setup job if the startFrom job is a non-setup job in the same stage', () => {
                     const status = 'SUCCESS';
                     const options = {
                         method: 'PUT',
@@ -1698,6 +1698,81 @@ describe('build plugin test', () => {
                         assert.equal(reply.statusCode, 200);
                         assert.calledWith(jobFactoryMock.get, {
                             name: eventMock.startFrom,
+                            pipelineId
+                        });
+                    });
+                });
+
+                it('triggers the startFrom job after the stage setup job if the startFrom job is a non-setup job in a different stage', () => {
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+
+                    jobMock = {
+                        id: 1234,
+                        name: 'stage@alpha:setup',
+                        pipelineId,
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+                    buildMock.job = sinon.stub().resolves(jobMock)();
+                    buildMock.parentBuilds = {
+                        123: { eventId: '8888', jobs: { '~commit': 7777, C: 7778, D: 7779 } }
+                    };
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            eventId: '8888',
+                            jobId: 1,
+                            status: 'FAILURE'
+                        },
+                        {
+                            id: 7777,
+                            eventId: '8888',
+                            jobId: 4,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 7778,
+                            eventId: '8888',
+                            jobId: 5,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 7779,
+                            eventId: '8888',
+                            jobId: 6,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    eventMock.startFrom = 'beta-certify';
+                    eventFactoryMock.get.resolves(eventMock);
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.calledWith(jobFactoryMock.get, {
+                            name: 'alpha-deploy',
                             pipelineId
                         });
                     });

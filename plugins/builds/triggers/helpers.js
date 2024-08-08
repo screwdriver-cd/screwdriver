@@ -4,9 +4,8 @@ const logger = require('screwdriver-logger');
 const workflowParser = require('screwdriver-workflow-parser');
 const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
-const { EXTERNAL_TRIGGER_ALL } = schema.config.regex;
+const { EXTERNAL_TRIGGER_ALL, STAGE_SETUP_PATTERN } = schema.config.regex;
 const { getFullStageJobName } = require('../../helper');
-const STAGE_SETUP_PATTERN = /^stage@([\w-]+)(?::setup)$/;
 
 /**
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
@@ -1074,26 +1073,29 @@ function isStageSetup(jobName) {
 }
 
 /**
- * Check if the job is a stage job
+ * get the stage name of a job
  * @param  {String} jobName                 Job name
  * @param  {Object} workflowGraph           Workflow Graph
- * @return {Boolean}
+ * @return {String}                         Stage name
  */
-function isStageJob(workflowGraph, jobName) {
+function getStageName(workflowGraph, jobName) {
     const jobNode = workflowGraph.nodes.find(n => n.name === jobName);
 
-    return jobNode.stageName !== undefined;
+    return jobNode ? jobNode.stageName : null;
 }
 
 /**
- * Check if the current job is a stage setup and the next job is a non-setup stage job
- * @param {String} triggerJob                Current job
- * @param {String} startFrom                 Next job
+ * Check if the current job is a stage setup and the next job is a non-setup job in the same stage
+ * @param {String} currentJobName            Current job
+ * @param {String} eventStartFrom            Event StartFrom job
  * @param {Object} workflowGraph             Workflow Graph
  * @return {Boolean}
  */
-function isStartFromMiddleOfStage(triggerJob, startFrom, workflowGraph) {
-    return isStageSetup(triggerJob) && !isStageSetup(startFrom) && isStageJob(workflowGraph, startFrom);
+function isStartFromMiddleOfCurrentStage(currentJobName, eventStartFrom, workflowGraph) {
+    const startFromStageName = getStageName(workflowGraph, eventStartFrom);
+    const currentStageName = getStageName(workflowGraph, currentJobName);
+
+    return isStageSetup(currentJobName) && !isStageSetup(eventStartFrom) && startFromStageName === currentStageName;
 }
 
 module.exports = {
@@ -1119,5 +1121,5 @@ module.exports = {
     extractExternalJoinData,
     buildsToRestartFilter,
     trimJobName,
-    isStartFromMiddleOfStage
+    isStartFromMiddleOfCurrentStage
 };
