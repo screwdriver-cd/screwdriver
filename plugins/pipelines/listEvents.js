@@ -17,7 +17,7 @@ const INEQUALITY_SIGNS = /^(gt|lt):([\d]+)$/;
 const queryIdSchema = joi
     .alternatives()
     .try(pipelineIdSchema, joi.string().regex(INEQUALITY_SIGNS))
-    .label('Query ID schema')
+    .description('Event ID; alternatively can use greater than or less than prefix (gt:/lt:)')
     .example('gt:12345');
 
 module.exports = () => ({
@@ -34,7 +34,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
-            const { page, count, sha, prNum, id } = request.query;
+            const { page, count, sha, prNum, id, sort, sortBy } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -44,13 +44,17 @@ module.exports = () => ({
                     }
 
                     const eventType = request.query.type || 'pipeline';
-                    const config = { params: { type: eventType } };
+                    const config = { params: { type: eventType }, sort };
 
                     if (page || count) {
                         config.paginate = {
                             page,
                             count
                         };
+                    }
+
+                    if (sortBy) {
+                        config.sortBy = sortBy;
                     }
 
                     if (prNum) {

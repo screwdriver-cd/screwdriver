@@ -1536,7 +1536,7 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
-                assert.calledWith(pipelineMock.getEvents, { params: { type: 'pr' } });
+                assert.calledWith(pipelineMock.getEvents, { params: { type: 'pr' }, sort: 'descending' });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
             });
@@ -1549,7 +1549,8 @@ describe('pipeline plugin test', () => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, {
                     params: { type: 'pr' },
-                    paginate: { page: undefined, count: 30 }
+                    paginate: { page: undefined, count: 30 },
+                    sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
@@ -1561,20 +1562,22 @@ describe('pipeline plugin test', () => {
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
-                assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' } });
+                assert.calledWith(pipelineMock.getEvents, { params: { prNum: 4, type: 'pr' }, sort: 'descending' });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
             });
         });
 
         it('returns 200 for getting events with id less than 888', () => {
-            options.url = `/pipelines/${id}/events?id=lt:888&count=5`;
+            options.url = `/pipelines/${id}/events?id=lt:888&count=5&sort=ascending&sortBy=createTime`;
 
             return server.inject(options).then(reply => {
                 assert.calledOnce(pipelineMock.getEvents);
                 assert.calledWith(pipelineMock.getEvents, {
                     params: { id: 'lt:888', type: 'pipeline' },
-                    paginate: { page: undefined, count: 5 }
+                    paginate: { page: undefined, count: 5 },
+                    sort: 'ascending',
+                    sortBy: 'createTime'
                 });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
@@ -1591,7 +1594,8 @@ describe('pipeline plugin test', () => {
                     search: {
                         field: ['sha', 'configPipelineSha'],
                         keyword: 'ccc49349d3cffbd12ea9e3d41521480b4aa5de5f%'
-                    }
+                    },
+                    sort: 'descending'
                 });
                 assert.deepEqual(reply.result, testEvents);
                 assert.equal(reply.statusCode, 200);
