@@ -107,6 +107,7 @@ Query Params:
 * `page` - *Optional* Specific page of the set to return
 * `count` - *Optional* Number of items per page
 * `sort` - *Optional* Sort rangekey by `ascending` or `descending` (default `descending`)
+* `sortBy` - *Optional* Field to sort by
 * `type` - *Optional* Get pipeline or pr events (default `pipeline`)
 * `prNum` - *Optional* Return only PR events of specified PR number
 * `sha` - *Optional* Search `sha` and `configPipelineSha` for events
@@ -115,7 +116,8 @@ Query Params:
 `GET /pipelines/{id}/events?page={pageNumber}&count={countNumber}&sort={sort}&type={type}&prNum={prNumber}&sha={sha}`
 
 `GET /pipelines/{id}/events?id=gt:{eventId}&count={countNumber}` (greater than eventId)
-`GET /pipelines/{id}/events?id=lt:{eventId}&count={countNumber}` (less than eventId)
+
+`GET /pipelines/{id}/events?id=lt:{eventId}&count={countNumber}&sort=ascending` (less than eventId)
 
 #### Get all pipeline builds
 `page`, `count`, `sort`, `latest`, `sortBy`, `fetchSteps`, `readOnly`, and `groupEventId` are optional
