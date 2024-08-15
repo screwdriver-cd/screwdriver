@@ -346,19 +346,9 @@ Then(
         timeout: TIMEOUT
     },
     function step() {
-        const desiredStatus = ['ABORTED', 'SUCCESS', 'FAILURE'];
-
-        return sdapi
-            .waitForBuildStatus({
-                buildId: this.previousBuildId,
-                instance: this.instance,
-                desiredStatus,
-                jwt: this.jwt
-            })
-            .then(buildData => {
-                // TODO: save the status so the next step can verify the github status
-                Assert.oneOf(buildData.status, desiredStatus);
-            });
+        return this.waitForBuild(this.previousBuildId).then(resp => {
+            Assert.oneOf(resp.body.status, ['ABORTED', 'SUCCESS', 'FAILURE']);
+        });
     }
 );
 

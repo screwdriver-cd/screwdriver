@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When } = require('@cucumber/cucumber');
+const { Before, Given, When, After } = require('@cucumber/cucumber');
 const github = require('../support/github');
 
 const TIMEOUT = 240 * 1000;
@@ -110,5 +110,14 @@ When(
             .catch(() => {
                 Assert.fail('Failed to create the Pull Request.');
             });
+    }
+);
+
+After(
+    {
+        tags: '@sd-setup-scm'
+    },
+    function hook() {
+        return this.stopBuild(this.buildId).catch(() => {});
     }
 );

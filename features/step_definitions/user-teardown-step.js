@@ -23,8 +23,7 @@ Given(
         return this.ensurePipelineExists({
             repoName: this.repoName,
             branch: this.branchName,
-            table,
-            shouldNotDeletePipeline: true
+            table
         });
     }
 );

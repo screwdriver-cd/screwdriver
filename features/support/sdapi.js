@@ -255,38 +255,6 @@ function searchForBuilds(config) {
 }
 
 /**
- * Waits for a specific build to reach a desired status. If a build is found to not be
- * in the desired state, it waits an arbitrarily short amount of time before querying
- * the build status again.
- *
- * @method waitForBuildStatus
- * @param  {Object}  config               Configuration object
- * @param  {String}  config.instance      Screwdriver instance to test against
- * @param  {String}  config.buildId       Build ID to find the build in
- * @param  {Array}   config.desiredStatus Array of status strings. The status of the build to wait for
- * @return {Object}                       Build data
- */
-function waitForBuildStatus(config) {
-    const { buildId, desiredStatus, instance } = config;
-
-    return request({
-        method: 'GET',
-        url: `${instance}/v4/builds/${buildId}`,
-        context: {
-            token: config.jwt
-        }
-    }).then(response => {
-        const buildData = response.body;
-
-        if (desiredStatus.includes(buildData.status)) {
-            return buildData;
-        }
-
-        return promiseToWait(WAIT_TIME).then(() => waitForBuildStatus(config));
-    });
-}
-
-/**
  * Waits for a specific stageBuild to reach a desired status. If a stageBuild is found to not be
  * in the desired state, it waits an arbitrarily short amount of time before querying
  * the stageBuild status again.
@@ -437,7 +405,6 @@ module.exports = {
     findEventBuilds,
     searchForBuild,
     searchForBuilds,
-    waitForBuildStatus,
     waitForStageBuildStatus,
     promiseToWait
 };
