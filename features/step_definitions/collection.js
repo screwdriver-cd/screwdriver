@@ -282,7 +282,7 @@ Then(/^that collection no longer exists$/, { timeout: TIMEOUT }, function step()
         }
     }).catch(err => {
         Assert.strictEqual(err.statusCode, 404);
-        this.firstCollectionId = null;
+        this.collectionId = null;
     });
 });
 

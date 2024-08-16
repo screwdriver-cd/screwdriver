@@ -251,7 +251,7 @@ function CustomWorld({ attach, parameters }) {
     };
     this.stopBuild = async buildId => {
         const response = await request({
-            url: `${this.instance}/${this.namespace}/builds/${buildID}`,
+            url: `${this.instance}/${this.namespace}/builds/${buildId}`,
             method: 'GET',
             retry: {
                 statusCodes: [200],
