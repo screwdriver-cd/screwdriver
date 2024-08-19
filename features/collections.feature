@@ -16,7 +16,7 @@ Feature: User Collections
             | name          | permission  |
             | calvin        | admin       |
 #            | miss wormwood | no access   |
-        And an existing pipeline with that repository
+        And an existing pipeline for collections
 
     Scenario: Check Default Collection
         And "calvin" is logged in
@@ -25,34 +25,34 @@ Feature: User Collections
 
     Scenario: Create New Collection
         And "calvin" is logged in
-        When they create a new collection "myCollection" with that pipeline
+        When they create a new collection "CreateTestCollection" with that pipeline
         Then they can see that collection
         And the collection contains that pipeline
 
     Scenario: Update Existing Collection
         And "calvin" is logged in
-        When they create a new collection "myCollection"
+        When they create a new collection "UpdateTestCollection"
         Then they can see that collection
         And the collection is empty
-        When they update the collection "myCollection" with that pipeline
+        When they update the collection "UpdateTestCollection" with that pipeline
         Then they can see that collection
         And the collection contains that pipeline
 
     Scenario: Listing A User's Collection
         And "calvin" is logged in
-        And they have a collection "myCollection"
-        And they have a collection "anotherCollection"
+        And they have a collection "TestCollection"
+        And they have a collection "AnotherTestCollection"
         When they fetch all their collections
         Then they can see those collections and the default collection
 
     Scenario: Deleting A Collection
         And "calvin" is logged in
-        And they have a collection "myCollection"
+        And they have a collection "DeleteTestCollection"
         When they delete that collection
         Then that collection no longer exists
 
     Scenario: Collections Are Unique
         And "calvin" is logged in
-        And they have a collection "myCollection"
-        When they create another collection with the same name "myCollection"
+        And they have a collection "TestCollection"
+        When they create another collection with the same name "TestCollection"
         Then they receive an error regarding unique collections

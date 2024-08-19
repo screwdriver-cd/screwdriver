@@ -341,11 +341,14 @@ Then(
                 const joinJob = this.jobs.find(j => j.name === joinJobName);
                 const joinBuild = this.builds.find(b => b.jobId === joinJob.id);
 
+                // parentBuildId is array or integer
+                const parentBuildId = [joinBuild.parentBuildId].flat();
+
                 [parentJobName1, parentJobName2].forEach(jobName => {
                     const parentJob = this.jobs.find(j => j.name === jobName);
                     const parentBuild = this.builds.find(b => b.jobId === parentJob.id);
 
-                    Assert.oneOf(parentBuild.id, joinBuild.parentBuildId);
+                    Assert.oneOf(parentBuild.id, parentBuildId);
                 });
             });
     }
@@ -503,7 +506,12 @@ After(
     },
     function hook() {
         if (this.pipelineId) {
-            return this.deletePipeline(this.pipelineId);
+            return this.deletePipeline(this.pipelineId).catch(err => {
+                // Pipeline already deleted
+                if (err.statusCode !== 404) {
+                    throw err;
+                }
+            });
         }
 
         return false;

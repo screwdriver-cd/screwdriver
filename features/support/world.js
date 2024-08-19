@@ -7,20 +7,7 @@ const { setWorldConstructor } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 const { ID } = require('./constants');
 
-/**
- * Retry until the build has finished
- * @method buildRetryStrategy
- * @param  {Object}     response
- * @param  {Function}   retryWithMergedOptions
- * @return {Object}     Build response
- */
-function buildRetryStrategy(response) {
-    if (response.body.status === 'QUEUED' || response.body.status === 'RUNNING') {
-        throw new Error('Retry limit reached');
-    }
-
-    return response;
-}
+const RETRY_COUNT_LIMIT = 30;
 
 /**
  * Promise to wait a certain number of seconds
@@ -234,22 +221,68 @@ function CustomWorld({ attach, parameters }) {
             method: 'GET',
             url: `${this.instance}/${this.namespace}/auth/token?api_token=${apiToken}`
         });
-    this.waitForBuild = buildID =>
-        request({
-            url: `${this.instance}/${this.namespace}/builds/${buildID}`,
+    this.waitForBuild = async buildId => {
+        let lastStatus = '';
+
+        for (let i = 0; i < RETRY_COUNT_LIMIT; i += 1) {
+            await promiseToWait(i + 10);
+
+            const response = await request({
+                url: `${this.instance}/${this.namespace}/builds/${buildId}`,
+                method: 'GET',
+                retry: {
+                    statusCodes: [200],
+                    limit: 30,
+                    calculateDelay: ({ computedValue }) => (computedValue ? 15000 : 0)
+                },
+                context: {
+                    token: this.jwt
+                }
+            });
+
+            lastStatus = response.body.status;
+
+            if (!['CREATED', 'BLOCKED', 'QUEUED', 'RUNNING'].includes(lastStatus)) {
+                return response;
+            }
+        }
+
+        throw new Error(`Expect the build "${buildId}" to be complete. Actual "${lastStatus}".`);
+    };
+    this.stopBuild = async buildId => {
+        const response = await request({
+            url: `${this.instance}/${this.namespace}/builds/${buildId}`,
             method: 'GET',
             retry: {
                 statusCodes: [200],
                 limit: 25,
                 calculateDelay: ({ computedValue }) => (computedValue ? 15000 : 0)
             },
-            hooks: {
-                afterResponse: [buildRetryStrategy]
-            },
             context: {
                 token: this.jwt
             }
         });
+
+        if (!['CREATED', 'BLOCKED', 'QUEUED', 'RUNNING'].includes(response.body.status)) {
+            return response;
+        }
+
+        return request({
+            url: `${this.instance}/${this.namespace}/builds/${buildId}`,
+            method: 'PUT',
+            retry: {
+                statusCodes: [200],
+                limit: 30,
+                calculateDelay: ({ computedValue }) => (computedValue ? 15000 : 0)
+            },
+            context: {
+                token: this.jwt
+            },
+            json: {
+                status: 'ABORTED'
+            }
+        });
+    };
     this.loginWithToken = apiToken =>
         request({
             url: `${this.instance}/${this.namespace}/auth/logout`,

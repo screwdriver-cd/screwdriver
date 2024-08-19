@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('mz/fs');
 const Assert = require('chai').assert;
 const request = require('screwdriver-request');
-const { Before, Given, Then, When } = require('@cucumber/cucumber');
+const { Before, Given, Then, When, After } = require('@cucumber/cucumber');
 
 const TIMEOUT = 240 * 1000;
 
@@ -410,5 +410,14 @@ Then(
                 Assert.include(result.command, expectedStep.command);
             });
         });
+    }
+);
+
+After(
+    {
+        tags: '@templates'
+    },
+    function hook() {
+        return this.stopBuild(this.buildId).catch(() => {});
     }
 );

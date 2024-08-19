@@ -1,7 +1,7 @@
 'use strict';
 
 const Assert = require('chai').assert;
-const { Before, Given, When, Then } = require('@cucumber/cucumber');
+const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
 
 const TIMEOUT = 240 * 1000;
@@ -422,5 +422,14 @@ Then(
             Assert.equal(response.statusCode, 200);
             Assert.equal(response.body[0].trusted, trust === 'trusted');
         });
+    }
+);
+
+After(
+    {
+        tags: '@sd-cmd'
+    },
+    function hook() {
+        return this.stopBuild(this.buildId).catch(() => {});
     }
 );
