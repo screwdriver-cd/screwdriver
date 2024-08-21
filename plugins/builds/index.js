@@ -26,7 +26,7 @@ const {
     createJoinObject,
     createEvent,
     parseJobInfo,
-    handleStageFailure,
+    ensureStageTeardownBuildExists,
     getJobId,
     isOrTrigger,
     extractExternalJoinData,
@@ -39,6 +39,7 @@ const {
     isStartFromMiddleOfCurrentStage,
     Status
 } = require('./triggers/helpers');
+const { getFullStageJobName } = require('../helper');
 
 /**
  * Delete a build
@@ -321,6 +322,70 @@ async function triggerNextJobs(config, app) {
 }
 
 /**
+ * Create or update stage teardown build
+ * @method createOrUpdateStageTeardownBuild
+ * @param {Object}      config              Configuration object
+ * @param {Pipeline}    config.pipeline     Current pipeline
+ * @param {Job}         config.job          Current job
+ * @param {Build}       config.build        Current build
+ * @param {Build}       config.event        Current event
+ * @param {Build}       config.stage        Current stage
+ * @param {String}      config.username     Username
+ * @param {String}      config.scmContext   SCM context
+ * @param {String}      app                 Server app object
+ * @return {Promise}                        Create a new build or update an existing build
+ */
+async function createOrUpdateStageTeardownBuild(config, app) {
+    const { pipeline, job, build, username, scmContext, event, stage } = config;
+    const { buildFactory, jobFactory, eventFactory } = app;
+    const current = {
+        pipeline,
+        job,
+        build,
+        event,
+        stage
+    };
+
+    const stageTeardownName = getFullStageJobName({ stageName: current.stage.name, jobName: 'teardown' });
+
+    const nextJobsTrigger = [stageTeardownName];
+    const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
+
+    const resource = `pipeline:${pipeline.id}:groupEvent:${event.groupEventId}`;
+    let lock;
+    let teardownBuild;
+
+    try {
+        lock = await locker.lock(resource);
+        const { parentBuilds } = parseJobInfo({
+            joinObj: pipelineJoinData,
+            currentBuild: build,
+            currentPipeline: pipeline,
+            currentJob: job,
+            nextJobName: stageTeardownName
+        });
+
+        teardownBuild = await ensureStageTeardownBuildExists({
+            jobFactory,
+            buildFactory,
+            current,
+            parentBuilds,
+            stageTeardownName,
+            username,
+            scmContext
+        });
+    } catch (err) {
+        logger.error(
+            `Error in createOrUpdateStageTeardownBuild:${stageTeardownName} from pipeline:${pipeline.id}-event:${event.id} `,
+            err
+        );
+    }
+    await locker.unlock(lock, resource);
+
+    return teardownBuild;
+}
+
+/**
  * Build API Plugin
  * @method register
  * @param  {Hapi}     server                Hapi Server
@@ -338,13 +403,12 @@ const buildsPlugin = {
          * @param {Pipeline}    config.pipeline     Current pipeline
          * @param {Job}         config.job          Current job
          * @param {Build}       config.build        Current build
-         * @param {String}      config.username     Username
          * @param {String}  app                      Server app object
          * @return {Promise}                        Resolves to the removed build or null
          */
         server.expose('removeJoinBuilds', async (config, app) => {
-            const { pipeline, job, build, username, scmContext, event, stage } = config;
-            const { eventFactory, buildFactory, jobFactory } = app;
+            const { pipeline, job, build, event, stage } = config;
+            const { eventFactory, buildFactory } = app;
             const current = {
                 pipeline,
                 job,
@@ -374,20 +438,19 @@ const buildsPlugin = {
                             buildConfig.eventId = hoek.reach(pipelineJoinData[pid], 'event.id');
                         }
 
-                        //   if nextBuild is stage teardown, just return nextBuild
-                        if (current.stage) {
-                            const buildDeletePromises = await handleStageFailure({
-                                nextJobName,
-                                current,
-                                buildConfig,
-                                jobFactory,
-                                buildFactory,
-                                username,
-                                scmContext
-                            });
+                        if (buildConfig.eventId) {
+                            if (current.stage) {
+                                const stageTeardownName = getFullStageJobName({
+                                    stageName: current.stage.name,
+                                    jobName: 'teardown'
+                                });
 
-                            deletePromises.concat(buildDeletePromises);
-                        } else if (buildConfig.eventId) {
+                                // Do not remove stage teardown builds as they need to be executed on stage failure as well.
+                                if (nextJobName !== stageTeardownName) {
+                                    deletePromises.push(deleteBuild(buildConfig, buildFactory));
+                                }
+                            }
+
                             deletePromises.push(deleteBuild(buildConfig, buildFactory));
                         }
                     } catch (err) {
@@ -424,6 +487,11 @@ const buildsPlugin = {
          * Trigger the next jobs of the current job
          */
         server.expose('triggerNextJobs', triggerNextJobs);
+
+        /**
+         * Create or Update stage teardown build on stage failure
+         */
+        server.expose('createOrUpdateStageTeardownBuild', createOrUpdateStageTeardownBuild);
 
         server.route([
             getRoute(),
