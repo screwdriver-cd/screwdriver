@@ -834,6 +834,7 @@ async function createJoinObject(nextJobNames, current, eventFactory) {
  * @param {BuildFactory} arg.buildFactory Build factory
  * @param {Object} arg.current Current object
  * @param {Event} arg.current.event Current event
+ * @param {ParentBuilds} arg.parentBuilds Parent builds
  * @param {String} arg.stageTeardownName Stage teardown name
  * @param {String} arg.username Username
  * @param {String} arg.scmContext SCM context
@@ -842,6 +843,7 @@ async function ensureStageTeardownBuildExists({
     jobFactory,
     buildFactory,
     current,
+    parentBuilds,
     stageTeardownName,
     username,
     scmContext
@@ -865,52 +867,19 @@ async function ensureStageTeardownBuildExists({
             jobName: stageTeardownName,
             username,
             scmContext,
+            parentBuilds,
+            parentBuildId: current.build.id,
             event: current.event, // this is the parentBuild for the next build
             baseBranch: current.event.baseBranch || null,
             start: false
         });
+    } else {
+        await updateParentBuilds({
+            joinParentBuilds: parentBuilds,
+            nextBuild: existingStageTeardownBuild,
+            build: current.build
+        });
     }
-}
-
-/**
- * Delete nextBuild, create teardown build if it doesn't exist, and return teardown build or return null
- * @param {Object} arg
- * @param {String} arg.nextJobName Next job name
- * @param {Object} arg.current Object with stage, event, pipeline info
- * @param {Object} arg.buildConfig Build config
- * @param {JobFactory} arg.jobFactory Job factory
- * @param {BuildFactory} arg.buildFactory Build factory
- * @param {String} arg.username Username
- * @param {String} arg.scmContext Scm context
- * @returns {Promise<Array>} Array of promises
- */
-async function handleStageFailure({
-    nextJobName,
-    current,
-    buildConfig,
-    jobFactory,
-    buildFactory,
-    username,
-    scmContext
-}) {
-    const buildDeletePromises = [];
-    const stageTeardownName = getFullStageJobName({ stageName: current.stage.name, jobName: 'teardown' });
-
-    // Remove next build
-    if (buildConfig.eventId && nextJobName !== stageTeardownName) {
-        buildDeletePromises.push(deleteBuild(buildConfig, buildFactory));
-    }
-
-    await ensureStageTeardownBuildExists({
-        jobFactory,
-        buildFactory,
-        current,
-        stageTeardownName,
-        username,
-        scmContext
-    });
-
-    return buildDeletePromises;
 }
 
 /**
@@ -1107,7 +1076,7 @@ module.exports = {
     updateParentBuilds,
     getParentBuildStatus,
     handleNewBuild,
-    handleStageFailure,
+    ensureStageTeardownBuildExists,
     getBuildsForGroupEvent,
     createJoinObject,
     createExternalEvent,

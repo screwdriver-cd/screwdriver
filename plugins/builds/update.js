@@ -221,7 +221,8 @@ module.exports = () => ({
             const { statusMessage, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
-            const { triggerNextJobs, removeJoinBuilds } = request.server.plugins.builds;
+            const { triggerNextJobs, removeJoinBuilds, createOrUpdateStageTeardownBuild } =
+                request.server.plugins.builds;
 
             // Check token permissions
             if (isBuild && username !== id) {
@@ -326,16 +327,20 @@ module.exports = () => ({
                 // Check for failed jobs and remove any child jobs in created state
                 if (newBuild.status === 'FAILURE') {
                     await removeJoinBuilds(
-                        { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
+                        { pipeline, job, build: newBuild, event: newEvent, stage },
                         request.server.app
                     );
+
+                    if (stage && !isStageTeardown) {
+                        await createOrUpdateStageTeardownBuild(
+                            { pipeline, job, build, username, scmContext, event, stage },
+                            request.server.app
+                        );
+                    }
                 }
                 // Do not continue downstream is current job is stage teardown and statusBuild has failure
             } else if (newBuild.status === 'SUCCESS' && isStageTeardown && stageBuildHasFailure) {
-                await removeJoinBuilds(
-                    { pipeline, job, build: newBuild, username, scmContext, event: newEvent, stage },
-                    request.server.app
-                );
+                await removeJoinBuilds({ pipeline, job, build: newBuild, event: newEvent, stage }, request.server.app);
             } else {
                 await triggerNextJobs(
                     { pipeline, job, build: newBuild, username, scmContext, event: newEvent },
