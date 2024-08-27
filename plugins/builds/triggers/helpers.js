@@ -1056,14 +1056,18 @@ function subsequentJobFilter(workflowGraph, startNode) {
 
     const visited = new Set(visiting);
 
+    const nodeToEdgeDestsMap = Object.fromEntries(nodes.map(node => [node.name, []]));
+
+    edges.forEach(edge => nodeToEdgeDestsMap[edge.src].push(edge.dest));
     if (edges.length) {
         while (visiting.length) {
-            const cur = visiting.pop();
+            const currentNode = visiting.pop();
+            const dests = nodeToEdgeDestsMap[currentNode];
 
-            edges.forEach(e => {
-                if (e.src === cur && !visited.has(e.dest)) {
-                    visiting.push(e.dest);
-                    visited.add(e.dest);
+            dests.forEach(dest => {
+                if (!visited.has(dest)) {
+                    visiting.push(dest);
+                    visited.add(dest);
                 }
             });
         }
