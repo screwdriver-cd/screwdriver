@@ -689,7 +689,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  *     },
  * }
  */
-function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent, ignoreJobs) {
+function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent, ignoreJobs = []) {
     const newParentBuilds = {};
 
     Object.entries(parentBuilds).forEach(([pipelineId, { jobs, eventId }]) => {
