@@ -2100,45 +2100,6 @@ describe('trigger tests', () => {
         assert.equal(upstreamPipeline.getBuildsOf('target').length, 2);
     });
 
-    xit('[ sd@2:a, sd@3:a ] is triggered when restarts upstream and wait for downstream restart builds', async () => {
-        const upstreamPipeline = await pipelineFactoryMock.createFromFile('a_sd@2:a_sd@3:a-upstream.yaml');
-        const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
-        const downstreamPipeline2 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
-
-        const upstreamEvent = await eventFactoryMock.create({
-            pipelineId: upstreamPipeline.id,
-            startFrom: 'hub'
-        });
-
-        // run all builds
-        await upstreamEvent.run();
-
-        const downstreamEvent1 = downstreamPipeline1.getLatestEvent();
-        const downstreamEvent2 = downstreamPipeline2.getLatestEvent();
-
-        await downstreamEvent1.getBuildOf('a').complete('SUCCESS');
-        await downstreamEvent2.getBuildOf('a').complete('SUCCESS');
-        await upstreamEvent.getBuildOf('target').complete('SUCCESS');
-
-        const upstreamRestartEvent = await upstreamEvent.restartFrom('a');
-
-        assert.isNull(upstreamRestartEvent.getBuildOf('target'));
-
-        await upstreamRestartEvent.getBuildOf('a').complete('SUCCESS');
-
-        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'CREATED');
-
-        const downstreamRestartEvent1 = downstreamPipeline1.getLatestEvent();
-        const downstreamRestartEvent2 = downstreamPipeline2.getLatestEvent();
-
-        await downstreamRestartEvent1.getBuildOf('a').complete('SUCCESS');
-        await downstreamRestartEvent2.getBuildOf('a').complete('SUCCESS');
-
-        assert.equal(upstreamRestartEvent.getBuildOf('target').status, 'RUNNING');
-
-        assert.equal(upstreamPipeline.getBuildsOf('target').length, 2);
-    });
-
     it('[ a, sd@2:a, sd@3:a ] is triggered when restarts a and wait for downstream restart builds', async () => {
         const upstreamPipeline = await pipelineFactoryMock.createFromFile('a_sd@2:a_sd@3:a-upstream.yaml');
         const downstreamPipeline1 = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-downstream.yaml');
