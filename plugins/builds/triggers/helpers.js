@@ -673,8 +673,8 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  * @param {ParentBuilds} parentBuilds parent builds
  * @param {Build[]} relatedBuilds Related builds which is used to fill parentBuilds data
  * @param {Event} currentEvent Current event
- * @param {Event} nextEvent Next triggered event (Remote trigger or Same pipeline event triggered as external)
- * @returns {ParentBuilds} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
+ * @param {string[]} ignoreJobs Names of job that may be run on current event
+ * @param {Event} nextEvent Next triggered event (Remote trigger or Same pipeline event triggered as external) * @returns {ParentBuilds} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
  *
  * @example
  * >>> mergeParentBuilds(...)
@@ -689,7 +689,7 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  *     },
  * }
  */
-function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent) {
+function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent, ignoreJobs) {
     const newParentBuilds = {};
 
     Object.entries(parentBuilds).forEach(([pipelineId, { jobs, eventId }]) => {
@@ -718,7 +718,6 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
                     nodeName = `sd@${pipelineId}:${nodeName}`;
                 }
             }
-
             const targetJob = workflowGraph.nodes.find(node => node.name === nodeName);
 
             if (!targetJob) {
@@ -735,8 +734,10 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
                 return;
             }
 
-            newBuilds.jobs[jobName] = targetBuild.id;
-            newBuilds.eventId = targetBuild.eventId;
+            if (!ignoreJobs.includes(nodeName) || targetBuild.eventId === currentEvent.id) {
+                newBuilds.jobs[jobName] = targetBuild.id;
+                newBuilds.eventId = targetBuild.eventId;
+            }
         });
 
         newParentBuilds[pipelineId] = newBuilds;
@@ -1033,6 +1034,48 @@ function buildsToRestartFilter(joinPipeline, groupEventBuilds, currentEvent, cur
 }
 
 /**
+ * Get subsequent job names which the root is the start from node
+ * @param   {Array}   [workflowGraph]         Array of graph vertices
+ * @param   {Array}   [workflowGraph.nodes]   Array of graph vertices
+ * @param   {Array}   [workflowGraph.edges]   Array of graph edges
+ * @param   {String}  [startNode]             Starting/trigger node
+ * @returns {Array<String>}                   subsequent job names
+ */
+function subsequentJobFilter(workflowGraph, startNode) {
+    const { nodes, edges } = workflowGraph;
+
+    if (!startNode || !nodes.length) {
+        return [];
+    }
+
+    let start = startNode;
+
+    // startNode can be a PR job in PR events, so trim PR prefix from node name
+    if (startNode.match(/^PR-[0-9]+:/)) {
+        start = startNode.split(':')[1];
+    }
+
+    const visiting = [start];
+
+    const visited = new Set(visiting);
+
+    if (edges.length) {
+        while (visiting.length) {
+            const cur = visiting.shift();
+
+            edges.forEach(e => {
+                if (e.src === cur && !visited.has(e.dest)) {
+                    visiting.push(e.dest);
+                    visited.add(e.dest);
+                }
+            });
+        }
+    }
+
+    return [...visited];
+}
+
+/**
  * Check if the job is setup job with setup suffix
  * @param  {String} jobName                 Job name
  * @return {Boolean}
@@ -1089,6 +1132,7 @@ module.exports = {
     extractCurrentPipelineJoinData,
     extractExternalJoinData,
     buildsToRestartFilter,
+    subsequentJobFilter,
     trimJobName,
     isStartFromMiddleOfCurrentStage
 };

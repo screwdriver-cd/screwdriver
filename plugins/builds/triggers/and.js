@@ -2,7 +2,7 @@
 
 const logger = require('screwdriver-logger');
 const { JoinBase } = require('./joinBase');
-const { getParallelBuilds, getBuildsForGroupEvent, mergeParentBuilds } = require('./helpers');
+const { getParallelBuilds, getBuildsForGroupEvent, mergeParentBuilds, subsequentJobFilter } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').EventFactory} EventFactory
@@ -87,7 +87,15 @@ class AndTrigger extends JoinBase {
             nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId > this.currentEvent.id);
         }
 
-        const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent);
+        const ignoreJobs = subsequentJobFilter(this.currentEvent.workflowGraph, this.currentEvent.startFrom);
+
+        const newParentBuilds = mergeParentBuilds(
+            parentBuilds,
+            relatedBuilds,
+            this.currentEvent,
+            undefined,
+            ignoreJobs
+        );
         let nextEvent = this.currentEvent;
 
         if (nextBuild) {

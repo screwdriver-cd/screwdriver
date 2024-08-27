@@ -1,0 +1,14 @@
+shared:
+  image: node:20
+  steps:
+    - test: echo 'test'
+
+jobs:
+  hub:
+    requires: [ ~commit, ~pr ]
+  a:
+    requires: [ ~hub ]
+  b:
+    requires: [ ~a ]
+  target:
+    requires: [ b, sd@2:a, sd@3:a ]
