@@ -983,7 +983,7 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('target').status, 'RUNNING');
     });
 
-    it.only('[ a, c ] is not triggered when restart a b and only a was completed', async () => {
+    it('[ a, c ] is not triggered when restart a b and only a was completed', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_c.yaml');
 
         const event = await eventFactoryMock.create({
