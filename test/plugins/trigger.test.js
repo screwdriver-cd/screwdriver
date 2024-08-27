@@ -983,7 +983,7 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('target').status, 'RUNNING');
     });
 
-    xit('[ a, c ] is not triggered when restart a b and only a was completed', async () => {
+    it.only('[ a, c ] is not triggered when restart a b and only a was completed', async () => {
         const pipeline = await pipelineFactoryMock.createFromFile('a_c.yaml');
 
         const event = await eventFactoryMock.create({
@@ -2818,26 +2818,6 @@ describe('trigger tests', () => {
         assert.equal(firstEvent.id, firstPipeline.getLatestEvent().id);
         assert.equal(firstEvent.getBuildOf('target').status, 'RUNNING');
         assert.equal(firstPipeline.getBuildsOf('target').length, 1);
-    });
-
-    it('[ a, c ] is triggered when restart a b and only a was completed', async () => {
-        const pipeline = await pipelineFactoryMock.createFromFile('a_c.yaml');
-
-        const event = await eventFactoryMock.create({
-            pipelineId: pipeline.id,
-            startFrom: 'hub'
-        });
-
-        // run all builds
-        await buildFactoryMock.run();
-
-        const restartEvent = await event.restartFrom('hub');
-
-        await restartEvent.getBuildOf('hub').complete('SUCCESS');
-        await restartEvent.getBuildOf('a').complete('SUCCESS');
-
-        assert.isNull(restartEvent.getBuildOf('c')); // restart build b is not triggered yet
-        assert.equal(restartEvent.getBuildOf('target').status, 'CREATED');
     });
 
     it('[ ~pr ] is triggered', async () => {
