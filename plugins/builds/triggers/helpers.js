@@ -1049,12 +1049,8 @@ function subsequentJobFilter(workflowGraph, startNode) {
         return [];
     }
 
-    let start = startNode;
-
     // startNode can be a PR job in PR events, so trim PR prefix from node name
-    if (startNode.match(/^PR-[0-9]+:/)) {
-        start = startNode.split(':')[1];
-    }
+    const start = trimJobName(startNode);
 
     const visiting = [start];
 
@@ -1062,7 +1058,7 @@ function subsequentJobFilter(workflowGraph, startNode) {
 
     if (edges.length) {
         while (visiting.length) {
-            const cur = visiting.shift();
+            const cur = visiting.pop();
 
             edges.forEach(e => {
                 if (e.src === cur && !visited.has(e.dest)) {
