@@ -673,8 +673,9 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  * @param {ParentBuilds} parentBuilds parent builds
  * @param {Build[]} relatedBuilds Related builds which is used to fill parentBuilds data
  * @param {Event} currentEvent Current event
- * @param {Event} nextEvent Next triggered event (Remote trigger or Same pipeline event triggered as external) * @returns {ParentBuilds} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
+ * @param {Event} nextEvent Next triggered event (Remote trigger or Same pipeline event triggered as external)
  * @param {string[]} ignoreJobs Names of job that may be run on current event
+ * @returns {ParentBuilds} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
  *
  * @example
  * >>> mergeParentBuilds(...)
