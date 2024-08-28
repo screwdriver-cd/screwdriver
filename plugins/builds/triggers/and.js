@@ -2,7 +2,7 @@
 
 const logger = require('screwdriver-logger');
 const { JoinBase } = require('./joinBase');
-const { getParallelBuilds, getBuildsForGroupEvent, mergeParentBuilds, subsequentJobFilter } = require('./helpers');
+const { getParallelBuilds, getBuildsForGroupEvent, mergeParentBuilds } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').EventFactory} EventFactory

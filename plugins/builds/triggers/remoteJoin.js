@@ -1,6 +1,6 @@
 'use strict';
 
-const { mergeParentBuilds, getParentBuildIds, subsequentJobFilter } = require('./helpers');
+const { mergeParentBuilds, getParentBuildIds } = require('./helpers');
 const { JoinBase } = require('./joinBase');
 
 /**
