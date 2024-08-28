@@ -669,12 +669,70 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 }
 
 /**
+ * Get subsequent job names which the root is the start from node
+ * @param   {Array}   [workflowGraph]         Array of graph vertices
+ * @param   {Array}   [workflowGraph.nodes]   Array of graph vertices
+ * @param   {Array}   [workflowGraph.edges]   Array of graph edges
+ * @param   {String}  [startNode]            Starting/trigger node
+ * @returns {Array<String>}                   subsequent job names
+ */
+function subsequentJobFilter(workflowGraph, startNode) {
+    const { nodes, edges } = workflowGraph;
+
+    if (!nodes.length) {
+        return [];
+    }
+
+    // startNode can be a PR job in PR events, so trim PR prefix from node name
+    if (!startNode || !nodes.length) {
+        return [];
+    }
+    const nodeToEdgeDestsMap = Object.fromEntries(nodes.map(node => [node.name, []]));
+
+    let start = trimJobName(startNode);
+    // In rare cases, WorkflowGraph and startNode may have different start tildes
+
+    if (!(start in nodeToEdgeDestsMap)) {
+        if (startNode.startsWith('~')) {
+            start = startNode.slice(1);
+        } else {
+            start = `~${startNode}`;
+        }
+    }
+
+    if (!(start in nodeToEdgeDestsMap)) {
+        return [];
+    }
+
+    const visiting = [start];
+
+    const visited = new Set(visiting);
+
+    edges.forEach(edge => nodeToEdgeDestsMap[edge.src].push(edge.dest));
+    if (edges.length) {
+        while (visiting.length) {
+            const currentNode = visiting.pop();
+            const dests = nodeToEdgeDestsMap[currentNode];
+
+            dests.forEach(dest => {
+                if (!visited.has(dest)) {
+                    visiting.push(dest);
+                    visited.add(dest);
+                }
+            });
+        }
+    }
+    visited.delete(start);
+
+    return [...visited];
+}
+
+/**
  * Merge parentBuilds object with missing job information from latest builds object
  * @param {ParentBuilds} parentBuilds parent builds
  * @param {Build[]} relatedBuilds Related builds which is used to fill parentBuilds data
  * @param {Event} currentEvent Current event
  * @param {Event} nextEvent Next triggered event (Remote trigger or Same pipeline event triggered as external)
- * @param {string[]} ignoreJobs Names of job that may be run on current event
  * @returns {ParentBuilds} Merged parent builds { "${pipelineId}": { jobs: { "${jobName}": ${buildId} }, eventId: 123 }  }
  *
  * @example
@@ -690,8 +748,13 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  *     },
  * }
  */
-function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent, ignoreJobs = []) {
+function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent) {
     const newParentBuilds = {};
+
+    const ignoreJobs =
+        nextEvent !== undefined && currentEvent.startFrom.startsWith('~')
+            ? subsequentJobFilter(nextEvent.workflowGraph, nextEvent.startFrom)
+            : subsequentJobFilter(currentEvent.workflowGraph, currentEvent.startFrom);
 
     Object.entries(parentBuilds).forEach(([pipelineId, { jobs, eventId }]) => {
         const newBuilds = {
@@ -709,7 +772,7 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent,
             let { workflowGraph } = currentEvent;
             let nodeName = trimJobName(jobName);
 
-            if (strToInt(pipelineId) !== currentEvent.pipelineId) {
+            if (strToInt(pipelineId) !== strToInt(currentEvent.pipelineId)) {
                 if (nextEvent) {
                     if (strToInt(pipelineId) !== nextEvent.pipelineId) {
                         nodeName = `sd@${pipelineId}:${nodeName}`;
@@ -1035,48 +1098,6 @@ function buildsToRestartFilter(joinPipeline, groupEventBuilds, currentEvent, cur
 }
 
 /**
- * Get subsequent job names which the root is the start from node
- * @param   {Array}   [workflowGraph]         Array of graph vertices
- * @param   {Array}   [workflowGraph.nodes]   Array of graph vertices
- * @param   {Array}   [workflowGraph.edges]   Array of graph edges
- * @param   {String}  [startNode]             Starting/trigger node
- * @returns {Array<String>}                   subsequent job names
- */
-function subsequentJobFilter(workflowGraph, startNode) {
-    const { nodes, edges } = workflowGraph;
-
-    if (!startNode || !nodes.length) {
-        return [];
-    }
-
-    // startNode can be a PR job in PR events, so trim PR prefix from node name
-    const start = trimJobName(startNode);
-
-    const visiting = [start];
-
-    const visited = new Set(visiting);
-
-    const nodeToEdgeDestsMap = Object.fromEntries(nodes.map(node => [node.name, []]));
-
-    edges.forEach(edge => nodeToEdgeDestsMap[edge.src].push(edge.dest));
-    if (edges.length) {
-        while (visiting.length) {
-            const currentNode = visiting.pop();
-            const dests = nodeToEdgeDestsMap[currentNode];
-
-            dests.forEach(dest => {
-                if (!visited.has(dest)) {
-                    visiting.push(dest);
-                    visited.add(dest);
-                }
-            });
-        }
-    }
-
-    return [...visited];
-}
-
-/**
  * Check if the job is setup job with setup suffix
  * @param  {String} jobName                 Job name
  * @return {Boolean}
@@ -1133,7 +1154,6 @@ module.exports = {
     extractCurrentPipelineJoinData,
     extractExternalJoinData,
     buildsToRestartFilter,
-    subsequentJobFilter,
     trimJobName,
     isStartFromMiddleOfCurrentStage
 };
