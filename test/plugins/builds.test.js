@@ -455,7 +455,8 @@ describe('build plugin test', () => {
                 pr: {},
                 getBuilds: sinon.stub(),
                 update: sinon.stub(),
-                toJson: sinon.stub().returns({ id: 123 })
+                toJson: sinon.stub().returns({ id: 123 }),
+                startFrom: '~commit'
             };
             eventFactoryMock.get.resolves(eventMock);
             eventMock.update.resolves(eventMock);
