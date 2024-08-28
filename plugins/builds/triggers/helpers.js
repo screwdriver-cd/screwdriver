@@ -693,10 +693,10 @@ function subsequentJobFilter(workflowGraph, startNode) {
     // In rare cases, WorkflowGraph and startNode may have different start tildes
 
     if (!(start in nodeToEdgeDestsMap)) {
-        if (startNode.startsWith('~')) {
-            start = startNode.slice(1);
+        if (start.startsWith('~')) {
+            start = start.slice(1);
         } else {
-            start = `~${startNode}`;
+            start = `~${start}`;
         }
     }
 
@@ -752,7 +752,7 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
     const newParentBuilds = {};
 
     const ignoreJobs =
-        nextEvent !== undefined && currentEvent.startFrom.startsWith('~')
+        nextEvent && currentEvent.startFrom.startsWith('~')
             ? subsequentJobFilter(nextEvent.workflowGraph, nextEvent.startFrom)
             : subsequentJobFilter(currentEvent.workflowGraph, currentEvent.startFrom);
 

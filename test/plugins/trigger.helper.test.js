@@ -724,15 +724,22 @@ describe('mergeParentBuilds function', () => {
             id: 2,
             pipelineId: 2,
             workflowGraph: {
-                nodes: [{ name: 'jobA', id: 10 }]
-            }
+                nodes: [{ name: '~commit' }, { name: 'jobA', id: 10 }],
+                edges: [
+                    { src: '~commit', dest: 'jobA' },
+                    { src: 'jobA', dest: 'sd@1:jobC' }
+                ]
+            },
+            startFrom: '~commit'
         };
         const nextEvent = {
             id: 3,
             pipelineId: 1,
             workflowGraph: {
-                nodes: [{ name: 'sd@1:jobC', id: 21 }]
-            }
+                nodes: [{ name: 'sd@1:jobC', id: 21 }],
+                edges: [{ src: 'sd@2:jobA', dest: 'sd@1:jobC' }]
+            },
+            startFrom: '~sd@2:jobA'
         };
 
         const result = mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent);
