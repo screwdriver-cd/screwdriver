@@ -676,12 +676,8 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
  * @param   {String}  [startNode]            Starting/trigger node
  * @returns {Array<String>}                   subsequent job names
  */
-function subsequentJobFilter(workflowGraph, startNode) {
+function getSubsequentJobs(workflowGraph, startNode) {
     const { nodes, edges } = workflowGraph;
-
-    if (!nodes.length) {
-        return [];
-    }
 
     // startNode can be a PR job in PR events, so trim PR prefix from node name
     if (!startNode || !nodes.length) {
@@ -753,8 +749,8 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
 
     const ignoreJobs =
         nextEvent && currentEvent.startFrom.startsWith('~')
-            ? subsequentJobFilter(nextEvent.workflowGraph, nextEvent.startFrom)
-            : subsequentJobFilter(currentEvent.workflowGraph, currentEvent.startFrom);
+            ? getSubsequentJobs(nextEvent.workflowGraph, nextEvent.startFrom)
+            : getSubsequentJobs(currentEvent.workflowGraph, currentEvent.startFrom);
 
     Object.entries(parentBuilds).forEach(([pipelineId, { jobs, eventId }]) => {
         const newBuilds = {
