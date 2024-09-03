@@ -86,8 +86,7 @@ class AndTrigger extends JoinBase {
             // If the build to join is in the child event, its event id is greater than current event.
             nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId > this.currentEvent.id);
         }
-
-        const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent);
+        const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent, undefined);
         let nextEvent = this.currentEvent;
 
         if (nextBuild) {
