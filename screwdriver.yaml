@@ -64,7 +64,7 @@ jobs:
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
             K8S_ENV_VALUE: beta_rc2_
             TEST_USERNAME: sd-buildbot-functional
-            TEST_USERNAME_X1: sd-buildbot-functional-X1
+            TEST_USERNAME_X1: sd-buildbot-functional-beta-X1
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
