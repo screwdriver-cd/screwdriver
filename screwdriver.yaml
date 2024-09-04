@@ -5,6 +5,20 @@ shared:
     environment:
         DOCKER_REPO: screwdrivercd/screwdriver
         DOCKER_MULTI_PLATFORM_BUILDS_ENABLED: 1
+    annotations:
+        beta_config: &beta_config
+            image: node:18
+            environment:
+                K8S_CONTAINER: screwdriver-api
+                K8S_IMAGE: screwdrivercd/screwdriver
+                K8S_HOST: kubernetes.default.svc
+                K8S_DEPLOYMENT: sdapi-beta
+                SD_API_HOST: beta.api.screwdriver.cd
+                K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
+                K8S_ENV_VALUE: beta_rc2_
+                TEST_USERNAME: sd-buildbot-functional
+                TEST_ORG: screwdriver-cd-test
+
 jobs:
     main:
         image: node:18
@@ -52,8 +66,15 @@ jobs:
         template: sd/dind@2.0.20
     # Deploy to our beta environment and run tests
     beta:
-        image: node:18
         requires: [docker-publish]
+        <<: *beta_config
+        secrets:
+            # Access key for functional tests
+            - SD_API_TOKEN_BETA
+            # Git access token
+            - GIT_TOKEN_BETA
+            # Talking to Kubernetes
+            - K8S_TOKEN        
         steps:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
@@ -61,23 +82,20 @@ jobs:
             - test: |
                 npm install
                 GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta
-        environment:
-            K8S_CONTAINER: screwdriver-api
-            K8S_IMAGE: screwdrivercd/screwdriver
-            K8S_HOST: kubernetes.default.svc
-            K8S_DEPLOYMENT: sdapi-beta
-            SD_API_HOST: beta.api.screwdriver.cd
-            K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
-            K8S_ENV_VALUE: beta_rc2_
-            TEST_USERNAME: sd-buildbot-functional
-            TEST_ORG: screwdriver-cd-test
+    beta-additional-tests:
+        requires: [beta]
+        steps:
+            - test: |
+                npm install
+                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-x1
+        <<: *beta_config
         secrets:
             # Access key for functional tests
-            - SD_API_TOKEN_BETA
+            - SD_API_TOKEN_BETA_X1
             # Git access token
-            - GIT_TOKEN_BETA
+            - GIT_TOKEN_BETA_X1
             # Talking to Kubernetes
-            - K8S_TOKEN
+            - K8S_TOKEN 
 
     # Deploy to our prod environment and run tests
     prod:
