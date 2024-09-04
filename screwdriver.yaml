@@ -88,7 +88,7 @@ jobs:
             - change-user: export TEST_USERNAME=sd-buildbot-functional-beta-X1
             - test: |
                 npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-x1
+                GIT_TOKEN=${GIT_TOKEN_BETA_X1} SD_API_TOKEN=${SD_API_TOKEN_BETA_X1} npm run functional-beta-x1
         <<: *beta_config
         secrets:
             # Access key for functional tests
