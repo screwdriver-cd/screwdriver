@@ -1,4 +1,6 @@
 @sd-setup-scm
+@x1
+
 Feature: sd-setup-scm
 
     Confirm that the environment variables related to Git in sd-setup-scm function works with Screwdriver.cd
