@@ -280,11 +280,11 @@ describe('pipeline plugin test', () => {
                             sourcePaths: []
                         }
                     },
-                    parameters: {},
-                    workflowGraph: {
-                        nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'main' }],
-                        edges: []
-                    }
+                    parameters: {}
+                },
+                workflowGraph: {
+                    nodes: [{ name: '~pr' }, { name: '~commit' }, { name: 'main' }],
+                    edges: []
                 },
                 pipelineId: 123
             };
