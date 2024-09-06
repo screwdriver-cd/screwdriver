@@ -1,5 +1,7 @@
 @parallel
 @pipelinetemplate
+@x1
+
 Feature: Pipeline Templates
 
     Pipeline template is simply an existing configuration for a pipeline that can be reused.
