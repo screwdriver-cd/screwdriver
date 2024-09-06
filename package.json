@@ -102,7 +102,7 @@
     "screwdriver-artifact-bookend": "^2.0.0",
     "screwdriver-build-bookend": "^4.0.0",
     "screwdriver-cache-bookend": "^3.0.0",
-    "screwdriver-command-validator": "^3.0.0",
+    "screwdriver-command-validator": "^4.0.0",
     "screwdriver-config-parser": "^11.0.0",
     "screwdriver-coverage-bookend": "^2.0.0",
     "screwdriver-coverage-sonar": "^4.1.1",
