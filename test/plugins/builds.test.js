@@ -3,6 +3,7 @@
 const urlLib = require('url');
 const { assert } = require('chai');
 const sinon = require('sinon');
+const fs = require('fs');
 const hapi = require('@hapi/hapi');
 const rewiremock = require('rewiremock/node');
 const hoek = require('@hapi/hoek');
@@ -13,6 +14,7 @@ const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const testWorkflowGraphWithStages = require('./data/workflowGraphWithStages.json');
+const testManifest = fs.readFileSync(`${__dirname}/data/manifest.txt`);
 const rewireBuildsIndex = rewire('../../plugins/builds/triggers/helpers.js');
 /* eslint-disable no-underscore-dangle */
 
@@ -6833,6 +6835,98 @@ describe('build plugin test', () => {
                 assert.equal(reply.statusCode, 200);
                 assert.deepEqual(reply.result, logs);
                 assert.propertyVal(reply.headers, 'x-more-data', 'false');
+            });
+        });
+    });
+
+    describe('GET /builds/{id}/artifacts', () => {
+        const id = 12345;
+        const buildMock = {
+            id: 123,
+            eventId: 1234
+        };
+        const eventMock = {
+            id: 1234,
+            pipelineId: 12345
+        };
+        const pipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: false
+            }
+        };
+        let headersMock;
+        let options;
+
+        beforeEach(() => {
+            options = {
+                url: `/builds/${id}/artifacts`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            headersMock = {
+                'content-type': 'text/plain; charset=utf-8',
+                'content-length': 5179,
+                'content-disposition': 'attachment; filename=SD_ARTIFACTS.zip',
+                'cache-control': 'no-cache'
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            eventFactoryMock.get.resolves(eventMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, testManifest);
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders(headersMock)
+                .get(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200, testManifest);
+        });
+
+        it('returns 200 for a zipped artifact request', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.match(reply.headers, headersMock);
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Build does not exist');
+            });
+        });
+
+        it('returns 404 when event does not exist', () => {
+            eventFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Event does not exist');
+            });
+        });
+
+        it('returns 500 for server error', () => {
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(502);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.result.message, 'An internal server error occurred');
             });
         });
     });
