@@ -83,7 +83,8 @@ jobs:
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
             - npm-install: npm install
             - test: GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta
-            - test-x1: TEST_USERNAME=${TEST_USERNAME_X1} GIT_TOKEN=${GIT_TOKEN_BETA_X1} SD_API_TOKEN=${SD_API_TOKEN_BETA_X1} npm run functional-beta-x1
+            - test-parallel: GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-parallel
+            - test-x1-parallel: TEST_USERNAME=${TEST_USERNAME_X1} GIT_TOKEN=${GIT_TOKEN_BETA_X1} SD_API_TOKEN=${SD_API_TOKEN_BETA_X1} npm run functional-beta-x1-parallel
 
     # Deploy to our prod environment and run tests
     prod:
@@ -93,9 +94,9 @@ jobs:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
+            - npm-install: npm install
+            - test: GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
+            - test-parallel: GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional-parallel
         environment:
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver

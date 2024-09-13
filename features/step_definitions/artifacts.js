@@ -3,8 +3,11 @@
 const Assert = require('chai').assert;
 const { Before, Then, When } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
+const { disableRunScenarioInParallel } = require('../support/parallel');
 
 const TIMEOUT = 240 * 1000;
+
+disableRunScenarioInParallel();
 
 Before('@artifacts', function hook() {
     this.repoName = 'functional-artifacts';

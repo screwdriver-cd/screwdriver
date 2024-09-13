@@ -1,6 +1,5 @@
-@parallel
 @build-cache
-
+@parallel
 Feature: build-cache
 
     Cache files and directories from a specific build.
