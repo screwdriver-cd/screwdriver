@@ -1,3 +1,4 @@
+@parallel
 Feature: API Server
 
 Scenario: Server is running

@@ -2,10 +2,13 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, Then } = require('@cucumber/cucumber');
+const { disableRunScenarioInParallel } = require('../support/parallel');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
+
+disableRunScenarioInParallel();
 
 Before(
     {

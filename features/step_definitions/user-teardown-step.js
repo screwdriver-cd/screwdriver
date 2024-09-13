@@ -3,8 +3,11 @@
 const Assert = require('chai').assert;
 const { Before, Given, Then } = require('@cucumber/cucumber');
 const request = require('screwdriver-request');
+const { disableRunScenarioInParallel } = require('../support/parallel');
 
 const TIMEOUT = 240 * 1000;
+
+disableRunScenarioInParallel();
 
 Before('@user-teardown-step', function hook() {
     this.repoName = 'functional-user-teardown-step';

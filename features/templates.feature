@@ -1,5 +1,5 @@
-@parallel
 @templates
+@parallel
 Feature: Templates
 
     Templates are simply an existing configuration for a job that can be reused.

@@ -5,9 +5,12 @@ const { Before, Given, When, Then, After } = require('@cucumber/cucumber');
 const github = require('../support/github');
 const sdapi = require('../support/sdapi');
 const { ID } = require('../support/constants');
+const { disableRunScenarioInParallel } = require('../support/parallel');
 
 const TIMEOUT = 240 * 1000;
 const WAIT_TIME = 3;
+
+disableRunScenarioInParallel();
 
 Before(
     {

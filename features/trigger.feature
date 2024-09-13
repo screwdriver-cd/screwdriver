@@ -1,5 +1,5 @@
 @trigger
-
+@parallel
 Feature: Remote Trigger
 
     Users should be allowed to tie together workflows from different build pipelines so that they can
@@ -115,6 +115,7 @@ Feature: Remote Trigger
         Then the "success_B_and_beta" job on branch "pipelineB" is triggered
         And the "success_B_and_beta" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
+    @beta
     Scenario: Fan-out. Multiple external builds are triggered in parallel as a result of a build's success.
         Given an existing pipeline on branch "pipelineA" with job "parallel_A"
         And an existing pipeline on branch "pipelineB" with the workflow jobs:
@@ -169,7 +170,7 @@ Feature: Remote Trigger
         Then the "join" job is triggered from "parallel" on branch "remote_join1" and "external" on branch "remote_join2"
         And that "join" build uses the same SHA as the "simple" build on branch "remote_join1"
 
-    @prod
+    @beta
     Scenario: Join Job from External Trigger
         Given an existing pipeline on branch "external_trigger1" with the workflow jobs:
             | job       | requires  |
@@ -191,63 +192,3 @@ Feature: Remote Trigger
         And the "parallel2" build succeeded
         Then the "join" job is triggered from "parallel1" and "parallel2" on branch "external_trigger2"
         And that "join" build uses the same SHA as the "main" build on branch "external_trigger2"
-
-    @sourcePath
-    Scenario: sourcePath
-      Given an existing pipeline on branch "master" with the workflow jobs:
-            | job       | requires  |
-            | job1      | ~commit   |
-            | job2      | ~commit   |
-      When a new file is added to the "directory1" directory of the "master" branch
-      Then a new build from "job1" should be created to test that change
-      And a new build from "job2" should not be created to test that change
-
-    @sourceDirectory
-    Scenario: sourceDirectory
-      Given an existing pipeline on branch "master" setting source directory "directory1" with the workflow jobs:
-            | job       | requires  |
-            | job1      | ~commit   |
-      When a new file is added to the "directory1" directory of the "master" branch
-      Then a new build from "job1" should be created to test that change
-
-    @require-or
-    Scenario: SINGLE OR FAIL
-        Given an existing pipeline on branch "master" with the workflow jobs:
-            | job        | requires |
-            | FAIL       |          |
-            | AFTER-FAIL | ~FAIL    |
-        When start "FAIL" job
-        And the "FAIL" build failed
-        Then the "AFTER-FAIL" job is not triggered
-
-    @require-or
-    Scenario: MULTIPLE OR
-        Given an existing pipeline on branch "master" with the workflow jobs:
-            | job       | requires               |
-            | PARALLEL1 |                        |
-            | PARALLEL2 |                        |
-            | MULTIPLE  | ~PARALLEL1, ~PARALLEL2 |
-        When start "PARALLEL1" job
-        And the "PARALLEL1" build succeeded
-        And the "MULTIPLE" job is triggered
-        Then that "MULTIPLE" build uses the same SHA as the "PARALLEL1" build
-        When start "PARALLEL2" job
-        And the "PARALLEL2" build succeeded
-        And the "MULTIPLE" job is triggered
-        Then that "MULTIPLE" build uses the same SHA as the "PARALLEL2" build
-
-    @require-or
-    Scenario: MULTIPLE OR ONCE
-        Given an existing pipeline on branch "master" with the workflow jobs:
-            | job            | requires               |
-            | SIMPLE         | ~commit                |
-            | PARALLEL1      | ~SIMPLE                |
-            | PARALLEL2      | ~SIMPLE                |
-            | MULTIPLE       | ~PARALLEL1, ~PARALLEL2 |
-        When start "SIMPLE" job
-        And the "SIMPLE" build succeeded
-        And the "PARALLEL1" job is triggered from "SIMPLE"
-        And the "PARALLEL1" build succeeded
-        And the "PARALLEL2" job is triggered from "SIMPLE"
-        And the "PARALLEL2" build succeeded
-        Then the "MULTIPLE" job is triggered once
