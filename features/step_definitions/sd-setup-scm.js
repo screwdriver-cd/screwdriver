@@ -25,16 +25,6 @@ Before(
 );
 
 Given(
-    /^an existing pipeline for sd-setup-scm:parent$/,
-    {
-        timeout: TIMEOUT
-    },
-    function step() {
-        return this.ensurePipelineExists({ repoName: this.repoName, rootDir: 'parent', shouldNotDeletePipeline: true });
-    }
-);
-
-Given(
     /^an existing pipeline for sd-setup-scm$/,
     {
         timeout: TIMEOUT

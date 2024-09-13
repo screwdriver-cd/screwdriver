@@ -42,7 +42,6 @@ Feature: sd-setup-scm
         Then the "not-shallow-clone-single-branch" build succeeded
 
     Scenario: External config build
-        Given an existing pipeline for sd-setup-scm:parent
         Given an existing pipeline for sd-setup-scm:child
         Given having two commit to child before an hour
         When start "~commit" job
