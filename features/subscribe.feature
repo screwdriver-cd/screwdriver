@@ -1,6 +1,5 @@
 @subscribe
 @x1
-
 Feature: subscribe
 
   User can subscribe to external repositories so builds are triggered in the pipeline whenever there are changes in those external repositories.
