@@ -1,4 +1,5 @@
 @subscribe
+@parallel
 @x1
 Feature: subscribe
 
