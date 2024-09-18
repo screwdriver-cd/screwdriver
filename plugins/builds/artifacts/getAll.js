@@ -1,14 +1,16 @@
 'use strict';
 
+const archiver = require('archiver');
 const boom = require('@hapi/boom');
+const request = require('got');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
 const logger = require('screwdriver-logger');
-const request = require('got');
+const { PassThrough } = require('stream');
 const schema = require('screwdriver-data-schema');
 const { v4: uuidv4 } = require('uuid');
 const idSchema = schema.models.build.base.extract('id');
-const AdmZip = require('adm-zip');
+
 
 module.exports = config => ({
     method: 'GET',
@@ -48,46 +50,46 @@ module.exports = config => ({
                         buildId, artifact, scope: ['user']
                     }, config.authConfig.jwtPrivateKey, {
                         algorithm: 'RS256',
-                        expiresIn: '5s',
+                        expiresIn: '10m',
                         jwtid: uuidv4()
                     });
-                    // Create zip file and add to it
-                    const zip = new AdmZip();
                     const baseUrl = `${config.ecosystem.store}/v1/builds/${buildId}/ARTIFACTS`;
 
+                    // Fetch the manifest
+                    const manifest = await request({
+                        url: `${baseUrl}/manifest.txt?token=${token}`,
+                        method: 'GET'
+                    }).text();
+                    const manifestArray = manifest.trim().split('\n');
+
+                    // Create a stream and set up archiver
+                    const archive = archiver('zip', { zlib: { level: 9 } });
+                    // PassThrough stream to make archiver readable by Hapi
+                    const passThrough = new PassThrough();
+
+                    // Pipe the archive to PassThrough so it can be sent as a response
+                    archive.pipe(passThrough);
+
+                    // Fetch the artifact files and append to the archive
                     try {
-                        // Get manifest, figure out list of files to download
-                        const manifest = await request({
-                            url: `${baseUrl}/manifest.txt?token=${token}`,
-                            method: 'GET',
-                            context: {
-                                token
+                        for (const file of manifestArray) {
+                            if (file) {
+                                const fileStream = request.stream(`${baseUrl}/${file}?token=${token}&type=download`);
+
+                                archive.append(fileStream, { name: file });
                             }
-                        }).text();
-                        const manifestArray = manifest.split('\n');
-
-                        await Promise.all(manifestArray.map(async file => {
-                            if (file) { // Could be an empty string
-                                const content = await request({
-                                    url: `${baseUrl}/${file}?token=${token}&type=download`,
-                                    method: 'GET',
-                                    context: {
-                                        token
-                                    }
-                                }).buffer();
-
-                                zip.addFile(file, Buffer.from(content, 'utf8'));
-                            }
-                        }));
-
-                        const content = zip.toBuffer();
-                        const contentLength = Buffer.byteLength(content);
-
-                        return h.response(content.toString('hex')).code(200).type('text/plain').bytes(contentLength).header('content-disposition', 'attachment; filename=SD_ARTIFACTS.zip');
+                        }
+                        // Finalize the archive after all files are appended
+                        archive.finalize();
                     } catch (err) {
-                        logger.error(err);
-                        throw new Error(err);
+                        logger.error('Error while streaming artifact files:', err);
+                        archive.emit('error', err);
                     }
+
+                    // Respond with the PassThrough stream (which is now readable by Hapi)
+                    return h.response(passThrough)
+                        .type('application/zip')
+                        .header('Content-Disposition', 'attachment; filename="SD_ARTIFACTS.zip"');
                 })
                 .catch(err => {
                     throw err;

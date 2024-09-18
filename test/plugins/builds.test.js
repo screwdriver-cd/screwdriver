@@ -6855,7 +6855,11 @@ describe('build plugin test', () => {
                 private: false
             }
         };
-        let headersMock;
+        const expectedHeaders = {
+            'content-type': 'application/zip',
+            'content-disposition': 'attachment; filename="SD_ARTIFACTS.zip"',
+            'cache-control': 'no-cache'
+        };
         let options;
 
         beforeEach(() => {
@@ -6869,23 +6873,18 @@ describe('build plugin test', () => {
                     strategy: ['token']
                 }
             };
-            headersMock = {
-                'content-type': 'text/plain; charset=utf-8',
-                'content-length': 5179,
-                'content-disposition': 'attachment; filename=SD_ARTIFACTS.zip',
-                'cache-control': 'no-cache'
-            };
             buildFactoryMock.get.resolves(buildMock);
             eventFactoryMock.get.resolves(eventMock);
             pipelineFactoryMock.get.resolves(pipelineMock);
 
             nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
+                .persist()
+                .defaultReplyHeaders(expectedHeaders)
                 .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
                 .reply(200, testManifest);
             nock(logBaseUrl)
                 .persist()
-                .defaultReplyHeaders(headersMock)
+                .defaultReplyHeaders(expectedHeaders)
                 .get(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
                 .reply(200, testManifest);
         });
@@ -6893,7 +6892,7 @@ describe('build plugin test', () => {
         it('returns 200 for a zipped artifact request', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
-                assert.match(reply.headers, headersMock);
+                assert.match(reply.headers, expectedHeaders);
             });
         });
 
@@ -6920,7 +6919,7 @@ describe('build plugin test', () => {
             nock.cleanAll();
             nock.enableNetConnect();
             nock(logBaseUrl)
-                .defaultReplyHeaders(headersMock)
+                .defaultReplyHeaders(expectedHeaders)
                 .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
                 .reply(502);
 
