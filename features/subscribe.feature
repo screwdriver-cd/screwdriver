@@ -1,13 +1,13 @@
 @subscribe
+@parallel
 @x1
-
 Feature: subscribe
-  
-  User can subscribe to external repositories so builds are triggered in the pipeline whenever there are changes in those external repositories. 
-  User can configure the pipeline to subscribe to webhook notifications for events such as ~pr, ~commit, ~tag and ~release. 
+
+  User can subscribe to external repositories so builds are triggered in the pipeline whenever there are changes in those external repositories.
+  User can configure the pipeline to subscribe to webhook notifications for events such as ~pr, ~commit, ~tag and ~release.
   Each job needs to be independently configured to respond to the subscribed event(s).
 
-  The configuration below illustrates how to subscribe to an upstream repository for both commit and pull request events.  
+  The configuration below illustrates how to subscribe to an upstream repository for both commit and pull request events.
 
   shared:
     image: node:lts

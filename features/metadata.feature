@@ -1,4 +1,5 @@
 @metadata
+@parallel
 Feature: Metadata
 
     Users want to pass structured data between their builds.

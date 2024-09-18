@@ -1,6 +1,6 @@
 @sd-step
+@parallel
 @x1
-
 Feature: Shared Steps
 
     Users want to be able to share code for building software, so that their builds are
