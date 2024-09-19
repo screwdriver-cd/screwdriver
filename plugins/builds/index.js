@@ -350,8 +350,7 @@ async function createOrUpdateStageTeardownBuild(config, app) {
 
     const nextJobsTrigger = [stageTeardownName];
     const pipelineJoinData = await createJoinObject(nextJobsTrigger, current, eventFactory);
-
-    const resource = `pipeline:${pipeline.id}:groupEvent:${event.groupEventId}`;
+    const resource = `pipeline:${pipeline.id}:groupEvent:${event.groupEventId}:event:${event.id}`;
     let lock;
     let teardownBuild;
 

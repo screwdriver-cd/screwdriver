@@ -321,6 +321,13 @@ module.exports = () => ({
                 stageBuildHasFailure = TERMINAL_STATUSES.includes(stageBuild.status);
             }
 
+            if (stage && !isStageTeardown) {
+                await createOrUpdateStageTeardownBuild(
+                    { pipeline, job, build, username, scmContext, event, stage },
+                    request.server.app
+                );
+            }
+
             // Guard against triggering non-successful or unstable builds
             // Don't further trigger pipeline if intend to skip further jobs
             if (newBuild.status !== 'SUCCESS' || skipFurther) {
@@ -330,13 +337,6 @@ module.exports = () => ({
                         { pipeline, job, build: newBuild, event: newEvent, stage },
                         request.server.app
                     );
-
-                    if (stage && !isStageTeardown) {
-                        await createOrUpdateStageTeardownBuild(
-                            { pipeline, job, build, username, scmContext, event, stage },
-                            request.server.app
-                        );
-                    }
                 }
                 // Do not continue downstream is current job is stage teardown and statusBuild has failure
             } else if (newBuild.status === 'SUCCESS' && isStageTeardown && stageBuildHasFailure) {
