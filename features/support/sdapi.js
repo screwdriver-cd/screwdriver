@@ -255,43 +255,6 @@ function searchForBuilds(config) {
 }
 
 /**
- * Waits for a specific stageBuild to reach a desired status. If a stageBuild is found to not be
- * in the desired state, it waits an arbitrarily short amount of time before querying
- * the stageBuild status again.
- *
- * @method waitForStageBuildStatus
- * @param  {Object}  config               Configuration object
- * @param  {Number}  config.eventId       Event ID
- * @param  {String}  config.instance      Screwdriver instance to test against
- * @param  {Number}  config.stageId       Stage ID
- * @param  {String}  config.jwt           JWT
- * @param  {String}  config.desiredStatus Desired status
- * @return {Object}                       StageBuild data
- */
-function waitForStageBuildStatus(config) {
-    const { eventId, desiredStatus, instance, jwt, stageId } = config;
-
-    return request({
-        method: 'GET',
-        url: `${instance}/v4/events/${eventId}/stageBuilds`,
-        context: {
-            token: jwt
-        }
-    }).then(response => {
-        const stageBuildData = response.body;
-
-        // Find stageBuild for stage
-        const stageBuild = stageBuildData.find(sb => sb.stageId === stageId);
-
-        if (stageBuild && stageBuild.status === desiredStatus) {
-            return stageBuild;
-        }
-
-        return promiseToWait(WAIT_TIME).then(() => waitForStageBuildStatus(config));
-    });
-}
-
-/**
  * Remove the test token
  * @method cleanupToken
  * @param  {Object}  config
@@ -405,6 +368,5 @@ module.exports = {
     findEventBuilds,
     searchForBuild,
     searchForBuilds,
-    waitForStageBuildStatus,
     promiseToWait
 };
