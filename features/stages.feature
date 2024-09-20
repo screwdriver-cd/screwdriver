@@ -144,6 +144,7 @@ Feature: Stage
         And the "b" build succeeded
         And the "stage@simple_success1:teardown" job is triggered
         Then the "stage@simple_success1" stageBuild status is "SUCCESS"
+        And the "join-target" job is not triggered
         And the "c" job is triggered
         And the "c" build succeeded
         And the "d" job is triggered
