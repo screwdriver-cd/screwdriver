@@ -129,6 +129,7 @@ Feature: Stage
         Given an existing pipeline on branch "twoStageSuccess" with the workflow jobs:
             | job       | requires      |
             | target    | stage@simple_success2:teardown  |
+            | join-target    | stage@simple_success1:teardown, stage@simple_success2:teardown  |
             | stage@simple_success2:setup | stage@simple_success1:teardown  |
             | stage@simple_success1:setup | ~hub |
         And the pipeline has the following stages:
@@ -152,3 +153,5 @@ Feature: Stage
         And the "stage@simple_success2" stageBuild status is "SUCCESS"
         And the "target" job is triggered
         And the "target" build succeeded
+        And the "join-target" job is triggered
+        And the "join-target" build succeeded
