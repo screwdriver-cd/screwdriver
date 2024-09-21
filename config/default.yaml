@@ -289,15 +289,15 @@ webhooks:
   maxBytes: 1048576 # 1MB
 
 coverage:
-  default: "false"
-  plugin: sonar
-  sonar:
-    sdApiUrl: https://api.screwdriver.cd
-    sonarHost: https://sonar.screwdriver.cd
-    adminToken: your-sonar-admin-token
-    sdUiUrl: https://cd.screwdriver.cd
-    sonarEnterprise: false
-    sonarGitAppName: "Screwdriver Sonar PR Checks"
+  # default: true
+  # plugin: sonar
+  # sonar:
+  #   sdApiUrl: https://api.screwdriver.cd
+  #   sonarHost: https://sonar.screwdriver.cd
+  #   adminToken: your-sonar-admin-token
+  #   sdUiUrl: https://cd.screwdriver.cd
+  #   sonarEnterprise: false
+  #   sonarGitAppName: "Screwdriver Sonar PR Checks"
 
 multiBuildCluster:
   # Enabled multi build cluster feature or not
