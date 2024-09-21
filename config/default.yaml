@@ -257,7 +257,7 @@ webhooks:
   maxBytes: 1048576 # 1MB
 
 coverage:
-  # default: true
+  default: true
   # plugin: sonar
   # sonar:
   #   sdApiUrl: https://api.screwdriver.cd
