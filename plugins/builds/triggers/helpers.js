@@ -702,8 +702,6 @@ function getSubsequentJobs(workflowGraph, startNode) {
         return [];
     }
 
-    console.log('edges: ', edges);
-
     const visiting = [start];
 
     const visited = new Set(visiting);
