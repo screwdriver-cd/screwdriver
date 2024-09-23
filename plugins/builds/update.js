@@ -248,7 +248,7 @@ module.exports = () => ({
                 build.statusMessage = statusMessage || build.statusMessage;
             } else if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
                 build.meta = request.payload.meta || {};
-                merge(event.meta, build.meta);
+                event.meta = merge({}, event.meta, build.meta);
                 build.endTime = new Date().toISOString();
             } else if (desiredStatus === 'RUNNING') {
                 build.startTime = new Date().toISOString();
