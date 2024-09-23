@@ -5,6 +5,7 @@ const hoek = require('@hapi/hoek');
 const schema = require('screwdriver-data-schema');
 const joi = require('joi');
 const idSchema = schema.models.build.base.extract('id');
+const merge = require('lodash.mergewith');
 const { getScmUri, getUserPermissions, getFullStageJobName } = require('../helper');
 const STAGE_TEARDOWN_PATTERN = /^stage@([\w-]+)(?::teardown)$/;
 const TERMINAL_STATUSES = ['FAILURE', 'ABORTED', 'UNSTABLE', 'COLLAPSED'];
@@ -247,7 +248,7 @@ module.exports = () => ({
                 build.statusMessage = statusMessage || build.statusMessage;
             } else if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
                 build.meta = request.payload.meta || {};
-                event.meta = { ...event.meta, ...build.meta };
+                merge(event.meta, build.meta);
                 build.endTime = new Date().toISOString();
             } else if (desiredStatus === 'RUNNING') {
                 build.startTime = new Date().toISOString();
