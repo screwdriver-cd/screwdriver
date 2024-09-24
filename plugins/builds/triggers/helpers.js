@@ -705,6 +705,8 @@ function getSubsequentJobs(workflowGraph, startNode) {
     const visited = new Set(visiting);
 
     edges.forEach(edge => {
+        // this is a temporary fix for the issue where the edge.src is not in the nodes array
+        // TODO: https://github.com/screwdriver-cd/screwdriver/issues/3206
         if (!nodeToEdgeDestsMap[edge.src]) {
             nodeToEdgeDestsMap[edge.src] = [];
         }
