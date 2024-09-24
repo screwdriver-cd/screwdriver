@@ -249,6 +249,39 @@ function CustomWorld({ attach, parameters }) {
 
         throw new Error(`Expect the build "${buildId}" to be complete. Actual "${lastStatus}".`);
     };
+    this.waitForStageBuild = async ({ eventId, stageId }) => {
+        let lastStatus = '';
+
+        for (let i = 0; i < RETRY_COUNT_LIMIT; i += 1) {
+            await promiseToWait(i + 10);
+
+            const response = await request({
+                url: `${this.instance}/${this.namespace}/events/${eventId}/stageBuilds`,
+                method: 'GET',
+                retry: {
+                    statusCodes: [200],
+                    limit: 30,
+                    calculateDelay: ({ computedValue }) => (computedValue ? 15000 : 0)
+                },
+                context: {
+                    token: this.jwt
+                }
+            });
+
+            const stageBuildData = response.body;
+
+            // Find stageBuild for stage
+            const stageBuild = stageBuildData.find(sb => sb.stageId === stageId);
+
+            lastStatus = stageBuild.status;
+
+            if (!['CREATED', 'BLOCKED', 'QUEUED', 'RUNNING'].includes(lastStatus)) {
+                return stageBuild;
+            }
+        }
+
+        throw new Error(`Expect the stage build "${eventId}:${stageId}" to be complete. Actual "${lastStatus}".`);
+    };
     this.stopBuild = async buildId => {
         const response = await request({
             url: `${this.instance}/${this.namespace}/builds/${buildId}`,
