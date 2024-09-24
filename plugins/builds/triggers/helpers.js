@@ -686,8 +686,8 @@ function getSubsequentJobs(workflowGraph, startNode) {
     const nodeToEdgeDestsMap = Object.fromEntries(nodes.map(node => [node.name, []]));
 
     let start = trimJobName(startNode);
-    // In rare cases, WorkflowGraph and startNode may have different start tildes
 
+    // In rare cases, WorkflowGraph and startNode may have different start tildes
     if (!(start in nodeToEdgeDestsMap)) {
         if (start.startsWith('~')) {
             start = start.slice(1);
@@ -704,7 +704,14 @@ function getSubsequentJobs(workflowGraph, startNode) {
 
     const visited = new Set(visiting);
 
-    edges.forEach(edge => nodeToEdgeDestsMap[edge.src].push(edge.dest));
+    edges.forEach(edge => {
+        // this is a temporary fix for the issue where the edge.src is not in the nodes array
+        // TODO: https://github.com/screwdriver-cd/screwdriver/issues/3206
+        if (!nodeToEdgeDestsMap[edge.src]) {
+            nodeToEdgeDestsMap[edge.src] = [];
+        }
+        nodeToEdgeDestsMap[edge.src].push(edge.dest);
+    });
     if (edges.length) {
         while (visiting.length) {
             const currentNode = visiting.pop();
