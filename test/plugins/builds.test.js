@@ -1080,10 +1080,6 @@ describe('build plugin test', () => {
             });
 
             it('saves status, statusMessage, meta updates, and merge event meta', () => {
-                const meta = {
-                    foo: 'bar',
-                    hello: 'bye'
-                };
                 const status = 'SUCCESS';
                 const statusMessage = 'Oh the build passed';
                 const options = {
@@ -1097,7 +1093,14 @@ describe('build plugin test', () => {
                         strategy: ['token']
                     },
                     payload: {
-                        meta,
+                        meta: {
+                            foo: 'bar',
+                            hello: 'bye',
+                            deployedAppVersion: {
+                                ui: '2.4.67',
+                                api: '6.9.5'
+                            }
+                        },
                         status,
                         statusMessage,
                         stats: {
@@ -1108,7 +1111,11 @@ describe('build plugin test', () => {
 
                 eventMock.meta = {
                     foo: 'oldfoo',
-                    oldmeta: 'oldmetastuff'
+                    oldmeta: 'oldmetastuff',
+                    deployedAppVersion: {
+                        ui: '2.4.67',
+                        store: '4.0.1'
+                    }
                 };
 
                 return server.inject(options).then(reply => {
@@ -1116,14 +1123,19 @@ describe('build plugin test', () => {
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
-                    assert.deepEqual(buildMock.meta, meta);
+                    assert.deepEqual(buildMock.meta, options.payload.meta);
                     assert.deepEqual(buildMock.statusMessage, statusMessage);
                     assert.isDefined(buildMock.endTime);
                     assert.calledOnce(eventMock.update);
                     assert.deepEqual(eventMock.meta, {
                         foo: 'bar',
                         hello: 'bye',
-                        oldmeta: 'oldmetastuff'
+                        oldmeta: 'oldmetastuff',
+                        deployedAppVersion: {
+                            ui: '2.4.67',
+                            store: '4.0.1',
+                            api: '6.9.5'
+                        }
                     });
                     assert.deepEqual(buildMock.stats, {
                         hostname: 'node123.mycluster.com'
