@@ -28,7 +28,7 @@ const {
     createEvent,
     parseJobInfo,
     ensureStageTeardownBuildExists,
-    getJobId,
+    getJob,
     isOrTrigger,
     extractExternalJoinData,
     extractCurrentPipelineJoinData,
@@ -94,9 +94,9 @@ async function triggerNextJobs(config, app) {
 
     const downstreamOfNextJobsToBeProcessed = [];
 
-    for (const [nextJobName, nextJob] of Object.entries(currentPipelineNextJobs)) {
-        const nextJobId = nextJob.id || (await getJobId(nextJobName, currentPipeline.id, jobFactory));
-        const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJob;
+    for (const [nextJobName, nextJobInfo] of Object.entries(currentPipelineNextJobs)) {
+        const nextJob = await getJob(nextJobName, currentPipeline.id, jobFactory);
+        const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJobInfo;
         const resource = `pipeline:${currentPipeline.id}:groupEvent:${currentEvent.groupEventId}`;
         let lock;
         let nextBuild;
@@ -125,15 +125,13 @@ async function triggerNextJobs(config, app) {
                 nextBuild = await orTrigger.execute(
                     currentEvent,
                     currentPipeline.id,
-                    nextJobName,
-                    nextJobId,
+                    nextJob,
                     parentBuilds,
                     isNextJobVirtual
                 );
             } else {
                 nextBuild = await andTrigger.execute(
-                    nextJobName,
-                    nextJobId,
+                    nextJob,
                     parentBuilds,
                     joinListNames,
                     isNextJobVirtual,
@@ -145,7 +143,7 @@ async function triggerNextJobs(config, app) {
                 downstreamOfNextJobsToBeProcessed.push({
                     build: nextBuild,
                     event: currentEvent,
-                    job: await nextBuild.job,
+                    job: nextJob,
                     pipeline: currentPipeline,
                     scmContext: config.scmContext,
                     username: config.username
@@ -244,9 +242,9 @@ async function triggerNextJobs(config, app) {
 
         // Skip trigger process if createExternalEvent fails
         if (externalEvent) {
-            for (const [nextJobName, nextJob] of Object.entries(joinedPipeline.jobs)) {
-                const nextJobId = nextJob.id || (await getJobId(nextJobName, currentPipeline.id, jobFactory));
-                const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJob;
+            for (const [nextJobName, nextJobInfo] of Object.entries(joinedPipeline.jobs)) {
+                const nextJob = await getJob(nextJobName, currentPipeline.id, jobFactory);
+                const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJobInfo;
 
                 const { parentBuilds } = parseJobInfo({
                     joinObj: joinedPipeline.jobs,
@@ -266,23 +264,21 @@ async function triggerNextJobs(config, app) {
                         nextBuild = await remoteTrigger.execute(
                             externalEvent,
                             externalEvent.pipelineId,
-                            nextJobName,
-                            nextJobId,
+                            nextJob,
                             parentBuilds,
                             isNextJobVirtual
                         );
                     } else {
                         // Re get join list when first time remote trigger since external event was empty and cannot get workflow graph then
                         const joinList =
-                            nextJob.join.length > 0
-                                ? nextJob.join
+                            nextJobInfo.join.length > 0
+                                ? nextJobInfo.join
                                 : workflowParser.getSrcForJoin(externalEvent.workflowGraph, { jobName: nextJobName });
                         const joinListNames = joinList.map(j => j.name);
 
                         nextBuild = await remoteJoin.execute(
                             externalEvent,
-                            nextJobName,
-                            nextJobId,
+                            nextJob,
                             parentBuilds,
                             groupEventBuilds,
                             joinListNames,
@@ -292,13 +288,11 @@ async function triggerNextJobs(config, app) {
                     }
 
                     if (isNextJobVirtual && nextBuild.status === Status.SUCCESS) {
-                        const nextJobModel = await nextBuild.job;
-
                         downstreamOfNextJobsToBeProcessed.push({
                             build: nextBuild,
                             event: currentEvent,
-                            job: nextJobModel,
-                            pipeline: await nextJobModel.pipeline,
+                            job: nextJob,
+                            pipeline: await nextJob.pipeline,
                             scmContext: config.scmContext,
                             username: config.username
                         });

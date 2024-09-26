@@ -599,13 +599,13 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param {Boolean} arg.done If the build is done or not
  * @param {Boolean} arg.hasFailure If the build has a failure or not
  * @param {Build} arg.newBuild Next build
- * @param {String|undefined} arg.jobName Job name
+ * @param {Job} arg.job Next job
  * @param {String|undefined} arg.pipelineId Pipeline ID
  * @param {String|undefined} arg.stageName Stage name
  * @param {Boolean} arg.isVirtualJob If the job is virtual or not
  * @returns {Promise<Build|null>} The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stageName, isVirtualJob }) {
+async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, isVirtualJob }) {
     if (!done || Status.isStarted(newBuild.status)) {
         return null;
     }
@@ -615,9 +615,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
         const stageTeardownName = stageName ? getFullStageJobName({ stageName, jobName: 'teardown' }) : '';
 
         // New build is not stage teardown job
-        if (jobName !== stageTeardownName) {
+        if (job.name !== stageTeardownName) {
             logger.info(
-                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
+                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${job.name} event:${newBuild.eventId} `
             );
             await newBuild.remove();
         }
@@ -626,7 +626,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
     }
 
     // Bypass execution of the build if the job is virtual
-    if (isVirtualJob) {
+    const hasFreezeWindows = job.permutations[0].freezeWindows && job.permutations[0].freezeWindows.length > 0;
+
+    if (isVirtualJob && !hasFreezeWindows) {
         newBuild.status = Status.SUCCESS;
 
         return newBuild.update();
@@ -1035,19 +1037,17 @@ function extractExternalJoinData(joinedPipelines, currentPipelineId) {
 }
 
 /**
- * Get job id from job name
+ * Get job from job name
  * @param {String} jobName Job name
  * @param {String} pipelineId Pipeline id
  * @param {JobFactory} jobFactory Job factory
- * @returns {Promise<Number>}
+ * @returns {Promise<Job>}
  */
-async function getJobId(jobName, pipelineId, jobFactory) {
-    const job = await jobFactory.get({
+async function getJob(jobName, pipelineId, jobFactory) {
+    return jobFactory.get({
         name: jobName,
         pipelineId
     });
-
-    return job.id;
 }
 
 /**
@@ -1152,7 +1152,7 @@ module.exports = {
     strToInt,
     createEvent,
     deleteBuild,
-    getJobId,
+    getJob,
     isOrTrigger,
     extractCurrentPipelineJoinData,
     extractExternalJoinData,

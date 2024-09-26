@@ -3195,6 +3195,41 @@ describe('trigger tests', () => {
         assert.equal(event.getBuildOf('d7').status, 'SUCCESS');
     });
 
+    it('should add virtual jobs to execution queue when they have freeze windows', async () => {
+        const pipeline = await pipelineFactoryMock.createFromFile('virtual-jobs-with-freeze-windows.yaml');
+
+        const event = await eventFactoryMock.create({
+            pipelineId: pipeline.id,
+            startFrom: 'hub'
+        });
+
+        await event.getBuildOf('hub').complete('SUCCESS');
+        assert.equal(event.getBuildOf('a').status, 'RUNNING');
+        assert.equal(event.getBuildOf('b').status, 'RUNNING');
+        assert.equal(event.getBuildOf('c').status, 'RUNNING');
+
+        await event.getBuildOf('a').complete('SUCCESS');
+        assert.equal(event.getBuildOf('d1').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d2').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d3').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d4').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d5').status, 'CREATED');
+        assert.equal(event.getBuildOf('d6').status, 'CREATED');
+        assert.equal(event.getBuildOf('d7').status, 'CREATED');
+
+        await event.getBuildOf('d1').complete('SUCCESS');
+        assert.equal(event.getBuildOf('target1').status, 'RUNNING');
+        assert.equal(event.getBuildOf('target2').status, 'RUNNING');
+
+        await event.getBuildOf('b').complete('SUCCESS');
+        assert.equal(event.getBuildOf('d5').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d6').status, 'RUNNING');
+        assert.equal(event.getBuildOf('d7').status, 'CREATED');
+
+        await event.getBuildOf('c').complete('SUCCESS');
+        assert.equal(event.getBuildOf('d7').status, 'RUNNING');
+    });
+
     describe('Tests for behavior not ideal', () => {
         it('[ sd@2:a, sd@3:a ] is triggered when restarts a and wait for downstream restart builds', async () => {
             const upstreamPipeline = await pipelineFactoryMock.createFromFile('sd@2:a_sd@3:a-upstream.yaml');
