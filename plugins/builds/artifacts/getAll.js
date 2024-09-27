@@ -67,6 +67,14 @@ module.exports = config => ({
                     // PassThrough stream to make archiver readable by Hapi
                     const passThrough = new PassThrough();
 
+                    archive.on('error', (err) => {
+                        logger.error('Archiver error:', err);
+                        passThrough.emit('error', err); // Propagate the error to the PassThrough stream
+                    });
+                    passThrough.on('error', (err) => {
+                        logger.error('PassThrough stream error:', err);
+                    });
+
                     // Pipe the archive to PassThrough so it can be sent as a response
                     archive.pipe(passThrough);
 
@@ -75,6 +83,11 @@ module.exports = config => ({
                         for (const file of manifestArray) {
                             if (file) {
                                 const fileStream = request.stream(`${baseUrl}/${file}?token=${token}&type=download`);
+
+                                fileStream.on('error', (err) => {
+                                    logger.error(`Error downloading file: ${file}`, err);
+                                    archive.emit('error', err);
+                                });
 
                                 archive.append(fileStream, { name: file });
                             }
