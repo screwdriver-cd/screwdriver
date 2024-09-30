@@ -243,7 +243,7 @@ async function triggerNextJobs(config, app) {
         // Skip trigger process if createExternalEvent fails
         if (externalEvent) {
             for (const [nextJobName, nextJobInfo] of Object.entries(joinedPipeline.jobs)) {
-                const nextJob = await getJob(nextJobName, currentPipeline.id, jobFactory);
+                const nextJob = await getJob(nextJobName, joinedPipelineId, jobFactory);
                 const { isVirtual: isNextJobVirtual, stageName: nextJobStageName } = nextJobInfo;
 
                 const { parentBuilds } = parseJobInfo({
