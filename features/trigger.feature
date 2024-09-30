@@ -37,7 +37,6 @@ Feature: Remote Trigger
         And the "fail_A" build failed
         Then the "fail_B_prod" job on branch "pipelineB" is not triggered
 
-    @beta
     Scenario: External builds are not triggered if required build is not successful.
         Given an existing pipeline on branch "pipelineA" with job "fail_A"
         And an existing pipeline on branch "pipelineB" with the workflow jobs:
@@ -58,7 +57,6 @@ Feature: Remote Trigger
         Then the "success_B_or_prod" job on branch "pipelineB" is started
         And the "success_B_or_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
-    @beta
     Scenario: External build is triggered after another build is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
         And an existing pipeline on branch "pipelineB" with the workflow jobs:
@@ -80,7 +78,6 @@ Feature: Remote Trigger
         Then the "or_multiple_B_prod" job on branch "pipelineB" is started
         And the "or_multiple_B_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
-    @beta
     Scenario: External build is triggered after one of the builds is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
         And an existing pipeline on branch "pipelineB" with the workflow jobs:
@@ -104,7 +101,6 @@ Feature: Remote Trigger
         And the "success_B_and_prod" build's parentBuildId on branch "pipelineB" is that "success_A" build's buildId
 
     @ignore
-    @beta
     Scenario: External build which requires single AND trigger is triggered after another build is successful.
         Given an existing pipeline on branch "pipelineA" with job "success_A"
         And an existing pipeline on branch "pipelineB" with the workflow jobs:
@@ -129,7 +125,6 @@ Feature: Remote Trigger
         And the "parallel_B2" build's parentBuildId on branch "pipelineB" is that "parallel_A" build's buildId
         And builds for "parallel_B1" and "parallel_B2" jobs are part of a single event
 
-    @beta
     Scenario: Remote Join
         Given an existing pipeline on branch "beta-remote_join1" with the workflow jobs:
             | job       | requires                  |
