@@ -95,9 +95,7 @@ jobs:
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
             - npm-install: npm install
-            - test: GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
-            - test-parallel: GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional-parallel
-            - test-x1-parallel: TEST_USERNAME=${TEST_USERNAME_X1} GIT_TOKEN=${GIT_TOKEN_X1} SD_API_TOKEN=${SD_API_TOKEN_PROD_X1} npm run functional-x1-parallel
+            - test: TEST_USERNAME=${TEST_USERNAME_X1} GIT_TOKEN=${GIT_TOKEN_X1} SD_API_TOKEN=${SD_API_TOKEN_PROD_X1} npm run functional
         environment:
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
