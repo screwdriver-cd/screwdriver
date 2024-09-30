@@ -255,7 +255,14 @@ class PipelineFactoryMock {
                     jobs[prJobName] = this.server.app.jobFactory.create({
                         name: prJobName,
                         pipeline,
-                        pipelineId: pipeline.id
+                        pipelineId: pipeline.id,
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
                     });
                 }
             });
