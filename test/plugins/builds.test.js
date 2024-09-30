@@ -1512,7 +1512,14 @@ describe('build plugin test', () => {
                     id: publishJobId,
                     pipelineId,
                     state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('publish')
+                    parsePRJobName: sinon.stub().returns('publish'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
 
                 beforeEach(() => {
@@ -2332,12 +2339,26 @@ describe('build plugin test', () => {
                     id: 2,
                     pipelineId,
                     state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('b')
+                    parsePRJobName: sinon.stub().returns('b'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
                 const jobC = {
                     ...jobB,
                     id: 3,
-                    parsePRJobName: sinon.stub().returns('c')
+                    parsePRJobName: sinon.stub().returns('c'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
                 let buildMocks;
                 let jobBconfig;
@@ -2787,7 +2808,14 @@ describe('build plugin test', () => {
                     id: 2,
                     pipelineId,
                     state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('b')
+                    parsePRJobName: sinon.stub().returns('b'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
                 const jobC = {
                     ...jobB,
@@ -2803,6 +2831,10 @@ describe('build plugin test', () => {
                         })
                     ),
                     parsePRJobName: sinon.stub().returns('c')
+                };
+                const jobD = {
+                    ...jobB,
+                    id: 4
                 };
                 const externalEventBuilds = [
                     {
@@ -2887,10 +2919,12 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.withArgs(8888).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs(jobB.id).resolves(jobB);
                     jobFactoryMock.get.withArgs(jobC.id).resolves(jobC);
+                    jobFactoryMock.get.withArgs(jobD.id).resolves(jobD);
                     jobFactoryMock.get.withArgs(6).resolves(jobC);
                     jobFactoryMock.get.withArgs(3).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'd' }).resolves(jobD);
                     jobFactoryMock.list.resolves([{ id: 5555 }]);
                     jobMock.name = 'a';
                     buildMock.eventId = '8888';
@@ -2989,6 +3023,24 @@ describe('build plugin test', () => {
                     });
                 });
                 it('triggers next job as external when user used external syntax for same pipeline', () => {
+                    const pipeline2JobB = {
+                        id: 2,
+                        pipelineId: 123,
+                        name: 'b',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('b'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '123', name: 'b' }).resolves(pipeline2JobB);
+                    jobFactoryMock.get.withArgs(pipeline2JobB.id).resolves(pipeline2JobB);
+
                     const expectedEventArgs = {
                         pipelineId: '123',
                         startFrom: '~sd@123:a',
@@ -3038,6 +3090,24 @@ describe('build plugin test', () => {
                 });
 
                 it('triggers next next job when next job is external', () => {
+                    const pipeline2JobA = {
+                        id: 2,
+                        pipelineId: 2,
+                        name: 'a',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('a'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'a' }).resolves(pipeline2JobA);
+                    jobFactoryMock.get.withArgs(pipeline2JobA.id).resolves(pipeline2JobA);
+
                     const expectedEventArgs = {
                         pipelineId: '2',
                         startFrom: '~sd@123:a',
@@ -3536,6 +3606,24 @@ describe('build plugin test', () => {
                 it('triggers if all jobs in external join are done and updates join job', () => {
                     // re-entry case
                     // join-job exist
+                    const pipeline2JobC = {
+                        id: 3,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3669,6 +3757,24 @@ describe('build plugin test', () => {
                     //  ~sd@2:a -> a -> sd@2:c
                     // If user is at `a`, it should trigger `sd@2:c`
                     // No join-job, so create
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3705,7 +3811,7 @@ describe('build plugin test', () => {
                         baseBranch: 'master',
                         configPipelineSha: 'abc123',
                         eventId: 8887,
-                        jobId: 3,
+                        jobId: 6,
                         parentBuildId: [12345],
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
@@ -3787,6 +3893,24 @@ describe('build plugin test', () => {
                     //  ~sd@2:b ------➚
                     // If user is at `a`, it should trigger `sd@2:c`
                     // ~sd@123:a is or trigger, so create
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3819,11 +3943,11 @@ describe('build plugin test', () => {
                         parentBuilds,
                         start: sinon.stub().resolves()
                     });
-                    const jobCConfig = {
+                    const pipeline2JobCConfig = {
                         baseBranch: 'master',
                         configPipelineSha: 'abc123',
                         eventId: 8887,
-                        jobId: 3,
+                        jobId: 6,
                         parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
@@ -3844,7 +3968,7 @@ describe('build plugin test', () => {
                         pr: {},
                         id: 8887,
                         configPipelineSha: 'abc123',
-                        pipelineId: 123,
+                        pipelineId: 2,
                         baseBranch: 'master',
                         builds: [
                             {
@@ -3896,11 +4020,45 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledOnce(buildFactoryMock.getLatestBuilds);
                         assert.calledOnce(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create, jobCConfig);
+                        assert.calledWith(buildFactoryMock.create, pipeline2JobCConfig);
                     });
                 });
 
                 it('starts multiple builds with the existing downstream event', () => {
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+                    const pipeline2JobD = {
+                        id: 7,
+                        pipelineId: 2,
+                        name: 'd',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('d'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'd' }).resolves(pipeline2JobD);
+                    jobFactoryMock.get.withArgs(pipeline2JobD.id).resolves(pipeline2JobD);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -4081,6 +4239,24 @@ describe('build plugin test', () => {
                 });
 
                 it('creates without starting join job in external join when fork not done', () => {
+                    const pipeline2JobC = {
+                        id: 3,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -4703,6 +4879,24 @@ describe('build plugin test', () => {
                     //                  d
                     //
                     // If user restarts `123:a`, it should get `2:c`'s parent event status and trigger `c`
+                    const pipeline2JobC = {
+                        id: 3,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },

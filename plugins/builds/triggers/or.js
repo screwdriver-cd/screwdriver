@@ -12,14 +12,13 @@ class OrTrigger extends OrBase {
      * Trigger the next jobs of the current job
      * @param {Event} event
      * @param {Number} pipelineId
-     * @param {String} nextJobName
-     * @param {Number} nextJobId
+     * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {Boolean} isNextJobVirtual
      * @return {Promise<Build|null>}
      */
-    async execute(event, pipelineId, nextJobName, nextJobId, parentBuilds, isNextJobVirtual) {
-        return this.trigger(event, pipelineId, nextJobName, nextJobId, parentBuilds, isNextJobVirtual);
+    async execute(event, pipelineId, nextJob, parentBuilds, isNextJobVirtual) {
+        return this.trigger(event, pipelineId, nextJob, parentBuilds, isNextJobVirtual);
     }
 }
 
