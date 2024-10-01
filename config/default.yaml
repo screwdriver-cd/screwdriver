@@ -157,6 +157,38 @@ executor:
       docker: {}
       # Container tags to use
       launchVersion: stable
+  k8s-vm:
+    enabled: true
+    options:
+      # Configuration of Docker
+      kubernetes:
+        # The host or IP of the kubernetes cluster
+        host: kubernetes.default
+        # The jwt token used for authenticating kubernetes requests
+        # Loaded from /var/run/secrets/kubernetes.io/serviceaccount/token by default
+        # Resources for build pod
+        resources:
+          # Number of cpu cores
+          cpu:
+            micro: 1
+            low: 2
+            high: 6
+          # Memory in GB
+          memory:
+            micro: 1
+            low: 2
+            high: 12
+        # Default build timeout for all builds in this cluster (in minutes)
+        buildTimeout: 90
+        # Default max build timeout (in minutes)
+        maxBuildTimeout: 120
+        # k8s node selectors for appropriate pod scheduling
+        nodeSelectors: {}
+        preferredNodeSelectors: {}
+      # Launcher image to use
+      launchImage: screwdrivercd/launcher
+      # Launcher container tag to use
+      launchVersion: stable
 #   jenkins:
 #     options:
 #       # Configuration of Jenkins
