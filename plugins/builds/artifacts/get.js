@@ -3,8 +3,11 @@
 const boom = require('@hapi/boom');
 const joi = require('joi');
 const jwt = require('jsonwebtoken');
-const request = require('screwdriver-request');
+const request = require('got');
 const schema = require('screwdriver-data-schema');
+const archiver = require('archiver');
+const { PassThrough } = require('stream');
+const logger = require('screwdriver-logger');
 const { v4: uuidv4 } = require('uuid');
 const idSchema = schema.models.build.base.extract('id');
 const artifactSchema = joi.string().label('Artifact Name');
@@ -45,8 +48,6 @@ module.exports = config => ({
                     return canAccessPipeline(credentials, event.pipelineId, 'pull', req.server.app);
                 })
                 .then(async () => {
-                    const encodedArtifact = encodeURIComponent(artifact);
-
                     const token = jwt.sign({
                         buildId, artifact, scope: ['user']
                     }, config.authConfig.jwtPrivateKey, {
@@ -55,31 +56,93 @@ module.exports = config => ({
                         jwtid: uuidv4()
                     });
 
-                    let baseUrl = `${config.ecosystem.store}/v1/builds/`
-                        + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}&type=${req.query.type}`;
+                    // Directory should fetch manifest and
+                    // gather all files that belong to that directory
+                    if (artifact.endsWith('/')) {
+                        const baseUrl = `${config.ecosystem.store}/v1/builds/${buildId}/ARTIFACTS`;
 
-                    const requestStream = request.stream(baseUrl);
+                        // Fetch the manifest
+                        const manifest = await request({
+                            url: `${baseUrl}/manifest.txt?token=${token}`,
+                            method: 'GET'
+                        }).text();
+                        const manifestArray = manifest.trim().split('\n');
+                        const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}`));
 
-                    let response = h.response(requestStream);
+                        // Create a stream and set up archiver
+                        const archive = archiver('zip', { zlib: { level: 9 } });
+                        // PassThrough stream to make archiver readable by Hapi
+                        const passThrough = new PassThrough();
 
-                    return new Promise((resolve, reject) => {
-                        requestStream.on('response', response => {
-                            resolve(response.headers);
+                        archive.on('error', (err) => {
+                            logger.error('Archiver error:', err);
+                            passThrough.emit('error', err); // Propagate the error to the PassThrough stream
                         });
-                        requestStream.on('error', err => {
-                            if (err.response && err.response.statusCode === 404) {
-                                reject(boom.notFound('File not found'));
-                            } else {
-                                reject(err);
+                        passThrough.on('error', (err) => {
+                            logger.error('PassThrough stream error:', err);
+                        });
+
+                        // Pipe the archive to PassThrough so it can be sent as a response
+                        archive.pipe(passThrough);
+
+                        // Fetch the directory files and append to the archive
+                        try {
+                            for (const file of directoryArray) {
+                                if (file) {
+                                    const encodedFile = encodeURIComponent(file);
+                                    const fileStream = request.stream(`${baseUrl}/${encodedFile}?token=${token}&type=download`);
+
+                                    fileStream.on('error', (err) => {
+                                        logger.error(`Error downloading file: ${file}`, err);
+                                        archive.emit('error', err);
+                                    });
+
+                                    archive.append(fileStream, { name: file });
+                                }
                             }
-                        });
-                    }).then(headers => {
-                        response.headers['content-type'] = headers['content-type'];
-                        response.headers['content-disposition'] = headers['content-disposition'];
-                        response.headers['content-length'] = headers['content-length'];
+                            // Finalize the archive after all files are appended
+                            archive.finalize();
+                        } catch (err) {
+                            logger.error('Error while streaming artifact files:', err);
+                            archive.emit('error', err);
+                        }
 
-                        return response;
-                    });
+                        const zipName = artifact.split('/').slice(-2)[0];
+
+                        // Respond with the PassThrough stream (which is now readable by Hapi)
+                        return h.response(passThrough)
+                            .type('application/zip')
+                            .header('Content-Disposition', `attachment; filename="${zipName}_dir.zip"`);
+                    } else {
+                        const encodedArtifact = encodeURIComponent(artifact);
+
+                        // Fetch single file
+                        let baseUrl = `${config.ecosystem.store}/v1/builds/`
+                            + `${buildId}/ARTIFACTS/${encodedArtifact}?token=${token}&type=${req.query.type}`;
+
+                        const requestStream = request.stream(baseUrl);
+
+                        let response = h.response(requestStream);
+
+                        return new Promise((resolve, reject) => {
+                            requestStream.on('response', response => {
+                                resolve(response.headers);
+                            });
+                            requestStream.on('error', err => {
+                                if (err.response && err.response.statusCode === 404) {
+                                    reject(boom.notFound('File not found'));
+                                } else {
+                                    reject(err);
+                                }
+                            });
+                        }).then(headers => {
+                            response.headers['content-type'] = headers['content-type'];
+                            response.headers['content-disposition'] = headers['content-disposition'];
+                            response.headers['content-length'] = headers['content-length'];
+
+                            return response;
+                        });
+                    }
                 })
                 .catch(err => {
                     throw err;

@@ -7138,7 +7138,6 @@ describe('build plugin test', () => {
 
     describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
-        const artifact = 'manifest';
         const multiByteArtifact = 'まにふぇmanife漢字';
         const buildMock = {
             id: 123,
@@ -7166,8 +7165,10 @@ describe('build plugin test', () => {
             'content-length': '1077'
         };
         let options;
+        let artifact;
 
         beforeEach(() => {
+            artifact = 'manifest';
             options = {
                 url: `/builds/${id}/artifacts/${artifact}`,
                 auth: {
@@ -7184,7 +7185,7 @@ describe('build plugin test', () => {
             nock(logBaseUrl)
                 .defaultReplyHeaders(headersMock)
                 .get(`/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=preview`)
-                .reply(200);
+                .reply(200, testManifest);
         });
 
         it('returns 200 for an artifact request', () => {
@@ -7218,6 +7219,34 @@ describe('build plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.match(reply.headers, headersMock);
+            });
+        });
+
+        it('returns 200 for an artifact download request for directory', () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, testManifest);
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders(expectedHeaders)
+                .get(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200, testManifest);
+
+            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.match(reply.headers, expectedHeaders);
             });
         });
 
