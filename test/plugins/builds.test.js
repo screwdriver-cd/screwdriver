@@ -679,6 +679,8 @@ describe('build plugin test', () => {
 
         describe('user token', () => {
             it('returns 200 for updating a build that exists', () => {
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
                 const userMock = {
                     username: id,
                     getPermissions: sinon.stub().resolves({ push: true })
@@ -714,6 +716,7 @@ describe('build plugin test', () => {
             });
 
             it('does not update completed builds', () => {
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
                 buildMock.status = 'SUCCESS';
                 const options = {
                     method: 'PUT',
@@ -736,6 +739,8 @@ describe('build plugin test', () => {
             });
 
             it('does not allow users other than abort', () => {
+                screwdriverAdminDetailsMock.returns({ isAdmin: false });
+
                 const options = {
                     method: 'PUT',
                     url: `/builds/${id}`,
@@ -744,7 +749,8 @@ describe('build plugin test', () => {
                     },
                     auth: {
                         credentials: {
-                            scope: ['user']
+                            scope: ['user'],
+                            username: 'test-user'
                         },
                         strategy: ['token']
                     }
@@ -2071,13 +2077,25 @@ describe('build plugin test', () => {
                         {
                             id: 1,
                             eventId: '8888',
-                            jobId: 1,
+                            jobId: 11,
                             status: 'FAILURE'
                         },
                         {
                             id: 7777,
                             eventId: '8888',
-                            jobId: 4,
+                            jobId: 44,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 12,
+                            eventId: '8888',
+                            jobId: 22,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 777,
+                            eventId: '8888',
+                            jobId: 33,
                             status: 'SUCCESS'
                         }
                     ]);
@@ -5456,7 +5474,13 @@ describe('build plugin test', () => {
                             eventId: '8888',
                             status: 'SUCCESS'
                         },
-                        buildAlphaTest
+                        buildAlphaTest,
+                        {
+                            jobId: 44,
+                            id: 1003,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        }
                     ]);
 
                     return newServer.inject(localOptions).then(() => {
@@ -5609,12 +5633,17 @@ describe('build plugin test', () => {
                             eventId: '8888',
                             status: 'FAILURE'
                         },
-                        buildGammaTestFunctional
+                        buildGammaTestFunctional,
+                        {
+                            jobId: 775,
+                            id: 7004,
+                            eventId: '8888',
+                            status: 'SUCCESS'
+                        }
                     ]);
 
                     return newServer.inject(localOptions).then(() => {
                         assert.notCalled(stageBuildMock.update);
-
                         assert.notCalled(buildFactoryMock.create);
                         assert.calledTwice(buildGammaTeardown.update);
                         assert.deepEqual(buildGammaTeardown.parentBuildId, [12345, 7003]);

@@ -98,9 +98,7 @@ async function getBuildToUpdate(id, buildFactory) {
 async function validateUserPermission(build, request) {
     const { jobFactory, userFactory, bannerFactory, pipelineFactory } = request.server.app;
     const { username, scmContext, scmUserId } = request.auth.credentials;
-
     const { status: desiredStatus } = request.payload;
-
     const scmDisplayName = bannerFactory.scm.getDisplayName({ scmContext });
     // Check if Screwdriver admin
     const adminDetails = request.server.plugins.banners.screwdriverAdminDetails(username, scmDisplayName, scmUserId);
@@ -117,7 +115,6 @@ async function validateUserPermission(build, request) {
     // Check permission against the pipeline
     // Fetch the job and user models
     const [job, user] = await Promise.all([jobFactory.get(build.jobId), userFactory.get({ username, scmContext })]);
-
     const pipeline = await job.pipeline;
 
     // Use parent's scmUri if pipeline is child pipeline and using read-only SCM
@@ -197,7 +194,8 @@ async function isStageDone({ stage, event }) {
     const stageJobBuilds = await event.getBuilds({ params: { jobId: stageJobIds } });
     let stageIsDone = false;
 
-    if (stageJobBuilds && stageJobBuilds.length !== 0) {
+    // Make sure all builds in stage have run
+    if (stageJobBuilds && stageJobBuilds.length === stageJobIds.length) {
         stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
     }
 
