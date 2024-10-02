@@ -1954,6 +1954,107 @@ describe('build plugin test', () => {
                     });
                 });
 
+                it('triggers stage teardown if current stage build is SUCCESS and stage teardown is not next build', () => {
+                    const stageBuildMock = {
+                        id: 1,
+                        stageId: 1,
+                        update: sinon.stub().resolves(),
+                        status: 'SUCCESS'
+                    };
+                    const status = 'SUCCESS';
+                    const options = {
+                        method: 'PUT',
+                        url: `/builds/${id}`,
+                        auth: {
+                            credentials: {
+                                username: id,
+                                scope: ['build']
+                            },
+                            strategy: ['token']
+                        },
+                        payload: {
+                            status
+                        }
+                    };
+                    const mockBuildList = [
+                        { status: 'SUCCESS' },
+                        { status: 'SUCCESS' },
+                        { status: 'SUCCESS' },
+                        { status: 'SUCCESS' }
+                    ];
+                    const stageTeardownBuildMock = {
+                        status: 'CREATED',
+                        start: sinon.stub().resolves(),
+                        update: sinon.stub().resolves()
+                    };
+
+                    jobMock = {
+                        id: 1234,
+                        name: 'alpha-test',
+                        pipelineId,
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ],
+                        pipeline: sinon.stub().resolves(pipelineMock)(),
+                        getLatestBuild: sinon.stub().resolves(buildMock)
+                    };
+                    buildMock.job = sinon.stub().resolves(jobMock)();
+                    buildMock.parentBuilds = { 123: { eventId: '8888', jobs: { 'alpha-test': 7777 } } };
+                    eventMock.getBuilds.resolves([
+                        {
+                            id: 1,
+                            eventId: '8888',
+                            jobId: 11,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 7777,
+                            eventId: '8888',
+                            jobId: 44,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 12,
+                            eventId: '8888',
+                            jobId: 22,
+                            status: 'SUCCESS'
+                        },
+                        {
+                            id: 777,
+                            eventId: '8888',
+                            jobId: 33,
+                            status: 'SUCCESS'
+                        }
+                    ]);
+
+                    eventMock.workflowGraph = testWorkflowGraphWithStages;
+                    eventFactoryMock.get.resolves(eventMock);
+                    stageFactoryMock.get.resolves(stageMock);
+                    stageBuildFactoryMock.get.resolves(stageBuildMock);
+                    testBuild.status = 'FAILURE';
+                    buildMock = getBuildMock(testBuild);
+                    jobFactoryMock.get
+                        .withArgs({ pipelineId: 123, name: 'stage@alpha:teardown' })
+                        .resolves({ id: 9999 });
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 1234 }).resolves(buildMock);
+                    buildFactoryMock.get.withArgs({ eventId: '8888', jobId: 9999 }).resolves(stageTeardownBuildMock);
+                    buildFactoryMock.list
+                        .withArgs({ params: { jobId: [22, 33, 44, 11], eventId: '8888' } })
+                        .resolves(mockBuildList);
+
+                    return server.inject(options).then(reply => {
+                        assert.equal(reply.statusCode, 200);
+                        assert.notCalled(buildFactoryMock.create);
+                        assert.notCalled(stageBuildFactoryMock.create);
+                        assert.calledOnce(stageTeardownBuildMock.start);
+                        assert.calledOnce(stageTeardownBuildMock.update);
+                    });
+                });
+
                 it('triggers next job in the stage workflow if next build is stage teardown', () => {
                     const stageBuildMock = {
                         id: 1,
@@ -2084,18 +2185,6 @@ describe('build plugin test', () => {
                             id: 7777,
                             eventId: '8888',
                             jobId: 44,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            id: 12,
-                            eventId: '8888',
-                            jobId: 22,
-                            status: 'SUCCESS'
-                        },
-                        {
-                            id: 777,
-                            eventId: '8888',
-                            jobId: 33,
                             status: 'SUCCESS'
                         }
                     ]);
@@ -5474,13 +5563,7 @@ describe('build plugin test', () => {
                             eventId: '8888',
                             status: 'SUCCESS'
                         },
-                        buildAlphaTest,
-                        {
-                            jobId: 44,
-                            id: 1003,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        }
+                        buildAlphaTest
                     ]);
 
                     return newServer.inject(localOptions).then(() => {
@@ -5633,13 +5716,7 @@ describe('build plugin test', () => {
                             eventId: '8888',
                             status: 'FAILURE'
                         },
-                        buildGammaTestFunctional,
-                        {
-                            jobId: 775,
-                            id: 7004,
-                            eventId: '8888',
-                            status: 'SUCCESS'
-                        }
+                        buildGammaTestFunctional
                     ]);
 
                     return newServer.inject(localOptions).then(() => {

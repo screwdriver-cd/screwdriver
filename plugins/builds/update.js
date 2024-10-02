@@ -182,21 +182,26 @@ async function getStage({ stageFactory, workflowGraph, jobName, pipelineId }) {
  * Checks if all builds in stage are done running
  * @param  {Object}     stage                     Stage
  * @param  {Object}     event                     Event
+ * @param  {String}     buildStatus               Current build status
  * @return {Boolean}              Flag if stage is done
  */
-async function isStageDone({ stage, event }) {
-    // Get all jobIds for jobs in the stage
-    const stageJobIds = stage.jobIds;
-
-    stageJobIds.push(stage.setup);
-
-    // Get all builds in a stage for this event
+async function isStageDone({ stage, event, buildStatus }) {
+    // Combine job IDs in the stage and the stage setup ID
+    const stageJobIds = [...stage.jobIds, stage.setup];
+    // Get all builds for jobs in the stage for this event
     const stageJobBuilds = await event.getBuilds({ params: { jobId: stageJobIds } });
-    let stageIsDone = false;
 
-    // Make sure all builds in stage have run
-    if (stageJobBuilds && stageJobBuilds.length === stageJobIds.length) {
-        stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
+    // If no builds exist, return false
+    if (!stageJobBuilds || stageJobBuilds.length === 0) {
+        return false;
+    }
+
+    // Check if all builds in the stage are finished
+    const stageIsDone = !stageJobBuilds.some(b => !FINISHED_STATUSES.includes(b.status));
+
+    // If the build status is 'SUCCESS', ensure all jobs are completed
+    if (buildStatus === 'SUCCESS') {
+        return stageJobBuilds.length === stageJobIds.length && stageIsDone;
     }
 
     return stageIsDone;
@@ -301,6 +306,7 @@ module.exports = () => ({
                 jobName: job.name,
                 pipelineId: pipeline.id
             });
+
             const isStageTeardown = STAGE_TEARDOWN_PATTERN.test(job.name);
             let stageBuildHasFailure = false;
 
@@ -357,7 +363,7 @@ module.exports = () => ({
 
                 // Start stage teardown build if stage is done
                 if (stageTeardownBuild && stageTeardownBuild.status === 'CREATED') {
-                    const stageIsDone = await isStageDone({ stage, event: newEvent });
+                    const stageIsDone = await isStageDone({ stage, event: newEvent, buildStatus: newBuild.status });
 
                     if (stageIsDone) {
                         stageTeardownBuild.status = 'QUEUED';
