@@ -39,8 +39,7 @@ class JoinBase {
      * @param {Number} pipelineId
      * @param {Event} event
      * @param {Build} nextBuild
-     * @param {String} nextJobName
-     * @param {String} nextJobId
+     * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {String} parentBuildId
      * @param {String[]} joinListNames
@@ -52,8 +51,7 @@ class JoinBase {
         pipelineId,
         event,
         nextBuild,
-        nextJobName,
-        nextJobId,
+        nextJob,
         parentBuilds,
         parentBuildId,
         joinListNames,
@@ -68,8 +66,8 @@ class JoinBase {
                 jobFactory: this.jobFactory,
                 buildFactory: this.buildFactory,
                 pipelineId,
-                jobName: nextJobName,
-                jobId: nextJobId,
+                jobName: nextJob.name,
+                jobId: nextJob.id,
                 username: this.username,
                 scmContext: this.scmContext,
                 event, // this is the parentBuild for the next build
@@ -87,7 +85,7 @@ class JoinBase {
         }
 
         if (!newBuild) {
-            logger.error(`No build found for ${pipelineId}:${nextJobName}`);
+            logger.error(`No build found for ${pipelineId}:${nextJob.name}`);
 
             return null;
         }
@@ -104,7 +102,7 @@ class JoinBase {
             done,
             hasFailure,
             newBuild,
-            jobName: nextJobName,
+            job: nextJob,
             pipelineId,
             isVirtualJob: isNextJobVirtual,
             stageName: nextJobStageName

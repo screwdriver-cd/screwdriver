@@ -2,7 +2,6 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, Then } = require('@cucumber/cucumber');
-const sdapi = require('../support/sdapi');
 
 const TIMEOUT = 240 * 1000;
 
@@ -38,16 +37,13 @@ Given(
 Then(
     /^the "(?:stage@([\w-]+))" stageBuild status is "(SUCCESS|FAILURE)"$/,
     { timeout: TIMEOUT },
-    async function step(stage, stageBuildStatus) {
+    async function step(_, stageBuildStatus) {
         const config = {
             eventId: this.eventId,
-            jwt: this.jwt,
-            stageId: this.stageId,
-            instance: this.instance,
-            desiredStatus: stageBuildStatus
+            stageId: this.stageId
         };
 
-        return sdapi.waitForStageBuildStatus(config).then(stageBuild => {
+        return this.waitForStageBuild(config).then(stageBuild => {
             Assert.equal(stageBuild.status, stageBuildStatus);
 
             this.stageBuildId = stageBuild.id;

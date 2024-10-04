@@ -40,7 +40,7 @@ module.exports = () => ({
 
                 const build = await buildFactory.get(request.params.buildId);
                 const job = await jobFactory.get(build.jobId);
-                const pipeline = pipelineFactory.get(job.pipelineId);
+                const pipeline = await pipelineFactory.get(job.pipelineId);
 
                 profile = request.server.plugins.auth.generateProfile({
                     username: request.params.buildId,

@@ -187,11 +187,12 @@ class PipelineFactoryMock {
 
         const { jobs, stages, workflowGraph } = pipeline;
 
-        Object.keys(jobs).forEach(name => {
+        Object.entries(jobs).forEach(([name, jobConfigArr]) => {
             jobs[name] = this.server.app.jobFactory.create({
                 name,
                 pipeline,
-                pipelineId: pipeline.id
+                pipelineId: pipeline.id,
+                permutations: jobConfigArr
             });
         });
 
@@ -254,7 +255,14 @@ class PipelineFactoryMock {
                     jobs[prJobName] = this.server.app.jobFactory.create({
                         name: prJobName,
                         pipeline,
-                        pipelineId: pipeline.id
+                        pipelineId: pipeline.id,
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
                     });
                 }
             });
@@ -755,7 +763,6 @@ class JobFactoryMock {
     create(config) {
         const job = {
             ...config,
-            permutations: [{}],
             id: this.records.length,
             toJson: sinon.stub(),
             getLatestBuild: sinon.stub().resolves([]),

@@ -36,17 +36,19 @@ class OrBase {
      * Trigger the next jobs of the current job
      * @param {Event} event
      * @param {Number} pipelineId
-     * @param {String} nextJobName
-     * @param {Number} nextJobId
+     * @param {Job} nextJob
      * @param {import('./helpers').ParentBuilds} parentBuilds
      * @param {Boolean} isNextJobVirtual
      * @return {Promise<Build|null>}
      */
-    async trigger(event, pipelineId, nextJobName, nextJobId, parentBuilds, isNextJobVirtual) {
+    async trigger(event, pipelineId, nextJob, parentBuilds, isNextJobVirtual) {
         let nextBuild = await this.buildFactory.get({
             eventId: event.id,
-            jobId: nextJobId
+            jobId: nextJob.id
         });
+
+        const hasFreezeWindows =
+            nextJob.permutations[0].freezeWindows && nextJob.permutations[0].freezeWindows.length > 0;
 
         if (nextBuild !== null) {
             if (Status.isStarted(nextBuild.status)) {
@@ -54,7 +56,7 @@ class OrBase {
             }
 
             // Bypass execution of the build if the job is virtual
-            if (isNextJobVirtual) {
+            if (isNextJobVirtual && !hasFreezeWindows) {
                 nextBuild.status = Status.SUCCESS;
 
                 return nextBuild.update();
@@ -70,19 +72,19 @@ class OrBase {
             jobFactory: this.jobFactory,
             buildFactory: this.buildFactory,
             pipelineId,
-            jobName: nextJobName,
-            jobId: nextJobId,
+            jobName: nextJob.name,
+            jobId: nextJob.id,
             username: this.username,
             scmContext: this.scmContext,
             event,
             baseBranch: event.baseBranch || null,
             parentBuilds,
             parentBuildId: this.currentBuild.id,
-            start: !isNextJobVirtual
+            start: hasFreezeWindows || !isNextJobVirtual
         });
 
         // Bypass execution of the build if the job is virtual
-        if (isNextJobVirtual) {
+        if (isNextJobVirtual && !hasFreezeWindows) {
             nextBuild.status = Status.SUCCESS;
 
             nextBuild = nextBuild.update();
