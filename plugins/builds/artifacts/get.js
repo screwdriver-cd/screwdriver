@@ -48,72 +48,84 @@ module.exports = config => ({
                     return canAccessPipeline(credentials, event.pipelineId, 'pull', req.server.app);
                 })
                 .then(async () => {
-                    const token = jwt.sign({
-                        buildId, artifact, scope: ['user']
-                    }, config.authConfig.jwtPrivateKey, {
-                        algorithm: 'RS256',
-                        expiresIn: '5s',
-                        jwtid: uuidv4()
-                    });
-
                     // Directory should fetch manifest and
                     // gather all files that belong to that directory
                     if (artifact.endsWith('/')) {
-                        const baseUrl = `${config.ecosystem.store}/v1/builds/${buildId}/ARTIFACTS`;
-
-                        // Fetch the manifest
-                        const manifest = await request({
-                            url: `${baseUrl}/manifest.txt?token=${token}`,
-                            method: 'GET'
-                        }).text();
-                        const manifestArray = manifest.trim().split('\n');
-                        const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}`));
-
-                        // Create a stream and set up archiver
-                        const archive = archiver('zip', { zlib: { level: 9 } });
-                        // PassThrough stream to make archiver readable by Hapi
-                        const passThrough = new PassThrough();
-
-                        archive.on('error', (err) => {
-                            logger.error('Archiver error:', err);
-                            passThrough.emit('error', err); // Propagate the error to the PassThrough stream
-                        });
-                        passThrough.on('error', (err) => {
-                            logger.error('PassThrough stream error:', err);
-                        });
-
-                        // Pipe the archive to PassThrough so it can be sent as a response
-                        archive.pipe(passThrough);
-
-                        // Fetch the directory files and append to the archive
                         try {
+                            const token = jwt.sign({
+                                buildId, artifact, scope: ['user']
+                            }, config.authConfig.jwtPrivateKey, {
+                                algorithm: 'RS256',
+                                expiresIn: '10m',
+                                jwtid: uuidv4()
+                            });
+                            const baseUrl = `${config.ecosystem.store}/v1/builds/${buildId}/ARTIFACTS`;
+                            // Fetch the manifest
+                            const manifest = await request({
+                                url: `${baseUrl}/manifest.txt?token=${token}`,
+                                method: 'GET'
+                            }).text();
+                            const manifestArray = manifest.trim().split('\n');
+                            const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}`));
+
+                            // Create a stream and set up archiver
+                            const archive = archiver('zip', { zlib: { level: 9 } });
+                            const passThrough = new PassThrough();
+
+                            // Handle archiver errors
+                            archive.on('error', (err) => {
+                                logger.error('Archiver error:', err);
+                                passThrough.emit('error', err); // Propagate the error to the PassThrough stream
+                            });
+
+                            // Handle passThrough errors
+                            passThrough.on('error', (err) => {
+                                logger.error('PassThrough stream error:', err);
+                            });
+
+                            // Pipe the archive to PassThrough
+                            archive.pipe(passThrough);
+
+                            // Fetch and append the directory files
                             for (const file of directoryArray) {
                                 if (file) {
-                                    const encodedFile = encodeURIComponent(file);
-                                    const fileStream = request.stream(`${baseUrl}/${encodedFile}?token=${token}&type=download`);
+                                    const fileStream = request.stream(`${baseUrl}/${file}?token=${token}&type=download`);
 
+                                    // Handle errors from file streaming
                                     fileStream.on('error', (err) => {
                                         logger.error(`Error downloading file: ${file}`, err);
-                                        archive.emit('error', err);
+                                        archive.emit('error', err); // Emit error to stop the archive process
                                     });
 
+                                    // Append the file stream to the archive
                                     archive.append(fileStream, { name: file });
                                 }
                             }
-                            // Finalize the archive after all files are appended
+
+                            // Finalize the archive once all files are appended
                             archive.finalize();
+
+                            // Create a zip name from the directory structure
+                            const zipName = artifact.split('/').slice(-2)[0];
+
+                            // Respond with the PassThrough stream (which is readable by Hapi)
+                            return h.response(passThrough)
+                                .type('application/zip')
+                                .header('Content-Disposition', `attachment; filename="${zipName}_dir.zip"`);
                         } catch (err) {
+                            // Catch errors related to the manifest request or other async issues
                             logger.error('Error while streaming artifact files:', err);
-                            archive.emit('error', err);
+
+                            return h.response({ error: 'Failed to generate ZIP file' }).code(500);
                         }
-
-                        const zipName = artifact.split('/').slice(-2)[0];
-
-                        // Respond with the PassThrough stream (which is now readable by Hapi)
-                        return h.response(passThrough)
-                            .type('application/zip')
-                            .header('Content-Disposition', `attachment; filename="${zipName}_dir.zip"`);
                     } else {
+                        const token = jwt.sign({
+                            buildId, artifact, scope: ['user']
+                        }, config.authConfig.jwtPrivateKey, {
+                            algorithm: 'RS256',
+                            expiresIn: '5s',
+                            jwtid: uuidv4()
+                        });
                         const encodedArtifact = encodeURIComponent(artifact);
 
                         // Fetch single file

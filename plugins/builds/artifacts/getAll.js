@@ -82,8 +82,7 @@ module.exports = config => ({
                     try {
                         for (const file of manifestArray) {
                             if (file) {
-                                const encodedFile = encodeURIComponent(file);
-                                const fileStream = request.stream(`${baseUrl}/${encodedFile}?token=${token}&type=download`);
+                                const fileStream = request.stream(`${baseUrl}/${file}?token=${token}&type=download`);
 
                                 fileStream.on('error', (err) => {
                                     logger.error(`Error downloading file: ${file}`, err);

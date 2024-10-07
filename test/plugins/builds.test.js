@@ -7250,6 +7250,83 @@ describe('build plugin test', () => {
             });
         });
 
+        it('returns 200 for a large artifact download request for directory', async () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+            const largeFileContent = 'A'.repeat(1000000); // 1MB file content
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, './artifacts/sample-mp4-file.mp4');
+            // Nock intercept to simulate large file download
+            nock(logBaseUrl)
+                .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
+                .delay(5000)
+                .reply(200, largeFileContent, {
+                    'Content-Type': 'application/octet-stream',
+                    'Content-Length': largeFileContent.length
+                });
+
+            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.match(reply.headers, expectedHeaders);
+            });
+        });
+
+        it('emits error for an error downloading artifact directory', async () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, './artifacts/sample-mp4-file.mp4');
+            nock(logBaseUrl)
+                .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
+                .reply(500);
+
+            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+
+            try {
+                await server.inject(options);
+            } catch (err) {
+                assert.isOk(err);
+                assert.calledThrice(loggerMock.error);
+                assert.calledWithMatch(
+                    loggerMock.error.getCall(0),
+                    'Error downloading file: ./artifacts/sample-mp4-file.mp4'
+                );
+                assert.calledWithMatch(loggerMock.error.getCall(1), 'Archiver error:');
+                assert.calledWithMatch(loggerMock.error.getCall(2), 'PassThrough stream error:');
+            }
+        });
+
+        it('returns 500 for a missing manifest for artifact directory', () => {
+            options.url = `/builds/${id}/artifacts/doesnotexist/?type=preview`;
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(404);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.result.error, 'Failed to generate ZIP file');
+            });
+        });
+
         it('returns 200 for an artifact preview request', () => {
             const url = `/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=preview`;
 

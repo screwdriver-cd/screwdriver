@@ -43,6 +43,10 @@ Arguments:
 #### List the build step by status
 `GET /builds/{id}/steps`
 
+Arguments:
+
+* `status` - Status to filter by
+
 `GET /builds/{id}/steps?status=active`
 
 `GET /builds/{id}/steps?status=failure`
@@ -61,6 +65,18 @@ Example payload:
     "lines": 100
 }
 ```
+
+#### Gets all build artifacts as ZIP file
+`GET /builds/{id}/artifacts`
+
+#### Gets a build artifact or directory as ZIP file
+`GET /builds/{id}/artifacts/{name*}`
+
+Arguments:
+
+* `type` - Return type for build artifact, `download` or `preview`
+
+`GET /builds/{id}/artifacts/{name*}?type=preview`
 
 #### Get build statuses
 `GET /builds/statuses`
