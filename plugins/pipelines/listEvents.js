@@ -34,7 +34,7 @@ module.exports = () => ({
 
         handler: async (request, h) => {
             const factory = request.server.app.pipelineFactory;
-            const { page, count, sha, prNum, id, sort, sortBy } = request.query;
+            const { page, count, sha, prNum, id, sort, sortBy, groupEventId } = request.query;
 
             return factory
                 .get(request.params.id)
@@ -71,7 +71,11 @@ module.exports = () => ({
                         };
                     }
 
-                    // Event id filter
+                    if (groupEventId) {
+                        config.params.groupEventId = groupEventId;
+                    }
+
+                    // Event id filter; can use greater than(`gt:`) or less than(`lt:`) prefix
                     if (id) {
                         config.params.id = id;
                     }
@@ -96,6 +100,7 @@ module.exports = () => ({
                     prNum: prNumSchema,
                     sha: shaSchema,
                     id: queryIdSchema,
+                    groupEventId: pipelineIdSchema,
                     search: joi.forbidden(), // we don't support search for Pipeline list events
                     getCount: joi.forbidden() // we don't support getCount for Pipeline list events
                 })

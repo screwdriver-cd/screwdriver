@@ -186,6 +186,52 @@ executor:
       launchVersion: LAUNCH_VERSION
       # Prefix to the container
       prefix: EXECUTOR_PREFIX
+  k8s-vm:
+    enabled: EXECUTOR_K8SVM_ENABLED
+    options:
+      # Configuration of Docker
+      kubernetes:
+        # The host or IP of the kubernetes cluster
+        host: K8S_HOST
+        # The jwt token used for authenticating kubernetes requests
+        token: K8S_TOKEN
+        jobsNamespace: K8S_JOBS_NAMESPACE
+        baseImage: K8S_BASE_IMAGE
+        # Resources for build pod
+        resources:
+          # Number of cpu cores
+          cpu:
+            micro: K8S_CPU_MICRO
+            low: K8S_CPU_LOW
+            high: K8S_CPU_HIGH
+          # Memory in GB
+          memory:
+            micro: K8S_MEMORY_MICRO
+            low: K8S_MEMORY_LOW
+            high: K8S_MEMORY_HIGH
+        # Default build timeout for all builds in this cluster
+        buildTimeout: K8S_VM_BUILD_TIMEOUT
+        # Default max build timeout
+        maxBuildTimeout: K8S_VM_MAX_BUILD_TIMEOUT
+        # k8s node selectors for build pod scheduling.
+        # Value is Object of format { label: 'value' } See
+        # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#step-one-attach-label-to-the-node
+        # Eg: { dedicated: 'screwdriver' } to schedule pods on nodes having
+        # label-value of dedicated=screwdriver
+        nodeSelectors:
+          __name: K8S_VM_NODE_SELECTORS
+          __format: json
+        # k8s preferred node selectors for build pod scheduling
+        # See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature
+        preferredNodeSelectors:
+          __name: K8S_VM_PREFERRED_NODE_SELECTORS
+          __format: json
+      # Launcher image to use
+      launchImage: LAUNCH_IMAGE
+      # Launcher container tag to use
+      launchVersion: LAUNCH_VERSION
+      # Prefix to the container
+      prefix: EXECUTOR_PREFIX
   jenkins:
     enabled: EXECUTOR_JENKINS_ENABLED
     options:
