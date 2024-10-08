@@ -52,21 +52,20 @@ class AndTrigger extends JoinBase {
 
     /**
      * Trigger the next jobs of the current job
-     * @param {String} nextJobName
-     * @param {String} nextJobId
+     * @param {Job} nextJob
      * @param {Record<String, Object>} parentBuilds
      * @param {String[]} joinListNames
      * @param {Boolean} isNextJobVirtual
      * @param {String} nextJobStageName
      * @returns {Promise<Build>}
      */
-    async execute(nextJobName, nextJobId, parentBuilds, joinListNames, isNextJobVirtual, nextJobStageName) {
+    async execute(nextJob, parentBuilds, joinListNames, isNextJobVirtual, nextJobStageName) {
         logger.info(`Fetching finished builds for event ${this.currentEvent.id}`);
 
         const relatedBuilds = await this.fetchRelatedBuilds();
 
         // Find the next build from the related builds for this event
-        let nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId === this.currentEvent.id);
+        let nextBuild = relatedBuilds.find(b => b.jobId === nextJob.id && b.eventId === this.currentEvent.id);
 
         if (!nextBuild) {
             // If the build to join fails and it succeeds on restart, depending on the timing, the latest build will be that of a child event.
@@ -74,7 +73,7 @@ class AndTrigger extends JoinBase {
             // Now we need to check for the existence of a build that should be triggered in its own event.
             nextBuild = await this.buildFactory.get({
                 eventId: this.currentEvent.id,
-                jobId: nextJobId
+                jobId: nextJob.id
             });
 
             if (nextBuild) {
@@ -84,10 +83,9 @@ class AndTrigger extends JoinBase {
 
         if (!nextBuild) {
             // If the build to join is in the child event, its event id is greater than current event.
-            nextBuild = relatedBuilds.find(b => b.jobId === nextJobId && b.eventId > this.currentEvent.id);
+            nextBuild = relatedBuilds.find(b => b.jobId === nextJob.id && b.eventId > this.currentEvent.id);
         }
-
-        const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent);
+        const newParentBuilds = mergeParentBuilds(parentBuilds, relatedBuilds, this.currentEvent, undefined);
         let nextEvent = this.currentEvent;
 
         if (nextBuild) {
@@ -98,8 +96,7 @@ class AndTrigger extends JoinBase {
             pipelineId: this.pipelineId,
             event: nextEvent,
             nextBuild,
-            nextJobName,
-            nextJobId,
+            nextJob,
             parentBuilds: newParentBuilds,
             parentBuildId: this.currentBuild.id,
             joinListNames,

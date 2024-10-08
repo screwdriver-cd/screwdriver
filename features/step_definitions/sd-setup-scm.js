@@ -2,9 +2,12 @@
 
 const Assert = require('chai').assert;
 const { Before, Given, When, After } = require('@cucumber/cucumber');
+const { disableRunScenarioInParallel } = require('../support/parallel');
 const github = require('../support/github');
 
 const TIMEOUT = 240 * 1000;
+
+disableRunScenarioInParallel();
 
 Before(
     {
@@ -28,6 +31,16 @@ Given(
     },
     function step() {
         return this.ensurePipelineExists({ repoName: this.repoName, shouldNotDeletePipeline: true });
+    }
+);
+
+Given(
+    /^an existing pipeline for sd-setup-scm:parent$/,
+    {
+        timeout: TIMEOUT
+    },
+    function step() {
+        return this.ensurePipelineExists({ repoName: this.repoName, rootDir: 'parent', shouldNotDeletePipeline: true });
     }
 );
 

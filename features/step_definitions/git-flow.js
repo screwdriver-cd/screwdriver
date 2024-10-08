@@ -6,8 +6,11 @@ const request = require('screwdriver-request');
 const sdapi = require('../support/sdapi');
 const github = require('../support/github');
 const { ID } = require('../support/constants');
+const { disableRunScenarioInParallel } = require('../support/parallel');
 
 const TIMEOUT = 500 * 1000;
+
+disableRunScenarioInParallel();
 
 Before(
     {

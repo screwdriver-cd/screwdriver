@@ -599,13 +599,13 @@ async function getParentBuildStatus({ newBuild, joinListNames, pipelineId, build
  * @param {Boolean} arg.done If the build is done or not
  * @param {Boolean} arg.hasFailure If the build has a failure or not
  * @param {Build} arg.newBuild Next build
- * @param {String|undefined} arg.jobName Job name
+ * @param {Job} arg.job Next job
  * @param {String|undefined} arg.pipelineId Pipeline ID
  * @param {String|undefined} arg.stageName Stage name
  * @param {Boolean} arg.isVirtualJob If the job is virtual or not
  * @returns {Promise<Build|null>} The newly updated/created build
  */
-async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId, stageName, isVirtualJob }) {
+async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, stageName, isVirtualJob }) {
     if (!done || Status.isStarted(newBuild.status)) {
         return null;
     }
@@ -615,9 +615,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
         const stageTeardownName = stageName ? getFullStageJobName({ stageName, jobName: 'teardown' }) : '';
 
         // New build is not stage teardown job
-        if (jobName !== stageTeardownName) {
+        if (job.name !== stageTeardownName) {
             logger.info(
-                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${jobName} event:${newBuild.eventId} `
+                `Failure occurred in upstream job, removing new build - build:${newBuild.id} pipeline:${pipelineId}-${job.name} event:${newBuild.eventId} `
             );
             await newBuild.remove();
         }
@@ -626,7 +626,9 @@ async function handleNewBuild({ done, hasFailure, newBuild, jobName, pipelineId,
     }
 
     // Bypass execution of the build if the job is virtual
-    if (isVirtualJob) {
+    const hasFreezeWindows = job.permutations[0].freezeWindows && job.permutations[0].freezeWindows.length > 0;
+
+    if (isVirtualJob && !hasFreezeWindows) {
         newBuild.status = Status.SUCCESS;
 
         return newBuild.update();
@@ -669,6 +671,68 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 }
 
 /**
+ * Get subsequent job names which the root is the start from node
+ * @param   {Array}   [workflowGraph]         Array of graph vertices
+ * @param   {Array}   [workflowGraph.nodes]   Array of graph vertices
+ * @param   {Array}   [workflowGraph.edges]   Array of graph edges
+ * @param   {String}  [startNode]            Starting/trigger node
+ * @returns {Array<String>}                   subsequent job names
+ */
+function getSubsequentJobs(workflowGraph, startNode) {
+    const { nodes, edges } = workflowGraph;
+
+    // startNode can be a PR job in PR events, so trim PR prefix from node name
+    if (!startNode || !nodes.length) {
+        return [];
+    }
+    const nodeToEdgeDestsMap = Object.fromEntries(nodes.map(node => [node.name, []]));
+
+    let start = trimJobName(startNode);
+
+    // In rare cases, WorkflowGraph and startNode may have different start tildes
+    if (!(start in nodeToEdgeDestsMap)) {
+        if (start.startsWith('~')) {
+            start = start.slice(1);
+        } else {
+            start = `~${start}`;
+        }
+    }
+
+    if (!(start in nodeToEdgeDestsMap)) {
+        return [];
+    }
+
+    const visiting = [start];
+
+    const visited = new Set(visiting);
+
+    edges.forEach(edge => {
+        // this is a temporary fix for the issue where the edge.src is not in the nodes array
+        // TODO: https://github.com/screwdriver-cd/screwdriver/issues/3206
+        if (!nodeToEdgeDestsMap[edge.src]) {
+            nodeToEdgeDestsMap[edge.src] = [];
+        }
+        nodeToEdgeDestsMap[edge.src].push(edge.dest);
+    });
+    if (edges.length) {
+        while (visiting.length) {
+            const currentNode = visiting.pop();
+            const dests = nodeToEdgeDestsMap[currentNode];
+
+            dests.forEach(dest => {
+                if (!visited.has(dest)) {
+                    visiting.push(dest);
+                    visited.add(dest);
+                }
+            });
+        }
+    }
+    visited.delete(start);
+
+    return [...visited];
+}
+
+/**
  * Merge parentBuilds object with missing job information from latest builds object
  * @param {ParentBuilds} parentBuilds parent builds
  * @param {Build[]} relatedBuilds Related builds which is used to fill parentBuilds data
@@ -692,6 +756,11 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent) {
     const newParentBuilds = {};
 
+    const ignoreJobs =
+        nextEvent && currentEvent.startFrom.startsWith('~')
+            ? getSubsequentJobs(nextEvent.workflowGraph, nextEvent.startFrom)
+            : getSubsequentJobs(currentEvent.workflowGraph, currentEvent.startFrom);
+
     Object.entries(parentBuilds).forEach(([pipelineId, { jobs, eventId }]) => {
         const newBuilds = {
             jobs,
@@ -708,7 +777,7 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
             let { workflowGraph } = currentEvent;
             let nodeName = trimJobName(jobName);
 
-            if (strToInt(pipelineId) !== currentEvent.pipelineId) {
+            if (strToInt(pipelineId) !== strToInt(currentEvent.pipelineId)) {
                 if (nextEvent) {
                     if (strToInt(pipelineId) !== nextEvent.pipelineId) {
                         nodeName = `sd@${pipelineId}:${nodeName}`;
@@ -718,7 +787,6 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
                     nodeName = `sd@${pipelineId}:${nodeName}`;
                 }
             }
-
             const targetJob = workflowGraph.nodes.find(node => node.name === nodeName);
 
             if (!targetJob) {
@@ -735,8 +803,10 @@ function mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent)
                 return;
             }
 
-            newBuilds.jobs[jobName] = targetBuild.id;
-            newBuilds.eventId = targetBuild.eventId;
+            if (!ignoreJobs.includes(nodeName) || targetBuild.eventId === currentEvent.id) {
+                newBuilds.jobs[jobName] = targetBuild.id;
+                newBuilds.eventId = targetBuild.eventId;
+            }
         });
 
         newParentBuilds[pipelineId] = newBuilds;
@@ -967,19 +1037,17 @@ function extractExternalJoinData(joinedPipelines, currentPipelineId) {
 }
 
 /**
- * Get job id from job name
+ * Get job from job name
  * @param {String} jobName Job name
  * @param {String} pipelineId Pipeline id
  * @param {JobFactory} jobFactory Job factory
- * @returns {Promise<Number>}
+ * @returns {Promise<Job>}
  */
-async function getJobId(jobName, pipelineId, jobFactory) {
-    const job = await jobFactory.get({
+async function getJob(jobName, pipelineId, jobFactory) {
+    return jobFactory.get({
         name: jobName,
         pipelineId
     });
-
-    return job.id;
 }
 
 /**
@@ -1084,7 +1152,7 @@ module.exports = {
     strToInt,
     createEvent,
     deleteBuild,
-    getJobId,
+    getJob,
     isOrTrigger,
     extractCurrentPipelineJoinData,
     extractExternalJoinData,

@@ -5,6 +5,7 @@ shared:
     environment:
         DOCKER_REPO: screwdrivercd/screwdriver
         DOCKER_MULTI_PLATFORM_BUILDS_ENABLED: 1
+
 jobs:
     main:
         image: node:18
@@ -52,15 +53,8 @@ jobs:
         template: sd/dind@2.0.20
     # Deploy to our beta environment and run tests
     beta:
-        image: node:18
         requires: [docker-publish]
-        steps:
-            - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-            - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
-            - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta
+        image: node:18
         environment:
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
@@ -70,14 +64,27 @@ jobs:
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
             K8S_ENV_VALUE: beta_rc2_
             TEST_USERNAME: sd-buildbot-functional
+            TEST_USERNAME_X1: sd-buildbot-functional-X1
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
             - SD_API_TOKEN_BETA
             # Git access token
             - GIT_TOKEN_BETA
+            # Access key for functional tests
+            - SD_API_TOKEN_BETA_X1
+            # Git access token
+            - GIT_TOKEN_X1
             # Talking to Kubernetes
             - K8S_TOKEN
+        steps:
+            - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
+            - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
+            - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
+            - npm-install: npm install
+            - test: GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta
+            - test-parallel: GIT_TOKEN=${GIT_TOKEN_BETA} SD_API_TOKEN=${SD_API_TOKEN_BETA} npm run functional-beta-parallel
+            - test-x1-parallel: TEST_USERNAME=${TEST_USERNAME_X1} GIT_TOKEN=${GIT_TOKEN_X1} SD_API_TOKEN=${SD_API_TOKEN_BETA_X1} npm run functional-beta-x1-parallel
 
     # Deploy to our prod environment and run tests
     prod:
@@ -87,9 +94,8 @@ jobs:
             - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
             - wait-docker: DOCKER_TAG=`meta get docker_tag` ./ci/docker-wait.sh
             - deploy-k8s: K8S_TAG=`meta get docker_tag` ./ci/k8s-deploy.sh
-            - test: |
-                npm install
-                GIT_TOKEN=${GIT_TOKEN_PROD} SD_API_TOKEN=${SD_API_TOKEN_PROD} npm run functional
+            - npm-install: npm install
+            - test: TEST_USERNAME=${TEST_USERNAME_X1} GIT_TOKEN=${GIT_TOKEN_X1} SD_API_TOKEN=${SD_API_TOKEN_PROD_X1} npm run functional
         environment:
             K8S_CONTAINER: screwdriver-api
             K8S_IMAGE: screwdrivercd/screwdriver
@@ -99,6 +105,7 @@ jobs:
             K8S_ENV_KEY: DATASTORE_DYNAMODB_PREFIX
             K8S_ENV_VALUE: rc2_
             TEST_USERNAME: sd-buildbot-functional
+            TEST_USERNAME_X1: sd-buildbot-functional-X1
             TEST_ORG: screwdriver-cd-test
         secrets:
             # Access key for functional tests
@@ -107,3 +114,7 @@ jobs:
             - GIT_TOKEN_PROD
             # Talking to Kubernetes
             - K8S_TOKEN
+            # Access key for functional tests
+            - SD_API_TOKEN_PROD_X1
+            # Git access token
+            - GIT_TOKEN_X1

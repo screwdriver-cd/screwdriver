@@ -1568,6 +1568,20 @@ describe('pipeline plugin test', () => {
             });
         });
 
+        it('returns 200 for getting events with groupEventId', () => {
+            options.url = `/pipelines/${id}/events?groupEventId=4`;
+
+            return server.inject(options).then(reply => {
+                assert.calledOnce(pipelineMock.getEvents);
+                assert.calledWith(pipelineMock.getEvents, {
+                    params: { groupEventId: 4, type: 'pipeline' },
+                    sort: 'descending'
+                });
+                assert.deepEqual(reply.result, testEvents);
+                assert.equal(reply.statusCode, 200);
+            });
+        });
+
         it('returns 200 for getting events with id less than 888', () => {
             options.url = `/pipelines/${id}/events?id=lt:888&count=5&sort=ascending&sortBy=createTime`;
 

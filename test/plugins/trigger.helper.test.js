@@ -724,15 +724,22 @@ describe('mergeParentBuilds function', () => {
             id: 2,
             pipelineId: 2,
             workflowGraph: {
-                nodes: [{ name: 'jobA', id: 10 }]
-            }
+                nodes: [{ name: '~commit' }, { name: 'jobA', id: 10 }],
+                edges: [
+                    { src: '~commit', dest: 'jobA' },
+                    { src: 'jobA', dest: 'sd@1:jobC' }
+                ]
+            },
+            startFrom: '~commit'
         };
         const nextEvent = {
             id: 3,
             pipelineId: 1,
             workflowGraph: {
-                nodes: [{ name: 'sd@1:jobC', id: 21 }]
-            }
+                nodes: [{ name: 'sd@1:jobC', id: 21 }],
+                edges: [{ src: 'sd@2:jobA', dest: 'sd@1:jobC' }]
+            },
+            startFrom: '~sd@2:jobA'
         };
 
         const result = mergeParentBuilds(parentBuilds, relatedBuilds, currentEvent, nextEvent);
@@ -1182,6 +1189,7 @@ describe('handleNewBuild function', () => {
     const handleNewBuild = RewiredTriggerHelper.__get__('handleNewBuild');
 
     let newBuildMock;
+    let jobMock;
 
     beforeEach(() => {
         newBuildMock = {
@@ -1191,6 +1199,12 @@ describe('handleNewBuild function', () => {
             update: sinon.stub().resolves(),
             start: sinon.stub().resolvesThis(),
             remove: sinon.stub().resolves()
+        };
+
+        jobMock = {
+            id: 23,
+            name: 'main',
+            permutations: [{}]
         };
 
         sinon.stub(logger, 'info');
@@ -1204,7 +1218,8 @@ describe('handleNewBuild function', () => {
         const result = await handleNewBuild({
             done: false,
             hasFailure: false,
-            newBuild: newBuildMock
+            newBuild: newBuildMock,
+            job: jobMock
         });
 
         assert.isNull(result);
@@ -1219,7 +1234,8 @@ describe('handleNewBuild function', () => {
         const result = await handleNewBuild({
             done: true,
             hasFailure: false,
-            newBuild: newBuildMock
+            newBuild: newBuildMock,
+            job: jobMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1233,7 +1249,7 @@ describe('handleNewBuild function', () => {
             done: true,
             hasFailure: true,
             newBuild: newBuildMock,
-            jobName: 'main',
+            job: jobMock,
             pipelineId: 1,
             stage: { name: 'deploy' }
         });
@@ -1246,11 +1262,13 @@ describe('handleNewBuild function', () => {
     });
 
     it('should not remove new build if there is a failure and it is a stage teardown job', async () => {
+        jobMock.name = 'stage@deploy:teardown';
+
         const result = await handleNewBuild({
             done: true,
             hasFailure: true,
             newBuild: newBuildMock,
-            jobName: 'stage@deploy:teardown',
+            job: jobMock,
             pipelineId: 1,
             stageName: 'deploy'
         });
@@ -1266,7 +1284,8 @@ describe('handleNewBuild function', () => {
         const result = await handleNewBuild({
             done: true,
             hasFailure: false,
-            newBuild: newBuildMock
+            newBuild: newBuildMock,
+            job: jobMock
         });
 
         assert.strictEqual(result.status, Status.QUEUED);
@@ -1279,12 +1298,45 @@ describe('handleNewBuild function', () => {
             done: true,
             hasFailure: false,
             newBuild: newBuildMock,
+            job: jobMock,
             isVirtualJob: true
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
         sinon.assert.calledOnce(newBuildMock.update);
         sinon.assert.notCalled(newBuildMock.start);
+    });
+
+    it('should skip the execution of virtual job when freeze windows is empty', async () => {
+        jobMock.permutations[0].freezeWindows = [];
+
+        await handleNewBuild({
+            done: true,
+            hasFailure: false,
+            newBuild: newBuildMock,
+            job: jobMock,
+            isVirtualJob: true
+        });
+
+        assert.strictEqual(newBuildMock.status, Status.SUCCESS);
+        sinon.assert.calledOnce(newBuildMock.update);
+        sinon.assert.notCalled(newBuildMock.start);
+    });
+
+    it('should add virtual job to the execution queue when the job has freeze windows', async () => {
+        jobMock.permutations[0].freezeWindows = ['* 10-21 ? * *'];
+
+        await handleNewBuild({
+            done: true,
+            hasFailure: false,
+            newBuild: newBuildMock,
+            job: jobMock,
+            isVirtualJob: true
+        });
+
+        assert.strictEqual(newBuildMock.status, Status.QUEUED);
+        sinon.assert.calledOnce(newBuildMock.update);
+        sinon.assert.calledOnce(newBuildMock.start);
     });
 });
 

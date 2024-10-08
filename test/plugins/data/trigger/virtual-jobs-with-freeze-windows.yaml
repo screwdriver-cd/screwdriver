@@ -1,0 +1,57 @@
+shared:
+    image: node:20
+    steps:
+        - test: echo 'test'
+
+jobs:
+    hub:
+        requires: [ ~commit, ~pr ]
+    a:
+        requires: [ ~hub ]
+    b:
+        requires: [ ~hub ]
+    c:
+        requires: [ ~hub ]
+    d1:
+        requires: [ ~a ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d2:
+        requires: [ ~a, ~b ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d3:
+        requires: [ ~a, b ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d4:
+        requires: [ a, ~b ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d5:
+        requires: [ a, b ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d6:
+        requires: [ a, ~b, c ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    d7:
+        requires: [ a, b, c ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+
+    target1:
+        requires: [ ~d1 ]
+        freezeWindows: ['* 10-21 ? * *']
+        annotations:
+            screwdriver.cd/virtualJob: true
+    target2:
+        requires: [ ~d1 ]

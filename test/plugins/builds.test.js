@@ -3,6 +3,7 @@
 const urlLib = require('url');
 const { assert } = require('chai');
 const sinon = require('sinon');
+const fs = require('fs');
 const hapi = require('@hapi/hapi');
 const rewiremock = require('rewiremock/node');
 const hoek = require('@hapi/hoek');
@@ -13,6 +14,7 @@ const testBuildWithSteps = require('./data/buildWithSteps.json');
 const testBuildsStatuses = require('./data/buildsStatuses.json');
 const testSecrets = require('./data/secrets.json');
 const testWorkflowGraphWithStages = require('./data/workflowGraphWithStages.json');
+const testManifest = fs.readFileSync(`${__dirname}/data/manifest.txt`);
 const rewireBuildsIndex = rewire('../../plugins/builds/triggers/helpers.js');
 /* eslint-disable no-underscore-dangle */
 
@@ -455,7 +457,8 @@ describe('build plugin test', () => {
                 pr: {},
                 getBuilds: sinon.stub(),
                 update: sinon.stub(),
-                toJson: sinon.stub().returns({ id: 123 })
+                toJson: sinon.stub().returns({ id: 123 }),
+                startFrom: '~commit'
             };
             eventFactoryMock.get.resolves(eventMock);
             eventMock.update.resolves(eventMock);
@@ -1077,10 +1080,6 @@ describe('build plugin test', () => {
             });
 
             it('saves status, statusMessage, meta updates, and merge event meta', () => {
-                const meta = {
-                    foo: 'bar',
-                    hello: 'bye'
-                };
                 const status = 'SUCCESS';
                 const statusMessage = 'Oh the build passed';
                 const options = {
@@ -1094,7 +1093,14 @@ describe('build plugin test', () => {
                         strategy: ['token']
                     },
                     payload: {
-                        meta,
+                        meta: {
+                            foo: 'bar',
+                            hello: 'bye',
+                            deployedAppVersion: {
+                                ui: '2.4.67',
+                                api: '6.9.5'
+                            }
+                        },
                         status,
                         statusMessage,
                         stats: {
@@ -1105,7 +1111,11 @@ describe('build plugin test', () => {
 
                 eventMock.meta = {
                     foo: 'oldfoo',
-                    oldmeta: 'oldmetastuff'
+                    oldmeta: 'oldmetastuff',
+                    deployedAppVersion: {
+                        ui: '2.4.67',
+                        store: '4.0.1'
+                    }
                 };
 
                 return server.inject(options).then(reply => {
@@ -1113,14 +1123,19 @@ describe('build plugin test', () => {
                     assert.calledWith(buildFactoryMock.get, id);
                     assert.calledOnce(buildMock.update);
                     assert.strictEqual(buildMock.status, status);
-                    assert.deepEqual(buildMock.meta, meta);
+                    assert.deepEqual(buildMock.meta, options.payload.meta);
                     assert.deepEqual(buildMock.statusMessage, statusMessage);
                     assert.isDefined(buildMock.endTime);
                     assert.calledOnce(eventMock.update);
                     assert.deepEqual(eventMock.meta, {
                         foo: 'bar',
                         hello: 'bye',
-                        oldmeta: 'oldmetastuff'
+                        oldmeta: 'oldmetastuff',
+                        deployedAppVersion: {
+                            ui: '2.4.67',
+                            store: '4.0.1',
+                            api: '6.9.5'
+                        }
                     });
                     assert.deepEqual(buildMock.stats, {
                         hostname: 'node123.mycluster.com'
@@ -1497,7 +1512,14 @@ describe('build plugin test', () => {
                     id: publishJobId,
                     pipelineId,
                     state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('publish')
+                    parsePRJobName: sinon.stub().returns('publish'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
 
                 beforeEach(() => {
@@ -2317,12 +2339,26 @@ describe('build plugin test', () => {
                     id: 2,
                     pipelineId,
                     state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('b')
+                    parsePRJobName: sinon.stub().returns('b'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
                 const jobC = {
                     ...jobB,
                     id: 3,
-                    parsePRJobName: sinon.stub().returns('c')
+                    parsePRJobName: sinon.stub().returns('c'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
                 let buildMocks;
                 let jobBconfig;
@@ -2772,7 +2808,14 @@ describe('build plugin test', () => {
                     id: 2,
                     pipelineId,
                     state: 'ENABLED',
-                    parsePRJobName: sinon.stub().returns('b')
+                    parsePRJobName: sinon.stub().returns('b'),
+                    permutations: [
+                        {
+                            settings: {
+                                email: 'foo@bar.com'
+                            }
+                        }
+                    ]
                 };
                 const jobC = {
                     ...jobB,
@@ -2788,6 +2831,10 @@ describe('build plugin test', () => {
                         })
                     ),
                     parsePRJobName: sinon.stub().returns('c')
+                };
+                const jobD = {
+                    ...jobB,
+                    id: 4
                 };
                 const externalEventBuilds = [
                     {
@@ -2872,10 +2919,12 @@ describe('build plugin test', () => {
                     eventFactoryMock.get.withArgs(8888).resolves(parentEventMock);
                     jobFactoryMock.get.withArgs(jobB.id).resolves(jobB);
                     jobFactoryMock.get.withArgs(jobC.id).resolves(jobC);
+                    jobFactoryMock.get.withArgs(jobD.id).resolves(jobD);
                     jobFactoryMock.get.withArgs(6).resolves(jobC);
                     jobFactoryMock.get.withArgs(3).resolves(jobC);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'b' }).resolves(jobB);
                     jobFactoryMock.get.withArgs({ pipelineId, name: 'c' }).resolves(jobC);
+                    jobFactoryMock.get.withArgs({ pipelineId, name: 'd' }).resolves(jobD);
                     jobFactoryMock.list.resolves([{ id: 5555 }]);
                     jobMock.name = 'a';
                     buildMock.eventId = '8888';
@@ -2974,6 +3023,24 @@ describe('build plugin test', () => {
                     });
                 });
                 it('triggers next job as external when user used external syntax for same pipeline', () => {
+                    const pipeline2JobB = {
+                        id: 2,
+                        pipelineId: 123,
+                        name: 'b',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('b'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '123', name: 'b' }).resolves(pipeline2JobB);
+                    jobFactoryMock.get.withArgs(pipeline2JobB.id).resolves(pipeline2JobB);
+
                     const expectedEventArgs = {
                         pipelineId: '123',
                         startFrom: '~sd@123:a',
@@ -3023,6 +3090,24 @@ describe('build plugin test', () => {
                 });
 
                 it('triggers next next job when next job is external', () => {
+                    const pipeline2JobA = {
+                        id: 2,
+                        pipelineId: 2,
+                        name: 'a',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('a'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'a' }).resolves(pipeline2JobA);
+                    jobFactoryMock.get.withArgs(pipeline2JobA.id).resolves(pipeline2JobA);
+
                     const expectedEventArgs = {
                         pipelineId: '2',
                         startFrom: '~sd@123:a',
@@ -3521,6 +3606,24 @@ describe('build plugin test', () => {
                 it('triggers if all jobs in external join are done and updates join job', () => {
                     // re-entry case
                     // join-job exist
+                    const pipeline2JobC = {
+                        id: 3,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3654,6 +3757,24 @@ describe('build plugin test', () => {
                     //  ~sd@2:a -> a -> sd@2:c
                     // If user is at `a`, it should trigger `sd@2:c`
                     // No join-job, so create
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3690,7 +3811,7 @@ describe('build plugin test', () => {
                         baseBranch: 'master',
                         configPipelineSha: 'abc123',
                         eventId: 8887,
-                        jobId: 3,
+                        jobId: 6,
                         parentBuildId: [12345],
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
@@ -3772,6 +3893,24 @@ describe('build plugin test', () => {
                     //  ~sd@2:b ------➚
                     // If user is at `a`, it should trigger `sd@2:c`
                     // ~sd@123:a is or trigger, so create
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -3804,11 +3943,11 @@ describe('build plugin test', () => {
                         parentBuilds,
                         start: sinon.stub().resolves()
                     });
-                    const jobCConfig = {
+                    const pipeline2JobCConfig = {
                         baseBranch: 'master',
                         configPipelineSha: 'abc123',
                         eventId: 8887,
-                        jobId: 3,
+                        jobId: 6,
                         parentBuildId: 12345,
                         parentBuilds: {
                             123: { eventId: '8888', jobs: { a: 12345 } },
@@ -3829,7 +3968,7 @@ describe('build plugin test', () => {
                         pr: {},
                         id: 8887,
                         configPipelineSha: 'abc123',
-                        pipelineId: 123,
+                        pipelineId: 2,
                         baseBranch: 'master',
                         builds: [
                             {
@@ -3881,11 +4020,45 @@ describe('build plugin test', () => {
                         assert.notCalled(eventFactoryMock.create);
                         assert.calledOnce(buildFactoryMock.getLatestBuilds);
                         assert.calledOnce(buildFactoryMock.create);
-                        assert.calledWith(buildFactoryMock.create, jobCConfig);
+                        assert.calledWith(buildFactoryMock.create, pipeline2JobCConfig);
                     });
                 });
 
                 it('starts multiple builds with the existing downstream event', () => {
+                    const pipeline2JobC = {
+                        id: 6,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+                    const pipeline2JobD = {
+                        id: 7,
+                        pipelineId: 2,
+                        name: 'd',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('d'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'd' }).resolves(pipeline2JobD);
+                    jobFactoryMock.get.withArgs(pipeline2JobD.id).resolves(pipeline2JobD);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -4066,6 +4239,24 @@ describe('build plugin test', () => {
                 });
 
                 it('creates without starting join job in external join when fork not done', () => {
+                    const pipeline2JobC = {
+                        id: 3,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -4688,6 +4879,24 @@ describe('build plugin test', () => {
                     //                  d
                     //
                     // If user restarts `123:a`, it should get `2:c`'s parent event status and trigger `c`
+                    const pipeline2JobC = {
+                        id: 3,
+                        pipelineId: 2,
+                        name: 'c',
+                        state: 'ENABLED',
+                        parsePRJobName: sinon.stub().returns('c'),
+                        permutations: [
+                            {
+                                settings: {
+                                    email: 'foo@bar.com'
+                                }
+                            }
+                        ]
+                    };
+
+                    jobFactoryMock.get.withArgs({ pipelineId: '2', name: 'c' }).resolves(pipeline2JobC);
+                    jobFactoryMock.get.withArgs(pipeline2JobC.id).resolves(pipeline2JobC);
+
                     eventMock.workflowGraph = {
                         nodes: [
                             { name: '~pr' },
@@ -6836,9 +7045,99 @@ describe('build plugin test', () => {
         });
     });
 
+    describe('GET /builds/{id}/artifacts', () => {
+        const id = 12345;
+        const buildMock = {
+            id: 123,
+            eventId: 1234
+        };
+        const eventMock = {
+            id: 1234,
+            pipelineId: 12345
+        };
+        const pipelineMock = {
+            id: 12345,
+            scmRepo: {
+                private: false
+            }
+        };
+        const expectedHeaders = {
+            'content-type': 'application/zip',
+            'content-disposition': 'attachment; filename="SD_ARTIFACTS.zip"',
+            'cache-control': 'no-cache'
+        };
+        let options;
+
+        beforeEach(() => {
+            options = {
+                url: `/builds/${id}/artifacts`,
+                auth: {
+                    credentials: {
+                        username: 'foo',
+                        scope: ['user']
+                    },
+                    strategy: ['token']
+                }
+            };
+            buildFactoryMock.get.resolves(buildMock);
+            eventFactoryMock.get.resolves(eventMock);
+            pipelineFactoryMock.get.resolves(pipelineMock);
+
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, testManifest);
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders(expectedHeaders)
+                .get(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200, testManifest);
+        });
+
+        it('returns 200 for a zipped artifact request', () => {
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.match(reply.headers, expectedHeaders);
+            });
+        });
+
+        it('returns 404 when build does not exist', () => {
+            buildFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Build does not exist');
+            });
+        });
+
+        it('returns 404 when event does not exist', () => {
+            eventFactoryMock.get.resolves(null);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 404);
+                assert.equal(reply.result.message, 'Event does not exist');
+            });
+        });
+
+        it('returns 500 for server error', () => {
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(502);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.result.message, 'An internal server error occurred');
+            });
+        });
+    });
+
     describe('GET /builds/{id}/artifacts/{artifact}', () => {
         const id = 12345;
-        const artifact = 'manifest';
         const multiByteArtifact = 'まにふぇmanife漢字';
         const buildMock = {
             id: 123,
@@ -6866,8 +7165,10 @@ describe('build plugin test', () => {
             'content-length': '1077'
         };
         let options;
+        let artifact;
 
         beforeEach(() => {
+            artifact = 'manifest';
             options = {
                 url: `/builds/${id}/artifacts/${artifact}`,
                 auth: {
@@ -6884,7 +7185,7 @@ describe('build plugin test', () => {
             nock(logBaseUrl)
                 .defaultReplyHeaders(headersMock)
                 .get(`/v1/builds/12345/ARTIFACTS/${artifact}?token=sign&type=preview`)
-                .reply(200);
+                .reply(200, testManifest);
         });
 
         it('returns 200 for an artifact request', () => {
@@ -6918,6 +7219,111 @@ describe('build plugin test', () => {
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
                 assert.match(reply.headers, headersMock);
+            });
+        });
+
+        it('returns 200 for an artifact download request for directory', () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, testManifest);
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders(expectedHeaders)
+                .get(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200, testManifest);
+
+            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.match(reply.headers, expectedHeaders);
+            });
+        });
+
+        it('returns 200 for a large artifact download request for directory', async () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+            const largeFileContent = 'A'.repeat(1000000); // 1MB file content
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, './artifacts/sample-mp4-file.mp4');
+            // Nock intercept to simulate large file download
+            nock(logBaseUrl)
+                .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
+                .delay(5000)
+                .reply(200, largeFileContent, {
+                    'Content-Type': 'application/octet-stream',
+                    'Content-Length': largeFileContent.length
+                });
+
+            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 200);
+                assert.match(reply.headers, expectedHeaders);
+            });
+        });
+
+        it('emits error for an error downloading artifact directory', async () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, './artifacts/sample-mp4-file.mp4');
+            nock(logBaseUrl)
+                .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
+                .reply(500);
+
+            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+
+            try {
+                await server.inject(options);
+            } catch (err) {
+                assert.isOk(err);
+                assert.calledThrice(loggerMock.error);
+                assert.calledWithMatch(
+                    loggerMock.error.getCall(0),
+                    'Error downloading file: ./artifacts/sample-mp4-file.mp4'
+                );
+                assert.calledWithMatch(loggerMock.error.getCall(1), 'Archiver error:');
+                assert.calledWithMatch(loggerMock.error.getCall(2), 'PassThrough stream error:');
+            }
+        });
+
+        it('returns 500 for a missing manifest for artifact directory', () => {
+            options.url = `/builds/${id}/artifacts/doesnotexist/?type=preview`;
+
+            nock(logBaseUrl)
+                .defaultReplyHeaders(headersMock)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(404);
+
+            return server.inject(options).then(reply => {
+                assert.equal(reply.statusCode, 500);
+                assert.equal(reply.result.error, 'Failed to generate ZIP file');
             });
         });
 
