@@ -863,7 +863,7 @@ We will introduce new commands to validate, publish and tag pipeline templates b
 
 CLI can be installed using below command:
 
-``` $ npm install sd-template-main ```
+``` $ npm install screwdriver-template-main ```
 
 
 ***1. Validate***
