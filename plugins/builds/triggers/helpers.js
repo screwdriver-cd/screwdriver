@@ -6,6 +6,12 @@ const merge = require('lodash.mergewith');
 const schema = require('screwdriver-data-schema');
 const { EXTERNAL_TRIGGER_ALL, STAGE_SETUP_PATTERN } = schema.config.regex;
 const { getFullStageJobName } = require('../../helper');
+const BUILD_STATUS_MESSAGES = {
+    SKIP_VIRTUAL_JOB: {
+        statusMessage: 'Skipped execution of the virtual job',
+        statusMessageType: 'INFO'
+    }
+};
 
 /**
  * @typedef {import('screwdriver-models').JobFactory} JobFactory
@@ -630,6 +636,8 @@ async function handleNewBuild({ done, hasFailure, newBuild, job, pipelineId, sta
 
     if (isVirtualJob && !hasFreezeWindows) {
         newBuild.status = Status.SUCCESS;
+        newBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
+        newBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
 
         return newBuild.update();
     }
@@ -1158,5 +1166,6 @@ module.exports = {
     extractExternalJoinData,
     buildsToRestartFilter,
     trimJobName,
-    isStartFromMiddleOfCurrentStage
+    isStartFromMiddleOfCurrentStage,
+    BUILD_STATUS_MESSAGES
 };

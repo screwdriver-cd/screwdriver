@@ -5,7 +5,7 @@ const { assert } = chai;
 const sinon = require('sinon');
 const rewire = require('rewire');
 const logger = require('screwdriver-logger');
-const { Status } = require('../../plugins/builds/triggers/helpers');
+const { Status, BUILD_STATUS_MESSAGES } = require('../../plugins/builds/triggers/helpers');
 
 const RewiredTriggerHelper = rewire('../../plugins/builds/triggers/helpers.js');
 
@@ -1303,6 +1303,8 @@ describe('handleNewBuild function', () => {
         });
 
         assert.strictEqual(newBuildMock.status, Status.SUCCESS);
+        assert.strictEqual(newBuildMock.statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.strictEqual(newBuildMock.statusMessageType, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType);
         sinon.assert.calledOnce(newBuildMock.update);
         sinon.assert.notCalled(newBuildMock.start);
     });
