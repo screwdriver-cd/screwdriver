@@ -50,9 +50,9 @@ module.exports = config => ({
                 .then(async () => {
                     // Directory should fetch manifest and
                     // gather all files that belong to that directory
-                    if (artifact.endsWith('/') && req.query.type === 'download') {
+                    if (req.query.dir && req.query.type === 'download') {
                         // Create a zip name from the directory structure
-                        const zipName = artifact.split('/').slice(-2)[0];
+                        const zipName = artifact.split('/').slice(-1)[0];
 
                         try {
                             const token = jwt.sign({
@@ -69,7 +69,7 @@ module.exports = config => ({
                                 method: 'GET'
                             }).text();
                             const manifestArray = manifest.trim().split('\n');
-                            const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}`));
+                            const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}/`));
 
                             // Create a stream and set up archiver
                             const archive = archiver('zip', { zlib: { level: 9 } });
@@ -100,7 +100,7 @@ module.exports = config => ({
                                         archive.emit('error', err); // Emit error to stop the archive process
                                     });
 
-                                    const relativePath = file.replace(`./${artifact}`, `./${zipName}/`);
+                                    const relativePath = file.replace(`./${artifact}/`, `./${zipName}/`);
 
                                     // Append the file stream to the archive with the correct relative path
                                     archive.append(fileStream, { name: relativePath });
@@ -168,7 +168,8 @@ module.exports = config => ({
                 name: artifactSchema
             }),
             query: joi.object({
-                type: typeSchema
+                type: typeSchema,
+                dir: joi.boolean().truthy('true').falsy('false').default(false)
             }).options({ allowUnknown: true })
         }
     }
