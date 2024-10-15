@@ -1,6 +1,6 @@
 'use strict';
 
-const { createInternalBuild, Status } = require('./helpers');
+const { createInternalBuild, Status, BUILD_STATUS_MESSAGES } = require('./helpers');
 
 /**
  * @typedef {import('screwdriver-models').BuildFactory} BuildFactory
@@ -58,6 +58,8 @@ class OrBase {
             // Bypass execution of the build if the job is virtual
             if (isNextJobVirtual && !hasFreezeWindows) {
                 nextBuild.status = Status.SUCCESS;
+                nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
+                nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
 
                 return nextBuild.update();
             }
@@ -86,6 +88,8 @@ class OrBase {
         // Bypass execution of the build if the job is virtual
         if (isNextJobVirtual && !hasFreezeWindows) {
             nextBuild.status = Status.SUCCESS;
+            nextBuild.statusMessage = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage;
+            nextBuild.statusMessageType = BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType;
 
             nextBuild = nextBuild.update();
         }

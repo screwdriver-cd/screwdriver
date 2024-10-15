@@ -14,6 +14,7 @@ const {
     JobFactoryMock,
     LockMock
 } = require('./trigger.test.helper');
+const { BUILD_STATUS_MESSAGES } = require('../../plugins/builds/triggers/helpers');
 
 describe('trigger tests', () => {
     let server = new hapi.Server();
@@ -2981,6 +2982,15 @@ describe('trigger tests', () => {
             await event.getBuildOf('a').complete('SUCCESS');
 
             assert.equal(event.getBuildOf('stage@red:setup').status, 'SUCCESS');
+            assert.equal(
+                event.getBuildOf('stage@red:setup').statusMessage,
+                BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage
+            );
+            assert.equal(
+                event.getBuildOf('stage@red:setup').statusMessageType,
+                BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+            );
+
             assert.equal(event.getBuildOf('target1').status, 'RUNNING');
             assert.equal(event.getBuildOf('target2').status, 'RUNNING');
         });
@@ -3071,6 +3081,15 @@ describe('trigger tests', () => {
             await event.getBuildOf('target3').complete('SUCCESS');
 
             assert.equal(event.getBuildOf('stage@red:teardown').status, 'SUCCESS');
+            assert.equal(
+                event.getBuildOf('stage@red:teardown').statusMessage,
+                BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage
+            );
+            assert.equal(
+                event.getBuildOf('stage@red:teardown').statusMessageType,
+                BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+            );
+
             assert.equal(event.getBuildOf('z').status, 'RUNNING');
         });
 
@@ -3177,22 +3196,62 @@ describe('trigger tests', () => {
 
         await event.getBuildOf('a').complete('SUCCESS');
         assert.equal(event.getBuildOf('d1').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d1').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d1').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('d2').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d2').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d2').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('d3').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d3').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d3').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('d4').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d4').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d4').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('d5').status, 'CREATED');
         assert.equal(event.getBuildOf('d6').status, 'CREATED');
         assert.equal(event.getBuildOf('d7').status, 'CREATED');
         assert.equal(event.getBuildOf('target1').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('target1').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('target1').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('target2').status, 'RUNNING');
 
         await event.getBuildOf('b').complete('SUCCESS');
         assert.equal(event.getBuildOf('d5').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d5').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d5').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('d6').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d6').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d6').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
         assert.equal(event.getBuildOf('d7').status, 'CREATED');
 
         await event.getBuildOf('c').complete('SUCCESS');
         assert.equal(event.getBuildOf('d7').status, 'SUCCESS');
+        assert.equal(event.getBuildOf('d7').statusMessage, BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessage);
+        assert.equal(
+            event.getBuildOf('d7').statusMessageType,
+            BUILD_STATUS_MESSAGES.SKIP_VIRTUAL_JOB.statusMessageType
+        );
     });
 
     it('should add virtual jobs to execution queue when they have freeze windows', async () => {

@@ -129,12 +129,13 @@ async function validateUserPermission(build, request) {
 
 /**
  * Set build status to desired status, set build statusMessage
- * @param {Object} build         Build Model
- * @param {String} desiredStatus New Status
- * @param {String} statusMessage User passed status message
- * @param {String} username      User initiating status build update
+ * @param {Object} build                Build Model
+ * @param {String} desiredStatus        New Status
+ * @param {String} statusMessage        User passed status message
+ * @param {String} statusMessageType    User passed severity of the status message
+ * @param {String} username             User initiating status build update
  */
-function updateBuildStatus(build, desiredStatus, statusMessage, username) {
+function updateBuildStatus(build, desiredStatus, statusMessage, statusMessageType, username) {
     // UNSTABLE -> SUCCESS needs to update meta and endtime.
     // However, the status itself cannot be updated to SUCCESS
     const currentStatus = build.status;
@@ -152,9 +153,11 @@ function updateBuildStatus(build, desiredStatus, statusMessage, username) {
         } else if (build.status === 'FAILURE' || build.status === 'SUCCESS') {
             if (statusMessage) {
                 build.statusMessage = statusMessage;
+                build.statusMessageType = statusMessageType || null;
             }
         } else {
             build.statusMessage = statusMessage || null;
+            build.statusMessageType = statusMessageType || null;
         }
     }
 }
@@ -219,7 +222,7 @@ module.exports = () => ({
         handler: async (request, h) => {
             const { buildFactory, eventFactory, jobFactory, stageFactory, stageBuildFactory } = request.server.app;
             const { id } = request.params;
-            const { statusMessage, stats, status: desiredStatus } = request.payload;
+            const { statusMessage, statusMessageType, stats, status: desiredStatus } = request.payload;
             const { username, scmContext, scope } = request.auth.credentials;
             const isBuild = scope.includes('build') || scope.includes('temporal');
             const { triggerNextJobs, removeJoinBuilds, createOrUpdateStageTeardownBuild } =
@@ -246,6 +249,7 @@ module.exports = () => ({
             // Short circuit for cases that don't need to update status
             if (!desiredStatus) {
                 build.statusMessage = statusMessage || build.statusMessage;
+                build.statusMessageType = statusMessageType || build.statusMessageType;
             } else if (['SUCCESS', 'FAILURE', 'ABORTED'].includes(desiredStatus)) {
                 build.meta = request.payload.meta || {};
                 event.meta = merge({}, event.meta, build.meta);
@@ -266,7 +270,7 @@ module.exports = () => ({
             let isFixed = Promise.resolve(false);
             let stopFrozen = null;
 
-            updateBuildStatus(build, desiredStatus, statusMessage, username);
+            updateBuildStatus(build, desiredStatus, statusMessage, statusMessageType, username);
 
             // If status got updated to RUNNING or COLLAPSED, update init endTime and code
             if (['RUNNING', 'COLLAPSED', 'FROZEN'].includes(desiredStatus)) {
