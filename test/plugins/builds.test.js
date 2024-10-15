@@ -977,6 +977,36 @@ describe('build plugin test', () => {
                 });
             });
 
+            it('allows updating statusMessageType', () => {
+                const statusMessage = 'hello';
+                const statusMessageType = 'INFO';
+                const options = {
+                    method: 'PUT',
+                    url: `/builds/${id}`,
+                    auth: {
+                        credentials: {
+                            username: id,
+                            scope: ['temporal']
+                        },
+                        strategy: ['token']
+                    },
+                    payload: {
+                        statusMessage,
+                        statusMessageType
+                    }
+                };
+
+                return server.inject(options).then(reply => {
+                    assert.equal(reply.statusCode, 200);
+                    assert.calledWith(buildFactoryMock.get, id);
+                    assert.calledOnce(buildMock.update);
+                    assert.strictEqual(buildMock.statusMessage, statusMessage);
+                    assert.strictEqual(buildMock.statusMessageType, statusMessageType);
+                    assert.isUndefined(buildMock.meta);
+                    assert.isUndefined(buildMock.endTime);
+                });
+            });
+
             it('allows to update when statusMessage is undefined', () => {
                 const expected = hoek.applyToDefaults(testBuildWithSteps, { status: 'FAILURE' });
                 const options = {
