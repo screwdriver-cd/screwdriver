@@ -7304,7 +7304,7 @@ describe('build plugin test', () => {
                     'Content-Length': largeFileContent.length
                 });
 
-            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+            options.url = `/builds/${id}/artifacts/./artifacts?type=download&dir=true`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -7327,7 +7327,7 @@ describe('build plugin test', () => {
                 .get('/v1/builds/12345/ARTIFACTS/./artifacts/sample-mp4-file.mp4?token=sign&type=download')
                 .reply(500);
 
-            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+            options.url = `/builds/${id}/artifacts/./artifacts?type=download&dir=true`;
 
             try {
                 await server.inject(options);
@@ -7344,7 +7344,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 500 for a missing manifest for artifact directory', () => {
-            options.url = `/builds/${id}/artifacts/doesnotexist/?type=download`;
+            options.url = `/builds/${id}/artifacts/doesnotexist?type=download&dir=true`;
 
             nock(logBaseUrl)
                 .defaultReplyHeaders(headersMock)

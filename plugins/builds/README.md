@@ -75,12 +75,11 @@ Example payload:
 Arguments:
 
 * `type` - Return type for build artifact, `download` or `preview`
+* `dir` - If downloading directory or not (`true` or `false`, default `false`). Must be set with `type=download`.
 
 `GET /builds/{id}/artifacts/{name*}?type=preview`
 
-`GET /builds/{id}/artifacts/this/is/a/directory/path/?type=download`
-
-*Note: To download a directory, there must be a trailing slash (`/`) in the name and `type=download`.*
+`GET /builds/{id}/artifacts/this/is/a/directory/path?type=download&dir=true`
 
 #### Get build statuses
 `GET /builds/statuses`
