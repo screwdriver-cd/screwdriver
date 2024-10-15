@@ -50,7 +50,10 @@ module.exports = config => ({
                 .then(async () => {
                     // Directory should fetch manifest and
                     // gather all files that belong to that directory
-                    if (artifact.endsWith('/')) {
+                    if (artifact.endsWith('/') && req.query.type === 'download') {
+                        // Create a zip name from the directory structure
+                        const zipName = artifact.split('/').slice(-2)[0];
+
                         try {
                             const token = jwt.sign({
                                 buildId, artifact, scope: ['user']
@@ -97,16 +100,15 @@ module.exports = config => ({
                                         archive.emit('error', err); // Emit error to stop the archive process
                                     });
 
-                                    // Append the file stream to the archive
-                                    archive.append(fileStream, { name: file });
+                                    const relativePath = file.replace(`./${artifact}`, `./${zipName}/`);
+
+                                    // Append the file stream to the archive with the correct relative path
+                                    archive.append(fileStream, { name: relativePath });
                                 }
                             }
 
                             // Finalize the archive once all files are appended
                             archive.finalize();
-
-                            // Create a zip name from the directory structure
-                            const zipName = artifact.split('/').slice(-2)[0];
 
                             // Respond with the PassThrough stream (which is readable by Hapi)
                             return h.response(passThrough)

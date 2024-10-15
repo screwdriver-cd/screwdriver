@@ -7314,7 +7314,7 @@ describe('build plugin test', () => {
         });
 
         it('returns 500 for a missing manifest for artifact directory', () => {
-            options.url = `/builds/${id}/artifacts/doesnotexist/?type=preview`;
+            options.url = `/builds/${id}/artifacts/doesnotexist/?type=download`;
 
             nock(logBaseUrl)
                 .defaultReplyHeaders(headersMock)

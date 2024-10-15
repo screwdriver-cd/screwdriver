@@ -78,6 +78,10 @@ Arguments:
 
 `GET /builds/{id}/artifacts/{name*}?type=preview`
 
+`GET /builds/{id}/artifacts/this/is/a/directory/path/?type=download`
+
+*Note: To download a directory, there must be a trailing slash (`/`) in the name and `type=download`.*
+
 #### Get build statuses
 `GET /builds/statuses`
 
