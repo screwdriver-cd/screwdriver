@@ -255,11 +255,10 @@ async function triggerNextJobs(config, app) {
 
             // Restart case
             if (isRestart) {
-                // 'joinedPipeline.event.id' is restart event. not group event.
+                // 'joinedPipeline.event.id' is restart event, not group event.
                 const groupEvent = await eventFactory.get({ id: joinedPipeline.event.id });
 
                 externalEventConfig.groupEventId = groupEvent.groupEventId;
-                // externalEventConfig.groupEventId = joinedPipeline.event.id;
                 externalEventConfig.parentBuilds = buildsToRestart[0].parentBuilds;
             } else {
                 const sameParentEvents = await getSameParentEvents({
