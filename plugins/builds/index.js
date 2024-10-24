@@ -38,7 +38,8 @@ const {
     trimJobName,
     getParallelBuilds,
     isStartFromMiddleOfCurrentStage,
-    Status
+    Status,
+    getSameParentEvents
 } = require('./triggers/helpers');
 const { getFullStageJobName } = require('../helper');
 
@@ -186,14 +187,43 @@ async function triggerNextJobs(config, app) {
             });
 
             groupEventBuilds.push(...parallelBuilds);
+        } else {
+            const sameParentEvents = await getSameParentEvents({
+                eventFactory,
+                parentEventId: currentEvent.id,
+                pipelineId: strToInt(joinedPipelineId)
+            });
+
+            if (sameParentEvents.length > 0) {
+                externalEvent = sameParentEvents[0];
+            }
         }
 
         const buildsToRestart = buildsToRestartFilter(joinedPipeline, groupEventBuilds, currentEvent, currentBuild);
         const isRestart = buildsToRestart.length > 0;
 
         // If user used external trigger syntax, the jobs are triggered as external
-        if (isCurrentPipeline || isRestart) {
+        if (isCurrentPipeline) {
             externalEvent = null;
+        } else if (isRestart) {
+            // If parentEvent and currentEvent have the same pipelineId, then currentEvent is the event that started the restart
+            // If restarted from the downstream pipeline, the remote trigger must create a new event in the upstream pipeline
+            const parentEvent = await eventFactory.get({ id: currentEvent.parentEventId });
+            const isRestartPipeline = strToInt(currentEvent.pipelineId) === strToInt(parentEvent.pipelineId);
+
+            if (isRestartPipeline) {
+                const sameParentEvents = await getSameParentEvents({
+                    eventFactory,
+                    parentEventId: currentEvent.id,
+                    pipelineId: strToInt(joinedPipelineId)
+                });
+
+                if (sameParentEvents.length > 0) {
+                    externalEvent = sameParentEvents[0];
+                } else {
+                    externalEvent = null;
+                }
+            }
         }
 
         // no need to lock if there is no external event
@@ -225,8 +255,22 @@ async function triggerNextJobs(config, app) {
 
             // Restart case
             if (isRestart) {
-                externalEventConfig.groupEventId = joinedPipeline.event.id;
+                // 'joinedPipeline.event.id' is restart event. not group event.
+                const groupEvent = await eventFactory.get({ id: joinedPipeline.event.id });
+
+                externalEventConfig.groupEventId = groupEvent.groupEventId;
+                // externalEventConfig.groupEventId = joinedPipeline.event.id;
                 externalEventConfig.parentBuilds = buildsToRestart[0].parentBuilds;
+            } else {
+                const sameParentEvents = await getSameParentEvents({
+                    eventFactory,
+                    parentEventId: currentEvent.groupEventId,
+                    pipelineId: strToInt(joinedPipelineId)
+                });
+
+                if (sameParentEvents.length > 0) {
+                    externalEventConfig.groupEventId = sameParentEvents[0].groupEventId;
+                }
             }
 
             try {
