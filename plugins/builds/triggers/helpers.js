@@ -679,6 +679,24 @@ async function getParallelBuilds({ eventFactory, parentEventId, pipelineId }) {
 }
 
 /**
+ * Get all events with a given event ID and pipeline ID
+ * @param {Object} arg
+ * @param {EventFactory} eventFactory Event factory
+ * @param {Number} parentEventId Parent event ID
+ * @param {Number} pipelineId Pipeline ID
+ * @returns {Promise<Event[]>} Array of events with same parent event ID and same pipeline ID
+ */
+async function getSameParentEvents({ eventFactory, parentEventId, pipelineId }) {
+    const parallelEvents = await eventFactory.list({
+        params: {
+            parentEventId
+        }
+    });
+
+    return parallelEvents.filter(pe => strToInt(pe.pipelineId) === pipelineId);
+}
+
+/**
  * Get subsequent job names which the root is the start from node
  * @param   {Array}   [workflowGraph]         Array of graph vertices
  * @param   {Array}   [workflowGraph.nodes]   Array of graph vertices
@@ -1148,6 +1166,7 @@ module.exports = {
     parseJobInfo,
     createInternalBuild,
     getParallelBuilds,
+    getSameParentEvents,
     mergeParentBuilds,
     updateParentBuilds,
     getParentBuildStatus,

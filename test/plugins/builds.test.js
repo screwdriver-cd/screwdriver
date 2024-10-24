@@ -3111,6 +3111,7 @@ describe('build plugin test', () => {
                     const externalEventMock = { ...eventMock };
 
                     eventFactoryMock.create.resolves(externalEventMock);
+                    eventFactoryMock.list.resolves([]);
 
                     return newServer.inject(options).then(() => {
                         assert.calledOnce(buildFactoryMock.create);
@@ -4942,6 +4943,7 @@ describe('build plugin test', () => {
                             { src: '~sd@2:a', dest: 'a' }
                         ]
                     };
+                    eventMock.groupEventId = '8887';
                     eventMock.parentEventId = 8887;
                     buildMock.parentBuilds = {
                         2: { eventId: '8887', jobs: { a: 12345 } }
@@ -4974,22 +4976,6 @@ describe('build plugin test', () => {
                         },
                         start: sinon.stub().resolves()
                     });
-                    const eventConfig = {
-                        causeMessage: 'Triggered by sd@123:a',
-                        groupEventId: '8889',
-                        parentBuildId: 12345,
-                        parentBuilds: {
-                            123: { eventId: '8888', jobs: { a: 12344, c: 45678 } }
-                        },
-                        parentEventId: '8888',
-                        pipelineId: '2',
-                        scmContext: 'github:github.com',
-                        sha: 'sha',
-                        startFrom: '~sd@123:a',
-                        skipMessage: 'Skip bulk external builds creation',
-                        type: 'pipeline',
-                        username: 'foo'
-                    };
 
                     buildC.update = sinon.stub().resolves(updatedBuildC);
                     const externalEventMock = {
@@ -5089,8 +5075,7 @@ describe('build plugin test', () => {
                     buildFactoryMock.get.withArgs(5555).resolves({ status: 'SUCCESS' }); // d is done
 
                     return newServer.inject(options).then(() => {
-                        assert.calledOnce(eventFactoryMock.create);
-                        assert.calledWith(eventFactoryMock.create, eventConfig);
+                        assert.notCalled(eventFactoryMock.create);
                         assert.calledOnce(buildFactoryMock.getLatestBuilds);
                         assert.calledOnce(buildFactoryMock.create);
                         assert.calledOnce(buildC.update);

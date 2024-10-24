@@ -659,6 +659,40 @@ describe('getParallelBuilds function', () => {
     });
 });
 
+describe('getSameParentEvents function', () => {
+    let eventFactoryMock;
+
+    const getSameParentEvents = RewiredTriggerHelper.__get__('getSameParentEvents');
+
+    beforeEach(() => {
+        eventFactoryMock = {
+            list: sinon.stub()
+        };
+    });
+
+    it('should get same parent events correctly', async () => {
+        const parentEventId = 101;
+        const pipelineId = 1;
+
+        const sameParentEvent1 = {
+            pipelineId: 1,
+            parentEventId: 101
+        };
+        const sameParentEvent2 = {
+            pipelineId: 2,
+            parentEventId: 101
+        };
+
+        eventFactoryMock.list.resolves([sameParentEvent1, sameParentEvent2]);
+
+        const result = await getSameParentEvents({ eventFactory: eventFactoryMock, parentEventId, pipelineId });
+
+        const expected = [{ pipelineId: 1, parentEventId: 101 }];
+
+        assert.deepEqual(result, expected);
+    });
+});
+
 describe('mergeParentBuilds function', () => {
     let loggerWarnStub;
 
