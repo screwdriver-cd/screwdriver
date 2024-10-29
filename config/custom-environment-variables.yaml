@@ -489,6 +489,9 @@ build:
   environment:
     __name: CLUSTER_ENVIRONMENT_VARIABLES
     __format: json
+  artifacts:
+    # max artifact download size (in GB)
+    maxDownloadSize: MAX_DOWNLOAD_SIZE
 
 rateLimit:
   __name: RATE_LIMIT_VARIABLES
