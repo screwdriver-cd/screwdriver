@@ -35,6 +35,11 @@ describe('server case', () => {
             cookieName: 'test_cookie',
             cookieValue: 'test_value',
             cookieTimeout: 2
+        },
+        build: {
+            artifacts: {
+                maxDownloadSize: 2
+            }
         }
     };
 
