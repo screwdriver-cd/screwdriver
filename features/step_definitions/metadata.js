@@ -67,7 +67,7 @@ Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, function step(job
             this.jobName = 'third';
             break;
         default:
-            throw new Error('jobName can only be BAR, BAZ, or BAM');
+            throw new Error('jobName is neither BAR or BAZ');
     }
 
     // because other step_definitions have the given an existing pipeline, it is not needed to call it explicitly here
