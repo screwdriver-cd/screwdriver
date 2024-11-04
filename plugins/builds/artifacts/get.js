@@ -84,7 +84,7 @@ module.exports = config => ({
 
                                     // If total size exceeds allowed limit, stop further processing
                                     if (totalSize > maxDownloadSize) {
-                                        throw new Error('Total size of files exceeds the allowed limit of 2GB.');
+                                        throw new Error(`Total size of files exceeds the allowed limit of ${maxDownloadSize/1024/1024/1024}GB.`);
                                     }
                                 }
                             }
