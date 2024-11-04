@@ -25,8 +25,9 @@ Before(
 
 Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
-Then(/^the "BOOZ" job is disabled$/,{ timeout: TIMEOUT }, function step() {
-    console.log("this.pipelineId: ", this.pipelineId);
+Then(/^the "BOOZ" job is disabled$/, { timeout: TIMEOUT }, function step() {
+    console.log('this.pipelineId: ', this.pipelineId);
+
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
         method: 'GET',
@@ -34,28 +35,29 @@ Then(/^the "BOOZ" job is disabled$/,{ timeout: TIMEOUT }, function step() {
             token: this.jwt
         }
     })
-    .then(resp => {
-        Assert.equal(resp.statusCode, 200);
-        Assert.equal(resp.body.length, 1);
-        Assert.equal(resp.body[0].name, 'fourth');
-        return resp.body[0].id;
-    })
-    .then(jobId => {
-        return request({
-            url: `${this.instance}/${this.namespace}/jobs/${jobId}`,
-            method: 'PUT',
-            json: {
-                state: 'DISABLED',
-                stateChangeMessage: 'Disabled for testing'
-            },
-            context: {
-                token: this.jwt
-            }
+        .then(resp => {
+            Assert.equal(resp.statusCode, 200);
+            Assert.equal(resp.body.length, 1);
+            Assert.equal(resp.body[0].name, 'fourth');
+
+            return resp.body[0].id;
+        })
+        .then(jobId => {
+            return request({
+                url: `${this.instance}/${this.namespace}/jobs/${jobId}`,
+                method: 'PUT',
+                json: {
+                    state: 'DISABLED',
+                    stateChangeMessage: 'Disabled for testing'
+                },
+                context: {
+                    token: this.jwt
+                }
+            });
+        })
+        .then(resp => {
+            Assert.equal(resp.statusCode, 200);
         });
-    })
-    .then(resp => {
-        Assert.equal(resp.statusCode, 200);
-    });
 });
 
 Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, function step(jobName) {
@@ -71,7 +73,8 @@ Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, function step(job
     }
 
     // because other step_definitions have the given an existing pipeline, it is not needed to call it explicitly here
-    console.log("this.pipelineId: ", this.pipelineId);
+    console.log('this.pipelineId: ', this.pipelineId);
+
     return sdapi
         .searchForBuild({
             instance: this.instance,
@@ -129,12 +132,12 @@ Then(/^a record of the metadata is stored$/, { timeout: TIMEOUT }, function step
 });
 
 When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, function step(detached, jobName) {
-    console.log("detached: ", detached);
-    console.log("jobName: ", jobName);
+    let startFrom = jobName;
+
     if (detached) {
-        jobName = 'detached';
+        startFrom = 'detached';
     } else {
-        jobName = 'fourth';
+        startFrom = 'fourth';
     }
 
     return request({
@@ -142,7 +145,7 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
         method: 'POST',
         json: {
             pipelineId: this.pipelineId,
-            startFrom: jobName,
+            startFrom,
             parentEventId: this.previousEventId,
             groupEventId: this.previousEventId
         },
@@ -150,28 +153,29 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
             token: this.jwt
         }
     })
-    .then(resp => {
-        Assert.equal(resp.statusCode, 201);
-        this.eventId = resp.body.id;
-    })
-    .then(() =>
-        request({
-            url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
-            method: 'GET',
-            context: {
-                token: this.jwt
-            }
+        .then(resp => {
+            Assert.equal(resp.statusCode, 201);
+            this.eventId = resp.body.id;
         })
-    )
-    .then(resp => {
-        Assert.equal(resp.statusCode, 200);
-        this.buildId = resp.body[0].id;
-        console.log(`this.buildId for job: ${jobName}, build: ${this.buildId}`);
-    });
+        .then(() =>
+            request({
+                url: `${this.instance}/${this.namespace}/events/${this.eventId}/builds`,
+                method: 'GET',
+                context: {
+                    token: this.jwt
+                }
+            })
+        )
+        .then(resp => {
+            Assert.equal(resp.statusCode, 200);
+            this.buildId = resp.body[0].id;
+            console.log(`this.buildId for job: ${jobName}, build: ${this.buildId}`);
+        });
 });
 
-Then(/^the "BOOZ" job is enabled$/,{ timeout: TIMEOUT }, function step() {
-    console.log("this.pipelineId: ", this.pipelineId);
+Then(/^the "BOOZ" job is enabled$/, { timeout: TIMEOUT }, function step() {
+    console.log('this.pipelineId: ', this.pipelineId);
+
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
         method: 'GET',
@@ -179,28 +183,27 @@ Then(/^the "BOOZ" job is enabled$/,{ timeout: TIMEOUT }, function step() {
             token: this.jwt
         }
     })
-    .then(resp => {
-        Assert.equal(resp.statusCode, 200);
-        Assert.equal(resp.body.length, 1);
-        Assert.equal(resp.body[0].name, 'fourth');
-        return resp.body[0].id;
-    })
-    .then(jobId => {
-        return request({
-            url: `${this.instance}/${this.namespace}/jobs/${jobId}`,
-            method: 'PUT',
-            json: {
-                state: 'ENABLED',
-                stateChangeMessage: 'Enabled for testing'
-            },
-            context: {
-                token: this.jwt
-            }
+        .then(resp => {
+            Assert.equal(resp.statusCode, 200);
+            Assert.equal(resp.body.length, 1);
+            Assert.equal(resp.body[0].name, 'fourth');
+
+            return resp.body[0].id;
+        })
+        .then(jobId => {
+            return request({
+                url: `${this.instance}/${this.namespace}/jobs/${jobId}`,
+                method: 'PUT',
+                json: {
+                    state: 'ENABLED',
+                    stateChangeMessage: 'Enabled for testing'
+                },
+                context: {
+                    token: this.jwt
+                }
+            });
+        })
+        .then(resp => {
+            Assert.equal(resp.statusCode, 200);
         });
-    })
-    .then(resp => {
-        Assert.equal(resp.statusCode, 200);
-    });
 });
-
-
