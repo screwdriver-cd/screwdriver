@@ -26,7 +26,6 @@ Before(
 Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
 Then(/^the "BOOZ" job is disabled$/, { timeout: TIMEOUT }, function step() {
-    console.log('this.pipelineId: ', this.pipelineId);
 
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
@@ -71,9 +70,6 @@ Then(/^the "(BAR|BAZ)" job is started$/, { timeout: TIMEOUT }, function step(job
         default:
             throw new Error('jobName is neither BAR or BAZ');
     }
-
-    // because other step_definitions have the given an existing pipeline, it is not needed to call it explicitly here
-    console.log('this.pipelineId: ', this.pipelineId);
 
     return sdapi
         .searchForBuild({
@@ -169,12 +165,10 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
         .then(resp => {
             Assert.equal(resp.statusCode, 200);
             this.buildId = resp.body[0].id;
-            console.log(`this.buildId for job: ${jobName}, build: ${this.buildId}`);
         });
 });
 
 Then(/^the "BOOZ" job is enabled$/, { timeout: TIMEOUT }, function step() {
-    console.log('this.pipelineId: ', this.pipelineId);
 
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
