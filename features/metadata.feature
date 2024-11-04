@@ -38,22 +38,42 @@ Feature: Metadata
 
     Scenario Outline: Adding some data to metadata
         Given an existing pipeline with the workflow:
-            | job  | triggers |
-            | main | BAR      |
-            | BAR  | BAZ      |
+            | job   | triggers  |
+            | main  | BAR       |
+            | BAR   | BAZ       |
+            | BAZ   | BOOZ      |
+            | BAM   |           |
+        And the "BOOZ" job is disabled
         When the "main" job is started
-        Then add the { "foo": <foobar> } to metadata in the "main" build container
         And the build succeeded
+        Then add the { "foo": <foobar> } to metadata in the "main" build container
         And the "BAR" job is started
         Then in the build, the { "foo": <foobar> } is available from metadata
-        And add the { "bar": <barbaz> } to metadata in the "BAR" build container
         And the build succeeded
+        And add the { "bar": <barbaz> } to metadata in the "BAR" build container
         And the "BAZ" job is started
+        And the build succeeded
         Then in the build, the { "foo": <foobar> } is available from metadata
         And in the build, the { "bar": <barbaz> } is available from metadata
-        And the build succeeded
         And the event is done
         Then a record of the metadata is stored
+        When the detached "BAM" job is started
+        And the build succeeded
+        Then in the build, the { "foo": <foobar> } is available from metadata
+        And in the build, the { "bar": <barbaz> } is available from metadata
+        When the "BOOZ" job is enabled
+        Then the "BOOZ" job is started    
+        And the build succeeded
+        Then in the build, the { "foo": <foobar> } is available from metadata
+        And in the build, the { "bar": <barbaz> } is available from metadata
+        When the "main" job is restarted
+        And the build succeeded
+        Then in the build, the { "foo": "foobarfoobar" } is available from metadata
+        And in the build, the { "bar": <barbaz> } is available from metadata
+        And the "BAR" job is started        
+        And the build succeeded
+        Then in the build, the { "foo": "foobarfoobar" } is available from metadata
+        And in the build, the { "bar": <barbaz> } is available from metadata
 
         Examples:
             | foobar       | barbaz       |

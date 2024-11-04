@@ -61,6 +61,7 @@ When(/^the "main" job is restarted$/, { timeout: TIMEOUT }, function step() {
         json: {
             pipelineId: this.pipelineId,
             parentEventId: this.previousEventId,
+            groupEventId: this.previousEventId,
             startFrom: 'main'
         },
         context: {
