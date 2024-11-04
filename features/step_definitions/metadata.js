@@ -133,6 +133,8 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
     console.log("jobName: ", jobName);
     if (detached) {
         jobName = 'detached';
+    } else {
+        jobName = 'fourth';
     }
 
     return request({
@@ -164,7 +166,7 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
     .then(resp => {
         Assert.equal(resp.statusCode, 200);
         this.buildId = resp.body[0].id;
-        console.log("this.buildId for detached job: ", this.buildId);
+        console.log(`this.buildId for job: ${jobName}, build: ${this.buildId}`);
     });
 });
 
