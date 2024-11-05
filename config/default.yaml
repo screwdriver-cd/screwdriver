@@ -390,6 +390,9 @@ log:
 build:
   environment:
     SD_VERSION: 4
+  artifacts:
+    # max artifact download size (in GB)
+    maxDownloadSize: 2
 
 rateLimit:
   # set true to enable rate limiting on auth token
