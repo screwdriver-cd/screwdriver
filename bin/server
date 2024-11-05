@@ -62,6 +62,7 @@ const queueWebhookEnabled = convertToBool(config.get('queueWebhook').enabled);
 // Default cluster environment variable
 const clusterEnvConfig = config.get('build').environment; // readonly
 const clusterEnv = { ...clusterEnvConfig };
+const artifactsMaxDownloadSize = config.get('build').artifacts.maxDownloadSize;
 
 Object.keys(clusterEnv).forEach(k => {
     clusterEnv[k] = String(clusterEnv[k]);
@@ -304,7 +305,8 @@ datastore.setup(datastoreConfig.ddlSyncEnabled).then(() =>
             executor,
             queueWebhookEnabled
         },
-        unzipArtifactsEnabled
+        unzipArtifactsEnabled,
+        artifactsMaxDownloadSize
     })
         .then(instance => logger.info('Server running at %s', instance.info.uri))
         .catch(err => {
