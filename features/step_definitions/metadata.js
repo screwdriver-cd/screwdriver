@@ -26,7 +26,6 @@ Before(
 Given(/^a metadata starts with an empty object$/, { timeout: TIMEOUT }, () => null);
 
 Then(/^the "BOOZ" job is disabled$/, { timeout: TIMEOUT }, function step() {
-
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
         method: 'GET',
@@ -169,7 +168,6 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
 });
 
 Then(/^the "BOOZ" job is enabled$/, { timeout: TIMEOUT }, function step() {
-
     return request({
         url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
         method: 'GET',
