@@ -147,7 +147,8 @@ describe('build plugin test', () => {
                 getPrInfo: sinon.stub()
             },
             getLatestBuilds: sinon.stub(),
-            getBuildStatuses: sinon.stub()
+            getBuildStatuses: sinon.stub(),
+            maxDownloadSize: 3000
         };
         stepFactoryMock = {
             get: sinon.stub(),
@@ -7248,6 +7249,13 @@ describe('build plugin test', () => {
             nock.cleanAll();
             nock.enableNetConnect();
             nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders({
+                    'content-length': 10
+                })
+                .head(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200);
+            nock(logBaseUrl)
                 .defaultReplyHeaders(expectedHeaders)
                 .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
                 .reply(200, testManifest);
@@ -7257,7 +7265,7 @@ describe('build plugin test', () => {
                 .get(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
                 .reply(200, testManifest);
 
-            options.url = `/builds/${id}/artifacts/./artifacts/?type=download`;
+            options.url = `/builds/${id}/artifacts/./artifacts?type=download&dir=true`;
 
             return server.inject(options).then(reply => {
                 assert.equal(reply.statusCode, 200);
@@ -7276,6 +7284,13 @@ describe('build plugin test', () => {
             nock.disableNetConnect();
             nock.cleanAll();
             nock.enableNetConnect();
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders({
+                    'content-length': 2000
+                })
+                .head(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200);
             nock(logBaseUrl)
                 .defaultReplyHeaders(expectedHeaders)
                 .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
@@ -7297,6 +7312,44 @@ describe('build plugin test', () => {
             });
         });
 
+        it('throws error for a too large artifact download request for directory', async () => {
+            const expectedHeaders = {
+                'content-type': 'application/zip',
+                'content-disposition': 'attachment; filename="artifacts_dir.zip"',
+                'cache-control': 'no-cache'
+            };
+
+            nock.disableNetConnect();
+            nock.cleanAll();
+            nock.enableNetConnect();
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders({
+                    'content-length': 2000
+                })
+                .head(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200);
+            nock(logBaseUrl)
+                .defaultReplyHeaders(expectedHeaders)
+                .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')
+                .reply(200, testManifest);
+
+            options.url = `/builds/${id}/artifacts/./artifacts?type=download&dir=true`;
+
+            try {
+                await server.inject(options);
+            } catch (err) {
+                assert.isOk(err);
+                assert.calledThrice(loggerMock.error);
+                assert.calledWithMatch(
+                    loggerMock.error.getCall(0),
+                    'Error downloading file: ./artifacts/sample-mp4-file.mp4'
+                );
+                assert.calledWithMatch(loggerMock.error.getCall(1), 'Archiver error:');
+                assert.calledWithMatch(loggerMock.error.getCall(2), 'PassThrough stream error:');
+            }
+        });
+
         it('emits error for an error downloading artifact directory', async () => {
             const expectedHeaders = {
                 'content-type': 'application/zip',
@@ -7304,6 +7357,13 @@ describe('build plugin test', () => {
                 'cache-control': 'no-cache'
             };
 
+            nock(logBaseUrl)
+                .persist()
+                .defaultReplyHeaders({
+                    'content-length': 2000
+                })
+                .head(/\/v1\/builds\/12345\/ARTIFACTS\/.+?token=sign&type=download/)
+                .reply(200);
             nock(logBaseUrl)
                 .defaultReplyHeaders(expectedHeaders)
                 .get('/v1/builds/12345/ARTIFACTS/manifest.txt?token=sign')

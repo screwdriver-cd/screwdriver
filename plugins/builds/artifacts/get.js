@@ -31,6 +31,7 @@ module.exports = config => ({
             const { credentials } = req.auth;
             const { canAccessPipeline } = req.server.plugins.pipelines;
             const { buildFactory, eventFactory } = req.server.app;
+            const { maxDownloadSize } = buildFactory;
 
             return buildFactory.get(buildId)
                 .then(build => {
@@ -70,6 +71,23 @@ module.exports = config => ({
                             }).text();
                             const manifestArray = manifest.trim().split('\n');
                             const directoryArray = manifestArray.filter(f => f.startsWith(`./${artifact}/`));
+                            let totalSize = 0;
+
+                            // Check file sizes by fetching metadata
+                            for (const file of directoryArray) {
+                                if (file) {
+                                    const fileMetaResponse = await request.head(`${baseUrl}/${file}?token=${token}&type=download`);
+                                    const fileSize = parseInt(fileMetaResponse.headers['content-length'], 10);
+
+                                    // Accumulate total size
+                                    totalSize += fileSize;
+
+                                    // If total size exceeds allowed limit, stop further processing
+                                    if (totalSize > maxDownloadSize) {
+                                        throw new Error(`Total size of files exceeds the allowed limit of ${maxDownloadSize/1024/1024/1024}GB.`);
+                                    }
+                                }
+                            }
 
                             // Create a stream and set up archiver
                             const archive = archiver('zip', { zlib: { level: 9 } });
