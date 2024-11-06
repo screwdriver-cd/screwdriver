@@ -166,36 +166,3 @@ When(/^the (detached )?"(BAM|BOOZ)" job is started$/, { timeout: TIMEOUT }, func
             this.buildId = resp.body[0].id;
         });
 });
-
-Then(/^the "BOOZ" job is enabled$/, { timeout: TIMEOUT }, function step() {
-    return request({
-        url: `${this.instance}/${this.namespace}/pipelines/${this.pipelineId}/jobs?jobName=fourth`,
-        method: 'GET',
-        context: {
-            token: this.jwt
-        }
-    })
-        .then(resp => {
-            Assert.equal(resp.statusCode, 200);
-            Assert.equal(resp.body.length, 1);
-            Assert.equal(resp.body[0].name, 'fourth');
-
-            return resp.body[0].id;
-        })
-        .then(jobId => {
-            return request({
-                url: `${this.instance}/${this.namespace}/jobs/${jobId}`,
-                method: 'PUT',
-                json: {
-                    state: 'ENABLED',
-                    stateChangeMessage: 'Enabled for testing'
-                },
-                context: {
-                    token: this.jwt
-                }
-            });
-        })
-        .then(resp => {
-            Assert.equal(resp.statusCode, 200);
-        });
-});
